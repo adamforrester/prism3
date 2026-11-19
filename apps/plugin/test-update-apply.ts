@@ -205,6 +205,12 @@
  *                  every glyph's vectors fit its frame, read by the test off the shim's nodes (#2379). Mutations: the
  *                  paint base left black, or its alpha dropped → `drawn/paints`; the fresh glyph import not scaled to
  *                  its frame → `drawn/glyphs`.
+ *   updates off/… a set whose updates are off (#2956): the mark is in the check's hash (`/hash`), the apply leaves the
+ *                  set whole with no version (`/skip`) and says so calmly (`/report`), records no ledger entry
+ *                  (`/ledger`), and once cleared the set is re-planned and written (`/back on`); the due read gives `off`
+ *                  over current, due and kept edits (`/due`). Mutations: the mark out of the dry run's body and hash →
+ *                  `/hash`, `/skip`, `/report`, `/ledger`, `/back on`; `dueOf`'s off loop dropped → `/due`;
+ *                  `ledgerAfter`'s filter dropped → `/ledger`.
  *   damage/under a layer …  a member that draws wrong AND has a layer added by hand: the dry run counts it edited by
  *                  hand, never "to update", its paint still listed; the apply skips it under every choice, named with
  *                  the layer and the damage, and leaves it exactly (#2413). Mutations: the dry run's damage read before
@@ -280,6 +286,7 @@ import { ENGINE_VERSION, parseDesignMd, type BrandInput } from '@prism3/engine';
 import { adoptions, applyComponentPlan, memberStamp, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
+import { dueOf } from './src/as-built-ledger';
 import { EXECUTOR_REACH, reaches } from './src/executor-reach';
 import { EXECUTOR_REVISION } from './src/executor-revision';
 import { materializeForBrand } from './src/brand-def';
@@ -288,7 +295,7 @@ import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type P
 import { adoptMembers, breakingClause, breakingLine, breakingOf, consumerLines, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict as applyVerdictOf, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict as applyVerdictOf, ledgerAfter, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 import { headerFor } from './src/page-header';
 import { readFileSync } from 'node:fs';
 
@@ -818,6 +825,83 @@ for (const earlier of [false, true]) {
   const post = (await previewUpdate(file, targets)).sets[0];
   ok(post.handEdits.length === 1 && post.handEdits[0].member === m.name && post.handEdits[0].path === 'focusRing',
     `#3474 kept/${tag}: the next dry run still reports the ring edit (${JSON.stringify(post.handEdits)})`);
+}
+
+/* ── #4070: a change to a nested set's properties is not a hand edit on the members that nest it ─────────────────── */
+// The owner's Update file run on the template file (2026-11-18) reported 36 hand edits on List, which nobody had edited:
+// List.Item's text property had been renamed in place (#3623), and the `own` part of every List member's record (#3474)
+// held List.Item's whole property list, by full name. List.Item and List are built here with the host's instance model
+// (`figmaInstances`, the main's definitions read live), then the NESTED set alone changes: a property added, one
+// renamed, one given a new default. Nobody touches List, so its check must list no hand edit and read every member
+// current. The paths and counts expected are typed here. Mutations: `instSignature` returning `own` unchanged (props
+// by full name, defaults and all) → `#4070 nested/added`, `/renamed`, `/default`; the `inst` branch of `baselineDiff`
+// dropped → the same three; `finishUpdated`'s `inst` keep dropped → `#4070 nested/kept still reported`.
+section('#4070 nested — a nested set\'s property added, renamed or re-defaulted is not a hand edit on the members that nest it');
+const nestedWorld = async () => {
+  const item = plansOf('list-item'), list = plansOf('list');
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...item, ...list].flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]).concat('space/999'))],
+    styles: [...new Set([...item, ...list].flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set([...item, ...list].flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...[...item, ...list].flatMap((p) => planComps(p.root))])].filter((c) => c !== 'list-item'),
+    page, liveRoot: true, identities: true, scaleConstrained: true, wrapNode: figmaInstances(page),
+  }) as any;
+  const misses = [...(await applyComponentPlan(item, api)).misses, ...(await applyComponentPlan(list, api)).misses];
+  const file = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  const setOf = (name: string) => page.children.find((n) => n.type === 'COMPONENT_SET' && n.name === name) as Node;
+  return { api, file, list, misses, items: setOf('list-item'), lists: setOf('list') };
+};
+const textProp = (set: Node): string => Object.entries(set.componentPropertyDefinitions as Record<string, { type: string }>).find(([, d]) => d.type === 'TEXT')![0];
+for (const [tag, change] of [
+  ['added', (s: Node) => { (s.addComponentProperty as (n: string, t: string, d: string) => string)('note', 'TEXT', 'A note'); }],
+  ['renamed', (s: Node) => { (s.editComponentProperty as (k: string, v: { name: string }) => string)(textProp(s), { name: 'caption' }); }],
+  ['default', (s: Node) => { (s.editComponentProperty as (k: string, v: { defaultValue: string }) => string)(textProp(s), { defaultValue: 'A new default' }); }],
+] as const) {
+  const w = await nestedWorld();
+  const before = (await previewUpdate(w.file, [{ def: 'list', plans: w.list }])).sets[0];
+  ok(w.misses.length === 0 && before.counts.current === 12 && before.handEdits.length === 0,
+    `#4070 nested premise (${tag}): List.Item and List build clean, and List reads 12 current with no hand edit (${w.misses[0] ?? ''}; ${JSON.stringify(before.counts)})`);
+  change(w.items);
+  const after = (await previewUpdate(w.file, [{ def: 'list', plans: w.list }])).sets[0];
+  ok(after.handEdits.length === 0 && after.counts.handEdited === 0 && after.counts.current === 12,
+    `#4070 nested/${tag}: a property ${tag} on List.Item alone leaves every List member current, with no hand edit (${JSON.stringify(after.counts)}; ${JSON.stringify([...new Set(after.handEdits.map((h) => h.path))])})`);
+}
+{
+  // THE STATED LIMIT (#4088 review): `inst` is read only where BOTH records hold it, so every record written before this
+  // build (an `own` part, no `inst`: what main wrote until now) is still compared through `own`, and a nested rename still
+  // reads as a hand edit on every member. The progress entry's "What this cannot fix" rests on this; if a change ever
+  // reads such a record another way, this arm fails and that statement must move with it. Mutation: `baselineDiff` reads
+  // `inst` where only the live side holds it → `#4070 nested/written before`.
+  const w = await nestedWorld();
+  for (const m of membersOf(w.lists)) {
+    const { inst: _inst, ...earlier } = JSON.parse(pdOfMember(m, BASELINE_KEY)) as Record<string, unknown>;
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify(earlier));
+  }
+  (w.items.editComponentProperty as (k: string, v: { name: string }) => string)(textProp(w.items), { name: 'caption' });
+  const after = (await previewUpdate(w.file, [{ def: 'list', plans: w.list }])).sets[0];
+  ok(after.counts.handEdited === 12 && after.counts.current === 0,
+    `#4070 nested/written before: a record with \`own\` and no \`inst\` is still compared through \`own\`, so a rename on List.Item reads on all 12 List members (${JSON.stringify(after.counts)})`);
+}
+{
+  // A REAL EDIT IS STILL ONE: a value set by hand on one nested item reads as a hand edit there, and only there; kept by
+  // an update, it is still reported on the next check.
+  const w = await nestedWorld();
+  const m = membersOf(w.lists)[0];
+  const item2 = childNamed(childNamed(m, 'items'), 'item2');
+  const numberKey = Object.keys(item2.componentProperties as Record<string, unknown>).find((k) => k.startsWith('number#'))!;
+  (item2.setProperties as (p: Record<string, string>) => void)({ [numberKey]: '9.' });
+  const pre = await previewUpdate(w.file, [{ def: 'list', plans: w.list }]);
+  const edits = pre.sets[0].handEdits.map((h) => `${h.member}:${h.path}`);
+  ok(edits.length === 1 && edits[0] === `${m.name}:items/item2`, `#4070 nested/real edit: a value set by hand on one nested item is a hand edit there, and only there (${JSON.stringify(edits)})`);
+  // A plan change on every member, so the update rewrites this one around its kept edit: the root's gap moved.
+  const next = w.list.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root.bound as Record<string, string>).itemSpacing = 'space/999'; return q; });
+  const targets = [{ def: 'list', plans: next }];
+  const pre2 = await previewUpdate(w.file, targets);
+  const res = await applyUpdate(w.file, w.api, targets, previewHashOf(pre2));
+  const post = (await previewUpdate(w.file, targets)).sets[0];
+  ok(res.outcomes[0]?.updated.includes(String(m.name)) && post.handEdits.length === 1 && post.handEdits[0].member === m.name && post.handEdits[0].path === 'items/item2',
+    `#4070 nested/kept still reported: kept by an update that rewrote the member, the edit is still reported (${JSON.stringify(post.handEdits)})`);
 }
 
 /* ── choices ─────────────────────────────────────────────────────────────────────────────────────────── */
@@ -4533,6 +4617,9 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
   ok(st === 'handEdited' && p.counts.update === 0 && p.counts.handEdited === 1 && !!black && previewLine(p) === `${TAG}: 45 members. 1 member edited by hand.`,
     `damage/under a layer dry run: the member counts as edited by hand, not to update, and its paint is still listed (${st}; ${JSON.stringify(p.counts)}; ${black ? `${black.part}.${black.field}: ${black.from}` : 'no paint line'}; ${previewLine(p)})`);
   for (const choice of ['keep', 'overwrite', 'accept'] as const) {
+    // #2956: each choice meets the set with its updates on. The skip turns them off by itself (`updates off/…` and the
+    // survival suite cover that), which would leave the next choice's run with no member to skip.
+    (w.set().setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'updatesOff', '');
     const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])), { choices: { handEdits: choice } });
     const why = res.outcomes[0]?.skipped.find((x) => x.member === String(m.name))?.reason ?? '';
     ok(why.startsWith('a layer was added or removed by hand, and it draws other than its plan (') && why.includes(String(m.name)) && why.includes(`${hit}: stored #000000`) && dumpOf(m) === before,
@@ -7232,6 +7319,49 @@ section('tint — SignInButton\'s white glyph on a dark fill reads current, and 
   const tint = o.content.filter((x) => x.includes('literalTint'));
   ok(o.updated.length === 96 && tint.length === 0,
     `glyph tint/verify: all 96 updated, and no tinted glyph reads as differing from the plan (${o.updated.length} updated; ${tint.length} tint lines${tint.length ? `: ${tint[0]}` : ''})`);
+}
+
+/* ── updates off (#2956) ──────────────────────────────────────────────────────────────────────────────── */
+section('updates off — a set whose updates are off is left as it is, reported calmly; the mark is in the check\'s hash and the due read');
+{
+  // The mark is written and read by its namespace and key TYPED HERE, never through `updates-off.ts`.
+  const mark = (n: Node, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'updatesOff', v);
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  const next = moveGap(w.plans);
+  const targets: UpdateTarget[] = [{ def: TAG, plans: next }];
+  // DESIGNER TOGGLE, OFF: a check taken before the designer turned updates off no longer matches the file.
+  const before = await previewUpdate(w.host, targets);
+  mark(w.set(), 'designer');
+  const stale = await applyUpdate(w.host, w.api as any, targets, previewHashOf(before));
+  ok(!!stale.refusedAll && w.set().getSharedPluginData('prism3', 'updatesOff') === 'designer',
+    `updates off/hash: turning updates off between the check and the confirm refuses the confirm (${stale.refusedAll})`);
+  // SKIP AND REPORT: confirmed against a fresh check, the set is left as it is, every member keeping its gap.
+  const gap = (): string[] => membersOf(w.set()).map((m) => String((childNamed(m, 'content').boundVariables as Record<string, { id: string }> | undefined)?.itemSpacing?.id ?? ''));
+  const gaps = JSON.stringify(gap());
+  const { pre, res } = await confirm(w, targets);
+  const v = applyVerdict(res);
+  ok(pre.sets[0]?.updatesOff === 'designer' && res.outcomes[0]?.off === 'designer' && JSON.stringify(gap()) === gaps && !res.version,
+    `updates off/skip: the set is left as it is, no version saved (${JSON.stringify(res.outcomes[0]?.off)}; gaps unchanged ${JSON.stringify(gap()) === gaps}; version ${res.version})`);
+  ok(v.ok && v.completed && v.headline === '✓ 1 set left as it is, updates off' && v.lines.includes('tag: left as it is. Updates off.') && !v.causes.length,
+    `updates off/report: the verdict is calm and says so (${v.headline}; ${JSON.stringify(v.lines)})`);
+  // The ledger records nothing for it: it was not written, so its entry stands and it is not read as current.
+  const after = ledgerAfter(res.outcomes, () => ({ engine: 'x', def: 'y', rev: 1 } as never));
+  ok(!(TAG in after), `updates off/ledger: a set left for its mark records no entry (${JSON.stringify(Object.keys(after))})`);
+  // DESIGNER TOGGLE, BACK ON: the mark cleared, the next check reads the set as any other and the update writes it.
+  mark(w.set(), '');
+  const back = await confirm(w, targets);
+  ok(!back.pre.sets[0]?.updatesOff && !back.res.outcomes[0]?.off && back.res.outcomes[0]?.updated.length === 45 && gap().every((g) => g === 'V:space/999'),
+    `updates off/back on: turned back on, the set is re-planned and every member updated (${back.res.outcomes[0]?.updated.length})`);
+}
+{
+  // THE DUE READ: an Updates off set reads `off` over due, kept edits and current, so the badge never counts it.
+  const e = { engine: 'e1', def: 'd1', rev: 1 } as never;
+  const ledger = { a: e, b: { engine: 'e1', def: 'old', rev: 1 }, c: { engine: 'e1', def: 'd1', rev: 1, held: { members: 1, changes: ['x'] } } } as never;
+  const due = dueOf(ledger, ['a', 'b', 'c', 'd'], () => e, undefined, { a: 'designer', b: 'auto', c: 'auto' });
+  const plain = dueOf(ledger, ['a', 'b', 'c', 'd'], () => e);
+  ok(JSON.stringify(due) === JSON.stringify({ a: { state: 'off', by: 'designer' }, b: { state: 'off', by: 'auto' }, c: { state: 'off', by: 'auto' }, d: { state: 'unrecorded' } })
+    && plain.b.state === 'due' && plain.c.state === 'kept',
+    `updates off/due: the mark reads over current, due and kept edits, and nothing else moves (${JSON.stringify(due)})`);
 }
 
 // #3326 PR 1 review S2: THE INVARIANT, over every verdict this suite read. A verdict that is not ok says why: at least one

@@ -41,7 +41,7 @@
  * setting changes …`; the reduce keeping an older answer (`m.seq < s.liveDue.seq` dropped) → `Q810 A recount: an
  * answer overtaken by a newer request never shows`.
  */
-import { UPDATE_COPY, compsOpensOf, goWhyOf, blockedDueOf, blockedLine, blockedReason, keptChoicesOf, libraryChangesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
+import { UPDATE_COPY, offSetsOf, offReasonOf, compsOpensOf, goWhyOf, blockedDueOf, blockedLine, blockedReason, keptChoicesOf, libraryChangesOf, keptSetsOf, recheckFirst, recheckHolds, awaitingRead, badgeCount, badgeParts, checkScopeOf, defaultTicks, themeDueOf, themeMatchesOf, panelSetsOf, updateDefsOf, dueCount, engineWhy, dueSetsOf, newSetsOf, queuedOf, setupOfferedOf, startUpdate, statusesOf, stepDone, stepOf, stepsOf, stopUpdate, unrecordedOf, updatableOf } from './src/state/update-file';
 import type { Catalog } from './src/state/component-catalog';
 import { initialHostSession, reduce } from './src/state/host-session';
 
@@ -459,6 +459,26 @@ ok(UPDATE_COPY.compsChip({ add: 2, due: 1, blocked: 2, kept: 1, panels: 2 }) ===
 ok(compsOpensOf({ blocked: 1, due: 0 }), '#3712 Q-UD3 open: blocked: a set that can’t update yet opens Components');
 ok(compsOpensOf({ blocked: 0, due: 1 }), '#3712 Q-UD3 open: due: a due set opens Components');
 ok(!compsOpensOf({ blocked: 0, due: 0 }), '#3712 Q-UD3 open: none: nothing blocked or due (To add, Kept edits or Usage panels alone) leaves it folded');
+
+// ── #2956 (owner decisions 2026-11-17): Updates off ───────────────────────────────────────────────────────────────────
+// The approved strings are TYPED HERE, never read from the copy table they test. Mutations: `offSetsOf` reading `due` →
+// `#2956 off list`; `offReasonOf` ignoring `by` → `#2956 off reason`; the status not pushed → `#2956 off status`.
+{
+  const CATO = [entry('button'), entry('tag'), entry('badge')] as unknown as Catalog;
+  const FO = { present: ['button', 'tag', 'badge'], setUp: true, error: null,
+    due: { button: { state: 'off', by: 'auto' }, tag: { state: 'off', by: 'designer' }, badge: { state: 'due', reason: 'definition' } } } as const;
+  ok(same(offSetsOf(CATO, FO), ['button', 'tag']) && same(dueSetsOf(CATO, FO), ['badge']) && badgeCount(CATO, FO, null, null) === 1,
+    `#2956 off list: a set whose updates are off is listed under Updates off, never Due, and never counted (${JSON.stringify(offSetsOf(CATO, FO))}; badge ${badgeCount(CATO, FO, null, null)})`);
+  ok(offReasonOf(FO.due.button) === 'Turned off when an update couldn’t apply around your edits.' && offReasonOf(FO.due.tag) === null && offReasonOf(FO.due.badge) === null,
+    '#2956 off reason: the quiet reason line only when the update turned it off by itself');
+  ok(same(statusesOf('tag', FO, new Map(), 'done'), ['off']) && same(statusesOf('button', FO, new Map([['button', { members: 4, edited: 1 }]]), 'done'), ['off', 'hand']),
+    '#2956 off status: the set reads Updates off, beside Hand-edited when both');
+  ok(UPDATE_COPY.off === 'Updates off' && UPDATE_COPY.status.off === 'Updates off' && UPDATE_COPY.turnOff === 'Turn off updates' && UPDATE_COPY.turnOn === 'Turn updates back on',
+    '#2956 off copy: the state and its two actions read as approved');
+  // #4227: the Kept edits line agrees with its count, as offSub does.
+  ok(UPDATE_COPY.keptSub(1).startsWith('1 set holds hand edits ') && UPDATE_COPY.keptSub(2).startsWith('2 sets hold hand edits '),
+    `#4227 keptSub agrees with its count (${UPDATE_COPY.keptSub(1).slice(0, 26)} / ${UPDATE_COPY.keptSub(2).slice(0, 26)})`);
+}
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

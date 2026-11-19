@@ -475,27 +475,14 @@ export const captionSizePin = (variant: CaptionSizeRung): number | undefined => 
  *  one clash. The engine's own rule, no trial build. */
 export const captionFloorBlocked = (): boolean => (captionSizePin('md') ?? Infinity) <= 10;
 /** Set or clear a caption size. Brand-wide: caption has one size in every mode, so any editable mode writes the same
- *  bytes. `undefined` clears it, pruning the caption map and then `sizes`, so a cleared brand stays byte-identical. */
-export const setCaptionSize = (variant: CaptionSizeRung, px: number | undefined): void => {
-  const ty = (brandState.typography ??= {});
-  if (px === undefined) {
-    const c = ty.sizes?.caption;
-    if (!c || !ty.sizes) return;
-    delete c[variant];
-    if (!Object.keys(c).length) delete ty.sizes.caption;
-    if (!Object.keys(ty.sizes).length) delete ty.sizes;
-    return;
-  }
-  ((ty.sizes ??= {}).caption ??= {})[variant] = px;
-};
+ *  bytes. `undefined` clears it, pruning the caption map, `sizes` and `typography`, so a cleared brand stays byte-identical. */
+export const setCaptionSize = (variant: CaptionSizeRung, px: number | undefined): void =>
+  // `setPath`'s clear prunes every parent it empties, up to `typography` itself (#4208, the #1071 bug).
+  setPath(brandState, `typography.sizes.caption.${variant}`, px);
 /** The letter spacing role a text type is pinned to, if any. */
 export const trackingPinOf = (g: string): string | undefined => (brandState.typography?.tracking as Record<string, string> | undefined)?.[g];
 /** Pin a text type's letter spacing to a role, or `undefined` to follow its size and nudge again, pruning an emptied
- *  `tracking` so a cleared brand stays byte-identical. Brand-wide. */
-export const setTrackingPin = (g: string, role: string | undefined): void => {
-  if (role !== undefined) { setPath(brandState, `typography.tracking.${g}`, role); return; }
-  const ty = brandState.typography, t = ty?.tracking as Record<string, string> | undefined;
-  if (!ty || !t) return;
-  delete t[g];
-  if (!Object.keys(t).length) delete ty.tracking;
-};
+ *  `tracking` and `typography` so a cleared brand stays byte-identical. Brand-wide. */
+export const setTrackingPin = (g: string, role: string | undefined): void =>
+  // A clear prunes an emptied `tracking` and then an emptied `typography` (#4208, the #1071 bug).
+  setPath(brandState, `typography.tracking.${g}`, role);

@@ -16,14 +16,14 @@ import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
 import { at, deref, pxOf, buildTree, familyOf, aliasFaults, type AliasFault } from './tree';
-import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
+import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, defaultTypeMode, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, overrideGroundRgb, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
 import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { isInverseRole } from './inverse-roles';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
-import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd } from './standard-design-md';
+import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd, xPrism3Warnings } from './standard-design-md';
 import { classifyColors } from './classify-colors';
 import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
 import { leverManifest, leverGroups, buildLeverManifest, identityFields } from './levers';
@@ -57,6 +57,9 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
+import { rtlNote, withMirrors } from './rtl-mirror';
+import { RTL_MIRRORED_GLYPHS, ICON_SOURCES } from './icon-set';
+import { docSections } from './component-doc-sections';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, fieldStyleFor, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
@@ -194,7 +197,22 @@ if (!import.meta.url.endsWith('?cov')) {
         return count;
       };
       const unexecuted: string[] = [];
-      readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').forEach((text, i) => {
+      const source = readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n');
+      // #3985: a span this run SKIPPED (by its label, recorded at runtime by `skip`) is exempt, every site in it
+      // counted as skipped, never as ran. So is a span whose premise FAILED by name (`failSpan`): the run already
+      // fails for that, and its sites are reported as not run, not as a second, unnamed failure. Its markers must
+      // each occur once, in order.
+      const skippedNow = ((globalThis as Record<string, unknown>).__prism3SkippedSpans ?? new Map()) as Map<string, string>;
+      const failedNow = ((globalThis as Record<string, unknown>).__prism3FailedSpans ?? new Map()) as Map<string, string>;
+      const skippedLines = new Map<number, string>();
+      for (const label of new Set([...skippedNow.keys(), ...failedNow.keys()])) {
+        const at = (edge: string) => source.flatMap((l, i) => (l.trim() === `// #1268 SKIPPABLE SPAN ${label} ${edge}` ? [i] : []));
+        const [b, e] = [at('BEGIN'), at('END')];
+        if (b.length !== 1 || e.length !== 1 || e[0] < b[0]) { siteFails.push(`the skipped span '${label}' has ${b.length} BEGIN and ${e.length} END marker(s) — it must have one of each, in order, or nothing can be exempted`); continue; }
+        for (let i = b[0]; i <= e[0]; i++) skippedLines.set(i, label);
+      }
+      const skippedSites = new Map<string, number>();
+      source.forEach((text, i) => {
         const t = text.trim();
         if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*') || /\bconst ok = /.test(text)) return;
         for (const m of text.matchAll(/(?<![\w.$])ok\(/g)) {
@@ -203,10 +221,17 @@ if (!import.meta.url.endsWith('?cov')) {
           if (off === undefined) { siteFails.push(`test.ts:${i + 1} — the scan found an \`ok\` call the transpiled script does not have (inside a string or a trailing comment?); reword it so the scan and the code agree: ${t.slice(0, 100)}`); continue; }
           const n = countAt(off);
           if (control) { controls++; if (n === 0) controlZeros++; continue; }
+          // Not "and none of them ran": coverage cannot see a zero past an unreached `&&` (#3987). The arm that
+          // skips checks that at runtime instead, by its own assertion count.
+          const span = skippedLines.get(i);
+          if (span !== undefined) { skippedSites.set(span, (skippedSites.get(span) ?? 0) + 1); continue; }
           sites++;
           if (n === 0) unexecuted.push(`test.ts:${i + 1}  ${t.slice(0, 110)}`);
         }
       });
+      for (const [label, n] of skippedSites) console.log(skippedNow.has(label)
+        ? `  ⊘ assertion sites (#1268): ${n} site(s) in '${label}' SKIPPED, not run and not passed — ${skippedNow.get(label)}`
+        : `  ⊘ assertion sites (#1268): ${n} site(s) in '${label}' not run, because its premise FAILED by name above — ${failedNow.get(label)}`);
       if (unexecuted.length) siteFails.push(`${unexecuted.length} assertion site(s) never ran — a section went quiet and its arms passed by not asking. If a site can only fire on failure, make its first argument the literal \`false\`, inside the branch that detects it:\n      ${unexecuted.slice(0, 25).join('\n      ')}${unexecuted.length > 25 ? `\n      … and ${unexecuted.length - 25} more` : ''}`);
       if (!sites) siteFails.push('the scan found no `ok` call sites at all — the scan is broken, not the suite');
       if (controls && !controlZeros) siteFails.push(`none of the ${controls} failure-only sites (first argument the literal \`false\`) reads as unexecuted — on a green run that means the coverage probe cannot see a zero, and every site above "ran" by construction`);
@@ -220,6 +245,21 @@ if (!import.meta.url.endsWith('?cov')) {
 
 let pass = 0; const fails: string[] = [];
 const ok = (cond: boolean, msg: string) => { if (cond) pass++; else fails.push(msg); };
+// A SKIP IS NOT A PASS (#3985). An arm whose FIXTURE needs something this checkout cannot give (the replays of
+// prism3's own history, in a repo seeded from an older snapshot of it) does not run, and says so: `skip` records
+// it, it counts in no `pass`, the report prints it by name, and the closing line then refuses to say "all hold".
+// Its `ok(` sites sit between `// #1268 SKIPPABLE SPAN <label> BEGIN` and `… END`; the assertion-site arm above
+// exempts them only when THIS run recorded that label; the arm that skips asserts by count that its span recorded
+// no assertion (coverage cannot see that zero, #3987). The map is on
+// `globalThis` because the `?cov` instance that records a skip is not the outer instance that reads coverage.
+//   A skip still EXITS 0, so `verify.ts` reads this suite as PASS and the skip shows only in this suite's own
+// output. That includes a local prism3 checkout without `GITHUB_REPOSITORY`: a shallow clone of prism3 skips
+// there rather than failing. CI guards it (`fetch-depth: 0` plus `GITHUB_REPOSITORY`, where a broken premise
+// FAILS by name and `failSpan` records the span as not run, so the #1268 probe adds no second, unnamed failure).
+const skippedSpans = ((globalThis as Record<string, unknown>).__prism3SkippedSpans ??= new Map<string, string>()) as Map<string, string>;
+const skip = (label: string, why: string): void => { skippedSpans.set(label, why); };
+const failedSpans = ((globalThis as Record<string, unknown>).__prism3FailedSpans ??= new Map<string, string>()) as Map<string, string>;
+const failSpan = (label: string, why: string): void => { failedSpans.set(label, why); };
 // A THROW NOTHING CAUGHT STILL NAMES WHAT FAILED BEFORE IT (#1814 review). Without this, an arm that records
 // a failure and a later line that throws print only the stack: the review's mutation that let the chunk
 // packer empty a chunk failed `#1814 settleChunks` by name, then crashed the first `planSetChunks` call
@@ -309,6 +349,7 @@ const BRAND_ROOTS: Record<string, string> = {
   nb: NB_ROOT,
   prism3: exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))?.root ?? unloadedRoot('prism3'),
   aurora: exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))?.root ?? unloadedRoot('aurora'),
+  harbor: exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))?.root ?? unloadedRoot('harbor'),
   wendys: exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))?.root ?? unloadedRoot('wendys'),
 };
 const rootOfBrand = (brand: string): string => {
@@ -5870,8 +5911,8 @@ arm: {
     // onto `color`, so the stem is `color.<mode>.json` — one file per appearance mode, the shape the
     // value tier always had, under the short name. The floor arm on the next line is the only thing
     // between a fifth such move and a green suite — it is not decoration.
-    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
-    ok(figmaBrands.length >= 3, `color: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
+    const figmaBrands = ['nb', 'aurora', 'harbor', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
+    ok(figmaBrands.length >= 4, `color: the emission covers ${figmaBrands.length} brands (floor 4) — a dropped brand must not read as a clean pass`);
     for (const brand of figmaBrands) {
       const dir = resolve(HERE, `./out/figma/${brand}`);
 
@@ -6335,6 +6376,28 @@ arm: {
   // (d) an absent map is a byte-identical no-op (the primary guard).
   ok(JSON.stringify(buildTree(brandTheme(base)).tree) === JSON.stringify(buildTree(brandTheme({ ...base, modeAnchors: {} } as unknown as BrandInput)).tree),
     'A2b(d): an empty modeAnchors map produces byte-identical output');
+}
+
+// #2076 (owner decision 2026-11-18, A): `controlShape`'s schema description is the lever manifest's wording, with the
+// token names an agent reads kept. Held: it names each shape's rung, and none of the words #2050 retired from visible
+// copy or the claim #2059 made false ("implies the hairline rung": radius.hairline ships for every brand). The token
+// names are typed here, not read from the emitter.
+{
+  const cs = JSON.parse(readFileSync(resolve(HERE, 'schema', 'theme-schema.json'), 'utf8')).properties.controlShape.description as string;
+  const missing = ['radius.none', 'radius.hairline', 'radius.md', 'radius.capsule'].filter((t) => !cs.includes(t));
+  ok(missing.length === 0, `#2076: controlShape's schema description names every shape's token (missing: ${missing.join(', ') || 'none'})`);
+  const stale = ['implies', 'pill-able', 'rung'].filter((w) => cs.toLowerCase().includes(w));
+  ok(stale.length === 0, `#2076: controlShape's schema description carries none of the retired words or the false claim (found: ${stale.join(', ') || 'none'})`);
+}
+// #4019 (#2343 Q-B6 A): Link's usage carries the social follow-link example, and the mark it names is one the set ships.
+// The set is read from the artwork folder on disk, not from the glyph table the defs import.
+{
+  const usage = componentDefs.find((d) => d.id === 'link')!.docs.usage;
+  const named = usage.match(/social\/[a-z0-9-]+-mono/)?.[0];
+  const shipped = readdirSync(resolve(HERE, 'marks', 'social')).filter((f) => f.endsWith('.svg')).map((f) => `social/${f.slice(0, -4)}`);
+  ok(/follow link/i.test(usage) && !!named && shipped.includes(named),
+    `#4019: Link's usage gives the social follow-link example around a one-color mark the set ships (${named ?? 'none named'})`);
+  ok(/aria-label/.test(usage) && /aria-hidden/.test(usage), "#4019: the follow-link example names the link by aria-label and hides the mark");
 }
 
 // USER-ADDED CUSTOM MODES (Phase C1) — a custom mode `{ name, base }` LIVE-INHERITS a customizable
@@ -7543,6 +7606,36 @@ arm: {
   }
 }
 
+// ---- BADGE'S ACCESSIBILITY PROSE CITES THE #1745 CONTRACTS (#1775, owner decision A) ------------------------------
+// The block above holds that the engine CONTRACTS the three neutral pairs. This holds that Badge's shipped WCAG lines
+// SAY so, and that they still call the bold TONE fills' page separation a measurement: that pair is not contracted
+// against the page (each tone fill's contract is against the mode's floor ground). Both halves are literals typed
+// from the decision, so the prose cannot drift into claiming a contract for the tones, or back into calling the
+// neutral pairs merely measured. The roles named here are the ones the #1745 arm above reads from resolved modes.
+{
+  const def = componentDefs.find((d) => d.id === 'badge')!;
+  const wcag = def?.accessibility?.wcag ?? [];
+  const line = (sc: string): string => wcag.find((w) => w.startsWith(`${sc} `)) ?? '';
+  const l143 = line('1.4.3'), l1411 = line('1.4.11');
+  // 1.4.3: the bold neutral label pair is a contract at 4.5:1; the general label claim stays measured.
+  const miss143: string[] = [];
+  if (!l143.includes('`color.inverse.text.primary` on `color.inverse.foreground.tertiary`, is also a mode contract at 4.5:1')) miss143.push('the bold neutral label contract');
+  if (!l143.includes('checks it for every brand in every mode')) miss143.push('every brand, every mode');
+  if (!l143.includes('measured in every mode of the example brands')) miss143.push('the measured general claim');
+  ok(l143 !== '' && miss143.length === 0, `#1775 badge 1.4.3 cites the bold neutral label's 4.5:1 mode contract and keeps the rest measured${miss143.length ? ` — MISSING: ${miss143.join('; ')}` : ''}`);
+  // 1.4.11: the neutral fill and the neutral edge are contracts; the tone fills are measured, NOT contracted.
+  const miss1411: string[] = [];
+  if (!l1411.includes('`color.inverse.foreground.tertiary`, is a mode contract against the page at the non-text bar, 3:1 and 4.5:1 in high contrast')) miss1411.push('the neutral fill contract');
+  if (!l1411.includes('`color.border.tertiary`, is a mode contract at the same bar')) miss1411.push('the neutral edge contract');
+  if (!l1411.includes('clear 3:1 against the page as measured in every mode of the example brands; that is a measurement, not a contract')) miss1411.push('the tone dots measured, not contracted');
+  if (!l1411.includes('The bold tone fills clear 3:1 against the page in the same measurement, not by contract')) miss1411.push('the tone fills measured, not contracted');
+  // No sentence may call a TONE fill contracted: a "contract" sentence must name a neutral role.
+  const toneContract = l1411.split(/(?<=\.) /).filter((x) => /\btone\b/.test(x) && /contract/.test(x) && !/not (a|by) contract/.test(x));
+  if (toneContract.length) miss1411.push(`a tone sentence claims a contract: "${toneContract[0]}"`);
+  ok(l1411 !== '' && miss1411.length === 0, `#1775 badge 1.4.11 cites the neutral fill and edge contracts and keeps the tone fills measured, not contracted${miss1411.length ? ` — WRONG: ${miss1411.join('; ')}` : ''}`);
+}
+
+
 // ---- TAG — the owner's decisions of 2026-09-27 and 2026-09-28, held here with literal expectations ---------
 // Written from the decisions, not read back from the def: interactive only (the five projected states), two
 // types on a `type` axis and prop with the literal values select | dismissible, no nested remove button (the ×
@@ -7658,6 +7751,88 @@ arm: {
   const narrow = gapPx.filter(([, px]) => px === undefined || px < 8);
   ok(gapPx.length === 7 && narrow.length === 0,
     `tag group spacing is at least 8px in all ${gapPx.length} builds${narrow.length ? ` — ${narrow.map(([b, px]) => `${b} ${px ?? 'unresolved'}`).join('; ')}` : ''}`);
+
+  // TAG.GROUP (#1739, owner 2026-11-18: A, A, A), each decision held against a literal from the decision, never read off
+  // the def. (1) Multiple selection as pressed toggle buttons; (2) overflow wraps, no "+N more"; (3) a set holding a row
+  // of three nested tags, the gap bound to `space.100` across and down, the same step as Tag's `group-gap`.
+  {
+    const tg = componentDefs.find((d) => d.id === 'tag-group');
+    ok(!!tg && tg.name === 'Tag.Group' && tg.category === 'foundations' && validateComponentDef(tg).errors.length === 0,
+      `#1739 tag-group: registered as Tag.Group, category foundations, valid (${tg ? validateComponentDef(tg).errors.join('; ') || 'ok' : 'missing'})`);
+    if (tg) {
+      const aria = JSON.stringify(tg.accessibility);
+      const valueProp = tg.props.find((p) => p.name === 'value');
+      ok(valueProp?.type === 'string[]' && /aria-pressed/.test(tg.accessibility.role) && !/listbox|radiogroup|aria-multiselectable/.test(tg.accessibility.role)
+        && !/aria-selected|aria-checked/.test(aria),
+        `#1739 tag-group selection: many pressed values (value: string[]), each select tag aria-pressed, no listbox or radiogroup (value ${valueProp?.type}; role ${tg.accessibility.role.slice(0, 80)})`);
+      // The container role (owner, #3949, 2026-11-18, Q-TG1 B): a select group is `role="toolbar"`, one Tab stop with
+      // arrow keys across the toggle tags; a dismissible group keeps `role="grid"`. Literals from the decision, read
+      // against the shipped role sentence and the code-tier semantics entry, never against each other.
+      const roleText = tg.accessibility.role;
+      const roleSentences = roleText.split(/(?<=\.)\s+/);
+      const selectRole = roleSentences.find((x) => /select tags/i.test(x)) ?? '';
+      const dismissRole = roleSentences.find((x) => /dismissible tags/i.test(x)) ?? '';
+      const declared = [...roleText.matchAll(/role="([a-z]+)"/g)].map((m) => m[1]).sort().join(',');
+      const semantics = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('The group element')) ?? '';
+      ok(/role="toolbar"/.test(selectRole) && !/role="(group|grid|listbox|radiogroup)"/.test(selectRole)
+        && /role="grid"/.test(dismissRole) && declared === 'grid,toolbar'
+        && /One Tab stop/.test(tg.accessibility.keyboard) && /arrows/.test(tg.accessibility.keyboard)
+        && /A select group is `role="toolbar"`/.test(semantics),
+        `#3949 tag-group role: a select group is role="toolbar" with one Tab stop and arrow keys, a dismissible group role="grid" (select: ${selectRole.slice(0, 60) || 'none'}; roles ${declared || 'none'}; codeOnly ${/role="toolbar"/.test(semantics) ? 'toolbar' : 'missing'})`);
+      // The roving tabindex (review of #3949, S2): the code-tier keyboard entry holds the one-Tab-stop mechanics, so a
+      // re-accepted surface digest cannot quietly lose them. Literals from the decision, read against the shipped entry.
+      const kbd = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('The keyboard')) ?? '';
+      ok(/one Tab stop/i.test(kbd) && /roving tabindex/.test(kbd) && (kbd.match(/tabindex="0"/g) ?? []).length === 1
+        && /the last-focused tag holds `tabindex="0"`/.test(kbd) && /every other `-1`/.test(kbd),
+        `#3949 tag-group roving tabindex: one Tab stop, the last-focused tag tabindex="0" and every other -1 (${kbd.slice(0, 110) || 'no keyboard entry'})`);
+      // Tag's own fields agree with the group contract (review of #3949, S1): Tag.Group owns a select group's selection
+      // as pressed toggle buttons in a role="toolbar" (#1739 A, Q-TG1 B), so Tag never tells a reader to build the group
+      // as a listbox, a radiogroup or checkboxes, or that arrows select. Literals, read against Tag's shipped fields.
+      const tagDef = componentDefs.find((d) => d.id === 'tag');
+      const tagSelect = (codeOnlyText(tagDef?.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('The select tag in code')) ?? '';
+      const tagText = JSON.stringify([tagDef?.accessibility, tagSelect]);
+      const tagStray = [...new Set([...tagText.matchAll(/listbox|radiogroup|role=\\?"checkbox\\?"|aria-checked|aria-selected|single-choice|single choice|move and select/g)].map((m) => m[0].replace(/\\/g, '')))];
+      // A denylist alone lets a new contradiction through (review of #3949, should-fix 1: "arrows move to the next tag
+      // and toggle it" passed), so the keyboard sentences also carry the decision's positive literals: one tab stop, and
+      // arrows that move focus without toggling, on Tag's select sentence and on Tag.Group's keyboard field.
+      const tagKbdSelect = (tagDef?.accessibility.keyboard ?? '').split(/(?<=\.)\s+(?=Dismissible:)/)[0];
+      const tagKbdOk = /one tab stop/i.test(tagKbdSelect) && /arrows move focus between tags without toggling/.test(tagKbdSelect);
+      const groupKbdOk = /one tab stop/i.test(tg.accessibility.keyboard) && /arrows move focus between tags without toggling/.test(tg.accessibility.keyboard);
+      ok(!!tagDef && tagStray.length === 0 && /aria-pressed/.test(tagDef.accessibility.role) && /role="toolbar"/.test(tagDef.accessibility.role)
+        && /aria-pressed/.test(tagSelect) && /role="toolbar"/.test(tagSelect) && tagKbdOk && groupKbdOk,
+        `#3949 tag select contract: Tag's role, keyboard, aria and select code entry match Tag.Group's toolbar of pressed buttons (stray: ${tagStray.join(', ') || 'none'}; Tag keyboard ${tagKbdOk ? 'ok' : `"${tagKbdSelect.slice(0, 120)}"`}; Tag.Group keyboard ${groupKbdOk ? 'ok' : `"${tg.accessibility.keyboard.slice(0, 120)}"`}; role ${tagDef?.accessibility.role.slice(0, 70)})`);
+      const shipped = JSON.stringify([tg.summary, tg.description, tg.docs, tg.ai, tg.accessibility, tg.props]);
+      const overflow = (codeOnlyText(tg.anatomy?.codeOnly) ?? []).find((l) => l.startsWith('Overflow')) ?? '';
+      ok(!/\+N more|\+\d+ more/i.test(shipped) && /flex-wrap: wrap/.test(overflow),
+        `#1739 tag-group overflow: wraps, and nothing shipped offers "+N more" (${overflow.slice(0, 80) || 'no Overflow line'})`);
+      const items = tg.anatomy?.parts['items'];
+      ok(tg.tokens['group-gap'] === 'space.100' && tg.tokens['group-gap'] === tagDef.tokens['group-gap']
+        && items?.kind === 'box' && items.gap === 'group-gap' && items.rowGap === 'group-gap' && items.layout?.wrap === true
+        && !(tg.densitySpacing ?? []).includes('group-gap'),
+        `#1739 tag-group gap: the items row wraps, gap and line gap both bind space.100, Tag's group-gap, and density leaves it alone (${tg.tokens['group-gap']}, gap ${items?.kind === 'box' ? items.gap : '-'}, rowGap ${items?.kind === 'box' ? items.rowGap : '-'})`);
+      // The projected set: one member per size, each an items slot of three nested select tags, wrapping, both gaps bound.
+      const members = figmaAnatomySet(tg) as any[];
+      const findP = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findP(c, name)).find(Boolean));
+      const wrong = members.flatMap((m) => {
+        const it = findP(m.root, 'items');
+        const kids = (it?.children ?? []) as any[];
+        const bad: string[] = [];
+        if (it?.type !== 'CONTENT_SLOT') bad.push(`items is ${it?.type}`);
+        if (it?.layoutWrap !== 'WRAP') bad.push(`layoutWrap ${it?.layoutWrap}`);
+        if (it?.bound?.itemSpacing !== 'space/100' || it?.bound?.counterAxisSpacing !== 'space/100') bad.push(`gaps ${it?.bound?.itemSpacing}/${it?.bound?.counterAxisSpacing}`);
+        if (kids.length !== 3 || kids.some((k) => k.type !== 'NESTED_INSTANCE' || k.nestTarget !== 'tag' || k.nestVariant?.type !== 'select' || k.nestVariant?.size !== m.size))
+          bad.push(`tags ${kids.map((k) => `${k.nestTarget}:${k.nestVariant?.type}/${k.nestVariant?.size}`).join(',')}`);
+        return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+      });
+      ok(members.length === 3 && wrong.length === 0,
+        `#1739 tag-group set: 3 members, each a wrapping items slot of three select Tags at the member's size, both gaps bound to space/100 (${members.length} members${wrong.length ? ` — ${wrong.join(' | ')}` : ''})`);
+      // The schema field the line gap rides: refused on a row that does not wrap, since Figma has no line gap there.
+      const unwrapped = JSON.parse(JSON.stringify(tg));
+      delete unwrapped.anatomy.parts.items.layout.wrap;
+      ok(validateComponentDef(unwrapped).errors.some((e) => /binds 'rowGap' but its layout does not wrap/.test(e)),
+        `#1739 rowGap: refused on a box whose layout does not wrap`);
+    }
+  }
 
   // THE FIGMA SET, read off the PROJECTED members. 2 types × 2 selections × 3 sizes × 5 states = 60, less the
   // 15 dismissible × selected members = 45, and none of those 15 exists.
@@ -9876,8 +10051,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       if (!k.endsWith('-link') && !(meta?.avoid_when ?? '').includes('`type.caption.lg`')) bad.push(`${where}: .ai.json avoid_when does not send standalone small print to caption.lg ("${meta?.avoid_when}")`);
     }
   }
-  // The Figma text styles of the four brands that ship them: body/xs is not for running text.
-  for (const b of ['aurora', 'nb', 'prism3', 'wendys']) {
+  // The Figma text styles of the five brands that ship them: body/xs is not for running text.
+  for (const b of ['aurora', 'harbor', 'nb', 'prism3', 'wendys']) {
     const styles = JSON.parse(readFileSync(resolve(HERE, `out/figma/${b}/text-styles.json`), 'utf8')).styles as { name: string; description: string }[];
     const xs = styles.filter((st) => st.name.startsWith('body/xs/'));
     if (!xs.length) bad.push(`${b}: no body/xs Figma text style`);
@@ -10223,6 +10398,30 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // tinted base is non-black
   const tinted = shBrand('sh-tint', { tint: { hue: 285, amount: 0.6 } }).shadow;
   ok(tinted.colorRgb.r + tinted.colorRgb.g + tinted.colorRgb.b > 0, 'tinted shadow base is not pure black');
+}
+
+// ------------------------------------------------- #2935: the default type mode per breakpoint
+// Owner decision 2026-11-18 (A): mobile below 1024px, desktop from 1024px up. The expectations are typed here,
+// per floor, never computed from `defaultTypeMode` or `DESKTOP_TYPE_FROM_PX` (docs/34): a rule that moved its
+// threshold, flipped its comparison or returned one mode everywhere fails a named arm below.
+{
+  const cases: [number, 'mobile' | 'desktop'][] = [[0, 'mobile'], [360, 'mobile'], [768, 'mobile'], [1023, 'mobile'], [1024, 'desktop'], [1440, 'desktop'], [1920, 'desktop']];
+  for (const [px, want] of cases) ok(defaultTypeMode(px) === want, `#2935 TYPE MODE: a ${px}px breakpoint defaults to ${want} type (got ${defaultTypeMode(px)})`);
+  // The emitted Figma description carries it, per breakpoint variable, for the default five and for a two-breakpoint brand.
+  const desc = (t: Theme): Record<string, string> => Object.fromEntries((buildFigmaLayout(t)[0]?.variables ?? [])
+    .filter((v) => /\/breakpoint\//.test(v.name)).map((v) => [v.name.split('/').pop() as string, v.description ?? '']));
+  const base = { primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const five = desc(brandTheme({ id: 'tm5', ...base }));
+  const wantFive: Record<string, string> = { sm: 'mobile', md: 'mobile', lg: 'desktop', xl: 'desktop', '2xl': 'desktop' };
+  for (const [bp, m] of Object.entries(wantFive))
+    ok((five[bp] ?? '').endsWith(`uses ${m} type by default`), `#2935 TYPE MODE: breakpoint/${bp} says ${m} type in its Figma description (got "${five[bp]}")`);
+  const two = desc(brandTheme({ id: 'tm2', ...base, layout: { breakpoints: [0, 768] } } as BrandInput));
+  ok((two.sm ?? '').endsWith('uses mobile type by default') && (two.md ?? '').endsWith('uses mobile type by default'),
+    `#2935 TYPE MODE: a 0/768 brand's sm and md both default to mobile type (got "${two.sm}" / "${two.md}")`);
+  // Static type: `type-sets` has no modes, so no breakpoint names one.
+  const flat = desc(brandTheme({ id: 'tmS', ...base, typography: { responsive: { fluid: false } } } as BrandInput));
+  ok(Object.keys(flat).length === 5 && Object.values(flat).every((d) => !/ type by default/.test(d)),
+    `#2935 TYPE MODE: with static type no breakpoint names a type mode (got ${JSON.stringify(flat)})`);
 }
 
 // ------------------------------------------------- layout / breakpoint invariants
@@ -11202,6 +11401,32 @@ arm: {
   // compiles on engine defaults, and this is now stated where no brand's future can rot it.
   ok(standardToBrandInput(parseStandardDesignMd('---\nname: Plain\ncolors:\n  primary: "#3366cc"\n  neutral: "#888888"\n---\n')).xApplied.length === 0,
     'dialect: a base-spec brief with NO x-prism3 block applies no levers — the plain-spec guarantee, witnessed independently of any shipped brand');
+  // #2678 (owner decision Q-XP1 A, option a): an x-prism3 key the dialect does not read is WARNED by name, and the file
+  // keeps compiling. EXPECTED is typed here from the issue's list of the ten keys the block reads, never from
+  // `X_PRISM3_KEYS`, so a key added to or dropped from the list moves this arm. The issue's reproduction is the input:
+  // `controlShape` and `linkPalette` used to pass silently. Mutations: the filter dropped (every key warns) →
+  // `#2678 known keys`; `xWarnings` returned empty → `#2678 unknown keys` and `#2678 cli`.
+  {
+    const KNOWN_2678 = ['radiusScale', 'personality', 'root', 'typeScale', 'density', 'motionTempo', 'actionPalette', 'iconContrast', 'surfaces', 'gradients'];
+    const knownWarned = KNOWN_2678.filter((k) => xPrism3Warnings({ [k]: 1 }).length > 0);
+    ok(knownWarned.length === 0, `#2678 known keys: none of the ten keys the block reads is warned (warned: [${knownWarned.join(', ')}])`);
+    const brief2678 = '---\nname: Unknown Keys\ncolors:\n  primary: "#3366cc"\n  neutral: "#888888"\nx-prism3:\n  controlShape: pill\n  root: uk\n  linkPalette: bogus-palette\n---\n';
+    let conv: ReturnType<typeof standardToBrandInput> | undefined;
+    try { conv = standardToBrandInput(parseStandardDesignMd(brief2678)); } catch { /* recorded below */ }
+    ok(!!conv && conv.xWarnings?.join(' | ') === "x-prism3: ignored unknown setting 'controlShape' | x-prism3: ignored unknown setting 'linkPalette'" && conv.xApplied.join(' | ') === 'root=uk',
+      `#2678 unknown keys: each unknown x-prism3 key is warned by name, in file order, and the known one still applies (warnings ${JSON.stringify(conv?.xWarnings)}; applied ${JSON.stringify(conv?.xApplied)})`);
+    const dir2678 = mkdtempSync(join(tmpdir(), 'p3-2678-'));
+    try {
+      const file = join(dir2678, 'unknown-keys.design.md');
+      writeFileSync(file, brief2678);
+      const r = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), file, '--out', join(dir2678, 'out')], { cwd: HERE, encoding: 'utf8' });
+      const so = r.stdout ?? '';
+      ok(r.status === 0 && so.includes("⚠ x-prism3: ignored unknown setting 'controlShape'") && so.includes("⚠ x-prism3: ignored unknown setting 'linkPalette'") && !so.includes("unknown setting 'root'"),
+        `#2678 cli: the CLI names each skipped x-prism3 key in its notes and still compiles (exit ${r.status}; stdout ${JSON.stringify(so.slice(0, 400))}; stderr ${JSON.stringify((r.stderr ?? '').slice(0, 300))})`);
+    } finally {
+      rmSync(dir2678, { recursive: true, force: true });
+    }
+  }
   ok(validateBrandInput(input).length === 0, 'wendys standard: classified BrandInput schema-conforms');
   const theme = exampleTheme('wendys', () => brandTheme(input));
   if (!theme) break arm;
@@ -11363,6 +11588,8 @@ arm: {
       ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
       // #2324: "Text button hover: Fill" moves only the materialized button defs (the text appearance's wash).
       ['buttonTextHover', 'fill'],
+      // #576: "Outline button border: Thick" adds no token; it rebinds only the materialized button defs' edge.
+      ['buttonBorderWeight', 'thick'],
       // `hairline` joined `boxed` and `pill` with #2053: the rung is always emitted now, so the shape moves only the
       // materialized defs (its radius binding), as the other two do.
       ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
@@ -11534,6 +11761,31 @@ arm: {
   for (const s of ['full', 'reduced', 'conventional']) {
     const r = dRoles({ ...seed, disabledStrategy: s, disabledMin: 3 }, 'hc-light')['disabled.text'];
     ok((r?.min ?? 0) >= 4.5, `#290 disabled: high-contrast escalates '${s}' to >=4.5 (got ${r?.min})`);
+  }
+
+  // THE DISABLED EDGE FOLLOWS THE LEVERS (#2750; owner decision lettered A, text = option B, 2026-11-18). `disabled.border` (and its inverse
+  // twin) clears the same floor as the disabled inks, so both levers move it. On main it was the fixed `neutralLow()`
+  // step rated `min: 0`: the same hex at every setting, 1.5–1.8:1 against the page. The expectations are the lever's
+  // own numbers (4.5 for 'full', the dial for 'reduced', >=4.5 in high contrast), never read from `modes.ts`.
+  {
+    const settings: [string, any, number][] = [
+      ['full', { ...seed, disabledStrategy: 'full' }, 4.5],
+      ['reduced 3', { ...seed, disabledStrategy: 'reduced', disabledMin: 3 }, 3],
+      ['reduced 4.5', { ...seed, disabledStrategy: 'reduced', disabledMin: 4.5 }, 4.5],
+    ];
+    const misses: string[] = [];
+    for (const [label, input, want] of settings) for (const m of ['light', 'dark', 'hc-light']) {
+      const floor = m.startsWith('hc') ? Math.max(want, 4.5) : want;
+      const roles = dRoles(input, m) as Record<string, { ratio?: number; min?: number; hex?: string } | undefined>;
+      for (const k of ['disabled.border', 'inverse.disabled.border']) {
+        const r = roles[k];
+        if (!r || r.min !== floor || (r.ratio ?? 0) < floor) misses.push(`${label} ${m} ${k} min ${r?.min} ratio ${r?.ratio}`);
+      }
+    }
+    ok(misses.length === 0, `#2750 disabled.border clears the disabled levers' floor in every setting, mode and context — misses: ${misses.join('; ') || 'none'}`);
+    const hexAt = (input: any) => (dRoles(input, 'light') as Record<string, { hex?: string } | undefined>)['disabled.border']?.hex;
+    const lo = hexAt(settings[1]![1]), hi = hexAt(settings[2]![1]);
+    ok(!!lo && !!hi && lo !== hi, `#2750 disabledMin moves disabled.border (reduced 3 ${lo}, reduced 4.5 ${hi})`);
   }
 
   // The schema must REJECT a sub-3 floor rather than rely on the engine clamp — the clamp protects
@@ -20555,7 +20807,7 @@ arm: {
     const TIER: Record<string, number> = {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'sign-in-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
-      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
+      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2, 'tag-group': 2,
       'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
@@ -22055,6 +22307,20 @@ arm: {
       return Object.keys(kbBriefs).find((f) => names.includes(f.slice(0, -3)))
         ?? Object.keys(kbBriefs).find((f) => kbBriefs[f].aliases.some((a) => names.includes(a.toLowerCase())));
     };
+    // THE OWNER'S CATEGORY DECISION #4045 A (2026-11-18), typed here from the decision and never read from a def. Veil
+    // and Divider leave `foundations` to match the Figma file, which places both under Components
+    // (`apps/plugin/src/file-taxonomy.ts`). Mutations: Veil or Divider back on `foundations` → `#4045 veil:` /
+    // `#4045 divider:`; Divider's `OWNER_CATEGORY` entry dropped → `#1700 divider: category is …`.
+    const DECIDED_CATEGORY_4045: Record<string, string> = { veil: 'overlay', divider: 'layout' };
+    for (const id of Object.keys(DECIDED_CATEGORY_4045))
+      ok(componentDefs.find((d) => d.id === id)?.category === DECIDED_CATEGORY_4045[id],
+        `#4045 ${id}: is filed under '${DECIDED_CATEGORY_4045[id]}', out of foundations, as the Figma file places it under Components (got '${componentDefs.find((d) => d.id === id)?.category}')`);
+    // THE OWNER'S DEPARTURES FROM A BRIEF'S CATEGORY, typed from the decision and admitted by name, never by pattern.
+    // Each entry records the brief and the category it departs from, so the entry fails if the brief moves under it.
+    // Veil has no brief, so its choice is the header's stated category and needs no entry here.
+    const OWNER_CATEGORY: Record<string, { brief: string; from: string; category: string }> = {
+      divider: { brief: 'divider.md', from: 'foundations', category: 'layout' },
+    };
     const defDir = resolve(HERE, './components');
     const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
     const fileOf = new Map<string, string>();
@@ -22074,7 +22340,14 @@ arm: {
         if (cites.length === 1) {
           const want = KB_BRIEF_CATEGORY[cites[0]];
           ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which \`schema/kb-briefs.json\` lacks — refresh it with \`npx tsx packages/engine/kb-briefs-refresh.ts <kb checkout>\`, never by hand`);
-          ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
+          const owned = OWNER_CATEGORY[d.id];
+          if (owned) {
+            // An owner's departure from the brief, admitted by name, and only while the brief still says what it departs from.
+            ok(owned.brief === cites[0] && owned.from === want && d.category === owned.category,
+              `#4045 ${d.id}: the owner moved it from its brief's '${owned.from}' to '${owned.category}' (\`components/${owned.brief}\`) — got category '${d.category}', brief \`components/${cites[0]}\` says '${want}'`);
+          } else {
+            ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
+          }
         } else if (noBrief) {
           // A NAME COLLISION, admitted by name and never by pattern (#2427): the KB's badge brief lists "Counter" as
           // an alias for a count badge (a number shown on another element). The Counter def is the quantity control,
@@ -30544,12 +30817,83 @@ arm: {
   }
 }
 
+// #1119 (owner decision 2026-11-18, A) — EVERY BRAND A DESIGNER CAN PICK HAS A COMMITTED FIGMA EMISSION. The studio and
+// the plugin offer the example brands (`schema/example-brands.json`); harbor was one of them with no `out/figma/harbor/`,
+// so every Figma-side gate that walks that directory ran without it and nothing could check a harbor build. The list
+// read here is the picker's, not `emit-figma.ts`'s, so dropping a brand from the emitter fails rather than shrinking the
+// set; and each directory must hold the reference brand's whole file set, so a partial emission fails too.
+{
+  const picker = Object.keys(JSON.parse(readFileSync(resolve(HERE, './schema/example-brands.json'), 'utf8')));
+  const filesOf = (b: string): string[] => existsSync(resolve(HERE, `./out/figma/${b}`))
+    ? readdirSync(resolve(HERE, `./out/figma/${b}`)).filter((f) => f.endsWith('.json')).sort() : [];
+  const reference = filesOf('nb');
+  ok(picker.includes('harbor') && reference.length >= 25,
+    `#1119 reachable: the picker offers harbor (${picker.join(', ')}) and the reference emission holds ${reference.length} files`);
+  for (const b of picker) {
+    const have = filesOf(b);
+    const missing = reference.filter((f) => !have.includes(f));
+    ok(have.length > 0 && missing.length === 0,
+      `#1119 ${b}: out/figma/${b}/ holds every Figma file the reference brand ships${have.length ? (missing.length ? ` — missing ${missing.slice(0, 4).join(', ')}` : '') : ' — the directory is absent'}`);
+  }
+}
+
+// #576 (owner decision 2026-11-18, A) — ONE OUTLINE BORDER WEIGHT FOR EVERY BUTTON SET ("Outline button border", a DRAFT
+// name). The weight is brand-wide and the color stays per set. ORACLES are literals: the three set ids, the one key and
+// the two rung names are spelled here, never read off the materializer or the def it rebinds.
+{
+  const thick = { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'thick' as const };
+  const SETS_576 = [button, buttonNeutral, buttonDestructive];
+  // (1) SCOPE: across every def, Thick moves exactly the three text-button sets. Icon buttons keep their own edge.
+  const moved576 = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, thick, () => 44))
+    !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort().join(',');
+  ok(moved576 === 'button,button-destructive,button-neutral',
+    `#576 scope: across all ${componentDefs.length} defs, Outline button border: Thick moves exactly button, button-destructive and button-neutral (got ${moved576 || 'none'})`);
+  for (const def of SETS_576) {
+    const base = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, () => 44);
+    const m = applyButtonLayout(def, thick, () => 44);
+    const changed = Object.keys(m.tokens).filter((k) => m.tokens[k] !== base.tokens[k]).sort();
+    // (2) ONE KEY, ONE RUNG. The edge's thickness moves to the 2px rung; nothing else, the border COLOR included.
+    ok(base.tokens['border-width'] === 'border-width.hairline' && m.tokens['border-width'] === 'border-width.thick'
+      && JSON.stringify(changed) === JSON.stringify(['border-width']) && JSON.stringify(m.anatomy) === JSON.stringify(base.anatomy),
+      `#576 ${def.id}: Thick rebinds border-width from border-width.hairline to border-width.thick and moves nothing else (moved: ${changed.join(', ') || 'none'})`);
+    // (3) AS PROJECTED: every member binds the thick rung as its stroke weight, and every member's paints are the
+    //     Thin projection's, so each set's outline keeps its own border color in every state.
+    const thinSet = figmaAnatomySet(base), thickSet = figmaAnatomySet(m);
+    const weights = new Set(thickSet.map((pl) => (pl.root as unknown as { bound?: Record<string, string> }).bound?.strokeWeight ?? 'UNBOUND'));
+    const paintsMoved = thickSet.filter((pl, i) => JSON.stringify((pl.root as unknown as { paints?: unknown }).paints)
+      !== JSON.stringify((thinSet[i]?.root as unknown as { paints?: unknown } | undefined)?.paints)).map(planComponentName);
+    const outlineMembers = thickSet.filter((pl) => planComponentName(pl).includes('appearance=outline')).length;
+    ok(thickSet.length === thinSet.length && outlineMembers > 0 && JSON.stringify([...weights]) === JSON.stringify(['border-width/thick']) && paintsMoved.length === 0,
+      `#576 ${def.id}: projected at Thick, all ${thickSet.length} members (${outlineMembers} outline) bind border-width/thick as their stroke weight, and no member's paints move (weights: ${[...weights].join(', ')}; paints moved: ${paintsMoved.slice(0, 3).join('; ') || 'none'})`);
+    // (4) THIN IS THE IDENTITY: the default and an explicit Thin are the same def back.
+    ok(JSON.stringify(applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'hairline' }, () => 44)) === JSON.stringify(base),
+      `#576 ${def.id}: Outline button border: Thin builds the default def`);
+  }
+  // (5) REFUSED, NOT IGNORED: a button whose edge is not on the default rung throws, naming the def and the key.
+  let threw576 = '';
+  try { applyButtonLayout({ ...button, tokens: { ...button.tokens, 'border-width': 'border-width.heavy' } }, thick, () => 44); } catch (e) { threw576 = (e as Error).message; }
+  ok(threw576.includes('button') && threw576.includes('border-width.heavy'),
+    `#576 a button whose edge binds another rung is refused by name, not silently kept (${threw576 || 'did NOT throw'})`);
+  // (6) THE RUNG IS 2PX, read off every brand's committed Figma emission, which knows nothing about any def.
+  const thickPx = readdirSync(resolve(HERE, './out/figma')).sort().map((brand) => {
+    const vars = (JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/border-width.json`), 'utf8')) as { variables: { name: string; value?: unknown }[] }).variables;
+    return [brand, vars.find((v) => v.name.endsWith('/border-width/thick'))?.value] as const;
+  });
+  ok(thickPx.length >= 4 && thickPx.every(([, v]) => v === 2),
+    `#576 the rung Thick binds measures 2px in every committed brand (${thickPx.map(([b, v]) => `${b} ${String(v)}`).join(', ')})`);
+  // (7) IN THE BRAND INPUT: the engine accepts both values and refuses any other, by name.
+  let refused576 = '';
+  try { brandTheme({ ...(exampleBrands()['prism3'] as BrandInput), buttonBorderWeight: 'heavy' as never }); } catch (e) { refused576 = (e as Error).message; }
+  ok(refused576.includes('buttonBorderWeight'),
+    `#576 brandTheme refuses an unknown buttonBorderWeight by name (${refused576 || 'did NOT throw'})`);
+}
+
 // #1786 — EVERY BRAND THE PLUGIN CAN EMIT, inside the `figma_execute` ceiling, and the chunked
 // `color-aliases` pass EXECUTED rather than only measured.
 //
-// THE BRAND SET IS AUTHORED, BY NAME (docs/34: represented, not counted). The four committed
-// `out/figma/<brand>/` trees are read from disk, because those are the bytes the CLI prints. harbor and
-// nb-redesign are `examples/*.design.md` briefs the plugin emits but no committed tree holds, so they are
+// THE BRAND SET IS AUTHORED, BY NAME (docs/34: represented, not counted). The five committed
+// `out/figma/<brand>/` trees are read from disk, because those are the bytes the CLI prints (harbor's since
+// #1119). nb-redesign is an `examples/*.design.md` brief the plugin emits but no committed tree holds, so they are
 // compiled here (the dialect route cli.ts takes) and registered in memory; every pass then runs on them
 // unchanged. Both directions are checked against the directories, so a new brief or a new committed
 // tree that nobody lists here fails by name rather than going unmeasured. That is how prism3 and wendys
@@ -30566,7 +30910,7 @@ arm: {
     { id: 'prism3', tree: 'committed' },
     { id: 'aurora', tree: 'committed' },
     { id: 'wendys', tree: 'committed' },
-    { id: 'harbor', tree: 'brief' },
+    { id: 'harbor', tree: 'committed' },
     { id: 'nb-redesign', tree: 'brief' },
   ];
   const figmaDirs = readdirSync(resolve(HERE, './out/figma')).sort();
@@ -31302,6 +31646,14 @@ arm: {
       const cliDefs = defFile ? JSON.parse(readFileSync(join(cliOut, defFile), 'utf8')) : {};
       ok(r.status === 0 && !!tokFile && !!defFile && cliTree.$extensions?.generator?.build === want && cliDefs.build === want,
         `version: cli.ts stamps the build identity on the tree and the defs export it writes (#3698 R1) — expected ${want}, got tree ${cliTree.$extensions?.generator?.build} / defs ${cliDefs.build} (exit ${r.status}${r.status ? `: ${r.stderr.slice(-300)}` : ''})`);
+      // #1325: the CLI writes the export under its contract name too, the same bytes as the compatibility copy. The name is
+      // derived here from the defs file found on disk, not from `componentDefsFileNames`, so the arm reads what cli.ts wrote.
+      // BY-NAME MUTATION: drop the `names.contracts` writeFileSync in cli.ts, or write it different bytes → this arm fails.
+      const conFile = defFile ? defFile.replace('.component-defs.json', '.component-contracts.json') : undefined;
+      const conText = conFile && readdirSync(cliOut).includes(conFile) ? readFileSync(join(cliOut, conFile), 'utf8') : undefined;
+      const defText = defFile ? readFileSync(join(cliOut, defFile), 'utf8') : undefined;
+      ok(r.status === 0 && conText !== undefined && defText !== undefined && conText === defText,
+        `#1325 cli.ts --component-specs: <id>.component-contracts.json is written and byte-identical to <id>.component-defs.json — got ${conText === undefined ? `no ${conFile ?? '<id>.component-contracts.json'}` : conText === defText ? 'equal' : `${conText.length} vs ${defText?.length} bytes, differing`}`);
     } finally { rmSync(cliOut, { recursive: true, force: true }); }
   }
   const stamped = buildTree(brandTheme(MINIMAL_BRAND)).tree as any;
@@ -31362,6 +31714,22 @@ arm: {
       }
     }
   }
+
+  // ---- no trait targets a schema-required lever (#1863, owner decision option 1 / A) ----
+  // A required lever is set in every valid input, so `resolveVocabulary` always declines a trait's setting for it
+  // ("kept … (set explicitly)"): a dead target the trait still advertises. `restrained` carried `neutral.chroma`
+  // until #1863. The oracle is the SCHEMA's `required` lists, read here from `theme-schema.json` (top level, and
+  // each object property's own `required`, as dotted keys), never `levers.ts`'s `required` flag or TRAITS itself.
+  const schemaRequired = new Set<string>([
+    ...((schema.required ?? []) as string[]),
+    ...Object.entries(schema.properties as Record<string, { required?: string[] }>)
+      .flatMap(([k, v]) => (v?.required ?? []).map((r) => `${k}.${r}`)),
+  ]);
+  ok(schemaRequired.has('neutral.chroma') && schemaRequired.has('neutral.hue'),
+    `vocabulary: the schema-required oracle is live — it reads neutral.hue and neutral.chroma as required (got ${[...schemaRequired].join(', ')})`);
+  const deadTargets = Object.entries(TRAITS).flatMap(([name, t]) => Object.keys(t.levers).filter((k) => schemaRequired.has(k)).map((k) => `${name} → ${k}`));
+  ok(deadTargets.length === 0,
+    `#1863 vocabulary: no trait targets a schema-required lever, which every valid input pre-empts${deadTargets.length ? ` — DEAD: ${deadTargets.join(', ')}` : ''}`);
 
   // ---- every trait is attested in a committed brief, verbatim (#1685), and the note names none (#1824) ----
   // #1685 made every `why` quote a brief, so an uncited mapping could not ship. #1824 moved the quotes
@@ -31757,10 +32125,11 @@ arm: {
   ok(![...f.files.keys()].some((k) => k.includes('component-defs')), 'export_theme: the default call writes no component-defs export (opt-in)');
   const cs = mkFake();
   ok(!mcpCallTool('export_theme', { brand: xbrand, outDir: './cs', include: ['componentSpecs'] }, undefined, cs.io).isError, 'export_theme: include:[componentSpecs] writes');
-  ok(cs.files.size === 2 && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json'),
-    `export_theme: include:[componentSpecs] writes exactly the export and its Specs projection (${[...cs.files.keys()].join(', ')})`);
+  ok(cs.files.size === 3 && cs.files.has('./cs/component-contracts.json') && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json')
+    && cs.files.get('./cs/component-contracts.json') === cs.files.get('./cs/component-defs.json'),
+    `#1325 export_theme: include:[componentSpecs] writes exactly the component contracts, their compatibility copy (the same bytes) and the Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.4' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.5' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -35265,6 +35634,22 @@ arm: {
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
 
+// ---- #2814 (owner, 2026-11-18, A): CODE INPUT'S CELLS SET LINING FIGURES ---------------------------------------------
+// The title family's default figures can be old style, which drop 3, 4, 5, 7 and 9 below the baseline, so a digit sits
+// off center in its cell. The cell's character sets lining figures in code, in the SAME `font-variant-numeric`
+// declaration as its tabular figures: two declarations would let the later one replace the earlier. Figma can't carry
+// it (the plugin API exposes OpenType features read-only), so the entry says so. Literals, not read from the def.
+// Mutation: the entry's value back to `tabular-nums` alone → `#2814 …` fails by name.
+{
+  const cell = componentDefs.find((d) => d.id === 'code-input-cell');
+  const entries = codeOnlyText(cell?.anatomy?.codeOnly ?? []).filter((t) => /font-variant-numeric/.test(t));
+  const decl = entries.map((t) => t.match(/font-variant-numeric:\s*([a-z -]+)/)?.[1]?.trim()).filter(Boolean);
+  ok(entries.length === 1 && decl.length === 1 && /\btabular-nums\b/.test(decl[0]!) && /\blining-nums\b/.test(decl[0]!) && /OpenType/.test(entries[0]!),
+    `#2814 code-input-cell: one codeOnly entry sets font-variant-numeric to tabular and lining figures together, and says Figma can't carry it (got ${JSON.stringify(decl)})`);
+  const note = cell?.anatomy?.parts?.digit?.note ?? '';
+  ok(/lining/.test(note), `#2814 code-input-cell: the digit's caption names lining figures (${note})`);
+}
+
 // ---- #3336 (owner, 2026-11-03, Q3336.1–.4 A): THE REFERENCE BRAND ON ONE NEUTRAL PALETTE ----------------------
 //
 // The reference brand drops its `brand-neutral` brand color and puts its action family on the default `neutral`
@@ -35291,7 +35676,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
 //       contract, so (c) can see the floor this migration had to clear.
 //
 // Mutations, each failing here by name:
-//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 232 contracts pass on the neutral palette (want 232) —
+//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 234 contracts pass on the neutral palette (want 234 …) —
 //       FAILED: interactive.primary.border.rest 2.81<3`, `#3336 light: interactive.primary.border.rest is neutral.400 #8f8d8d
 //       at 3.30:1 …` and `#3336 light: the action family resolves to the decided neutral step and hex …`
 //   (2) the `brand-neutral` brand color restored to the fixture → `#3336 the reference brand carries no brand-neutral palette …`
@@ -35348,7 +35733,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
       ok(stale.length === 0, `#3336 ${m.mode}: no role aliases brand-neutral${stale.length ? ` — ${stale.slice(0, 5).join(', ')}${stale.length > 5 ? ` and ${stale.length - 5} more` : ''}` : ''}`);
       // (c)
       const { checked, broken } = contracts(roles);
-      ok(checked.length === 232 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 232)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
+      ok(checked.length === 234 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 234: #2750 rates the two disabled borders)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
       // (d)
       const b = roles['interactive.primary.border.rest'];
       ok(!!b && b.hex === '#8f8d8d' && /\.palette\.neutral\.400$/.test(b.path) && Math.abs(b.ratio - 3.30) < 0.005 && b.min === 3 && b.against === 'background.primary',
@@ -36050,6 +36435,7 @@ arm: {
         minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
         labelWeight: input.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
         textHover,
+        borderWeight: input.buttonBorderWeight ?? DEFAULT_BUTTON_LAYOUT.borderWeight,
       },
       sizeRefPx(t.dims.sizes));
 
@@ -38366,6 +38752,56 @@ arm: {
       ok(refs === 'refs/heads/main', `#3842 replay clone: the clone keeps no ref of the source but main, so a local poc/… branch cannot block the fixture's poc (refs: ${refs.split('\n').join(', ')})`);
     }
 
+    // #3985 — THE REPLAY'S PREMISES, read with raw git in this checkout before the fixture is built. Everything below
+    // re-runs fold.ts and the real gates over the history of the `main` this tree carries, and expects THAT history to
+    // be prism3's: the folds that set every version the tree's release notes name, and the landings of the fragments
+    // its log folded. A repository seeded from an older snapshot of prism3 (the POC repository: its `main` a seed plus
+    // its own commits, `poc/arm-1` carried in as a PR) holds neither, and the real gates rightly call that history
+    // wrong: 3 arms failed there on code that had not regressed. So each premise is checked here, independently of
+    // the gates (no gate's code is called), and a broken one SKIPS the span by name; it is never a pass.
+    //   In prism3's own CI (`GITHUB_REPOSITORY`) the premises always hold, so there a broken one FAILS by name: the
+    //   replay can never go quiet where it guards. Reading prism3's main through a pinned SHA instead was rejected: a
+    //   repository seeded from a snapshot does not hold prism3's later commits at all, so no SHA can be read there.
+    //   MUTATIONS VERIFIED (#3985): the anchor premise inverted fails by name under GITHUB_REPOSITORY and skips without
+    //   it · `walkFrom` = 'HEAD' in lint-release-notes still fails the #3863 arms by name in prism3's history, not a skip.
+    const premiseBroken: string[] = [];
+    {
+      const raw = (args: string[]) => spawnSync('git', ['-C', REPO, ...args], { encoding: 'utf8', env, maxBuffer: 256 * 1024 * 1024 });
+      const DIR_ANCHOR = 'e6e57308d52226997922641347cad85f574d5b2c'; // #1823: introduced docs/progress/pending/
+      const mainRef = ['origin/main', 'main'].find((c) => raw(['rev-parse', '--verify', '--quiet', `${c}^{commit}`]).status === 0);
+      const base = mainRef ? raw(['merge-base', 'HEAD', mainRef]).stdout.trim() : '';
+      if (raw(['rev-parse', '--is-shallow-repository']).stdout.trim() !== 'false') premiseBroken.push('this checkout is shallow, so the history the replay re-runs is not all here');
+      else if (!base) premiseBroken.push(`HEAD carries no main (${mainRef ? `no merge base with ${mainRef}` : 'neither origin/main nor main resolves'})`);
+      else {
+        const at = `${mainRef} at ${base.slice(0, 8)}`;
+        if (raw(['merge-base', '--is-ancestor', DIR_ANCHOR, base]).status !== 0)
+          premiseBroken.push(`the main HEAD carries (${at}) does not reach ${DIR_ANCHOR.slice(0, 8)}, the commit that introduced docs/progress/pending/, so its fragments' landings are not prism3's`);
+        const set = new Set<string>();
+        const log = raw(['log', '-U0', '--format=%x00%H %P', '-G', 'ENGINE_VERSION = ', base, '--', 'packages/engine/version.ts']).stdout;
+        for (const rec of log.split('\0')) {
+          const [sha, ...parents] = rec.split('\n')[0].trim().split(/\s+/);
+          const v = /^\+export const ENGINE_VERSION = '(\d+\.\d+\.\d+)'/m.exec(rec)?.[1];
+          if (sha && parents.length === 1 && v) set.add(v);
+        }
+        const releases = join(REPO, 'docs/public/releases');
+        const named = [
+          ...(existsSync(releases) ? readdirSync(releases).filter((f) => /^\d+\.\d+\.\d+\.json$/.test(f)).map((f) => f.slice(0, -5)) : []),
+          /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(readFileSync(join(REPO, 'packages/engine/version.ts'), 'utf8'))?.[1] ?? 'the working tree\'s ENGINE_VERSION (unreadable)',
+        ];
+        const unset = [...new Set(named)].filter((v) => !set.has(v));
+        if (unset.length) premiseBroken.push(`no single-parent commit in the history of ${at} sets ${unset.slice(0, 5).join(', ')}${unset.length > 5 ? ` and ${unset.length - 5} more` : ''}, so the folds the tree's release notes name are not in it`);
+      }
+      const inPrism3 = process.env.GITHUB_REPOSITORY === 'adamforrester/prism3';
+      if (premiseBroken.length && inPrism3) {
+        for (const b of premiseBroken) ok(false, `#3985 integration replay: in prism3's own CI its premise must hold, and it does not — ${b}`);
+        failSpan('integration-replay', premiseBroken.join('; '));
+      }
+      else if (premiseBroken.length) skip('integration-replay', `#3833/#3863: the replays of prism3's own history cannot run here: ${premiseBroken.join('; ')}`);
+    }
+    const assertedBefore = pass + fails.length;
+    replay: {
+    if (premiseBroken.length) break replay;
+    // #1268 SKIPPABLE SPAN integration-replay BEGIN
     cloneWorkingTree(REPO, clone);
     // executor-reach imports `@prism3/engine`; the clone has no install, so point the name at its own engine.
     mkdirSync(join(clone, 'node_modules', '@prism3'), { recursive: true });
@@ -38456,6 +38892,10 @@ arm: {
       ok(onPoc.status === 1 && onPoc.out.includes(DROPPED),
         `#3863 release-notes: on a PR into the integration branch, a release missing a note main's fold folded still fails NOTES by name (exit ${onPoc.status}: ${said(onPoc, /NOTES|folds read/)})`);
     }
+    // #1268 SKIPPABLE SPAN integration-replay END
+    }
+    if ((skippedSpans.has('integration-replay') || failedSpans.has('integration-replay')) && pass + fails.length !== assertedBefore)
+      ok(false, `#3985 integration replay: the span was skipped and still recorded ${pass + fails.length - assertedBefore} assertion(s) — a skip that asserts is not a skip`);
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
@@ -38731,16 +39171,17 @@ arm: {
   ok(modesLooked >= 40 && flat.length === 0,
     `#2324 Neutral's interactive text, icon and border inks step on hover and pressed in every corpus mode, on the page and on the inverse band (${modesLooked} modes${flat.length ? `; flat: ${flat.slice(0, 3).join(' | ')}` : ''})`);
   // 5. THE EMISSION: every corpus brand's tree carries the three underlined label styles, whatever its
-  //    `typography.links` says, each underlined and otherwise its plain twin; and so does a brand that lists no links.
+  //    `typography.links` says, each underlined and otherwise its plain twin; and so does a brand whose list leaves label
+  //    out. (It was `links: []` until #3707 refused an empty list; `['body']` still names no label.)
   const labelLinks = (t: Theme) => t.typography.composites.filter((c) => c.group === 'label' && c.link).map((c) => c.path).sort();
   const WANT_PATHS = ['label.lg.emphasis-link', 'label.md.emphasis-link', 'label.sm.emphasis-link'];
   const missingLinks = corpus().filter(({ theme }) => !WANT_PATHS.every((x) => labelLinks(theme).includes(x))).map(({ id }) => id);
   ok(corpus().length >= 8 && missingLinks.length === 0, `#2324 every corpus brand mints the three underlined label styles (${missingLinks.join(', ') || 'all'})`);
-  const noLinks = brandTheme({ ...MINIMAL_BRAND, typography: { links: [] } } as BrandInput);
+  const noLinks = brandTheme({ ...MINIMAL_BRAND, typography: { links: ['body'] } } as BrandInput);
   // Six since Q226 A (2026-10-10): every brand also ships the default label weight, and its underlined twin with it.
   const WANT_WITH_DEFAULT = ['label.lg.default-link', 'label.lg.emphasis-link', 'label.md.default-link', 'label.md.emphasis-link', 'label.sm.default-link', 'label.sm.emphasis-link'];
   ok(JSON.stringify(labelLinks(noLinks)) === JSON.stringify(WANT_WITH_DEFAULT),
-    `#2324 the underline is fixed: a brand with typography.links: [] still mints them (${labelLinks(noLinks).join(', ') || 'none'})`);
+    `#2324 the underline is fixed: a brand with typography.links: ['body'] still mints them (${labelLinks(noLinks).join(', ') || 'none'})`);
 }
 
 // ------------------------------------------------------------------- #2350: flush text buttons
@@ -38902,6 +39343,74 @@ arm: {
   const para = skill.split(/\n\s*\n/).find((b) => /inset=flush/.test(b) && /44×44/.test(b));
   ok(!!para && missing(para).length === 0,
     `#2408 prism3-build-ui: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
+}
+
+// #4130, #4136, #4139, #4143, #4177, #4203: the READMEs, CONTRIBUTING.md and the CLAUDE.md files state what the code
+// does. Each arm reads its oracle from the code (a declaration, a list, a settings entry), never from the prose it checks.
+{
+  const R = (p: string) => readFileSync(resolve(HERE, '../..', p), 'utf8');
+  const engineReadme = R('packages/engine/README.md'), pluginReadme = R('apps/plugin/README.md'), rootReadme = R('README.md');
+  const contributing = R('CONTRIBUTING.md'), claudeMd = R('CLAUDE.md'), toolsClaude = R('tools/CLAUDE.md');
+  // #4130 (1): a contract size the README states is the baseline's.
+  const guaranteedCount = Object.keys(readBaseline().guaranteed).length;
+  const statedPaths = engineReadme.match(/pins the (\d+) paths/)?.[1];
+  ok(statedPaths === undefined || Number(statedPaths) === guaranteedCount,
+    `#4130 engine README: states no contract size other than the baseline's ${guaranteedCount} guaranteed paths (states: ${statedPaths ?? 'none'})`);
+  // #4130 (2): every constant the README places in verify.ts is declared there.
+  const verifySrc = R('verify.ts');
+  const placed = [...engineReadme.matchAll(/`([A-Z][A-Z_]{3,})` in `verify\.ts`/g)].map((m) => m[1]);
+  const undeclared = placed.filter((n) => !new RegExp(`(?:const|let)\\s+${n}\\b`).test(verifySrc));
+  ok(placed.length > 0 && undeclared.length === 0,
+    `#4130 engine README: each constant it places in verify.ts is declared there (${placed.length} placed; undeclared: ${undeclared.join(', ') || 'none'})`);
+  // #4130 (3): no unit-test count, a numeral nothing compares (the suite holds a floor, MIN_ASSERTIONS).
+  const testCount = engineReadme.match(/\(\d+ checks\)|\d+\/\d+ unit tests/)?.[0];
+  ok(!testCount && engineReadme.includes('`MIN_ASSERTIONS`'),
+    `#4130 engine README: states no unit-test count and names the MIN_ASSERTIONS floor (states: ${testCount ?? 'none'})`);
+  // #4130 (4): the emit-dtcg brand list names every brand regen's emit-dtcg step emits.
+  const regenLabel = R('packages/engine/regen.ts').match(/emit-dtcg\s+\(([^)]*)\)/)?.[1] ?? '';
+  const emitted = regenLabel.split('·').map((b) => b.trim()).filter(Boolean);
+  const runLine = engineReadme.split('\n').find((l) => l.startsWith('npx tsx packages/engine/emit-dtcg.ts')) ?? '';
+  const unlisted = emitted.filter((b) => !new RegExp(`\\b${b}\\b`, 'i').test(runLine));
+  ok(emitted.length >= 4 && unlisted.length === 0,
+    `#4130 engine README: the emit-dtcg run line names every brand regen's emit-dtcg step emits (${emitted.join(', ')}; missing: ${unlisted.join(', ') || 'none'})`);
+  // #4136: the plugin README's Update file paragraph names no collection the Figma emission lacks, and `npm test` is the suite list.
+  const figmaDir = resolve(HERE, 'out/figma/prism3');
+  const collections = new Set(readdirSync(figmaDir).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(readFileSync(resolve(figmaDir, f), 'utf8')).$collection));
+  const fromM = pluginReadme.indexOf('materialize the whole generated system');
+  const updatePara = fromM >= 0 ? pluginReadme.slice(fromM, pluginReadme.indexOf('into the current file', fromM)) : '';
+  const named = [...updatePara.matchAll(/`([a-z][a-z-]*)`/g)].map((m) => m[1]);
+  const phantom = named.filter((c) => !collections.has(c));
+  ok(updatePara !== '' && phantom.length === 0,
+    `#4136 plugin README: Update file's paragraph names only collections the emission writes (phantom: ${phantom.join(', ') || 'none'})`);
+  const pluginTestLine = pluginReadme.split('\n').find((l) => l.startsWith('npm test -w @prism3/plugin')) ?? '';
+  ok(JSON.parse(R('apps/plugin/package.json')).scripts.test.includes('run-suites') && pluginTestLine.includes('suites.json'),
+    '#4136 plugin README: `npm test` is described as the suites.json list run-suites.ts runs');
+  // #4139: no README tells a contributor to run a bare `npm install` (CI and CLAUDE.md use `npm ci`).
+  const bare = [['README.md', rootReadme], ['apps/plugin/README.md', pluginReadme]].filter(([, t]) => /^npm install\s*(#|$)/m.test(t)).map(([f]) => f);
+  ok(bare.length === 0, `#4139 README: no bare \`npm install\` line (found in: ${bare.join(', ') || 'none'})`);
+  // #4143: the TokenPress line keeps the ported baseline as the number and says the suite has grown past it.
+  const tpSrc = R('apps/tokenpress/test.ts');
+  const census = (name: string) => [...(tpSrc.match(new RegExp(`const ${name}: Record<string, number> = \\{([\\s\\S]*?)\\n\\};`))?.[1] ?? '').matchAll(/:\s*(\d+),/g)].reduce((a, m) => a + Number(m[1]), 0);
+  const ported = census('EXPECTED'), added = census('ADDED');
+  const tpLine = contributing.slice(contributing.indexOf('npm run test      -w @prism3/tokenpress'), contributing.indexOf('npm run build     -w @prism3/tokenpress'));
+  ok(ported > 0 && tpLine.includes(`ported ${ported} assertions`) && (added === 0 || /plus those added since/.test(tpLine)),
+    `#4143 CONTRIBUTING §3: the TokenPress line names the ported ${ported} and, with ${added} added since, says the suite has more`);
+  // #4177: two comments that described finished work as pending.
+  ok(!/when #731 lands/.test(R('tools/exporter-comparison/gate.ts')), '#4177 exporter gate: the header no longer says "when #731 lands"; #731 landed and its entries were removed');
+  ok(!/until #110 hands it up/.test(pluginReadme) && pluginReadme.includes('`seed-info`') && R('apps/plugin/src/main.ts').includes("type: 'seed-info'"),
+    '#4177 plugin README: the read-back bridge is described as the `seed-info` post main.ts sends, not as waiting on #110');
+  // #4203: the auto-stash hook is live (settings.json is the oracle), studio's test is a suite runner, locale-order reaches tests and tools.
+  const hookLive = R('.claude/settings.json').includes('pre-tool-use-restore-autostash.mjs');
+  ok(hookLive && !/live only once the owner adds its\s+entry/.test(toolsClaude),
+    '#4203 tools/CLAUDE.md: the restore auto-stash hook is described as live, as .claude/settings.json has it');
+  ok(hookLive && !/nothing stashes it/.test(claudeMd) && /untracked file it overwrites has no recovery/.test(claudeMd),
+    '#4203 CLAUDE.md: the checkout warning says tracked work is auto-stashed and an untracked file is not');
+  const localeLine = contributing.slice(contributing.indexOf('npx tsx packages/engine/lint-locale-order.ts'), contributing.indexOf('npx tsx packages/engine/lint-engine-facade.ts'));
+  ok(/BEYOND THE ENGINE: TESTS AND TOOLS/.test(R('packages/engine/lint-locale-order.ts')) && !/under packages\/engine\//.test(localeLine) && /a test or a tool/.test(localeLine),
+    '#4203 CONTRIBUTING §3: lint-locale-order is described as covering tests and tools, not only packages/engine/');
+  const studioLine = contributing.slice(contributing.indexOf('npm run test         -w @prism3/studio'), contributing.indexOf('npm run build        -w @prism3/studio'));
+  ok(JSON.parse(R('apps/studio/package.json')).scripts.test.includes('run-suites') && studioLine.includes('suites.json') && !/the provenance model \(#722\)/.test(studioLine),
+    '#4203 CONTRIBUTING §3: studio `npm run test` is described as the suites.json run, not the provenance test file');
 }
 
 // ---- #3472: prism3-build-ui says what it can't build, early, with a worked negative that isn't the adherence test's ----
@@ -39447,8 +39956,9 @@ arm: {
       if (r < floor) low.push(`${b}/${mode}: ${ink} on ${ground} ${r.toFixed(2)} < ${floor}`);
     }
   }
-  ok(BRANDS.join(',') === 'aurora,nb,prism3,wendys' && measured === 16 * PAIRS.length && low.length === 0,
-    `#2428 code-input contrast: the character clears 4.5:1 on both page grounds and every cell border 3:1 against the page in all 16 brand × mode cells (${measured} pairs measured over ${BRANDS.join(', ')}, lowest ${lowest.toFixed(2)}:1${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''})`);
+  // harbor joined the set when #1119 committed its emission: 5 brands × 4 modes.
+  ok(BRANDS.join(',') === 'aurora,harbor,nb,prism3,wendys' && measured === 20 * PAIRS.length && low.length === 0,
+    `#2428 code-input contrast: the character clears 4.5:1 on both page grounds and every cell border 3:1 against the page in all 20 brand × mode cells (${measured} pairs measured over ${BRANDS.join(', ')}, lowest ${lowest.toFixed(2)}:1${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''})`);
 }
 
 // ---- Figma's default member is the code default, on every axis (#2752, owner decision Q347 A) ----
@@ -40435,8 +40945,8 @@ arm: {
   ok(JSON.stringify(role?.values) === JSON.stringify(['dialog', 'alertdialog']) && role?.default === 'dialog' && /hides the close button/.test(role?.description ?? '')
     && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /^role — /.test(e) && /alertdialog hides the close button/.test(e))
     && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /^backdrop click — closes a dialog, never an alertdialog/.test(e))
-    && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /code delivery pending: behavior layer \(#2454\)/.test(e)),
-    '#2609 dialog docs: role is dialog or alertdialog, an alertdialog hides the close button and a backdrop click never closes it, and code delivery waits on #2454');
+    && codeOnlyText(dg.anatomy!.codeOnly).some((e) => e.startsWith('Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.') && /initial focus placement, backdrop-click dismissal and focus return/.test(e)),
+    '#2609 dialog docs: role is dialog or alertdialog, an alertdialog hides the close button and a backdrop click never closes it, and the developer wires initial focus, backdrop click and focus return (#2454)');
 
   // THE NEW SCHEMA FIELDS ARE REFUSED WHERE THEY CANNOT MEAN ANYTHING.
   const withPart = (part: string, patch: Record<string, unknown>): ComponentDef => ({ ...dg, anatomy: { ...dg.anatomy!, parts: { ...dg.anatomy!.parts, [part]: { ...dg.anatomy!.parts[part], ...patch } as PartDef } } });
@@ -41054,6 +41564,114 @@ arm: {
     '#2877 dialog end in code: full height, 480px wide, at most 100vw − 48px, sliding in from the end edge, at the left edge in right-to-left text');
 }
 
+// ------------------------------------------------------------------- #3986: right-to-left as part of the contract
+// Owner decision Q-RTL1 A: each part's `mirror` field states what it does in right-to-left text, filled from the def's
+// right-to-left prose, and this arm fails a def BY NAME when the two disagree. The prose is read here with this arm's
+// own phrase list, never through `rtl-mirror.ts`, so the field is held to something it was not derived from
+// (`docs/34` shape 1). Three claims, each read off both sides:
+//   row  — the prose says the row or layout mirrors; a part says `reverses`.
+//   flip — the prose says a glyph flips, mirrors or points the other way; a part says `mirrors` or `per-glyph`.
+//   hold — the prose says something does not mirror, stays as drawn or stays left to right; a part says `never` or
+//          `per-glyph` (an icon's glyph flips or holds by which glyph it is).
+// What a def's own parts state, its prose must say; what its prose says, its own parts or the defs it nests must state
+// (a Breadcrumbs trail's slash is its separator's part). A def with prose declares something; one without declares
+// nothing.
+{
+  type Claim = 'row' | 'flip' | 'hold';
+  const HOLD = /\b(?:do(?:es)?\s+not|doesn't|never)\s+(?:mirror|flip)|\bmust not\b|\bnot (?:mirrored|flipped)\b|\bnever flipped\b|\bstays? as drawn\b|\bno glyph mirrors\b|\bnothing (?:of its own )?to mirror\b|\bmirrors nothing\b|\bunmirrored\b|dir="ltr"|\bstays? left to right\b|\bstays? clockwise\b|\bno\b[^.;]*\bflips?\b/i;
+  const ROW_WITH = /\bmirrors? with the (?:row|document)\b/i;
+  const FLIP = /\bflips?\b|\bpoints? (?:left|right)\b|\bmirrors, so it points\b|\b(?:glyphs?|chevrons?|arrow|icon)\b[^.;()]*?\bmirror\b|\bcounterclockwise\b/i;
+  const ROW = /\blogical properties\b|\b(?:row|layout|header|group)\s+(?:mirrors|reverses)\b|\bmirrors? with the (?:row|document)\b|\bmirror the row\b|\bswap (?:edges|sides|ends)\b|\bfollows? the reading direction\b|\bsits (?:at the )?(?:right|left)most\b|\bsits at the (?:right|left)\b|\bgrows (?:leftward|from the inline-start)\b|\bposition mirror\b/i;
+  const proseClaims = (text: string): Set<Claim> => {
+    const out = new Set<Claim>();
+    // A parenthetical is its own clause, and the sentence around it reads without it.
+    const asides = [...text.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
+    for (const clause of [text.replace(/\([^)]*\)/g, ' '), ...asides].flatMap((t) => t.split(/[.;—:]|,?\s+and\s+/i))) {
+      if (HOLD.test(clause)) out.add('hold');
+      else if (FLIP.test(clause) && !ROW_WITH.test(clause)) out.add('flip');
+      if (ROW.test(clause)) out.add('row');
+    }
+    return out;
+  };
+  const rtlProse = (d: ComponentDef): string => (d.anatomy?.codeOnly ?? []).filter((e) => e.class === 'right-to-left').map((e) => e.description).join(' ');
+  const ownClaims = (d: ComponentDef): Set<Claim> => {
+    const out = new Set<Claim>();
+    for (const p of Object.values(d.anatomy?.parts ?? {})) {
+      if (p.mirror === 'reverses') out.add('row');
+      if (p.mirror === 'mirrors' || p.mirror === 'per-glyph') out.add('flip');
+      if (p.mirror === 'never' || p.mirror === 'per-glyph') out.add('hold');
+    }
+    return out;
+  };
+  const rtlById = new Map(componentDefs.map((d) => [d.id, d]));
+  const deepClaims = (d: ComponentDef, seen = new Set<string>()): Set<Claim> => {
+    const out = ownClaims(d);
+    seen.add(d.id);
+    for (const p of Object.values(d.anatomy?.parts ?? {})) {
+      const n = typeof p.nests === 'string' ? rtlById.get(p.nests) : undefined;
+      if (n && !seen.has(n.id)) for (const c of deepClaims(n, seen)) out.add(c);
+    }
+    return out;
+  };
+  const disagreements = (d: ComponentDef): string[] => {
+    const prose = rtlProse(d), pc = proseClaims(prose), oc = ownClaims(d), dc = deepClaims(d);
+    const bad: string[] = [];
+    if (!prose && oc.size) bad.push('declares mirror fields and has no right-to-left prose');
+    if (prose && !dc.size) bad.push('has right-to-left prose and no mirror field, in its parts or the defs it nests');
+    for (const c of oc) if (!pc.has(c)) bad.push(`a part states ${c} and the prose does not`);
+    for (const c of pc) if (!dc.has(c)) bad.push(`the prose states ${c} and no part does`);
+    return bad;
+  };
+  const rtlDefs = componentDefs.filter((d) => rtlProse(d));
+  const rtlBad = componentDefs.map((d) => [d.id, disagreements(d)] as const).filter(([, b]) => b.length);
+  ok(rtlBad.length === 0,
+    `#3986: every def's mirror fields and right-to-left prose agree (${rtlDefs.length} defs with prose)${rtlBad.length ? ` — ${rtlBad.slice(0, 4).map(([id, b]) => `${id}: ${b.join('; ')}`).join(' | ')}` : ''}`);
+  // Floors (docs/34 shape 9): the arm reads the corpus it was written against, and each claim fires somewhere.
+  const fired = new Set(rtlDefs.flatMap((d) => [...proseClaims(rtlProse(d))]));
+  ok(rtlDefs.length >= 40 && fired.size === 3,
+    `#3986: the right-to-left arm reads at least 40 defs and every claim fires on both sides (${rtlDefs.length} defs; prose claims seen: ${[...fired].join(', ')})`);
+  // The arm bites (a self-check, per claim): a def with a field the prose does not state, or prose a field does not back.
+  const breadcrumbSep = rtlById.get('_breadcrumb-separator')!;
+  const flipped = withMirrors(breadcrumbSep, { slashGlyph: 'mirrors' });
+  const unbacked = withMirrors(breadcrumbSep, { chevronGlyph: 'never' });
+  const toRow = withMirrors(breadcrumbSep, { frame: 'reverses' });
+  ok(disagreements(breadcrumbSep).length === 0 && disagreements(toRow).some((b) => /states row/.test(b))
+    && disagreements(unbacked).some((b) => /prose states flip/.test(b)) && disagreements(flipped).some((b) => /prose states hold/.test(b)),
+    '#3986: the arm names a part stating what the prose does not (row) and prose no part states (flip; hold)');
+
+  // The icon set's per-glyph list: every name a glyph the set has, and both kinds present, so `per-glyph` means both.
+  const notGlyphs = [...RTL_MIRRORED_GLYPHS].filter((g) => !(g in ICON_SOURCES));
+  ok(notGlyphs.length === 0 && RTL_MIRRORED_GLYPHS.size > 0 && Object.keys(ICON_SOURCES).some((g) => !RTL_MIRRORED_GLYPHS.has(g)),
+    `#3986: RTL_MIRRORED_GLYPHS names ${RTL_MIRRORED_GLYPHS.size} glyphs of the icon set, and the set has glyphs that do not mirror${notGlyphs.length ? ` — not glyphs: ${notGlyphs.join(', ')}` : ''}`);
+  ok(['chevron-left', 'chevron-right', 'arrow-left', 'arrow-right'].every((g) => RTL_MIRRORED_GLYPHS.has(g)) && !['chevron-down', 'check', 'close', 'search'].some((g) => RTL_MIRRORED_GLYPHS.has(g)),
+    '#3986: back and forward glyphs mirror; down, check, close and search do not (the Icon def\'s right-to-left prose)');
+
+  // Part 3: the "In RTL" note is generated from the fields, and the usage section carries it to the panel and the page.
+  const withNote = componentDefs.filter((d) => Object.values(d.anatomy?.parts ?? {}).some((p) => p.mirror));
+  const missing = withNote.filter((d) => {
+    const u = docSections(d).sections.find((s) => s.id === 'usage');
+    return !rtlNote(d) || !u || u.id !== 'usage' || u.rtl !== rtlNote(d);
+  });
+  ok(missing.length === 0 && withNote.length > 0,
+    `#3986: every def with a mirror field has an "In RTL" note in its usage section (${withNote.length})${missing.length ? ` — missing: ${missing.map((d) => d.id).join(', ')}` : ''}`);
+  ok(rtlNote(breadcrumbSep) === 'The chevron glyph flips to point the other way. The slash glyph does not mirror.'
+    && rtlNote(rtlById.get('tabs')!) === 'The layout mirrors: the start edge is on the right.',
+    `#3986: the note says each value in words (separator: "${rtlNote(breadcrumbSep)}")`);
+  ok(componentDefs.filter((d) => !Object.values(d.anatomy?.parts ?? {}).some((p) => p.mirror)).every((d) => rtlNote(d) === undefined),
+    '#3986: a def with no mirror field gets no note');
+
+  // The field's two homes name the gate that holds it, so a reader can find it: every `lint-*.ts` either file cites
+  // is a file in the tree (the gate is this arm; a comment once named a `lint-rtl-mirror.ts` that never existed).
+  const citedGates = ['rtl-mirror.ts', 'component-schema.ts'].flatMap((f) =>
+    [...readFileSync(join(HERE, f), 'utf8').matchAll(/`((?:[\w./-]*\/)?lint-[\w-]+\.ts)`/g)].map((m) => [f, m[1]] as const));
+  // A path-qualified cite (`tools/x/lint-y.ts`) resolves from the repo root; a bare name, in either gate home. The
+  // floor holds the scan to what it read on landing (54), so a regex that stopped matching cannot pass on nothing.
+  const strayGates = citedGates.filter(([, g]) => g.includes('/') ? !existsSync(join(HERE, '..', '..', g))
+    : !['packages/engine', 'apps/plugin'].some((d) => existsSync(join(HERE, '..', '..', d, g))));
+  ok(citedGates.length >= 50 && strayGates.length === 0,
+    `#3986: every gate rtl-mirror.ts and component-schema.ts cite exists (${citedGates.length} cited, floor 50)${strayGates.length ? ` — no such file: ${strayGates.map(([f, g]) => `${f} → ${g}`).join(', ')}` : ''}`);
+}
+
 // ------------------------------------------------------------------- #2661: the Button group
 // Each owner decision held against a literal (the wireframe on #2661, Q363 "all A" except 8 → C and 9 → B, and the
 // 2026-10-16 amendment of call 8): three members, inline, stacked and fill; one `items` slot per member, a row inline
@@ -41383,6 +42001,50 @@ arm: {
     }
   }
   ok(emitBad.length === 0, `#3050 committed emission: the reference brand's scrim is 80 / 80 / 90 / 90, every other brand's 40 / 60 / 60 / 70${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// ------------------------------------------------------------------- #1043: the scrim's steps are declared taste
+// Owner decision B (2026-11-18, on #1043): keep 40 / 60 / 60 / 70, declared as taste, with the provenance written at
+// the `modes.ts` call site and in `docs/20` §8. Three things are held, each against a literal typed from the decision:
+//   1. the declaration is THERE, in both homes: "chosen, not derived", Spectrum 2 and Radix for light/dark, and the
+//      high-contrast step-up named as this system's deliberate choice;
+//   2. the steps each home WRITES are the decision's steps (so a value edited in one place and not the other fails);
+//   3. the steps the engine RESOLVES for a brand that leaves `scrimStrength` unset are the same (ACTUAL from
+//      `resolveAllModes`, never `SCRIM_STEPS`; the #3050 arm above holds every brand and the emission).
+{
+  const DECIDED = { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 } as const;
+  const modesSrc = readFileSync(resolve(HERE, 'modes.ts'), 'utf8');
+  const decl = modesSrc.match(/PROVENANCE OF THE `standard` STEPS \(#1043[\s\S]*?\*\//)?.[0] ?? '';
+  const doc20 = readFileSync(resolve(HERE, '../../docs/20-interactive-color-system.md'), 'utf8');
+  const sec = doc20.match(/### 8\.3 Decided \(2026-11-18, #1043\)[\s\S]*?(?=\n## |\n### )/)?.[0] ?? '';
+  const PHRASES: [string, string, string][] = [
+    ['modes.ts', decl, 'chosen, not derived'], ['modes.ts', decl, 'after Spectrum 2 and Radix Themes'],
+    ['modes.ts', decl, 'the high-contrast step-up is a deliberate choice of this system'],
+    ['docs/20 §8.3', sec, 'Chosen, not derived.'], ['docs/20 §8.3', sec, 'after Spectrum 2 and Radix Themes'],
+    ['docs/20 §8.3', sec, 'is a deliberate choice of this system'],
+  ];
+  const missing = PHRASES.filter(([, txt, ph]) => !txt.includes(ph)).map(([where, , ph]) => `${where}: "${ph}"`);
+  ok(decl !== '' && sec !== '' && missing.length === 0,
+    `#1043 scrim provenance is declared at SCRIM_STEPS and in docs/20 §8.3: chosen, not derived; light/dark after Spectrum 2 and Radix; the HC step-up deliberate${decl === '' ? ' — NO modes.ts declaration' : ''}${sec === '' ? ' — NO docs/20 §8.3' : ''}${missing.length ? ` — MISSING: ${missing.join('; ')}` : ''}`);
+  // What each home writes, read back as numbers.
+  const declSteps = {
+    light: Number(decl.match(/light (\d+), dark \d+/)?.[1]), dark: Number(decl.match(/light \d+, dark (\d+)/)?.[1]),
+    'hc-light': Number(decl.match(/hc-light (\d+), hc-dark \d+/)?.[1]), 'hc-dark': Number(decl.match(/hc-light \d+, hc-dark (\d+)/)?.[1]),
+  };
+  const secSteps = sec.match(/\*\*(\d+) \/ (\d+) \/ (\d+) \/ (\d+)\*\*/)?.slice(1).map(Number) ?? [];
+  const written = JSON.stringify(declSteps) === JSON.stringify(DECIDED)
+    && JSON.stringify(secSteps) === JSON.stringify([DECIDED.light, DECIDED.dark, DECIDED['hc-light'], DECIDED['hc-dark']]);
+  ok(written, `#1043 the declared scrim steps are the decision's 40 / 60 / 60 / 70 in both homes (modes.ts ${JSON.stringify(declSteps)}, docs/20 ${JSON.stringify(secSteps)})`);
+  // What the engine resolves, for a brand with the lever unset.
+  const bi = { ...(exampleBrands()['prism3'] as BrandInput) } as BrandInput & { scrimStrength?: string };
+  delete bi.scrimStrength;
+  const got: Record<string, number | undefined> = {};
+  for (const M of resolveAllModes(brandTheme(bi))) {
+    const r = (M.roles as Record<string, { alpha?: number } | undefined>)['scrim.default'];
+    if (M.mode in DECIDED) got[M.mode] = r?.alpha === undefined ? undefined : Math.round(r.alpha * 100);
+  }
+  ok(JSON.stringify(got) === JSON.stringify(DECIDED),
+    `#1043 the engine resolves the declared scrim steps 40 / 60 / 60 / 70 for a brand that leaves scrimStrength unset (got ${JSON.stringify(got)})`);
 }
 
 // ------------------------------------------------------------------- #3073: brand glass roles
@@ -43172,6 +43834,56 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(JSON.stringify(seedFromFacts(p2)) === JSON.stringify(s), '#2075 seed: the same report seeds the same bytes');
 }
 
+// #3873 — an AUTHORED interactive anchor is applied exactly (#331), and `pickBrand` swapped an off-ramp step for 500
+// without a word: `actionAnchorStep: 99999` shipped primary.500 uncorrected and failed 11 high-contrast contracts on a
+// step nobody chose. Each authored anchor must name a step on its column's ramp, refused with the nearest step as the
+// surfaces already are, and a `modeAnchors` column the engine never reads is refused rather than ignored.
+{
+  const base = { id: 'a3873', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 }, brandColors: [{ name: 'teal', oklch: { l: 0.6, c: 0.1, h: 190 } }] } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const cases: [string, Record<string, unknown>, string][] = [
+    ['actionAnchorStep 99999', { actionAnchorStep: 99999 }, 'actionAnchorStep: 99999 is not on the primary ramp; the nearest step is 950'],
+    ['actionAnchorStep 37', { actionAnchorStep: 37 }, 'actionAnchorStep: 37 is not on the primary ramp; the nearest step is 25'],
+    ['destructiveAnchorStep -1', { destructiveAnchorStep: -1 }, 'destructiveAnchorStep: -1 is not on the danger ramp; the nearest step is 25'],
+    ['modeAnchors.light.primary 37', { modeAnchors: { light: { primary: 37 } } }, 'modeAnchors.light.primary: 37 is not on the primary ramp'],
+    ['interactivePalettes[0].anchorStep 37', { interactivePalettes: [{ name: 'accent', palette: 'teal', anchorStep: 37 }] }, 'interactivePalettes[0].anchorStep: 37 is not on the teal ramp'],
+    ['modeAnchors.dark.accent 37', { interactivePalettes: [{ name: 'accent', palette: 'teal' }], modeAnchors: { dark: { accent: 37 } } }, 'modeAnchors.dark.accent: 37 is not on the teal ramp'],
+    ['modeAnchors.dark.nope', { modeAnchors: { dark: { nope: 500 } } }, "modeAnchors.dark: 'nope' is not an interactive column"],
+  ];
+  for (const [label, extra, want] of cases) {
+    const msg = refusal(() => brandTheme({ ...base, ...extra } as unknown as BrandInput));
+    ok(msg.startsWith(want), `#3873 an off-ramp anchor (${label}) is refused by name (got ${JSON.stringify(msg.slice(0, 160))})`);
+  }
+  // The accept side: an on-ramp pin in each place still builds, and the action pin is the step authored.
+  const pinned = { ...base, actionAnchorStep: 600, destructiveAnchorStep: 550, interactivePalettes: [{ name: 'accent', palette: 'teal', anchorStep: 450 }], modeAnchors: { dark: { primary: 400, destructive: 400, accent: 400 } } } as unknown as BrandInput;
+  const built = refusal(() => brandTheme(pinned));
+  ok(built === '', `#3873 on-ramp anchors (action 600, destructive 550, accent 450, dark 400) still build (got ${JSON.stringify(built.slice(0, 160))})`);
+  const rest = (resolveAllModes(brandTheme(pinned)).find((m) => m.mode === 'light')?.roles as any)?.['interactive.primary.fill.rest']?.path;
+  ok(String(rest).endsWith('.primary.600'), `#3873 the pinned action step is the one applied (interactive.primary.fill.rest → ${rest})`);
+  // The backstop: a theme that reaches the resolver with an off-ramp authored anchor (a caller that skipped
+  // brandTheme's check) is refused in `pickBrand` instead of shipping 500 uncorrected.
+  const bypass = brandTheme(base); (bypass as any).actionAnchorStep = 37;
+  const backstop = refusal(() => resolveAllModes(bypass));
+  ok(backstop.includes('step 37 is not on the primary ramp'), `#3873 pickBrand refuses an exact anchor off the ramp rather than falling back to 500 (got ${JSON.stringify(backstop.slice(0, 160))})`);
+}
+
+// #3874 — the global shadow tint's lightness and chroma both scale with `amount`, and the lever had only a minimum:
+// `amount: 50` compiled cleanly into white shadows (#ffffff1f), invisible on a white page. The per-mode tint, its
+// schema and the studio's slider already stop at 1; the global lever now does too, in brandTheme and the schema.
+{
+  const base = { id: 's3874', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } } as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const withTint = (amount: unknown) => ({ ...base, shadow: { tint: { hue: 0, amount } } }) as unknown as BrandInput;
+  for (const amount of [50, 1.01, -0.1]) {
+    const msg = refusal(() => brandTheme(withTint(amount)));
+    ok(msg.startsWith(`shadow.tint.amount: ${amount} is out of range`), `#3874 a global shadow tint amount of ${amount} is refused by name (got ${JSON.stringify(msg)})`);
+  }
+  const edge = refusal(() => brandTheme(withTint(1)));
+  ok(edge === '', `#3874 a global shadow tint amount of 1 still builds (got ${JSON.stringify(edge)})`);
+  const schemaErrs = validateBrandInput(withTint(50));
+  ok(schemaErrs.some((e) => e.includes('shadow.tint.amount')), `#3874 the schema refuses a global shadow tint amount of 50 (errors: ${JSON.stringify(schemaErrs)})`);
+}
+
 // #3875 — the brand id names every file the CLI writes (`<id>.tokens.json` and five more), and nothing checked it:
 // `id: "../escaped"` wrote six files one level above --out, `"a/b"` crashed mid-write with a raw stack, and `""` wrote
 // hidden dotfiles. Three layers now hold: brandTheme refuses an id with a separator or nothing in it (and the schema
@@ -43238,6 +43950,25 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(keyed?.meta?.['a": b'] === 1, `#3876 a block key holding an escaped quote and a colon splits at its own colon (got ${JSON.stringify(keyed)})`);
 }
 
+// #2454 — the behavior layer is decided (Q-BH1 A, 2026-11-18, docs/41 §7.2): plain HTML/CSS ships a written behavior
+// contract the developer wires up in their framework, and the web component carries its own behavior. Each def that
+// waited on the decision now says so in its code notes, and no def still says code delivery is pending. The list of
+// defs is written out here by hand, not read from the defs, so a def that drops the note fails by its id (docs/34 shape 1).
+{
+  const DECIDED = 'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.';
+  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs'];
+  const all = componentDefs;
+  for (const id of INTERACTIVE) {
+    const d = all.find((x) => x.id === id);
+    ok(!!d && codeOnlyText(d.anatomy?.codeOnly).some((e) => e.includes(DECIDED)),
+      `#2454 interactive def ${id} carries the decided behavior-contract note in its code notes`);
+  }
+  // Scan the def's `notes` as well as its code notes: the pending note could as easily sit in `notes.contested`.
+  const notesText = (d: (typeof all)[number]): string[] => Object.values((d as { notes?: Record<string, unknown> }).notes ?? {}).flat().filter((e): e is string => typeof e === 'string');
+  const pending = all.filter((d) => [...codeOnlyText(d.anatomy?.codeOnly), ...notesText(d)].some((e) => /code delivery pending|behavior layer/i.test(e))).map((d) => d.id);
+  ok(pending.length === 0, `#2454 no def still says code delivery is pending a behavior layer (got ${JSON.stringify(pending)})`);
+}
+
 // #3872 — breakpoints are mobile-first min-width floors, so each must be above the one before. Out of order
 // ([0, 1024, 768]) emitted lg below md, a repeat named one floor twice, and a negative floor sat below the first;
 // each built cleanly (and a null floor, which no JSON brief can hold as a number, crashed on `.toFixed`). brandTheme
@@ -43279,9 +44010,58 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   }
 }
 
+// #3984 — a line break in a string setting survives the design.md round trip. The serializer wrote it raw inside the
+// double quotes, so the second line became a frontmatter line of its own and the export would not import again. It is
+// now written as YAML's `\n` escape (and `\r` as `\r`), which the parser decodes; a backslash before an `n` that was
+// typed as text still comes back as text, because the backslash is escaped first. A quoted key was trimmed after it was
+// decoded, so a key that was a line break, or had a space at an end, lost it; the raw text is trimmed instead.
+{
+  const base = { id: 'q3984', primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } };
+  for (const name of ['Two\nlines', 'Windows\r\nline', 'a typed \\n stays text', '\n', ' a space at each end ']) {
+    let x: any = { ...base, name, meta: { [name]: name } };
+    let err = '';
+    try { for (let i = 0; i < 2; i++) x = parseDesignMd(toDesignMd(x)).input; } catch (e) { err = (e as Error).message.slice(0, 80); }
+    ok(!err && x.name === name && x.meta?.[name] === name,
+      `#3984 two design.md round trips keep ${JSON.stringify(name)} as a name, a value and a key (got ${err ? `a throw: ${err}` : JSON.stringify(x.name)})`);
+  }
+}
+
+// #3707 (owner decision A, 2026-11-18) — `typography.links: []` validated and built, dropping the six guaranteed body
+// and caption link styles and leaving Link binding text styles nothing emitted. The schema now says `minItems: 1` and
+// brandTheme refuses an in-memory empty list in a sentence of its own (DRAFT wording, Q-RF1 A's pattern). A
+// one-item list still builds.
+{
+  const base = { id: 'links3707', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } };
+  const withLinks = (links: string[]) => ({ ...base, typography: { links } }) as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const schemaErrs = validateBrandInput(withLinks([]) as never).map(String);
+  ok(schemaErrs.some((e) => /typography\.links: 0 item\(s\) < minItems 1/.test(e)),
+    `#3707 the schema refuses an empty typography.links (got ${JSON.stringify(schemaErrs)})`);
+  const msg = refusal(() => brandTheme(withLinks([])));
+  ok(msg === 'Link styles must name at least one text type: typography.links is empty.',
+    `#3707 brandTheme refuses an empty typography.links in its own sentence (got ${JSON.stringify(msg)})`);
+  const one = refusal(() => brandTheme(withLinks(['body'])));
+  ok(one === '' && validateBrandInput(withLinks(['body']) as never).length === 0,
+    `#3707 a one-item typography.links still validates and builds (threw ${JSON.stringify(one)})`);
+}
+
+// #3551 — the code input cell's radius ladder (sm, sm, sm, lg) is intended (owner decision A, 2026-11-18): the three
+// smaller cells follow the control corner and the display cell is the exception. So `lint-rung-names` admits the
+// repeat as a DECIDED entry in RUNG_REPEATS citing #3551, and the open-question register no longer holds it. Read from
+// the gate's source, because the gate runs at import and exports nothing.
+{
+  const src = readFileSync(join(import.meta.dirname, 'lint-rung-names.ts'), 'utf8');
+  const body = (name: string): string => src.match(new RegExp(`const ${name}: Record<[^>]*> = \\{([\\s\\S]*?)\\n?\\};`))?.[1] ?? '';
+  const decided = body('RUNG_REPEATS').split('\n').find((l) => l.includes("'code-input-cell'")) ?? '';
+  ok(decided.includes("'radius.*'") && decided.includes('#3551'), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(decided)})`);
+  ok(!body('RUNG_REPEATS_OPEN').includes("'code-input-cell'"), '#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered');
+}
+
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
   process.exitCode = 1;
 }
+for (const [label, why] of skippedSpans) console.log(`  ⊘ SKIPPED, not passed (#3985): ${label} — ${why}`);
 if (fails.length) { fails.forEach((f) => console.log(`  ❌ ${f}`)); process.exitCode = 1; }
+else if (skippedSpans.size && pass + fails.length >= MIN_ASSERTIONS) console.log(`  ✓ colour math + extreme-brand contracts hold, EXCEPT ${skippedSpans.size} skipped span(s) above, which did not run`);
 else if (pass + fails.length >= MIN_ASSERTIONS) console.log('  ✓ colour math + extreme-brand contracts all hold');

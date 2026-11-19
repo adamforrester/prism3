@@ -73,6 +73,7 @@ import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from '
 import { readDocSettings } from './doc-settings';
 import { COVER_NAME, coverDue, coverDueLine, coverIsWork, coverPageOnlyLine, type CoverDue } from './cover-frame';
 import { isRunRoot, readRun, withRoot, type Criteria } from './run-read';
+import { readUpdatesOff, UPDATES_OFF_COPY, type UpdatesOff } from './updates-off';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -109,6 +110,9 @@ export type HostSetView = {
   /** #2831 — whether the set is in a published team library, as `getPublishStatusAsync` answers (`publishOf`). A
    *  single-component def reads as its most published component. Absent when the host would not say. */
   publish?: PublishStatus;
+  /** #2956 (owner decisions 2026-11-17) — the set's updates are off (`updates-off.ts`): who turned them off. Absent while
+   *  they are on. */
+  updatesOff?: UpdatesOff;
 };
 
 /** #2831 — Figma's answer to `getPublishStatusAsync`: never published, published and unchanged, or published and edited
@@ -161,6 +165,10 @@ export type SetPreview = {
    *  so an unpublished set's preview, and its hash, are what they were. In the hash: a set published between the check
    *  and the confirm refuses the confirm. */
   publish?: PublishStatus;
+  /** #2956 (owner decisions 2026-11-17) — the set's updates are off, and who turned them off (`updates-off.ts`). The apply
+   *  leaves the set as it is and reports it calmly. In the hash: a set turned off or back on between the check and the
+   *  confirm refuses the confirm. Absent while its updates are on, so such a set's preview, and its hash, are as before. */
+  updatesOff?: UpdatesOff;
   /** #2759 — the set is in the file under an earlier def id, which the apply renames to the current one in place. */
   setRename?: { from: string; to: string };
   /** #2831 — what this update breaks for library consumers (`breakingOf`). Absent for a set that is not published, or
@@ -322,6 +330,32 @@ export const nestedMemberFaults = (plan: AnatomyPlan['root'], snap: SnapNode, ke
         out.push({ part: at, set: String(main.parent?.name ?? ''), member: String(main.name ?? ''), plan: axes.map(([k, v]) => `${k}=${v}`).join(', ') });
       }
       return;
+    }
+    const kids = sn.children ?? [];
+    for (const c of pn.children ?? []) walk(c, kids.find((k) => k.name === c.name), at === '.' ? c.name : `${at}/${c.name}`);
+  };
+  walk(plan, snap, '.');
+  return out;
+};
+
+/**
+ * #3076: EACH SLOT WHOSE INSTANCE IS NOT THE COMPONENT THE PLAN NAMES FOR IT, by path. `diffAnatomy` holds a slot
+ * (`INSTANCE_SWAP`) only to being an instance (`swapTarget`'s check in `anatomy-readback.ts`: the set's default is a node
+ * id the plan has no side of), so a designer who swapped the search field's clear icon to the brand's own read as a hand
+ * edit that nothing the update writes touches, even under a plan that moves that slot's default. The update does move it
+ * (the apply edits the set's INSTANCE_SWAP default), so the swap is a conflict. Compared by component NAME, as the as-built
+ * record names a main (`member-baseline.ts`, v3): the set's name for a member of a set, the component's own otherwise.
+ * Like every other conflict where the plan moved, it can over-report (the plan moved elsewhere, and the slot differs only
+ * by the designer's swap); it never hides one.
+ */
+export const slotRepoints = (plan: AnatomyPlan['root'], snap: SnapNode): string[] => {
+  const out: string[] = [];
+  const walk = (pn: AnatomyPlan['root'], sn: SnapNode | undefined, at: string): void => {
+    if (!sn) return;
+    if (String(pn.type) === 'INSTANCE_SWAP' && pn.swapTarget && sn.type === 'INSTANCE') {
+      const main = sn.mainComponent as { name?: string; parent?: { name?: string; type?: string } | null } | undefined;
+      const owner = main?.parent?.type === 'COMPONENT_SET' ? main.parent.name : main?.name;
+      if (owner !== undefined && owner !== pn.swapTarget) out.push(at);
     }
     const kids = sn.children ?? [];
     for (const c of pn.children ?? []) walk(c, kids.find((k) => k.name === c.name), at === '.' ? c.name : `${at}/${c.name}`);
@@ -673,6 +707,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
+    // A slot the plan names another component for (#3076): the apply moves the set's default there.
+    for (const part of slotRepoints(plan.root, snap)) touched.add(part);
     const movedFrom = new Set(moves.map((mv) => mv.from));
     // THE LAYERS THE UPDATE REBUILDS on this member (#2673): each it removes (not moved, so a renamed part is here
     // too) and each it replaces for a type change. A hand edit at or under one is not kept by path: the fresh node
@@ -827,6 +863,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     setKey: host.key,
     counts,
     ...(isPublished(read.publish) ? { publish: read.publish } : {}),
+    ...(read.updatesOff ? { updatesOff: read.updatesOff } : {}),
     blockers,
     axes: { from: hostAxes, to: planAxes, renames: axisRenames },
     properties,
@@ -921,7 +958,8 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>, d
   try { key = typeof set.key === 'string' ? set.key : ''; } catch { key = ''; }
   const labelColumn = readLabelColumn(set);
   const publish = await publishOf(set);
-  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(labelColumn ? { labelColumn } : {}), ...(publish ? { publish } : {}) };
+  const updatesOff = readUpdatesOff(set);
+  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(labelColumn ? { labelColumn } : {}), ...(publish ? { publish } : {}), ...(updatesOff ? { updatesOff } : {}) };
 };
 
 /** The reason a member is left out when its node moved between the read and the write (#2301). DRAFT. */
@@ -1470,7 +1508,7 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   const host = await runHost(file, breathe);
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
-  const found: { preview: SetPreview; set: LiveSet; lead: boolean }[] = [];
+  const found: { preview: SetPreview; set: LiveSet; lead: boolean; off?: true }[] = [];
   // The file's modes for the panels' Theming, read once, and only when a target has a panel to check.
   let modesRead: ReturnType<typeof panelModes> | undefined;
   const modes = () => (modesRead ??= panelModes(host as unknown as Pick<PanelApi, 'variables'>));
@@ -1514,9 +1552,23 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
     if (spot.kind === 'missing') { out.missing.push(t.def); told(null); continue; }
     if (spot.kind === 'refused') { out.refused.push({ def: t.def, reason: spot.reason }); told(null); continue; }
     const v = await viewOf(spot, breathe, ports.drawVars, kept) as Extract<Viewed, { kind: 'found' }>;
-    const preview = dryRunSet(t.def, t.plans, v.view, runPorts, ledger);
+    // #2956: the mark read off the live set every check, never from a kept view (#3313): turning updates off or back on
+    // writes plugin data only, which a kept view need not see.
+    const off = t.single ? null : readUpdatesOff(v.set);
+    const { updatesOff: _was, ...seen } = v.view;
+    const preview = dryRunSet(t.def, t.plans, off ? { ...seen, updatesOff: off } : seen, runPorts, ledger);
     // The set is named for the current id from here on: the apply finds its preview by that name, and renames the node.
     if (v.from) { preview.setRename = { from: v.from, to: v.name }; preview.set = v.name; }
+    // UPDATES OFF (#2956): the apply leaves the set as it is, so nothing else here is work for it: no blocker to name, no
+    // furniture, no slot carry, and it holds its place on the page (read as blocked for the page's re-spacing).
+    if (preview.updatesOff) {
+      out.sets.push(preview);
+      ranked.set(preview, rank.get(t)!);
+      found.push({ preview, set: v.set, lead: false, off: true });
+      told(preview);
+      if (progress && breathe) await breathe();
+      continue;
+    }
     // WHAT THE FILE LACKS (#2601), the apply's checks made here, so the confirm lists every set the apply refuses.
     // A NESTED COMPONENT THE FILE DOES NOT HAVE (#2380) is one: since every icon-set glyph is an instance of
     // `icon/<glyph>`, an update can need a component the file was built without — an older field-message
@@ -1579,9 +1631,9 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   out.refused.sort((a, b) => defRank.get(a.def)! - defRank.get(b.def)!);
   found.sort((a, b) => ranked.get(a.preview)! - ranked.get(b.preview)!);
   // #2831: what each published set's update breaks for library consumers, once everything above has named its changes.
-  for (const p of out.sets) { const b = breakingOf(p); if (b.length) p.breaking = b; }
+  for (const p of out.sets) { const b = p.updatesOff ? [] : breakingOf(p); if (b.length) p.breaking = b; }
   // #2542: the sets that move on their pages, read once every set has been.
-  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0, lead: f.lead })), undefined, docPanelReaches(host as unknown as Pick<PanelApi, 'root'>));
+  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 || !!f.off, lead: f.lead })), undefined, docPanelReaches(host as unknown as Pick<PanelApi, 'root'>));
   for (const f of found) { const m = moves.get(f.preview.set); if (m) f.preview.setMove = m; }
   // A BLOCKED PANEL THIS UPDATE CLEARS (#846): every node in its way is, or belongs to, a set this update moves, and the
   // move spaces that set past the panel. Then it is due, and the apply draws it once the sets have moved.
@@ -1869,6 +1921,8 @@ export const furnitureParts = (d: FurnitureDue | undefined, draw: string, clear:
 
 /** One set's dry run, as one line. */
 export const previewLine = (p: SetPreview): string => {
+  // #2956: a set whose updates are off is left as it is, whatever its plan says.
+  if (p.updatesOff) return UPDATES_OFF_COPY.left(p.set);
   if (p.blockers.length) return `${p.set}: can't be checked. ${p.blockers.join('; ')}.`;
   const c = p.counts;
   const parts = [

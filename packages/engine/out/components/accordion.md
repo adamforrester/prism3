@@ -50,6 +50,8 @@ Shown on the default member: expansion `collapsed`, iconPosition `leading`, indi
 
 Use an Accordion to compress a set of independent sections into scannable headers, such as FAQs, settings groups, filter panels or product details, or on its own for one optional block of detail, such as a promo code field. Let several be open at once unless space is very tight.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Make the whole header row the button, so the hit target is the full width
@@ -88,7 +90,7 @@ Use an Accordion to compress a set of independent sections into scannable header
 
 - **Enter:** The panel eases open to its content height (motion.transition.enter), and the indicator turns to its open glyph.
 - **Exit:** The panel eases closed (motion.transition.exit), and the indicator turns back.
-- **Reduced motion:** Under prefers-reduced-motion the panel opens and closes at the reduced duration, since the change is the information and the height movement is not.
+- **Reduced motion:** Under prefers-reduced-motion the height changes at once, and the panel's fade stays, on motion.duration-reduced.normal to open and to close. The indicator swaps without turning. A fade is not movement, and it keeps the cue that the panel opened or closed.
 
 ## Content guidelines
 

@@ -60,7 +60,7 @@ export const pageNavItem: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         // `target` because the schema requires exactly one — NOT an interaction claim: the target is the nested Link.
         role: 'target',
         children: ['link'],
@@ -89,7 +89,7 @@ export const pageNavItem: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
