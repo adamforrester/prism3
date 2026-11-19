@@ -47,6 +47,8 @@ Shown on the default member: type `action`, intent `default`.
 
 Use Menu.Item inside a Menu or a Menu.Group: one per action or option. Mark a destructive action with the destructive intent, and put it last or in its own group.
 
+**In RTL.** The layout mirrors: the start edge is on the right. The chevron glyph flips to point the other way.
+
 ### Do
 
 - Start each action with a verb

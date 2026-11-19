@@ -105,6 +105,8 @@ export const menuItem: ComponentDef = {
     'destructive.icon.hover': 'color.interactive.destructive.icon.hover',
     'destructive.icon.pressed': 'color.interactive.destructive.icon.pressed',
     // The description and the shortcut, in secondary text on either intent.
+    // The `indicator` PAINT slot is the secondary ink the description and shortcut take, not the check column
+    // (`indicatorCell` and the `indicator` Figma boolean): `indicator` is a canonical PAINT_SLOTS name.
     'indicator': 'color.text.secondary',
 
     'disabled.label': 'color.disabled.text',
@@ -116,7 +118,7 @@ export const menuItem: ComponentDef = {
     root: 'row',
     parts: {
       row: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',   // #3986: the check and icon move to the right, the shortcut and chevron to the left
         role: 'target',
         paintSlots: ['overlay'],
         radius: 'radius',
@@ -131,7 +133,7 @@ export const menuItem: ComponentDef = {
         note: 'The item: the whole row is the target. It highlights with a light neutral wash at hover, press and keyboard focus, inset from the panel with rounded corners.',
       },
       leadCell: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         optional: true,
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
@@ -185,7 +187,7 @@ export const menuItem: ComponentDef = {
         note: 'An optional second line under the label, in secondary text.',
       },
       trailCell: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         layout: { direction: 'row', align: 'center', justify: 'end', sizing: { x: 'hug', y: 'hug' } },
         minHeight: 'icon',
@@ -201,7 +203,7 @@ export const menuItem: ComponentDef = {
         note: 'The keyboard shortcut, as a hint, in secondary text.',
       },
       chevronGlyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'mirrors',   // points left in RTL, as Breadcrumbs' separator does
         glyph: 'chevron-right',
         size: 'icon',
         presentWhen: { type: ['submenu'] },
@@ -438,7 +440,7 @@ export const menuGroup: ComponentDef = {
         note: 'The group: an optional heading over its items.',
       },
       headingCell: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',   // #3986: the heading aligns to the right
         role: 'presentation',
         optional: true,
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
@@ -765,7 +767,7 @@ export const menu: ComponentDef = {
   notes: {
     contested: [
       'HELD FOR THE OWNER: the panel\'s built width, 240px between the proposal\'s 180px floor and 320px cap, and the default content (three plain items).',
-      'A split button is a Menu variant in the brief; it gets its own issue (planned here).',
+      'A split button is a Menu variant in the brief; it gets its own issue, #4296 (planned here).',
     ],
     unverified: [
       'The Popover / open and Popover / close motion preset is described here but not built: the starter set exists only as a wireframe.',

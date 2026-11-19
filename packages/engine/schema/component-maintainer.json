@@ -7268,7 +7268,7 @@
       "notes": {
         "contested": [
           "HELD FOR THE OWNER: the panel's built width, 240px between the proposal's 180px floor and 320px cap, and the default content (three plain items).",
-          "A split button is a Menu variant in the brief; it gets its own issue (planned here)."
+          "A split button is a Menu variant in the brief; it gets its own issue, #4296 (planned here)."
         ],
         "unverified": [
           "The Popover / open and Popover / close motion preset is described here but not built: the starter set exists only as a wireframe."

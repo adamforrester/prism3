@@ -37,6 +37,8 @@ Shown on the default member: type `section`.
 
 Use Menu.Group to split a long menu into named sections, and always for a set of radio items, so one of them is on. Put a Divider between groups when they have no headings.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Name a group with a short heading

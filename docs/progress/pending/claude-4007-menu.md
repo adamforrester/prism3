@@ -30,3 +30,5 @@ cell, so the check and icon center on the label's first line (20px glyphs beside
 - Built widths (240px), the placeholder copy and the panel names (DRAFT).
 
 **Depends on #4008.** This branch merges Popover's head with a normal merge, because the OD-X1 test reads both defs.
+
+**Right-to-left (#3986).** Menu.Item's row, lead and trail cells declare `mirror: 'reverses'` and its chevron `'mirrors'`, and Menu.Group's heading cell `'reverses'`, so each def's parts state what its right-to-left prose says. Menu reaches its claim through the items it nests. The split button the owner asked to hold separately is filed as #4296.
