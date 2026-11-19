@@ -14,6 +14,10 @@
 - `test-agent-link.ts`, "mode limit": an empty file whose `addMode` throws the issue's message. The panel's verdict is the line. The only writes are the probe's three (create, `addMode`, remove): no named version, variable, style or persisted brand. The agent's result carries the data. On `main` all three arms fail, and the first write recorded is `saveVersionHistoryAsync`.
 - `test-write-preflight.ts`: `modesNeeded` for a fresh file (color needs 4), a file the apply already wrote (needs nothing, probe never asked), and a color collection holding 2 of its 4 modes (needs 4, and a cap of 1 is a limit).
 
+### A test that only passed by coincidence
+
+`test-mcp-paste.ts` compares the plugin's apply with the paste runtime's by value, with every id replaced by a name. Its variable values went through `val`, which renames only a top-level alias, so a wash's nested `{ color, opacity }` aliases were compared as raw ids. They matched only because both shims happened to allocate the same ids. The probe's scratch collection takes ids the paste run doesn't, and the comparison broke. It now uses `deep`, which the same function already applies to styles, so nested aliases are compared by name as well.
+
 ### Not covered
 
 The MCP paste runtime (`mcp-steps.ts`) calls `preflightApply`, the read-only half, not `guardApply`, so a paste-driven apply still meets the cap at `addMode`. That runtime is a parity harness and doesn't save a named version first.
