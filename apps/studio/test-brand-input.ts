@@ -15,6 +15,7 @@ import { brandTheme, resolveAllModes, type BrandInput } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as B from './src/state/brand-input';
+import { MODE_REFS } from './src/state/name-refs';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -112,11 +113,24 @@ b2.overrides = { light: { 'text.link.default': { palette: 'primary', step: lstep
 // modeLevers.light), so there is nothing per-mode of light's to copy there.
 b2.modeAnchors = { light: { primary: 600 } };
 b2.surfaces = { light: { base: 50 } };
+// outlineHoverFill is read only under opaque-fill, so the pick is live and its loss would show.
+store.brandState.outlineInteraction = 'opaque-fill';
+b2.outlineHoverFill = { light: { hover: 'neutral.100', sets: { primary: { hover: 'neutral.200' } } } };
 store.rebuild();
 ok(store.lastError === null, `light carries per-mode input of its own (${store.lastError ?? 'no error'})`);
-const lightInput = JSON.stringify(['overrides', 'modeLevers', 'modeAnchors', 'surfaces'].map((k) => b2[k]?.light ?? null));
+// The five fields the schema's customModes description promises a snapshot of, typed here (docs/34). Every mode row
+// of name-refs joins them, so a sixth row is checked too; and each typed field must be a mode row, so none is
+// promised and silently left out of the table that copies it.
+const PROMISED = ['overrides', 'modeLevers', 'modeAnchors', 'surfaces', 'outlineHoverFill'];
+const rows = MODE_REFS.map((r) => r.field.replace(/\.<mode>$/, ''));
+ok(PROMISED.every((k) => rows.includes(k)), `#1946: each promised snapshot field is a mode row of name-refs (rows: ${rows.join(', ')})`);
+const SNAPSHOT = [...new Set([...PROMISED, ...rows])];
+// modeLevers.light is the one entry light cannot hold (the engine refuses it, above), so it alone may stay unset.
+const unset = SNAPSHOT.filter((k) => b2[k]?.light === undefined && k !== 'modeLevers');
+ok(unset.length === 0, `#1946: light carries an entry in every snapshot field but modeLevers, so a dropped copy would show (unset: ${unset.join(', ') || 'none'})`);
+const lightInput = JSON.stringify(SNAPSHOT.map((k) => b2[k]?.light ?? null));
 const added = B.addCustomMode();
-const copied = (): string => JSON.stringify(['overrides', 'modeLevers', 'modeAnchors', 'surfaces'].map((k) => b2[k]?.[added] ?? null));
+const copied = (): string => JSON.stringify(SNAPSHOT.map((k) => b2[k]?.[added] ?? null));
 ok(copied() === lightInput, `the new custom mode holds a copy of light's per-mode input (${copied()})`);
 ok(JSON.stringify(store.brandState.customModes) === `[{"name":"${added}","base":"light"}]`, 'and keeps the record of the mode it started from');
 store.rebuild();
@@ -127,6 +141,7 @@ ok(store.lastError === null && addedBefore === modeRoles('light'), 'at creation 
 (b2.overrides!.light as Record<string, unknown>)['text.link.default'] = { palette: 'primary', step: lstep.key === pstep.key ? store.theme.palettes.find((p) => p.palette === 'primary')!.steps[6].key : pstep.key };
 (b2.modeAnchors!.light as Record<string, unknown>).primary = 300;
 (b2.surfaces!.light as Record<string, unknown>).base = 150;
+(b2.outlineHoverFill!.light as Record<string, unknown>).hover = 'neutral.200';
 store.rebuild();
 ok(store.lastError === null && modeRoles('light') !== addedBefore, `light's edits are real: light moved (${store.lastError ?? 'resolved'})`);
 ok(copied() === lightInput && modeRoles(added) === addedBefore, 'a later edit to light leaves the custom mode, and what it resolves to, as they were');
