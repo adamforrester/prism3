@@ -25,6 +25,7 @@
  * throw (private-mode quota, disabled storage), and persistence must never break the editor.
  */
 import { type BrandInput, serializeBrandInput, deserializeBrandInput } from '@prism3/engine';
+import type { Origin, Provenance } from './provenance';
 
 /** The minimal Web-Storage surface the adapter needs — the slice of `localStorage` it touches.
  *  Declaring it as a port lets a test drive persist/restore with a `Map`-backed shim; the real
@@ -38,13 +39,43 @@ export interface LocalStore {
 /** Storage key for the working brand blob. Namespaced to avoid collision with any other app state. */
 export const BRAND_KEY = 'prism3:brandInput';
 
-/** Persist the live brand (called after a successful apply). Swallows storage errors — persistence is
- *  best-effort and must never break the editor (private mode / quota / disabled storage can throw). */
-export const persistInput = (store: LocalStore, input: BrandInput): void => {
+/**
+ * Storage key for the brand's ORIGIN and BASELINE (#3880, owner decision A, 2026-11-18): where the working brand came
+ * from and the input it is measured against, so a reload changes nothing about what is dirty. Before it, a reload
+ * restored the brand as its own baseline (`{ kind: 'file' }`), edits made before the reload stopped counting, and the
+ * next brand chosen replaced them, and the only stored copy, without the overwrite confirm.
+ *
+ * A second key beside `BRAND_KEY`, written by the same `persistInput` call. It carries a fingerprint of the brand blob
+ * it was written with, so the two are only ever read back as a pair: a store holding a brand from before this key
+ * existed, or a pair one write of which failed, restores as before the change.
+ */
+export const ORIGIN_KEY = 'prism3:origin';
+
+/** A short, stable fingerprint of a stored brand blob: its length and a 32-bit FNV-1a hash. It pairs the origin entry
+ *  with the brand entry it was written beside; it is not a security measure. */
+const fingerprint = (blob: string): string => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < blob.length; i++) { h ^= blob.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return `${blob.length}:${(h >>> 0).toString(16)}`;
+};
+
+/** Persist the live brand (called after a successful apply), and beside it the provenance it is measured against
+ *  (#3880). Swallows storage errors — persistence is best-effort and must never break the editor (private mode / quota
+ *  / disabled storage can throw). The empty state's origin (`none`) is not kept: its entry is removed, so a reload
+ *  restores the brand as before #3880. */
+export const persistInput = (store: LocalStore, input: BrandInput, provenance: Provenance): void => {
+  let blob: string;
   try {
-    store.setItem(BRAND_KEY, serializeBrandInput(input));
+    blob = serializeBrandInput(input);
+    store.setItem(BRAND_KEY, blob);
   } catch {
-    /* storage unavailable (private mode, quota, disabled) — skip; the editor keeps working in-memory */
+    return; /* storage unavailable (private mode, quota, disabled) — skip; the editor keeps working in-memory */
+  }
+  try {
+    if (provenance.origin.kind === 'none') store.removeItem(ORIGIN_KEY);
+    else store.setItem(ORIGIN_KEY, JSON.stringify({ origin: provenance.origin, baseline: serializeBrandInput(provenance.baseline), brand: fingerprint(blob) }));
+  } catch {
+    /* the origin entry stays as it was; its fingerprint no longer matches the brand, so a reload restores as before */
   }
 };
 
@@ -70,10 +101,45 @@ export const restoreInput = (store: LocalStore): BrandInput | null => {
   }
 };
 
-/** Clear the persisted brand (for an explicit "start over" / new-brand reset). Best-effort. */
+/** An origin as read back from storage, or `null` for anything else. `none` is never stored (`persistInput`). */
+const asOrigin = (v: unknown): Origin | null => {
+  if (v === null || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  if (o.kind === 'new' || o.kind === 'file') return { kind: o.kind };
+  if (o.kind === 'example' && typeof o.id === 'string') return { kind: 'example', id: o.id };
+  if (o.kind === 'import' && typeof o.label === 'string') return { kind: 'import', label: o.label };
+  return null;
+};
+
+/**
+ * What a web reload restores (#3880): the persisted brand, with the origin and baseline it was persisted beside. When
+ * the origin entry is absent, unreadable, or was not written beside this exact brand (its fingerprint differs), the
+ * brand restores as before #3880: as its own baseline, origin `file`. `null` when no brand is stored, as
+ * `restoreInput`.
+ */
+export const restoreSession = (store: LocalStore): { input: BrandInput; origin: Origin; baseline: BrandInput } | null => {
+  const input = restoreInput(store);
+  if (!input) return null;
+  const asToday = { input, origin: { kind: 'file' } as Origin, baseline: input };
+  try {
+    const raw = store.getItem(ORIGIN_KEY);
+    const blob = store.getItem(BRAND_KEY);
+    if (!raw || !blob) return asToday;
+    const kept = JSON.parse(raw) as Record<string, unknown>;
+    const origin = asOrigin(kept.origin);
+    if (!origin || kept.brand !== fingerprint(blob) || typeof kept.baseline !== 'string') return asToday;
+    const baseline = deserializeBrandInput(kept.baseline);
+    return baseline ? { input, origin, baseline } : asToday;
+  } catch {
+    return asToday; // a corrupt or version-drifted origin entry: restore the brand as before, never refuse it
+  }
+};
+
+/** Clear the persisted brand (for an explicit "start over" / new-brand reset), and its origin entry (#3880). Best-effort. */
 export const clearInput = (store: LocalStore): void => {
   try {
     store.removeItem(BRAND_KEY);
+    store.removeItem(ORIGIN_KEY);
   } catch {
     /* nothing to do — a store that can't remove also can't have persisted */
   }
