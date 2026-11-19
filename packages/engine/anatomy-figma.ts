@@ -5438,7 +5438,7 @@ for(const p of isw){const key=propIds.get(p.name);if(!key)continue;const prefix=
 for(const c of all)if(c.name.startsWith(prefix))by.set(c.name,(by.get(c.name)||[]).concat([c]));const names=[...by.keys()].sort();const twice=names.filter(n=>by.get(n).length>1);
 const pv=names.filter(n=>by.get(n).length===1&&by.get(n)[0].key).map(n=>({type:'COMPONENT',key:by.get(n)[0].key}));
 if(twice.length)misses.push('property '+p.name+'.preferred -> '+twice.length+' icon name(s) held by more than one component ('+twice.slice(0,3).join(', ')+'; not offered in the swap. Rename or remove the stale copies, then rebuild)');
-if(!pv.length){misses.push(names.length?'property '+p.name+'.preferred -> the '+prefix+'* components carry no key on this host (not offered in the swap)':'property '+p.name+'.preferred -> no '+prefix+'* component in this file (build the icons first, then rebuild this one; until then the swap lists no icons first)');continue;}
+if(!pv.length){if(!names.length)misses.push('property '+p.name+'.preferred -> no '+prefix+'* component in this file (build the icons first, then rebuild this one; until then the swap lists no icons first)');continue;}
 try{set.editComponentProperty(key,{preferredValues:pv});}catch(err){misses.push('property '+p.name+'.preferred -> REFUSED ('+(err&&err.message?err.message:String(err))+')');continue;}
 let b;try{b=(set.componentPropertyDefinitions||{})[key];}catch(e){b=undefined;}const gk=((b&&b.preferredValues)||[]).map(v=>String(v.key));
 if(JSON.stringify(gk)!==JSON.stringify(pv.map(v=>v.key)))misses.push('property '+p.name+'.preferred -> NOT KEPT (wrote '+pv.length+' icons; the set holds '+gk.length+')');}}}`;
