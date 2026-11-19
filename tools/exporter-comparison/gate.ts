@@ -248,10 +248,11 @@ const MIN_BRANDS = 5;
  * unreachable because Figma has no variable type to hold them (line height was one until #2423); a gradient has a paint style sitting
  * right there behind an API call nobody makes. Filed as #731.
  *
- * Which is exactly why the entry carries `owner` and an issue: when #731 lands, aurora's gradients
- * become reachable, THIS GATE GOES RED, and whoever fixed it deletes the entry. That is the intended
- * lifecycle. An arm asserted at 0 with a comment explaining the exception would have gone green
- * forever instead, and nothing would have connected the exception to its fix.
+ * Which is exactly why an entry carries `owner` and an issue, and #731 is the case this design was for:
+ * when it landed, aurora's gradients became reachable, THIS GATE WENT RED, and the entries were deleted
+ * (below). That is the intended lifecycle, and the live entries follow it. An arm asserted at 0 with a
+ * comment explaining the exception would have gone green forever instead, and nothing would have
+ * connected the exception to its fix.
  */
 const KNOWN_UNREACHABLE: Record<string, { path: string; why: string; owner: string; issue: string }[]> = {
   // aurora's two gradients (`gradient.brand`, `gradient.glow`) were here until #731 gave TokenPress's scanner a
