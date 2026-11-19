@@ -53,15 +53,19 @@
  *     without the merge-group rung (no event, so the ladder falls to `origin/main`), which must PASS. The control is
  *     what shows the case fails because of the base it read and nothing else (`docs/34`).
  *   - **the queued PR keeps the rule** — it must pass.
- *   - **FAIL CLOSED** — every gate here, under `merge_group` with the base unset, and two with a base that is not
- *     this group's parent, must fail naming `MERGE_GROUP_BASE_SHA`, never fall through to `origin/main`.
+ *   - **FAIL CLOSED** — every gate here, under `merge_group` with the base unset, must fail naming
+ *     `MERGE_GROUP_BASE_SHA`, never fall through to `origin/main`. Three more set a base that is not this group's
+ *     parent, one per refusal in `mergeGroupBase`: a SHA that names no commit, HEAD itself, and a real commit HEAD
+ *     does not contain (a side commit off `main`); each must fail with that refusal's own words.
  *
  * `lint-progress-order.ts` and `apps/plugin/lint-executor-revision.ts` join the replay for these cases: the two
  * whose queue failure is the one #4106 names (an entry carried by the PR ahead, two PRs raising the same revision).
  * The executor gate imports `typescript`, so the clone gets one symlink, `node_modules` → this checkout's, read only:
- * it is a scratch clone, not a worktree, and no package manager touches it. `lint-executor-reach.ts` (minutes of
- * measuring) and `apps/plugin/test-loose-host.ts` (a browser-free but long suite) are not replayed; they call the
- * same `mergeGroupBase`, which the fail-closed cases hold through every gate that is.
+ * it is a scratch clone, not a worktree, and no package manager touches it. `apps/plugin/lint-executor-reach.ts` joins
+ * for the unset fail-closed case only: that case dies at base resolution, in about two seconds, before any measuring.
+ * A queue case where the revision rises would measure for minutes, so it has none. `apps/plugin/test-loose-host.ts`
+ * (a browser-free but long suite) is not replayed at all, so its merge-group ladder is held by reading, not by any
+ * gate: fail closed lives in each caller's ladder, not only in `mergeGroupBase` (the #4276 review's mutations).
  *
  * Run: `npx tsx packages/engine/lint-push-base.ts`
  */
@@ -162,7 +166,7 @@ interface Case {
   /** Unset: main's push run. Otherwise a merge-group run (#4106), its base the parent commit (`parent`), unset
    *  (`unset`), a SHA that names no commit (`bogus`) or HEAD itself (`head`); or the CONTROL, the same tree run with
    *  no merge-group rung (`control`). `origin/main` stays at `main` in every one. */
-  queue?: 'parent' | 'unset' | 'bogus' | 'head' | 'control';
+  queue?: 'parent' | 'unset' | 'bogus' | 'head' | 'notAncestor' | 'control';
 }
 
 // Each squash restores what its parent changed, or changes something itself: either way HEAD's tree is
@@ -247,14 +251,16 @@ queued('lint-executor-revision', 'changes the executor at the revision the group
   [executorCode('replayQueueAhead'), raiseRevision], [executorCode('replayQueueQueued')], [executorCode('replayQueueQueued'), raiseRevision],
   'EXECUTOR_REVISION did not rise');
 const QUEUE_GATES = ['lint-emission-version', 'lint-component-surface', 'lint-component-renames', 'lint-materialization-renames',
-  'lint-contract-version', 'lint-progress-order', 'lint-executor-revision'];
+  'lint-contract-version', 'lint-progress-order', 'lint-executor-revision', 'lint-executor-reach'];
 for (const gate of QUEUE_GATES)
   QUEUE_CASES.push({ gate, label: 'fail closed: a merge-group run with MERGE_GROUP_BASE_SHA unset', parent: [], squash: [write(QUEUED_FILE, 'queued\n')], expect: { fails: 'MERGE_GROUP_BASE_SHA' }, queue: 'unset' });
 QUEUE_CASES.push(
   { gate: 'lint-emission-version', label: 'fail closed: MERGE_GROUP_BASE_SHA names no commit', parent: [], squash: [write(QUEUED_FILE, 'queued\n')], expect: { fails: 'does not resolve to a commit' }, queue: 'bogus' },
   { gate: 'lint-executor-revision', label: 'fail closed: MERGE_GROUP_BASE_SHA is HEAD itself', parent: [], squash: [write(QUEUED_FILE, 'queued\n')], expect: { fails: 'is HEAD itself' }, queue: 'head' },
+  // A real commit that is not this group's parent: a side commit off `main`, which HEAD does not contain (#4276 review).
+  { gate: 'lint-emission-version', label: 'fail closed: MERGE_GROUP_BASE_SHA is a commit HEAD does not contain', parent: [], squash: [write(QUEUED_FILE, 'queued\n')], expect: { fails: 'is not an ancestor of HEAD' }, queue: 'notAncestor' },
 );
-const GATE_DIR: Record<string, string> = { 'lint-executor-revision': 'apps/plugin' };
+const GATE_DIR: Record<string, string> = { 'lint-executor-revision': 'apps/plugin', 'lint-executor-reach': 'apps/plugin' };
 
 /** Put `path` back as `main` has it: the squash that undoes the parent's edit. */
 function restore(path: string): Edit {
@@ -263,7 +269,7 @@ function restore(path: string): Edit {
 
 /** Hand-counted, not derived: a replay that lost a case would otherwise report its smaller count as whole. */
 const EXPECTED_CASES = 11;
-const EXPECTED_QUEUE_CASES = 18;
+const EXPECTED_QUEUE_CASES = 20;
 const GATES = ['lint-emission-version', 'lint-component-surface', 'lint-component-renames', 'lint-materialization-renames', 'lint-contract-version'];
 
 // ---- the clone -------------------------------------------------------------------------------------------
@@ -322,7 +328,8 @@ try {
     } else {
       // A merge-group run: `main` has not moved yet, so `origin/main` is behind the group ahead.
       git(clone, ['update-ref', 'refs/remotes/origin/main', 'main']);
-      const sha = { parent, unset: undefined, bogus: 'f'.repeat(40), head: git(clone, ['rev-parse', 'HEAD']).trim(), control: undefined }[c.queue];
+      const side = (): string => git(clone, ['commit-tree', 'main^{tree}', '-p', 'main', '-m', 'a side commit, not this group\'s parent']).trim();
+      const sha = { parent, unset: undefined, bogus: 'f'.repeat(40), head: git(clone, ['rev-parse', 'HEAD']).trim(), notAncestor: c.queue === 'notAncestor' ? side() : undefined, control: undefined }[c.queue];
       runEnv = c.queue === 'control' ? { ...baseEnv } : { ...baseEnv, GITHUB_EVENT_NAME: 'merge_group', ...(sha ? { MERGE_GROUP_BASE_SHA: sha } : {}) };
     }
     const r = spawnSync(process.execPath, [...process.execArgv, join(clone, GATE_DIR[c.gate] ?? 'packages/engine', `${c.gate}.ts`)],
