@@ -173,6 +173,21 @@ const brandsOnDisk = (): string[] => {
 };
 
 /**
+ * The brands that SHOULD have an emission: every committed `examples/<id>.design.md`, read from `examples/`, never
+ * from `out/figma/` (#4212 review). This is arm 2's memory. `DESIGN_OF` is built from the disk, so a brand whose
+ * emission disappeared would drop out of it without a word; walking the design files instead fails that brand by name.
+ * A design file that is not an emitted brand is exempt by name, with its reason.
+ */
+const NO_EMISSION: Record<string, string> = {
+  'nb-redesign': 'a seed brief the owner finishes by hand in the plugin; regen writes no out/figma/ tree for it',
+};
+const designBrandsInExamples = (): string[] =>
+  readdirSync(resolve(engineDir, 'examples'))
+    .filter((f) => f.endsWith('.design.md'))
+    .map((f) => f.slice(0, -'.design.md'.length))
+    .sort();
+
+/**
  * Brand id → the committed design file its config is read from: each brand with an emission on disk that has an
  * `examples/<id>.design.md` (#4212). Derived, not listed: the hand list missed harbor (#4035) and prism3, so the scan
  * threw for both. A brand on disk with no design file still has no entry, and `--selftest` arm 3 fails it by name.
@@ -798,7 +813,14 @@ const selftest = (): boolean => {
   );
 
   // ── ARM 2: one config, two sources, no difference ─────────────────────────────────────────────
-  for (const [brand, rel] of Object.entries(DESIGN_OF)) {
+  // Scoped by the design files in `examples/`, not by `DESIGN_OF`: `DESIGN_OF` is read off the disk, so a brand whose
+  // emission disappeared would leave it, and this arm, without a row (#4212 review).
+  for (const brand of Object.keys(NO_EMISSION)) {
+    check(`arm 2 ${brand}: an exempt design file is still committed, so its exemption is not stale`,
+      designBrandsInExamples().includes(brand), `no packages/engine/examples/${brand}.design.md`);
+  }
+  for (const brand of designBrandsInExamples().filter((b) => !(b in NO_EMISSION))) {
+    const rel = `examples/${brand}.design.md`;
     if (!brandsOnDisk().includes(brand)) {
       check(`arm 2 ${brand}: an emission is on disk to compare against`, false, `no packages/engine/out/figma/${brand}/`);
       continue;
