@@ -13,7 +13,8 @@ Nothing is decided and nothing is built: no engine, plugin or skill change.
 - A region reload that shows OD-S7: the shapes are hidden, the region sets `aria-busy` and one status message is written.
 - Toggle button `aria-pressed` by Space and Enter on native buttons, with the transient press beside the selected look.
 - Image empty → loading → loaded, or loading → error. The loading state nests the same Skeleton (OD-I4), so it
-  pulses, shimmers or stops with the Skeleton picker.
+  pulses, shimmers or stops with the Skeleton picker. Only a loaded or failed image carries `role="img"` and its
+  name; empty and loading carry no role, so the demo is never a nameless image (review fix).
 
 **Values are copied, not derived.** Where a proposal names a token, the page uses the example brand's emitted value
 from `packages/engine/out/prism3.tokens.json`, in both light and dark (resolved through each role's `modes`
