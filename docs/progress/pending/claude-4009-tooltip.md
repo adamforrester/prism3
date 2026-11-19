@@ -46,7 +46,7 @@ shape: a surface), and the canvas furniture switch, the page taxonomy and the st
 - **New strings are DRAFT** (voice standard): every shipped field of the def, the build-ui skill's worked example.
 
 **Follow-up, not in this PR.** IconButton's `aria` line still reads "aria-label is the accessible name (required)",
-which K6 B qualifies on an icon-only control with a label-mode tooltip; filed as its own issue.
+which K6 B qualifies on an icon-only control with a label-mode tooltip; filed as #4250.
 
 **Trap.** `packages/engine/test.ts`'s #3833 replay needs full history: in a shallow clone it throws ("Could not read
 <sha>") and every arm after it goes unrun with "0 failed" printed. `git fetch --unshallow` first.
