@@ -21,4 +21,4 @@ without a word. The CLI, the MCP server, the studio and the plugin all read thro
 arms by name.
 
 **Found, not fixed:** in `test.ts`, about 400 lines of arms sit after the `report` line, so the summary count
-excludes them. A failure there prints under `0 failed`, though the exit status is still 1. Filed separately.
+excludes them. A failure there prints under `0 failed`, though the exit status is still 1. Filed as #4264.
