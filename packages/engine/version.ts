@@ -717,7 +717,13 @@ export const ENGINE_VERSION = '0.238.0';
  * medium or large Button binds (`size.<size>.hit-target`, owner Q141 revised). One added path; an added path cannot
  * break a reference. Nothing is removed or retyped. It is a step of the scale, not of the density ladder (`scale.ts`).
  */
-export const CONTRACT_VERSION = '15.1.0';
+/**
+ * 15.2.0 (owner OD-A3 A on #4110, 2026-11-19): MINOR. `icon.size.2xl` (64px) joins the guaranteed surface: Avatar's
+ * x-large size. Avatar binds the icon ladder at its other four sizes, so the one new step extends that ladder past the
+ * control rungs it pairs with (`ICON_PAIRED` in `scale.ts`). One added path; an added path cannot break a reference.
+ * Nothing is removed or retyped. The name is held for the owner on the PR (OWNER DECISION OD-A3.1).
+ */
+export const CONTRACT_VERSION = '15.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

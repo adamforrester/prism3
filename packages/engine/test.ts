@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch, formatRatio, floorRatio } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
+import { radiusScale, ICON_SIZES, ICON_PAIRED, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
 import { at, deref, pxOf, buildTree, familyOf, aliasFaults, type AliasFault } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, defaultTypeMode, type Theme } from './theme';
@@ -3433,8 +3433,12 @@ for (const b of brands) {
   // The ladder pairs 1:1 with the component-size names, which is what lets the anatomy layer (#327)
   // map control size -> icon size by identity instead of reconciling two differently-shaped scales.
   const sizeNames = nbTheme().dims.sizes.map((s: any) => s.name).join(',');
-  ok(ICON_SIZES.map((s) => s.name).join(',') === sizeNames,
-    `#324 icon steps pair 1:1 with size.* names (icon ${ICON_SIZES.map((s) => s.name).join('/')} vs size ${sizeNames})`);
+  ok(ICON_PAIRED.join(',') === sizeNames && ICON_PAIRED.every((n) => ICON_SIZES.some((s) => s.name === n)),
+    `#324 icon steps pair 1:1 with size.* names (paired ${ICON_PAIRED.join('/')} vs size ${sizeNames})`);
+  // #4110 (owner OD-A3 A): exactly one step runs past the pairing, the 64px x-large avatar.
+  const unpaired = ICON_SIZES.filter((s) => !ICON_PAIRED.includes(s.name));
+  ok(unpaired.length === 1 && unpaired[0].name === '2xl' && unpaired[0].px === 64,
+    `#4110 the icon ladder's one unpaired step is 2xl at 64px (got ${unpaired.map((s) => `${s.name}=${s.px}`).join(', ') || 'none'})`);
 }
 
 

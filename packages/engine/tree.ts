@@ -16,7 +16,7 @@ import { bandPhrase } from './figma-description';
 import { RGB, contrast, floorRatio, hex, hexToRgb, emittedAlpha } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, ResolvedUnderline, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION, gridGapLink } from './theme';
-import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
+import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX, ICON_PAIRED } from './scale';
 import { resolveAllModes, ModeResult, OPACITY_STEPS } from './modes';
 import { orderedRoleKeys } from './color-order';
 import { ENGINE_VERSION } from './version';
@@ -834,7 +834,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const iconSize: Record<string, Token> = {};
   for (const ic of theme.dims.icons) {
     iconSize[ic.name] = gridSet.has(ic.px)
-      ? dimAlias(`${root}.${CORE_TIER}.dimension.${ic.px}`, `icon.size.${ic.name} — ${ic.px}px artboard (fixed grid; pairs with size.${ic.name})`, { px: ic.px })
+      ? dimAlias(`${root}.${CORE_TIER}.dimension.${ic.px}`, `icon.size.${ic.name} — ${ic.px}px artboard (fixed grid; ${ICON_PAIRED.includes(ic.name) ? `pairs with size.${ic.name}` : 'past the control ladder, an x-large avatar'})`, { px: ic.px })
       // Unreachable while buildDims feeds icon px into the grid; kept so a future grid change
       // degrades to a literal rather than emitting a dangling alias.
       : dimLeaf(ic.px, `icon.size.${ic.name} — ${ic.px}px artboard (fixed grid)`);

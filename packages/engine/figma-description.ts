@@ -253,7 +253,8 @@ export const figmaSpaceDescription = (px: number, mult: number): string =>
 export const figmaRadiusDescription = (key: string, px: number): string =>
   key === 'none' ? 'No corner radius — 0px' : `${px}px corner radius${key === 'round' ? ' (pill)' : ''}`;
 export const figmaBorderWidthDescription = (px: number): string => (px ? `${px}px stroke` : 'No stroke — 0px');
-export const figmaIconSizeDescription = (px: number, rung: string): string => `${px}px icon artboard — pairs with size/${rung}`;
+export const figmaIconSizeDescription = (px: number, rung: string): string =>
+  rung === '2xl' ? `${px}px icon artboard — an x-large avatar, past the control sizes` : `${px}px icon artboard — pairs with size/${rung}`;
 export const figmaOpacityDescription = (pct: number): string => `${pct}% opacity`;
 export const figmaBlurDescription = (key: string, px: number): string =>
   key === 'glass' ? `${px}px background blur — the glass effect style binds it` : `${px}px blur`;
