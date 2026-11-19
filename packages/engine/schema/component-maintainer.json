@@ -2182,7 +2182,7 @@
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED",
-          "description": "RTL — the row mirrors (the control moves to the reading-start side through logical properties), and the disc and dot are symmetrical, so this atom has nothing to mirror (brief §9). Figma members are drawn left to right."
+          "description": "RTL — the disc and dot are symmetrical, so this atom has nothing to mirror; the row it sits in mirrors and moves it to the reading-start side (brief §9). Figma members are drawn left to right."
         }
       ],
       "notes": {
@@ -2962,7 +2962,7 @@
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED",
-          "description": "right-to-left — the turn stays clockwise and does not mirror (Spectrum's rule, brief §9). Clockwise reads as time moving forward; counter-clockwise reads as undo or going back. Layout mirrors through logical properties, and the rotation is the deliberate exception, so no `[dir=\"rtl\"]` rule flips it."
+          "description": "right-to-left — the turn stays clockwise and does not mirror (Spectrum's rule, brief §9). Clockwise reads as time moving forward; counter-clockwise reads as undo or going back. The page around it mirrors, and the rotation is the deliberate exception, so no `[dir=\"rtl\"]` rule flips it."
         },
         {
           "class": "motion",
@@ -6922,7 +6922,7 @@
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED",
-          "description": "right-to-left — the shapes are symmetric and do not mirror. The shimmer sweeps in the reading direction, so it runs right to left under RTL; the ragged lines end-align through logical properties, so the short lines sit at the start edge in both directions. A composed skeleton layout mirrors with its layout."
+          "description": "right-to-left — the shapes are symmetric and do not mirror. Each line's bar starts at the start edge through logical properties, so under RTL the short lines end short of the left edge, and the shimmer sweeps in the reading direction, right to left. A composed skeleton layout follows its own layout."
         }
       ],
       "notes": {

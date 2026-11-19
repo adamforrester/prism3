@@ -145,7 +145,7 @@ export const progress: ComponentDef = {
         note: 'The column: the label and value, the track, and the message at complete and error. A linear bar fills the width it is placed in.',
       },
       header: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         layout: { direction: 'row', align: 'baseline', justify: 'space-between', sizing: { x: 'fill', y: 'hug' } },
         gap: 'header-gap',
         minHeight: 'header-min',
@@ -177,7 +177,7 @@ export const progress: ComponentDef = {
         note: 'The amount at complete, "100%", end-aligned. Its own text, so it does not share the running bar\'s "50%".',
       },
       track: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         paintSlots: ['fill'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
         height: 'track-height',
@@ -246,7 +246,7 @@ export const progress: ComponentDef = {
         note: 'The ring\'s pale track, the same color as the linear track: a full circle 3px wide at 24px and 4px wide at 40px.',
       },
       arcGlyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'mirrors',
         glyph: 'progress-arc-{type}-{size}',
         size: 'size.{size}',
         stackCentered: true,

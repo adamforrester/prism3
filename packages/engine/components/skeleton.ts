@@ -115,7 +115,7 @@ export const skeleton: ComponentDef = {
         note: 'The box the skeleton holds open for the content. It paints nothing.',
       },
       firstLine: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
         height: 'size.{size}.line-box',
         padding: { block: 'bar-inset', inlineLabel: 'bar-inline' },
@@ -135,7 +135,7 @@ export const skeleton: ComponentDef = {
         note: 'The bar on the first line, the full width, centered in its line.',
       },
       middleLine: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
         height: 'size.{size}.line-box',
         padding: { block: 'bar-inset', inlineLabel: 'bar-inline' },
@@ -156,7 +156,7 @@ export const skeleton: ComponentDef = {
         note: 'The bar on the middle line, about 80% of the width.',
       },
       lastLine: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
         height: 'size.{size}.line-box',
         padding: { block: 'bar-inset', inlineLabel: 'bar-inline' },
@@ -177,7 +177,7 @@ export const skeleton: ComponentDef = {
         note: 'The bar on the last line, about 40% of the width, so the lines end like a ragged paragraph.',
       },
       block: {
-        kind: 'box',
+        kind: 'box', mirror: 'never',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fill', y: 'fill' } },
         radius: '{shape}.radius',
         crossAxisFill: true,
@@ -241,7 +241,7 @@ export const skeleton: ComponentDef = {
         class: 'right-to-left',
         disposition: 'unsupported',
         description:
-          'right-to-left — the shapes are symmetric and do not mirror. The shimmer sweeps in the reading direction, so it runs right to left under RTL; the ragged lines end-align through logical properties, so the short lines sit at the start edge in both directions. A composed skeleton layout mirrors with its layout.',
+          'right-to-left — the shapes are symmetric and do not mirror. Each line\'s bar starts at the start edge through logical properties, so under RTL the short lines end short of the left edge, and the shimmer sweeps in the reading direction, right to left. A composed skeleton layout follows its own layout.',
       },
     ],
   },

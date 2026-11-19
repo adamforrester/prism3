@@ -47,6 +47,7 @@
  * the nodes kept as hand edits, and its prototype reactions against the ones the plan gives it (#2466), unless they
  * were kept as a hand edit. Either failing makes the verdict a failure.
  */
+import { failureDetail } from './apply-summary';
 import { diffAnatomy, type HostNode, planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/engine/components';
 import { coordKey, partRenames, type ComponentRename, slotMigrationOf, slotTextMigrationOf } from '@prism3/engine';
 import { applyComponentPlan, emitCoordValue, keptBoundOf, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
@@ -598,7 +599,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
         if (entry) c.setSharedPluginData?.(NS, UPDATING_KEY, JSON.stringify([...entry.keep]));
       }
     } catch (err) {
-      out.stopped = (err as Error)?.message ?? String(err);
+      out.stopped = failureDetail(err);
       return out;
     }
   }
@@ -718,7 +719,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
       update: { members: work.members, retained: new Set(retained) },
     });
   } catch (err) {
-    out.stopped = (err as Error)?.message ?? String(err);
+    out.stopped = failureDetail(err);
     // A STOPPED SET COUNTS THE MEMBERS IT FINISHED (#3449). The pass returned nothing, so they are read off the host: a
     // member is finished when it ends with its planned stamp and no in-progress marker. Every member this update
     // configures was marked before the set's first write (above), and only the executor's finish takes the marker off,
@@ -955,7 +956,7 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
     try {
       res.cover = await drawCover(api as unknown as CoverApi, host.root as CoverRoot);
     } catch (e) {
-      res.cover = { did: 'none', skipped: `not updated, Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] };
+      res.cover = { did: 'none', skipped: `not updated, Figma refused the write (${failureDetail(e)})`, fontMisses: [] };
     }
   }
   // A run whose only work is the cover (#2859) leaves a current About frame as it is: no set changed, so its date and
@@ -965,7 +966,7 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
     try {
       res.about = await drawAbout(api as unknown as AboutApi, host.root as AboutRoot, { updated: today ?? new Date().toISOString().slice(0, 10) });
     } catch (e) {
-      res.about = { drawn: false, skipped: `Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] };
+      res.about = { drawn: false, skipped: `Figma refused the write (${failureDetail(e)})`, fontMisses: [] };
     }
   }
   // With no version, no set changed: the library has nothing new to publish, and the description has no title.
@@ -1112,7 +1113,7 @@ export const applyUpdate = async (
   try {
     res.version = (await saveVersion(host, { run: 'update', sets: setIds.map((set) => ({ set, name: opts.nameOf?.(set) })), pageOrder: reorder, about: aboutIsWork(preview.about), cover: coverIsWork(preview.cover), pageMoves: relocate, headers: headering })).title;
   } catch (err) {
-    res.refusedAll = `the named version could not be saved (${(err as Error)?.message ?? String(err)}), so nothing was written`;
+    res.refusedAll = `the named version could not be saved (${failureDetail(err)}), so nothing was written`;
     return res;
   }
   // #3697 L1: A THROW FROM HERE ON KEEPS WHAT WAS DONE. A throw outside a set's own write (a slot fill, a re-read, the
@@ -1228,7 +1229,7 @@ export const applyUpdate = async (
   await settle(host, targets, preview, res, opts);
   await finishAbout(host, api, preview, res, opts.today);
   } catch (err) {
-    res.failed = (err as Error)?.message ?? String(err);
+    res.failed = failureDetail(err);
   }
   return res;
 };

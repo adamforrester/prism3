@@ -39,6 +39,8 @@ Shown on the default member: shape `text`, size `medium`.
 
 Use a skeleton for the first load of a layout you already know: a card, a list row, a profile header. Build it inside the real layout and abstract each item to its main parts, one circle, two lines and one rectangle, rather than one shape per badge or icon. Give a rect the size of the content it stands for and a circle its diameter, so nothing shifts when the content arrives. Hide every skeleton from assistive technology, and let the region that is loading carry `aria-busy` and one status message. For a short wait inside a control, use a spinner; for work with a known length, use progress.
 
+**In RTL.** The layout mirrors: the start edge is on the right. The block does not mirror.
+
 ### Do
 
 - Match the skeleton to the content it replaces: the same box, radius and proportion
