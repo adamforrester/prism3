@@ -40482,7 +40482,19 @@ arm: {
       `#2895 dialog show title: every one of the 24 members binds the title's visibility to "show title", shown by default, keeping its title text property and its label emphasis style (${titleBad.length ? `WRONG: ${titleBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
     const desc = plans.every((p) => (find(p.root as DN, 'description') as { visibleProp?: string } | undefined)?.visibleProp === 'description');
     ok(desc, '#2895 dialog show title Q2 A: the description keeps its own toggle, independent of the title');
-    const co = codeOnlyText(dg.anatomy!.codeOnly);
+    // Q3 A: the header collapses to its content, so a hidden title takes its gap with it. That holds only while the header
+    // (a row: its height is the counter axis) and the titleBox (a column: its height is the primary axis) both hug on y,
+    // with no minimum height on either. ACTUAL is the projected frames, not the def's sizing literals.
+    const q3Bad = plans.filter((p) => {
+      const h = find(p.root as DN, 'header') as Record<string, unknown> | undefined;
+      const tb = find(p.root as DN, 'titleBox') as Record<string, unknown> | undefined;
+      const noMin = (n: Record<string, unknown>) => n.minHeight === undefined && (n.bound as Record<string, unknown> | undefined)?.minHeight === undefined;
+      return !(h && tb && h.layoutMode === 'HORIZONTAL' && h.counterAxisSizingMode === 'AUTO' && noMin(h)
+        && tb.layoutMode === 'VERTICAL' && tb.primaryAxisSizingMode === 'AUTO' && noMin(tb));
+    });
+    ok(plans.length === 24 && q3Bad.length === 0,
+      `#2895 dialog show title Q3 A: on every member the header and the titleBox hug their height with no minimum, so a hidden title collapses the header (${q3Bad.length ? `WRONG: ${q3Bad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    const co =codeOnlyText(dg.anatomy!.codeOnly);
     ok(co.some((e) => /^labeling — /.test(e) && /`hideTitle` the `<h2>` stays in the DOM, visually hidden/.test(e) && /`aria-labelledby` still points at it/.test(e) && /never `display: none`/.test(e)),
       '#2895 dialog show title Q7 A: a hidden title is a visually hidden <h2> that aria-labelledby still points at, never display: none');
     ok(co.some((e) => /^focus in — /.test(e) && /`hideTitle`, never to the hidden title/.test(e) && /first control in the body/.test(e)),
