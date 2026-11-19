@@ -12,7 +12,7 @@
     "used": 290,
     "unusedSemantic": 252,
     "unusedPrimitive": 280,
-    "components": 63
+    "components": 64
   },
   "tokens": {
     "border-width.hairline": {
@@ -25270,6 +25270,17 @@
             }
           }
         },
+        "tag-group": {
+          "keys": [
+            "group-gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 3,
+              "where": {}
+            }
+          }
+        },
         "text-field": {
           "keys": [
             "root-gap",
@@ -33470,6 +33481,21 @@
       "declaredNotDrawn": [
         "color.border.focus"
       ],
+      "drawnNotDeclared": []
+    },
+    "tag-group": {
+      "members": 3,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "space.100"
+      ],
+      "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
     "text-field": {

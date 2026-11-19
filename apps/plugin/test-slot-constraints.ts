@@ -43,6 +43,8 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // Repeating items (#2649, owner decision Q307 A): at least one, the ceiling where one means something, only the item.
   'checkbox-group.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['checkbox-row'] },
   'radio-group.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['radio-row'] },
+  // #1739: Tag.Group's tags, at least one, no ceiling (a filter set grows with the data), only the tag.
+  'tag-group.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['tag'] },
   'tabs.items': { slotSettings: { minChildren: 1, maxChildren: 6, allowPreferredValuesOnly: true }, preferred: ['tab-item'] },
   'list.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['list-item'] },
   'segmented-control.items': { slotSettings: { minChildren: 1, maxChildren: 5, allowPreferredValuesOnly: true }, preferred: ['segmented-control-segment'] },

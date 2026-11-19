@@ -351,6 +351,7 @@ const EXCLUDED: Record<string, string> = {
   'switch-control': 'a nested-only atom — the tap target is the labeled row (switch-row), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
+  'tag-group': 'a group container — its tap targets are the nested tags, each measured under its own name (#1739)',
   'pagination': 'a navigation row — its tap targets are the nested page cells, gated as pagination-item, and the previous and next IconButton.Neutral and Button.Neutral, each measured under its own name (#2665)',
   'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab-item',
   'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception; each size\'s line box is held to 24px below, as drawn or code-side (#3179)',

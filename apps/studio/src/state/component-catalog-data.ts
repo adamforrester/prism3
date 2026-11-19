@@ -1009,6 +1009,22 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "tag-group",
+    "name": "Tag.Group",
+    "category": "foundations",
+    "summary": "A wrapping row of Tags. The group owns which tags are pressed, arrow keys and removal. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Tag",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 3,
+    "nests": [
+      "tag"
+    ]
+  },
+  {
     "id": "tab-item",
     "name": "Tab.Item",
     "category": "navigation",
