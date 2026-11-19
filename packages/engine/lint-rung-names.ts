@@ -357,6 +357,7 @@ const RUNG_REPEATS: Record<string, { families: string[]; why: string }> = {
   'flush-icon-button-destructive': { families: ['icon.size.*'], why: 'Q283.13 A, as Flush icon button' },
   'flush-icon-button-neutral': { families: ['icon.size.*'], why: 'Q283.13 A, as Flush icon button' },
   'card-number-field': { families: ['icon.size.*'], why: 'the mark tile is the icon rung, 20 at small and medium and 24 at large (#2429 §2)' },
+  'code-input-cell': { families: ['radius.*'], why: '#3551 A: small, medium and large follow the control corner (control.size.{sm,md,lg}.radius = radius.sm), as a same-size text field does; the x-large display cell is the deliberate exception at radius.lg' },
 };
 
 /**
@@ -365,9 +366,7 @@ const RUNG_REPEATS: Record<string, { families: string[]; why: string }> = {
  * instead, and is checked both directions like RUNG_REPEATS. When the issue is answered, the entry moves to
  * RUNG_REPEATS (kept) or is deleted with the def's fix (changed).
  */
-const RUNG_REPEATS_OPEN: Record<string, { families: string[]; issue: string }> = {
-  'code-input-cell': { families: ['radius.*'], issue: '#3551: small, medium and large on radius.sm with md skipped, from the as-built wireframe, no decision cited' },
-};
+const RUNG_REPEATS_OPEN: Record<string, { families: string[]; issue: string }> = {};
 
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
 const expectedDefaultRung = (defId: string, family: string): string =>
