@@ -731,12 +731,12 @@ const overrideView = (n: PNode, fields: ReadonlySet<string>, kids: SgNode[], top
   },
 }) as SgNode;
 /** An instance on the panel, read through its overrides: itself, then each layer under it that overrides something, in
- *  order, flat, so a layer its main adds, drops or moves does not move the print. */
-const instanceView = (inst: PNode, ovr: Map<string, Set<string>>): SgNode => {
+ *  order, flat, so a layer its main adds, drops or moves does not move the print. `spec` reads a specimen inside it. */
+const instanceView = (inst: PNode, ovr: Map<string, Set<string>>, spec: (c: PNode) => SgNode = (c) => printView(c as unknown as SgNode)): SgNode => {
   const flat: SgNode[] = [];
   const take = (q: PNode): void => {
     for (const c of q.children ?? []) {
-      if (c.type === 'INSTANCE' && c.name === 'specimen') { flat.push(printView(c as unknown as SgNode)); continue; }
+      if (c.type === 'INSTANCE' && c.name === 'specimen') { flat.push(spec(c)); continue; }
       const f = ovr.get(String(c.id ?? ''));
       if (f) flat.push(overrideView(c, f, [], false));
       take(c);
@@ -745,21 +745,41 @@ const instanceView = (inst: PNode, ovr: Map<string, Set<string>>): SgNode => {
   take(inst);
   return overrideView(inst, ovr.get(String(inst.id ?? '')) ?? new Set(), flat, true);
 };
-/** `printView`, with each instance on the panel read through its overrides (`instanceView`). */
-const ownView = (n: SgNode): SgNode => new Proxy({}, {
+/** `printView`, with each instance on the panel read through its overrides (`instanceView`). `spec` reads a specimen:
+ *  as `printView` does in the third form, through its own overrides in the fourth (`specimenView`). */
+const ownView = (n: SgNode, spec: (c: PNode) => SgNode = (c) => printView(c as unknown as SgNode)): SgNode => new Proxy({}, {
   get(_, k) {
     const own = n as unknown as PNode;
     if (k === 'children') {
       return ((own.children ?? []) as readonly PNode[]).map((c) => {
-        if (c.type !== 'INSTANCE' || c.name === 'specimen') return c.type === 'INSTANCE' ? printView(c as unknown as SgNode) : ownView(c as unknown as SgNode);
+        if (c.type !== 'INSTANCE') return ownView(c as unknown as SgNode, spec);
+        if (c.name === 'specimen') return spec(c);
         const ovr = overridesUnder(c);
-        return ovr ? instanceView(c, ovr) : printView(c as unknown as SgNode);
+        return ovr ? instanceView(c, ovr, spec) : printView(c as unknown as SgNode);
       });
     }
     return Reflect.get(printView(n), k);
   },
 }) as SgNode;
-export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V3}${await fingerprintOf(ownView(n as unknown as SgNode))}`;
+/** A print in the third form (#3303): a specimen read as `printView` reads it. Exported so a test can age a panel to it. */
+export const printV3 = async (n: PNode): Promise<string> => `${PRINT_V3}${await fingerprintOf(ownView(n as unknown as SgNode))}`;
+/**
+ * THE SPECIMEN AS THE PANEL SET IT (#4070). `printView` empties a specimen, but it still read the specimen's own root:
+ * its fills, strokes, corners and effects. Those are the documented member's, read through the instance, so an Update
+ * that redrew the member's root (Wallet and Sign-in buttons' corners under Control shape, #3794) moved the print of a
+ * panel nobody touched, and it was kept aside as "(edited)" (three on the template file, 2026-11-18). In the fourth form
+ * a specimen is read, as `instanceView` reads an instance, only through what is set on the specimen itself, its own entry
+ * in `overrides`: a fill or a corner a designer sets there still moves the print. Its properties stay out, as in every
+ * form: which member it shows is the set's. A host that reports no `overrides` has it read as the third form reads it.
+ */
+const PRINT_V4 = '4:';
+const specimenView = (sp: PNode): SgNode => {
+  if (!Array.isArray(sp.overrides)) return printView(sp as unknown as SgNode);
+  const mine = (sp.overrides as { id: string; overriddenFields: string[] }[]).find((o) => o.id === String(sp.id ?? ''));
+  const fields = new Set((mine?.overriddenFields ?? []).filter((k) => !UNPRINTED.has(k) && k !== 'componentProperties'));
+  return overrideView(sp, fields, [], false);
+};
+export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V4}${await fingerprintOf(ownView(n as unknown as SgNode, specimenView))}`;
 /**
  * Whether `n` still prints as `print`, read in the form it was recorded in. A print in the second form (#2927) is
  * compared in that form: a panel drawn before #3303 and untouched since still matches until a component it nests is
@@ -767,7 +787,7 @@ export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V3}${awa
  * rebuild from a hand edit, so nothing a designer did is drawn over. Once redrawn, a panel carries this form.
  */
 export const printMatches = async (n: PNode, print: string): Promise<boolean> =>
-  !!print && (print.startsWith(PRINT_V3) ? (await panelPrint(n)) === print : print.startsWith(PRINT_V2) ? (await printV2(n)) === print : false);
+  !!print && (print.startsWith(PRINT_V4) ? (await panelPrint(n)) === print : print.startsWith(PRINT_V3) ? (await printV3(n)) === print : print.startsWith(PRINT_V2) ? (await printV2(n)) === print : false);
 /**
  * THE TEXT PRISM3 WRITES INTO `defId`'s PANEL (#2968), today or before one panel per family (#2927): every string of its
  * plan; the wording #2927 changed (each part's own anatomy line, the def's own Do and Don't items and their count); a
@@ -848,7 +868,7 @@ const legacyUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode, print: stri
 export const panelUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode): Promise<boolean> => {
   const print = n.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PRINT) ?? '';
   if (!print) return false;
-  return print.startsWith(PRINT_V3) || print.startsWith(PRINT_V2) ? printMatches(n, print) : legacyUnedited(api, n, print);
+  return print.startsWith(PRINT_V4) || print.startsWith(PRINT_V3) || print.startsWith(PRINT_V2) ? printMatches(n, print) : legacyUnedited(api, n, print);
 };
 
 /**

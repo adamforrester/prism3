@@ -3,7 +3,7 @@
 > A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.
 
 - **ID:** `divider`
-- **Category:** foundations
+- **Category:** layout
 - **Status:** draft
 - **Also known as:** separator, rule, hr
 
