@@ -1892,7 +1892,8 @@ export type FigmaProperties = {
  * nothing read or checked the value. The KB catalogue (`components/index.md`) groups every brief under
  * exactly seven headings, and each brief's frontmatter names one of them, so this list is those seven,
  * lower-cased, in the catalogue's order. `media` is not among them; `veil` and `image-placeholder` moved
- * to `foundations` (image.md's category, and veil's stated choice in its header).
+ * to `foundations` (image.md's category, and veil's stated choice in its header; veil is `overlay` since
+ * #4045 A).
  *
  * A def TAKES ITS BRIEF'S CATEGORY. That is gated in `test.ts` (#1700, the brief-citation arm) against
  * an authored table of the briefs and their KB categories, not against this list: this list says what a

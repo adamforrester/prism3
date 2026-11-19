@@ -80,7 +80,7 @@ Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/upda
 |---|---|
 | The set and each variant | Kept, with the same ids, so every instance of it, in this file or one that uses it as a library, still points at it. <!-- src: apps/plugin/src/update-apply.ts:8-12#cb1e78db --> |
 | A hand edit on a variant | Kept by default, and reported again on the next check. <!-- src: apps/plugin/src/update-apply.ts:18-19#2863d9bd --> The **Overwrite** choice writes over it instead. <!-- src: apps/studio/src/state/update-file.ts:405 --> |
-| An icon you swapped inside a variant, such as the brand's own check in place of Prism3's | Kept, like any other hand edit, and reported on the next check. <!-- src: apps/plugin/src/member-baseline.ts:378-379#9be7affb --> |
+| An icon you swapped inside a variant, such as the brand's own check in place of Prism3's | Kept, like any other hand edit, and reported on the next check. <!-- src: apps/plugin/src/member-baseline.ts:418-419#9be7affb --> |
 | A variant the brand dropped | Kept in the set and marked deprecated, with its name recorded. Never deleted. <!-- src: apps/plugin/src/update-apply.ts:20-21#bc79ac24 --> |
 | A variant Prism3 did not build | Skipped. <!-- src: apps/plugin/src/update-apply.ts:23#833d0bf0 --> |
 | A variant whose layer structure was edited | Skipped whole, because its parts can no longer be matched one by one. <!-- src: apps/plugin/src/update-apply.ts:26#488f7db7 --> |
@@ -143,7 +143,7 @@ Removing a mode removes its values from every variable in the collection, so mov
 |---|---|---|
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:242 --> | Rename or remove the named items, then run Update file again. |
 | "is already running. Try again when it finishes." | Another write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:49-52 --> | Wait for it to finish. |
-| "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1932 --> | Load the brand again, for example from its `design.md`. |
+| "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1929 --> | Load the brand again, for example from its `design.md`. |
 | `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:1015 --> | Open Update file again and read the new check. |
 | "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:1115 --> | Try again. Nothing in the file changed. |
 | `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1072 --> | Rename or move the existing set. |

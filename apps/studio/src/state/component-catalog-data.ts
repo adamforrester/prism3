@@ -875,7 +875,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
   {
     "id": "veil",
     "name": "Veil",
-    "category": "foundations",
+    "category": "overlay",
     "summary": "Wash over media so text stays legible, solid or fading from one edge. Verify contrast.",
     "unit": "variants",
     "spacing": [],
@@ -1086,7 +1086,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
   {
     "id": "divider",
     "name": "Divider",
-    "category": "foundations",
+    "category": "layout",
     "summary": "A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.",
     "unit": "variants",
     "spacing": [

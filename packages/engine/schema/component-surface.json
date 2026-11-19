@@ -427,7 +427,7 @@
     },
     "switch-control": {
       "members": 40,
-      "sha256": "5089cf41bee2b6662614ec1bfc8ce6dd2cdaba89ef33a21654efd1897dc75221",
+      "sha256": "d51e42e38d80b75c8c2261c1fabdd7db695fd93859805776d7db7bbb05cd9308",
       "properties": [
         "state icon:BOOLEAN"
       ]
