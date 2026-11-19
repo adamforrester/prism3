@@ -264,11 +264,8 @@ export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<str
 
 export type StepResult = { readonly step: StepKey; readonly ok: boolean; readonly headline: string;
   /** #3308: not clean, but the step did all it was asked: every queued set was built, some with problems. The run goes
-   *  on to the next step; the verdict line says the step had problems. Never set with `ok`. */
-  readonly warn?: true;
-  /** #4067: the update step's count of sets written to, as its own headline gives it (`sets` on the host's verdict).
-   *  Absent from every other step, and when the host did not say. */
-  readonly sets?: number };
+   *  on to the next step; the verdict line says the step had problems. Never set with `ok`. #4067 `sets`: the update step's sets written to, its verdict's count. */
+  readonly warn?: true; readonly sets?: number };
 export type UpdateRun = {
   readonly steps: readonly StepKey[];
   /** The sets the `sets` step builds: the add queue, in Components' order (#3129). */
