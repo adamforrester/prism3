@@ -57,7 +57,7 @@
  * tier's mode cap) is not knowable from the API before `addMode` hits it.
  */
 import { type WritePlan, type FloatCollectionPlan, type VarCollectionPlan, type StylesPlan, type GridStylePlan, type TextStylePlan, renameMap, validateRenameMap, planCollectionRenames, isRefusal, type RenameMap, CORE_COLLECTION } from '@prism3/engine/figma';
-import { ownedModeIds, replacesOnRetype, type VarCollection } from './write-figma';
+import { claimModes, ownedModeIds, replacesOnRetype, type VarCollection } from './write-figma';
 import { isEngineDescription, type StyleKind } from './prune-figma';
 import { isMarkedOwned, type Markable } from './provenance';
 
@@ -67,6 +67,8 @@ export type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN' | 'TIMING' | 'EAS
 export type PreflightPlan = {
   variables: { collection: string; rows: { name: string; type: VarType }[] }[];
   styles: Record<StyleKind, string[]>;
+  /** #4157: the modes each executor reconciles, by collection (`reconcileModes`), so the mode capacity is checked first. */
+  modes?: { collection: string; names: string[] }[];
 };
 
 /** A style as the pre-flight reads it: its name, its description, and its ownership mark (#1884). */
@@ -82,6 +84,9 @@ export interface PreflightApi {
   getLocalTextStylesAsync(): Promise<PreflightStyle[]>;
   /** `figma.root` — read for the persisted brand only (the legacy presumption above). */
   root: { getSharedPluginData(namespace: string, key: string): string };
+  /** #4157: the file's modes-per-collection cap, when it is below `need`; null when `need` fits or the cap can't be read.
+   *  The one probe that writes (a scratch collection, made and removed), so only `guardApply` calls it. */
+  modeCap?(need: number): Promise<number | null>;
 }
 
 /** One incompatibility. `detail` says what differs, in plain words. */
@@ -122,6 +127,10 @@ export const preflightPlanOf = (p: {
   grid: GridStylePlan;
   text: TextStylePlan;
 }, names: ColorNames = COLOR_NAMES): PreflightPlan => ({
+  modes: [
+    ...(names.color === null ? [] : [{ collection: names.color, names: p.color.color.modes }]),
+    ...[...p.float, ...p.font, ...p.motion].map((c) => ({ collection: c.name, names: c.modes })),
+  ],
   variables: [
     ...(names.core === null ? [] : [{ collection: names.core, rows: p.color.palette.map((r) => ({ name: r.name, type: 'COLOR' as const })) }]),
     ...(names.color === null ? [] : [{ collection: names.color, rows: p.color.color.create.map((r) => ({ name: r.name, type: 'COLOR' as const })) }]),
@@ -220,17 +229,65 @@ export const preflightApply = async (
   return conflicts;
 };
 
+/** #4157: the file's plan allows `allowed` modes per collection, and the apply needs `needed` in one of them. */
+export type ModeLimit = { allowed: number; needed: number };
+
+/**
+ * THE MODES EACH COLLECTION WILL HOLD once the apply has run (#4157), for every collection the apply would add a mode
+ * to: the modes it has, plus each planned mode `claimModes` can't claim, less the one a fresh collection renames
+ * (`reconcileModes`' step 2). A collection several executors write (`core`) is planned as the union of their modes. A
+ * collection that gains no mode needs no capacity. Pure and read-only.
+ */
+export const modesNeeded = (plan: PreflightPlan, collections: readonly VarCollection[], map: RenameMap = renameMap()): number[] => {
+  const moves = collectionMoves(collections.map((c) => c.name), map);
+  const planned = new Map<string, Set<string>>();
+  for (const m of plan.modes ?? []) {
+    const set = planned.get(m.collection) ?? new Set<string>();
+    for (const n of m.names) set.add(n);
+    planned.set(m.collection, set);
+  }
+  const out: number[] = [];
+  for (const [name, set] of planned) {
+    const names = [...set];
+    const col = collections.find((c) => c.name === (moves.get(name) ?? name));
+    if (!col) { if (names.length > 1) out.push(names.length); continue; }
+    const claimed = claimModes(col.modes, names);
+    let missing = names.filter((n) => !claimed.has(n)).length;
+    if (missing && col.modes.length === 1 && !names.includes(col.modes[0].name)) missing--;
+    if (missing) out.push(col.modes.length + missing);
+  }
+  return out;
+};
+
+/** #4157: the plan's mode capacity against the file's, or null when it fits or the host can't say. */
+export const modeLimitOf = async (plan: PreflightPlan, api: PreflightApi): Promise<ModeLimit | null> => {
+  if (!api.modeCap) return null;
+  const needs = modesNeeded(plan, await api.getLocalVariableCollectionsAsync());
+  if (!needs.length) return null;
+  const needed = Math.max(...needs);
+  const allowed = await api.modeCap(needed);
+  return allowed !== null && allowed < needed ? { allowed, needed } : null;
+};
+
+/** #4157 (owner decision A): the refusal, one plain line. DRAFT for the owner, to `docs/voice-standard.md`. */
+export const modeLimitLine = (l: ModeLimit): string =>
+  `This file's Figma plan allows ${l.allowed} mode${l.allowed === 1 ? '' : 's'} per collection; Prism3 needs ${l.needed}. Move the file to a team on a plan with more modes.`;
+
 /**
  * THE ORDERING, in one place: pre-flight first, and the write only on a clean result. `write` is the whole
- * apply sequence — never called when there is a conflict, so a refused apply writes nothing at all.
+ * apply sequence — never called when there is a conflict, so a refused apply writes nothing at all. #4157: a clean
+ * pre-flight then checks the file's mode capacity, so a plan that allows fewer modes than the apply adds is refused
+ * before the named version and the first write, rather than throwing at `addMode` part-way through.
  */
 export const guardApply = async <T>(
   plan: PreflightPlan,
   api: PreflightApi,
   write: () => Promise<T>,
-): Promise<{ ok: true; result: T } | { ok: false; conflicts: Conflict[] }> => {
+): Promise<{ ok: true; result: T } | { ok: false; conflicts: Conflict[]; limit?: ModeLimit }> => {
   const conflicts = await preflightApply(plan, api);
   if (conflicts.length) return { ok: false, conflicts };
+  const limit = await modeLimitOf(plan, api);
+  if (limit) return { ok: false, conflicts: [], limit };
   return { ok: true, result: await write() };
 };
 

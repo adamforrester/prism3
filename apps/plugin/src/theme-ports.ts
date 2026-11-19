@@ -57,7 +57,30 @@ export const preflightApiOf = (host: ThemeHost): PreflightApi => ({
   getLocalGridStylesAsync: () => host.getLocalGridStylesAsync(),
   getLocalTextStylesAsync: () => host.getLocalTextStylesAsync(),
   root: host.root,
+  modeCap: (need) => modeCapOf(host.variables, need),
 });
+
+/** #4157: the name of the scratch collection the mode probe makes and removes. */
+export const MODE_PROBE_NAME = 'Prism3 mode check';
+/**
+ * THE MODE PROBE (#4157). Figma has no read for the plan's modes-per-collection cap: `addMode` past it throws
+ * "in addMode: Limited to N modes only". So a scratch collection is made, given `need` modes, and removed, and the
+ * cap is read off that message. Any other failure (a read-only file, an older host) reads as "can't say", and the run
+ * goes on to meet it where it did before.
+ */
+export const modeCapOf = async (vars: Pick<VariablesApi, 'createVariableCollection'>, need: number): Promise<number | null> => {
+  let c: (VarCollection & { remove?(): void }) | null = null;
+  try {
+    c = vars.createVariableCollection(MODE_PROBE_NAME) as VarCollection & { remove?(): void };
+    for (let i = c.modes.length; i < need; i++) c.addMode(`Mode ${i + 1}`);
+    return null;
+  } catch (e) {
+    const m = /Limited to (\d+) modes?/i.exec(String((e as Error)?.message ?? e));
+    return m ? Number(m[1]) : null;
+  } finally {
+    try { c?.remove?.(); } catch { /* the host refused the removal: nothing more to do here */ }
+  }
+};
 
 /** The Text Style executor's port (#237): figma's style/font surface + figma.variables' getter. */
 export const textApiOf = (host: ThemeHost): TextStylesApi => ({
