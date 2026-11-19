@@ -1994,7 +1994,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   { const d = onDisabled(); put('disabled.on-fill', d.r, `Label / icon on a disabled fill — muted but clears ${d.min}:1`, 'disabled.fill', d.min); }
   { const d = disabledText(); put('disabled.text', d.r, `Disabled text — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
   { const d = disabledText(); put('disabled.icon', d.r, `Disabled icon — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
-  // The disabled EDGE takes the disabled levers' target too (#2750, owner decision A): it clears the
+  // The disabled EDGE takes the disabled levers' target too (#2750; owner decision lettered A, text = option B): it clears the
   // same floor as the disabled inks, against the same worst-case surface. Before #2750 it was the
   // fixed `neutralLow()` step `disabled.fill` uses, rated `min: 0`, so no lever moved it and a disabled
   // outlined control measured 1.5–1.8:1. It no longer matches `disabled.fill` by construction.

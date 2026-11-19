@@ -1,6 +1,6 @@
 ## (2026-11-18) — The disabled levers also set the disabled border's contrast (#2750)
 
-**What.** Owner decision A on #2750: `disabledStrategy` and `disabledMin` now set a contrast target for
+**What.** The owner decision on #2750 (lettered A; its text is option B's, which is what is built): `disabledStrategy` and `disabledMin` now set a contrast target for
 `color.disabled.border`, not only for the disabled inks. The border, and its inverse twin, are picked from the
 same candidates against the same worst-case surface as `disabled.text` / `disabled.icon`, at the same floor. Before,
 both were the fixed `neutralLow()` step that `disabled.fill` uses, rated `min: 0`: 1.5–1.8:1 against the page at every

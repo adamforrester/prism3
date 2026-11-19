@@ -11537,7 +11537,7 @@ arm: {
     ok((r?.min ?? 0) >= 4.5, `#290 disabled: high-contrast escalates '${s}' to >=4.5 (got ${r?.min})`);
   }
 
-  // THE DISABLED EDGE FOLLOWS THE LEVERS (#2750, owner decision A, 2026-11-18). `disabled.border` (and its inverse
+  // THE DISABLED EDGE FOLLOWS THE LEVERS (#2750; owner decision lettered A, text = option B, 2026-11-18). `disabled.border` (and its inverse
   // twin) clears the same floor as the disabled inks, so both levers move it. On main it was the fixed `neutralLow()`
   // step rated `min: 0`: the same hex at every setting, 1.5–1.8:1 against the page. The expectations are the lever's
   // own numbers (4.5 for 'full', the dial for 'reduced', >=4.5 in high contrast), never read from `modes.ts`.
