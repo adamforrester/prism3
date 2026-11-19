@@ -23204,7 +23204,8 @@ console.log(`\nType around the text types (#3079)\n${'='.repeat(78)}`);
     const pane = document.querySelector('[data-p3="levers-pane"]');
     return {
       sw: document.querySelector('[data-p3="type-advanced"]')?.getAttribute('aria-checked') ?? null,
-      folds: pane.querySelectorAll('[data-p3="scale-advanced"], [data-p3="type-sections-advanced"]').length,
+      // Any Show advanced fold: a disclosure naming a `p3-advb-` body (the form Type's two folds had).
+      folds: pane.querySelectorAll('[aria-controls^="p3-advb-"]').length,
       secs: [...pane.querySelectorAll('[data-p3="lever-section"] .p3-lsec-title')].map((n) => n.textContent),
       cards: [...pane.querySelectorAll('[data-p3="type-card"]')].map((n) => ({ g: n.dataset.group, fam: n.querySelector('[data-p3="type-card-family"]')?.textContent ?? null,
         lh: !!n.querySelector('[data-p3="type-lh"]'), ls: !!n.querySelector('[data-p3="type-ls"]'), adv: !!n.querySelector('[data-p3="type-card-advanced"]') })),
