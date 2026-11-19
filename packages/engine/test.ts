@@ -43975,6 +43975,28 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     const err = r.stderr ?? '';
     ok(r.status === 1 && err.includes("✖ could not write 'clean'") && !/\n\s+at /.test(err),
       `#3875 the CLI reports a failed write through fail(), with no stack trace (exit ${r.status}; stderr ${JSON.stringify(err.slice(0, 300))})`);
+    // #4153: the CLI printed `[written]` for two of the six token files it writes, and --help named the same two. The
+    // oracle is the directory the run wrote into, read here, never the CLI's own list.
+    const out4153 = join(dir, 'out-4153');
+    const w = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), resolve(HERE, 'examples', 'harbor.design.md'), '--out', out4153], { cwd: HERE, encoding: 'utf8' });
+    const printed = [...(w.stdout ?? '').matchAll(/\[written\] (\S+)/g)].map((m) => m[1]!.slice(out4153.length + 1)).sort();
+    const onDisk = existsSync(out4153) ? readdirSync(out4153).sort() : [];
+    ok(w.status === 0 && onDisk.length >= 6 && JSON.stringify(printed) === JSON.stringify(onDisk),
+      `#4153 the CLI prints a [written] line for every file it writes (printed ${JSON.stringify(printed)}; on disk ${JSON.stringify(onDisk)})`);
+    const help = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), '--help'], { cwd: HERE, encoding: 'utf8' }).stdout ?? '';
+    ok(help.includes('<id>.base.tokens.json') && help.includes('<id>.<mode>.overlay.tokens.json'),
+      `#4153 --help names the base and per-mode overlay files beside <id>.tokens.json (got ${JSON.stringify(help.split('\n').find((l) => l.includes('--out')))})`);
+    // #4170: a failed contrast contract printed only a count. The issue's brief (a dark tinted light page) fails some;
+    // each failure must be listed with its mode, pair, ratio and floor, and the listing must account for the whole count.
+    const brief4170 = join(dir, 'fernway.design.md');
+    writeFileSync(brief4170, '---\nid: fernway\nprimary: { l: 0.479, c: 0.078, h: 161 }\nneutral: { hue: 160, chroma: 0.006 }\nsurfaces: { light: { base: 300 } }\n---\n');
+    const f = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), brief4170, '--out', join(dir, 'out-4170')], { cwd: HERE, encoding: 'utf8' });
+    const ferr = f.stderr ?? '';
+    const total = Number(/❌ (\d+) mode contrast contract\(s\) failed/.exec(ferr)?.[1] ?? NaN);
+    const listed = [...ferr.matchAll(/❌ (light|dark|hc-light|hc-dark|wireframe|[a-z-]+): (\S+) is (\d+(?:\.\d+)?):1 against (\S+), below its (\d+(?:\.\d+)?):1 floor/g)];
+    const more = Number(/… and (\d+) more/.exec(ferr)?.[1] ?? 0);
+    ok(f.status === 1 && total > 0 && listed.length > 0 && listed.length + more === total && listed.every((m) => Number(m[3]) < Number(m[5])),
+      `#4170 the CLI lists each failed contrast contract by mode, pair, ratio and floor, accounting for every failure (exit ${f.status}; ${listed.length} listed + ${more} more of ${total}; stderr ${JSON.stringify(ferr.slice(0, 400))})`);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
