@@ -32,6 +32,12 @@
 #        M5 `cd` is no longer followed                   → P7 must report NOSTASH
 #        M6 the deny on a failed stash is dropped        → F1 must report NODENY
 #        M7 `sh -c` scripts are no longer read           → P10 must report NOSTASH
+#        M8 the conflict path falls back to `stash create` → C1 must report NOSTASH
+#   C* — A MERGE CONFLICT (#4195): `f.txt` is unmerged (UU) and `sub/g.txt` carries an unrelated edit.
+#        `git stash create` refuses an unmerged index, so before #4195 every restore here was denied.
+#        C1 `--theirs` and C2 `--ours` must save the conflicted working copy (markers included) and then
+#        take the side; C3 restores the unrelated dirty path mid-conflict. Each also asserts the hook left
+#        the index as it found it (INDEX): the unmerged entries are still there when the command runs.
 #
 # SELF-CHECKS ON THE MUTATION ITSELF. A `sed` that matches nothing yields an unmutated copy, and an
 # unmutated copy passes (docs/34 corollary 2) — so every mutant is compared to the subject and the arm
@@ -127,6 +133,31 @@ failclosed() {
   echo OK
 }
 
+# conflict <hook> <command> <path> <want-after>  → OK | PRECONDITION | NOSTASH | LOST | UNNAMED | INDEX | NOTRUN | CHANGED
+# A repo stopped on a merge conflict in f.txt, with an unrelated uncommitted edit to sub/g.txt.
+conflict() {
+  hook=$1 cmd=$2 path=$3 want_after=$4
+  fresh
+  git -C "$repo" checkout -qb other && printf 'theirs\n' > "$repo/f.txt" && git -C "$repo" commit -qam theirs
+  git -C "$repo" checkout -q main && printf 'ours\n' > "$repo/f.txt" && git -C "$repo" commit -qam ours
+  git -C "$repo" merge -q other >/dev/null 2>&1
+  printf 'edit\n' > "$repo/sub/g.txt"
+  [ -n "$(git -C "$repo" ls-files -u)" ] && [ -n "$(git -C "$repo" status --porcelain -- "$path")" ] || { echo PRECONDITION; return; }
+  before=$(git -C "$repo" ls-files -s -u; git -C "$repo" diff)
+  held=$(cat "$repo/$path")
+  out=$(run_hook "$hook" "$repo" "$cmd")
+  sha=$(printf '%s' "$out" | sed -n 's/.*commit \([0-9a-f]\{40\}\).*/\1/p' | head -1)
+  [ -n "$sha" ] && git -C "$repo" stash list --format=%H | grep -qx "$sha" || { echo NOSTASH; return; }
+  [ "$(git -C "$repo" show "$sha:$path" 2>/dev/null)" = "$held" ] || { echo LOST; return; }
+  [ "$(git -C "$repo" show "$sha:sub/g.txt" 2>/dev/null)" = 'edit' ] || { echo LOST; return; }
+  git -C "$repo" stash list --format='%H %gs' | grep -q "^$sha .*auto-before-restore-" || { echo UNNAMED; return; }
+  [ "$(git -C "$repo" ls-files -s -u; git -C "$repo" diff)" = "$before" ] || { echo INDEX; return; }
+  printf '%s' "$out" | grep -q '"permissionDecision"' && { echo NOTRUN; return; }
+  (cd "$repo" && sh -c "$cmd") >/dev/null 2>&1 || { echo NOTRUN; return; }
+  [ "$(cat "$repo/$path")" = "$want_after" ] || { echo CHANGED; return; }
+  echo OK
+}
+
 expect() { # expect <arm-name> <wanted> <got>
   if [ "$3" = "$2" ]; then ok "$1 → $3"; else bad "$1: expected $2, got $3"; fi
 }
@@ -164,6 +195,12 @@ expect "N6 not inside a repository"            OK "$(neg "$HOOK" 'git checkout -
 echo "── fail closed: dirty work that cannot be saved is not restored"
 expect "F1 stash cannot be written → deny"     OK "$(failclosed "$HOOK")"
 
+echo "── merge conflict: taking a side, or restoring another path, saves the work and runs (#4195)"
+C1='git checkout --theirs -- f.txt'
+expect "C1 git checkout --theirs -- <unmerged>" OK "$(conflict "$HOOK" "$C1" f.txt theirs)"
+expect "C2 git checkout --ours <unmerged>"      OK "$(conflict "$HOOK" 'git checkout --ours f.txt' f.txt ours)"
+expect "C3 restore an unrelated dirty path"     OK "$(conflict "$HOOK" 'git checkout -- sub/g.txt' sub/g.txt base)"
+
 echo "── mutants: each must fail its named arm, for its named reason"
 # mutant <id> <sed-expression>  → sets M to the mutant's path, or to empty if the sed changed nothing
 # (called directly, never in `$(...)`, so the failure it records is counted).
@@ -186,6 +223,8 @@ mutant M6 "s/permissionDecision: 'deny',//"
 [ -n "$M" ] && expect "M6 deny on failed stash dropped → F1" NODENY "$(failclosed "$M")"
 mutant M7 "s/if (depth < 3 \&\&/if (false \&\&/"
 [ -n "$M" ] && expect "M7 sh -c not read → P10"           NOSTASH  "$(pos "$M" wt "$P10" f.txt)"
+mutant M8 "s/if (conflicted) sha = conflictSnapshot(hit.dir, name);/if (false) sha = conflictSnapshot(hit.dir, name);/"
+[ -n "$M" ] && expect "M8 conflict path dropped → C1"     NOSTASH  "$(conflict "$M" "$C1" f.txt theirs)"
 
 echo
 echo "restore-autostash: $PASS passed, $FAIL failed"
