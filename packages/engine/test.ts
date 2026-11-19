@@ -11700,6 +11700,8 @@ arm: {
       ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
       // #2324: "Text button hover: Fill" moves only the materialized button defs (the text appearance's wash).
       ['buttonTextHover', 'fill'],
+      // #576: "Outline button border: Thick" adds no token; it rebinds only the materialized button defs' edge.
+      ['buttonBorderWeight', 'thick'],
       // `hairline` joined `boxed` and `pill` with #2053: the rung is always emitted now, so the shape moves only the
       // materialized defs (its radius binding), as the other two do.
       ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
@@ -30947,6 +30949,57 @@ arm: {
   }
 }
 
+// #576 (owner decision 2026-11-18, A) — ONE OUTLINE BORDER WEIGHT FOR EVERY BUTTON SET ("Outline button border", a DRAFT
+// name). The weight is brand-wide and the color stays per set. ORACLES are literals: the three set ids, the one key and
+// the two rung names are spelled here, never read off the materializer or the def it rebinds.
+{
+  const thick = { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'thick' as const };
+  const SETS_576 = [button, buttonNeutral, buttonDestructive];
+  // (1) SCOPE: across every def, Thick moves exactly the three text-button sets. Icon buttons keep their own edge.
+  const moved576 = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, thick, () => 44))
+    !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort().join(',');
+  ok(moved576 === 'button,button-destructive,button-neutral',
+    `#576 scope: across all ${componentDefs.length} defs, Outline button border: Thick moves exactly button, button-destructive and button-neutral (got ${moved576 || 'none'})`);
+  for (const def of SETS_576) {
+    const base = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, () => 44);
+    const m = applyButtonLayout(def, thick, () => 44);
+    const changed = Object.keys(m.tokens).filter((k) => m.tokens[k] !== base.tokens[k]).sort();
+    // (2) ONE KEY, ONE RUNG. The edge's thickness moves to the 2px rung; nothing else, the border COLOR included.
+    ok(base.tokens['border-width'] === 'border-width.hairline' && m.tokens['border-width'] === 'border-width.thick'
+      && JSON.stringify(changed) === JSON.stringify(['border-width']) && JSON.stringify(m.anatomy) === JSON.stringify(base.anatomy),
+      `#576 ${def.id}: Thick rebinds border-width from border-width.hairline to border-width.thick and moves nothing else (moved: ${changed.join(', ') || 'none'})`);
+    // (3) AS PROJECTED: every member binds the thick rung as its stroke weight, and every member's paints are the
+    //     Thin projection's, so each set's outline keeps its own border color in every state.
+    const thinSet = figmaAnatomySet(base), thickSet = figmaAnatomySet(m);
+    const weights = new Set(thickSet.map((pl) => (pl.root as unknown as { bound?: Record<string, string> }).bound?.strokeWeight ?? 'UNBOUND'));
+    const paintsMoved = thickSet.filter((pl, i) => JSON.stringify((pl.root as unknown as { paints?: unknown }).paints)
+      !== JSON.stringify((thinSet[i]?.root as unknown as { paints?: unknown } | undefined)?.paints)).map(planComponentName);
+    const outlineMembers = thickSet.filter((pl) => planComponentName(pl).includes('appearance=outline')).length;
+    ok(thickSet.length === thinSet.length && outlineMembers > 0 && JSON.stringify([...weights]) === JSON.stringify(['border-width/thick']) && paintsMoved.length === 0,
+      `#576 ${def.id}: projected at Thick, all ${thickSet.length} members (${outlineMembers} outline) bind border-width/thick as their stroke weight, and no member's paints move (weights: ${[...weights].join(', ')}; paints moved: ${paintsMoved.slice(0, 3).join('; ') || 'none'})`);
+    // (4) THIN IS THE IDENTITY: the default and an explicit Thin are the same def back.
+    ok(JSON.stringify(applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'hairline' }, () => 44)) === JSON.stringify(base),
+      `#576 ${def.id}: Outline button border: Thin builds the default def`);
+  }
+  // (5) REFUSED, NOT IGNORED: a button whose edge is not on the default rung throws, naming the def and the key.
+  let threw576 = '';
+  try { applyButtonLayout({ ...button, tokens: { ...button.tokens, 'border-width': 'border-width.heavy' } }, thick, () => 44); } catch (e) { threw576 = (e as Error).message; }
+  ok(threw576.includes('button') && threw576.includes('border-width.heavy'),
+    `#576 a button whose edge binds another rung is refused by name, not silently kept (${threw576 || 'did NOT throw'})`);
+  // (6) THE RUNG IS 2PX, read off every brand's committed Figma emission, which knows nothing about any def.
+  const thickPx = readdirSync(resolve(HERE, './out/figma')).sort().map((brand) => {
+    const vars = (JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/border-width.json`), 'utf8')) as { variables: { name: string; value?: unknown }[] }).variables;
+    return [brand, vars.find((v) => v.name.endsWith('/border-width/thick'))?.value] as const;
+  });
+  ok(thickPx.length >= 4 && thickPx.every(([, v]) => v === 2),
+    `#576 the rung Thick binds measures 2px in every committed brand (${thickPx.map(([b, v]) => `${b} ${String(v)}`).join(', ')})`);
+  // (7) IN THE BRAND INPUT: the engine accepts both values and refuses any other, by name.
+  let refused576 = '';
+  try { brandTheme({ ...(exampleBrands()['prism3'] as BrandInput), buttonBorderWeight: 'heavy' as never }); } catch (e) { refused576 = (e as Error).message; }
+  ok(refused576.includes('buttonBorderWeight'),
+    `#576 brandTheme refuses an unknown buttonBorderWeight by name (${refused576 || 'did NOT throw'})`);
+}
+
 // #1786 — EVERY BRAND THE PLUGIN CAN EMIT, inside the `figma_execute` ceiling, and the chunked
 // `color-aliases` pass EXECUTED rather than only measured.
 //
@@ -32175,7 +32228,10 @@ arm: {
 
   const g = mkFake();
   mcpCallTool('export_theme', { brand: xbrand, outDir: './t2', include: ['tokens'] }, undefined, g.io);
-  ok(g.files.size === 1 && g.files.has('./t2/tokens.json'), 'export_theme: include:[tokens] writes only the DTCG tree');
+  // #4144: the tokens family is the DTCG tree under the CLI's name, its base + overlay set, and the old unprefixed
+  // name for one release, and nothing from another family.
+  ok([...g.files.keys()].every((k) => /^\.\/t2\/(x\.tokens|x\.base\.tokens|x\.[a-z-]+\.overlay\.tokens|tokens)\.json$/.test(k)) && g.files.has('./t2/x.tokens.json') && g.files.has('./t2/tokens.json'),
+    `export_theme: include:[tokens] writes only the DTCG tree and its projections (${[...g.files.keys()].join(', ')})`);
   ok(mcpCallTool('export_theme', { brand: xbrand, outDir: './t3', include: ['nope'] }, undefined, mkFake().io).isError === true,
     'export_theme: an unknown include section errors rather than silently writing nothing');
   ok(EXPORT_SECTIONS.length === 4, 'export_theme: four artifact families');
@@ -32184,11 +32240,13 @@ arm: {
   ok(![...f.files.keys()].some((k) => k.includes('component-defs')), 'export_theme: the default call writes no component-defs export (opt-in)');
   const cs = mkFake();
   ok(!mcpCallTool('export_theme', { brand: xbrand, outDir: './cs', include: ['componentSpecs'] }, undefined, cs.io).isError, 'export_theme: include:[componentSpecs] writes');
-  ok(cs.files.size === 3 && cs.files.has('./cs/component-contracts.json') && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json')
+  // #4144: each under the brand-prefixed name and, for one release, the unprefixed one.
+  ok(cs.files.size === 6 && cs.files.has('./cs/component-contracts.json') && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json')
+    && cs.files.has('./cs/x.component-contracts.json') && cs.files.has('./cs/x.component-defs.json') && cs.files.has('./cs/x.component-defs.specs.json')
     && cs.files.get('./cs/component-contracts.json') === cs.files.get('./cs/component-defs.json'),
     `#1325 export_theme: include:[componentSpecs] writes exactly the component contracts, their compatibility copy (the same bytes) and the Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.4' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.5' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -36494,6 +36552,7 @@ arm: {
         minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
         labelWeight: input.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
         textHover,
+        borderWeight: input.buttonBorderWeight ?? DEFAULT_BUTTON_LAYOUT.borderWeight,
       },
       sizeRefPx(t.dims.sizes));
 
@@ -39403,6 +39462,74 @@ arm: {
     `#2408 prism3-build-ui: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
 }
 
+// #4130, #4136, #4139, #4143, #4177, #4203: the READMEs, CONTRIBUTING.md and the CLAUDE.md files state what the code
+// does. Each arm reads its oracle from the code (a declaration, a list, a settings entry), never from the prose it checks.
+{
+  const R = (p: string) => readFileSync(resolve(HERE, '../..', p), 'utf8');
+  const engineReadme = R('packages/engine/README.md'), pluginReadme = R('apps/plugin/README.md'), rootReadme = R('README.md');
+  const contributing = R('CONTRIBUTING.md'), claudeMd = R('CLAUDE.md'), toolsClaude = R('tools/CLAUDE.md');
+  // #4130 (1): a contract size the README states is the baseline's.
+  const guaranteedCount = Object.keys(readBaseline().guaranteed).length;
+  const statedPaths = engineReadme.match(/pins the (\d+) paths/)?.[1];
+  ok(statedPaths === undefined || Number(statedPaths) === guaranteedCount,
+    `#4130 engine README: states no contract size other than the baseline's ${guaranteedCount} guaranteed paths (states: ${statedPaths ?? 'none'})`);
+  // #4130 (2): every constant the README places in verify.ts is declared there.
+  const verifySrc = R('verify.ts');
+  const placed = [...engineReadme.matchAll(/`([A-Z][A-Z_]{3,})` in `verify\.ts`/g)].map((m) => m[1]);
+  const undeclared = placed.filter((n) => !new RegExp(`(?:const|let)\\s+${n}\\b`).test(verifySrc));
+  ok(placed.length > 0 && undeclared.length === 0,
+    `#4130 engine README: each constant it places in verify.ts is declared there (${placed.length} placed; undeclared: ${undeclared.join(', ') || 'none'})`);
+  // #4130 (3): no unit-test count, a numeral nothing compares (the suite holds a floor, MIN_ASSERTIONS).
+  const testCount = engineReadme.match(/\(\d+ checks\)|\d+\/\d+ unit tests/)?.[0];
+  ok(!testCount && engineReadme.includes('`MIN_ASSERTIONS`'),
+    `#4130 engine README: states no unit-test count and names the MIN_ASSERTIONS floor (states: ${testCount ?? 'none'})`);
+  // #4130 (4): the emit-dtcg brand list names every brand regen's emit-dtcg step emits.
+  const regenLabel = R('packages/engine/regen.ts').match(/emit-dtcg\s+\(([^)]*)\)/)?.[1] ?? '';
+  const emitted = regenLabel.split('·').map((b) => b.trim()).filter(Boolean);
+  const runLine = engineReadme.split('\n').find((l) => l.startsWith('npx tsx packages/engine/emit-dtcg.ts')) ?? '';
+  const unlisted = emitted.filter((b) => !new RegExp(`\\b${b}\\b`, 'i').test(runLine));
+  ok(emitted.length >= 4 && unlisted.length === 0,
+    `#4130 engine README: the emit-dtcg run line names every brand regen's emit-dtcg step emits (${emitted.join(', ')}; missing: ${unlisted.join(', ') || 'none'})`);
+  // #4136: the plugin README's Update file paragraph names no collection the Figma emission lacks, and `npm test` is the suite list.
+  const figmaDir = resolve(HERE, 'out/figma/prism3');
+  const collections = new Set(readdirSync(figmaDir).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(readFileSync(resolve(figmaDir, f), 'utf8')).$collection));
+  const fromM = pluginReadme.indexOf('materialize the whole generated system');
+  const updatePara = fromM >= 0 ? pluginReadme.slice(fromM, pluginReadme.indexOf('into the current file', fromM)) : '';
+  const named = [...updatePara.matchAll(/`([a-z][a-z-]*)`/g)].map((m) => m[1]);
+  const phantom = named.filter((c) => !collections.has(c));
+  ok(updatePara !== '' && phantom.length === 0,
+    `#4136 plugin README: Update file's paragraph names only collections the emission writes (phantom: ${phantom.join(', ') || 'none'})`);
+  const pluginTestLine = pluginReadme.split('\n').find((l) => l.startsWith('npm test -w @prism3/plugin')) ?? '';
+  ok(JSON.parse(R('apps/plugin/package.json')).scripts.test.includes('run-suites') && pluginTestLine.includes('suites.json'),
+    '#4136 plugin README: `npm test` is described as the suites.json list run-suites.ts runs');
+  // #4139: no README tells a contributor to run a bare `npm install` (CI and CLAUDE.md use `npm ci`).
+  const bare = [['README.md', rootReadme], ['apps/plugin/README.md', pluginReadme]].filter(([, t]) => /^npm install\s*(#|$)/m.test(t)).map(([f]) => f);
+  ok(bare.length === 0, `#4139 README: no bare \`npm install\` line (found in: ${bare.join(', ') || 'none'})`);
+  // #4143: the TokenPress line keeps the ported baseline as the number and says the suite has grown past it.
+  const tpSrc = R('apps/tokenpress/test.ts');
+  const census = (name: string) => [...(tpSrc.match(new RegExp(`const ${name}: Record<string, number> = \\{([\\s\\S]*?)\\n\\};`))?.[1] ?? '').matchAll(/:\s*(\d+),/g)].reduce((a, m) => a + Number(m[1]), 0);
+  const ported = census('EXPECTED'), added = census('ADDED');
+  const tpLine = contributing.slice(contributing.indexOf('npm run test      -w @prism3/tokenpress'), contributing.indexOf('npm run build     -w @prism3/tokenpress'));
+  ok(ported > 0 && tpLine.includes(`ported ${ported} assertions`) && (added === 0 || /plus those added since/.test(tpLine)),
+    `#4143 CONTRIBUTING §3: the TokenPress line names the ported ${ported} and, with ${added} added since, says the suite has more`);
+  // #4177: two comments that described finished work as pending.
+  ok(!/when #731 lands/.test(R('tools/exporter-comparison/gate.ts')), '#4177 exporter gate: the header no longer says "when #731 lands"; #731 landed and its entries were removed');
+  ok(!/until #110 hands it up/.test(pluginReadme) && pluginReadme.includes('`seed-info`') && R('apps/plugin/src/main.ts').includes("type: 'seed-info'"),
+    '#4177 plugin README: the read-back bridge is described as the `seed-info` post main.ts sends, not as waiting on #110');
+  // #4203: the auto-stash hook is live (settings.json is the oracle), studio's test is a suite runner, locale-order reaches tests and tools.
+  const hookLive = R('.claude/settings.json').includes('pre-tool-use-restore-autostash.mjs');
+  ok(hookLive && !/live only once the owner adds its\s+entry/.test(toolsClaude),
+    '#4203 tools/CLAUDE.md: the restore auto-stash hook is described as live, as .claude/settings.json has it');
+  ok(hookLive && !/nothing stashes it/.test(claudeMd) && /untracked file it overwrites has no recovery/.test(claudeMd),
+    '#4203 CLAUDE.md: the checkout warning says tracked work is auto-stashed and an untracked file is not');
+  const localeLine = contributing.slice(contributing.indexOf('npx tsx packages/engine/lint-locale-order.ts'), contributing.indexOf('npx tsx packages/engine/lint-engine-facade.ts'));
+  ok(/BEYOND THE ENGINE: TESTS AND TOOLS/.test(R('packages/engine/lint-locale-order.ts')) && !/under packages\/engine\//.test(localeLine) && /a test or a tool/.test(localeLine),
+    '#4203 CONTRIBUTING §3: lint-locale-order is described as covering tests and tools, not only packages/engine/');
+  const studioLine = contributing.slice(contributing.indexOf('npm run test         -w @prism3/studio'), contributing.indexOf('npm run build        -w @prism3/studio'));
+  ok(JSON.parse(R('apps/studio/package.json')).scripts.test.includes('run-suites') && studioLine.includes('suites.json') && !/the provenance model \(#722\)/.test(studioLine),
+    '#4203 CONTRIBUTING §3: studio `npm run test` is described as the suites.json run, not the provenance test file');
+}
+
 // ---- #3472: prism3-build-ui says what it can't build, early, with a worked negative that isn't the adherence test's ----
 // The agent-adherence run (#3440) scored R5 faked in 10 of 10: every agent built a stand-in for a component Prism3 doesn't
 // have. The rule now sits before the first layer, as an imperative, with a worked negative. That example must not be a
@@ -40926,9 +41053,53 @@ arm: {
   // THE PROPERTIES: two texts and three toggles, `dividers` driving both rules together, off.
   ok(JSON.stringify(planSetProperties(plans).filter((x) => x.type !== 'SLOT')) === JSON.stringify([
     { name: 'title', type: 'TEXT', default: 'Dialog title' }, { name: 'description text', type: 'TEXT', default: 'Supporting text' },
+    { name: 'show title', type: 'BOOLEAN', default: true },
     { name: 'description', type: 'BOOLEAN', default: false }, { name: 'close', type: 'BOOLEAN', default: true }, { name: 'dividers', type: 'BOOLEAN', default: false },
   ]) && plans.every((p) => find(p.root as DN, 'headerDivider')?.visibleProp === 'dividers'),
-    `#2609 dialog properties: title "Dialog title", description text "Supporting text", description off, close on, dividers off over both rules (got ${JSON.stringify(planSetProperties(plans))})`);
+    `#2609 dialog properties: title "Dialog title", description text "Supporting text", show title on, description off, close on, dividers off over both rules (got ${JSON.stringify(planSetProperties(plans))})`);
+
+  // ── #2895 SHOW TITLE (owner Q692 A; the wireframe's Q1–Q7 all A, approved 2026-11-18). EXPECTED is typed here from the
+  // wireframe; ACTUAL is the projected plans and the def's code contract. Q1 A: Figma `show title`, default on; the code
+  // prop is `hideTitle`, default off (owner decision B, 2026-11-18: Q-CC7 A's one hidden-label convention, `hideLabel`). Q4 A: on every member. Q2 A, Q3 A, Q6 A: nothing else moves (the description, close and divider keep
+  // their own toggles, and the title keeps its text property and style binding while hidden). Q5 A and Q7 A: the code
+  // contract. Remove the boolean, flip its default, or drop a code line, and the arm it breaks fails by name.
+  {
+    const st = dg.props.find((x) => x.name === 'hideTitle');
+    const fb = (dg.figmaProperties?.booleans as Record<string, unknown> | undefined)?.showTitle as { figmaName?: string; figmaOnly?: boolean } | undefined;
+    ok(st?.type === 'boolean' && st.default === false && st.required === false && !dg.props.some((x) => x.name === 'showTitle')
+      && fb?.figmaName === 'show title' && fb.figmaOnly === true && dg.props.find((x) => x.name === 'title')?.required === true,
+      `#2895 dialog hideTitle: the code prop is hideTitle, an optional boolean, default false, with no showTitle prop (owner decision B, Q-CC7 A's hideLabel convention); the Figma "show title" switch is figma-only; title stays required as the accessible name (got ${JSON.stringify({ st, fb })})`);
+    const titleBad = plans.filter((p) => {
+      const t = find(p.root as DN, 'title') as (DN & { visibleProp?: string; visible?: boolean; textStyle?: string; propertyRef?: { prop: string } }) | undefined;
+      return !(t && t.visibleProp === 'show title' && t.visible !== false && t.propertyRef?.prop === 'title' && /^label\/(lg|md|sm)\/emphasis$/.test(t.textStyle ?? ''));
+    });
+    ok(plans.length === 24 && titleBad.length === 0,
+      `#2895 dialog show title: every one of the 24 members binds the title's visibility to "show title", shown by default, keeping its title text property and its label emphasis style (${titleBad.length ? `WRONG: ${titleBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    const desc = plans.every((p) => (find(p.root as DN, 'description') as { visibleProp?: string } | undefined)?.visibleProp === 'description');
+    ok(desc, '#2895 dialog show title Q2 A: the description keeps its own toggle, independent of the title');
+    // Q3 A: the header collapses to its content, so a hidden title takes its gap with it. That holds only while the header
+    // (a row: its height is the counter axis) and the titleBox (a column: its height is the primary axis) both hug on y,
+    // with no minimum height on either. ACTUAL is the projected frames, not the def's sizing literals.
+    const q3Bad = plans.filter((p) => {
+      const h = find(p.root as DN, 'header') as Record<string, unknown> | undefined;
+      const tb = find(p.root as DN, 'titleBox') as Record<string, unknown> | undefined;
+      const noMin = (n: Record<string, unknown>) => n.minHeight === undefined && (n.bound as Record<string, unknown> | undefined)?.minHeight === undefined;
+      return !(h && tb && h.layoutMode === 'HORIZONTAL' && h.counterAxisSizingMode === 'AUTO' && noMin(h)
+        && tb.layoutMode === 'VERTICAL' && tb.primaryAxisSizingMode === 'AUTO' && noMin(tb));
+    });
+    ok(plans.length === 24 && q3Bad.length === 0,
+      `#2895 dialog show title Q3 A: on every member the header and the titleBox hug their height with no minimum, so a hidden title collapses the header (${q3Bad.length ? `WRONG: ${q3Bad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    const co =codeOnlyText(dg.anatomy!.codeOnly);
+    ok(co.some((e) => /^labeling — /.test(e) && /`hideTitle` the `<h2>` stays in the DOM, visually hidden/.test(e) && /`aria-labelledby` still points at it/.test(e) && /never `display: none`/.test(e)),
+      '#2895 dialog show title Q7 A: a hidden title is a visually hidden <h2> that aria-labelledby still points at, never display: none');
+    ok(co.some((e) => /^focus in — /.test(e) && /`hideTitle`, never to the hidden title/.test(e) && /first control in the body/.test(e)),
+      '#2895 dialog show title Q7 A: with the title hidden, focus on open goes to the first body control, never the hidden title');
+    ok(co.some((e) => /^the hidden title on an alertdialog — an alertdialog always shows its title/.test(e) && /ignores `hideTitle` with `role="alertdialog"` and warns in development/.test(e))
+      && /An alertdialog always shows its title/.test(st?.description ?? '') && dg.docs.dont.some((x) => /^Hide the title of an alertdialog/.test(x)),
+      '#2895 dialog show title Q5 A: an alertdialog always shows its title; code ignores hideTitle there and warns in development, and the prop and docs say so');
+    ok(/Turn the title off only when tabs or a heading in the body already name the content, most often in a full-screen dialog or a bottom sheet/.test(dg.docs.usage ?? ''),
+      '#2895 dialog show title Q4 A: the docs recommend hiding the title for full and bottom when tabs or a heading name the content');
+  }
 
   // THE ALERTDIALOG HIDES CLOSE, in the docs: the role prop and the code contract both say so (Q303.9 A).
   const role = dg.props.find((x) => x.name === 'role');
@@ -41539,7 +41710,7 @@ arm: {
     ['focus held line', line('focus held'), 'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.'],
     ['backdrop line', line('the backdrop'), 'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.'],
     ['accessibility.role', dg.accessibility.role, '`role="dialog"` with `aria-modal="true"`, or `role="alertdialog"` for a confirmation that needs an answer. A native `<dialog>` opened with `showModal()` provides the dialog role, the modal state, the top layer and an inert page.'],
-    ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
+    ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title, a heading that stays in place, visually hidden, when the title is hidden; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
   ];
   const moved = pinned.filter(([, actual, expected]) => actual !== expected).map(([name]) => name);
   ok(moved.length === 0 && carved.length === 0,
@@ -44022,6 +44193,66 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const decided = body('RUNG_REPEATS').split('\n').find((l) => l.includes("'code-input-cell'")) ?? '';
   ok(decided.includes("'radius.*'") && decided.includes('#3551'), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(decided)})`);
   ok(!body('RUNG_REPEATS_OPEN').includes("'code-input-cell'"), '#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered');
+}
+
+// #4120 (owner decision A, 2026-11-19) — every brand-taking MCP tool takes `{ brand }`. validate_brand took the
+// BrandInput bare, so the documented pre-flight (validate_brand, then theme_brand, one object) failed its first call;
+// the bare form is still read for one release. A missing `brand` is named, not reported as "(root): expected object".
+{
+  const b4120 = { id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 'cool', chroma: 0.01 } };
+  const vb = (a: unknown) => mcpCallTool('validate_brand', a).structuredContent as { valid: boolean; errors: string[] };
+  const wrapped = vb({ brand: b4120 }), bare = vb(b4120);
+  ok(wrapped.valid === true && wrapped.errors.length === 0, `#4120 validate_brand accepts { brand } (got ${JSON.stringify(wrapped)})`);
+  ok(bare.valid === true, `#4120 validate_brand still accepts a bare BrandInput for one release (got ${JSON.stringify(bare)})`);
+  const vbDef = toolDefs({}).find((t) => t.name === 'validate_brand')!.inputSchema as { required?: string[]; properties?: Record<string, unknown> };
+  ok(JSON.stringify(vbDef.required) === '["brand"]' && 'brand' in (vbDef.properties ?? {}),
+    `#4120 validate_brand's inputSchema declares { brand }, as theme_brand's does (got ${JSON.stringify(vbDef)})`);
+  const io4120 = { mkdir: () => {}, writeFile: () => {} };
+  for (const [tool, a] of [['export_theme', { id: 'acme', outDir: './unw' }], ['score_consumption', { refs: ['color.text.primary'] }]] as const) {
+    const r = mcpCallTool(tool, a, undefined, io4120);
+    const msg = JSON.parse(r.content[0].text).error as string;
+    ok(r.isError === true && msg === `${tool} requires \`brand\`: a BrandInput object`,
+      `#4120 ${tool} with no \`brand\` names the missing argument (got ${JSON.stringify(msg)})`);
+  }
+}
+
+// #4141 (owner decision A, 2026-11-19) — export_theme's `include` REPLACES the default, as theme_brand's does. The
+// description said "add componentSpecs", so an agent that named it alone got no tokens. Semantics are unchanged;
+// the description and the include property say "replaces", and include:["componentSpecs"] still writes no tokens.
+{
+  const et = toolDefs({}).find((t) => t.name === 'export_theme')!;
+  const incDesc = ((et.inputSchema as { properties: { include: { description: string } } }).properties.include.description);
+  ok(/replac/i.test(et.description) && !/add "componentSpecs"/.test(et.description) && /replac/i.test(incDesc),
+    `#4141 export_theme says include replaces the default (description ${JSON.stringify(et.description.slice(0, 80))}…, include ${JSON.stringify(incDesc)})`);
+  const files = new Map<string, string>();
+  mcpCallTool('export_theme', { brand: { id: 'x', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } }, outDir: './c', include: ['componentSpecs'] },
+    undefined, { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } });
+  ok(files.size > 0 && ![...files.keys()].some((k) => /tokens\.json$|ai/.test(k.replace('./c/', ''))),
+    `#4141 include:["componentSpecs"] writes the component files only, as the description now says (${[...files.keys()].join(', ')})`);
+}
+
+// #4144 (owner decision A, 2026-11-19) — export_theme writes the CLI's names: <id>.tokens.json, <id>.ai.json, the base +
+// overlay set, <id>.component-contracts.json; the unprefixed names stay for one release. The prefixed ai.json points at
+// <id>.tokens.json, so it sits beside a CLI tree. The overlay set is byte-identical to what the CLI writes.
+{
+  const brand = { id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 }, modes: ['light', 'dark'] };
+  const files = new Map<string, string>();
+  const r = mcpCallTool('export_theme', { brand, outDir: './e', include: ['tokens', 'aiMetadata', 'componentSpecs'] },
+    undefined, { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } });
+  ok(!r.isError, `#4144 export_theme writes (got ${r.content[0].text.slice(0, 160)})`);
+  const want = ['acme.tokens.json', 'acme.base.tokens.json', 'acme.dark.overlay.tokens.json', 'acme.ai.json',
+    'acme.component-contracts.json', 'acme.component-defs.json', 'acme.component-defs.specs.json'];
+  const missing = want.filter((n) => !files.has(`./e/${n}`));
+  ok(missing.length === 0, `#4144 export_theme writes the CLI's file names (missing ${missing.join(', ') || 'none'}; wrote ${[...files.keys()].join(', ')})`);
+  const legacy = ['tokens.json', 'ai-metadata.json', 'component-contracts.json', 'component-defs.json', 'component-defs.specs.json'].filter((n) => !files.has(`./e/${n}`));
+  ok(legacy.length === 0, `#4144 the unprefixed names are still written for one release (missing ${legacy.join(', ') || 'none'})`);
+  const ai = JSON.parse(files.get('./e/acme.ai.json') ?? '{}');
+  ok(JSON.stringify(ai).includes('companion to acme.tokens.json') && !JSON.stringify(ai).includes('companion to tokens.json'),
+    `#4144 acme.ai.json names acme.tokens.json as its tree, so it sits beside the CLI's files`);
+  const projected = buildOverlaySet(JSON.parse(files.get('./e/acme.tokens.json') ?? '{}'));
+  ok(files.get('./e/acme.base.tokens.json') === JSON.stringify(projected.base, null, 2) + '\n'
+    && files.get('./e/acme.dark.overlay.tokens.json') === JSON.stringify(projected.overlays.find((o) => o.mode === 'dark')?.tree, null, 2) + '\n',
+    '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {

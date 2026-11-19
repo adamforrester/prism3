@@ -24,6 +24,7 @@ The **Update** tab lists these items, in this order:
 | **Theme** | The brand's variables and styles. Layers bound to them restyle at once. See [Write the theme to a Figma file](apply-a-theme.md). <!-- src: apps/studio/src/state/update-file.ts:343-344 --> | When the file's variables differ from the brand, or the file isn't set up yet. Otherwise it reads "Up to date". <!-- src: apps/studio/src/state/update-file.ts:346 --> |
 | **Components** › **To add** | The sets chosen in the Components area, and each family's usage panel, beside its lead, while Docs has panels on. See [Build components](build-components.md). <!-- src: apps/studio/src/state/update-file.ts:349-351 --> | Every set listed runs |
 | **Components** › **Due** | The sets in the file that are out of date, updated in place. See [Update sets in place](#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:358-362 --> | Yes |
+| **Components** › **Usage panels** | A usage panel beside each set in the file that has none, while Docs has panels on. Each is drawn beside its set, and sets move apart to make room; no member changes. <!-- src: apps/studio/src/state/update-file.ts:414-417 --> Past six sets, <!-- src: apps/studio/src/state/update-file.ts:236-237#17a0fec4 --> the names sit under "Show the 8 sets". <!-- src: apps/studio/src/state/update-file.ts:418 --> A set already queued to add or due is left out, because its own run draws its panel. <!-- src: apps/studio/src/state/update-file.ts:136-143#902e6aae --> | Yes, <!-- src: apps/studio/src/state/update-file.ts:183-185#33f3cb0a --> with one tick for the group, such as "Draw 3 usage panels". <!-- src: apps/studio/src/state/update-file.ts:415 --> |
 | **Style guides** | The token tables, drawn with the settings in Docs. See [Build style guides](style-guides.md). <!-- src: apps/studio/src/state/update-file.ts:422-425 --> | Only on a file not set up yet |
 
 <!-- src: apps/studio/src/state/update-file.ts:179-186#dcd3d3c6 -->
@@ -45,7 +46,7 @@ Choose **Update file** again during a run to follow it: "Step 2 of 4 · Theme", 
 
 If a step fails, the dialog opens next time with "The last update stopped at" and the step and its reason. <!-- src: apps/studio/src/state/update-file.ts:436 -->
 
-If the update writes every set and some still differ from the plan, the run goes on to its next step and ends as a warning: it counts the sets written and those still "to check". Activity names what differs in each set to check. A set that stopped or was not updated still ends the run. <!-- src: apps/plugin/src/update-apply.ts:1424 -->
+If the update writes every set and some still differ from the plan, the run goes on to its next step and ends as a warning: it counts the sets written and those still "to check". Activity names what differs in each set to check. A set that stopped or was not updated still ends the run. <!-- src: apps/plugin/src/update-apply.ts:1425 -->
 
 ## The rules every write follows
 
@@ -95,7 +96,7 @@ To bring variants Prism3 did not build under its updates, an agent can claim the
 A set can have its updates off. Update file then leaves it as it is, and every hand edit on it stays where you left it. In Activity the run says so calmly, for example "Button: left as it is. Updates off." <!-- src: apps/plugin/src/updates-off.ts:61 -->
 Such a set is never due, and once the whole file has been read, the count on the button leaves it out. Right after the file opens, the count can include it for a moment. <!-- src: apps/plugin/src/as-built-ledger.ts:291#222872f0 -->
 
-Updates turn off by themselves only when an update can't apply around a set's hand edits: it had to skip a member whole for them, such as one with a layer you added. The rest of the set is still updated in that run. <!-- src: apps/plugin/src/update-apply.ts:1191#ef6ef842 -->
+Updates turn off by themselves only when an update can't apply around a set's hand edits: it had to skip a member whole for them, such as one with a layer you added. The rest of the set is still updated in that run. <!-- src: apps/plugin/src/update-apply.ts:1192#ef6ef842 -->
 An ordinary hand edit, such as a recolor, stays a hand edit, and the set keeps updating.
 
 To turn a set's updates off yourself, choose **Turn off updates** on its row under **Due**. <!-- src: apps/studio/src/state/update-file.ts:397 -->
@@ -127,6 +128,11 @@ If the list is not the one the tab showed, or the file does not hold the brand i
 
 After a style-guide run that found tables Prism3 no longer draws, **Clean up** lists them too: "2 style-guide tables the generator no longer draws." Choose **Remove *N* tables** to delete them. <!-- src: apps/studio/src/state/update-file.ts:440-441 -->
 
+While Docs has usage panels off, **Clean up** counts the usage panels already in the file: "4 usage panels, drawn while Docs had panels on." <!-- src: apps/studio/src/state/update-file.ts:419 -->
+Choose **Remove *N* panels** to remove them. <!-- src: apps/studio/src/state/update-file.ts:421 -->
+Only a panel that still holds what Prism3 drew is removed, and the button counts those alone. A panel edited by hand stays. <!-- src: apps/plugin/src/panel-census.ts:48-65#897bd95b -->
+The card says so: "Panels edited by hand stay. Turning panels on again draws them back." <!-- src: apps/studio/src/state/update-file.ts:420 -->
+
 ### When a mode is renamed
 
 Prism3 never renames a mode in a file, and that includes a custom mode renamed in **Custom mode name**. <!-- src: apps/studio/src/domains/brand.ts:208 -->
@@ -144,6 +150,6 @@ Removing a mode removes its values from every variable in the collection, so mov
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:242 --> | Rename or remove the named items, then run Update file again. |
 | "is already running. Try again when it finishes." | Another write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:49-52 --> | Wait for it to finish. |
 | "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1929 --> | Load the brand again, for example from its `design.md`. |
-| `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:1015 --> | Open Update file again and read the new check. |
-| "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:1115 --> | Try again. Nothing in the file changed. |
+| `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:1016 --> | Open Update file again and read the new check. |
+| "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:1116 --> | Try again. Nothing in the file changed. |
 | `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1073 --> | Rename or move the existing set. |

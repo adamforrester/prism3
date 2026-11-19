@@ -272,6 +272,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'buttonContentSize', value: input.buttonContentSize, options: ['match', 'smaller'] },
     { path: 'buttonLabelWeight', value: input.buttonLabelWeight, options: ['default', 'emphasis'] },
     { path: 'buttonTextHover', value: input.buttonTextHover, options: ['text', 'fill'] },
+    { path: 'buttonBorderWeight', value: input.buttonBorderWeight, options: ['hairline', 'thick'] },
     { path: 'typography.typeScale', value: input.typography?.typeScale, options: ['compact', 'default', 'expressive'] },
     { path: 'typography.displayCeiling', value: input.typography?.displayCeiling, options: DISPLAY_VARIANTS },
     { path: 'typography.titleFloor', value: input.typography?.titleFloor, options: [16, 18] },
