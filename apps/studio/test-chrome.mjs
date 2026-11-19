@@ -6840,8 +6840,7 @@ for (const host of ['web', 'figma']) {
         rows: Object.fromEntries(roles.map((r) => [r, pane.querySelectorAll(`.p3-fillrow[data-role="${r}"]`).length])),
         strayLevers: [...pane.querySelectorAll('.p3-lever')].map((n) => n.getAttribute('data-p3')).filter((r) => !lh.includes(`[data-p3="${r}"]`)),
         // #3335 (Q3335.1 A): a set's card title, without the palette that sits inside it.
-        // #3116 (Q3116.3 A): the Outline & text hover group's Rest row has no role (no fill at rest); section 3116 holds it.
-        strayRows: [...pane.querySelectorAll('.p3-fillrow:not([data-p3="outline-hover-rest"])')].map((n) => n.dataset.role).filter((r) => !roles.includes(r)),
+        strayRows: [...pane.querySelectorAll('.p3-fillrow')].map((n) => n.dataset.role).filter((r) => !roles.includes(r)),
         advanced: [...pane.querySelectorAll('button, a, [role="button"]')].filter((b) => /advanced/i.test(`${b.textContent} ${b.getAttribute('data-p3') ?? ''} ${b.getAttribute('aria-label') ?? ''}`)).map((b) => b.textContent.trim()),
         columns: [...pane.querySelectorAll('[data-p3="interactive-column"]')].map((n) => [n.dataset.column, n.querySelector('.p3-lsec-title')?.firstChild?.textContent]),
         jumps: [...pane.querySelectorAll('[data-p3="interactive-jump-link"]')].map((a) => {
@@ -7712,35 +7711,34 @@ for (const { w, h } of WIDTHS) {
   }
 }
 } // 19b
-// #3071 (owner Q824 A), per set since #3335 (the owner's Q3335.5 A), under Fill since #3116 (Q3116.1 A, Q3116.2 A, Q3116.3
-// A): Color › Interactive › Outline & text hover. Hover fill's "Solid" chip writes `outlineInteraction: opaque-fill`, and
-// each set's "Outline & text hover" group's Hover and Pressed rows become that set's own fill pickers (the card's step
-// picker, Auto naming the default step), in the mode the preview shows, Pressed locked until that set's Hover is picked,
-// with the set's own worst-label line. Picking writes `outlineHoverFill.light.sets.<set>.hover` for that set alone;
-// leaving the method drops the key, so a brand switched back is byte-identical. The two defects #3335 found are held here
-// too: the mode line is drawn once, and no card draws its overlay wash swatches as a separate group. EXPECTED is typed
-// here; ACTUAL is the persisted brand and the DOM.
+// #3071 (owner Q824 A), per set since #3335 (the owner's Q3335.5 A): Color › Interactive › Outline hover. The "Solid fill"
+// chip writes `outlineInteraction: opaque-fill`, and each set's card draws an "Outline & text hover" group: Hover and
+// Pressed selects for that set, in the mode the preview shows, Pressed locked until that set's Hover is picked, and the
+// set's own worst-label line. Picking writes `outlineHoverFill.light.sets.<set>.hover` for that set alone; leaving the
+// method drops the key, so a brand switched back is byte-identical. The two defects #3335 found are held here too: the
+// mode line is drawn once, and under Solid fill no card draws its overlay wash swatches. EXPECTED is typed here; ACTUAL is
+// the persisted brand and the DOM.
 if (runs('19')) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   const group = (col) => `[data-p3="levers-pane"] [data-p3="interactive-column"][data-column="${col}"] [data-p3="int-group"][data-group="Outline & text hover"]`;
   const lever = group('primary');
-  const pick = (col, st) => `${group(col)} [data-p3="int-pick"][data-role="interactive.${col}.hover-fill.${st}"]`;
   try {
     await goPlace(page, 'color-interactive');
-    ok(await page.locator(pick('primary', 'hover')).count() === 0 && await page.locator(`${lever} [data-p3="outline-hover-wash-line"]`).count() === 1,
-      `#3071: under the default outline hover the Outline & text hover group reads the wash out, with no fill picker`);
-    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-method-chips-solid"]'));
-    await hooks.need(page, pick('primary', 'hover'));
-    const chip = await page.locator('[data-p3="levers-pane"] [data-p3="outline-method-chips-solid"]').textContent();
+    ok(await page.locator(lever).count() === 0, `#3071: no Outline & text hover group under the default outline hover`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]'));
+    await hooks.need(page, lever);
+    const chip = await page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-opaque-fill"]').textContent();
     const on = await persisted(page);
-    const read = (col) => page.evaluate(([hv, pr, g]) => {
-      const one = (sel) => { const b = document.querySelector(sel); return b ? { now: b.querySelector('.p3-btn-label')?.textContent ?? null, off: b.disabled } : null; };
-      return { hover: one(hv), pressed: one(pr), ratio: document.querySelector(`${g} [data-p3="outline-hover-fill-ratio"]`)?.textContent ?? null };
-    }, [pick(col, 'hover'), pick(col, 'pressed'), group(col)]);
-    const sel = await read('primary');
-    ok(chip === 'Solid' && on?.outlineInteraction === 'opaque-fill' && !('outlineHoverFill' in (on ?? {}))
-      && /^Auto · [a-z-]+ \d{3}$/.test(sel.hover?.now ?? '') && sel.hover?.off === false && sel.pressed?.off === true && /hover, .* pressed/.test(sel.ratio ?? ''),
-      `#3071: "Solid" writes opaque-fill and draws Primary's Hover on Auto (the default step), Pressed locked, and its worst label ratio (${JSON.stringify({ chip, method: on?.outlineInteraction, sel })})`);
+    const read = (l) => page.evaluate((l) => {
+      const b = document.querySelector(l);
+      const one = (sel) => { const s = b?.querySelector(sel); return s ? { v: s.value, auto: s.options[0]?.textContent ?? null, off: s.disabled } : null; };
+      return { hover: one('[data-p3="outline-hover-fill-hover-select"]'), pressed: one('[data-p3="outline-hover-fill-pressed-select"]'),
+        ratio: b?.querySelector('[data-p3="outline-hover-fill-ratio"]')?.textContent ?? null };
+    }, l);
+    const sel = await read(lever);
+    ok(chip === 'Solid fill' && on?.outlineInteraction === 'opaque-fill' && !('outlineHoverFill' in (on ?? {}))
+      && sel.hover?.v === '' && /^Auto · [a-z-]+ \d{3}$/.test(sel.hover?.auto ?? '') && sel.pressed?.off === true && /hover, .* pressed/.test(sel.ratio ?? ''),
+      `#3071: "Solid fill" writes opaque-fill and draws Primary's Hover on Auto (the default step), Pressed locked, and its worst label ratio (${JSON.stringify({ chip, method: on?.outlineInteraction, sel })})`);
     const found = await page.evaluate(() => ({
       // Links' rows keep their own line, inside their section; the found defect was the button sets' line drawn twice.
       lines: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-sub')].filter((n) => !n.closest('[data-p3="link-rows"]') && /^Editing .*, the mode the preview shows\.$/.test(n.textContent ?? '')).length,
@@ -7749,21 +7747,18 @@ if (runs('19')) {
     }));
     ok(found.lines === 1 && found.washes === 0 && found.ratios === 3,
       `#3335: under Solid fill the mode line is drawn once, no card draws its wash swatches, and each of the 3 sets has its own worst-label line (${JSON.stringify(found)})`);
-    await hooks.click(page.locator(pick('primary', 'hover')));
-    await page.locator('[data-p3="levers-pane"] [data-p3="step-picker-palette"]').selectOption('neutral');
-    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="050"]'));
+    await page.locator(`${lever} [data-p3="outline-hover-fill-hover-select"]`).selectOption('neutral.050');
     await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.outlineHoverFill?.light?.sets?.primary?.hover === 'neutral.050'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
     const picked = await persisted(page);
-    const after = await read('primary');
-    const neutralSel = await read('neutral');
-    ok(JSON.stringify(picked?.outlineHoverFill) === JSON.stringify({ light: { sets: { primary: { hover: 'neutral.050' } } } }) && after.pressed?.off === false
-      && /neutral 050/.test(after.hover?.now ?? '') && /^Auto · /.test(neutralSel.hover?.now ?? '') && neutralSel.pressed?.off === true,
-      `#3335: picking neutral 050 for Primary writes outlineHoverFill.light.sets.primary.hover alone, unlocks Primary's Pressed, and leaves Neutral on Auto (${JSON.stringify(picked?.outlineHoverFill)}, primary ${JSON.stringify(after)}, neutral ${JSON.stringify(neutralSel)})`);
-    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-method-chips-wash"]'));
-    await page.waitForFunction((l) => !document.querySelector(l), pick('primary', 'hover'), { timeout: 5000 }).catch(() => {});
+    const pressedOn = (await read(lever)).pressed?.off === false;
+    const neutralSel = await read(group('neutral'));
+    ok(JSON.stringify(picked?.outlineHoverFill) === JSON.stringify({ light: { sets: { primary: { hover: 'neutral.050' } } } }) && pressedOn && neutralSel.hover?.v === '' && neutralSel.pressed?.off === true,
+      `#3335: picking neutral 050 for Primary writes outlineHoverFill.light.sets.primary.hover alone, unlocks Primary's Pressed, and leaves Neutral on Auto (${JSON.stringify(picked?.outlineHoverFill)}, pressed enabled ${pressedOn}, neutral ${JSON.stringify(neutralSel)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="outline-interaction-chips-overlay-neutral"]'));
+    await page.waitForFunction((l) => !document.querySelector(l), lever, { timeout: 5000 }).catch(() => {});
     const back = await persisted(page);
-    ok(back?.outlineInteraction === 'overlay-neutral' && !('outlineHoverFill' in (back ?? {})) && await page.locator(pick('primary', 'hover')).count() === 0,
-      `#3071: back to the neutral wash drops outlineHoverFill and the fill pickers (${JSON.stringify({ method: back?.outlineInteraction, fill: back?.outlineHoverFill })})`);
+    ok(back?.outlineInteraction === 'overlay-neutral' && !('outlineHoverFill' in (back ?? {})) && await page.locator(lever).count() === 0,
+      `#3071: back to the neutral wash drops outlineHoverFill and the group (${JSON.stringify({ method: back?.outlineInteraction, fill: back?.outlineHoverFill })})`);
     ok(errors.length === 0, `#3071 Outline hover fill: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `#3071 Outline hover fill: the case stopped at a step that threw — ${stopped(e)}`);
@@ -7804,66 +7799,67 @@ if (runs('19')) {
     } finally { await ctx.close(); }
   }
 } // 19-action-palette-neutral
-// #3115: the Outline hover chips keep their rows whatever is selected. The selected chip is bold, and a chip is never
-// narrower than its label (`.p3-choice`, #1975), so where the four only just fit on one row the bold "Neutral overlay
-// wash" pushed "No hover fill" onto a second. Since #3116 (the owner's Q3116.2 A) the four are two short choices: "Hover
-// fill" (Wash · Solid · None), then, only under Wash, "Wash color" (Neutral · Tinted), each short enough for one row at
-// 380 (the reason the owner picked A). Each of the four methods is picked in turn, through the chips, on both hosts at
-// 1280 and 380. EXPECTED (literals typed here): Hover fill one row whatever is picked; Wash color drawn under the two
-// washes only, one row; the method written is the pair's (wash+neutral overlay-neutral, wash+tinted solid-tint, solid
-// opaque-fill, none none); each option named by its label once (the reserved bold copy stays hidden).
-// Mutations, failing here by name: the reserved bold width removed, or a label long enough to wrap → `#3115 web 380:
-// Hover fill and Wash color keep one row each …`; Wash color drawn under Solid → `#3115 web 1280: Wash color shows under
-// the washes only …`; Tinted writing overlay-neutral → `#3115 web 1280: the pair writes the method …`.
+// #3115: the Outline hover chips (four since #3105) keep their rows whatever is selected. The selected chip is bold, and
+// a chip is never narrower than its label (`.p3-choice`, #1975), so where the four only just fit on one row (the owner's
+// window, about 1650 wide) the bold "Neutral overlay wash" pushed "No hover fill" onto a second. Each option is picked in
+// turn on both hosts at 1280 and 380, where the four wrap whatever is picked (#1975's fallback), and at the chips' own
+// tightest one-row width: the group held at its `max-content` width read with "No hover fill" picked, so the edge does
+// not hang on a font's metrics. The chips' rows (distinct tops) are read after each pick. EXPECTED: one row count per
+// host and width whatever is picked, and one row at the tightest width (literal rules, typed here); ACTUAL: the drawn
+// chips.
+// Mutation, failing here by name: the reserved bold width removed → `#3115 web tightest: the Outline hover chips keep
+// their rows whatever is picked — none 1, overlay-neutral 2, solid-tint 1, opaque-fill 2` (and the same on figma).
+// The hidden copy shown and given no empty alternative text → `#3115 web 1280: each option is named by its label once
+// (… radio "Neutral overlay wash Neutral overlay wash" …)`, on every host and width.
 if (runs('3115')) {
-  const PANE_3115 = '[data-p3="levers-pane"]';
-  const FILL_3115 = '[data-p3="outline-method-chips"]';
-  const WASH_3115 = '[data-p3="outline-wash-color-chips"]';
-  // Each pick as [the chip clicked, its hook spelled whole as the hook guard reads them], and the method it must write.
-  const PICKS_3115 = [
-    ['solid', '[data-p3="outline-method-chips-solid"]', 'opaque-fill'],
-    ['none', '[data-p3="outline-method-chips-none"]', 'none'],
-    ['wash', '[data-p3="outline-method-chips-wash"]', 'overlay-neutral'],
-    ['tinted', '[data-p3="outline-wash-color-chips-tinted"]', 'solid-tint'],
-    ['neutral', '[data-p3="outline-wash-color-chips-neutral"]', 'overlay-neutral'],
-  ];
+  const CHIPS_3115 = '[data-p3="levers-pane"] [data-p3="outline-interaction-chips"]';
+  // Each option's hook spelled whole, as the hook guard reads them; "No hover fill" first, the width read under it.
+  const OPTION_HOOKS_3115 = {
+    none: '[data-p3="outline-interaction-chips-none"]', 'overlay-neutral': '[data-p3="outline-interaction-chips-overlay-neutral"]',
+    'solid-tint': '[data-p3="outline-interaction-chips-solid-tint"]', 'opaque-fill': '[data-p3="outline-interaction-chips-opaque-fill"]',
+  };
+  const OPTIONS_3115 = Object.keys(OPTION_HOOKS_3115);
   for (const host of ['web', 'figma']) {
-    for (const w of [1280, 380]) {
+    for (const w of [1280, 380, 'tightest']) {
       const where = `#3115 ${host} ${w}`;
-      const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: w === 'tightest' ? 1280 : w, h: 900 });
       try {
         await goPlace(page, 'color-interactive');
-        const seen = [];
-        for (const [name, hk, want] of PICKS_3115) {
-          const opt = `${PANE_3115} ${hk}`;
+        const rows = {};
+        /** The group's width in px under `tightest`, read once under the first pick and held for every later one. */
+        let held = null;
+        for (const v of OPTIONS_3115) {
+          const opt = `${CHIPS_3115} ${OPTION_HOOKS_3115[v]}`;
           await page.locator(opt).scrollIntoViewIfNeeded();
           await hooks.click(page.locator(opt));
           await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', opt, { timeout: 5000 }).catch(() => {});
-          await settle(page);
-          const read = await page.evaluate(([f, wsh]) => {
-            const rows = (g) => (g ? new Set([...g.querySelectorAll('.p3-seg-tab')].map((b) => Math.round(b.getBoundingClientRect().top))).size : 0);
-            const fill = document.querySelector(`[data-p3="levers-pane"] ${f}`), wash = document.querySelector(`[data-p3="levers-pane"] ${wsh}`);
-            return { fill: rows(fill), wash: wash ? rows(wash) : null };
-          }, [FILL_3115, WASH_3115]);
-          // The written method, from the stored brand on the web host; the plugin keeps its brand in the file, so there it is
-          // read from the chips the redraw drew from the brand (the panel is redrawn whole from it after each write).
-          const p = host === 'web' ? await persisted(page) : null;
-          const drawn = await page.evaluate(([f, wsh]) => {
-            const on = (s) => document.querySelector(`[data-p3="levers-pane"] ${s} [aria-checked="true"]`)?.dataset.value ?? null;
-            const fl = on(f), wc = on(wsh);
-            return fl === 'solid' ? 'opaque-fill' : fl === 'none' ? 'none' : wc === 'tinted' ? 'solid-tint' : wc === 'neutral' ? 'overlay-neutral' : null;
-          }, [FILL_3115, WASH_3115]);
-          seen.push({ name, want, wrote: host === 'web' ? (p?.outlineInteraction ?? 'overlay-neutral') : drawn, ...read });
+          await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+          const read = await page.evaluate(([s, tight, px]) => {
+            const g = document.querySelector(s);
+            if (!g) return null;
+            if (tight) {
+              // #3553 Q-UI2 A: a group too wide for one row is stacked (`data-stack`), one option to a row, and a stack's
+              // max-content is its widest option. The row's own max-content is read with the stack cleared; at that width
+              // the row fits, so the page keeps it a row.
+              delete g.dataset.stack;
+              if (px === null) { g.style.width = 'max-content'; px = g.getBoundingClientRect().width; }
+              g.style.width = `${px}px`;
+            }
+            const on = g.querySelector('[aria-checked="true"]')?.getAttribute('data-value');
+            return { on, px, rows: new Set([...g.querySelectorAll('.p3-seg-tab')].map((b) => Math.round(b.getBoundingClientRect().top))).size };
+          }, [CHIPS_3115, w === 'tightest', held]);
+          held = read?.px ?? held;
+          rows[v] = read;
         }
-        ok(seen.every((x) => x.fill === 1 && (x.wash === null || x.wash === 1)),
-          `${where}: Hover fill and Wash color keep one row each whatever is picked — ${seen.map((x) => `${x.name} ${x.fill}/${x.wash ?? '-'}`).join(', ')}`);
-        ok(seen.every((x) => (x.wash !== null) === (x.want === 'overlay-neutral' || x.want === 'solid-tint')),
-          `${where}: Wash color shows under the washes only — ${seen.map((x) => `${x.name} ${x.wash === null ? 'hidden' : 'shown'}`).join(', ')}`);
-        ok(seen.every((x) => x.wrote === x.want), `${where}: the pair writes the method — ${seen.map((x) => `${x.name} ${x.wrote} (want ${x.want})`).join(', ')}`);
+        const picked = OPTIONS_3115.every((v) => rows[v]?.on === v);
+        const counts = OPTIONS_3115.map((v) => rows[v]?.rows);
+        ok(picked && counts.every((n) => n && n === counts[0]),
+          `${where}: the Outline hover chips keep their rows whatever is picked — ${OPTIONS_3115.map((v, i) => `${v} ${counts[i]}${rows[v]?.on === v ? '' : ` (shows ${rows[v]?.on})`}`).join(', ')}`);
         // The reserved width is a hidden copy of each label; the radios' names stay the label alone (literals typed here).
-        const named = await page.locator(`${PANE_3115} [data-p3="lever-outline-interaction"]`).ariaSnapshot();
-        ok(['Wash', 'Solid', 'None', 'Neutral', 'Tinted'].every((l) => named.includes(`radio "${l}"`)),
+        const named = await page.locator(CHIPS_3115).ariaSnapshot();
+        ok(['Neutral overlay wash', 'Tinted wash', 'Solid fill', 'No hover fill'].every((l) => named.includes(`radio "${l}"`)),
           `${where}: each option is named by its label once (${JSON.stringify(named)})`);
+        if (w === 'tightest') ok(counts[0] === 1, `${where}: the four fit one row at their own max-content width (${counts[0]} rows at ${held}px)`);
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
         ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
@@ -9330,13 +9326,9 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
     ok(notRead.length === 0, `QA-B2: ${where}: Surfaces & fills' Background fills, Scrim and Fields rows are read as name-and-token rows${notRead.length ? ` — not read: ${notRead.join(', ')}` : ''}`);
     // The contrast floor row is a setting with no token (S4f): the one name drawn without one, by role. The arms below
     // read only names that have a token.
-    // #3116 (Q3116.3 A): so does each button set's Outline & text hover Rest row (outline and text buttons have no fill at
-    // rest, so it has no token), one per built-in set on Interactive; section 3116 holds what it draws.
     const tokenless = names.filter((n) => n.token === null);
-    const restRows = tokenless.filter((n) => n.place === 'color-interactive' && n.role === null && n.label === 'Rest');
-    const others = tokenless.filter((n) => !restRows.includes(n));
-    ok(others.every((n) => n.role === 'surfaces.floorStep') && others.length <= 1 && restRows.length === 3,
-      `QA-B2: ${where}: only the contrast floor row and the 3 Outline & text hover Rest rows draw a name with no token under it — read ${JSON.stringify(tokenless.map((n) => [n.place, n.role, n.label]))}`);
+    ok(tokenless.every((n) => n.role === 'surfaces.floorStep') && tokenless.length <= 1,
+      `QA-B2: ${where}: only the contrast floor row draws a name with no token under it — read ${JSON.stringify(tokenless.map((n) => [n.place, n.role, n.label]))}`);
     const tokened = names.filter((n) => n.token !== null);
     // #2217 (heading pass 2): Type's family and italic rows, stacked over their control, carry the token on the label's line,
     // after it (or under it, when the two don't fit); every other row keeps it under its label.
@@ -13539,11 +13531,9 @@ const EXPECT_HEADINGS = {
     // #3335 (the owner's Q3335.1 A and Q3335.7 A): the settings card, then a card per button set at L1, each opening on its
     // lever (Primary Action Palette, Neutral emphasis) at L2 and its state groups' small titles at L2.
     L1: ['Interactive settings', 'Primary Interactive Colors', 'Neutral Interactive Colors', 'Destructive Interactive Colors', 'Disabled', 'Links'],
-    // #3116 (Q3116.2 A, Q3116.3 A): the method is "Hover fill", with "Wash color" under it while a wash is on (the default),
-    // and every card's "Outline & text hover" group sits under Fill in place of "Overlay wash".
-    L2: ['Hover fill', 'Wash opacity', 'Strict interactive contrast', 'Primary Action Palette', 'Neutral emphasis', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states',
-      'Fill', 'Outline & text hover', 'Fill · inverse', 'Text', 'Text · inverse', 'Border', 'Border · inverse', 'On-fill text', 'On-fill text · inverse'],
-    L3: ['Wash color', 'Hover', 'Pressed', 'Hover', 'Pressed', 'Visited'],
+    L2: ['Outline hover', 'Wash opacity', 'Strict interactive contrast', 'Primary Action Palette', 'Neutral emphasis', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states',
+      'Fill', 'Fill · inverse', 'Text', 'Text · inverse', 'Border', 'Border · inverse', 'Overlay wash', 'On-fill text', 'On-fill text · inverse'],
+    L3: ['Hover', 'Pressed', 'Hover', 'Pressed', 'Visited'],
   },
   type: {
     // Heading pass 2 (TY1 A and HP2, #2190): the library and the family for each text type are two sections, each titled by
@@ -21812,83 +21802,51 @@ if (runs('3338')) {
     } finally { await ctx.close(); }
   }
 } // 3338
-// ── #3116: Color › Interactive, one "Outline & text hover" group under Fill, under every method (the owner's Q3116.3 A
-// and Q3116.1 A, 2026-11-19) ──────────────────────────────────────────────────────────────────────────────────────────
-// It replaces #3335's no-rest-row groups ("Overlay wash", "Tinted wash", Solid fill's two side-by-side pickers, seventh in
-// the card). In every built-in set's card, the group right after Fill is titled "Outline & text hover", under each of the
-// four methods. Under the two washes and Solid fill it is set up as Fill is: a Rest row (no role: outline and text buttons
-// have no fill at rest), then Hover and Pressed inset under it, at one level with each other. Under Solid fill those two
-// are step pickers on the set's own `hover-fill` roles; under a wash they read out the wash's roles (`overlay` for
-// Neutral, `subtle-fill` for Tinted) with the line saying where it changes. Under No hover fill the group is one line and
-// no rows. The old group titles are drawn nowhere. Measured as RENDERED, both hosts, both themes, 1280 and 380; the
-// methods are picked through the Hover fill and Wash color chips. EXPECTED: the literals typed here (the role families,
-// the titles, the 8px nesting floor and 0.5px level tolerance kept from #3335's arm); ACTUAL: the drawn DOM.
-// On main (before #3116) it fails: the group after Fill is "Fill · inverse".
-// MUTATION (fails by name): draw the group after Border · inverse instead of after Fill (`rowsInGroups`'s `r.group ===
-// 'Fill'` set to 'Border · inverse') → `3116 web light 1280 / Neutral wash / primary: the group under Fill is "Outline &
-// text hover" (it is "Fill · inverse"), drawn once, …` (96 failures, every host, theme, width, method and set; run
-// 2026-11-19). Main's own build fails the same check, with "Overlay wash" listed (192 failures).
-const HOVER_3116 = 'Outline & text hover';
-const METHODS_3116 = [
-  // [the method as named in a check, the chips clicked to reach it, the role family its Hover and Pressed show, how]
-  ['Neutral wash', ['[data-p3="outline-method-chips-wash"]', '[data-p3="outline-wash-color-chips-neutral"]'], 'overlay', 'readout'],
-  ['Tinted wash', ['[data-p3="outline-wash-color-chips-tinted"]'], 'subtle-fill', 'readout'],
-  ['Solid fill', ['[data-p3="outline-method-chips-solid"]'], 'hover-fill', 'pick'],
-  ['No hover fill', ['[data-p3="outline-method-chips-none"]'], null, 'line'],
-];
-const SETS_3116 = ['primary', 'neutral', 'destructive'];
-const PROBE_3116 = (title) => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="interactive-column"]')].map((card) => {
-  const groups = [...card.querySelectorAll('[data-p3="int-group"]')];
-  const fi = groups.findIndex((g) => g.dataset.group === 'Fill');
-  const g = groups.find((x) => x.dataset.group === title);
-  const left = (n) => { const x = n?.querySelector('.p3-fill-sw') ?? n; return x ? +x.getBoundingClientRect().left.toFixed(1) : null; };
-  const rest = g?.querySelector('[data-p3="outline-hover-rest"]');
-  const states = g ? [...g.querySelectorAll('[data-p3="int-row-states"] .p3-fillrow')].filter((n) => n.getClientRects().length) : [];
-  const st = (name) => states.find((n) => n.querySelector('.p3-fill-label')?.textContent?.trim() === name);
-  const kind = (n) => (!n ? null : n.querySelector('[data-p3="int-pick"]') ? 'pick' : n.querySelector('[data-p3="int-readout"]') ? 'readout' : 'other');
-  return {
-    col: card.dataset.column, after: groups[fi + 1]?.dataset.group ?? null, count: groups.filter((x) => x.dataset.group === title).length,
-    old: groups.filter((x) => /^(Overlay wash|Tinted wash)$/.test(x.dataset.group)).map((x) => x.dataset.group),
-    rest: rest ? { label: rest.querySelector('.p3-fill-label')?.textContent?.trim(), left: left(rest), read: rest.querySelector('[data-p3="int-readout"]')?.textContent?.trim() } : null,
-    hover: st('Hover') ? { role: st('Hover').dataset.role, kind: kind(st('Hover')), left: left(st('Hover')) } : null,
-    pressed: st('Pressed') ? { role: st('Pressed').dataset.role, kind: kind(st('Pressed')), left: left(st('Pressed')) } : null,
-    states: states.length, line: !!g?.querySelector('[data-p3="outline-hover-none"]'), washLine: !!g?.querySelector('[data-p3="outline-hover-wash-line"]'),
-  };
+// ── #3335: Color › Interactive, a group with no rest row (the owner's amendment to Q3335.7 A, 2026-11-03) ─────────────
+// Rest → Hover → Pressed nesting applies only where a group HAS a rest row. A group with none (the neutral wash, the tinted
+// wash, and Solid fill's per-set pickers) draws its Hover and Pressed side by side at the group's own level: neither nested
+// under the other. Measured as RENDERED, both hosts, both themes, 1280 and 380, under each method that draws such a group,
+// in every button set's card: each state's left edge (its swatch, or its picker's label) is read, and Hover's and Pressed's
+// must agree within 0.5px. Each method must show the group in all three built-in sets, by name (represented, not
+// counted). The control arm holds a group WITH a rest row (Fill) to the nesting it keeps: its Hover sits right of its Rest.
+// MUTATION (fails by name): nest Pressed under Hover (`rowsInGroups` appending a no-rest group's second row into a states
+// column) → `3335 web light 1280 / Neutral overlay wash / primary: "Overlay wash" Pressed sits 25px right of Hover (want one level)`.
+const NO_REST_GROUPS = { 'Neutral overlay wash': 'Overlay wash', 'Tinted wash': 'Tinted wash', 'Solid fill': 'Outline & text hover' };
+const NO_REST_SETS = ['primary', 'neutral', 'destructive'];
+const NO_REST_PROBE = (title) => [...document.querySelectorAll('[data-p3="interactive-column"]')].map((card) => {
+  const g = card.querySelector(`[data-p3="int-group"][data-group="${title}"]`);
+  const leftOf = (n) => { const x = n?.querySelector('.p3-fill-sw, .p3-field-label') ?? n; return x ? +x.getBoundingClientRect().left.toFixed(1) : null; };
+  const states = g ? [...g.querySelectorAll('.p3-fillrow, .p3-ihover')].filter((n) => n.getClientRects().length) : [];
+  const named = (re) => states.find((n) => re.test((n.querySelector('.p3-fill-label, .p3-field-label')?.textContent ?? n.textContent ?? '').trim()));
+  const fill = card.querySelector('[data-p3="int-group"][data-group="Fill"]');
+  const frows = fill ? [...fill.querySelectorAll('.p3-fillrow')] : [];
+  return { col: card.dataset.column, found: !!g, n: states.length, hover: leftOf(named(/^Hover/)), pressed: leftOf(named(/^Pressed/)),
+    restLeft: leftOf(frows[0]), fillHover: leftOf(frows[1]), rest: g?.querySelector('[data-p3="int-row-group"]')?.dataset.rest ?? null };
 });
-if (runs('3116')) {
-  console.log(`\nColor › Interactive: one Outline & text hover group under Fill, under every method (#3116)\n${'='.repeat(78)}`);
+if (runs('3335')) {
+  console.log(`\nColor › Interactive: a group with no rest row keeps one level (#3335)\n${'='.repeat(78)}`);
   for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
-    const where = `3116 ${host} ${theme} ${w}`;
+    const where = `3335 ${host} ${theme} ${w}`;
     const { ctx, page, errors } = await open({ host, theme, w, h });
     let step = 'open';
     try {
       if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
       await goPlace(page, 'color-interactive');
       await showLevers(page, w);
-      for (const [name, clicks, family, how] of METHODS_3116) {
-        step = name;
-        for (const c of clicks) {
-          const loc = page.locator(`[data-p3="levers-pane"] ${c}`);
-          if (await loc.count() === 0) continue;   // on main there are no such chips: the checks below fail by name
-          if ((await loc.getAttribute('aria-checked')) !== 'true') await hooks.click(loc);
-        }
+      for (const [chip, title] of Object.entries(NO_REST_GROUPS)) {
+        step = chip;
+        await hooks.click(page.locator('[data-p3="lever-outline-interaction"] [role="radio"]').filter({ hasText: chip }).first());
+        await page.waitForFunction((t) => !!document.querySelector(`[data-p3="int-group"][data-group="${t}"]`), title, { timeout: 5000 }).catch(() => {});
         await settle(page);
-        const cards = await page.evaluate(PROBE_3116, HOVER_3116);
-        for (const col of SETS_3116) {
+        const cards = await page.evaluate(NO_REST_PROBE, title);
+        for (const col of NO_REST_SETS) {
           const c = cards.find((x) => x.col === col);
-          const at = `${where} / ${name} / ${col}`;
-          ok(c?.after === HOVER_3116 && c?.count === 1 && c?.old.length === 0,
-            `${at}: the group under Fill is "${HOVER_3116}" (it is ${JSON.stringify(c?.after ?? null)}), drawn once, and no "Overlay wash" or "Tinted wash" group (${JSON.stringify(c?.old ?? null)})`);
-          if (how === 'line') {
-            ok(!!c?.line && c?.rest === null && c?.states === 0, `${at}: under No hover fill the group is one line, with no rows (${JSON.stringify(c ?? null)})`);
-            continue;
-          }
-          ok(c?.rest?.label === 'Rest' && c?.rest?.read === 'No fill at rest' && c?.hover?.role === `interactive.${col}.${family}.hover` && c?.pressed?.role === `interactive.${col}.${family}.pressed`
-            && c?.hover?.kind === how && c?.pressed?.kind === how && (how === 'pick' || c?.washLine),
-            `${at}: Rest reads "No fill at rest", and Hover and Pressed show ${family} as ${how === 'pick' ? 'pickers' : 'read-outs, with the line saying where it changes'} (${JSON.stringify(c ?? null)})`);
-          if (!c?.rest || !c?.hover || !c?.pressed) continue;
-          ok(c.hover.left > c.rest.left + 8 && Math.abs(c.pressed.left - c.hover.left) <= 0.5,
-            `${at}: Hover and Pressed sit inset under Rest, at one level (Rest ${c.rest.left}, Hover ${c.hover.left}, Pressed ${c.pressed.left})`);
+          const at = `${where} / ${chip} / ${col}`;
+          ok(!!c?.found && c.n >= 2 && c.rest === 'false', `${at}: the "${title}" group is drawn, with no rest row, and both its states (${JSON.stringify(c ?? null)})`);
+          if (!c?.found || c.hover === null || c.pressed === null) continue;
+          ok(Math.abs(c.pressed - c.hover) <= 0.5, `${at}: "${title}" Pressed sits ${+(c.pressed - c.hover).toFixed(1)}px right of Hover (want one level)`);
+          // The control arm: Fill has a rest row, so its Hover stays nested under it.
+          ok(c.fillHover !== null && c.restLeft !== null && c.fillHover > c.restLeft + 8, `${at}: Fill keeps its nesting, Hover ${c.fillHover} right of Rest ${c.restLeft}`);
         }
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -21896,7 +21854,7 @@ if (runs('3116')) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
-} // 3116
+} // 3335
 // #3391: an override is labeled on screen by the palette it NAMES, not by its row's family. The brand holds a brand
 // color `brand-neutral` and an override on the primary border that points at it, under the primary family and then
 // with the action palette on neutral (the case as found). The ORACLE is the override the page persisted, read back
