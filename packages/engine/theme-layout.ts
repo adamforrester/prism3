@@ -41,6 +41,13 @@ export type LayoutAxis = {
  *  every brand. Banner binds it as its width floor, and code clamps it to the host (`min-inline-size: min(var(--container-min), 100%)`),
  *  so a host narrower than the floor (a 320 phone's 288 column) never scrolls the page sideways. */
 export const CONTAINER_MIN_PX = 320;
+/** #2935 (owner decision 2026-11-18, A): the `type-sets` mode a breakpoint's frames use by default. A breakpoint whose
+ *  floor is below 1024px uses mobile type, and one from 1024px up uses desktop. Figma never switches a mode when a
+ *  frame is resized, so each breakpoint frame sets its type mode explicitly; this is the default a designer starts
+ *  from and can override. Only the floor decides it, so the rule holds for any breakpoint count. */
+export const DESKTOP_TYPE_FROM_PX = 1024;
+export type TypeMode = 'mobile' | 'desktop';
+export const defaultTypeMode = (floorPx: number): TypeMode => (floorPx < DESKTOP_TYPE_FROM_PX ? 'mobile' : 'desktop');
 // Count-aware names: ≤5 tiers anchor at sm (sm/md/lg/xl/2xl — Tailwind); 6+ prepend
 // xs (xs/sm/md/lg/xl/2xl — Bootstrap), so a small-phone tier is labeled correctly.
 const bpNames = (n: number): string[] =>
