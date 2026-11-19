@@ -222,8 +222,8 @@ export const EXCLUDED_DEFS: readonly string[] = [];
  * not listed, and on a listed def that no longer is one (a stale entry).
  */
 export const STANDALONE_NESTED: Readonly<Record<string, string>> = {
-  // Badge: under Components, owner-decided 2026-10-04 (S8 scope, O1). Tab.Item nests it; a designer places it anywhere.
-  badge: 'S8 scope, O1',
+  // Badge left this list with Avatar (#4110): Tab.Item and Avatar both nest it now, so it is not one consumer's part and
+  // the rule does not reach it. It stays on its own page under Components (S8 scope, O1).
   // Button.Group: on the Buttons page (#2661, owner decision Q363). Dialog nests it; a designer places it in any footer.
   'button-group': '#2661, Q363',
   // Text field: its own page under Components. Slider (#2669) nests it for the value input; a designer places it anywhere.
