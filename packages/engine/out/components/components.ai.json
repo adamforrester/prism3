@@ -8123,7 +8123,7 @@
       "motion": {
         "enter": "None. On selection the underline slides from the previous tab to this one, on motion.transition.default.",
         "exit": "None.",
-        "reduceMotion": "The underline snaps to the selected tab; the panel swaps with no transition."
+        "reduceMotion": "Under prefers-reduced-motion the underline snaps to the selected tab, and the incoming panel fades in on motion.duration-reduced.fast."
       },
       "composition": {
         "composesWith": [
@@ -8334,7 +8334,7 @@
       "motion": {
         "enter": "None. On a change, the underline slides to the new tab and the panel cross-fades, on motion.transition.default.",
         "exit": "The outgoing panel fades out under the incoming one. Panels never slide sideways.",
-        "reduceMotion": "The underline snaps and the panel swaps with no transition."
+        "reduceMotion": "Under prefers-reduced-motion the underline snaps to the new tab, and the incoming panel fades in on motion.duration-reduced.fast."
       },
       "composition": {
         "composesWith": [
@@ -8937,7 +8937,7 @@
       "motion": {
         "enter": "The panel eases open to its content height (motion.transition.enter), and the indicator turns to its open glyph.",
         "exit": "The panel eases closed (motion.transition.exit), and the indicator turns back.",
-        "reduceMotion": "Under prefers-reduced-motion the panel opens and closes at the reduced duration, since the change is the information and the height movement is not."
+        "reduceMotion": "Under prefers-reduced-motion the height changes at once, and the panel's fade stays, on motion.duration-reduced.normal to open and to close. The indicator swaps without turning. A fade is not movement, and it keeps the cue that the panel opened or closed."
       },
       "composition": {
         "composesWith": [
@@ -13571,7 +13571,7 @@
       "motion": {
         "enter": "Fades in. A banner inserted at the top of a page reserves its space, so the content below does not jump.",
         "exit": "Collapses its height and fades on motion.transition.exit, so the content below moves up smoothly.",
-        "reduceMotion": "Under prefers-reduced-motion it appears and goes instantly."
+        "reduceMotion": "Under prefers-reduced-motion it fades only, on motion.duration-reduced.normal to appear and to go, and its height changes at once when it is dismissed."
       },
       "composition": {
         "composesWith": [

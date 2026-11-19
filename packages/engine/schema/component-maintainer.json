@@ -3920,7 +3920,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "the height animation — the panel eases open and closed (motion.transition.enter / exit); under prefers-reduced-motion it opens and closes at the reduced duration. Figma variants carry no motion."
+          "description": "the height animation — the panel eases open and closed (motion.transition.enter / exit); under prefers-reduced-motion the height changes at once and the panel fades, on motion.duration-reduced.normal to open and to close. Figma variants carry no motion."
         },
         {
           "class": "right-to-left",
@@ -6102,7 +6102,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "motion — appears with an opacity fade; a dismiss collapses the height and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both are instant. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest."
+          "description": "motion — appears with an opacity fade; a dismiss collapses the height and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both fade only, on `motion.duration-reduced.normal`, and the height changes at once. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest."
         },
         {
           "class": "right-to-left",

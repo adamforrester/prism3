@@ -24,16 +24,20 @@
  * checks. The emitter list is a floor on what the scan must reach, so a scope that silently lost a directory or a
  * file extension fails as unrepresented rather than passing clean.
  *
- * BEYOND THE ENGINE: TESTS AND TOOLS (#3701). The same rule holds for every test file at a workspace root
- * (`apps/<ws>/test-*`) and everything under `tools/`: a test that sorts by locale compares two sides that can each move
- * by machine, and a tool's report reorders by machine. Tools import `localeFreeCompare` by path, as they import the
- * rest of the engine; a surface's test may not deep-import the engine (`lint-engine-facade.ts`), so it sorts by code
- * unit inline. A separate floor and named files hold this scope to what it reached at #3701.
+ * BEYOND THE ENGINE: TESTS AND TOOLS (#3701, owner decision A, 2026-11-18). The same rule holds for every test and
+ * tool: a test file at a workspace root (`apps/<ws>/test-*`), a workspace's own gate (`apps/<ws>/lint-*`), everything
+ * under `tools/`, the root runners (`verify.ts`, `fold.ts`, `run-suites.ts` and the rest at the root), the token
+ * package's scripts (`packages/tokens/*.mjs`), and the scripts a skill ships for an agent to run (`skills/<skill>/*.js`).
+ * A test that sorts by locale compares two sides that can each move by machine, and a tool's report reorders by machine.
+ * Tools under `tools/` import `localeFreeCompare` by path, as they import the rest of the engine; a surface's test may
+ * not deep-import the engine (`lint-engine-facade.ts`), and a skill's script runs in Figma with no import at all, so
+ * each sorts by code unit inline. A separate floor and named files hold this scope to what it reached.
  *
  * WHAT IT DOES NOT ASSERT. That every sort passes a comparator at all: a bare `.sort()` on strings is already
- * code-unit order and locale-free. Nor the surfaces' own sources (`apps/<ws>/src`): whether a list a viewer reads, such as
- * font families or style-guide categories, should follow the viewer's locale is the owner's decision (#3701), and
- * those sites are unchanged. Nor TokenPress, a guest port that keeps its own patterns (`apps/tokenpress/README.md`).
+ * code-unit order and locale-free. Nor the surfaces' own sources (`apps/<ws>/src`): a list a viewer reads, such as font
+ * families or style-guide categories, keeps the viewer's locale order (owner decision A on #3701), so those sites stay
+ * as they are and outside this scan. Nor TokenPress, a guest port that keeps its own patterns
+ * (`apps/tokenpress/README.md`).
  *
  * This file is the one place allowed to spell the method, for the probe, and is skipped by name.
  */
@@ -84,12 +88,22 @@ const MUST_SCAN_OUTSIDE = [
   'tools/binding-audit/reconcile.ts',
   'tools/conformance-scan/fix.ts',
   'tools/exporter-comparison/adapt-figma-emission.ts',
+  // The scope's other kinds, one file each, so a scope that lost a kind fails as unrepresented.
+  'apps/plugin/lint-executor-revision.ts',
+  'verify.ts',
+  'packages/tokens/check-package.mjs',
+  'skills/prism3-rebind/consistency-audit.js',
 ];
-// 153 tracked test and tool source files at #3701.
+// 153 tracked test and tool source files at #3701's first pass (#3823); more once the scope reached every kind.
 const MIN_FILES_OUTSIDE = 100;
-/** A test at a workspace root, not TokenPress's (a guest port), or any file under `tools/`. */
+/** A test or gate at a workspace root, not TokenPress's (a guest port); any file under `tools/`; a file at the repo
+ *  root; a token-package script; a skill's script. Never a surface's `src/`, whose lists a viewer reads (#3701 A). */
 const isOutsideSite = (f: string): boolean =>
-  (/^apps\/[^/]+\/test-[^/]+$/.test(f) && !f.startsWith('apps/tokenpress/')) || f.startsWith('tools/');
+  (/^apps\/[^/]+\/(?:test|lint)-[^/]+$/.test(f) && !f.startsWith('apps/tokenpress/'))
+  || f.startsWith('tools/')
+  || !f.includes('/')
+  || /^packages\/tokens\/[^/]+\.mjs$/.test(f)
+  || /^skills\/[^/]+\/[^/]+\.js$/.test(f);
 
 // ── PROBE: the comparator's order on literals ────────────────────────────────────────────────────────────────
 // Czech collates `ch` as one letter after `h`; English and code-unit order put it after `c`. The fold keeps
@@ -122,7 +136,7 @@ const SOURCE = /\.(?:ts|mts|cts|js|mjs|cjs)$/;
 const files = execFileSync('git', ['ls-files', '-z', 'packages/engine'], { cwd: repo, encoding: 'utf8' })
   .split('\0')
   .filter((f) => SOURCE.test(f) && f !== SELF);
-const outside = execFileSync('git', ['ls-files', '-z', 'apps', 'tools'], { cwd: repo, encoding: 'utf8' })
+const outside = execFileSync('git', ['ls-files', '-z'], { cwd: repo, encoding: 'utf8' })
   .split('\0')
   .filter((f) => SOURCE.test(f) && isOutsideSite(f));
 
@@ -133,7 +147,7 @@ for (const f of [...files, ...outside]) {
     for (const b of BANNED) {
       if (b.re.test(line)) {
         hits++;
-        const fix = f.startsWith('apps/') ? 'sort by code unit inline (a surface test may not deep-import the engine)' : 'use localeFreeCompare from locale-free-order.ts';
+        const fix = f.startsWith('apps/') || f.startsWith('skills/') ? 'sort by code unit inline (a surface test may not deep-import the engine, and a skill script has no import)' : 'use localeFreeCompare from locale-free-order.ts';
         failures.push(`LOCALE ORDER: ${f}:${i + 1} — ${b.what}; ${fix}\n      ${line.trim().slice(0, 160)}`);
       }
     }
@@ -156,4 +170,4 @@ if (failures.length) {
   for (const f of failures) console.error(`  ${f}`);
   process.exit(1);
 }
-console.log('✓ clean — no comparison under packages/engine/, in a workspace test or under tools/ depends on the host locale');
+console.log('✓ clean — no comparison under packages/engine/, in a workspace test or gate, under tools/, at the root, in a token-package script or in a skill script depends on the host locale');
