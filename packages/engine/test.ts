@@ -43432,6 +43432,18 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     `#3707 a one-item typography.links still validates and builds (threw ${JSON.stringify(one)})`);
 }
 
+// #3551 — the code input cell's radius ladder (sm, sm, sm, lg) is intended (owner decision A, 2026-11-18): the three
+// smaller cells follow the control corner and the display cell is the exception. So `lint-rung-names` admits the
+// repeat as a DECIDED entry in RUNG_REPEATS citing #3551, and the open-question register no longer holds it. Read from
+// the gate's source, because the gate runs at import and exports nothing.
+{
+  const src = readFileSync(join(import.meta.dirname, 'lint-rung-names.ts'), 'utf8');
+  const body = (name: string): string => src.match(new RegExp(`const ${name}: Record<[^>]*> = \\{([\\s\\S]*?)\\n?\\};`))?.[1] ?? '';
+  const decided = body('RUNG_REPEATS').split('\n').find((l) => l.includes("'code-input-cell'")) ?? '';
+  ok(decided.includes("'radius.*'") && decided.includes('#3551'), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(decided)})`);
+  ok(!body('RUNG_REPEATS_OPEN').includes("'code-input-cell'"), '#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered');
+}
+
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
   process.exitCode = 1;
