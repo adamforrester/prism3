@@ -20,11 +20,11 @@
  * combination is caught and surfaced with the last-good render preserved.
  */
 import { brandTheme, type BrandInput, formatRatio, hex, oklchToRgb, resolveAllModes, toDesignMd, buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode, ENGINE_VERSION } from '@prism3/engine';
-import { componentSpecsExporter } from './state/component-specs-export';
+import { componentSpecsFileNames, loadComponentSpecsExporter } from './state/component-specs-export';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import type { HostFonts } from './ui/fonts';
-import { choice } from './ui/lever-kit';
+import { choice, selectField } from './ui/lever-kit';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
@@ -828,12 +828,11 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
 
   const bar = el('div', 'tok-ctrls');
   if (tokTier === 'semantic') {
-    const showSel = selectEl();
-    for (const [v, label] of [['both', 'Alias and value'], ['alias', 'Alias only'], ['value', 'Value only']])
-      showSel.append(new Option(label, v));
-    showSel.value = tokShow;
-    showSel.onchange = () => { tokShow = showSel.value as typeof tokShow; repaint(); };
-    bar.append(pfield('Show', showSel));
+    // #3938 (Q-BK1 A): the chrome's shared select (lever-kit `selectField`, `.p3-select`), not the legacy `.select`,
+    // whose taller box dropped its caption below the Alias path control's.
+    const showSel = selectField('p3-token-show', 'Show', 'token-show', (v) => { tokShow = v as typeof tokShow; repaint(); });
+    showSel.set([{ v: 'both', l: 'Alias and value' }, { v: 'alias', l: 'Alias only' }, { v: 'value', l: 'Value only' }], tokShow);
+    bar.append(pfield('Show', showSel.el));
 
     // #3911: the shared segmented control (lever-kit `choice`), not the legacy `.seg`, whose selected segment drew an underline.
     const pseg = choice('Alias path', 'token-path', [{ v: 'full', l: 'Full' }, { v: 'short', l: 'Short' }] as const, (v) => {
@@ -842,12 +841,10 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
     pseg.set(tokPath);
     bar.append(pfield('Alias path', pseg.el));
   }
-  const catSel = selectEl();
-  catSel.append(new Option('All categories', ''));
-  for (const s of sections) catSel.append(new Option(`${s.cat} (${s.leaves.length})`, s.cat));
-  catSel.value = sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = '');
-  catSel.onchange = () => { tokCat = catSel.value; repaint(); };
-  bar.append(pfield('Category', catSel));
+  const catSel = selectField('p3-token-category', 'Category', 'token-category', (v) => { tokCat = v; repaint(); });
+  catSel.set([{ v: '', l: 'All categories' }, ...sections.map((s) => ({ v: s.cat, l: `${s.cat} (${s.leaves.length})` }))],
+    sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = ''));
+  bar.append(pfield('Category', catSel.el));
   host.append(bar);
 
   // ---- sections ----
@@ -1419,12 +1416,17 @@ const exportTokens = (): void => {
 
 /** #3425 — Export component specs: the component-defs export for the brand on screen (its component settings resolved)
  *  and the same as a Specs components set, from the engine function `regen` and the CLI write theirs with, through the
- *  exporter the plugin provides (`state/component-specs-export.ts`; the web has none). Off the last-good input, like the
- *  tokens, so a failing edit cannot reach it. Two files, two downloads, as the token set. */
-const exportComponentSpecs = (): void => {
-  const exporter = componentSpecsExporter();
+ *  exporter the host provides (`state/component-specs-export.ts`): the plugin's at once, the web's from its chunk,
+ *  loaded on this click (#3429). Off the last-good input, like the tokens, so a failing edit cannot reach it, and that
+ *  input and the slug are read at the click, so an edit made while the chunk loads does not change what downloads.
+ *  One download per file, as the token set (three since #1325). A chunk that fails to load downloads nothing and is
+ *  logged; the dialog has no words for it yet (#3429, held for the owner). */
+const exportComponentSpecs = async (): Promise<void> => {
+  const input = lastGoodInput, name = slug();
+  let exporter;
+  try { exporter = await loadComponentSpecsExporter(); } catch (e) { console.error('component specs: the chunk did not load', e); return; }
   if (!exporter) return;
-  for (const f of exporter.files(lastGoodInput, slug())) download(f.name, f.text, 'application/json');
+  for (const f of exporter.files(input, name)) download(f.name, f.text, 'application/json');
 };
 
 // design.md import (#160): the check, the file reader and the picker's types live in `state/start-input.ts` (S12), so
@@ -1557,9 +1559,8 @@ const exportView = (): ExportView => {
     const prev = exportPreview(tree, slug(), exportSettings, exportMetadata);
     right.push({ kind: 'previews', files: prev.map((f) => ({ name: prev.length > 1 ? f.name : null, text: f.text })) });
   } else if (exportArtifact === 'component-specs') {
-    const exporter = componentSpecsExporter();
-    if (exporter) {
-      const names = exporter.fileNames(slug());
+    const names = componentSpecsFileNames(slug());
+    if (names) {
       right.push({ kind: 'cap', text: `You get ${names.length} files` });
       right.push({ kind: 'files', text: names.join('\n') });
     } else right.push({ kind: 'note', text: SPECS_WEB_OFF });
@@ -1575,7 +1576,7 @@ const exportView = (): ExportView => {
   }
   // Owner (#2007): after a failed restore the tokens on hand are the DEMO's, so that download is off too.
   const off = exportArtifact === 'design-md' && !briefInput() ? BRIEF_NONE : exportArtifact === 'dtcg' && restoreFailure ? TOKENS_NONE
-    : exportArtifact === 'component-specs' && !componentSpecsExporter() ? SPECS_WEB_OFF
+    : exportArtifact === 'component-specs' && !componentSpecsFileNames(slug()) ? SPECS_WEB_OFF
     : exportArtifact === 'component-specs' && restoreFailure ? SPECS_NONE : null;
   return {
     artifacts: ARTIFACTS.map((a) => ({ id: a.id, label: a.label, on: a.id === exportArtifact })),
@@ -1591,7 +1592,7 @@ const exportView = (): ExportView => {
     none: settings.length ? null : exportArtifact === 'component-specs' ? SPECS_NO_SETTINGS : 'Nothing to set — the brief is written one way.',
     right,
     // #3553 Q-UI8 A: the word alone; the bar draws the vendored download icon before it.
-    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component specs' : 'Download tokens', off },
+    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component contracts' : 'Download tokens', off },
   };
 };
 
@@ -1644,7 +1645,7 @@ const barActions: BarActions = {
   download: () => {
     // The Export area stays drawn (`exportOpen` in `barRead`, #2909).
     exportMenuOpen = false; barChanged();
-    if (exportArtifact === 'design-md') exportDesignMd(); else if (exportArtifact === 'component-specs') exportComponentSpecs(); else exportTokens();
+    if (exportArtifact === 'design-md') exportDesignMd(); else if (exportArtifact === 'component-specs') void exportComponentSpecs(); else exportTokens();
   },
 };
 
@@ -1931,10 +1932,10 @@ const failedBrandOf = (input: unknown): BrandInput | null => {
 const BRIEF_IS_FAILED = "This is the file's saved brand, which didn't open, not the demo brand on screen.";
 const BRIEF_NONE = "Nothing to export: this file's saved brand couldn't be read.";
 const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo brand's, not this file's.";
-/** #3425 (DRAFT wording for the owner, Q3425.1). */
-const SPECS_NONE = "Off after a failed restore: these specs would be the demo brand's, not this file's.";
-const SPECS_NO_SETTINGS = "Nothing to set — the specs follow this brand's component settings.";
-const SPECS_WEB_OFF = 'In the Figma plugin: the specs are built from the component definitions, which the web Studio leaves out.';
+/** #3425 (DRAFT wording for the owner, Q3425.1); "component contracts" since #1325 (Q-CC1 A, DRAFT). */
+const SPECS_NONE = "Off after a failed restore: these component contracts would be the demo brand's, not this file's.";
+const SPECS_NO_SETTINGS = "Nothing to set — the component contracts follow this brand's component settings.";
+const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built from the component definitions, which the web Studio leaves out.';   // a fallback no host reaches since #3429: the plugin provides the exporter, the web a loader
 /** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
  *  rebuild that resolves also ends it; the other two end only when a brand loads. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {

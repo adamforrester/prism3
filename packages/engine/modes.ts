@@ -137,7 +137,11 @@ const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0, alsoC
  */
 const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = [], alsoMin = min): RatedNum => {
   const cands = steps.map((s) => ({ path: `${ns}.${palette}.${s.key}`, rgb: s.rgb, num: s.num }));
-  const anchor = cands.find((c) => c.num === anchorNum) ?? cands.find((c) => c.num === 500)!;
+  const found = cands.find((c) => c.num === anchorNum);
+  // #3873: an authored anchor off the ramp is refused in `brandTheme`; this is the backstop. Falling back to 500 is a
+  // derivation aid, so it is only defensible for a derived anchor: an exact one would ship 500 uncorrected.
+  if (!found && exact) throw new Error(`An anchor at step ${anchorNum} is not on the ${palette} ramp (${steps.map((s) => s.num).join(', ')}).`);
+  const anchor = found ?? cands.find((c) => c.num === 500)!;
   const avoidHex = new Set(avoid.map(hex));
   const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= alsoMin) && !avoidHex.has(hex(rgb));
   // `exact` = the anchor was AUTHORED (a pinned step, not the engine's derived default), so it is
@@ -672,8 +676,19 @@ export const raisedChoice = (family: 'light' | 'dark', lever: RaisedSurface | un
  *   · `standard` (the default, and unset): 40 light, 60 dark, 60 hc-light, 70 hc-dark — the steps before the lever.
  *   · `strong`: 80 light and dark; 90 hc-light and hc-dark. High contrast stays at least one step heavier than its own
  *     mode, as it is under `standard`, and the ramp tops out at 90, so both high-contrast modes meet there.
- * Heavier in dark under `standard`, because the page behind is already dark; under `strong` the page stops competing
- * in either family, so light and dark share a step. Exported so `test.ts` can pin every cell of the table.
+ * Under `strong` the page stops competing in either family, so light and dark share a step. Exported so `test.ts`
+ * can pin every cell of the table.
+ *
+ * PROVENANCE OF THE `standard` STEPS (#1043, owner decision B): chosen, not derived — a taste value. A modal backdrop
+ * has no contrast pair (`ratio: 1`, `against: 'self'`, `min: 0`), so no floor picks a step, and no gate can move one.
+ *   · light 40, dark 60: after Spectrum 2 and Radix Themes (`docs/03` Item 2). Heavier in dark so the bright content
+ *     behind a dark UI (photos, colored fills) competes less. It is not equal suppression: measured, the same alpha
+ *     suppresses the page about equally in both families (#1043's research note).
+ *   · hc-light 60, hc-dark 70: the high-contrast step-up is a deliberate choice of this system. No reference system
+ *     escalates its backdrop in high contrast, and no contrast floor asks for it.
+ * Deriving the steps from a suppression floor was tried and refused: each floor gives a different "derivation", so
+ * the floor is only the taste value moved one level up. Do not unify this with the veil's derivation (#1030), whose
+ * contrast target is real. `test.ts` (#1043) pins the steps to this declaration.
  */
 export const SCRIM_STEPS: Record<ScrimStrength, Record<'light' | 'dark' | 'hc-light' | 'hc-dark', number>> = {
   standard: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
@@ -1184,7 +1199,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const invFloorRgb = asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
   putSurf('inverse.background.tertiary', cfg.bgInverse.tertiary, 'Inverse page surface, third tier');
   // scrim — semi-transparent backdrop behind modals/drawers (alpha; heavier in dark).
-  // Its step follows the `scrimStrength` lever (#3050); `scrimStep` holds the table.
+  // Its step follows the `scrimStrength` lever (#3050); `scrimStep` holds the table. The steps are chosen, not
+  // derived (#1043, owner B): their provenance is declared at `SCRIM_STEPS`.
   const scrimAt = scrimStep(cfg.family, hc, theme.scrimStrength);
   put('scrim.default', { path: `${ns}.black-alpha.${scrimAt}`, rgb: BLACK, ratio: 1 },
     `Scrim — black backdrop behind modals and drawers; opacity ${scrimAt}%`, 'self', 0);
@@ -1994,7 +2010,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   { const d = onDisabled(); put('disabled.on-fill', d.r, `Label / icon on a disabled fill — muted but clears ${d.min}:1`, 'disabled.fill', d.min); }
   { const d = disabledText(); put('disabled.text', d.r, `Disabled text — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
   { const d = disabledText(); put('disabled.icon', d.r, `Disabled icon — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
-  put('disabled.border', rated(neutralLow(), baseRgb), 'Disabled control border — muted neutral', 'background.primary', 0);
+  // The disabled EDGE takes the disabled levers' target too (#2750; owner decision lettered A, text = option B): it clears the
+  // same floor as the disabled inks, against the same worst-case surface. Before #2750 it was the
+  // fixed `neutralLow()` step `disabled.fill` uses, rated `min: 0`, so no lever moved it and a disabled
+  // outlined control measured 1.5–1.8:1. It no longer matches `disabled.fill` by construction.
+  { const d = disabledText(); put('disabled.border', d.r, `Disabled control border — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
 
   // The same five for a disabled control on a dark hero / inverse band (#892 step 5).
   //
@@ -2012,8 +2032,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     `Label / icon on a disabled fill on an inverse surface — muted but clears ${disabledTarget}:1`, 'inverse.disabled.fill', disabledTarget);
   { const r = pickMinPass(textCands, invFloorRgb, disabledTarget);
     put('inverse.disabled.text', r, `Disabled text on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget);
-    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget); }
-  put('inverse.disabled.border', rated(neutralLowInverse(), invRgb), 'Disabled control border on an inverse surface — muted neutral', 'inverse.background.primary', 0);
+    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget);
+    // The inverse edge follows the page's (#2750).
+    put('inverse.disabled.border', r, `Disabled control border on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget); }
 
   // ---- field — form-element chrome (docs/20 §17). Deliberately MINIMAL + gated: a field
   // surface, a PERCEIVABLE resting border, and a READABLE placeholder. Everything stateful
