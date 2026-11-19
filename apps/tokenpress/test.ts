@@ -104,6 +104,9 @@ const ADDED: Record<string, number> = {
   // prism3 #731 — gradient paint styles were never scanned, so every gradient was missing from the export. Now
   // scanned and written to `gradients.json` as DTCG `gradient` tokens, stop colors bound to variables as aliases.
   'tests/unit/gradient-paint-styles.test.ts': 6,
+  // prism3 #2365 — a tinted wash (a color alias at an opacity) exported `components: [null, null, null]`. It is now the
+  // color the alias resolves to in the wash's mode at that alpha, with both aliases in `$extensions` when asked for.
+  'tests/unit/tinted-wash.test.ts': 7,
 };
 
 // ---- the harness checks itself first -------------------------------------------------------
