@@ -14617,14 +14617,16 @@ arm: {
   const shadows = { ...allEffects, styles: allEffects.styles.filter((s) => s.name !== 'glass') };
   ok(allEffects.styles.length === shadows.styles.length + 1, `figma shadow: the effect list is the shadow sets plus exactly one glass style`);
 
-  // (a) One style per shadow step, TWO SETS (light + dark). NB ships 7 steps
-  // (xs..2xl + inset) × 2 modes = 14 styles.
-  ok(shadows.styles.length === nbShadowKeys.length * 2, `figma shadow: emits N×2 styles for N shadow steps (light + dark mode sets) — expected ${nbShadowKeys.length * 2}, got ${shadows.styles.length}`);
+  // (a) One style per shadow step, THREE SETS (light + dark + hc-dark, #4131). NB ships 7 steps
+  // (xs..2xl + inset) × 3 modes = 21 styles.
+  ok(shadows.styles.length === nbShadowKeys.length * 3, `figma shadow: emits N×3 styles for N shadow steps (light + dark + hc-dark mode sets) — expected ${nbShadowKeys.length * 3}, got ${shadows.styles.length}`);
 
   // (b) Names split cleanly by prefix.
   const lightNames = shadows.styles.filter((s) => s.name.startsWith('shadow/')).map((s) => s.name);
   const darkNames = shadows.styles.filter((s) => s.name.startsWith('shadow-dark/')).map((s) => s.name);
-  ok(lightNames.length === nbShadowKeys.length && darkNames.length === nbShadowKeys.length, `figma shadow: N light styles ('shadow/*') + N dark styles ('shadow-dark/*') — got ${lightNames.length}L / ${darkNames.length}D`);
+  const hcDarkNames = shadows.styles.filter((s) => s.name.startsWith('shadow-hc-dark/')).map((s) => s.name);
+  ok(lightNames.length === nbShadowKeys.length && darkNames.length === nbShadowKeys.length && hcDarkNames.length === nbShadowKeys.length,
+    `figma shadow: N light styles ('shadow/*') + N dark styles ('shadow-dark/*') + N hc-dark styles ('shadow-hc-dark/*') — got ${lightNames.length}L / ${darkNames.length}D / ${hcDarkNames.length}HC`);
 
   // (c) Every effect layer has color + offset + radius + spread + type +
   // blendMode. Colours have {r,g,b,a} in [0,1].
