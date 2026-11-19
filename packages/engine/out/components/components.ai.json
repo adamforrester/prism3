@@ -7381,8 +7381,8 @@
         "role": "none. A status label is plain text and announces itself; a count or dot is `aria-hidden` and its meaning is in the host's accessible name.",
         "wcag": [
           "1.4.1 Use of Color, as intent (the text carries the meaning, so a tone or a dot is not the only signal)",
-          "1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands; an inline label clears 4.5:1 against the page and card surfaces)",
-          "1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information: its bold fill clears 3:1 against the page, measured in every mode of the example brands. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement: the subtle label's 1px edge and every bold fill clear 3:1 against the page in the same measurement. The same holds for the inline style's dot: its label says the same thing, so 1.4.11 does not require 3:1, and the dot clears 3:1 against the page and card surfaces as design intent)",
+          "1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands. The bold neutral label, `color.inverse.text.primary` on `color.inverse.foreground.tertiary`, is also a mode contract at 4.5:1, so the engine checks it for every brand in every mode and names any shortfall. An inline label clears 4.5:1 against the page and card surfaces)",
+          "1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information. The neutral dot's fill, `color.inverse.foreground.tertiary`, is a mode contract against the page at the non-text bar, 3:1 and 4.5:1 in high contrast, so the engine checks it for every brand in every mode. The tone dots' bold fills clear 3:1 against the page as measured in every mode of the example brands; that is a measurement, not a contract. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement. The subtle label's 1px neutral edge, `color.border.tertiary`, is a mode contract at the same bar on every page and surface tier, and the bold neutral fill is contracted as above. The bold tone fills clear 3:1 against the page in the same measurement, not by contract. The same holds for the inline style's dot: its label says the same thing, so 1.4.11 does not require 3:1, and the dot clears 3:1 against the page and card surfaces as design intent)",
           "4.1.2 Name, Role, Value (a count or dot joins its host's accessible name, so the host says what it means)",
           "4.1.3 Status Messages (a count that changes after render reaches assistive technology through a polite live region)"
         ],
@@ -10230,6 +10230,13 @@
           "description": "The heading that names the task. It is the dialog's accessible name, so make it specific: \"Delete this address?\", not \"Are you sure?\". It wraps rather than truncating."
         },
         {
+          "name": "hideTitle",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Hides the title from view and keeps it as the dialog's accessible name, for a dialog whose tabs or body name the content, such as a full-screen dialog on a small screen. An alertdialog always shows its title. Never display: none."
+        },
+        {
           "name": "description",
           "type": "node",
           "required": false,
@@ -10349,14 +10356,14 @@
         ],
         "keyboard": "Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.",
         "focus": "Moves into the dialog on open (the first control, the title for long content, or Cancel in an alertdialog), stays inside while it is open, and returns to the control that opened it.",
-        "aria": "aria-modal=\"true\"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button's accessible name is \"Close\". Hide the dividers from assistive technology."
+        "aria": "aria-modal=\"true\"; aria-labelledby pointing at the title, a heading that stays in place, visually hidden, when the title is hidden; aria-describedby pointing at the description when there is one. The close button's accessible name is \"Close\". Hide the dividers from assistive technology."
       },
       "content": {
         "labelPattern": "The title names the task or asks the question (\"Delete this address?\"), never \"Warning\" or \"Are you sure?\". The main action echoes the title's verb (\"Delete address\"), not \"OK\" or \"Yes\". Sentence case.",
         "dialogPattern": "A confirmation asks about the action in its title (\"Delete this address?\"). The body states what is lost and whether it can be undone. The destructive button repeats the verb (\"Delete address\") beside Cancel or a named way out (\"Keep address\"), and focus starts on that way out. Leave the close button off an alertdialog, so the user answers it."
       },
       "docs": {
-        "usage": "Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something.",
+        "usage": "Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something. Turn the title off only when tabs or a heading in the body already name the content, most often in a full-screen dialog or a bottom sheet; the title still names the dialog for assistive technology.",
         "do": [
           "Name the task in the title, and the action in the main button",
           "Keep the close button on a standard dialog",
@@ -10372,7 +10379,8 @@
           "Focus a destructive button when the dialog opens",
           "Build the backdrop into the panel. It is the page's scrim, behind the dialog.",
           "Use an end panel for navigation that stays open beside the page. It is a modal dialog and makes the page inert.",
-          "Make an end panel an alertdialog. A confirmation belongs in the center."
+          "Make an end panel an alertdialog. A confirmation belongs in the center.",
+          "Hide the title of an alertdialog. Its title is the question the user answers."
         ],
         "contentGuidelines": "Titles are specific and in sentence case. Body text is short and states the consequence of an action, especially one that cannot be undone. Buttons are named by what they do."
       },
@@ -10442,6 +10450,10 @@
         },
         {
           "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
           "disposition": "REFUSED"
         },
         {

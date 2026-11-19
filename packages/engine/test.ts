@@ -57,6 +57,9 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
+import { rtlNote, withMirrors } from './rtl-mirror';
+import { RTL_MIRRORED_GLYPHS, ICON_SOURCES } from './icon-set';
+import { docSections } from './component-doc-sections';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, fieldStyleFor, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
@@ -7603,6 +7606,36 @@ arm: {
   }
 }
 
+// ---- BADGE'S ACCESSIBILITY PROSE CITES THE #1745 CONTRACTS (#1775, owner decision A) ------------------------------
+// The block above holds that the engine CONTRACTS the three neutral pairs. This holds that Badge's shipped WCAG lines
+// SAY so, and that they still call the bold TONE fills' page separation a measurement: that pair is not contracted
+// against the page (each tone fill's contract is against the mode's floor ground). Both halves are literals typed
+// from the decision, so the prose cannot drift into claiming a contract for the tones, or back into calling the
+// neutral pairs merely measured. The roles named here are the ones the #1745 arm above reads from resolved modes.
+{
+  const def = componentDefs.find((d) => d.id === 'badge')!;
+  const wcag = def?.accessibility?.wcag ?? [];
+  const line = (sc: string): string => wcag.find((w) => w.startsWith(`${sc} `)) ?? '';
+  const l143 = line('1.4.3'), l1411 = line('1.4.11');
+  // 1.4.3: the bold neutral label pair is a contract at 4.5:1; the general label claim stays measured.
+  const miss143: string[] = [];
+  if (!l143.includes('`color.inverse.text.primary` on `color.inverse.foreground.tertiary`, is also a mode contract at 4.5:1')) miss143.push('the bold neutral label contract');
+  if (!l143.includes('checks it for every brand in every mode')) miss143.push('every brand, every mode');
+  if (!l143.includes('measured in every mode of the example brands')) miss143.push('the measured general claim');
+  ok(l143 !== '' && miss143.length === 0, `#1775 badge 1.4.3 cites the bold neutral label's 4.5:1 mode contract and keeps the rest measured${miss143.length ? ` — MISSING: ${miss143.join('; ')}` : ''}`);
+  // 1.4.11: the neutral fill and the neutral edge are contracts; the tone fills are measured, NOT contracted.
+  const miss1411: string[] = [];
+  if (!l1411.includes('`color.inverse.foreground.tertiary`, is a mode contract against the page at the non-text bar, 3:1 and 4.5:1 in high contrast')) miss1411.push('the neutral fill contract');
+  if (!l1411.includes('`color.border.tertiary`, is a mode contract at the same bar')) miss1411.push('the neutral edge contract');
+  if (!l1411.includes('clear 3:1 against the page as measured in every mode of the example brands; that is a measurement, not a contract')) miss1411.push('the tone dots measured, not contracted');
+  if (!l1411.includes('The bold tone fills clear 3:1 against the page in the same measurement, not by contract')) miss1411.push('the tone fills measured, not contracted');
+  // No sentence may call a TONE fill contracted: a "contract" sentence must name a neutral role.
+  const toneContract = l1411.split(/(?<=\.) /).filter((x) => /\btone\b/.test(x) && /contract/.test(x) && !/not (a|by) contract/.test(x));
+  if (toneContract.length) miss1411.push(`a tone sentence claims a contract: "${toneContract[0]}"`);
+  ok(l1411 !== '' && miss1411.length === 0, `#1775 badge 1.4.11 cites the neutral fill and edge contracts and keeps the tone fills measured, not contracted${miss1411.length ? ` — WRONG: ${miss1411.join('; ')}` : ''}`);
+}
+
+
 // ---- TAG — the owner's decisions of 2026-09-27 and 2026-09-28, held here with literal expectations ---------
 // Written from the decisions, not read back from the def: interactive only (the five projected states), two
 // types on a `type` axis and prop with the literal values select | dismissible, no nested remove button (the ×
@@ -11555,6 +11588,8 @@ arm: {
       ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
       // #2324: "Text button hover: Fill" moves only the materialized button defs (the text appearance's wash).
       ['buttonTextHover', 'fill'],
+      // #576: "Outline button border: Thick" adds no token; it rebinds only the materialized button defs' edge.
+      ['buttonBorderWeight', 'thick'],
       // `hairline` joined `boxed` and `pill` with #2053: the rung is always emitted now, so the shape moves only the
       // materialized defs (its radius binding), as the other two do.
       ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
@@ -30802,6 +30837,57 @@ arm: {
   }
 }
 
+// #576 (owner decision 2026-11-18, A) — ONE OUTLINE BORDER WEIGHT FOR EVERY BUTTON SET ("Outline button border", a DRAFT
+// name). The weight is brand-wide and the color stays per set. ORACLES are literals: the three set ids, the one key and
+// the two rung names are spelled here, never read off the materializer or the def it rebinds.
+{
+  const thick = { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'thick' as const };
+  const SETS_576 = [button, buttonNeutral, buttonDestructive];
+  // (1) SCOPE: across every def, Thick moves exactly the three text-button sets. Icon buttons keep their own edge.
+  const moved576 = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, thick, () => 44))
+    !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort().join(',');
+  ok(moved576 === 'button,button-destructive,button-neutral',
+    `#576 scope: across all ${componentDefs.length} defs, Outline button border: Thick moves exactly button, button-destructive and button-neutral (got ${moved576 || 'none'})`);
+  for (const def of SETS_576) {
+    const base = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, () => 44);
+    const m = applyButtonLayout(def, thick, () => 44);
+    const changed = Object.keys(m.tokens).filter((k) => m.tokens[k] !== base.tokens[k]).sort();
+    // (2) ONE KEY, ONE RUNG. The edge's thickness moves to the 2px rung; nothing else, the border COLOR included.
+    ok(base.tokens['border-width'] === 'border-width.hairline' && m.tokens['border-width'] === 'border-width.thick'
+      && JSON.stringify(changed) === JSON.stringify(['border-width']) && JSON.stringify(m.anatomy) === JSON.stringify(base.anatomy),
+      `#576 ${def.id}: Thick rebinds border-width from border-width.hairline to border-width.thick and moves nothing else (moved: ${changed.join(', ') || 'none'})`);
+    // (3) AS PROJECTED: every member binds the thick rung as its stroke weight, and every member's paints are the
+    //     Thin projection's, so each set's outline keeps its own border color in every state.
+    const thinSet = figmaAnatomySet(base), thickSet = figmaAnatomySet(m);
+    const weights = new Set(thickSet.map((pl) => (pl.root as unknown as { bound?: Record<string, string> }).bound?.strokeWeight ?? 'UNBOUND'));
+    const paintsMoved = thickSet.filter((pl, i) => JSON.stringify((pl.root as unknown as { paints?: unknown }).paints)
+      !== JSON.stringify((thinSet[i]?.root as unknown as { paints?: unknown } | undefined)?.paints)).map(planComponentName);
+    const outlineMembers = thickSet.filter((pl) => planComponentName(pl).includes('appearance=outline')).length;
+    ok(thickSet.length === thinSet.length && outlineMembers > 0 && JSON.stringify([...weights]) === JSON.stringify(['border-width/thick']) && paintsMoved.length === 0,
+      `#576 ${def.id}: projected at Thick, all ${thickSet.length} members (${outlineMembers} outline) bind border-width/thick as their stroke weight, and no member's paints move (weights: ${[...weights].join(', ')}; paints moved: ${paintsMoved.slice(0, 3).join('; ') || 'none'})`);
+    // (4) THIN IS THE IDENTITY: the default and an explicit Thin are the same def back.
+    ok(JSON.stringify(applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'hairline' }, () => 44)) === JSON.stringify(base),
+      `#576 ${def.id}: Outline button border: Thin builds the default def`);
+  }
+  // (5) REFUSED, NOT IGNORED: a button whose edge is not on the default rung throws, naming the def and the key.
+  let threw576 = '';
+  try { applyButtonLayout({ ...button, tokens: { ...button.tokens, 'border-width': 'border-width.heavy' } }, thick, () => 44); } catch (e) { threw576 = (e as Error).message; }
+  ok(threw576.includes('button') && threw576.includes('border-width.heavy'),
+    `#576 a button whose edge binds another rung is refused by name, not silently kept (${threw576 || 'did NOT throw'})`);
+  // (6) THE RUNG IS 2PX, read off every brand's committed Figma emission, which knows nothing about any def.
+  const thickPx = readdirSync(resolve(HERE, './out/figma')).sort().map((brand) => {
+    const vars = (JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/border-width.json`), 'utf8')) as { variables: { name: string; value?: unknown }[] }).variables;
+    return [brand, vars.find((v) => v.name.endsWith('/border-width/thick'))?.value] as const;
+  });
+  ok(thickPx.length >= 4 && thickPx.every(([, v]) => v === 2),
+    `#576 the rung Thick binds measures 2px in every committed brand (${thickPx.map(([b, v]) => `${b} ${String(v)}`).join(', ')})`);
+  // (7) IN THE BRAND INPUT: the engine accepts both values and refuses any other, by name.
+  let refused576 = '';
+  try { brandTheme({ ...(exampleBrands()['prism3'] as BrandInput), buttonBorderWeight: 'heavy' as never }); } catch (e) { refused576 = (e as Error).message; }
+  ok(refused576.includes('buttonBorderWeight'),
+    `#576 brandTheme refuses an unknown buttonBorderWeight by name (${refused576 || 'did NOT throw'})`);
+}
+
 // #1786 — EVERY BRAND THE PLUGIN CAN EMIT, inside the `figma_execute` ceiling, and the chunked
 // `color-aliases` pass EXECUTED rather than only measured.
 //
@@ -31629,6 +31715,22 @@ arm: {
     }
   }
 
+  // ---- no trait targets a schema-required lever (#1863, owner decision option 1 / A) ----
+  // A required lever is set in every valid input, so `resolveVocabulary` always declines a trait's setting for it
+  // ("kept … (set explicitly)"): a dead target the trait still advertises. `restrained` carried `neutral.chroma`
+  // until #1863. The oracle is the SCHEMA's `required` lists, read here from `theme-schema.json` (top level, and
+  // each object property's own `required`, as dotted keys), never `levers.ts`'s `required` flag or TRAITS itself.
+  const schemaRequired = new Set<string>([
+    ...((schema.required ?? []) as string[]),
+    ...Object.entries(schema.properties as Record<string, { required?: string[] }>)
+      .flatMap(([k, v]) => (v?.required ?? []).map((r) => `${k}.${r}`)),
+  ]);
+  ok(schemaRequired.has('neutral.chroma') && schemaRequired.has('neutral.hue'),
+    `vocabulary: the schema-required oracle is live — it reads neutral.hue and neutral.chroma as required (got ${[...schemaRequired].join(', ')})`);
+  const deadTargets = Object.entries(TRAITS).flatMap(([name, t]) => Object.keys(t.levers).filter((k) => schemaRequired.has(k)).map((k) => `${name} → ${k}`));
+  ok(deadTargets.length === 0,
+    `#1863 vocabulary: no trait targets a schema-required lever, which every valid input pre-empts${deadTargets.length ? ` — DEAD: ${deadTargets.join(', ')}` : ''}`);
+
   // ---- every trait is attested in a committed brief, verbatim (#1685), and the note names none (#1824) ----
   // #1685 made every `why` quote a brief, so an uncited mapping could not ship. #1824 moved the quotes
   // OUT of `why`: it ships in `theme.notes`, and some example briefs are real brands' briefs, so a
@@ -32027,7 +32129,7 @@ arm: {
     && cs.files.get('./cs/component-contracts.json') === cs.files.get('./cs/component-defs.json'),
     `#1325 export_theme: include:[componentSpecs] writes exactly the component contracts, their compatibility copy (the same bytes) and the Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.4' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.5' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -35532,6 +35634,22 @@ arm: {
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
 
+// ---- #2814 (owner, 2026-11-18, A): CODE INPUT'S CELLS SET LINING FIGURES ---------------------------------------------
+// The title family's default figures can be old style, which drop 3, 4, 5, 7 and 9 below the baseline, so a digit sits
+// off center in its cell. The cell's character sets lining figures in code, in the SAME `font-variant-numeric`
+// declaration as its tabular figures: two declarations would let the later one replace the earlier. Figma can't carry
+// it (the plugin API exposes OpenType features read-only), so the entry says so. Literals, not read from the def.
+// Mutation: the entry's value back to `tabular-nums` alone → `#2814 …` fails by name.
+{
+  const cell = componentDefs.find((d) => d.id === 'code-input-cell');
+  const entries = codeOnlyText(cell?.anatomy?.codeOnly ?? []).filter((t) => /font-variant-numeric/.test(t));
+  const decl = entries.map((t) => t.match(/font-variant-numeric:\s*([a-z -]+)/)?.[1]?.trim()).filter(Boolean);
+  ok(entries.length === 1 && decl.length === 1 && /\btabular-nums\b/.test(decl[0]!) && /\blining-nums\b/.test(decl[0]!) && /OpenType/.test(entries[0]!),
+    `#2814 code-input-cell: one codeOnly entry sets font-variant-numeric to tabular and lining figures together, and says Figma can't carry it (got ${JSON.stringify(decl)})`);
+  const note = cell?.anatomy?.parts?.digit?.note ?? '';
+  ok(/lining/.test(note), `#2814 code-input-cell: the digit's caption names lining figures (${note})`);
+}
+
 // ---- #3336 (owner, 2026-11-03, Q3336.1–.4 A): THE REFERENCE BRAND ON ONE NEUTRAL PALETTE ----------------------
 //
 // The reference brand drops its `brand-neutral` brand color and puts its action family on the default `neutral`
@@ -36317,6 +36435,7 @@ arm: {
         minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
         labelWeight: input.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
         textHover,
+        borderWeight: input.buttonBorderWeight ?? DEFAULT_BUTTON_LAYOUT.borderWeight,
       },
       sizeRefPx(t.dims.sizes));
 
@@ -39226,6 +39345,74 @@ arm: {
     `#2408 prism3-build-ui: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
 }
 
+// #4130, #4136, #4139, #4143, #4177, #4203: the READMEs, CONTRIBUTING.md and the CLAUDE.md files state what the code
+// does. Each arm reads its oracle from the code (a declaration, a list, a settings entry), never from the prose it checks.
+{
+  const R = (p: string) => readFileSync(resolve(HERE, '../..', p), 'utf8');
+  const engineReadme = R('packages/engine/README.md'), pluginReadme = R('apps/plugin/README.md'), rootReadme = R('README.md');
+  const contributing = R('CONTRIBUTING.md'), claudeMd = R('CLAUDE.md'), toolsClaude = R('tools/CLAUDE.md');
+  // #4130 (1): a contract size the README states is the baseline's.
+  const guaranteedCount = Object.keys(readBaseline().guaranteed).length;
+  const statedPaths = engineReadme.match(/pins the (\d+) paths/)?.[1];
+  ok(statedPaths === undefined || Number(statedPaths) === guaranteedCount,
+    `#4130 engine README: states no contract size other than the baseline's ${guaranteedCount} guaranteed paths (states: ${statedPaths ?? 'none'})`);
+  // #4130 (2): every constant the README places in verify.ts is declared there.
+  const verifySrc = R('verify.ts');
+  const placed = [...engineReadme.matchAll(/`([A-Z][A-Z_]{3,})` in `verify\.ts`/g)].map((m) => m[1]);
+  const undeclared = placed.filter((n) => !new RegExp(`(?:const|let)\\s+${n}\\b`).test(verifySrc));
+  ok(placed.length > 0 && undeclared.length === 0,
+    `#4130 engine README: each constant it places in verify.ts is declared there (${placed.length} placed; undeclared: ${undeclared.join(', ') || 'none'})`);
+  // #4130 (3): no unit-test count, a numeral nothing compares (the suite holds a floor, MIN_ASSERTIONS).
+  const testCount = engineReadme.match(/\(\d+ checks\)|\d+\/\d+ unit tests/)?.[0];
+  ok(!testCount && engineReadme.includes('`MIN_ASSERTIONS`'),
+    `#4130 engine README: states no unit-test count and names the MIN_ASSERTIONS floor (states: ${testCount ?? 'none'})`);
+  // #4130 (4): the emit-dtcg brand list names every brand regen's emit-dtcg step emits.
+  const regenLabel = R('packages/engine/regen.ts').match(/emit-dtcg\s+\(([^)]*)\)/)?.[1] ?? '';
+  const emitted = regenLabel.split('·').map((b) => b.trim()).filter(Boolean);
+  const runLine = engineReadme.split('\n').find((l) => l.startsWith('npx tsx packages/engine/emit-dtcg.ts')) ?? '';
+  const unlisted = emitted.filter((b) => !new RegExp(`\\b${b}\\b`, 'i').test(runLine));
+  ok(emitted.length >= 4 && unlisted.length === 0,
+    `#4130 engine README: the emit-dtcg run line names every brand regen's emit-dtcg step emits (${emitted.join(', ')}; missing: ${unlisted.join(', ') || 'none'})`);
+  // #4136: the plugin README's Update file paragraph names no collection the Figma emission lacks, and `npm test` is the suite list.
+  const figmaDir = resolve(HERE, 'out/figma/prism3');
+  const collections = new Set(readdirSync(figmaDir).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(readFileSync(resolve(figmaDir, f), 'utf8')).$collection));
+  const fromM = pluginReadme.indexOf('materialize the whole generated system');
+  const updatePara = fromM >= 0 ? pluginReadme.slice(fromM, pluginReadme.indexOf('into the current file', fromM)) : '';
+  const named = [...updatePara.matchAll(/`([a-z][a-z-]*)`/g)].map((m) => m[1]);
+  const phantom = named.filter((c) => !collections.has(c));
+  ok(updatePara !== '' && phantom.length === 0,
+    `#4136 plugin README: Update file's paragraph names only collections the emission writes (phantom: ${phantom.join(', ') || 'none'})`);
+  const pluginTestLine = pluginReadme.split('\n').find((l) => l.startsWith('npm test -w @prism3/plugin')) ?? '';
+  ok(JSON.parse(R('apps/plugin/package.json')).scripts.test.includes('run-suites') && pluginTestLine.includes('suites.json'),
+    '#4136 plugin README: `npm test` is described as the suites.json list run-suites.ts runs');
+  // #4139: no README tells a contributor to run a bare `npm install` (CI and CLAUDE.md use `npm ci`).
+  const bare = [['README.md', rootReadme], ['apps/plugin/README.md', pluginReadme]].filter(([, t]) => /^npm install\s*(#|$)/m.test(t)).map(([f]) => f);
+  ok(bare.length === 0, `#4139 README: no bare \`npm install\` line (found in: ${bare.join(', ') || 'none'})`);
+  // #4143: the TokenPress line keeps the ported baseline as the number and says the suite has grown past it.
+  const tpSrc = R('apps/tokenpress/test.ts');
+  const census = (name: string) => [...(tpSrc.match(new RegExp(`const ${name}: Record<string, number> = \\{([\\s\\S]*?)\\n\\};`))?.[1] ?? '').matchAll(/:\s*(\d+),/g)].reduce((a, m) => a + Number(m[1]), 0);
+  const ported = census('EXPECTED'), added = census('ADDED');
+  const tpLine = contributing.slice(contributing.indexOf('npm run test      -w @prism3/tokenpress'), contributing.indexOf('npm run build     -w @prism3/tokenpress'));
+  ok(ported > 0 && tpLine.includes(`ported ${ported} assertions`) && (added === 0 || /plus those added since/.test(tpLine)),
+    `#4143 CONTRIBUTING §3: the TokenPress line names the ported ${ported} and, with ${added} added since, says the suite has more`);
+  // #4177: two comments that described finished work as pending.
+  ok(!/when #731 lands/.test(R('tools/exporter-comparison/gate.ts')), '#4177 exporter gate: the header no longer says "when #731 lands"; #731 landed and its entries were removed');
+  ok(!/until #110 hands it up/.test(pluginReadme) && pluginReadme.includes('`seed-info`') && R('apps/plugin/src/main.ts').includes("type: 'seed-info'"),
+    '#4177 plugin README: the read-back bridge is described as the `seed-info` post main.ts sends, not as waiting on #110');
+  // #4203: the auto-stash hook is live (settings.json is the oracle), studio's test is a suite runner, locale-order reaches tests and tools.
+  const hookLive = R('.claude/settings.json').includes('pre-tool-use-restore-autostash.mjs');
+  ok(hookLive && !/live only once the owner adds its\s+entry/.test(toolsClaude),
+    '#4203 tools/CLAUDE.md: the restore auto-stash hook is described as live, as .claude/settings.json has it');
+  ok(hookLive && !/nothing stashes it/.test(claudeMd) && /untracked file it overwrites has no recovery/.test(claudeMd),
+    '#4203 CLAUDE.md: the checkout warning says tracked work is auto-stashed and an untracked file is not');
+  const localeLine = contributing.slice(contributing.indexOf('npx tsx packages/engine/lint-locale-order.ts'), contributing.indexOf('npx tsx packages/engine/lint-engine-facade.ts'));
+  ok(/BEYOND THE ENGINE: TESTS AND TOOLS/.test(R('packages/engine/lint-locale-order.ts')) && !/under packages\/engine\//.test(localeLine) && /a test or a tool/.test(localeLine),
+    '#4203 CONTRIBUTING §3: lint-locale-order is described as covering tests and tools, not only packages/engine/');
+  const studioLine = contributing.slice(contributing.indexOf('npm run test         -w @prism3/studio'), contributing.indexOf('npm run build        -w @prism3/studio'));
+  ok(JSON.parse(R('apps/studio/package.json')).scripts.test.includes('run-suites') && studioLine.includes('suites.json') && !/the provenance model \(#722\)/.test(studioLine),
+    '#4203 CONTRIBUTING §3: studio `npm run test` is described as the suites.json run, not the provenance test file');
+}
+
 // ---- #3472: prism3-build-ui says what it can't build, early, with a worked negative that isn't the adherence test's ----
 // The agent-adherence run (#3440) scored R5 faked in 10 of 10: every agent built a stand-in for a component Prism3 doesn't
 // have. The rule now sits before the first layer, as an imperative, with a worked negative. That example must not be a
@@ -40749,9 +40936,53 @@ arm: {
   // THE PROPERTIES: two texts and three toggles, `dividers` driving both rules together, off.
   ok(JSON.stringify(planSetProperties(plans).filter((x) => x.type !== 'SLOT')) === JSON.stringify([
     { name: 'title', type: 'TEXT', default: 'Dialog title' }, { name: 'description text', type: 'TEXT', default: 'Supporting text' },
+    { name: 'show title', type: 'BOOLEAN', default: true },
     { name: 'description', type: 'BOOLEAN', default: false }, { name: 'close', type: 'BOOLEAN', default: true }, { name: 'dividers', type: 'BOOLEAN', default: false },
   ]) && plans.every((p) => find(p.root as DN, 'headerDivider')?.visibleProp === 'dividers'),
-    `#2609 dialog properties: title "Dialog title", description text "Supporting text", description off, close on, dividers off over both rules (got ${JSON.stringify(planSetProperties(plans))})`);
+    `#2609 dialog properties: title "Dialog title", description text "Supporting text", show title on, description off, close on, dividers off over both rules (got ${JSON.stringify(planSetProperties(plans))})`);
+
+  // ── #2895 SHOW TITLE (owner Q692 A; the wireframe's Q1–Q7 all A, approved 2026-11-18). EXPECTED is typed here from the
+  // wireframe; ACTUAL is the projected plans and the def's code contract. Q1 A: Figma `show title`, default on; the code
+  // prop is `hideTitle`, default off (owner decision B, 2026-11-18: Q-CC7 A's one hidden-label convention, `hideLabel`). Q4 A: on every member. Q2 A, Q3 A, Q6 A: nothing else moves (the description, close and divider keep
+  // their own toggles, and the title keeps its text property and style binding while hidden). Q5 A and Q7 A: the code
+  // contract. Remove the boolean, flip its default, or drop a code line, and the arm it breaks fails by name.
+  {
+    const st = dg.props.find((x) => x.name === 'hideTitle');
+    const fb = (dg.figmaProperties?.booleans as Record<string, unknown> | undefined)?.showTitle as { figmaName?: string; figmaOnly?: boolean } | undefined;
+    ok(st?.type === 'boolean' && st.default === false && st.required === false && !dg.props.some((x) => x.name === 'showTitle')
+      && fb?.figmaName === 'show title' && fb.figmaOnly === true && dg.props.find((x) => x.name === 'title')?.required === true,
+      `#2895 dialog hideTitle: the code prop is hideTitle, an optional boolean, default false, with no showTitle prop (owner decision B, Q-CC7 A's hideLabel convention); the Figma "show title" switch is figma-only; title stays required as the accessible name (got ${JSON.stringify({ st, fb })})`);
+    const titleBad = plans.filter((p) => {
+      const t = find(p.root as DN, 'title') as (DN & { visibleProp?: string; visible?: boolean; textStyle?: string; propertyRef?: { prop: string } }) | undefined;
+      return !(t && t.visibleProp === 'show title' && t.visible !== false && t.propertyRef?.prop === 'title' && /^label\/(lg|md|sm)\/emphasis$/.test(t.textStyle ?? ''));
+    });
+    ok(plans.length === 24 && titleBad.length === 0,
+      `#2895 dialog show title: every one of the 24 members binds the title's visibility to "show title", shown by default, keeping its title text property and its label emphasis style (${titleBad.length ? `WRONG: ${titleBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    const desc = plans.every((p) => (find(p.root as DN, 'description') as { visibleProp?: string } | undefined)?.visibleProp === 'description');
+    ok(desc, '#2895 dialog show title Q2 A: the description keeps its own toggle, independent of the title');
+    // Q3 A: the header collapses to its content, so a hidden title takes its gap with it. That holds only while the header
+    // (a row: its height is the counter axis) and the titleBox (a column: its height is the primary axis) both hug on y,
+    // with no minimum height on either. ACTUAL is the projected frames, not the def's sizing literals.
+    const q3Bad = plans.filter((p) => {
+      const h = find(p.root as DN, 'header') as Record<string, unknown> | undefined;
+      const tb = find(p.root as DN, 'titleBox') as Record<string, unknown> | undefined;
+      const noMin = (n: Record<string, unknown>) => n.minHeight === undefined && (n.bound as Record<string, unknown> | undefined)?.minHeight === undefined;
+      return !(h && tb && h.layoutMode === 'HORIZONTAL' && h.counterAxisSizingMode === 'AUTO' && noMin(h)
+        && tb.layoutMode === 'VERTICAL' && tb.primaryAxisSizingMode === 'AUTO' && noMin(tb));
+    });
+    ok(plans.length === 24 && q3Bad.length === 0,
+      `#2895 dialog show title Q3 A: on every member the header and the titleBox hug their height with no minimum, so a hidden title collapses the header (${q3Bad.length ? `WRONG: ${q3Bad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    const co =codeOnlyText(dg.anatomy!.codeOnly);
+    ok(co.some((e) => /^labeling — /.test(e) && /`hideTitle` the `<h2>` stays in the DOM, visually hidden/.test(e) && /`aria-labelledby` still points at it/.test(e) && /never `display: none`/.test(e)),
+      '#2895 dialog show title Q7 A: a hidden title is a visually hidden <h2> that aria-labelledby still points at, never display: none');
+    ok(co.some((e) => /^focus in — /.test(e) && /`hideTitle`, never to the hidden title/.test(e) && /first control in the body/.test(e)),
+      '#2895 dialog show title Q7 A: with the title hidden, focus on open goes to the first body control, never the hidden title');
+    ok(co.some((e) => /^the hidden title on an alertdialog — an alertdialog always shows its title/.test(e) && /ignores `hideTitle` with `role="alertdialog"` and warns in development/.test(e))
+      && /An alertdialog always shows its title/.test(st?.description ?? '') && dg.docs.dont.some((x) => /^Hide the title of an alertdialog/.test(x)),
+      '#2895 dialog show title Q5 A: an alertdialog always shows its title; code ignores hideTitle there and warns in development, and the prop and docs say so');
+    ok(/Turn the title off only when tabs or a heading in the body already name the content, most often in a full-screen dialog or a bottom sheet/.test(dg.docs.usage ?? ''),
+      '#2895 dialog show title Q4 A: the docs recommend hiding the title for full and bottom when tabs or a heading name the content');
+  }
 
   // THE ALERTDIALOG HIDES CLOSE, in the docs: the role prop and the code contract both say so (Q303.9 A).
   const role = dg.props.find((x) => x.name === 'role');
@@ -41362,7 +41593,7 @@ arm: {
     ['focus held line', line('focus held'), 'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.'],
     ['backdrop line', line('the backdrop'), 'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.'],
     ['accessibility.role', dg.accessibility.role, '`role="dialog"` with `aria-modal="true"`, or `role="alertdialog"` for a confirmation that needs an answer. A native `<dialog>` opened with `showModal()` provides the dialog role, the modal state, the top layer and an inert page.'],
-    ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
+    ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title, a heading that stays in place, visually hidden, when the title is hidden; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
   ];
   const moved = pinned.filter(([, actual, expected]) => actual !== expected).map(([name]) => name);
   ok(moved.length === 0 && carved.length === 0,
@@ -41375,6 +41606,114 @@ arm: {
   ok(/An end panel is full height and 480px wide, at most `100vw − 48px`/.test(line('per-breakpoint placement, no automatic switch'))
     && /an end panel slides in from the end edge/.test(line('motion')) && /An end panel sits at the left edge/.test(line('right-to-left')),
     '#2877 dialog end in code: full height, 480px wide, at most 100vw − 48px, sliding in from the end edge, at the left edge in right-to-left text');
+}
+
+// ------------------------------------------------------------------- #3986: right-to-left as part of the contract
+// Owner decision Q-RTL1 A: each part's `mirror` field states what it does in right-to-left text, filled from the def's
+// right-to-left prose, and this arm fails a def BY NAME when the two disagree. The prose is read here with this arm's
+// own phrase list, never through `rtl-mirror.ts`, so the field is held to something it was not derived from
+// (`docs/34` shape 1). Three claims, each read off both sides:
+//   row  — the prose says the row or layout mirrors; a part says `reverses`.
+//   flip — the prose says a glyph flips, mirrors or points the other way; a part says `mirrors` or `per-glyph`.
+//   hold — the prose says something does not mirror, stays as drawn or stays left to right; a part says `never` or
+//          `per-glyph` (an icon's glyph flips or holds by which glyph it is).
+// What a def's own parts state, its prose must say; what its prose says, its own parts or the defs it nests must state
+// (a Breadcrumbs trail's slash is its separator's part). A def with prose declares something; one without declares
+// nothing.
+{
+  type Claim = 'row' | 'flip' | 'hold';
+  const HOLD = /\b(?:do(?:es)?\s+not|doesn't|never)\s+(?:mirror|flip)|\bmust not\b|\bnot (?:mirrored|flipped)\b|\bnever flipped\b|\bstays? as drawn\b|\bno glyph mirrors\b|\bnothing (?:of its own )?to mirror\b|\bmirrors nothing\b|\bunmirrored\b|dir="ltr"|\bstays? left to right\b|\bstays? clockwise\b|\bno\b[^.;]*\bflips?\b/i;
+  const ROW_WITH = /\bmirrors? with the (?:row|document)\b/i;
+  const FLIP = /\bflips?\b|\bpoints? (?:left|right)\b|\bmirrors, so it points\b|\b(?:glyphs?|chevrons?|arrow|icon)\b[^.;()]*?\bmirror\b|\bcounterclockwise\b/i;
+  const ROW = /\blogical properties\b|\b(?:row|layout|header|group)\s+(?:mirrors|reverses)\b|\bmirrors? with the (?:row|document)\b|\bmirror the row\b|\bswap (?:edges|sides|ends)\b|\bfollows? the reading direction\b|\bsits (?:at the )?(?:right|left)most\b|\bsits at the (?:right|left)\b|\bgrows (?:leftward|from the inline-start)\b|\bposition mirror\b/i;
+  const proseClaims = (text: string): Set<Claim> => {
+    const out = new Set<Claim>();
+    // A parenthetical is its own clause, and the sentence around it reads without it.
+    const asides = [...text.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]);
+    for (const clause of [text.replace(/\([^)]*\)/g, ' '), ...asides].flatMap((t) => t.split(/[.;—:]|,?\s+and\s+/i))) {
+      if (HOLD.test(clause)) out.add('hold');
+      else if (FLIP.test(clause) && !ROW_WITH.test(clause)) out.add('flip');
+      if (ROW.test(clause)) out.add('row');
+    }
+    return out;
+  };
+  const rtlProse = (d: ComponentDef): string => (d.anatomy?.codeOnly ?? []).filter((e) => e.class === 'right-to-left').map((e) => e.description).join(' ');
+  const ownClaims = (d: ComponentDef): Set<Claim> => {
+    const out = new Set<Claim>();
+    for (const p of Object.values(d.anatomy?.parts ?? {})) {
+      if (p.mirror === 'reverses') out.add('row');
+      if (p.mirror === 'mirrors' || p.mirror === 'per-glyph') out.add('flip');
+      if (p.mirror === 'never' || p.mirror === 'per-glyph') out.add('hold');
+    }
+    return out;
+  };
+  const rtlById = new Map(componentDefs.map((d) => [d.id, d]));
+  const deepClaims = (d: ComponentDef, seen = new Set<string>()): Set<Claim> => {
+    const out = ownClaims(d);
+    seen.add(d.id);
+    for (const p of Object.values(d.anatomy?.parts ?? {})) {
+      const n = typeof p.nests === 'string' ? rtlById.get(p.nests) : undefined;
+      if (n && !seen.has(n.id)) for (const c of deepClaims(n, seen)) out.add(c);
+    }
+    return out;
+  };
+  const disagreements = (d: ComponentDef): string[] => {
+    const prose = rtlProse(d), pc = proseClaims(prose), oc = ownClaims(d), dc = deepClaims(d);
+    const bad: string[] = [];
+    if (!prose && oc.size) bad.push('declares mirror fields and has no right-to-left prose');
+    if (prose && !dc.size) bad.push('has right-to-left prose and no mirror field, in its parts or the defs it nests');
+    for (const c of oc) if (!pc.has(c)) bad.push(`a part states ${c} and the prose does not`);
+    for (const c of pc) if (!dc.has(c)) bad.push(`the prose states ${c} and no part does`);
+    return bad;
+  };
+  const rtlDefs = componentDefs.filter((d) => rtlProse(d));
+  const rtlBad = componentDefs.map((d) => [d.id, disagreements(d)] as const).filter(([, b]) => b.length);
+  ok(rtlBad.length === 0,
+    `#3986: every def's mirror fields and right-to-left prose agree (${rtlDefs.length} defs with prose)${rtlBad.length ? ` — ${rtlBad.slice(0, 4).map(([id, b]) => `${id}: ${b.join('; ')}`).join(' | ')}` : ''}`);
+  // Floors (docs/34 shape 9): the arm reads the corpus it was written against, and each claim fires somewhere.
+  const fired = new Set(rtlDefs.flatMap((d) => [...proseClaims(rtlProse(d))]));
+  ok(rtlDefs.length >= 40 && fired.size === 3,
+    `#3986: the right-to-left arm reads at least 40 defs and every claim fires on both sides (${rtlDefs.length} defs; prose claims seen: ${[...fired].join(', ')})`);
+  // The arm bites (a self-check, per claim): a def with a field the prose does not state, or prose a field does not back.
+  const breadcrumbSep = rtlById.get('_breadcrumb-separator')!;
+  const flipped = withMirrors(breadcrumbSep, { slashGlyph: 'mirrors' });
+  const unbacked = withMirrors(breadcrumbSep, { chevronGlyph: 'never' });
+  const toRow = withMirrors(breadcrumbSep, { frame: 'reverses' });
+  ok(disagreements(breadcrumbSep).length === 0 && disagreements(toRow).some((b) => /states row/.test(b))
+    && disagreements(unbacked).some((b) => /prose states flip/.test(b)) && disagreements(flipped).some((b) => /prose states hold/.test(b)),
+    '#3986: the arm names a part stating what the prose does not (row) and prose no part states (flip; hold)');
+
+  // The icon set's per-glyph list: every name a glyph the set has, and both kinds present, so `per-glyph` means both.
+  const notGlyphs = [...RTL_MIRRORED_GLYPHS].filter((g) => !(g in ICON_SOURCES));
+  ok(notGlyphs.length === 0 && RTL_MIRRORED_GLYPHS.size > 0 && Object.keys(ICON_SOURCES).some((g) => !RTL_MIRRORED_GLYPHS.has(g)),
+    `#3986: RTL_MIRRORED_GLYPHS names ${RTL_MIRRORED_GLYPHS.size} glyphs of the icon set, and the set has glyphs that do not mirror${notGlyphs.length ? ` — not glyphs: ${notGlyphs.join(', ')}` : ''}`);
+  ok(['chevron-left', 'chevron-right', 'arrow-left', 'arrow-right'].every((g) => RTL_MIRRORED_GLYPHS.has(g)) && !['chevron-down', 'check', 'close', 'search'].some((g) => RTL_MIRRORED_GLYPHS.has(g)),
+    '#3986: back and forward glyphs mirror; down, check, close and search do not (the Icon def\'s right-to-left prose)');
+
+  // Part 3: the "In RTL" note is generated from the fields, and the usage section carries it to the panel and the page.
+  const withNote = componentDefs.filter((d) => Object.values(d.anatomy?.parts ?? {}).some((p) => p.mirror));
+  const missing = withNote.filter((d) => {
+    const u = docSections(d).sections.find((s) => s.id === 'usage');
+    return !rtlNote(d) || !u || u.id !== 'usage' || u.rtl !== rtlNote(d);
+  });
+  ok(missing.length === 0 && withNote.length > 0,
+    `#3986: every def with a mirror field has an "In RTL" note in its usage section (${withNote.length})${missing.length ? ` — missing: ${missing.map((d) => d.id).join(', ')}` : ''}`);
+  ok(rtlNote(breadcrumbSep) === 'The chevron glyph flips to point the other way. The slash glyph does not mirror.'
+    && rtlNote(rtlById.get('tabs')!) === 'The layout mirrors: the start edge is on the right.',
+    `#3986: the note says each value in words (separator: "${rtlNote(breadcrumbSep)}")`);
+  ok(componentDefs.filter((d) => !Object.values(d.anatomy?.parts ?? {}).some((p) => p.mirror)).every((d) => rtlNote(d) === undefined),
+    '#3986: a def with no mirror field gets no note');
+
+  // The field's two homes name the gate that holds it, so a reader can find it: every `lint-*.ts` either file cites
+  // is a file in the tree (the gate is this arm; a comment once named a `lint-rtl-mirror.ts` that never existed).
+  const citedGates = ['rtl-mirror.ts', 'component-schema.ts'].flatMap((f) =>
+    [...readFileSync(join(HERE, f), 'utf8').matchAll(/`((?:[\w./-]*\/)?lint-[\w-]+\.ts)`/g)].map((m) => [f, m[1]] as const));
+  // A path-qualified cite (`tools/x/lint-y.ts`) resolves from the repo root; a bare name, in either gate home. The
+  // floor holds the scan to what it read on landing (54), so a regex that stopped matching cannot pass on nothing.
+  const strayGates = citedGates.filter(([, g]) => g.includes('/') ? !existsSync(join(HERE, '..', '..', g))
+    : !['packages/engine', 'apps/plugin'].some((d) => existsSync(join(HERE, '..', '..', d, g))));
+  ok(citedGates.length >= 50 && strayGates.length === 0,
+    `#3986: every gate rtl-mirror.ts and component-schema.ts cite exists (${citedGates.length} cited, floor 50)${strayGates.length ? ` — no such file: ${strayGates.map(([f, g]) => `${f} → ${g}`).join(', ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #2661: the Button group
@@ -41706,6 +42045,50 @@ arm: {
     }
   }
   ok(emitBad.length === 0, `#3050 committed emission: the reference brand's scrim is 80 / 80 / 90 / 90, every other brand's 40 / 60 / 60 / 70${emitBad.length ? ` — WRONG: ${emitBad.slice(0, 4).join('; ')}` : ''}`);
+}
+
+// ------------------------------------------------------------------- #1043: the scrim's steps are declared taste
+// Owner decision B (2026-11-18, on #1043): keep 40 / 60 / 60 / 70, declared as taste, with the provenance written at
+// the `modes.ts` call site and in `docs/20` §8. Three things are held, each against a literal typed from the decision:
+//   1. the declaration is THERE, in both homes: "chosen, not derived", Spectrum 2 and Radix for light/dark, and the
+//      high-contrast step-up named as this system's deliberate choice;
+//   2. the steps each home WRITES are the decision's steps (so a value edited in one place and not the other fails);
+//   3. the steps the engine RESOLVES for a brand that leaves `scrimStrength` unset are the same (ACTUAL from
+//      `resolveAllModes`, never `SCRIM_STEPS`; the #3050 arm above holds every brand and the emission).
+{
+  const DECIDED = { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 } as const;
+  const modesSrc = readFileSync(resolve(HERE, 'modes.ts'), 'utf8');
+  const decl = modesSrc.match(/PROVENANCE OF THE `standard` STEPS \(#1043[\s\S]*?\*\//)?.[0] ?? '';
+  const doc20 = readFileSync(resolve(HERE, '../../docs/20-interactive-color-system.md'), 'utf8');
+  const sec = doc20.match(/### 8\.3 Decided \(2026-11-18, #1043\)[\s\S]*?(?=\n## |\n### )/)?.[0] ?? '';
+  const PHRASES: [string, string, string][] = [
+    ['modes.ts', decl, 'chosen, not derived'], ['modes.ts', decl, 'after Spectrum 2 and Radix Themes'],
+    ['modes.ts', decl, 'the high-contrast step-up is a deliberate choice of this system'],
+    ['docs/20 §8.3', sec, 'Chosen, not derived.'], ['docs/20 §8.3', sec, 'after Spectrum 2 and Radix Themes'],
+    ['docs/20 §8.3', sec, 'is a deliberate choice of this system'],
+  ];
+  const missing = PHRASES.filter(([, txt, ph]) => !txt.includes(ph)).map(([where, , ph]) => `${where}: "${ph}"`);
+  ok(decl !== '' && sec !== '' && missing.length === 0,
+    `#1043 scrim provenance is declared at SCRIM_STEPS and in docs/20 §8.3: chosen, not derived; light/dark after Spectrum 2 and Radix; the HC step-up deliberate${decl === '' ? ' — NO modes.ts declaration' : ''}${sec === '' ? ' — NO docs/20 §8.3' : ''}${missing.length ? ` — MISSING: ${missing.join('; ')}` : ''}`);
+  // What each home writes, read back as numbers.
+  const declSteps = {
+    light: Number(decl.match(/light (\d+), dark \d+/)?.[1]), dark: Number(decl.match(/light \d+, dark (\d+)/)?.[1]),
+    'hc-light': Number(decl.match(/hc-light (\d+), hc-dark \d+/)?.[1]), 'hc-dark': Number(decl.match(/hc-light \d+, hc-dark (\d+)/)?.[1]),
+  };
+  const secSteps = sec.match(/\*\*(\d+) \/ (\d+) \/ (\d+) \/ (\d+)\*\*/)?.slice(1).map(Number) ?? [];
+  const written = JSON.stringify(declSteps) === JSON.stringify(DECIDED)
+    && JSON.stringify(secSteps) === JSON.stringify([DECIDED.light, DECIDED.dark, DECIDED['hc-light'], DECIDED['hc-dark']]);
+  ok(written, `#1043 the declared scrim steps are the decision's 40 / 60 / 60 / 70 in both homes (modes.ts ${JSON.stringify(declSteps)}, docs/20 ${JSON.stringify(secSteps)})`);
+  // What the engine resolves, for a brand with the lever unset.
+  const bi = { ...(exampleBrands()['prism3'] as BrandInput) } as BrandInput & { scrimStrength?: string };
+  delete bi.scrimStrength;
+  const got: Record<string, number | undefined> = {};
+  for (const M of resolveAllModes(brandTheme(bi))) {
+    const r = (M.roles as Record<string, { alpha?: number } | undefined>)['scrim.default'];
+    if (M.mode in DECIDED) got[M.mode] = r?.alpha === undefined ? undefined : Math.round(r.alpha * 100);
+  }
+  ok(JSON.stringify(got) === JSON.stringify(DECIDED),
+    `#1043 the engine resolves the declared scrim steps 40 / 60 / 60 / 70 for a brand that leaves scrimStrength unset (got ${JSON.stringify(got)})`);
 }
 
 // ------------------------------------------------------------------- #3073: brand glass roles
@@ -43646,6 +44029,22 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   // The accept side: rising floors, a fractional one among them, still build.
   const rising = refusal(() => brandTheme(withBps([0, 768.5, 1024])));
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
+}
+
+// #3984 — a line break in a string setting survives the design.md round trip. The serializer wrote it raw inside the
+// double quotes, so the second line became a frontmatter line of its own and the export would not import again. It is
+// now written as YAML's `\n` escape (and `\r` as `\r`), which the parser decodes; a backslash before an `n` that was
+// typed as text still comes back as text, because the backslash is escaped first. A quoted key was trimmed after it was
+// decoded, so a key that was a line break, or had a space at an end, lost it; the raw text is trimmed instead.
+{
+  const base = { id: 'q3984', primary: { l: 0.55, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.01 } };
+  for (const name of ['Two\nlines', 'Windows\r\nline', 'a typed \\n stays text', '\n', ' a space at each end ']) {
+    let x: any = { ...base, name, meta: { [name]: name } };
+    let err = '';
+    try { for (let i = 0; i < 2; i++) x = parseDesignMd(toDesignMd(x)).input; } catch (e) { err = (e as Error).message.slice(0, 80); }
+    ok(!err && x.name === name && x.meta?.[name] === name,
+      `#3984 two design.md round trips keep ${JSON.stringify(name)} as a name, a value and a key (got ${err ? `a throw: ${err}` : JSON.stringify(x.name)})`);
+  }
 }
 
 // #3707 (owner decision A, 2026-11-18) — `typography.links: []` validated and built, dropping the six guaranteed body
