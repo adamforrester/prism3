@@ -40758,8 +40758,8 @@ arm: {
   ok(JSON.stringify(role?.values) === JSON.stringify(['dialog', 'alertdialog']) && role?.default === 'dialog' && /hides the close button/.test(role?.description ?? '')
     && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /^role — /.test(e) && /alertdialog hides the close button/.test(e))
     && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /^backdrop click — closes a dialog, never an alertdialog/.test(e))
-    && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /code delivery pending: behavior layer \(#2454\)/.test(e)),
-    '#2609 dialog docs: role is dialog or alertdialog, an alertdialog hides the close button and a backdrop click never closes it, and code delivery waits on #2454');
+    && codeOnlyText(dg.anatomy!.codeOnly).some((e) => e.startsWith('Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.') && /initial focus placement, backdrop-click dismissal and focus return/.test(e)),
+    '#2609 dialog docs: role is dialog or alertdialog, an alertdialog hides the close button and a backdrop click never closes it, and the developer wires initial focus, backdrop click and focus return (#2454)');
 
   // THE NEW SCHEMA FIELDS ARE REFUSED WHERE THEY CANNOT MEAN ANYTHING.
   const withPart = (part: string, patch: Record<string, unknown>): ComponentDef => ({ ...dg, anatomy: { ...dg.anatomy!, parts: { ...dg.anatomy!.parts, [part]: { ...dg.anatomy!.parts[part], ...patch } as PartDef } } });
@@ -43609,6 +43609,25 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(commented.name === '5" screen', `#3876 a trailing comment after an escaped quote is stripped (got ${JSON.stringify(commented.name)})`);
   const keyed = parseYamlSubset('meta:\n  "a\\": b": 1\n') as any;
   ok(keyed?.meta?.['a": b'] === 1, `#3876 a block key holding an escaped quote and a colon splits at its own colon (got ${JSON.stringify(keyed)})`);
+}
+
+// #2454 — the behavior layer is decided (Q-BH1 A, 2026-11-18, docs/41 §7.2): plain HTML/CSS ships a written behavior
+// contract the developer wires up in their framework, and the web component carries its own behavior. Each def that
+// waited on the decision now says so in its code notes, and no def still says code delivery is pending. The list of
+// defs is written out here by hand, not read from the defs, so a def that drops the note fails by its id (docs/34 shape 1).
+{
+  const DECIDED = 'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.';
+  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs'];
+  const all = componentDefs;
+  for (const id of INTERACTIVE) {
+    const d = all.find((x) => x.id === id);
+    ok(!!d && codeOnlyText(d.anatomy?.codeOnly).some((e) => e.includes(DECIDED)),
+      `#2454 interactive def ${id} carries the decided behavior-contract note in its code notes`);
+  }
+  // Scan the def's `notes` as well as its code notes: the pending note could as easily sit in `notes.contested`.
+  const notesText = (d: (typeof all)[number]): string[] => Object.values((d as { notes?: Record<string, unknown> }).notes ?? {}).flat().filter((e): e is string => typeof e === 'string');
+  const pending = all.filter((d) => [...codeOnlyText(d.anatomy?.codeOnly), ...notesText(d)].some((e) => /code delivery pending|behavior layer/i.test(e))).map((d) => d.id);
+  ok(pending.length === 0, `#2454 no def still says code delivery is pending a behavior layer (got ${JSON.stringify(pending)})`);
 }
 
 // #3872 — breakpoints are mobile-first min-width floors, so each must be above the one before. Out of order
