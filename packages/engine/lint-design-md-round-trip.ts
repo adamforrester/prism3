@@ -72,7 +72,7 @@ type Choice = Write & { schemaPath: string; label: string; ctx: Write[] };
 /** Strings tried, in order, against a property's `pattern`, `minLength` and `enum`. The first is the hard one: it
  *  needs quoting, both escapes and a line break (a two-line brand name typed into Studio), and a design.md that
  *  carries it carries any plain name. The rest are plain shapes
- *  the schema's patterns ask for (an id, a palette step, a role path). */
+ *  the schema's patterns ask for (an id, a palette step, a role path, an SVG path). */
 const STRING_CANDIDATES = [
   'A "quoted" name: #1, \\ and,\nmore',
   'brand-a',
@@ -80,6 +80,8 @@ const STRING_CANDIDATES = [
   'color.surface-a',
   'white',
   'Inter',
+  // #3076: an icon glyph's art, one filled SVG path on the 24×24 artboard (`icons.glyphs.*.path`).
+  'M2 2h20v20H2z',
 ];
 /** Keys tried for a map with no `propertyNames` enum: one that needs quoting, with a space at each end, and one plain. */
 const KEY_CANDIDATES = [' A key: "x" #1 ', 'mobile'];
