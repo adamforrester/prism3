@@ -25,7 +25,8 @@
 //     commit SHA, which never moves, rather than leaning on `stash@{n}`, which shifts as others push.
 //   • FALSE-DENIAL COST: zero — the hook never refuses a restore. Its cost is one stash entry per
 //     restore of a dirty path, including a deliberate discard. Entries accumulate; drop them by explicit
-//     index (`git stash drop stash@{n}`), which #923's guard allows.
+//     index (`git stash drop stash@{n}`). #923's guard (`pre-tool-use-stash-guard.mjs`) allows that form
+//     and denies a bare pop, apply or drop, once `.claude/settings.json` wires it.
 //   • FAIL CLOSED ON ONE CASE ONLY: the restore names dirty paths AND the stash could not be written.
 //     Then the work is known to be at risk and known to be unsaved, so the command is denied with the
 //     reason. Anything else that goes wrong (not a repo, unparseable input) lets the command through:
