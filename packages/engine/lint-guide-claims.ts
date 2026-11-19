@@ -686,9 +686,34 @@ for (const k of groupKeys) {
   const named = [...ufGuide.matchAll(/\*\*(.+?)\*\*|^#+ (.+)$/gm)].some((m) => norm(m[1] ?? m[2] ?? '') === n);
   if (!named) fail('GROUPS', `${GUIDES}/update-a-file-safely.md never names the "${t}" group the Update file dialog draws (UPDATE_COPY.${k}). Name it, bold or as a heading.`);
 }
+// …and the guide's "in this order" table lists them in the order the dialog draws them (#4354 review): presence alone
+// let a new row sit below a group the dialog draws after it. ORACLE: the `inset('update-group-…')` sequence above, in
+// source order. SUBJECT: the table's rows, each read by its last bold label (`**Components** › **Due**` → Due).
+const orderAt = ufGuide.indexOf('lists these items, in this order:');
+let orderedGroups = 0;
+if (orderAt < 0) fail('GROUPS', `${GUIDES}/update-a-file-safely.md has no "lists these items, in this order:" table, so the order of the Update file groups was not read`);
+else {
+  const tableRows: string[] = [];
+  for (const line of ufGuide.slice(orderAt).split('\n').slice(1)) {
+    if (line.startsWith('|')) tableRows.push(line);
+    else if (tableRows.length) break;
+  }
+  const byTitle = new Map(groupKeys.map((k, i) => [norm(groupTitle(k) ?? ''), i] as const));
+  let prev: { i: number; label: string } | null = null;
+  for (const row of tableRows) {
+    const bolds = [...(row.split('|')[1] ?? '').matchAll(/\*\*(.+?)\*\*/g)].map((m) => norm(m[1]));
+    const i = bolds.length ? byTitle.get(bolds[bolds.length - 1]) : undefined;
+    if (i === undefined) continue;
+    orderedGroups++;
+    const label = bolds[bolds.length - 1];
+    if (prev && i < prev.i) fail('GROUPS', `${GUIDES}/update-a-file-safely.md's "in this order" table lists "${label}" after "${prev.label}", but the Update file dialog draws UPDATE_COPY.${groupKeys[i]} before UPDATE_COPY.${groupKeys[prev.i]}. Move the row.`);
+    prev = { i, label };
+  }
+  if (orderedGroups < 3) fail('GROUPS', `read ${orderedGroups} Update file groups from the "in this order" table, so the order check held almost nothing`);
+}
 
 if (fails.length) {
   console.error(`❌ ${TAG}: ${fails.length} failure${fails.length === 1 ? '' : 's'}\n${fails.map((f) => `  ✗ ${f}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}); ${commands.length} agent-link commands, each a row in the agent-link guide; ${groupKeys.length} Update file groups, each named in its guide; ${areas.length} rail areas, named as the rail draws them in ${areaMentions} guide line(s) and no retired name (${retired.map((a) => `"${a.word}"`).join(', ')}) in a guide or an app string.`);
+console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}); ${commands.length} agent-link commands, each a row in the agent-link guide; ${groupKeys.length} Update file groups, each named in its guide, ${orderedGroups} of them in the dialog's order; ${areas.length} rail areas, named as the rail draws them in ${areaMentions} guide line(s) and no retired name (${retired.map((a) => `"${a.word}"`).join(', ')}) in a guide or an app string.`);
