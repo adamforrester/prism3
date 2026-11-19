@@ -476,7 +476,7 @@
     },
     "avatar": {
       "members": 30,
-      "sha256": "f710992d68f4495d4a3b655f211aa5bd128028511d299133fe927e1050c7f261",
+      "sha256": "7d8f756bee19b736b53e92c905352eda0015045bead20fd0f1d962c87c41ad75",
       "properties": [
         "initials:TEXT",
         "presence:BOOLEAN"

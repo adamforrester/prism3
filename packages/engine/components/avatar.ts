@@ -250,7 +250,7 @@ export const avatar: ComponentDef = {
         class: 'right-to-left',
         disposition: 'carried',
         description:
-          'RTL — the presence dot is anchored to the bottom inline-end corner (inset-inline-end), so it moves to the bottom left in a right-to-left layout. The photo, the initials and the glyph never mirror. Figma draws left to right, so the member pins the bottom right.',
+          'RTL — the presence dot is placed with logical properties, at the bottom inline-end corner (inset-inline-end), so it moves to the bottom left in a right-to-left layout. The photo, the initials and the glyph never mirror. Figma draws left to right, so the member pins the bottom right.',
       },
       {
         class: 'responsive-layout',
