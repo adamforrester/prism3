@@ -343,6 +343,32 @@ export const nestedMemberFaults = (plan: AnatomyPlan['root'], snap: SnapNode, ke
   return out;
 };
 
+/**
+ * #3076: EACH SLOT WHOSE INSTANCE IS NOT THE COMPONENT THE PLAN NAMES FOR IT, by path. `diffAnatomy` holds a slot
+ * (`INSTANCE_SWAP`) only to being an instance (`swapTarget`'s check in `anatomy-readback.ts`: the set's default is a node
+ * id the plan has no side of), so a designer who swapped the search field's clear icon to the brand's own read as a hand
+ * edit that nothing the update writes touches, even under a plan that moves that slot's default. The update does move it
+ * (the apply edits the set's INSTANCE_SWAP default), so the swap is a conflict. Compared by component NAME, as the as-built
+ * record names a main (`member-baseline.ts`, v3): the set's name for a member of a set, the component's own otherwise.
+ * Like every other conflict where the plan moved, it can over-report (the plan moved elsewhere, and the slot differs only
+ * by the designer's swap); it never hides one.
+ */
+export const slotRepoints = (plan: AnatomyPlan['root'], snap: SnapNode): string[] => {
+  const out: string[] = [];
+  const walk = (pn: AnatomyPlan['root'], sn: SnapNode | undefined, at: string): void => {
+    if (!sn) return;
+    if (String(pn.type) === 'INSTANCE_SWAP' && pn.swapTarget && sn.type === 'INSTANCE') {
+      const main = sn.mainComponent as { name?: string; parent?: { name?: string; type?: string } | null } | undefined;
+      const owner = main?.parent?.type === 'COMPONENT_SET' ? main.parent.name : main?.name;
+      if (owner !== undefined && owner !== pn.swapTarget) out.push(at);
+    }
+    const kids = sn.children ?? [];
+    for (const c of pn.children ?? []) walk(c, kids.find((k) => k.name === c.name), at === '.' ? c.name : `${at}/${c.name}`);
+  };
+  walk(plan, snap, '.');
+  return out;
+};
+
 /** #2595 — the file's children an update MOVES into a frame the plan inserts, walked as the executor walks: under
  *  every node the file holds for a plan node, by the executor's own rule (`adoptions`), with a node a designer edited
  *  by hand left out as the executor leaves it. Each with its path now, its path after, and the plan node it becomes.
@@ -692,6 +718,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
+    // A slot the plan names another component for (#3076): the apply moves the set's default there.
+    for (const part of slotRepoints(plan.root, snap)) touched.add(part);
     const movedFrom = new Set(moves.map((mv) => mv.from));
     // THE LAYERS THE UPDATE REBUILDS on this member (#2673): each it removes (not moved, so a renamed part is here
     // too) and each it replaces for a type change. A hand edit at or under one is not kept by path: the fresh node
