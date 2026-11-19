@@ -810,9 +810,10 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         cells.append(mBtn);
       }
       row.append(cells);
-      // Title 2xs, while the title floor is on: its switch, to take it out again.
-      if (g === 'title' && r.variant === '2xs' && floor16) {
-        const x = extraSwitch('title', '2xs', 16, true, titleFloorBlocked() ? S63.titleFloorPinned : null, (on) => setTitleFloor(on));
+      // Title 2xs, drawn: its switch, showing the stored floor, to take it out again. A brand that arrives refused (title
+      // 2xs set, the floor unset; the panel draws the last valid theme) shows it off, and turning it on is the way out.
+      if (g === 'title' && r.variant === '2xs') {
+        const x = extraSwitch('title', '2xs', 16, floor16, floor16 && titleFloorBlocked() ? S63.titleFloorPinned : null, (on) => setTitleFloor(on));
         cells.append(x.sw);
         if (x.why) row.append(x.why);
       }
