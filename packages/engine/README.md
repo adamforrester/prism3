@@ -29,7 +29,7 @@ rest is derived.
 npx tsx packages/engine/regen.ts           # regenerate EVERY committed artifact (its artifact lists; the floor under the count is ARTIFACT_FLOOR in verify.ts)
 npx tsx packages/engine/regen.ts --check   # gate: fail if any committed artifact has drifted from what the engine emits
 npx tsx packages/engine/nb-regression.ts   # regression: generated vs real NB
-npx tsx packages/engine/emit-dtcg.ts       # emit a DTCG token tree + validate aliases + schema (NB + aurora + harbor)
+npx tsx packages/engine/emit-dtcg.ts       # emit a DTCG token tree + validate aliases + schema (NB + prism3 + aurora + harbor)
 npx tsx packages/engine/test.ts            # unit tests: color math + extreme-brand contracts + design.md/CLI
 npm run tokens-html                       # render out/tokens.html — a live visual style guide, built on demand (gitignored, not committed; = npx tsx packages/engine/visualize.ts)
 
@@ -38,7 +38,7 @@ npm run tokens-html                       # render out/tokens.html — a live vi
 # and STANDARD brand-skills / google-labs design.md (flat colors + x-prism3).
 npx tsx packages/engine/cli.ts packages/engine/examples/harbor.design.md [--out <dir>]
 npx tsx packages/engine/cli.ts packages/engine/examples/wendys.design.md --fidelity   # standard dialect + observed-vs-generated report
-npx tsx packages/engine/cli.ts packages/engine/examples/harbor.design.md --out <dir> --component-specs   # also <id>.component-defs.json + its Specs projection
+npx tsx packages/engine/cli.ts packages/engine/examples/harbor.design.md --out <dir> --component-specs   # also <id>.component-contracts.json + its Specs projection (and <id>.component-defs.json, the same file under its old name, for one release)
 npx tsx packages/engine/emit-levers.ts     # (re)emit schema/lever-manifest.json — the shared-control contract (plugin/playground/MCP)
 npx tsx packages/engine/emit-preview.ts    # (re)emit schema/preview-spec.json — the shared live-preview spec (plugin/playground)
 npx tsx packages/engine/emit-brandinput.ts # (re)emit schema/example-brands.json — validated boot brands for the browser hosts
@@ -61,7 +61,7 @@ npx tsx packages/engine/token-contract.ts --check   # has the guaranteed token-N
 
 Token *values* are not versioned — a brand changing its colors is the engine working. Token *names*
 are, because a consumer that hard-codes `prism.color.text.primary` breaks silently when that path
-stops existing. `schema/token-contract.json` pins the 485 paths every corpus brand emits; removing
+stops existing. `schema/token-contract.json` pins the paths every corpus brand emits (the count: `token-contract.ts --check`); removing
 or retyping one is a breaking change and `token-contract.ts --accept` refuses to record it until
 `CONTRACT_VERSION` has been raised to match. It stays out of `regen.ts` on purpose: a baseline that
 regenerates itself would rewrite itself to agree with the deletion it exists to catch. See
@@ -102,11 +102,11 @@ ready line on stderr naming the six tools, then waits for JSON-RPC on stdin.
 | Tool | What it does |
 |---|---|
 | `list_levers` | Lists what a brand input can set, with labels, types, options and defaults. Call it first. |
-| `validate_brand` | Checks a brand input against the schema without generating anything. |
+| `validate_brand` | Checks a brand input against the schema without generating anything. It takes `{ brand }`, as `theme_brand` does. |
 | `theme_brand` | Generates a token system from a brand input and verifies it. By default it returns the contrast results and the decisions log. `include` replaces that default: pass `["notes", "tokens"]` to get the token tree and keep the log. |
 | `theme_from_brief` | Does the same from a design.md brief (YAML frontmatter plus prose), and reports the brand input it derived. |
 | `score_consumption` | Scores generated output against a brand's tokens: invented tokens, primitive leaks, and contrast for the pairs you give it. |
-| `export_theme` | Writes `tokens.json`, `ai-metadata.json` and a `figma/` folder, and returns a list of what it wrote. |
+| `export_theme` | Writes the files the CLI writes, under the same names (`<id>.tokens.json`, the `<id>.base.tokens.json` + overlay set, `<id>.ai.json`), and a `figma/` folder, and returns a list of what it wrote. `include: ["componentSpecs"]` writes the component contracts (`<id>.component-contracts.json`). `include` replaces the default, so pass `["tokens", "aiMetadata", "figma", "componentSpecs"]` for everything. For one release it also writes the old unprefixed names (`tokens.json`, `ai-metadata.json`). |
 
 `export_theme` writes relative to the directory the client starts the server in; in Claude Code
 that is the directory you launched `claude` from. Some desktop clients start servers in `/`, where
@@ -126,7 +126,7 @@ What it doesn't do:
 - `theme.ts` — builds a brand-agnostic `Theme` (palettes, role→palette map, namespace, color format, dimension axis). Two entry points: `nbTheme()` (measured NB anchors, `nbds.*`/rgb) and `brandTheme(input)` (white-label: synthesizes status hues, carves a danger red, applies a form factor, `prism.*`/hex). It is a barrel: each axis lives in its own `theme-*.ts` module (`theme-types.ts` for the shared types, then `-color`, `-dims`, `-motion`, `-type`, `-shadow`, `-layout`, `-gradient`, `-brand` for `brandTheme` and `-nb` for the regression theme), and `lint-theme-split.ts` keeps `theme.ts` to re-exports.
 - `modes.ts` — appearance modes (light / dark / hc-light / hc-dark). Resolves each semantic role to a primitive step by contrast target against the mode's surface. Brand-agnostic — paths/palette names come from the `Theme`.
 - `nb-regression.ts` — diffs generated NB ramps against the real NB tokens (ΔE00 per step), checks the contrast contracts, writes `nb-regression-report.md`.
-- `emit-dtcg.ts` — emits a DTCG tree per theme (`out/<id>.tokens.json`), generates the per-mode semantic layer, validates every alias resolves, every mode contrast contract holds, and the BrandInput conforms to the schema; writes `modes-report.md` + the `.ai.json` sidecar. Also **exports the reusable core** (`buildTree` / `emitTheme` / `validateBrandInput`) behind an `isMain` guard, so the CLI is a thin entry point over it, not a second pipeline; the aurora + harbor themes are compiled from `examples/*.design.md`.
+- `emit-dtcg.ts` — emits a DTCG tree per theme (`out/<id>.tokens.json`), generates the per-mode semantic layer, validates every alias resolves, every mode contrast contract holds, and the BrandInput conforms to the schema; writes `modes-report.md` + the `.ai.json` sidecar. Also **exports the reusable core** (`buildTree` / `emitTheme` / `validateBrandInput`) behind an `isMain` guard, so the CLI is a thin entry point over it, not a second pipeline; the prism3, aurora and harbor themes are compiled from `examples/*.design.md`.
 - `design-md.ts` — the `design.md` parser (pure, no I/O): a dependency-free block-style YAML-subset parser (indentation nesting + `- ` block sequences + flow `{}`/`[]` leaves + scalar typing) → `BrandInput`, plus the frontmatter/prose split. Scoped to the `BrandInput` shape (owns YAML like `color.ts` owns the color math).
 - `cli.ts` — the CLI adapter (I/O shell): `tsx cli.ts <design.md> [--out <dir>] [--fidelity] [--component-specs]`. Auto-detects the dialect (a top-level flat `colors:` map = the standard dialect; otherwise engine-native) and routes to the right reader, then runs the same core: read → BrandInput → `validateBrandInput` → `brandTheme` → `emitTheme`. Exits non-zero on a schema violation, a broken alias, or a failed contrast contract.
 - `standard-design-md.ts` — reads the STANDARD brand-skills / google-labs `design.md` (flat `colors` hex map + structured type/dimension maps + an optional `x-prism3` levers block — a different shape from `design-md.ts`, which reads the engine's own `BrandInput` frontmatter) and converts it to a `BrandInput`: `standardToBrandInput` runs the classifier, derives the type families, and applies `x-prism3` (docs/07 §11).
@@ -138,10 +138,10 @@ What it doesn't do:
 - `fidelity.ts` — the full-parity fidelity report builder (`cli.ts --fidelity`): diffs every observed value against the generated system (color ΔE00, typography, spacing, radius, elevation) — the Decision-A regression artifact (§11.3). Pure + brand-agnostic. The committed `out/wendys-fidelity-report.md` is generated by `cli.ts ./examples/wendys.design.md --fidelity`.
 - `ai-metadata.ts` — generates `out/<id>.ai.json`, the agent-readable metadata sidecar, validated against the versioned JSON Schema `schema/ai-metadata.schema.json` (the sidecar's `$schema` is the schema's `$id`). Every token in the tree has one entry. Tiers: **color** (full field set — `meaning`, `when_to_use`, `avoid_when`, `usage_limit` on the large-text-only inks, the relations `sits_on` / `carries` (legibility, measured in every mode) and `tracks` (companion roles, no contrast implied), `contrast_with` with a `requirement` sentence the reader can check against `tokens.json`, and `mode_overrides`), **typography** (`type.*` styles and the `core.font.*` roles), **layout** and **motion** (thin entries for the space, size, radius, border-width, focus-ring, icon, control, grid and motion roles), **gradient** when a brand opts in, and **primitives** (`meaning`, `tier`, `consume`, and `aliased_by`, the reverse index of which tokens resolve to it, **computed transitively** across multi-hop alias chains). The sidecar is the payload channel of `docs/voice-standard.md` §4: its only RFC 2119 keyword is the contract `requirement`, and `lint-voice.ts` enforces that. All fields generated/contract-true; keeps `tokens.json` DTCG-pure.
 - `visualize.ts` — renders `out/tokens.html` on demand (`npm run tokens-html`; `--out <dir>` writes elsewhere; gitignored, not committed, not a `regen` step), a single self-contained visual style guide read back from the emitted DTCG (every axis: color, semantic roles, dimension, typography rendered live, shadow, motion with animated easing curves, layout, opt-in gradients, opacity, border-width). No deps; also prints a plain-text taxonomy.
-- `test.ts` — color-math invariants + extreme-brand contract smoke tests + typography/shadow/layout/gradient/surface-model + harshness + typography-weights/links + design.md-parser/CLI (aurora faithfulness byte-diff + harbor coverage) + standard-dialect/classifier/x-prism3 (Wendy's) invariants (1920 checks).
-- `./examples/*.design.md` — authored brand briefs (the front door): `aurora.design.md` (engine-native faithfulness — compiles to the aurora golden byte-for-byte), `harbor.design.md` (engine-native net-new coverage), and `wendys.design.md` (a real **standard** brand-skills extraction — the dual-dialect + classifier + fidelity example).
-- `regen.ts` — the single entry point that regenerates every committed generated artifact (every step in its `STEPS` list, in dependency order), plus `--check`, the drift gate that snapshots, regenerates, byte-compares, and restores. Covers every committed artifact (the count is `EXPECTED_ARTIFACTS` in `verify.ts`), including `out/**`, the three emitted `schema/` contracts, and the two engine-root reports (`modes-report.md`, `nb-regression-report.md` — both were outside the comparison until the CI pass). See #281.
-- generated outputs (committed so results are reviewable without running; all are gated by `regen.ts --check`, which **CI now runs on every PR** — see `.github/workflows/ci.yml`): `nb-regression-report.md`, `modes-report.md`, `out/{nb,aurora,harbor,wendys}.tokens.json`, `out/{nb,aurora,harbor,wendys}.ai.json`, `out/wendys-fidelity-report.md`, `out/figma/<id>/*`, and the three emitted contracts in `./schema/`: `lever-manifest.json`, `preview-spec.json`, `example-brands.json`. **`regen.ts --check` is what keeps this list true** — it is the only gate that reads the committed files.
+- `test.ts` — color-math invariants + extreme-brand contract smoke tests + typography/shadow/layout/gradient/surface-model + harshness + typography-weights/links + design.md-parser/CLI (aurora faithfulness byte-diff + harbor coverage) + standard-dialect/classifier/x-prism3 (Wendy's) invariants, held to the `MIN_ASSERTIONS` floor in `test.ts`.
+- `./examples/*.design.md` — authored brand briefs (the front door): `prism3.design.md` (the canonical default theme, which `emit-dtcg.ts` reads), the reference brand's redesign seed brief, `aurora.design.md` (engine-native faithfulness — compiles to the aurora golden byte-for-byte), `harbor.design.md` (engine-native net-new coverage), and `wendys.design.md` (a real **standard** brand-skills extraction — the dual-dialect + classifier + fidelity example).
+- `regen.ts` — the single entry point that regenerates every committed generated artifact (every step in its `STEPS` list, in dependency order), plus `--check`, the drift gate that snapshots, regenerates, byte-compares, and restores. Covers every committed artifact (the floor under the count is `ARTIFACT_FLOOR` in `verify.ts`), including `out/**`, the three emitted `schema/` contracts, and the two engine-root reports (`modes-report.md`, `nb-regression-report.md` — both were outside the comparison until the CI pass). See #281.
+- generated outputs (committed so results are reviewable without running; all are gated by `regen.ts --check`, which **CI now runs on every PR** — see `.github/workflows/ci.yml`): `nb-regression-report.md`, `modes-report.md`, `out/{nb,prism3,aurora,harbor,wendys}.tokens.json`, `out/{nb,prism3,aurora,harbor,wendys}.ai.json`, their `out/<id>.base.tokens.json` + `out/<id>.<mode>.overlay.tokens.json` projections, `out/wendys-fidelity-report.md`, `out/figma/<id>/*`, and the three emitted contracts in `./schema/`: `lever-manifest.json`, `preview-spec.json`, `example-brands.json`. **`regen.ts --check` is what keeps this list true** — it is the only gate that reads the committed files.
 
 ## Modes (`modes-report.md`)
 
@@ -432,9 +432,9 @@ for Figma + worst-case-stop contrast); border-width, focus, opacity/alpha + scri
 primitives; three-brand emit in two dialects; a live HTML style guide
 (`visualize.ts`); **a `design.md` + CLI authoring front door** (block-style
 YAML-subset parser → the pure core, aurora reproduced byte-for-byte + harbor as a
-net-new coverage brand). nb 936/936 + aurora 937/937 + harbor 934/934 aliases
-resolve, 488/488 mode contracts hold per brand, 1920/1920 unit tests pass, all
-brands schema-conform.
+net-new coverage brand). Every brand's aliases resolve and every mode contract
+holds (the counts: `emit-dtcg.ts`), every unit test passes, and all brands
+schema-conform.
 
 **Deliberately not reproduced:**
 - *NB's per-step hue kinks* (amber.600, red.300). Following them would require

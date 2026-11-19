@@ -86,6 +86,7 @@ minimal — read both, they are the reference; the directory also holds a standa
 | `buttonContentSize` | `match` \| `smaller` | `smaller` (Small) gives a **medium** button the small label and icon (`type.label.sm.emphasis`, `icon.size.xs`) at medium height and padding — a 44px button with a 12px label; `match` (Medium, default) leaves every size its own |
 | `buttonLabelWeight` | `emphasis` \| `default` | Control label weight. `default` (Default) sets every button and tag label in its label style's **default** weight role instead of emphasis, and the brand then ships that weight for the label styles; with `smaller`, a medium button takes the small label at that weight. Buttons and tags only: badges keep emphasis. `emphasis` (default) leaves the labels as they are |
 | `buttonTextHover` | `text` \| `fill` | What a button at the text appearance does on hover and when pressed. `text` (Text & icon only, the default) changes its label and icon colors; `fill` also gives it the outline appearance's wash. A text button is never filled at rest, and its label is always underlined (fixed, not a setting). Buttons only |
+| `buttonBorderWeight` | `hairline` \| `thick` | The border of an outline button, in every button set at once. `thick` (Thick) binds `border-width.thick`, 2px; `hairline` (Thin, default) binds `border-width.hairline`, 1px. Each set keeps its own border color. Buttons only, not icon buttons |
 | `radiusHairline` | `true` \| `false` | **retired — do not set it.** The fixed 1px `radius.hairline` rung now ships for every brand, so this changes nothing; it is accepted only so older brand files still load. For 1px-cornered controls, use `controlShape: hairline` |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed }` | brand energy → motion pace |
@@ -211,8 +212,9 @@ Then run the compile loop. Say in the prose which picks the report left open, so
   **The block reads ten keys only**: `root`, `personality`, `radiusScale`, `typeScale`, `density`,
   `motionTempo`, `actionPalette`, `iconContrast`, `surfaces`, `gradients`. Two of them are spelled
   differently from the engine-native field: `typeScale` sets `typography.typeScale` and `motionTempo`
-  sets `motionPersonality.tempo`. **Any other key is dropped without a warning**, so check the
-  applied list the CLI prints. A lever outside these ten needs the engine-native dialect.
+  sets `motionPersonality.tempo`. **Any other key is skipped**, and the CLI names each one it
+  skipped (`x-prism3: ignored unknown setting '<key>'`) while the file still compiles. A lever
+  outside these ten needs the engine-native dialect.
 
 ## If you have the MCP surface
 

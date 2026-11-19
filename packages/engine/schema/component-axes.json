@@ -526,6 +526,7 @@
       "description": "BOOLEAN",
       "description text": "TEXT",
       "dividers": "BOOLEAN",
+      "show title": "BOOLEAN",
       "title": "TEXT"
     }
   },
@@ -1546,6 +1547,19 @@
       "label": "TEXT",
       "leading icon": "BOOLEAN",
       "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
+  "tag-group": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 3,
+    "properties": {
+      "items": "SLOT"
     }
   },
   "text-field": {

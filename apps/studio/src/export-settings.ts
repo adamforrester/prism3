@@ -117,9 +117,13 @@ export const ARTIFACTS: readonly ArtifactDef[] = [
   {
     // #3425 (owner decision Q45 A; DRAFT wording for the owner, Q3425.1): the component-defs export for the brand on
     // screen, its component settings resolved, and the same as a Specs components set.
+    // #1325 (owner decision Q-CC1 A; DRAFT wording for the owner): the export is published as component contracts, and the
+    // description and the button say so. The tab keeps "Component specs": "Component contracts" runs 2px past the column at
+    // the plugin's 380, where the three tabs are held to fit (#3553 M8, `3553-md`). Which label the tab takes, and
+    // whether the row may wrap for it, is the owner's call.
     id: 'component-specs',
     label: 'Component specs',
-    desc: "Every component's props, states, parts and the tokens each part binds, built with this brand's component settings. As Prism3 JSON and in the Specs format.",
+    desc: "Every component's contract: its props, states, parts and the tokens each part binds, built with this brand's component settings. As Prism3 JSON and in the Specs format.",
   },
 ];
 

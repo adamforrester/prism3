@@ -18,22 +18,32 @@
  *                  or `planVariableRenames` (which restates the comparator for the paste payload) orders a
  *                  case-split pair differently from the literal folded order typed below.
  *   REPRESENTED    the scan did not reach each emitter the defect was found in, or reached too few files.
+ *   SELF-CHECK     the banned spellings, run on planted lines typed below, do not flag exactly the planted calls.
+ *
+ * SPELLINGS (#4201). The method is matched as called (`.localeCompare(`, `.call`/`.apply`/`.bind`), and also by NAME
+ * anywhere in code outside a comment: `a["localeCompare"](b)` and `fn.bind(String.prototype.localeCompare)` reach the
+ * same method without either spelling, and both read clean before. Prose in a comment that names the method stays
+ * clean; a line is read as code after its comment is cut (`//` to the end, a line inside a block comment).
  *
  * INDEPENDENCE (docs/34). The SUBJECT is the engine's source text. The REFERENCE is the banned spellings and the
  * emitter list, both typed here, and the probe's expected order, a literal, never computed by the comparator it
  * checks. The emitter list is a floor on what the scan must reach, so a scope that silently lost a directory or a
  * file extension fails as unrepresented rather than passing clean.
  *
- * BEYOND THE ENGINE: TESTS AND TOOLS (#3701). The same rule holds for every test file at a workspace root
- * (`apps/<ws>/test-*`) and everything under `tools/`: a test that sorts by locale compares two sides that can each move
- * by machine, and a tool's report reorders by machine. Tools import `localeFreeCompare` by path, as they import the
- * rest of the engine; a surface's test may not deep-import the engine (`lint-engine-facade.ts`), so it sorts by code
- * unit inline. A separate floor and named files hold this scope to what it reached at #3701.
+ * BEYOND THE ENGINE: TESTS AND TOOLS (#3701, owner decision A, 2026-11-18). The same rule holds for every test and
+ * tool: a test file at a workspace root (`apps/<ws>/test-*`), a workspace's own gate (`apps/<ws>/lint-*`), everything
+ * under `tools/`, the root runners (`verify.ts`, `fold.ts`, `run-suites.ts` and the rest at the root), the token
+ * package's scripts (`packages/tokens/*.mjs`), and the scripts a skill ships for an agent to run (`skills/<skill>/*.js`).
+ * A test that sorts by locale compares two sides that can each move by machine, and a tool's report reorders by machine.
+ * Tools under `tools/` import `localeFreeCompare` by path, as they import the rest of the engine; a surface's test may
+ * not deep-import the engine (`lint-engine-facade.ts`), and a skill's script runs in Figma with no import at all, so
+ * each sorts by code unit inline. A separate floor and named files hold this scope to what it reached.
  *
  * WHAT IT DOES NOT ASSERT. That every sort passes a comparator at all: a bare `.sort()` on strings is already
- * code-unit order and locale-free. Nor the surfaces' own sources (`apps/<ws>/src`): whether a list a viewer reads, such as
- * font families or style-guide categories, should follow the viewer's locale is the owner's decision (#3701), and
- * those sites are unchanged. Nor TokenPress, a guest port that keeps its own patterns (`apps/tokenpress/README.md`).
+ * code-unit order and locale-free. Nor the surfaces' own sources (`apps/<ws>/src`): a list a viewer reads, such as font
+ * families or style-guide categories, keeps the viewer's locale order (owner decision A on #3701), so those sites stay
+ * as they are and outside this scan. Nor TokenPress, a guest port that keeps its own patterns
+ * (`apps/tokenpress/README.md`).
  *
  * This file is the one place allowed to spell the method, for the probe, and is skipped by name.
  */
@@ -51,13 +61,48 @@ const failures: string[] = [];
 
 // The banned spellings. A regex source never contains the dotted, called form it matches, so these lines do not
 // trip the scan; the self-skip is for the probe below, which has to call the method.
-const BANNED: { what: string; re: RegExp }[] = [
+const BANNED: { what: string; re: RegExp; code?: true }[] = [
   // The called form and the reached-through forms (`String.prototype.localeCompare.call(…)`, `.apply`, `.bind`).
   // Prose that names the method bare, with neither after it, stays clean.
   { what: 'locale-dependent string comparison', re: /\blocaleCompare\b\s*(?:\(|\.\s*(?:call|apply|bind)\b)/ },
   { what: 'ICU collator', re: /\bIntl\s*\.\s*Collator\b/ },
   { what: 'locale-aware case fold', re: /\.\s*toLocale(?:Lower|Upper)Case\s*\(/ },
+  // #4201: the method reached by NAME, in code, in any other spelling: a bracket key, a property passed as a value.
+  // Read on the line with its comment cut (`code`), so prose naming the method stays clean.
+  { what: 'locale-dependent string comparison, reached by name', re: /\blocaleCompare\b(?!\s*(?:\(|\.\s*(?:call|apply|bind)\b))/, code: true },
 ];
+
+/** A line as code: empty inside a block comment or JSDoc, and cut at a `//` comment. Coarse on purpose (a `//` inside a
+ *  string cuts the line early), since it only decides what the by-name spelling reads. */
+const codeOf = (line: string): string => {
+  const t = line.trim();
+  if (t.startsWith('*') || t.startsWith('/*') || t.startsWith('//')) return '';
+  return line.replace(/\/\*.*?\*\//g, '').replace(/\/\/.*$/, '');
+};
+/** The banned spellings a line holds. */
+const bannedIn = (line: string): { what: string }[] => BANNED.filter((b) => b.re.test(b.code ? codeOf(line) : line));
+
+// ── SELF-CHECK: each planted call is flagged, each planted mention is not (#4201) ─────────────────────────────
+{
+  const flagged = [
+    'names.sort((a, b) => a.localeCompare(b));',
+    'rows.sort(([a], [b]) => a["localeCompare"](b));',
+    "rows.sort(([a], [b]) => a['localeCompare'](b));",
+    'rows.sort(([a], [b]) => Function.prototype.call.bind(String.prototype.localeCompare)(a, b));',
+    'const cmp = String.prototype.localeCompare; rows.sort((a, b) => cmp.call(a, b));',
+    'String.prototype.localeCompare.call(a, b);',
+    "const c = new Intl.Collator('en');",
+    's.toLocaleLowerCase();',
+  ];
+  const clean = [
+    '// Code-unit order everywhere, never `localeCompare`: a locale-dependent sort would differ by machine.',
+    ' *   the findings sorted with `localeCompare` again → fails by name',
+    'names.sort(localeFreeCompare); // not localeCompare',
+    '/* localeCompare */ names.sort();',
+  ];
+  for (const l of flagged) if (!bannedIn(l).length) failures.push(`SELF-CHECK: the scan does not flag a planted call: ${l}`);
+  for (const l of clean) if (bannedIn(l).length) failures.push(`SELF-CHECK: the scan flags a planted mention that calls nothing: ${l}`);
+}
 
 // The emitters #3698 found the defect in, plus the ones that already sorted locale-free. Typed, never listed from
 // the tree: the scan must reach each of them.
@@ -84,12 +129,22 @@ const MUST_SCAN_OUTSIDE = [
   'tools/binding-audit/reconcile.ts',
   'tools/conformance-scan/fix.ts',
   'tools/exporter-comparison/adapt-figma-emission.ts',
+  // The scope's other kinds, one file each, so a scope that lost a kind fails as unrepresented.
+  'apps/plugin/lint-executor-revision.ts',
+  'verify.ts',
+  'packages/tokens/check-package.mjs',
+  'skills/prism3-rebind/consistency-audit.js',
 ];
-// 153 tracked test and tool source files at #3701.
+// 153 tracked test and tool source files at #3701's first pass (#3823); more once the scope reached every kind.
 const MIN_FILES_OUTSIDE = 100;
-/** A test at a workspace root, not TokenPress's (a guest port), or any file under `tools/`. */
+/** A test or gate at a workspace root, not TokenPress's (a guest port); any file under `tools/`; a file at the repo
+ *  root; a token-package script; a skill's script. Never a surface's `src/`, whose lists a viewer reads (#3701 A). */
 const isOutsideSite = (f: string): boolean =>
-  (/^apps\/[^/]+\/test-[^/]+$/.test(f) && !f.startsWith('apps/tokenpress/')) || f.startsWith('tools/');
+  (/^apps\/[^/]+\/(?:test|lint)-[^/]+$/.test(f) && !f.startsWith('apps/tokenpress/'))
+  || f.startsWith('tools/')
+  || !f.includes('/')
+  || /^packages\/tokens\/[^/]+\.mjs$/.test(f)
+  || /^skills\/[^/]+\/[^/]+\.js$/.test(f);
 
 // ── PROBE: the comparator's order on literals ────────────────────────────────────────────────────────────────
 // Czech collates `ch` as one letter after `h`; English and code-unit order put it after `c`. The fold keeps
@@ -122,7 +177,7 @@ const SOURCE = /\.(?:ts|mts|cts|js|mjs|cjs)$/;
 const files = execFileSync('git', ['ls-files', '-z', 'packages/engine'], { cwd: repo, encoding: 'utf8' })
   .split('\0')
   .filter((f) => SOURCE.test(f) && f !== SELF);
-const outside = execFileSync('git', ['ls-files', '-z', 'apps', 'tools'], { cwd: repo, encoding: 'utf8' })
+const outside = execFileSync('git', ['ls-files', '-z'], { cwd: repo, encoding: 'utf8' })
   .split('\0')
   .filter((f) => SOURCE.test(f) && isOutsideSite(f));
 
@@ -130,12 +185,10 @@ let hits = 0;
 for (const f of [...files, ...outside]) {
   const lines = readFileSync(resolve(repo, f), 'utf8').split('\n');
   lines.forEach((line, i) => {
-    for (const b of BANNED) {
-      if (b.re.test(line)) {
-        hits++;
-        const fix = f.startsWith('apps/') ? 'sort by code unit inline (a surface test may not deep-import the engine)' : 'use localeFreeCompare from locale-free-order.ts';
-        failures.push(`LOCALE ORDER: ${f}:${i + 1} — ${b.what}; ${fix}\n      ${line.trim().slice(0, 160)}`);
-      }
+    for (const b of bannedIn(line)) {
+      hits++;
+      const fix = f.startsWith('apps/') || f.startsWith('skills/') ? 'sort by code unit inline (a surface test may not deep-import the engine, and a skill script has no import)' : 'use localeFreeCompare from locale-free-order.ts';
+      failures.push(`LOCALE ORDER: ${f}:${i + 1} — ${b.what}; ${fix}\n      ${line.trim().slice(0, 160)}`);
     }
   });
 }
@@ -156,4 +209,4 @@ if (failures.length) {
   for (const f of failures) console.error(`  ${f}`);
   process.exit(1);
 }
-console.log('✓ clean — no comparison under packages/engine/, in a workspace test or under tools/ depends on the host locale');
+console.log('✓ clean — no comparison under packages/engine/, in a workspace test or gate, under tools/, at the root, in a token-package script or in a skill script depends on the host locale');
