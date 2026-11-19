@@ -1340,8 +1340,8 @@ npx tsx packages/engine/lint-code-only-classes.ts   # every def's codeOnly entry
                                                     # register class no entry uses fails; an admission
                                                     # is classed not-projected; the payload's
                                                     # syncBoundary matches the defs.
-npx tsx packages/engine/lint-locale-order.ts        # no comparison under packages/engine/ depends on
-                                                    # the host's locale (#3698): no bare localeCompare,
+npx tsx packages/engine/lint-locale-order.ts        # no comparison in the engine, a test or a tool depends
+                                                    # on the host's locale (#3698, #3701): no bare localeCompare,
                                                     # ICU collator or locale-aware case fold. Order goes
                                                     # through localeFreeCompare (locale-free-order.ts).
 npx tsx packages/engine/lint-design-md-round-trip.ts # design.md carries every brand setting (#3984,
@@ -1419,9 +1419,10 @@ reviewed change to `.node-version`, or to `package.json` and the lockfile.
 
 ```bash
 npm run typecheck    -w @prism3/studio      # tsc --noEmit — esbuild does NOT typecheck
-npm run test         -w @prism3/studio      # the provenance model (#722). NOT covered by typecheck:
-                                            #   tsconfig.json includes `src` only, so the test file
-                                            #   itself is never compiled — this step is what runs it
+npm run test         -w @prism3/studio      # every suite in suites.json, through run-suites.ts, each
+                                            #   held to its assertion floor (#3904). NOT covered by
+                                            #   typecheck: tsconfig.json includes `src` only, so the
+                                            #   test files are never compiled — this step runs them
 npm run build        -w @prism3/studio
 npm run test:smoke   -w @prism3/studio      # the headless DOM/interaction suite (#767, deciding #333).
                                             #   Run it AFTER build — it drives the built dist/main.js
@@ -1673,7 +1674,8 @@ npx tsx apps/plugin/lint-network-reach.ts
                                           # offline means something. Runs after build:release (it builds both).
                                           # Mutation: a fetch outside the PRISM3_NETWORK gate — [fetch] fires
                                           # by name on release-offline/ui.html.
-npm run test      -w @prism3/tokenpress  # the ported suite's 263 assertions, on tsx rather than the
+npm run test      -w @prism3/tokenpress  # the ported 263 assertions, held file by file to the
+                                          # vitest baseline, plus those added since, on tsx rather than the
                                           # vitest it arrived with. The runner asserts a PER-FILE census
                                           # against the pre-port vitest baseline, so a test quietly
                                           # vanishing in a refactor fails here too — a total alone would
