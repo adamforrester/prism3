@@ -250,10 +250,11 @@ Only pair colors where a real contrast contract applies — a **decorative** bor
 3:1 UI edge. A **disabled** label is not exempt: score it as `ui` (3:1). If a pair fails on the floor surface or nearer the page, you reached for the wrong role — the
 system has a role that passes there (that's what the generation-time contracts guarantee). Below
 the floor there is no promise: move the content to a shallower surface, or move the brand's floor.
-A filled control's hover and pressed label is the other exception. `interactive.primary.on-fill` is
-promised only on `interactive.primary.fill.rest` (read its `sits_on`), and by current policy the hover
-and pressed fills may fall below 4.5:1 under it, in dark mode on every shipped brand (#1626). Don't
-score those two pairs as failures, and don't swap the ink.
+A filled control's hover and pressed label is the other exception. Each `interactive.<intent>.on-fill`
+is promised only on `interactive.<intent>.fill.rest` (read its `sits_on`), and by current policy the
+hover and pressed fills may fall below 4.5:1 under it. For the `primary` and `destructive` intents
+they do, in dark mode on every shipped brand (#1626). Don't score those pairs as failures, and don't
+swap the ink.
 
 Then reread the brief against what you built. Each thing it asks for is either built from a Prism3
 component and its tokens, or named in your report as not built ("Say what you can't build", above).

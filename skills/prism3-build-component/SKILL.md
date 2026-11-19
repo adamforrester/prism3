@@ -271,7 +271,7 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 | `nest` | an in-flow instance of another component — takes a cell like a box, content resolved from `nests` |
 | `vector` | a filled outline whose content is geometry — names a `glyph` from the icon vocabulary |
 
-A new kind is a schema change: add it to `ADMITS` in `lint-part-union`, and raise `EXECUTOR_REVISION` if the
+A new kind is a schema change: add it to `KINDS` in `packages/engine/lint-part-union.ts` and to that gate's `ADMITS`, and raise `EXECUTOR_REVISION` if the
 executor draws it (§7).
 
 **Some fields belong to certain kinds** (#3698), and both `tsc` and the validator refuse them on any other kind:
@@ -809,7 +809,7 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 | `packages/engine/test.ts` | nothing for the brief: `KB_BRIEF_CATEGORY` is derived from `schema/kb-briefs.json` (refresh it if the brief is new). A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
 | `lint-control-shape-reach` | a def that binds a corner: a button, field or checkbox in `FAMILIES` (it then follows Control shape, so give it `levers.controlShape`), a def a claimed noun could be read to cover but the owner ruled out in `NOT_CLAIMED` with the decision (Counter, Q-CS4 B), anything else in `OUTSIDE_REASON` with the reason. Google Pay's wallet corner is held to half the height under every shape (a CLAMP failure names it). A def in none fails by name (#3765). |
 | `apps/plugin/src/file-taxonomy.ts` | the def on a page in `TAXONOMY` (§3). |
-| `lint-part-union` | a new part kind (§2) in `ADMITS`, under every field that kind may carry. A kind with no entry fails by name. |
+| `lint-part-union` | a new part kind (§2) in `KINDS`, and in `ADMITS` under every field that kind may carry. A kind missing from either fails by name. |
 | `lint-motion-literals` | a def a `prism3-motion` recipe governs in `RECIPE_DEFS`, under that recipe, so its `motion.reduceMotion` is checked against the recipe's reduced form. |
 | `lint-executor-revision`, `lint-executor-reach` (plugin) | when a new part kind or projection changes the component executor's code, raise `EXECUTOR_REVISION` in `apps/plugin/src/executor-revision.ts` and name every set it redraws in `apps/plugin/src/executor-reach.json`. |
 

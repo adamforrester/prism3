@@ -4,12 +4,12 @@ A fix lane from the 2026-11-19 skills audit (#4104). Four findings where `prism3
 
 ### prism3-build-ui
 
-- **#4178.** The self-check said a failing pair means the wrong role. A filled button's hover and pressed label fail in dark mode on every shipped brand, and no role passes there: `interactive.primary.on-fill` sits only on `fill.rest`, and #1626 leaves hover and pressed ungated. The self-check now says so and cites #1626, so the line is revisited when the owner decides.
+- **#4178.** The self-check said a failing pair means the wrong role. A filled button's hover and pressed label fail in dark mode on every shipped brand, and no role passes there: `interactive.primary.on-fill` sits only on `fill.rest`, and #1626 leaves hover and pressed ungated. The self-check now says so for every `interactive.<intent>.on-fill`, names the two intents that fail (`primary` and `destructive`, measured; `neutral` and the `inverse.` twins pass), and cites #1626, so the line is revisited when the owner decides. The arm scores every intent's hover and pressed label over the three example brands and fails by name on any failing intent the self-check doesn't name.
 - **#4179.** The skill sent agents to `components.ai.json`, which holds almost no bindings, and its radius row said a Button is `radius.md`. A `controlShape: pill` brand's resolved contract binds `radius.capsule` (checked with `cli.ts --component-specs`). The skill now names both routes to a brand's resolved bindings (`--component-specs`, and `export_theme` with `componentSpecs`), says the committed `<id>.md` pages are drawn at the default settings, and qualifies the radius row.
 
 ### prism3-build-component
 
-- **#4182.** §7's table gains `lint-part-union` (`ADMITS`), `lint-motion-literals` (`RECIPE_DEFS`) and the plugin's executor revision and reach. §2 says a new part kind is a schema change.
+- **#4182.** §7's table gains `lint-part-union` (`KINDS` and `ADMITS`), `lint-motion-literals` (`RECIPE_DEFS`) and the plugin's executor revision and reach. §2 says a new part kind is a schema change.
 - **#4183.** "Before you finish" item 8 said "both baselines" where §7 lists three. It now says all three. `typeWeight` gets a paragraph in §1, and `literal`, the other top-level def field the skill never named, gets one too: the arm that checks every `ComponentDef` field is named found it.
 
 ### The arms

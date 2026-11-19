@@ -43118,14 +43118,28 @@ arm: {
   const ui = readFileSync(resolve(HERE, '../../skills/prism3-build-ui/SKILL.md'), 'utf8');
   const bc = readFileSync(resolve(HERE, '../../skills/prism3-build-component/SKILL.md'), 'utf8');
   // #4178: the on-fill ink is promised on the rest fill only, so the self-check must not call hover and pressed failures.
+  // Every `[inverse.]interactive.<intent>.on-fill` in the sidecar, not primary alone (review S1): each sits on its rest
+  // fill only. Then the intents whose hover or pressed label actually fails under it, scored by the engine over every
+  // example brand and mode: the self-check must name each one, so a new failing intent fails here by name.
   const ai = JSON.parse(readFileSync(resolve(HERE, 'out/prism3.ai.json'), 'utf8'));
-  const onFill = ai?.color?.['interactive.primary.on-fill'];
-  const sitsOn: string[] = onFill?.sits_on ?? [];
-  ok(sitsOn.includes('interactive.primary.fill.rest') && !sitsOn.some((x) => /fill\.(hover|pressed)$/.test(x)),
-    `#4178 oracle: interactive.primary.on-fill sits on fill.rest and not on hover or pressed (sits_on: ${sitsOn.join(', ') || 'none'})`);
+  const onFills = Object.entries(ai?.color ?? {}).filter(([k]) => /^(inverse\.)?interactive\.[a-z-]+\.on-fill$/.test(k)) as [string, any][];
+  const offRest = onFills.filter(([k, v]) => { const so: string[] = v?.sits_on ?? []; return !so.includes(k.replace(/on-fill$/, 'fill.rest')) || so.some((x) => /fill\.(hover|pressed)$/.test(x)); });
+  ok(onFills.length >= 6 && offRest.length === 0,
+    `#4178 oracle: every interactive.<intent>.on-fill sits on its fill.rest and not on hover or pressed (${onFills.length} read; off: ${offRest.map(([k]) => k).join(', ') || 'none'})`);
+  const intents = [...new Set(onFills.map(([k]) => k.match(/interactive\.([a-z-]+)\.on-fill$/)![1]))];
+  const failing = new Set<string>();
+  let scored = 0;
+  for (const id of EXAMPLE_IDS) {
+    const pairs = onFills.flatMap(([k]) => (['hover', 'pressed'] as const).map((st) => ({ fg: k, bg: k.replace(/on-fill$/, `fill.${st}`), kind: 'text' as const })));
+    const r = scoreContractCompliance(pairs, brandTheme(exampleBrands()[id] as BrandInput));
+    if (r.checked > 0 && r.unresolved.length === 0) scored++;
+    for (const f of r.failures) { const m = f.pair.match(/interactive\.([a-z-]+)\.on-fill on /); if (m) failing.add(m[1]); }
+  }
   const selfCheck = ui.slice(ui.indexOf('## The self-check'), ui.indexOf('Then reread the brief against what you built.'));
-  ok(/`interactive\.primary\.on-fill` is\s+promised only on `interactive\.primary\.fill\.rest`/.test(selfCheck) && /#1626/.test(selfCheck),
-    "#4178 prism3-build-ui: the self-check says on-fill is promised only on fill.rest, and cites #1626 for hover and pressed");
+  const unnamedIntents = [...failing].filter((i) => !selfCheck.includes(`\`${i}\``));
+  ok(intents.length >= 3 && scored === EXAMPLE_IDS.length && failing.size >= 1 && unnamedIntents.length === 0
+    && /`interactive\.<intent>\.on-fill`\s+is promised only on `interactive\.<intent>\.fill\.rest`/.test(selfCheck) && /#1626/.test(selfCheck),
+    `#4178 prism3-build-ui: the self-check says each on-fill is promised only on fill.rest, names every intent whose hover or pressed label fails over ${scored}/${EXAMPLE_IDS.length} brands (${[...failing].join(', ') || 'none'}; unnamed: ${unnamedIntents.join(', ') || 'none'}), and cites #1626`);
   // #4179: the skill names where a brand's resolved component bindings come from, and both routes exist.
   const cli = readFileSync(resolve(HERE, 'cli.ts'), 'utf8');
   ok(cli.includes("a === '--component-specs'") && ui.includes('--component-specs'),
@@ -43137,7 +43151,7 @@ arm: {
   // #4182: §7's table names the hand lists a new def or part kind joins, each read as declared in its gate.
   const sec7 = bc.slice(bc.indexOf('## 7. Verification'), bc.indexOf('## 8. Versioning'));
   const declares = (file: string, name: string) => new RegExp(`(?:const|let)\\s+${name}\\b`).test(readFileSync(resolve(HERE, '../..', file), 'utf8'));
-  for (const [file, name] of [['packages/engine/lint-part-union.ts', 'ADMITS'], ['packages/engine/lint-motion-literals.ts', 'RECIPE_DEFS'], ['apps/plugin/src/executor-revision.ts', 'EXECUTOR_REVISION']] as const)
+  for (const [file, name] of [['packages/engine/lint-part-union.ts', 'KINDS'], ['packages/engine/lint-part-union.ts', 'ADMITS'], ['packages/engine/lint-motion-literals.ts', 'RECIPE_DEFS'], ['apps/plugin/src/executor-revision.ts', 'EXECUTOR_REVISION']] as const)
     ok(declares(file, name) && sec7.includes(`\`${name}\``), `#4182 prism3-build-component: §7 names \`${name}\`, declared in ${file}`);
   // #4183: the closing checklist counts the baselines §7 lists, and every top-level ComponentDef field is named.
   const accepted = bc.match(/(\w+) baselines move with a new or changed projection/)?.[1] ?? '';
