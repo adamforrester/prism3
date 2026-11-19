@@ -21,8 +21,9 @@ npm run -w @prism3/tokens check:package         # pack, install outside the repo
 
 ## Using the package
 
-The package holds CSS custom properties for the house brand. The light defaults are on `:root`, and
-each theme mode is a `[data-theme="…"]` block. It isn't on a registry: install it from the tarball.
+The package holds CSS custom properties for the house brand. The light defaults are on `:root` and on
+`[data-theme="light"]`, and each theme mode is a `[data-theme="…"]` block. It isn't on a registry:
+install it from the tarball.
 
 ```bash
 npm pack -w @prism3/tokens                      # builds dist/ and writes prism3-tokens-<version>.tgz
@@ -30,19 +31,22 @@ npm install ./prism3-tokens-<version>.tgz       # in the client project
 ```
 
 ```css
-@import "@prism3/tokens";                       /* every block: :root, brand-b, dark, hc-dark, hc-light */
+@import "@prism3/tokens";                       /* every block: :root and light, brand-b, dark, hc-dark, hc-light */
 
 .card { color: var(--pds3-color-text-primary); }
 ```
 
 ```html
 <html data-theme="dark">
+  …
+  <section data-theme="light">…</section>       <!-- any mode works on a subtree, light included -->
+</html>
 ```
 
 | Import | What it holds |
 |---|---|
 | `@prism3/tokens` (also `@prism3/tokens/prism3.css`) | every block, `:root` first |
-| `@prism3/tokens/prism3/base.css` | the light defaults on `:root` only |
+| `@prism3/tokens/prism3/base.css` | the light defaults, on `:root` and `[data-theme="light"]` |
 | `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `brand-b`, `dark`, `hc-dark`, `hc-light` |
 
 Names are stock Style Dictionary's, with the token root as prefix: `--pds3-…` (`docs/35` §9.4). Every
@@ -175,22 +179,23 @@ a manifest of which files belong to a distribution. Membership is a separate con
 The gate originally measured **one** brand (`nb`), which answered "can a stranger consume `nb`?" and
 was silent on the other three. #635 widened it to the whole corpus.
 
-Brands are **discovered** from `packages/engine/out/`, so a fifth is covered the day it lands. The four
-known profiles are then asserted **by name**, because a gate with a scope must prove each promised
-surface is represented rather than count files — if `aurora` stopped being emitted, a count-based
-check would report "3 brands, all green" and the only brand with gradients would have left the corpus
-unnoticed.
+Brands are **discovered** from `packages/engine/out/`, so a new one is covered the day it lands. Every
+brand in the gate's `PROMISED` list is then asserted **by name**, because a gate with a scope must
+prove each promised surface is represented rather than count files — if `aurora` stopped being emitted,
+a count-based check would report every remaining brand green and a brand with gradients would have left
+the corpus unnoticed. The table below is that list; `[SCOPE-DOC]` fails if it and `PROMISED` disagree (#4134).
 
 | brand | what it exercises that the others do not |
 |---|---|
 | `nb` | the legacy `nbds.*` dialect, and the hand-authored regression target |
+| `prism3` | the canonical default theme (#1296): an italic-default heading category, one weight on two family spellings, gradients on a primary-action brand |
 | `aurora` | gradients (Paint Styles) + a decoupled action palette |
 | `harbor` | a third input profile |
 | `wendys` | the standard-dialect front door (`parseStandard` + classifier) |
 
 **Every expectation is derived per brand.** Leaf counts, mode lists and the token root all differ —
-`nb` roots at `nbds`, the rest at `prism` — so a shared literal would be one measurement standing in
-for four. The page-background check reads the root off each brand's own tree and compares the
+`nb` roots at `nbds`, `prism3` at `pds3`, and each other brand at its own root — so a shared literal
+would be one measurement standing in for all of them. The page-background check reads the root off each brand's own tree and compares the
 canonical build against that brand's dark projection, rather than asserting a hard-coded color.
 
 ## What widening it found: `[object Object]`, and the split that fixed half of it

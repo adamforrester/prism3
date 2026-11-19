@@ -475,6 +475,9 @@ ok(!compsOpensOf({ blocked: 0, due: 0 }), '#3712 Q-UD3 open: none: nothing block
     '#2956 off status: the set reads Updates off, beside Hand-edited when both');
   ok(UPDATE_COPY.off === 'Updates off' && UPDATE_COPY.status.off === 'Updates off' && UPDATE_COPY.turnOff === 'Turn off updates' && UPDATE_COPY.turnOn === 'Turn updates back on',
     '#2956 off copy: the state and its two actions read as approved');
+  // #4227: the Kept edits line agrees with its count, as offSub does.
+  ok(UPDATE_COPY.keptSub(1).startsWith('1 set holds hand edits ') && UPDATE_COPY.keptSub(2).startsWith('2 sets hold hand edits '),
+    `#4227 keptSub agrees with its count (${UPDATE_COPY.keptSub(1).slice(0, 26)} / ${UPDATE_COPY.keptSub(2).slice(0, 26)})`);
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);
