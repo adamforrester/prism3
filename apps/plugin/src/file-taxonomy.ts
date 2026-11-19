@@ -146,6 +146,9 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Popover (#4008, owner Q-FL2) — its own page under Components, beside Dialog. Which section it belongs in is the
+        // owner's call, held in the PR as Link's and Banner's were. It nests FlushIconButton.Neutral and the Button group.
+        { page: 'Popover', defs: ['popover'] },
         // Banner (#2579, Q327) — its own page under Components. The proposal named a feedback section; none exists, so the
         // section is held as an owner item in the PR, as Link's was. It nests Button.Neutral and FlushIconButton.Neutral.
         { page: 'Banner', defs: ['banner'] },
@@ -221,8 +224,6 @@ export const EXCLUDED_DEFS: readonly string[] = [];
 export const STANDALONE_NESTED: Readonly<Record<string, string>> = {
   // Badge: under Components, owner-decided 2026-10-04 (S8 scope, O1). Tab.Item nests it; a designer places it anywhere.
   badge: 'S8 scope, O1',
-  // Button.Group: on the Buttons page (#2661, owner decision Q363). Dialog nests it; a designer places it in any footer.
-  'button-group': '#2661, Q363',
   // Text field: its own page under Components. Slider (#2669) nests it for the value input; a designer places it anywhere.
   'text-field': 'Text field page; nested by Slider since #2669',
 };
