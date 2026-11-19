@@ -41189,9 +41189,12 @@ arm: {
   // is a file in the tree (the gate is this arm; a comment once named a `lint-rtl-mirror.ts` that never existed).
   const citedGates = ['rtl-mirror.ts', 'component-schema.ts'].flatMap((f) =>
     [...readFileSync(join(HERE, f), 'utf8').matchAll(/`((?:[\w./-]*\/)?lint-[\w-]+\.ts)`/g)].map((m) => [f, m[1]] as const));
-  const strayGates = citedGates.filter(([, g]) => !['packages/engine', 'apps/plugin'].some((d) => existsSync(join(HERE, '..', '..', d, g.split('/').pop()!))));
-  ok(strayGates.length === 0,
-    `#3986: every gate rtl-mirror.ts and component-schema.ts cite exists (${citedGates.length} cited)${strayGates.length ? ` — no such file: ${strayGates.map(([f, g]) => `${f} → ${g}`).join(', ')}` : ''}`);
+  // A path-qualified cite (`tools/x/lint-y.ts`) resolves from the repo root; a bare name, in either gate home. The
+  // floor holds the scan to what it read on landing (54), so a regex that stopped matching cannot pass on nothing.
+  const strayGates = citedGates.filter(([, g]) => g.includes('/') ? !existsSync(join(HERE, '..', '..', g))
+    : !['packages/engine', 'apps/plugin'].some((d) => existsSync(join(HERE, '..', '..', d, g))));
+  ok(citedGates.length >= 50 && strayGates.length === 0,
+    `#3986: every gate rtl-mirror.ts and component-schema.ts cite exists (${citedGates.length} cited, floor 50)${strayGates.length ? ` — no such file: ${strayGates.map(([f, g]) => `${f} → ${g}`).join(', ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- #2661: the Button group

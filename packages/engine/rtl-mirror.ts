@@ -7,7 +7,7 @@
  *  filled from the def's right-to-left prose and held to it by the #3986 arm in `test.ts`. This module is the field's one
  *  reader for the docs: `rtlNote` is the short "In RTL" note the usage panel and the docs page show.
  *
- *  THE NOTE'S WORDING IS DRAFT, for the owner (#3986 part 3). Each sentence is one value, in the order the values
+ *  The note's wording is as drafted, owner-approved 2026-11-18 (#4030, #3986 part 3). Each sentence is one value, in the order the values
  *  are listed, naming the parts that carry it the way the anatomy names them (`partName`).
  */
 import type { ComponentDef, Mirror } from './component-schema';
@@ -40,7 +40,7 @@ const subject = (def: ComponentDef, ids: string[]): { text: string; plural: bool
 };
 
 /**
- * The "In RTL" note for a def, from its own parts' `mirror` fields, or `undefined` when it declares none. DRAFT wording.
+ * The "In RTL" note for a def, from its own parts' `mirror` fields, or `undefined` when it declares none. Owner-approved wording.
  *
  *   reverses  → "The layout mirrors: the start edge is on the right."
  *   mirrors   → "The chevron glyph flips to point the other way."

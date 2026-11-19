@@ -206,8 +206,8 @@ export const ICON_SOURCES: Record<string, string> = {
  *
  * Read from the Icon def's own prose (directional glyphs mirror: back and forward; a clock stays a clock) and Link's
  * (the arrow and the external icon mirror): every glyph that points left or right, the diagonals with them, and the
- * external-link arrow. Up, down, a check, a close and every symbol stay as drawn. The list is DRAFT for the owner, as
- * any icon set swapped in for this one brings its own (`icons/NOTICE.md`).
+ * external-link arrow. Up, down, a check, a close and every symbol stay as drawn. The owner approved the list on 2026-11-18
+ * (#4030); any icon set swapped in for this one brings its own (`icons/NOTICE.md`).
  *
  * A part whose `mirror` is `per-glyph` (the Icon's glyph, or a slot that holds an icon) mirrors exactly when its glyph
  * is in this set. `test.ts` holds every name to `ICON_SOURCES`.
