@@ -8,7 +8,7 @@ agrees). CONTRACT unchanged.
 ### What changed
 
 - **Owner decision on #3119 (2026-11-18, A):** a bad build offers "Show the set in Figma", only when the set exists. The
-  wording is DRAFT (`SHOW_SET` in `activity.ts`).
+  wording was approved as built on 2026-11-18 (`SHOW_SET` in `activity.ts`).
 - **Knowing the set exists.** The panel's `fileSets` is only re-read when Update file asks, so it cannot say whether a
   build left the set. The main thread now says so after every Build set, the panel's or an agent's, through one wrapper
   on the action table's entry (`thenTellSet`): `set-in-file { def, inFile }`. It is read by a fresh page-by-page search
@@ -26,7 +26,7 @@ agrees). CONTRACT unchanged.
 
 ### Calls made here, for the owner
 
-- **Wording (DRAFT):** "Show the set in Figma", the decision's own words. Recommended as is.
+- **Wording (approved 2026-11-18):** "Show the set in Figma", the decision's own words, approved as built.
 - Offered on every Build set result that is not clean, warnings ("built with problems") included, since those are the
   results next steps are drawn for, and the set is there to see. Also offered on an agent's build: showing a set doesn't
   depend on whose input built it, which is why Build again is withheld from agent results.

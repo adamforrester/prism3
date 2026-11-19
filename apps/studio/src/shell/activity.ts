@@ -253,8 +253,8 @@ export const AGAIN: Readonly<Partial<Record<RowKey, string>>> = {
 };
 /** Q3113.4 A: every bad result's last next step (DRAFT wording). */
 export const COPY_DETAILS = 'Copy details';
-/** #3119 (owner decision 2026-11-18 A): a Build set result's next step that shows its set (DRAFT wording, OWNER DECISION on
- *  the PR). Offered only while the file holds the set. */
+/** #3119 (owner decision 2026-11-18 A): a Build set result's next step that shows its set (wording approved
+ *  by the owner 2026-11-18, on the PR). Offered only while the file holds the set. */
 export const SHOW_SET = 'Show the set in Figma';
 
 /** How a result reads (Q3113.2 A): clean, a warning or a failure. A write's verdict is `ok: false` for a failure and a
