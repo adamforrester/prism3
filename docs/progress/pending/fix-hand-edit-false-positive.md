@@ -14,7 +14,7 @@ The owner's Update file run on the template file, which nobody had edited, repor
 
 ### Tests and mutations
 New arms:
-- `test-update-apply.ts`: `#4070 nested/added`, `/renamed`, `/default`, `/real edit`, `/kept still reported`.
+- `test-update-apply.ts`: `#4070 nested/added`, `/renamed`, `/default`, `/real edit`, `/kept still reported`, and `/written before`, which pins the limit below.
 - `test-doc-panel.ts`: `own draw/specimen fill (#4070)`, `own draw/v3 unchanged (#4070)`; `own draw/untouched` now also moves specimen roots.
 
 On main, `nested/added`, `/renamed`, `/default` and `own draw/untouched` fail by name. Each mutation fails the arms it names:
@@ -26,8 +26,11 @@ On main, `nested/added`, `/renamed`, `/default` and `own draw/untouched` fail by
 | `finishUpdated`'s `inst` keep dropped | `nested/kept still reported`, plus `#3474 kept/still reported` and `/earlier record` |
 | `specimenView` returns `printView` | `own draw/untouched` |
 | a specimen read with none of its own overrides | `own draw/specimen fill` |
+| `baselineDiff` reads `inst` where only the live record holds it | `nested/written before` |
 
 ### What this cannot fix
-- **Records already written.** A record from before #3474 (2026-11-06) holds no `own`, so it still compares a nested instance whole. Card number field's 84 members reproduce that way: strip `own` and move Field label's fill, and all 84 read edited at `label`. A false edit already kept keeps its old hash, by design (`finishUpdated` never launders a kept edit).
-- **Recovering the template file** needs a choice: OWNER DECISION on #4070.
+- **Every record and every usage-panel print written before this build.** `baselineDiff` reads `inst` only where both records hold it, and no record written before this build holds one. Such a record still takes the `own` branch, and `own` still carries the nested set's whole property list by full name, so the next change to a set it nests still reads as a hand edit on every member (`#4070 nested/written before`: a rename on List.Item reads on all 12 List members). Records are rewritten only by an update that writes the member or by Accept as built; a member that reads current is never re-recorded. A third-form panel print is still compared by `printV3`, which still reads the specimen root, so every usage panel drawn before this build is kept as "(edited)" again the first time its member's root is redrawn. This applies to the template file and to every other existing file, until each set and panel is rewritten.
+- **Records from before #3474** (2026-11-06) hold no `own` either, so they compare a nested instance whole. Card number field's 84 members reproduce that way: strip `own` and move Field label's fill, and all 84 read edited at `label`.
+- **A false edit already kept** keeps its old hash, by design (`finishUpdated` never launders a kept edit).
+- **Recovering the template file** needs a choice: OWNER DECISION on #4088. The general recovery (re-recording a member that reads current, or a panel that reads unedited, in the new form) is filed as its own issue.
 - **Shape-17 limit.** Two host facts are modeled from Figma's typings, not measured: that `componentProperties` lists a property at its default when the instance does not set it, and that `overrides` lists a specimen's own fields under its id.

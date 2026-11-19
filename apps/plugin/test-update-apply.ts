@@ -868,6 +868,22 @@ for (const [tag, change] of [
     `#4070 nested/${tag}: a property ${tag} on List.Item alone leaves every List member current, with no hand edit (${JSON.stringify(after.counts)}; ${JSON.stringify([...new Set(after.handEdits.map((h) => h.path))])})`);
 }
 {
+  // THE STATED LIMIT (#4088 review): `inst` is read only where BOTH records hold it, so every record written before this
+  // build (an `own` part, no `inst`: what main wrote until now) is still compared through `own`, and a nested rename still
+  // reads as a hand edit on every member. The progress entry's "What this cannot fix" rests on this; if a change ever
+  // reads such a record another way, this arm fails and that statement must move with it. Mutation: `baselineDiff` reads
+  // `inst` where only the live side holds it → `#4070 nested/written before`.
+  const w = await nestedWorld();
+  for (const m of membersOf(w.lists)) {
+    const { inst: _inst, ...earlier } = JSON.parse(pdOfMember(m, BASELINE_KEY)) as Record<string, unknown>;
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify(earlier));
+  }
+  (w.items.editComponentProperty as (k: string, v: { name: string }) => string)(textProp(w.items), { name: 'caption' });
+  const after = (await previewUpdate(w.file, [{ def: 'list', plans: w.list }])).sets[0];
+  ok(after.counts.handEdited === 12 && after.counts.current === 0,
+    `#4070 nested/written before: a record with \`own\` and no \`inst\` is still compared through \`own\`, so a rename on List.Item reads on all 12 List members (${JSON.stringify(after.counts)})`);
+}
+{
   // A REAL EDIT IS STILL ONE: a value set by hand on one nested item reads as a hand edit there, and only there; kept by
   // an update, it is still reported on the next check.
   const w = await nestedWorld();
