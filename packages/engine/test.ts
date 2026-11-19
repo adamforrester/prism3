@@ -16,7 +16,7 @@ import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
 import { at, deref, pxOf, buildTree, familyOf, aliasFaults, type AliasFault } from './tree';
-import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
+import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, defaultTypeMode, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, overrideGroundRgb, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
 import { groundsOf } from './grounds';
@@ -6338,6 +6338,28 @@ arm: {
     'A2b(d): an empty modeAnchors map produces byte-identical output');
 }
 
+// #2076 (owner decision 2026-11-18, A): `controlShape`'s schema description is the lever manifest's wording, with the
+// token names an agent reads kept. Held: it names each shape's rung, and none of the words #2050 retired from visible
+// copy or the claim #2059 made false ("implies the hairline rung": radius.hairline ships for every brand). The token
+// names are typed here, not read from the emitter.
+{
+  const cs = JSON.parse(readFileSync(resolve(HERE, 'schema', 'theme-schema.json'), 'utf8')).properties.controlShape.description as string;
+  const missing = ['radius.none', 'radius.hairline', 'radius.md', 'radius.capsule'].filter((t) => !cs.includes(t));
+  ok(missing.length === 0, `#2076: controlShape's schema description names every shape's token (missing: ${missing.join(', ') || 'none'})`);
+  const stale = ['implies', 'pill-able', 'rung'].filter((w) => cs.toLowerCase().includes(w));
+  ok(stale.length === 0, `#2076: controlShape's schema description carries none of the retired words or the false claim (found: ${stale.join(', ') || 'none'})`);
+}
+// #4019 (#2343 Q-B6 A): Link's usage carries the social follow-link example, and the mark it names is one the set ships.
+// The set is read from the artwork folder on disk, not from the glyph table the defs import.
+{
+  const usage = componentDefs.find((d) => d.id === 'link')!.docs.usage;
+  const named = usage.match(/social\/[a-z0-9-]+-mono/)?.[0];
+  const shipped = readdirSync(resolve(HERE, 'marks', 'social')).filter((f) => f.endsWith('.svg')).map((f) => `social/${f.slice(0, -4)}`);
+  ok(/follow link/i.test(usage) && !!named && shipped.includes(named),
+    `#4019: Link's usage gives the social follow-link example around a one-color mark the set ships (${named ?? 'none named'})`);
+  ok(/aria-label/.test(usage) && /aria-hidden/.test(usage), "#4019: the follow-link example names the link by aria-label and hides the mark");
+}
+
 // USER-ADDED CUSTOM MODES (Phase C1) — a custom mode `{ name, base }` LIVE-INHERITS a customizable
 // built-in (light/dark): it re-derives EXACTLY like its base each build, then its own overrides/
 // modeAnchors deviate it. Reserved/duplicate/bad-base/bad-slug names throw; byte-identical when absent.
@@ -10226,6 +10248,30 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(tinted.colorRgb.r + tinted.colorRgb.g + tinted.colorRgb.b > 0, 'tinted shadow base is not pure black');
 }
 
+// ------------------------------------------------- #2935: the default type mode per breakpoint
+// Owner decision 2026-11-18 (A): mobile below 1024px, desktop from 1024px up. The expectations are typed here,
+// per floor, never computed from `defaultTypeMode` or `DESKTOP_TYPE_FROM_PX` (docs/34): a rule that moved its
+// threshold, flipped its comparison or returned one mode everywhere fails a named arm below.
+{
+  const cases: [number, 'mobile' | 'desktop'][] = [[0, 'mobile'], [360, 'mobile'], [768, 'mobile'], [1023, 'mobile'], [1024, 'desktop'], [1440, 'desktop'], [1920, 'desktop']];
+  for (const [px, want] of cases) ok(defaultTypeMode(px) === want, `#2935 TYPE MODE: a ${px}px breakpoint defaults to ${want} type (got ${defaultTypeMode(px)})`);
+  // The emitted Figma description carries it, per breakpoint variable, for the default five and for a two-breakpoint brand.
+  const desc = (t: Theme): Record<string, string> => Object.fromEntries((buildFigmaLayout(t)[0]?.variables ?? [])
+    .filter((v) => /\/breakpoint\//.test(v.name)).map((v) => [v.name.split('/').pop() as string, v.description ?? '']));
+  const base = { primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const five = desc(brandTheme({ id: 'tm5', ...base }));
+  const wantFive: Record<string, string> = { sm: 'mobile', md: 'mobile', lg: 'desktop', xl: 'desktop', '2xl': 'desktop' };
+  for (const [bp, m] of Object.entries(wantFive))
+    ok((five[bp] ?? '').endsWith(`uses ${m} type by default`), `#2935 TYPE MODE: breakpoint/${bp} says ${m} type in its Figma description (got "${five[bp]}")`);
+  const two = desc(brandTheme({ id: 'tm2', ...base, layout: { breakpoints: [0, 768] } } as BrandInput));
+  ok((two.sm ?? '').endsWith('uses mobile type by default') && (two.md ?? '').endsWith('uses mobile type by default'),
+    `#2935 TYPE MODE: a 0/768 brand's sm and md both default to mobile type (got "${two.sm}" / "${two.md}")`);
+  // Static type: `type-sets` has no modes, so no breakpoint names one.
+  const flat = desc(brandTheme({ id: 'tmS', ...base, typography: { responsive: { fluid: false } } } as BrandInput));
+  ok(Object.keys(flat).length === 5 && Object.values(flat).every((d) => !/ type by default/.test(d)),
+    `#2935 TYPE MODE: with static type no breakpoint names a type mode (got ${JSON.stringify(flat)})`);
+}
+
 // ------------------------------------------------- layout / breakpoint invariants
 {
   const lyBrand = (id: string, layout: any) => brandTheme({ id, primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, layout });
@@ -11535,6 +11581,31 @@ arm: {
   for (const s of ['full', 'reduced', 'conventional']) {
     const r = dRoles({ ...seed, disabledStrategy: s, disabledMin: 3 }, 'hc-light')['disabled.text'];
     ok((r?.min ?? 0) >= 4.5, `#290 disabled: high-contrast escalates '${s}' to >=4.5 (got ${r?.min})`);
+  }
+
+  // THE DISABLED EDGE FOLLOWS THE LEVERS (#2750; owner decision lettered A, text = option B, 2026-11-18). `disabled.border` (and its inverse
+  // twin) clears the same floor as the disabled inks, so both levers move it. On main it was the fixed `neutralLow()`
+  // step rated `min: 0`: the same hex at every setting, 1.5–1.8:1 against the page. The expectations are the lever's
+  // own numbers (4.5 for 'full', the dial for 'reduced', >=4.5 in high contrast), never read from `modes.ts`.
+  {
+    const settings: [string, any, number][] = [
+      ['full', { ...seed, disabledStrategy: 'full' }, 4.5],
+      ['reduced 3', { ...seed, disabledStrategy: 'reduced', disabledMin: 3 }, 3],
+      ['reduced 4.5', { ...seed, disabledStrategy: 'reduced', disabledMin: 4.5 }, 4.5],
+    ];
+    const misses: string[] = [];
+    for (const [label, input, want] of settings) for (const m of ['light', 'dark', 'hc-light']) {
+      const floor = m.startsWith('hc') ? Math.max(want, 4.5) : want;
+      const roles = dRoles(input, m) as Record<string, { ratio?: number; min?: number; hex?: string } | undefined>;
+      for (const k of ['disabled.border', 'inverse.disabled.border']) {
+        const r = roles[k];
+        if (!r || r.min !== floor || (r.ratio ?? 0) < floor) misses.push(`${label} ${m} ${k} min ${r?.min} ratio ${r?.ratio}`);
+      }
+    }
+    ok(misses.length === 0, `#2750 disabled.border clears the disabled levers' floor in every setting, mode and context — misses: ${misses.join('; ') || 'none'}`);
+    const hexAt = (input: any) => (dRoles(input, 'light') as Record<string, { hex?: string } | undefined>)['disabled.border']?.hex;
+    const lo = hexAt(settings[1]![1]), hi = hexAt(settings[2]![1]);
+    ok(!!lo && !!hi && lo !== hi, `#2750 disabledMin moves disabled.border (reduced 3 ${lo}, reduced 4.5 ${hi})`);
   }
 
   // The schema must REJECT a sub-3 floor rather than rely on the engine clamp — the clamp protects
@@ -35321,7 +35392,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
 //       contract, so (c) can see the floor this migration had to clear.
 //
 // Mutations, each failing here by name:
-//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 232 contracts pass on the neutral palette (want 232) —
+//   (1) the fixture's `border.rest` step 400 → 350 → `#3336 light: all 234 contracts pass on the neutral palette (want 234 …) —
 //       FAILED: interactive.primary.border.rest 2.81<3`, `#3336 light: interactive.primary.border.rest is neutral.400 #8f8d8d
 //       at 3.30:1 …` and `#3336 light: the action family resolves to the decided neutral step and hex …`
 //   (2) the `brand-neutral` brand color restored to the fixture → `#3336 the reference brand carries no brand-neutral palette …`
@@ -35378,7 +35449,7 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
       ok(stale.length === 0, `#3336 ${m.mode}: no role aliases brand-neutral${stale.length ? ` — ${stale.slice(0, 5).join(', ')}${stale.length > 5 ? ` and ${stale.length - 5} more` : ''}` : ''}`);
       // (c)
       const { checked, broken } = contracts(roles);
-      ok(checked.length === 232 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 232)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
+      ok(checked.length === 234 && broken.length === 0, `#3336 ${m.mode}: all ${checked.length} contracts pass on the neutral palette (want 234: #2750 rates the two disabled borders)${broken.length ? ` — FAILED: ${failed(broken)}` : ''}`);
       // (d)
       const b = roles['interactive.primary.border.rest'];
       ok(!!b && b.hex === '#8f8d8d' && /\.palette\.neutral\.400$/.test(b.path) && Math.abs(b.ratio - 3.30) < 0.005 && b.min === 3 && b.against === 'background.primary',
