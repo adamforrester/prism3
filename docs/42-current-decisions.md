@@ -118,6 +118,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | `password-field` is in the POC as a third top-level component (Q100 A) | 2026-11-07 | `docs/19-code-library-and-dx.md` §10.2 | #3408 |
 | Prism3 never renames a mode in a built file, custom modes included (Q172 A) | 2026-11-11 | `docs/44-materialization-renames.md` §9.1 | #1040 |
 | text, effect and gradient styles carry a rename record; the plugin renames the existing style in place (Q173 A) | 2026-11-11 | `docs/44-materialization-renames.md` §10.1 | #1040 |
+| the scrim's steps are declared taste, not a derivation | 2026-11-18 | `docs/20-interactive-color-system.md` §8.3 | #1043 |
 
 ## Known gaps, named rather than silent
 
