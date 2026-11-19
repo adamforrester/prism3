@@ -1198,6 +1198,13 @@ export const GATES: Gate[] = [
     why: 'it reads the dist/main.js and dist/ui.html the plugin build just wrote',
   },
   {
+    id: 'lint-web-bundle-prose',
+    ciStep: 'The built web specs chunk ships no maintainer notes and no Prism 2 in component text (#3429)',
+    cmd: [...TSX, 'apps/plugin/lint-bundle-prose.ts', '--web'],
+    after: ['build-web'],
+    why: 'it reads the dist/component-specs.js the web build just wrote',
+  },
+  {
     id: 'lint-release-bundle',
     ciStep: 'The release build carries no dev-only code (#2530)',
     cmd: [...TSX, 'apps/plugin/lint-release-bundle.ts'],
@@ -1276,6 +1283,13 @@ export const GATES: Gate[] = [
     id: 'lint-locale-order',
     ciStep: 'No engine comparison depends on the host locale (#3698)',
     cmd: engine('lint-locale-order.ts'),
+  },
+  {
+    // #3984, owner Q-DM2 A — reads theme-schema.json and runs design-md.ts's serializer and parser in memory; needs no
+    // build and no `after`.
+    id: 'lint-design-md-round-trip',
+    ciStep: 'design.md carries every brand setting the schema allows (#3984)',
+    cmd: engine('lint-design-md-round-trip.ts'),
   },
   {
     // #3698 F4, R5 item 3 — reads the surfaces' and the engine's tracked source text and the engine's package.json;

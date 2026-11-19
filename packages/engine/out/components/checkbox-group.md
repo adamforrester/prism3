@@ -87,7 +87,7 @@ The group label names the decision; the rows carry the short options. Group erro
 ## Related components
 
 - **Built from:** `checkbox-row`, `field-label`, `field-message`
-- **Instead, consider:** `radio-group`, `switch-row`, `select`, `tag`
+- **Instead, consider:** `radio-group`, `switch-row`, `select`, `tag`, `tag-group`
 - **Often used with:** `checkbox-control`
 - **Replaces:**
   - a bare set of \<input type="checkbox"> with no shared label or group wiring

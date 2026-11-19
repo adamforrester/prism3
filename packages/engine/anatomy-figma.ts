@@ -1934,6 +1934,8 @@ export const figmaAnatomyPlan = (
     if (p.kind === 'nest' && p.nestPaddingBlock) { bound.paddingTop = varOf(p.nestPaddingBlock); bound.paddingBottom = varOf(p.nestPaddingBlock); }
     if (p.kind === 'box') {
       if (p.gap) bound.itemSpacing = varOf(p.gap);
+      // THE LINE GAP of a wrapping row (#1739, `PartDef.rowGap`). Both executors bind `bound` after `layoutWrap`.
+      if (p.rowGap) bound.counterAxisSpacing = varOf(p.rowGap);
       if (p.height) bound.height = varOf(p.height);
       // A token-bound height FLOOR: the row still hugs, and measures max(floor, tallest child).
       if (p.minHeight) bound.minHeight = varOf(p.minHeight);
@@ -5683,7 +5685,7 @@ for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+n
 export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
-  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs',
+  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tag-group', 'tab-item', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
   'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', '_slider-thumb', 'slider',

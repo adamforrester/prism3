@@ -38,6 +38,8 @@ Shown on the default member: kind `ancestor`, separator `chevron`, size `medium`
 
 Items make up a Breadcrumbs trail and are set inside it: ancestors first, the current page last, and an overflow item where a long trail collapses. Change an item's kind in the trail; never place an item on its own.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Make the last item the current page

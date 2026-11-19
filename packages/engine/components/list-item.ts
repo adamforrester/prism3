@@ -131,7 +131,7 @@ export const listItem: ComponentDef = {
       // BUILT AT 320 (`placementWidth`) and filling its column in use, with the fields' 120 floor, as checkbox-row is:
       // the text fills the row and wraps, which needs a bounded row.
       row: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         // `target` because the schema requires exactly one — not an interaction claim (divider's and veil's use).
         role: 'target',
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
@@ -171,7 +171,7 @@ export const listItem: ComponentDef = {
         note: 'The item\'s number, in the item\'s text style and color; the list counts it.',
       },
       icon: {
-        kind: 'slot',
+        kind: 'slot', mirror: 'never',
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
         swapDefault: 'check',

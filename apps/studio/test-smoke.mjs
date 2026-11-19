@@ -3307,6 +3307,38 @@ s5aArm: for (const brand of BRANDS) {
   ok(parsed !== null && typeof parsed === 'object', `${brand}: the exported token file is valid JSON (${body.length} bytes)`);
   ok(parsed !== null && Object.keys(parsed).length > 0, `${brand}: the exported token tree is not empty`);
 
+  // --- 2c-ii. the web downloads the component specs, from a chunk loaded on the click (#3429) ---------------------
+  // Owner decision C: the web Studio exports the component specs. The definitions are not in main.js, so the exporter
+  // arrives as `dist/component-specs.js`, requested only when Download is clicked. Measured here as a browser sees it:
+  // no request for the chunk while the artifact is merely selected, one after the click, and three files that parse (the
+  // contracts, their compatibility copy and the Specs projection, #1325), holding the same components.
+  {
+    const chunkHits = [];
+    const onReq = (r) => { if (new URL(r.url()).pathname === '/dist/component-specs.js') chunkHits.push(r.url()); };
+    page.on('request', onReq);
+    if (!(await page.locator('[data-p3="export-page"]').isVisible())) await hooks.click(page.locator('[data-p3="rail-export"]'));
+    await hooks.need(page, '[data-p3="export-page"]');
+    await hooks.click(page.locator('#p3-export-tab-component-specs'));
+    const off = await page.locator('[data-p3="export-page"] [data-p3="dialog-confirm"]').isDisabled();
+    ok(!off, `#3429 ${brand}: on the web, Download component specs is on`);
+    const beforeClick = chunkHits.length;
+    const specs = await downloadSet(page, brand, 3);
+    page.off('request', onReq);
+    ok(beforeClick === 0 && chunkHits.length === 1, `#3429 ${brand}: the component specs chunk is requested on the click, not before (before ${beforeClick}, after ${chunkHits.length})`);
+    // #1325: the contract-named file, its compatibility copy under the old name (same bytes), and the Specs projection.
+    const names = Object.keys(specs).sort();
+    const contractsName = names.find((n) => n.endsWith('.component-contracts.json'));
+    const defsName = names.find((n) => n.endsWith('.component-defs.json'));
+    const specsName = names.find((n) => n.endsWith('.component-defs.specs.json'));
+    const stem = (n) => n?.slice(0, n.indexOf('.component-'));
+    ok(names.length === 3 && !!contractsName && !!defsName && !!specsName && stem(contractsName) === stem(defsName) && stem(defsName) === stem(specsName),
+      `#3429 ${brand}: the specs download is three files, the contracts, their compatibility copy and the Specs projection (got ${JSON.stringify(names)})`);
+    const ids = Object.keys(specs[contractsName]?.components ?? {}).sort();
+    ok(ids.includes('button') && ids.includes('list-item') && JSON.stringify(specs[defsName]) === JSON.stringify(specs[contractsName])
+      && JSON.stringify(Object.keys(specs[specsName]?.components ?? {}).sort()) === JSON.stringify(ids),
+      `#3429 ${brand}: the contracts hold the component definitions (Button and List item among ${ids.length}), the copy is the same, and the Specs projection holds the same ones`);
+  }
+
   // --- 2d. an engine throw from a NON-COLOR page is visible (#388 / #772) ------------------------
   //
   // #388's original defect path, driven. `lastError` was surfaced only by `renderPrimitives`' paint
