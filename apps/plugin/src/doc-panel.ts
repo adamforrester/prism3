@@ -402,6 +402,9 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         break;
       case 'usage': {
         if (s.usage) blocks.push({ type: 'Paragraph', text: firstSentences(s.usage, 2), size: SIZE });
+        // #3986 part 3 (Q-RTL1 A): Figma draws left to right only, so the panel says what changes in right-to-left text,
+        // generated from the parts' `mirror` fields. No right-to-left variants. The wording is DRAFT for the owner.
+        if (s.rtl) blocks.push({ type: 'Paragraph', text: `In RTL: ${s.rtl}`, size: SIZE });
         // The family's items, the lead's first, each once (Q551 A on Q2): the counts are of the merged lists.
         const merged = (pick: (u: { do: string[]; dont: string[] }) => string[]): string[] => [...new Set([s, ...others.map((o) => {
           const u = docSections(o).sections.find((x) => x.id === 'usage');
