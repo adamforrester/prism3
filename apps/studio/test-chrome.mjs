@@ -2757,7 +2757,7 @@ if (runs('7')) for (const host of ['web', 'figma']) {
 if (runs('8')) console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
 /** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
 const VERDICT_LINE = 'All 964 pairs at or above floor';   // 956 until #2750 rated disabled.border and its inverse; 884 until #3346 added the 18 selection-mark roles per mode
-// #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps "floor".
+// #3366 (Q3366.3 A) once had Health say "minimum"; #4190 V3 A supersedes it: Health and the bar both say "floor".
 const HEALTH_LINE = 'All 964 pairs at or above their floor.';
 const HEALTH_FLOOR_LINE = 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.';
 const HEALTH_MODES = ['Light: 241 of 241 at or above', 'Dark: 241 of 241 at or above', 'High contrast light: 241 of 241 at or above', 'High contrast dark: 241 of 241 at or above'];

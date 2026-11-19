@@ -15,7 +15,7 @@ decision 1, a short tip per lever) are their own PR; the naming rows are #4184's
   replace confirm; the Components list names each set in words ("Code input cell"). Both carry the id as data
   (`data-example`) for what posts and tests.
 - **Register.** The start window and Export's note are declarative; idiom is gone ("rides", "is out", "regrows").
-- **Next steps** on the saved-brand, upload, Docs-setting and two import errors, and on the axes-change blocker.
+- **Next steps** on the saved-brand, upload, Docs-setting and two import errors, and on the axes-change blocker. The two import refusals end on "Fix it in the design.md, then import it again." (DRAFT); a refusal the studio already rewords, the contrast floor's, keeps its own fix.
 - **Destructive verbs** name the outcome: "Remove 3 icon colors", "Reset 2 sizes to the scale", "Remove 4 items".
 
 ### What the tests caught
