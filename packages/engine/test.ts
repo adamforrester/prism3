@@ -43912,6 +43912,24 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(!body('RUNG_REPEATS_OPEN').includes("'code-input-cell'"), '#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered');
 }
 
+// #4207 (owner decision A, 2026-11-19) — `actionPalette` and `roleColors.action` are schema aliases. Two that name
+// different palettes are refused, naming both; before, `roleColors.action` won silently and the action note said
+// "actionPalette is not set" about a brand that set it. Neither, one or the other, or both equal still build.
+{
+  const b4207 = { id: 'a4207', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 },
+    brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }] };
+  const refusal = (extra: object): string => { try { brandTheme({ ...b4207, ...extra } as unknown as BrandInput); return ''; } catch (e) { return (e as Error).message; } };
+  for (const [label, extra] of [
+    ['neither', {}], ['actionPalette only', { actionPalette: 'accent' }], ['roleColors.action only', { roleColors: { action: 'accent' } }],
+    ['both the same', { actionPalette: 'accent', roleColors: { action: 'accent' } }],
+  ] as const) ok(refusal(extra) === '', `#4207 ${label} builds (got ${JSON.stringify(refusal(extra))})`);
+  for (const [lever, role] of [['accent', 'primary'], ['primary', 'accent']] as const) {
+    const msg = refusal({ actionPalette: lever, roleColors: { action: role } });
+    ok(msg.includes(`actionPalette is '${lever}'`) && msg.includes(`roleColors.action is '${role}'`),
+      `#4207 actionPalette '${lever}' with roleColors.action '${role}' is refused, naming both (got ${JSON.stringify(msg)})`);
+  }
+}
+
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
   process.exitCode = 1;
