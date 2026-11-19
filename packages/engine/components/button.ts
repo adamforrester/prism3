@@ -447,7 +447,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         // THE ORDER IS THE PRECEDENCE (#933): the overlay if it resolves, otherwise the fill. `filled`
         // keys a fill and no overlay; `outline` and `text` key an overlay and no fill, because they have
         // no fill to change for hover and express it as a translucent wash on this same node. Exactly
@@ -490,12 +490,12 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       // `nesting: swap` on all three swap-materialized parts (#681). A slot's target is nominated per
       // FILE by the caller and its content is the designer's to change, so there is no variant for the
       // def to fix — which is exactly what `swap` says.
-      leadingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / avatar / counter / spinner before the label.' },
+      leadingVisual: { kind: 'slot', mirror: 'per-glyph', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / avatar / counter / spinner before the label.' },
       label: { kind: 'text', optional: false, type: 'size.{size}.{appearance}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
       // Maintainer detail, out of the reader caption (#3610): Icon / caret / indicator after the label. Not split
       // into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own
       // slot — is already carried by leadingVisual + isPending.
-      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'An icon, caret or indicator after the label.' },
+      trailingVisual: { kind: 'slot', mirror: 'per-glyph', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'An icon, caret or indicator after the label.' },
       spinner: {
         kind: 'overlay',
         // THE SPINNER COMPONENT (#1670), swapped in at the member on the slot's own icon rung (a medium

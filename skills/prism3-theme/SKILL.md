@@ -90,11 +90,12 @@ minimal — read both, they are the reference; the directory also holds a standa
 | `buttonContentSize` | `match` \| `smaller` | `smaller` (Small) gives a **medium** button the small label and icon (`type.label.sm.emphasis`, `icon.size.xs`) at medium height and padding — a 44px button with a 12px label; `match` (Medium, default) leaves every size its own |
 | `buttonLabelWeight` | `emphasis` \| `default` | Control label weight. `default` (Default) sets every button and tag label in its label style's **default** weight role instead of emphasis, and the brand then ships that weight for the label styles; with `smaller`, a medium button takes the small label at that weight. Buttons and tags only: badges keep emphasis. `emphasis` (default) leaves the labels as they are |
 | `buttonTextHover` | `text` \| `fill` | What a button at the text appearance does on hover and when pressed. `text` (Text & icon only, the default) changes its label and icon colors; `fill` also gives it the outline appearance's wash. A text button is never filled at rest, and its label is always underlined (fixed, not a setting). Buttons only |
+| `buttonBorderWeight` | `hairline` \| `thick` | The border of an outline button, in every button set at once. `thick` (Thick) binds `border-width.thick`, 2px; `hairline` (Thin, default) binds `border-width.hairline`, 1px. Each set keeps its own border color. Buttons only, not icon buttons |
 | `radiusHairline` | `true` \| `false` | **retired — do not set it.** The fixed 1px `radius.hairline` rung now ships for every brand, so this changes nothing; it is accepted only so older brand files still load. For 1px-cornered controls, use `controlShape: hairline` |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed, easingRoles }` | brand energy → motion pace. `easingRoles` sets which curve each motion role resolves to, brand-wide: `default`, `enter`, `exit` or `emphasized` → `linear` \| `standard` \| `decelerate` \| `accelerate` \| `expressive` \| `calm`. An absent role keeps the engine default |
 | `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, captionFloor, sizeFloor, responsive: { fluid, minViewport, maxViewport }, sizes, tracking, faces }` | custom faces / weight remap / fluid type; `faces` pins the exact Figma `{ family, style }` per category and weight role; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **an omitted category takes the engine default (Inter, or JetBrains Mono for `code`), with a system fallback stack appended**. `sizes` and `tracking`: see the note under this table |
-| `typography.weights` | `{ <group>: [weight roles] }` | a group ships more than its default weights, e.g. `display: [strong, max]` for a black hero. Adding a weight adds styles and renames none |
+| `typography.weights` | `{ <group>: [weight roles] }` | a group ships a different or larger set than its default weights (the list replaces the set), e.g. `display: [strong, max]` for a black hero. Adding a weight adds styles and renames none |
 | `typography.italics` / `typography.italicDefault` | lists of groups | `italics`: the group also ships an italic of each style. `italicDefault`: the group's only cut is italic. Not both for one group |
 | `typography.lineHeights` / `typography.letterSpacings` | `{ <rung>: <ladder step> }` | binds a named leading or tracking rung to another step of its ladder; every style on that rung moves. The value must be a ladder step and the rungs stay in order |
 | `typography.leadingShift` / `typography.trackingShift` | `{ <group>: rungs }`, typically -1, 0 or +1 | shifts a group's whole leading or tracking curve by rungs without flattening it. Positive is more open |
@@ -179,8 +180,9 @@ Read the output — it is the contract:
   note; each is a decision to confirm or fix.
 - **Exit 0** = clean. **Exit 1** = a schema violation, a broken alias, or a **failed
   contrast contract** — the message names it. Fix the *input* and re-run. A failed contrast
-  contract almost always comes from the page or floor surfaces: move `surfaces` (`base`)
-  back toward white, or `floorStep` nearer the page. Don't move the primary's lightness: a
+  contract almost always comes from the page or floor surfaces: move the tinted `surfaces`
+  base back toward its mode's extreme (white in light, black in dark), or `floorStep` nearer
+  the page. Don't move the primary's lightness: a
   primary at any lightness compiles clean, because the engine picks the action fill's step for
   contrast. An out-of-gamut anchor means lowering its chroma.
 

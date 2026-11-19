@@ -424,7 +424,13 @@ export const scanCoverage = (text: string, rel: string, findings: Finding[]): vo
     // `properties` level per segment, like the enum rows below.
     const schemaAt = (path: string): unknown => path.split('.').reduce<{ properties?: Record<string, unknown> } | undefined>(
       (node, key) => node?.properties?.[key] as { properties?: Record<string, unknown> } | undefined, schema);
-    for (const o of declaredOmit) if (!schemaAt(o)) findings.push({ file: rel, kind: 'dead omission', detail: `\`omits:\` names \`${o}\`, which is not a BrandInput property. Remove it` });
+    for (const o of declaredOmit) {
+      if (!schemaAt(o)) findings.push({ file: rel, kind: 'dead omission', detail: `\`omits:\` names \`${o}\`, which is not a BrandInput property. Remove it` });
+      // A dotted entry outside NESTED_COVERAGE's parents (or deeper than one level) resolves, but the scan never reads
+      // that input, so it exempts nothing (#4273 review: `omits: surfaces.light` went unflagged).
+      else if (o.includes('.') && (o.split('.').length !== 2 || !(NESTED_COVERAGE as readonly string[]).includes(o.split('.')[0])))
+        findings.push({ file: rel, kind: 'dead omission', detail: `\`omits:\` names \`${o}\`, a nested input the coverage scan never reads (only one level under ${NESTED_COVERAGE.join(', ')}), so it exempts nothing. Remove it` });
+    }
     // A table row documenting an ENUM property lists every value (#2677). A row whose first cell is the
     // backticked property is the skill's statement of what the property takes; a value the schema gained
     // later and the row never learned is a choice the skill hides. `controlShape` gained `boxed` and
@@ -751,6 +757,8 @@ const selfCheck = (): string[] => {
     if (!flagged('---\n| `layout` | `{ lineHeights }` | x |\n', 'typography.lineHeights')) bad.push('#4173: a nested key on ANOTHER parent\'s row counts for this one');
     if (flagged('omits: typography.lineHeights\n---\n', 'typography.lineHeights')) bad.push('#4173: a dotted `omits:` entry does not exempt its nested input');
     if (!cov('omits: typography.notAKey\n---\n').includes('dead omission')) bad.push('#4173: a dotted `omits:` entry naming no nested input passes');
+    if (!cov('omits: surfaces.light\n---\n').includes('dead omission')) bad.push('#4173: a dotted `omits:` entry under a parent the scan never reads (`surfaces.light`) passes, though it exempts nothing');
+    if (cov('omits: typography.faces\n---\n').includes('dead omission')) bad.push('#4173: a dotted `omits:` entry under a NESTED_COVERAGE parent is flagged as dead');
   }
   const everyProp = Object.keys(
     JSON.parse(readFileSync(resolve(repo, 'packages/engine/schema/theme-schema.json'), 'utf8')).properties,
