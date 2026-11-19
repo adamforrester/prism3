@@ -682,8 +682,19 @@ export const raisedChoice = (family: 'light' | 'dark', lever: RaisedSurface | un
  *   · `standard` (the default, and unset): 40 light, 60 dark, 60 hc-light, 70 hc-dark — the steps before the lever.
  *   · `strong`: 80 light and dark; 90 hc-light and hc-dark. High contrast stays at least one step heavier than its own
  *     mode, as it is under `standard`, and the ramp tops out at 90, so both high-contrast modes meet there.
- * Heavier in dark under `standard`, because the page behind is already dark; under `strong` the page stops competing
- * in either family, so light and dark share a step. Exported so `test.ts` can pin every cell of the table.
+ * Under `strong` the page stops competing in either family, so light and dark share a step. Exported so `test.ts`
+ * can pin every cell of the table.
+ *
+ * PROVENANCE OF THE `standard` STEPS (#1043, owner decision B): chosen, not derived — a taste value. A modal backdrop
+ * has no contrast pair (`ratio: 1`, `against: 'self'`, `min: 0`), so no floor picks a step, and no gate can move one.
+ *   · light 40, dark 60: after Spectrum 2 and Radix Themes (`docs/03` Item 2). Heavier in dark so the bright content
+ *     behind a dark UI (photos, colored fills) competes less. It is not equal suppression: measured, the same alpha
+ *     suppresses the page about equally in both families (#1043's research note).
+ *   · hc-light 60, hc-dark 70: the high-contrast step-up is a deliberate choice of this system. No reference system
+ *     escalates its backdrop in high contrast, and no contrast floor asks for it.
+ * Deriving the steps from a suppression floor was tried and refused: each floor gives a different "derivation", so
+ * the floor is only the taste value moved one level up. Do not unify this with the veil's derivation (#1030), whose
+ * contrast target is real. `test.ts` (#1043) pins the steps to this declaration.
  */
 export const SCRIM_STEPS: Record<ScrimStrength, Record<'light' | 'dark' | 'hc-light' | 'hc-dark', number>> = {
   standard: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
@@ -1194,7 +1205,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const invFloorRgb = asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
   putSurf('inverse.background.tertiary', cfg.bgInverse.tertiary, 'Inverse page surface, third tier');
   // scrim — semi-transparent backdrop behind modals/drawers (alpha; heavier in dark).
-  // Its step follows the `scrimStrength` lever (#3050); `scrimStep` holds the table.
+  // Its step follows the `scrimStrength` lever (#3050); `scrimStep` holds the table. The steps are chosen, not
+  // derived (#1043, owner B): their provenance is declared at `SCRIM_STEPS`.
   const scrimAt = scrimStep(cfg.family, hc, theme.scrimStrength);
   put('scrim.default', { path: `${ns}.black-alpha.${scrimAt}`, rgb: BLACK, ratio: 1 },
     `Scrim — black backdrop behind modals and drawers; opacity ${scrimAt}%`, 'self', 0);
