@@ -97,6 +97,7 @@ apps/plugin/test-doc-panel.ts #3265
 apps/plugin/test-doc-panel.ts #3303
 apps/plugin/test-doc-panel.ts #3552
 apps/plugin/test-doc-panel.ts #3773
+apps/plugin/test-doc-panel.ts #4070
 apps/plugin/test-doc-panel.ts #848
 apps/plugin/test-file-components.ts #1600
 apps/plugin/test-file-components.ts #1713
@@ -253,7 +254,9 @@ apps/plugin/test-style-guide.ts #3135
 apps/plugin/test-style-guide.ts #3171
 apps/plugin/test-style-guide.ts #3346
 apps/plugin/test-style-guides-page.mjs #2155
+apps/plugin/test-style-guides-page.mjs #2366
 apps/plugin/test-style-guides-page.mjs #2372
+apps/plugin/test-style-guides-page.mjs #2561
 apps/plugin/test-style-guides-page.mjs #2830
 apps/plugin/test-style-guides-page.mjs #2909
 apps/plugin/test-style-guides-page.mjs #2977
@@ -328,6 +331,7 @@ apps/plugin/test-update-apply.ts #3364
 apps/plugin/test-update-apply.ts #3399
 apps/plugin/test-update-apply.ts #3474
 apps/plugin/test-update-apply.ts #3554
+apps/plugin/test-update-apply.ts #4070
 apps/plugin/test-update-components.ts #1098
 apps/plugin/test-update-components.ts #2265
 apps/plugin/test-update-components.ts #2266
@@ -531,6 +535,7 @@ apps/studio/test-chrome.mjs #2310
 apps/studio/test-chrome.mjs #2321
 apps/studio/test-chrome.mjs #2322
 apps/studio/test-chrome.mjs #2343
+apps/studio/test-chrome.mjs #2366
 apps/studio/test-chrome.mjs #2383
 apps/studio/test-chrome.mjs #2437
 apps/studio/test-chrome.mjs #2451
@@ -1099,6 +1104,7 @@ packages/engine/test.ts #2666
 packages/engine/test.ts #2668
 packages/engine/test.ts #2669
 packages/engine/test.ts #2670
+packages/engine/test.ts #2678
 packages/engine/test.ts #2695
 packages/engine/test.ts #2707
 packages/engine/test.ts #2708
@@ -1237,12 +1243,15 @@ packages/engine/test.ts #3863
 packages/engine/test.ts #3871
 packages/engine/test.ts #3872
 packages/engine/test.ts #3873
+packages/engine/test.ts #3874
 packages/engine/test.ts #3875
 packages/engine/test.ts #3876
 packages/engine/test.ts #388
 packages/engine/test.ts #390
 packages/engine/test.ts #391
+packages/engine/test.ts #3985
 packages/engine/test.ts #4019
+packages/engine/test.ts #4045
 packages/engine/test.ts #415
 packages/engine/test.ts #479
 packages/engine/test.ts #480
