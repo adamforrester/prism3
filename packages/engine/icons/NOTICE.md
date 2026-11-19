@@ -62,9 +62,11 @@ A few dozen glyphs of Remix Icon's several thousand, one SVG per name in `icon-s
 portions of it"* threshold §5 attaches its licence-inclusion requirement to. The licence is committed
 anyway: it costs nothing, and it removes the judgment call for whoever reads this next.
 
-Two glyphs are not from Remix Icon. Both were drawn for this project, because the source set has no glyph
-for the need, and both are covered by this repository's own license, not by `LICENSE` beside this file:
+Three glyphs are not from Remix Icon. All three were drawn for this project, because the source set has no
+glyph for the need, and all three are covered by this repository's own license, not by `LICENSE` beside this file:
 
+- `fpo-default-icon.svg`, the `FPO-default-icon` placeholder ("for placement only"): a disc with the letters FPO
+  knocked out of it, shown wherever an icon slot has not been given a real glyph (owner decision on #2570, 2026-11-19).
 - `resize-grip.svg`, the textarea's corner grip: two diagonal bars.
 - `slash-line.svg`, the `slash` icon, first drawn as the breadcrumb separator (#2666, owner decision Q382 A).
   Remix 4.9.1 has no plain slash, only `code-s-slash`, `slash-commands` and `divide`. It is one parallelogram on
