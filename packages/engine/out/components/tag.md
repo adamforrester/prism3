@@ -45,8 +45,6 @@ Shown on the default member: type `select`, selection `unselected`, size `medium
 
 Use a tag for something a user acts on in place. Use a select tag for a lightweight filter or choice the user toggles; use a dismissible tag for an applied filter they can remove, or a recipient or keyword entered into a field. Put tags in a group with at least 8px between them, and let the group own selection, arrow-key movement and focus after removal. If nobody acts on it, it is a badge; if it runs an action, it is a button.
 
-**In RTL.** The layout mirrors: the start edge is on the right.
-
 ### Do
 
 - Name the remove control "Remove" followed by the label

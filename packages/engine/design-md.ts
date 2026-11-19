@@ -32,12 +32,12 @@ import { BrandInput } from './theme';
 export type DesignMd = { input: BrandInput; prose: string };
 
 // --- scalar typing: bare YAML scalar string → typed JS value ------------------
-// A double-quoted scalar takes YAML's escapes the serializer writes, `\\` and `\"` (#3876), and `\n` and `\r` (#3984):
-// without decoding them, each export → import added a backslash before every quote in a brand name, and a line break
-// in one ended the frontmatter line. Any other backslash is kept as written. A single-quoted scalar has no escapes here.
+// A double-quoted scalar takes YAML's two escapes the serializer writes, `\\` and `\"` (#3876): without decoding
+// them, each export → import added a backslash before every quote in a brand name. Any other backslash is kept as
+// written. A single-quoted scalar has no escapes here.
 const unquote = (s: string): string => {
   const t = s.trim();
-  if (t.length >= 2 && t[0] === '"' && t[t.length - 1] === '"') return t.slice(1, -1).replace(/\\(["\\nr])/g, (_, c: string) => (c === 'n' ? '\n' : c === 'r' ? '\r' : c));
+  if (t.length >= 2 && t[0] === '"' && t[t.length - 1] === '"') return t.slice(1, -1).replace(/\\(["\\])/g, '$1');
   if (t.length >= 2 && t[0] === "'" && t[t.length - 1] === "'") return t.slice(1, -1);
   return t;
 };
@@ -89,7 +89,7 @@ const parseFlow = (src: string): unknown => {
     if (src[i] === '}') { i++; return o; }
     while (i < src.length) {
       ws();
-      const key = unquote(scanBare(':'));                // unquote trims the raw text; a quoted key keeps its own spaces (#3984)
+      const key = unquote(scanBare(':')).trim();
       i++;                                                 // skip ':'
       o[key] = value();
       ws();
@@ -165,7 +165,7 @@ const parseBlock = (lines: Line[]): Record<string, unknown> => {
       const line = cur.content;
       const ci = colonSplit(line);
       if (ci < 0) break;                                   // not a mapping line at this level
-      const key = unquote(line.slice(0, ci));           // unquote trims the raw text; a quoted key keeps its own spaces (#3984)
+      const key = unquote(line.slice(0, ci)).trim();
       const rest = line.slice(ci + 1).trim();
       // L-08: a duplicate key at the same level silently last-wins in plain object
       // assignment — a designer who pastes two `primary:` blocks would lose one without
@@ -265,11 +265,10 @@ export const parseDesignMd = (text: string): DesignMd => {
 // (e.g. no `root`) stays omitted, preserving the exact round-trip. Prose, if given,
 // follows the closing fence. Pairs with `parseDesignMd` for the E2E export leg.
 const bareOk = (s: string): boolean =>
-  s.length > 0 && s.trim() === s && !/[,{}[\]:#"'\n\r]/.test(s) &&
+  s.length > 0 && s.trim() === s && !/[,{}[\]:#"']/.test(s) &&
   !/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s) && !['true', 'false', 'null', '~'].includes(s);
-// Double-quoted with the escapes `unquote` decodes, backslash first (#3876), so a typed `\n` stays text; a line break
-// is written as `\n` (and a carriage return as `\r`), so the value stays on its one frontmatter line (#3984).
-const dq = (s: string): string => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}"`;
+// Double-quoted with both escapes `unquote` decodes, backslash first (#3876).
+const dq = (s: string): string => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 const serScalar = (v: unknown): string => {
   if (v === null) return 'null';
   if (typeof v === 'number' || typeof v === 'boolean') return String(v);

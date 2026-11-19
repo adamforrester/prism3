@@ -457,7 +457,7 @@ export const slider: ComponentDef = {
         note: 'The hit area around the track, as tall as the hit target. A click anywhere on it moves the nearer thumb there.',
       },
       track: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'presentation',
         paintSlots: ['fill'],
         children: ['spaceStart', 'thumbMin', 'bar', 'thumb', 'spaceEnd'],

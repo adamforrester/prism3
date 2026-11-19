@@ -50,8 +50,6 @@ Shown on the default member: expansion `collapsed`, iconPosition `leading`, indi
 
 Use an Accordion to compress a set of independent sections into scannable headers, such as FAQs, settings groups, filter panels or product details, or on its own for one optional block of detail, such as a promo code field. Let several be open at once unless space is very tight.
 
-**In RTL.** The layout mirrors: the start edge is on the right.
-
 ### Do
 
 - Make the whole header row the button, so the hit target is the full width

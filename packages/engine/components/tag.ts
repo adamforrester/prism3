@@ -311,7 +311,7 @@ export const tag: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'target',
         // The overlay wash if it resolves (unselected hover/pressed, and the selected tint), with the edge on its
         // own stroke. No `fill` slot: no member has an opaque fill.

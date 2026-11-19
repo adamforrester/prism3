@@ -21,7 +21,7 @@ To come back to these later, open the brand menu at the left of the top bar and 
 
 ## Set the levers
 
-A lever is one brand setting, such as the primary color, the type scale or the corner radius. The **Theme** area of the rail groups them into tabs. <!-- src: apps/studio/src/shell/pages.ts:516 -->
+A lever is one brand setting, such as the primary color, the type scale or the corner radius. The **Theme** area of the rail groups them into tabs. <!-- src: apps/studio/src/shell/pages.ts:514 -->
 
 | Tab | What it holds |
 |---|---|
@@ -34,7 +34,7 @@ A lever is one brand setting, such as the primary color, the type scale or the c
 | **Depth & motion** | **Elevation**, **Motion** and the shadow tint. <!-- src: apps/studio/src/shell/pages.ts:353-357 --> |
 | **Layout** | **Grid**, **Breakpoints** and **Containers**. <!-- src: apps/studio/src/shell/pages.ts:365-370 --> |
 
-Component settings, such as how buttons place their icons, are in the **Components** area, beside the list of component sets. See [Build components](build-components.md). <!-- src: apps/studio/src/shell/pages.ts:383-424 -->
+Component settings, such as how buttons place their icons, are in the **Components** area, beside the list of component sets. See [Build components](build-components.md). <!-- src: apps/studio/src/shell/pages.ts:383-422 -->
 
 Some sections start folded. Open them with the "Show N advanced" button under the section list. <!-- src: apps/studio/src/domains/color-palettes.ts:331 -->
 

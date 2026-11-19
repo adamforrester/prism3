@@ -208,6 +208,14 @@ export const STYLE_AXIS_AS_NAME: { collection: string; prefix: string; axis: Axi
     member: 'dark',
     pairsWith: 'shadow',
   },
+  // hc-dark's reduced shadows, the same sibling-style spelling (#4131).
+  {
+    collection: 'shadow-styles',
+    prefix: 'shadow-hc-dark',
+    axis: 'appearance',
+    member: 'hc-dark',
+    pairsWith: 'shadow',
+  },
 ];
 
 /**

@@ -159,7 +159,7 @@ export const dialog: ComponentDef = {
         note: 'The panel: the surface, its shadow and its corners. It pads the top and bottom; the header, body and footer pad their own sides, so a divider runs edge to edge.',
       },
       header: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'presentation',
         // The accordion's title row (Q262 A, #2456): the title beside the close, top-aligned, so a wrapped title keeps the
         // close beside its first line.

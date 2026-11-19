@@ -102,7 +102,7 @@ export const breadcrumbs: ComponentDef = {
       },
       // THE ITEMS SLOT (Q307 A): BreadcrumbItem instances, two ancestors and the current page by default.
       items: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'presentation',
         contentSlot: true,
         presentWhen: { path: ['full'] },
@@ -119,7 +119,7 @@ export const breadcrumbs: ComponentDef = {
       item2: item('ancestor', 'A second step, a link to the parent page.'),
       item3: item('current', 'The current page, last and not a link.'),
       backGlyph: {
-        kind: 'vector', mirror: 'mirrors',
+        kind: 'vector',
         glyph: 'chevron-left',
         size: 'back-icon',
         presentWhen: { path: ['parent'] },

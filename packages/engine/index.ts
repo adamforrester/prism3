@@ -53,7 +53,7 @@ export {
   densitySpacingStep, sizeRefPx,
 } from './scale';
 export type {
-  BannerStyle, ButtonBorderWeight, ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover, ControlShape, CurrentIndicator,
+  BannerStyle, ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover, ControlShape, CurrentIndicator,
   Density, DialogTitleSize, FieldStyle, RadioDotShare, SearchFieldStyle, SizeStep, TagStyle,
 } from './scale';
 export { CONTRACT_VERSION, ENGINE_VERSION } from './version';

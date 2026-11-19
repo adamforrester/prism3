@@ -377,8 +377,8 @@ form, and P12 pins that the restore's result is the one it would have had with n
 `push`). Negative arms cover clean paths, branch switches and look-alikes. F1 is the fail-closed arm. Seven mutants of
 the hook, each in a `$TMPDIR` copy, must each fail one named arm for one named reason. **It asserts and exits non-zero,
 so it is gate-shaped, but it is not wired into `ci.yml`:** #1050 asked for the hook and its battery, and wiring it the
-way #1123 wired `claude-md-freshness/` is a separate decision. The hook itself is live: #4064 added its entry to
-`.claude/settings.json`, and agents never edit that file.
+way #1123 wired `claude-md-freshness/` is a separate decision. The hook itself is live only once the owner adds its
+entry to `.claude/settings.json`; agents never edit that file.
 
 ## `tools/component-roundtrip/`
 

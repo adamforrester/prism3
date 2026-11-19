@@ -528,6 +528,269 @@
       ]
     },
     {
+      "name": "shadow-hc-dark/xs",
+      "description": "Elevation 1 of 6 — hc-dark mode",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.0313725508749485
+          },
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "radius": 2,
+          "spread": 0,
+          "visible": true,
+          "blendMode": "NORMAL"
+        },
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.019607843831181526
+          },
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "radius": 3,
+          "spread": 0,
+          "visible": true,
+          "blendMode": "NORMAL"
+        }
+      ]
+    },
+    {
+      "name": "shadow-hc-dark/sm",
+      "description": "Elevation 2 of 6 — hc-dark mode",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.03921568766236305
+          },
+          "offset": {
+            "x": 0,
+            "y": 1
+          },
+          "radius": 2,
+          "spread": -1,
+          "visible": true,
+          "blendMode": "NORMAL"
+        },
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.0313725508749485
+          },
+          "offset": {
+            "x": 0,
+            "y": 2
+          },
+          "radius": 6,
+          "spread": -1,
+          "visible": true,
+          "blendMode": "NORMAL"
+        }
+      ]
+    },
+    {
+      "name": "shadow-hc-dark/md",
+      "description": "Elevation 3 of 6 — hc-dark mode",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.05882352963089943
+          },
+          "offset": {
+            "x": 0,
+            "y": 2
+          },
+          "radius": 4,
+          "spread": -2,
+          "visible": true,
+          "blendMode": "NORMAL"
+        },
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.03921568766236305
+          },
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 12,
+          "spread": -3,
+          "visible": true,
+          "blendMode": "NORMAL"
+        }
+      ]
+    },
+    {
+      "name": "shadow-hc-dark/lg",
+      "description": "Elevation 4 of 6 — hc-dark mode",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.07058823853731155
+          },
+          "offset": {
+            "x": 0,
+            "y": 3
+          },
+          "radius": 6,
+          "spread": -3,
+          "visible": true,
+          "blendMode": "NORMAL"
+        },
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.05098039284348488
+          },
+          "offset": {
+            "x": 0,
+            "y": 8
+          },
+          "radius": 20,
+          "spread": -5,
+          "visible": true,
+          "blendMode": "NORMAL"
+        }
+      ]
+    },
+    {
+      "name": "shadow-hc-dark/xl",
+      "description": "Elevation 5 of 6 — hc-dark mode",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.09019608050584793
+          },
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "radius": 8,
+          "spread": -4,
+          "visible": true,
+          "blendMode": "NORMAL"
+        },
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.07058823853731155
+          },
+          "offset": {
+            "x": 0,
+            "y": 14
+          },
+          "radius": 32,
+          "spread": -8,
+          "visible": true,
+          "blendMode": "NORMAL"
+        }
+      ]
+    },
+    {
+      "name": "shadow-hc-dark/2xl",
+      "description": "Elevation 6 of 6 — hc-dark mode",
+      "effects": [
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.10980392247438431
+          },
+          "offset": {
+            "x": 0,
+            "y": 6
+          },
+          "radius": 12,
+          "spread": -6,
+          "visible": true,
+          "blendMode": "NORMAL"
+        },
+        {
+          "type": "DROP_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.09019608050584793
+          },
+          "offset": {
+            "x": 0,
+            "y": 22
+          },
+          "radius": 52,
+          "spread": -12,
+          "visible": true,
+          "blendMode": "NORMAL"
+        }
+      ]
+    },
+    {
+      "name": "shadow-hc-dark/inset",
+      "description": "Inner shadow for wells, pressed states and inputs — hc-dark mode",
+      "effects": [
+        {
+          "type": "INNER_SHADOW",
+          "color": {
+            "r": 0.054901961237192154,
+            "g": 0.0470588244497776,
+            "b": 0.03921568766236305,
+            "a": 0.3019607961177826
+          },
+          "offset": {
+            "x": 0,
+            "y": 2
+          },
+          "radius": 4,
+          "spread": 0,
+          "visible": true,
+          "blendMode": "NORMAL"
+        }
+      ]
+    },
+    {
       "name": "glass",
       "description": "Glass — a 32px background blur, bound to blur/glass. Fill the frame with color/glass/surface.",
       "effects": [

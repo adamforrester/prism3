@@ -248,7 +248,7 @@ export const divider: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'presentation',
         children: ['rule', 'leadingRule', 'label', 'trailingRule'],
         // A layout so a host can stretch the nested instance (`nestSizingOf` reads it); both axes FIXED,

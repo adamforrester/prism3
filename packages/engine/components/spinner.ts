@@ -113,7 +113,7 @@ export const spinner: ComponentDef = {
         note: 'The square the spinner turns in; it paints nothing and takes the size of the slot it is placed in.',
       },
       ringGlyph: {
-        kind: 'vector', mirror: 'never',
+        kind: 'vector',
         glyph: 'spinner',
         size: 'size.{size}',
         note: 'The composed drawing: the track (a full ring at 20% layer opacity) under the head arc (33% of the circle, round caps), both filled outlines inked with the one icon color. Drawn at the rest position — the arc starting at twelve o\'clock and running clockwise.',
@@ -150,7 +150,7 @@ export const spinner: ComponentDef = {
         class: 'right-to-left',
         disposition: 'unsupported',
         description:
-          'right-to-left — the turn stays clockwise and does not mirror (Spectrum\'s rule, brief §9). Clockwise reads as time moving forward; counter-clockwise reads as undo or going back. The page around it mirrors, and the rotation is the deliberate exception, so no `[dir="rtl"]` rule flips it.',
+          'right-to-left — the turn stays clockwise and does not mirror (Spectrum\'s rule, brief §9). Clockwise reads as time moving forward; counter-clockwise reads as undo or going back. Layout mirrors through logical properties, and the rotation is the deliberate exception, so no `[dir="rtl"]` rule flips it.',
       },
       {
         class: 'motion',

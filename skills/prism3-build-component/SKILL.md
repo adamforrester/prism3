@@ -740,7 +740,6 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `buttonContentSize` | value | a medium button reads the small label style and icon size |
 | `buttonLabelWeight` | value |  |
 | `buttonTextHover` | value | Fill only keys the text button's overlay token on hover and pressed; the overlay slot and the states are the same under both options |
-| `buttonBorderWeight` | value | an outline button's edge binds `border-width.thick` instead of `border-width.hairline`; the stroke and its color tokens are the same under both options |
 | `buttonMinWidthMultiplier` | value |  |
 | `baseMd` | value |  |
 | `typography.typeScale` | value |  |

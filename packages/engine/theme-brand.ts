@@ -270,7 +270,6 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'buttonContentSize', value: input.buttonContentSize, options: ['match', 'smaller'] },
     { path: 'buttonLabelWeight', value: input.buttonLabelWeight, options: ['default', 'emphasis'] },
     { path: 'buttonTextHover', value: input.buttonTextHover, options: ['text', 'fill'] },
-    { path: 'buttonBorderWeight', value: input.buttonBorderWeight, options: ['hairline', 'thick'] },
     { path: 'typography.typeScale', value: input.typography?.typeScale, options: ['compact', 'default', 'expressive'] },
     { path: 'typography.displayCeiling', value: input.typography?.displayCeiling, options: DISPLAY_VARIANTS },
     { path: 'typography.titleFloor', value: input.typography?.titleFloor, options: [16, 18] },
@@ -662,6 +661,14 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     const layers: Record<string, ShadowLayer[]> = { inset: shadow.inset.dark };
     for (const s of shadow.steps) layers[s.name] = s.dark;
     shadowByMode[cm.name] = { appearance: 'dark', colorRgb: shadow.colorRgb, softness: shadow.softness, tint: shadow.tint, layers };
+  }
+  // The built-in `hc-dark` is a dark-appearance mode too (#4131, owner decision A): it takes the same
+  // global reduced dark layers, so the shadow model holds in every dark mode. It is generate-only, so it
+  // never carries an override of its own.
+  if (modes.includes('hc-dark') && !shadowByMode['hc-dark']) {
+    const layers: Record<string, ShadowLayer[]> = { inset: shadow.inset.dark };
+    for (const s of shadow.steps) layers[s.name] = s.dark;
+    shadowByMode['hc-dark'] = { appearance: 'dark', colorRgb: shadow.colorRgb, softness: shadow.softness, tint: shadow.tint, layers };
   }
   if (Object.keys(shadowByMode).length) shadow.shadowByMode = shadowByMode;
   const gradient = buildGradient(input.gradients, palettes, root);

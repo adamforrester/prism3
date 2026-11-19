@@ -39,7 +39,6 @@ import { ComponentDef } from '../component-schema';
 import { PROVIDER_LOGO_NAMES } from '../provider-logo-glyphs';
 import { PROVIDER_LOGO_KINDS } from '../provider-logo-set';
 import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
-import { withMirrors } from '../rtl-mirror';
 
 /** The payment tiles: every mark the set draws on the tile artboard, by kind, so a kind renamed in the set (`card/` →
  *  `payment/`, PR 3) reaches this field without an edit. */
@@ -59,8 +58,7 @@ const tileless = CARD_NETWORKS.filter((n) => !(TILES as readonly string[]).inclu
 if (tileless.length)
   throw new Error(`card-number-field: the card networks ${JSON.stringify(tileless)} have no tile in the mark set's ${TILE_KIND}/ kind; the field shows each network's own tile`);
 
-// #3986: what the def's right-to-left entry says, as `mirror` fields.
-export const cardNumberField: ComponentDef = withMirrors(makeTextField({
+export const cardNumberField: ComponentDef = makeTextField({
   id: 'card-number-field',
   levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
   name: 'CardNumberField',
@@ -268,4 +266,4 @@ export const cardNumberField: ComponentDef = withMirrors(makeTextField({
       'In Figma the tile is a swap that starts at the generic payment tile; a designer picks the detected card network\'s tile with the swap card mark property. Its height is bound and its width follows the tile\'s proportion; it takes no ink from the field.',
     ],
   },
-}), { content: 'reverses', value: 'never', cardMark: 'never' });
+});

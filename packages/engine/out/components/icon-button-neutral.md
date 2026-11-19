@@ -41,8 +41,6 @@ Shown on the default member: appearance `ghost`, size `medium`, shape `square`, 
 
 Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.
 
-**In RTL.** The icon flips only if it points a direction, such as an arrow.
-
 ### Do
 
 - Always give it an accessible name (a verb)

@@ -48,8 +48,6 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 
 Use Pagination below a long list, a grid of results or a table, to move between pages and show which one is open. numbered when the user benefits from seeing the count and jumping to a page; compact in a narrow container, and numbered switches to it there on its own; simple for previous and next through an article or a short sequence. Center it under a list or a grid; end-align it under a table. Give every page an address whenever the page has one.
 
-**In RTL.** The layout mirrors: the start edge is on the right.
-
 ### Do
 
 - Place it below the content it pages

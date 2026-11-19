@@ -50,8 +50,7 @@ import { at, buildTree, pxOf } from './tree';
 import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
 import { localeFreeCompare } from './locale-free-order';
 
-// 1.5 (#576): `settings.button.borderWeight`, the outline button's border weight.
-export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.5';
+export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.4';
 /** The Specs schema version the projection is written against, and checked against (`packages/tokens/check-specs.mjs`). */
 export const SPECS_SCHEMA_VERSION = '0.39.0';
 
@@ -106,7 +105,6 @@ const leversOf = (input: BrandInput | null): Levers => {
         minWidthMultiplier: input?.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
         labelWeight: input?.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
         textHover: input?.buttonTextHover ?? DEFAULT_BUTTON_LAYOUT.textHover,
-        borderWeight: input?.buttonBorderWeight ?? DEFAULT_BUTTON_LAYOUT.borderWeight,
       },
       radioDot: input?.radioDot ?? RADIO_DOT_DEFAULT,
       raisedSurface: input?.raisedSurface ?? 'card',

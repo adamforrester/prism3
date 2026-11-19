@@ -202,7 +202,7 @@ export const counter: ComponentDef = {
         note: 'What is counted, such as "Quantity". Its label text, required marker, emphasis and weight surface on the Counter. Hidden by default: the label is always the value\'s accessible name, and shown only where nothing around the counter says what it counts.',
       },
       control: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'target',
         paintSlots: ['fill', 'border'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },

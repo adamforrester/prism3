@@ -142,7 +142,7 @@ export const accordion: ComponentDef = {
         note: 'One section: the header, the panel when open, and the rule under it.',
       },
       header: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'target',
         // The header CENTERS its one flow child, `titleRow` (owner Q276 A): a single line is centered at every size,
         // type and density, where top alignment put all of the 44px floor's slack under it (6px high at small). A

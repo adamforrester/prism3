@@ -338,7 +338,7 @@ for (const [id, theme] of themes) {
 // literals for the `prism3` example brand — names, counts and the verdict text are written out here, not
 // read off the plan, so a plan or summary that moves fails by name instead of agreeing with itself.
 const PRISM3 = (exampleBrands as Record<string, BrandInput>).prism3;
-const STYLE_COUNT = 102;         // prism3: 15 effect (14 shadow + glass, #2869) + 2 paint + 5 grid + 80 text (63 + body/xs's 8, #2266, + the 3 underlined labels, #2324, + the 6 default-weight labels and their underlined twins, Q226 A)
+const STYLE_COUNT = 109;         // prism3: 22 effect (21 shadow: light, dark and hc-dark's 7 each, #4131, + glass, #2869) + 2 paint + 5 grid + 80 text (63 + body/xs's 8, #2266, + the 3 underlined labels, #2324, + the 6 default-weight labels and their underlined twins, Q226 A)
 const COLLECTION_COUNT = 15;     // core, color, space, radius, size, icon, control, border-width, focus, opacity, blur (#2869), text-spacing (#2423), layout, motion (#2394), type-sets
 const apply = async (f: FileShim) => {
   try { return (await runApplyTheme(PRISM3, f as any)).guarded; }

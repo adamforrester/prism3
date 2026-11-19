@@ -41,8 +41,6 @@ Shown on the default member: size `medium`, status `default`.
 
 Use a group of these for exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Always inside a Radio.Group, never alone: the group owns the shared name, the value and the validation. Prefer vertical orientation, which scans better and lets long labels wrap safely; reserve horizontal for a few short options and space them so no label associates with the wrong control. Compose FieldMessage at the group rather than per option.
 
-**In RTL.** The layout mirrors: the start edge is on the right.
-
 ### Do
 
 - Ship options inside a group — the group owns the shared name, the single value, validation and the tab stop

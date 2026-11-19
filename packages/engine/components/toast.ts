@@ -107,7 +107,7 @@ export const toast: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         role: 'target',
         paintSlots: ['fill'],
         elevation: 'shadow',

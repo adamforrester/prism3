@@ -1,4 +1,0 @@
----
-engine: patch
----
-design.md keeps a line break and a quoted key's own spaces through an export and an import (#3984). The serializer wrote a line break inside a double-quoted value as it was, so the value's second line became a frontmatter line of its own and the export would not import; it now writes YAML's `\n` (and `\r`) escape, which the parser decodes, and never writes a value holding one bare. A quoted key was trimmed after it was decoded, so a key with a space at an end, or one that was a line break, came back without it; the raw text is trimmed instead. A new gate, `lint-design-md-round-trip.ts`, builds brand inputs from `theme-schema.json` that set every property, branch, enum value and boolean the schema allows, and fails by path on any that does not survive the round trip. No committed artifact changes.

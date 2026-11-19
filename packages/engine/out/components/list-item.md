@@ -37,8 +37,6 @@ Shown on the default member: type `unordered`, size `medium`.
 
 Use inside a List only. Each item is one short phrase or sentence after its marker. For several sentences, write a paragraph instead.
 
-**In RTL.** The layout mirrors: the start edge is on the right. The icon does not mirror.
-
 ### Do
 
 - Keep items short and parallel

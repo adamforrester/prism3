@@ -46,8 +46,6 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.
 
-**In RTL.** The layout mirrors: the start edge is on the right.
-
 ### Do
 
 - Set `autoComplete` to `current-password` or `new-password` on every password field

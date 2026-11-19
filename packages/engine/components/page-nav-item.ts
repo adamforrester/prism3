@@ -60,7 +60,7 @@ export const pageNavItem: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box', mirror: 'reverses',
+        kind: 'box',
         // `target` because the schema requires exactly one — NOT an interaction claim: the target is the nested Link.
         role: 'target',
         children: ['link'],
