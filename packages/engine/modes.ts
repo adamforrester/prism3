@@ -137,7 +137,11 @@ const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0, alsoC
  */
 const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = [], alsoMin = min): RatedNum => {
   const cands = steps.map((s) => ({ path: `${ns}.${palette}.${s.key}`, rgb: s.rgb, num: s.num }));
-  const anchor = cands.find((c) => c.num === anchorNum) ?? cands.find((c) => c.num === 500)!;
+  const found = cands.find((c) => c.num === anchorNum);
+  // #3873: an authored anchor off the ramp is refused in `brandTheme`; this is the backstop. Falling back to 500 is a
+  // derivation aid, so it is only defensible for a derived anchor: an exact one would ship 500 uncorrected.
+  if (!found && exact) throw new Error(`An anchor at step ${anchorNum} is not on the ${palette} ramp (${steps.map((s) => s.num).join(', ')}).`);
+  const anchor = found ?? cands.find((c) => c.num === 500)!;
   const avoidHex = new Set(avoid.map(hex));
   const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= alsoMin) && !avoidHex.has(hex(rgb));
   // `exact` = the anchor was AUTHORED (a pinned step, not the engine's derived default), so it is
@@ -1994,7 +1998,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   { const d = onDisabled(); put('disabled.on-fill', d.r, `Label / icon on a disabled fill — muted but clears ${d.min}:1`, 'disabled.fill', d.min); }
   { const d = disabledText(); put('disabled.text', d.r, `Disabled text — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
   { const d = disabledText(); put('disabled.icon', d.r, `Disabled icon — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
-  put('disabled.border', rated(neutralLow(), baseRgb), 'Disabled control border — muted neutral', 'background.primary', 0);
+  // The disabled EDGE takes the disabled levers' target too (#2750; owner decision lettered A, text = option B): it clears the
+  // same floor as the disabled inks, against the same worst-case surface. Before #2750 it was the
+  // fixed `neutralLow()` step `disabled.fill` uses, rated `min: 0`, so no lever moved it and a disabled
+  // outlined control measured 1.5–1.8:1. It no longer matches `disabled.fill` by construction.
+  { const d = disabledText(); put('disabled.border', d.r, `Disabled control border — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
 
   // The same five for a disabled control on a dark hero / inverse band (#892 step 5).
   //
@@ -2012,8 +2020,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     `Label / icon on a disabled fill on an inverse surface — muted but clears ${disabledTarget}:1`, 'inverse.disabled.fill', disabledTarget);
   { const r = pickMinPass(textCands, invFloorRgb, disabledTarget);
     put('inverse.disabled.text', r, `Disabled text on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget);
-    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget); }
-  put('inverse.disabled.border', rated(neutralLowInverse(), invRgb), 'Disabled control border on an inverse surface — muted neutral', 'inverse.background.primary', 0);
+    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget);
+    // The inverse edge follows the page's (#2750).
+    put('inverse.disabled.border', r, `Disabled control border on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget); }
 
   // ---- field — form-element chrome (docs/20 §17). Deliberately MINIMAL + gated: a field
   // surface, a PERCEIVABLE resting border, and a READABLE placeholder. Everything stateful

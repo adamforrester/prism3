@@ -26,14 +26,17 @@ Today that is the Figma component shell, the docs and the `.ai.json` metadata. C
 and Code Connect are planned, not built: no emitter for them exists yet, and the code proof of
 concept (#3408) is where the first one is being built, as web components plus vanilla HTML/CSS.
 A definition binds visual properties to **locked token names, never values**, which is what makes it brand- and mode-invariant:
-brands and modes are value-columns the engine already supplies. The schema and its
+brands and modes are value-columns the engine already supplies. Published, a definition is that
+component's **component contract**, one entry of `out/components/component-contracts.json`, and the
+model it is written in is the **component schema**. Say "component contract" or "token contract", never
+a bare "contract". The type and its
 runtime validator are `packages/engine/component-schema.ts`; the definitions live one file
 per component under `packages/engine/components/` (read `packages/engine/components/button.ts`
 as the worked substrate). Register a new def in `packages/engine/components/index.ts` — import
 it, add it to `componentDefs`, and re-export it; `typecheck-components` fails by name if a
 tracked def file is missing from the set, or the set names a file git does not track.
 
-> **The contract:** every binding resolves against a real generated tree, every factual
+> **The bar:** every binding resolves against a real generated tree, every factual
 > claim in the def's prose is checked by `lint-skills`/`lint-us-english`/`lint-voice`, and
 > a change to what the def projects must make a **surface gate fail by name** under a
 > mutation. A green suite that does not name your gate is silence, not a pass.

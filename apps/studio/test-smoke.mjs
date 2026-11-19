@@ -465,7 +465,8 @@ const DISABLED_APPEARANCE = (o) => {
   const c = new Set(o.cls.split(/\s+/));
   // The preview's mode control, held on Palettes (#2321): a segment takes the skin of what it draws at rest. The one
   // selected draws an edge, so outline; the others draw none, so text (as X4 A maps the outline and ghost buttons).
-  if (c.has('p3-mode')) return o.checked === 'true' ? 'outline' : 'text';
+  // #2366 (owner decision A): every other segmented choice a derived mode holds takes the same mapping.
+  if (c.has('p3-mode') || c.has('p3-seg-tab')) return o.checked === 'true' ? 'outline' : 'text';
   if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
   if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
   return 'outline';
@@ -2706,11 +2707,25 @@ const emittedLayout = async (brand) => {
   const grid = Object.fromEntries(Object.entries(root.grid ?? {}).filter(([k]) => !k.startsWith('$')).map(([k, v]) => [k, { columns: px(v.columns?.$value), gutter: px(v.gutter?.$value), margin: px(v.margin?.$value) }]));
   return { bps, grid, max: px(root.container?.max?.$value), narrow: px(root.container?.narrow?.$value) };
 };
+/** The type mode each breakpoint's COMMITTED Figma description names (#2935): `{ bp: 'mobile' | 'desktop' | null }`, null
+ *  where the description names none (static type). Read from `out/figma/<brand>/layout.*.json`, the emission, never
+ *  from the engine's rule, so the Studio label is checked against what Figma ships (#4042 review, docs/34). Every
+ *  layout mode file carries the same descriptions; the first one read is the oracle. */
+const figmaTypeModes = async (brand) => {
+  const dir = join(OUT_DIR, 'figma', brand.toLowerCase());
+  const file = readdirSync(dir).filter((f) => /^layout\..+\.json$/.test(f)).sort()[0];
+  const vars = JSON.parse(await readFile(join(dir, file), 'utf8')).variables;
+  return Object.fromEntries(vars.filter((v) => /(^|\/)breakpoint\/[^/]+$/.test(v.name))
+    .map((v) => [v.name.split('/').pop(), /uses (mobile|desktop) type by default/.exec(v.description ?? '')?.[1] ?? null]));
+};
 let layoutStates = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const emission = await loadEmission(brand);
   const want = await emittedLayout(brand);
+  const wantType = await figmaTypeModes(brand);
+  ok(Object.keys(wantType).length === Object.keys(want.bps).length,
+    `${brand} / Layout: the committed Figma emission describes ${Object.keys(wantType).length} breakpoints, the tokens carry ${Object.keys(want.bps).length} (the #2935 oracle)`);
   ok(Object.keys(want.bps).length >= 2 && Object.keys(want.grid).length === Object.keys(want.bps).length && want.max > 0,
     `${brand} / Layout: the emission carries ${Object.keys(want.bps).length} breakpoints, a grid for each, and the containers (the oracle)`);
   await gotoLayout(page);
@@ -2734,7 +2749,13 @@ for (const brand of BRANDS) {
       const h = document.querySelector(sel);
       const read = (attr) => Object.fromEntries([...h.querySelectorAll(`[data-${attr}]`)].map((n) => [n.dataset[attr], parseFloat(n.textContent)]));
       const cont = Object.fromEntries([...h.querySelectorAll('[data-p3="layout-container"]')].map((r) => [r.dataset.token, parseFloat(r.querySelector('.lyv-val')?.textContent ?? '')]));
-      return { bps: read('bppx'), cols: read('bpcol'), gut: read('bpgut'), mar: read('bpmar'), cont };
+      // #2935: the type mode a breakpoint row names, as a reader sees it (`768px, mobile type`) and as the row's
+      // `data-bptype` says it; each is read on its own, so neither can stand in for the other.
+      const types = Object.fromEntries([...h.querySelectorAll('[data-bppx]')].map((n) => [n.dataset.bppx, {
+        text: /, (\w+) type$/.exec(n.textContent.trim())?.[1] ?? null,
+        attr: n.closest('[data-p3="layout-label"]')?.dataset.bptype ?? null,
+      }]));
+      return { bps: read('bppx'), cols: read('bpcol'), gut: read('bpgut'), mar: read('bpmar'), cont, types };
     }, SG_LAYOUT);
     const off = [];
     for (const [bp, px] of Object.entries(want.bps)) if (shown.bps[bp] !== px) off.push(`breakpoint.${bp} shows ${shown.bps[bp]}, emits ${px}`);
@@ -2746,6 +2767,14 @@ for (const brand of BRANDS) {
     if (shown.cont['container.max'] !== want.max) off.push(`container.max shows ${shown.cont['container.max']}, emits ${want.max}`);
     if (shown.cont['container.narrow'] !== want.narrow) off.push(`container.narrow shows ${shown.cont['container.narrow']}, emits ${want.narrow}`);
     const extra = Object.keys(shown.bps).filter((bp) => !(bp in want.bps));
+    // #2935 (#4042 review): each breakpoint names the type mode its committed Figma description names, and none where
+    // that description names none (static type), in its text and its marker. MUTATIONS: `breakpoints.ts` writing
+    // `desktop type` for every row → `… breakpoint.sm reads desktop type, Figma says mobile`; its `data-bptype` set to
+    // `desktop` → `… breakpoint.sm is marked desktop type, Figma says mobile`.
+    const typeOff = Object.entries(wantType).flatMap(([bp, t]) => ['text', 'attr']
+      .filter((k) => (shown.types[bp]?.[k] ?? null) !== t)
+      .map((k) => `breakpoint.${bp} ${k === 'text' ? 'reads' : 'is marked'} ${shown.types[bp]?.[k] ?? 'no'} type, Figma says ${t ?? 'none'}`));
+    ok(typeOff.length === 0, `${where}: every breakpoint names the type mode the committed Figma description names (#2935)${typeOff.length ? ` — ${typeOff.slice(0, 4).join(' | ')}` : ''}`);
     ok(off.length === 0 && extra.length === 0, `${where}: every breakpoint, grid and container value reads the emission's${off.length || extra.length ? ` — ${[...off, ...extra.map((b) => `${b} drawn, not emitted`)].slice(0, 4).join(' | ')}` : ''}`);
     await settle(page, where);
     const probe = await page.evaluate(LEGIBILITY_PROBE, SG_LAYOUT);
@@ -4625,6 +4654,35 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   ok(errs.length === 0, `overwrite confirm (new at risk): 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
   console.log(`  B "${said}"`);
+}
+
+// C — A RELOAD KEEPS THE GUARD (#3880, owner decision A): the origin and baseline are kept beside the brand, so edits
+// made before a reload still count after it. The issue's reproduction: edit an example, reload, pick another example.
+// Before #3880 the reload restored the brand as its own baseline (origin `file`), and the pick replaced it, and the only
+// stored copy, with no confirm. EXPECTED typed here: the rename and the sentence, which names the example at risk.
+// Mutation that fails here BY NAME: `bootBrand` restoring origin `file` with the brand as its baseline, as before
+// (entry.ts) → `#3880 after a reload, an example load over the edits still asks first`.
+{
+  const [atRisk, arriving] = BRANDS;
+  const { ctx, page, drain } = await openBrand(atRisk);
+  await tabClick(page, 'brand');
+  await page.fill('[data-p3="brand-name"]', 'renamed-in-smoke');
+  await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.name === 'renamed-in-smoke'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+  await page.reload({ waitUntil: 'networkidle' });
+  await hooks.need(page, '[data-p3="frame"]');
+  await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+  await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example"]');
+  await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: arriving }).first());
+  await page.waitForSelector('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]', { timeout: 5000 }).catch(() => {});
+  const said = ((await page.locator('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]').first().textContent().catch(() => null)) ?? '').trim();
+  const want = `Replace the current brand with the ${arriving} example? Your edits to the ${atRisk} example are not saved anywhere else.`;
+  ok(said === want, `#3880 after a reload, an example load over the edits still asks first, naming the example at risk — got ${JSON.stringify(said)}`);
+  if (said) await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="overwrite-cancel"]'));
+  const kept = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.name ?? null; } catch { return null; } });
+  ok(kept === 'renamed-in-smoke', `#3880 after a reload and a cancelled load, the stored brand is still the edited one (${JSON.stringify(kept)})`);
+  const errs = drain();
+  ok(errs.length === 0, `reload guard: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
 }
 
 // D — UNDO LOAD (#1037, owner decision Q319.2: "add an Undo load that restores the previous input until the next edit").

@@ -24,7 +24,7 @@ import { componentSpecsExporter } from './state/component-specs-export';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import type { HostFonts } from './ui/fonts';
-import { choice } from './ui/lever-kit';
+import { choice, selectField } from './ui/lever-kit';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab } from './shell/pages';
@@ -827,12 +827,11 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
 
   const bar = el('div', 'tok-ctrls');
   if (tokTier === 'semantic') {
-    const showSel = selectEl();
-    for (const [v, label] of [['both', 'Alias and value'], ['alias', 'Alias only'], ['value', 'Value only']])
-      showSel.append(new Option(label, v));
-    showSel.value = tokShow;
-    showSel.onchange = () => { tokShow = showSel.value as typeof tokShow; repaint(); };
-    bar.append(pfield('Show', showSel));
+    // #3938 (Q-BK1 A): the chrome's shared select (lever-kit `selectField`, `.p3-select`), not the legacy `.select`,
+    // whose taller box dropped its caption below the Alias path control's.
+    const showSel = selectField('p3-token-show', 'Show', 'token-show', (v) => { tokShow = v as typeof tokShow; repaint(); });
+    showSel.set([{ v: 'both', l: 'Alias and value' }, { v: 'alias', l: 'Alias only' }, { v: 'value', l: 'Value only' }], tokShow);
+    bar.append(pfield('Show', showSel.el));
 
     // #3911: the shared segmented control (lever-kit `choice`), not the legacy `.seg`, whose selected segment drew an underline.
     const pseg = choice('Alias path', 'token-path', [{ v: 'full', l: 'Full' }, { v: 'short', l: 'Short' }] as const, (v) => {
@@ -841,12 +840,10 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
     pseg.set(tokPath);
     bar.append(pfield('Alias path', pseg.el));
   }
-  const catSel = selectEl();
-  catSel.append(new Option('All categories', ''));
-  for (const s of sections) catSel.append(new Option(`${s.cat} (${s.leaves.length})`, s.cat));
-  catSel.value = sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = '');
-  catSel.onchange = () => { tokCat = catSel.value; repaint(); };
-  bar.append(pfield('Category', catSel));
+  const catSel = selectField('p3-token-category', 'Category', 'token-category', (v) => { tokCat = v; repaint(); });
+  catSel.set([{ v: '', l: 'All categories' }, ...sections.map((s) => ({ v: s.cat, l: `${s.cat} (${s.leaves.length})` }))],
+    sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = ''));
+  bar.append(pfield('Category', catSel.el));
   host.append(bar);
 
   // ---- sections ----
@@ -1581,7 +1578,7 @@ const exportView = (): ExportView => {
     none: settings.length ? null : exportArtifact === 'component-specs' ? SPECS_NO_SETTINGS : 'Nothing to set — the brief is written one way.',
     right,
     // #3553 Q-UI8 A: the word alone; the bar draws the vendored download icon before it.
-    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component specs' : 'Download tokens', off },
+    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component contracts' : 'Download tokens', off },
   };
 };
 
@@ -1917,10 +1914,10 @@ const failedBrandOf = (input: unknown): BrandInput | null => {
 const BRIEF_IS_FAILED = "This is the file's saved brand, which didn't open, not the demo brand on screen.";
 const BRIEF_NONE = "Nothing to export: this file's saved brand couldn't be read.";
 const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo brand's, not this file's.";
-/** #3425 (DRAFT wording for the owner, Q3425.1). */
-const SPECS_NONE = "Off after a failed restore: these specs would be the demo brand's, not this file's.";
-const SPECS_NO_SETTINGS = "Nothing to set — the specs follow this brand's component settings.";
-const SPECS_WEB_OFF = 'In the Figma plugin: the specs are built from the component definitions, which the web Studio leaves out.';
+/** #3425 (DRAFT wording for the owner, Q3425.1); "component contracts" since #1325 (Q-CC1 A, DRAFT). */
+const SPECS_NONE = "Off after a failed restore: these component contracts would be the demo brand's, not this file's.";
+const SPECS_NO_SETTINGS = "Nothing to set — the component contracts follow this brand's component settings.";
+const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built from the component definitions, which the web Studio leaves out.';
 /** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
  *  rebuild that resolves also ends it; the other two end only when a brand loads. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
