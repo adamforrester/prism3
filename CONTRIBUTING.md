@@ -1490,7 +1490,8 @@ npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` b
 npm run build:release -w @prism3/plugin  # THE RELEASE BUILD (#2530, owner Q239 A): release/, with PRISM3_DEV
                                           # false so every dev-only branch is dropped (the agent link's
                                           # desktop bridge relay, any dev command; minifySyntax, so a dead
-                                          # branch leaves no text), and a manifest.json with no
+                                          # branch leaves no text; minifyWhitespace since #4232, names kept),
+                                          # and a manifest.json with no
                                           # devAllowedDomains. Run after `build`; dist/ is untouched.
 npm run test:start -w @prism3/plugin     # the plugin's START MOMENT (#1197): "+ New brand" and a
                                         # fresh file both surface the same start screen the web does —

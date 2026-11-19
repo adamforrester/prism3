@@ -107,6 +107,9 @@ const ADDED: Record<string, number> = {
   // prism3 #4166 — an alias to a team-library variable exports as a reference by the target's name, marked
   // `$extensions.figma.externalAlias`, instead of a `{VariableID:…}` the validator called broken.
   'tests/unit/external-library-alias.test.ts': 8,
+  // prism3 #4121 — the manifest asks for no `currentuser` permission, and no source reads `figma.currentUser`,
+  // which throws once the permission is gone.
+  'tests/unit/manifest-permissions.test.ts': 3,
 };
 
 // ---- the harness checks itself first -------------------------------------------------------
