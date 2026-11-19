@@ -4186,6 +4186,7 @@ const COMPONENT_CHIPS = [
   { key: 'buttonContentSize', group: '[data-p3="lever-button-content-size"]' },
   { key: 'buttonLabelWeight', group: '[data-p3="lever-button-label-weight"]' },
   { key: 'buttonTextHover', group: '[data-p3="lever-button-text-hover"]' },   // #2324, "Text button hover"
+  { key: 'buttonBorderWeight', group: '[data-p3="lever-button-border-weight"]' },   // #576, "Outline button border" (DRAFT)
 ];
 /** The radius size a button binds under each Control shape (the engine's `CONTROL_SHAPE_RUNG` over `radius.md`). Literal. */
 const SHAPE_STEP = { rounded: 'md', pill: 'capsule', boxed: 'none', hairline: 'hairline' };
@@ -4350,7 +4351,8 @@ ok(componentChipGroups >= COMPONENT_CHIPS.length * 2 && buttonSpecimens === BRAN
     const gs = [...document.querySelectorAll('[data-p3="components-levers"] [data-p3="button-options-section"] [role="radiogroup"]')];
     return { tier: document.querySelector('[data-p3="frame"]')?.dataset.w, groups: gs.length, over: gs.map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length };
   });
-  ok(tier === 'narrow' && groups === 4 && over === 0, `at 380px every Button option chip group fits the levers panel (${groups} groups, ${over} overflow, frame tier ${tier})`);
+  // #576: Outline button border is the fifth chip group.
+  ok(tier === 'narrow' && groups === 5 && over === 0, `at 380px every Button option chip group fits the levers panel (${groups} groups, ${over} overflow, frame tier ${tier})`);
   await ctx.close();
 }
 // #2812 S2: the Button options sit in the chrome's inks, never on a specimen ground, which is the brand's page for the
