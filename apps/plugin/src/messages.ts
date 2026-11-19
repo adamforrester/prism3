@@ -684,7 +684,8 @@ export type MainToUi =
    *  included; the panel decides which have an operation to show. `finished` follows the command's
    *  terminal verdict, and is sent even when its handler threw and posted none. `def` names the set a
    *  `build-components` builds (#2087), so the panel can record its verdict against that set. */
-  | { type: 'agent-started'; id: string; cmd: AgentCmd; apply?: true; def?: string }
+  // #2368: `busy` marks a command that writes the file, so the bar shows it running until its result is written.
+  | { type: 'agent-started'; id: string; cmd: AgentCmd; apply?: true; def?: string; busy?: true }
   | { type: 'agent-finished'; id: string; cmd: AgentCmd };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */

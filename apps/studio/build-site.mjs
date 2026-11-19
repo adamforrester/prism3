@@ -17,6 +17,7 @@
  */
 import { build } from 'esbuild';
 import { chromeCss } from './chrome/esbuild-plugin.mjs';
+import { webEntryPoints, specsChunkExternal, maintainerProsePlugin, SPECS_CHUNK_FILE } from './component-specs-build.mjs';
 import { DOCS_DIR, REQUIRED_DOCS, docsFiles, guidePages } from './docs-route.mjs';
 import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
@@ -39,14 +40,15 @@ const buildId = (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 7) || 'local'
 // `.css` loader would instead emit a `dist/main.css` nothing references — which is precisely the
 // unreferenced-asset case the manifest below exists to catch, so the two are wired to agree.
 await build({
-  // The entry is `src/entry.ts` (#896); `out: 'main'` keeps the file index.html loads at `/dist/main.js`.
-  entryPoints: [{ in: resolve(root, 'src/entry.ts'), out: 'main' }],
+  // `out: 'main'` keeps the file index.html loads at `/dist/main.js`. Its entry is `src/web-entry.ts` (#3429), which
+  // boots `src/entry.ts` (#896); the component specs chunk is the second output, loaded only on Download.
+  entryPoints: webEntryPoints(root),
   outdir: resolve(pub, 'dist'),
   bundle: true,
   format: 'esm',
   loader: { '.css': 'text' },
   // `src/entry.ts` imports the virtual `p3:chrome-css` (UI redesign S1.1); only this plugin resolves it.
-  plugins: [chromeCss()],
+  plugins: [chromeCss(), specsChunkExternal(), maintainerProsePlugin],
   // PRISM3_TEST_HOOKS is `false` here, and only `build.mjs` (the local `dist/`) says `true` (#2098): the deployed
   // bundle carries no test hook at all, which `test-prod-bundle.ts` checks by running this file. The one option
   // that differs from `build.mjs` on purpose, beside PRISM3_BUILD.
@@ -78,7 +80,8 @@ for (const g of GUIDES) await writeFile(resolve(pub, 'docs', g.path), g.html);
 // this check is what stands between a dropped `loader` above and a deployed page with no styles at
 // all. `build:site` is NOT in ci.yml (it runs on Vercel's preview deploy), so run it by hand.
 // The docs are listed from `docs/public/` itself, so this checks the copy landed whole, not which docs exist.
-const EXPECTED = ['dist/main.js', 'dist/main.js.map', 'index.html', ...DOCS.map((f) => `docs/${f}`), ...GUIDES.map((g) => `docs/${g.path}`)];
+// The component specs chunk (#3429) is the one other script: `main.js` loads it on Download, never index.html.
+const EXPECTED = ['dist/main.js', 'dist/main.js.map', `dist/${SPECS_CHUNK_FILE}`, `dist/${SPECS_CHUNK_FILE}.map`, 'index.html', ...DOCS.map((f) => `docs/${f}`), ...GUIDES.map((g) => `docs/${g.path}`)];
 const found = (await readdir(pub, { recursive: true, withFileTypes: true }))
   .filter((e) => e.isFile())
   .map((e) => relative(pub, resolve(e.parentPath, e.name)).split('\\').join('/'))

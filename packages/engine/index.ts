@@ -78,3 +78,5 @@ export {
   slotMigrationOf, slotTextMigrationOf,
 } from './component-renames';
 export type { ComponentRename } from './component-renames';
+// The component-defs export's file names (#3429): no imports, so the web lists them before it loads the definitions.
+export { componentDefsFileNames } from './component-defs-names';
