@@ -193,7 +193,7 @@ export const codeInputCell: ComponentDef = {
         // style's line box, centered on both axes. Code trims the box to the cap height (`text-box`, in `codeOnly`).
         type: 'size.{size}.type',
         presentWhen: { state: ['filled', 'focus-visible-filled'] },
-        note: 'The character, in its size\'s text style, centered in the cell. Tabular figures in code, so every digit is one width.',
+        note: 'The character, in its size\'s text style, centered in the cell. Tabular lining figures in code, so every digit is one width and stands at cap height.',
       },
     },
     codeOnly: [
@@ -219,7 +219,7 @@ export const codeInputCell: ComponentDef = {
         class: 'visual-treatment',
         disposition: 'unsupported',
         description:
-          'tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.',
+          'tabular lining figures — the character sets `font-variant-numeric: tabular-nums lining-nums`, so every digit is one width and the code does not shimmer as it fills, and every digit stands at cap height, so the cell centers it whatever figures the brand font draws by default. In Figma the cell shows the font\'s default figures: a plugin cannot turn on an OpenType feature.',
       },
       {
         class: 'live-geometry',
