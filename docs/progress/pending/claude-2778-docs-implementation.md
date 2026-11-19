@@ -5,7 +5,7 @@
 `components.ai.json` and the component-defs export. The doc section model's "Building it in code" section, which
 already reserved the slot, draws it before the props table. `lint-component-docs` counts it as a source of that
 section and strips it in its F3 arm. Both authored schemas take a minor bump: `prism3-component-docs/1.2` and
-`prism3-component-defs/1.5`. The build-component skill states the test that sorts a rule into `do`/`dont` or
+`prism3-component-defs/1.6`. The build-component skill states the test that sorts a rule into `do`/`dont` or
 `implementation`. 93 lines in 39 definitions moved, word for word, and comments travelled with their lines.
 
 **The classification.** The orchestrator's proposal (on #2778, against an older main) classified every item. Its
