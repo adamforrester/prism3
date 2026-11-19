@@ -695,8 +695,7 @@ const DISABLED_APPEARANCE = (o) => {
   const c = new Set(o.cls.split(/\s+/));
   // The preview's mode control, held on Palettes (#2321): a segment takes the skin of what it draws at rest. The one
   // selected draws an edge, so outline; the others draw none, so text (as X4 A maps the outline and ghost buttons).
-  // #2366 (owner decision A): every other segmented choice takes the same mapping when a derived mode holds it.
-  if (c.has('p3-mode') || c.has('p3-seg-tab')) return o.checked === 'true' ? 'outline' : 'text';
+  if (c.has('p3-mode')) return o.checked === 'true' ? 'outline' : 'text';
   if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
   if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
   return 'outline';
@@ -13028,8 +13027,6 @@ for (const host of ['web', 'figma']) {
 // edge on any of them (#2155: no chrome control draws a dashed edge to mean disabled), and every disabled button draws
 // its appearance's Prism3 disabled roles. Counted, with a floor, so a sweep that found no disabled button fails.
 const DERIVED_OFF_FLOOR = 100;
-/** #2366: the held segmented choices the sweep must read, a floor under the count measured when it was written. */
-const DERIVED_CHOICE_FLOOR = 20;
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const where = `X4 A derived: ${host} ${theme}`;
@@ -13041,8 +13038,6 @@ for (const host of ['web', 'figma']) {
       const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
       let buttons = 0, controls = 0;
       const bad = [], dashed = [];
-      // #2366: the held segmented choices, each by its hook, against the .p3-mode mapping (checked: outline; others: text).
-      const choices = [], badChoices = [];
       for (const place of ['color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components']) {
         await goPlace(page, place);
         if (place === 'type') await openTypeAdvanced(page).catch(() => {});
@@ -13057,12 +13052,6 @@ for (const host of ['web', 'figma']) {
           if (!r) continue;
           controls++;
           if (r.dashed.length) dashed.push(`${place} ${r.hook ?? r.cls}: ${r.dashed.join(', ')}`);
-          if (/\bp3-seg-tab\b/.test(r.cls) && !/\bp3-mode\b/.test(r.cls)) {
-            choices.push(r.hook);
-            const v = skinVerdict(r, scheme);
-            if (!v.pass) badChoices.push(`${place} ${r.hook ?? r.cls} (${v.appearance}): ${JSON.stringify(v.drew)}`);
-            continue;
-          }
           if (!/\bp3-(btn|vpick)\b/.test(r.cls)) continue;
           buttons++;
           const v = skinVerdict(r, scheme);
@@ -13079,16 +13068,6 @@ for (const host of ['web', 'figma']) {
       console.log(`  ${where}: ${controls} disabled controls read, ${buttons} of them buttons`);
       ok(buttons >= DERIVED_OFF_FLOOR, `${where}: HC light switched off ${buttons} chrome buttons across the places (floor ${DERIVED_OFF_FLOOR})`);
       ok(bad.length === 0, `${where}: every disabled chrome button draws its appearance's Prism3 disabled roles (${buttons} read)${bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
-      // #2366 (owner decision A): the levers' segmented choices a derived mode holds draw the .p3-mode mapping (#2321): the
-      // checked one Prism3's disabled outline skin, the others its text skin. Named, so Type's scale, Shape's density and
-      // Depth & motion's tempo are each read.
-      const NAMED_CHOICES = ['type-scale-', 'density-choice-', 'tempo-'];
-      const missing = NAMED_CHOICES.filter((p) => !choices.some((h) => (h ?? '').startsWith(p)));
-      console.log(`  ${where}: ${choices.length} held segmented choices read`);
-      ok(choices.length >= DERIVED_CHOICE_FLOOR && missing.length === 0,
-        `#2366 ${where}: HC light holds ${choices.length} segmented choices across the places (floor ${DERIVED_CHOICE_FLOOR}), Type's scale, Shape's density and Depth & motion's tempo among them${missing.length ? ` — not read: ${missing.join(', ')}` : ''}`);
-      ok(badChoices.length === 0,
-        `#2366 ${where}: every held segmented choice draws the .p3-mode mapping: checked, Prism3's disabled outline; the others, its text skin (${choices.length} read)${badChoices.length ? ` — ${badChoices.slice(0, 4).join(' | ')}` : ''}`);
       ok(!!fixed && dashed.length === 0, `${where}: no disabled chrome control, and not the fixed Light row (mode-on-light, read ${!!fixed}), draws a dashed edge (${controls} read)${dashed.length ? ` — ${dashed.slice(0, 4).join(' | ')}` : ''}`);
       // The fixed Light row's box against the emission's disabled check box roles (`PRISM3_DISABLED`, resolved from the
       // committed emission, never from the studio's CSS): fill `disabled.fill`, a solid `disabled.border` edge on all

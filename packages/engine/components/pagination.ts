@@ -743,7 +743,7 @@ export const pagination: ComponentDef = {
         class: 'implementation',
         disposition: 'refused',
         description:
-          'A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief\'s shape for the window. Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
+          'A headless usePagination — returning the item list (page, ellipsis, previous, next, with current and disabled) — is the brief\'s shape for the window. code delivery pending: behavior layer (#2454) decides whether it ships beside the component.',
       },
     ],
   },

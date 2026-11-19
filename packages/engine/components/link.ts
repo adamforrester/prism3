@@ -207,7 +207,7 @@ export const link: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
+          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
       },
       {
         class: 'semantics',

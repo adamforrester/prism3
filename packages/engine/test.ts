@@ -9870,6 +9870,65 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const moved = t.filter((c) => ['body', 'label', 'caption', 'code'].includes(c.group) && baseSize.get(key(c)) !== c.sizePx);
     ok(moved.length === 0, `[#328] typeScale '${scale}' leaves body/label/caption/code untouched (moved: ${moved.map(key).join(',') || 'none'})`);
   }
+  // #4198 / #4199 — `check()` driven by STUB steps, over this tree. #4198: the stopped-emission detector (#1059) had
+  // no arm, so deleting it left every gate green; a step that exits 0 and writes nothing must be named `silent`, and
+  // every committed artifact it left unwritten must be named. #4199: a step that FAILS used to `process.exit` from
+  // inside `check()`, skipping the restore, so `--check` left committed files rewritten, their mtimes at the epoch and
+  // its temp directory behind. The oracle here is this arm's own walk of the artifact directories (bytes and mtimes),
+  // not regen's `artifactPaths`, and the temp directories counted in `tmpdir()`.
+  {
+    type Report = { inSync: boolean; failed: string | null; silent: string[]; unwritten: string[] };
+    const checkFn = (regenModule as Record<string, unknown>).check as ((steps: Array<{ label: string; args: string[] }>, opts?: { quiet?: boolean }) => Report) | undefined;
+    ok(typeof checkFn === 'function', '#4198: regen.ts exports check(steps), so a stub step can drive the drift gate');
+    if (typeof checkFn === 'function') {
+      const engineDir = new URL('./', import.meta.url).pathname, root4198 = resolve(engineDir, '..', '..');
+      const dirs = [join(engineDir, 'out'), join(engineDir, 'schema'), join(root4198, 'docs/public/reports'), join(root4198, 'docs/public/reference')];
+      const files = (d: string): string[] => readdirSync(d, { recursive: true }).map((f) => join(d, String(f))).filter((p) => statSync(p).isFile());
+      // Path and bytes, and the mtime separately: the restore has always set timestamps to the millisecond, so a
+      // checkout's sub-millisecond mtime comes back within 1 ms of itself, while a skipped restore leaves the epoch.
+      type Print = { bytes: string; mtimes: Map<string, number> };
+      const fingerprint = (): Print => {
+        const paths = [...dirs.flatMap(files), ...readdirSync(engineDir).map((f) => join(engineDir, f)).filter((p) => statSync(p).isFile())].sort();
+        return { bytes: paths.map((p) => `${relative(root4198, p)} ${createHash('sha1').update(readFileSync(p)).digest('hex')}`).join('\n'),
+          mtimes: new Map(paths.map((p) => [relative(root4198, p), statSync(p).mtimeMs])) };
+      };
+      const differs = (a: Print, b: Print): string => {
+        const la = a.bytes.split('\n'), lb = b.bytes.split('\n');
+        const byte = la.find((l, i) => l !== lb[i]);
+        if (byte !== undefined || la.length !== lb.length) return `bytes: ${byte ?? 'file count'}`;
+        const time = [...a.mtimes].find(([p, t]) => Math.abs((b.mtimes.get(p) ?? -1e15) - t) > 1);
+        return time ? `mtime: ${time[0]} ${time[1]} → ${b.mtimes.get(time[0])}` : '';
+      };
+      const temps = (): number => readdirSync(tmpdir()).filter((f) => f.startsWith('prism3-regen-')).length;
+      const stubs = mkdtempSync(join(tmpdir(), 'prism3-4198-'));
+      try {
+        const quiet = join(stubs, 'quiet.ts'), rewrite = join(stubs, 'rewrite.ts'), fail = join(stubs, 'fail.ts');
+        writeFileSync(quiet, 'export {};\n');
+        writeFileSync(rewrite, "import { appendFileSync } from 'node:fs';\nappendFileSync(process.argv[2], '\\n');\n");
+        writeFileSync(fail, 'process.exit(3);\n');
+        const victim = join(engineDir, 'out', 'aurora.ai.json');
+
+        const print0 = fingerprint(), temps0 = temps();
+        let r: Report | null = null, threw: unknown = null;
+        try { r = checkFn([{ label: 'stub quiet', args: [quiet] }], { quiet: true }); } catch (e) { threw = e; }
+        ok(!threw && !!r && !r.inSync && r.silent.length === 1 && r.silent[0].includes(quiet),
+          `#4198: regen --check names a step that exits 0 and writes nothing as silent (WROTE NOTHING, #1059) (silent ${JSON.stringify(r?.silent)}; threw ${String(threw)})`);
+        ok(!!r && r.unwritten.includes('packages/engine/out/aurora.ai.json') && r.unwritten.includes('packages/engine/schema/lever-manifest.json'),
+          `#4198: regen --check names a committed artifact no step wrote as stale, in out/ and in the named lists (${r?.unwritten.length ?? 0} named)`);
+        const silentDiff = differs(print0, fingerprint());
+        ok(silentDiff === '', `#4198: regen --check over a silent step leaves every artifact byte-identical with its own mtime (${silentDiff || 'same'})`);
+
+        r = null; threw = null;
+        try { r = checkFn([{ label: 'stub rewrite', args: [rewrite, victim] }, { label: 'stub fail', args: [fail] }], { quiet: true }); } catch (e) { threw = e; }
+        ok(!threw && !!r && !r.inSync && !!r.failed && r.failed.includes(fail),
+          `#4199: regen --check reports a failed step by name and returns, never exits mid-check (failed ${JSON.stringify(r?.failed)}; threw ${String(threw)})`);
+        const failDiff = differs(print0, fingerprint());
+        ok(failDiff === '',
+          `#4199: regen --check puts every artifact back, bytes and mtimes, when a step fails after another rewrote one (${failDiff || 'same'})`);
+        ok(temps() === temps0, `#4199: regen --check removes its temp directory when a step fails (${temps() - temps0} left)`);
+      } finally { rmSync(stubs, { recursive: true, force: true }); }
+    }
+  }
 }
 
 // ---- weight axis + link modifier ----
@@ -40676,8 +40735,8 @@ arm: {
   ok(JSON.stringify(role?.values) === JSON.stringify(['dialog', 'alertdialog']) && role?.default === 'dialog' && /hides the close button/.test(role?.description ?? '')
     && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /^role — /.test(e) && /alertdialog hides the close button/.test(e))
     && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /^backdrop click — closes a dialog, never an alertdialog/.test(e))
-    && codeOnlyText(dg.anatomy!.codeOnly).some((e) => e.startsWith('Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.') && /initial focus placement, backdrop-click dismissal and focus return/.test(e)),
-    '#2609 dialog docs: role is dialog or alertdialog, an alertdialog hides the close button and a backdrop click never closes it, and the developer wires initial focus, backdrop click and focus return (#2454)');
+    && codeOnlyText(dg.anatomy!.codeOnly).some((e) => /code delivery pending: behavior layer \(#2454\)/.test(e)),
+    '#2609 dialog docs: role is dialog or alertdialog, an alertdialog hides the close button and a backdrop click never closes it, and code delivery waits on #2454');
 
   // THE NEW SCHEMA FIELDS ARE REFUSED WHERE THEY CANNOT MEAN ANYTHING.
   const withPart = (part: string, patch: Record<string, unknown>): ComponentDef => ({ ...dg, anatomy: { ...dg.anatomy!, parts: { ...dg.anatomy!.parts, [part]: { ...dg.anatomy!.parts[part], ...patch } as PartDef } } });
@@ -43527,25 +43586,6 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(commented.name === '5" screen', `#3876 a trailing comment after an escaped quote is stripped (got ${JSON.stringify(commented.name)})`);
   const keyed = parseYamlSubset('meta:\n  "a\\": b": 1\n') as any;
   ok(keyed?.meta?.['a": b'] === 1, `#3876 a block key holding an escaped quote and a colon splits at its own colon (got ${JSON.stringify(keyed)})`);
-}
-
-// #2454 — the behavior layer is decided (Q-BH1 A, 2026-11-18, docs/41 §7.2): plain HTML/CSS ships a written behavior
-// contract the developer wires up in their framework, and the web component carries its own behavior. Each def that
-// waited on the decision now says so in its code notes, and no def still says code delivery is pending. The list of
-// defs is written out here by hand, not read from the defs, so a def that drops the note fails by its id (docs/34 shape 1).
-{
-  const DECIDED = 'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.';
-  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs'];
-  const all = componentDefs;
-  for (const id of INTERACTIVE) {
-    const d = all.find((x) => x.id === id);
-    ok(!!d && codeOnlyText(d.anatomy?.codeOnly).some((e) => e.includes(DECIDED)),
-      `#2454 interactive def ${id} carries the decided behavior-contract note in its code notes`);
-  }
-  // Scan the def's `notes` as well as its code notes: the pending note could as easily sit in `notes.contested`.
-  const notesText = (d: (typeof all)[number]): string[] => Object.values((d as { notes?: Record<string, unknown> }).notes ?? {}).flat().filter((e): e is string => typeof e === 'string');
-  const pending = all.filter((d) => [...codeOnlyText(d.anatomy?.codeOnly), ...notesText(d)].some((e) => /code delivery pending|behavior layer/i.test(e))).map((d) => d.id);
-  ok(pending.length === 0, `#2454 no def still says code delivery is pending a behavior layer (got ${JSON.stringify(pending)})`);
 }
 
 // #3872 — breakpoints are mobile-first min-width floors, so each must be above the one before. Out of order

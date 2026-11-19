@@ -532,7 +532,7 @@ export const slider: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
+          'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.',
       },
       {
         class: 'implementation',
