@@ -13,14 +13,14 @@ One minimal call per tool. Each line is the `params` of a `tools/call` request, 
 ```jsonl
 {"name": "list_levers", "arguments": {}}
 {"name": "list_levers", "arguments": {"describe": ["neutral"]}}
-{"name": "validate_brand", "arguments": {"id": "acme", "primary": {"l": 0.55, "c": 0.18, "h": 265}, "neutral": {"hue": "cool", "chroma": 0.01}}}
+{"name": "validate_brand", "arguments": {"brand": {"id": "acme", "primary": {"l": 0.55, "c": 0.18, "h": 265}, "neutral": {"hue": "cool", "chroma": 0.01}}}}
 {"name": "theme_brand", "arguments": {"brand": {"id": "acme", "primary": {"l": 0.55, "c": 0.18, "h": 265}, "neutral": {"hue": "cool", "chroma": 0.01}}}}
 {"name": "theme_from_brief", "arguments": {"brief": "---\nid: acme\nprimary: { l: 0.55, c: 0.18, h: 265 }\nneutral: { hue: cool, chroma: 0.01 }\n---\nA calm, precise brand."}}
 {"name": "score_consumption", "arguments": {"brand": {"id": "acme", "primary": {"l": 0.55, "c": 0.18, "h": 265}, "neutral": {"hue": "cool", "chroma": 0.01}}, "refs": ["color.text.primary", "color.background.primary"], "pairs": [{"fg": "color.text.primary", "bg": "color.background.primary"}]}}
 {"name": "export_theme", "arguments": {"brand": {"id": "acme", "primary": {"l": 0.55, "c": 0.18, "h": 265}, "neutral": {"hue": "cool", "chroma": 0.01}}, "outDir": "./tokens"}}
 ```
 
-`theme_brand` returns the contrast results and the decisions log; add `"include": ["tokens"]` for the token tree, or use `export_theme` to write the files instead. `validate_brand` takes the brand itself, not wrapped in `brand`.
+`theme_brand` returns the contrast results and the decisions log; add `"include": ["tokens"]` for the token tree, or use `export_theme` to write the files instead.
 
 ## Reference
 
