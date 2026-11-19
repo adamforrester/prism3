@@ -20450,7 +20450,10 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await postMsg(page, { ...T_FILE, due: { button: { state: 'current' }, tag: { state: 'current' }, badge: { state: 'current' } } });
     await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]'), null, WAIT).catch(() => {});
     if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'))) !== 'true') await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+    await postMsg(page, { ...T_FILE, due: { button: { state: 'current' }, tag: { state: 'current' }, badge: { state: 'current' } } });
     await page.waitForFunction(() => !document.querySelector('[data-p3="update-go"]')?.disabled, null, WAIT).catch(() => {});
+    const go4219 = await page.evaluate(() => ({ disabled: document.querySelector('[data-p3="update-go"]')?.disabled ?? null, ticks: [...document.querySelectorAll('[data-p3="update-dialog"] [role="checkbox"]')].map((n) => `${n.dataset.key}=${n.getAttribute('aria-checked')}`) }));
+    ok(go4219.disabled === false, `${where}: #4219 premise: Update file's Go is on with Theme ticked (${JSON.stringify(go4219)})`);
     await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
     await postMsg(page, { type: 'run-progress', run: 'apply-theme', phase: 'work', item: 'color', done: 1, total: 7 });
     await settle(page);

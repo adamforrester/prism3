@@ -6,8 +6,8 @@
  * It sits first in the Activity drawer, above the drawer's bar row, so it is at the foot of every page and over nothing.
  * The bar is a native `progress` (the drawer's own `.p3-op-prog`), so the chrome sets no inline value: no value is
  * indeterminate, and it carries the progressbar role itself. While a run is out the strip ticks once a second, for its
- * clock and for "Still working on <set>" (`SILENCE_MS`); idle, it ticks not at all. The line is a polite live region,
- * named by what it says.
+ * clock and for "Still working on <set>" (`SILENCE_MS`); idle, it ticks not at all. Its polite live region carries only
+ * what Activity's does not (#4219): "Still working on <set>", and the read after open.
  */
 import { subscribe } from '../state/store';
 import type { StripView } from '../state/status-strip';
@@ -72,7 +72,9 @@ export const mountStatusStrip = (lend: StatusLend, cleanups: (() => void)[]): HT
     line.hidden = !text;
     stop.hidden = v.kind !== 'running';
     if (v.kind === 'running') { stop.textContent = v.stop.label; stop.disabled = v.stop.disabled; }
-    const say = [v.what, v.kind === 'running' ? v.still : null].filter(Boolean).join('. ');
+    // #4219 (owner A): Activity's line is the one announcer for a run, its start and its end, so the strip says only what
+    // Activity doesn't: "Still working on <set>" during a run, and the read after open, which is no run of Activity's.
+    const say = v.kind === 'running' ? v.still ?? '' : v.kind === 'reading' ? v.what : '';
     if (live.textContent !== say) live.textContent = say;
   };
   cleanups.push(subscribe('host:run', paint), () => { if (timer !== null) clearInterval(timer); });
