@@ -4986,8 +4986,8 @@
         }
       ]
     },
-    "text.link.default": {
-      "$description": "Link text — default, 4.5:1 on `background.secondary`",
+    "text.link.rest": {
+      "$description": "Link text — rest, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -5647,8 +5647,8 @@
         }
       ]
     },
-    "icon.link.default": {
-      "$description": "Link icon — default, 4.5:1 on `background.secondary`",
+    "icon.link.rest": {
+      "$description": "Link icon — rest, 4.5:1 on `background.secondary`",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`). No contrast promise on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.floorStep` setting) and every floor-gated ink re-derives to clear it.",
@@ -6201,11 +6201,11 @@
         }
       ]
     },
-    "inverse.text.link.default": {
-      "$description": "Link text on an inverse surface — default, 4.5:1 on `inverse.background.secondary`",
+    "inverse.text.link.rest": {
+      "$description": "Link text on an inverse surface — rest, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.rest`. Do not use for non-interactive text (use `inverse.text.primary`). Over a photograph, set the link in `inverse.text.primary` instead and keep its underline as the link cue, on a media veil (`veil.*`) when the photo is busy. `inverse.text.primary` flips in dark mode while the veil does not, so pick the veil for each mode and check the contrast against your own photo. No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.550}",
@@ -6749,11 +6749,11 @@
         }
       ]
     },
-    "inverse.icon.link.default": {
-      "$description": "Link icon on an inverse surface — default, 4.5:1 on `inverse.background.secondary`",
+    "inverse.icon.link.rest": {
+      "$description": "Link icon on an inverse surface — rest, 4.5:1 on `inverse.background.secondary`",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.default`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.rest`. Do not use for non-interactive icon (use `inverse.icon.primary`). No contrast promise on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` — they sit deeper than the contrast floor. For ink there, move the floor (the brand's `surfaces.<mode>.inverseSecondary` setting) and every floor-gated ink re-derives to clear it.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.550}",
@@ -9668,8 +9668,8 @@
         "color.foreground.danger",
         "color.icon.brand",
         "color.icon.danger",
-        "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.link.rest",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.pressed",
@@ -9692,8 +9692,8 @@
         "color.inverse.text.danger",
         "color.text.brand",
         "color.text.danger",
-        "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.link.focused",
+        "color.text.link.rest"
       ]
     },
     "core.palette.red.350": {
@@ -9721,9 +9721,9 @@
         "color.inverse.border.focus",
         "color.inverse.foreground.brand",
         "color.inverse.foreground.danger",
-        "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
         "color.inverse.icon.link.hover",
+        "color.inverse.icon.link.rest",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
         "color.inverse.interactive.destructive.indicator.rest",
@@ -9738,9 +9738,9 @@
         "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
-        "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
         "color.inverse.text.link.hover",
+        "color.inverse.text.link.rest",
         "color.text.brand-subtle",
         "color.text.danger-subtle",
         "color.text.link.hover"
@@ -9779,8 +9779,8 @@
         "color.icon.brand-subtle",
         "color.icon.danger",
         "color.icon.danger-subtle",
-        "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.link.rest",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.icon.rest",
         "color.interactive.primary.indicator.rest",
@@ -9788,22 +9788,22 @@
         "color.inverse.border.focus",
         "color.inverse.icon.brand",
         "color.inverse.icon.danger",
-        "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
+        "color.inverse.icon.link.rest",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.rest",
         "color.inverse.interactive.primary.indicator.rest",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand",
         "color.inverse.text.danger",
-        "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
+        "color.inverse.text.link.rest",
         "color.text.brand",
         "color.text.brand-subtle",
         "color.text.danger",
         "color.text.danger-subtle",
-        "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.link.focused",
+        "color.text.link.rest"
       ]
     },
     "core.palette.red.500": {
@@ -9854,16 +9854,16 @@
         "color.inverse.foreground.danger",
         "color.inverse.icon.brand-subtle",
         "color.inverse.icon.danger-subtle",
-        "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
+        "color.inverse.icon.link.rest",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.rest",
         "color.inverse.interactive.primary.indicator.rest",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand-subtle",
         "color.inverse.text.danger-subtle",
-        "color.inverse.text.link.default",
-        "color.inverse.text.link.focused"
+        "color.inverse.text.link.focused",
+        "color.inverse.text.link.rest"
       ]
     },
     "core.palette.red.600": {
@@ -9876,8 +9876,8 @@
         "color.border.danger",
         "color.icon.brand",
         "color.icon.danger",
-        "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.link.rest",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.indicator.rest",
@@ -9896,8 +9896,8 @@
         "color.inverse.text.danger",
         "color.text.brand",
         "color.text.danger",
-        "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.link.focused",
+        "color.text.link.rest"
       ]
     },
     "core.palette.red.650": {
@@ -9922,9 +9922,9 @@
         "color.inverse.foreground.danger",
         "color.inverse.icon.brand-subtle",
         "color.inverse.icon.danger-subtle",
-        "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
         "color.inverse.icon.link.hover",
+        "color.inverse.icon.link.rest",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
         "color.inverse.interactive.destructive.indicator.rest",
@@ -9941,9 +9941,9 @@
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand-subtle",
         "color.inverse.text.danger-subtle",
-        "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
-        "color.inverse.text.link.hover"
+        "color.inverse.text.link.hover",
+        "color.inverse.text.link.rest"
       ]
     },
     "core.palette.red.700": {
@@ -9958,9 +9958,9 @@
         "color.foreground.danger",
         "color.icon.brand",
         "color.icon.danger",
-        "color.icon.link.default",
         "color.icon.link.focused",
         "color.icon.link.hover",
+        "color.icon.link.rest",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.rest",
@@ -9985,9 +9985,9 @@
         "color.inverse.text.danger",
         "color.text.brand",
         "color.text.danger",
-        "color.text.link.default",
         "color.text.link.focused",
-        "color.text.link.hover"
+        "color.text.link.hover",
+        "color.text.link.rest"
       ]
     },
     "core.palette.red.750": {

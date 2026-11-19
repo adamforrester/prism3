@@ -812,8 +812,8 @@ ok(F.floorResetNotice('dark') === null, '#2250 and the notice is Light\'s alone'
 // border) holds exactly …`; a field border measured on the floor → `… the "not checked" line …`.
 console.log('\n12. The contrast floor\'s groups: every role the engine measures on the floor, in six groups (#3366, Q3366.4 A; oracle: literals)');
 const FLOOR_EXPECTED: Record<string, { label: string; roles: string[] }> = {
-  links: { label: 'Links', roles: ['text.link.default', 'text.link.hover', 'text.link.visited', 'text.link.focused', 'text.link.pressed',
-    'icon.link.default', 'icon.link.hover', 'icon.link.visited', 'icon.link.focused', 'icon.link.pressed'] },
+  links: { label: 'Links', roles: ['text.link.rest', 'text.link.hover', 'text.link.visited', 'text.link.focused', 'text.link.pressed',
+    'icon.link.rest', 'icon.link.hover', 'icon.link.visited', 'icon.link.focused', 'icon.link.pressed'] },
   status: { label: 'Brand and status text, icons', roles: ['text.brand', 'text.success', 'text.warning', 'text.danger', 'text.info',
     'icon.brand', 'icon.success', 'icon.warning', 'icon.danger', 'icon.info'] },
   secondary: { label: 'Secondary and tertiary text, placeholder', roles: ['text.secondary', 'text.tertiary', 'icon.secondary', 'icon.tertiary', 'field.placeholder'] },

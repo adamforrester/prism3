@@ -567,11 +567,11 @@
           "name": "link",
           "bindings": {
             "type": "type.body.md.default",
-            "text": "color.text.link.default"
+            "text": "color.text.link.rest"
           },
           "contracts": [
             {
-              "fg": "color.text.link.default",
+              "fg": "color.text.link.rest",
               "bg": "color.background.primary",
               "min": 4.5,
               "label": "link on page"

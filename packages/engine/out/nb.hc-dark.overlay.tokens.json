@@ -182,10 +182,10 @@
           "$description": "Text on a solid info fill — 4.5:1"
         },
         "link": {
-          "default": {
+          "rest": {
             "$type": "color",
             "$value": "{nbds.core.palette.red.300}",
-            "$description": "Link text — default, 7:1 on `background.secondary`"
+            "$description": "Link text — rest, 7:1 on `background.secondary`"
           },
           "hover": {
             "$type": "color",
@@ -348,10 +348,10 @@
           "$description": "Icon on a solid info fill — 4.5:1"
         },
         "link": {
-          "default": {
+          "rest": {
             "$type": "color",
             "$value": "{nbds.core.palette.red.300}",
-            "$description": "Link icon — default, 7:1 on `background.secondary`"
+            "$description": "Link icon — rest, 7:1 on `background.secondary`"
           },
           "hover": {
             "$type": "color",
@@ -994,10 +994,10 @@
             "$description": "Muted info text — 4.5:1 on `inverse.background.primary`"
           },
           "link": {
-            "default": {
+            "rest": {
               "$type": "color",
               "$value": "{nbds.core.palette.red.650}",
-              "$description": "Link text on an inverse surface — default, 7:1 on `inverse.background.secondary`"
+              "$description": "Link text on an inverse surface — rest, 7:1 on `inverse.background.secondary`"
             },
             "hover": {
               "$type": "color",
@@ -1135,10 +1135,10 @@
             "$description": "Muted info icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
           },
           "link": {
-            "default": {
+            "rest": {
               "$type": "color",
               "$value": "{nbds.core.palette.red.650}",
-              "$description": "Link icon on an inverse surface — default, 7:1 on `inverse.background.secondary`"
+              "$description": "Link icon on an inverse surface — rest, 7:1 on `inverse.background.secondary`"
             },
             "hover": {
               "$type": "color",

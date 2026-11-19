@@ -768,7 +768,7 @@ if (!Array.isArray(traitEnum) || traitEnum.length < 9) {
 const NOTE_BASE = { id: 'lint-notes', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
 const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   ['defaults', {}],
-  ['modes', { modes: ['light', 'dark', 'wireframe'], customModes: [{ name: 'promo', base: 'dark' }], overrides: { light: { 'text.link.default': { palette: 'primary', step: 600 } } }, modeAnchors: { dark: { primary: 400 } }, modeLevers: { dark: { density: 'compact', easings: { emphasized: 'calm' } } } }],
+  ['modes', { modes: ['light', 'dark', 'wireframe'], customModes: [{ name: 'promo', base: 'dark' }], overrides: { light: { 'text.link.rest': { palette: 'primary', step: 600 } } }, modeAnchors: { dark: { primary: 400 } }, modeLevers: { dark: { density: 'compact', easings: { emphasized: 'calm' } } } }],
   ['root, gamut, supplied status, decoupled action and link', { root: 'acme', brandColors: [{ name: 'accent', oklch: { l: 0.55, c: 0.3, h: 235 } }], actionPalette: 'accent', linkPalette: 'primary', status: { success: { h: 150, chroma: 0.15 }, danger: { h: 27, chroma: 0.2 } } }],
   ['neutral anchor', { neutral: { hue: 262, chroma: 0.008, anchor: { l: 0.6, c: 0.01, h: 262 } } }],
   ['neutral auto, link same as action', { neutral: { hue: 262, chroma: 0.008, auto: true }, linkPalette: 'primary' }],

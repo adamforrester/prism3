@@ -274,7 +274,7 @@ axis and its reason, in the log.
   image. Report the mean, the brightest 5% and the brightest pixel, and give the brightest-5% figure as
   the ratio.
 - **A link over photography rebinds to `inverse.text.primary` and keeps its underline.** Prism3 has no
-  on-media link color, and `inverse.text.link.default` is measured on the inverse grounds, not on a
+  on-media link color, and `inverse.text.link.rest` is measured on the inverse grounds, not on a
   photo. Bind the link text to `inverse.text.primary`, keep (or add) the underline as the link cue, and
   set a media veil (`veil.*`) behind it when the photo is busy. Measure the ring in each mode:
   `inverse.text.primary` flips in dark mode and the veil does not. A brand that wants a brighter inverse

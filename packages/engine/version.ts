@@ -717,7 +717,17 @@ export const ENGINE_VERSION = '0.238.0';
  * medium or large Button binds (`size.<size>.hit-target`, owner Q141 revised). One added path; an added path cannot
  * break a reference. Nothing is removed or retyped. It is a step of the scale, not of the density ladder (`scale.ts`).
  */
-export const CONTRACT_VERSION = '15.1.0';
+/**
+ * 16.0.0 (#4165, owner decision A, 2026-11-19): MAJOR. The resting link state is `rest`, the name every other
+ * interactive role gives it (`interactive.*.fill.rest`, `field.border.rest`). It was `default`, which is also a weight
+ * role, an easing role, a transition and a scrim. Each link family's `default` leaf is renamed `rest`: `text.link`,
+ * `icon.link`, `inverse.text.link` and `inverse.icon.link`: 4 removed, 4 added. A pure name change: every value is the
+ * one the old name had. Each removal ships a `DEPRECATIONS` entry pointing at its `rest` twin, and the eight older
+ * entries that pointed at a `….link.default` now point at the `rest` twin. The Figma variable rename is derived from
+ * them (`rename-map.ts`). A brand input whose `overrides` still name `….link.default` is read as
+ * `….link.rest` (`withRestLinkKeys`, `theme-brand.ts`).
+ */
+export const CONTRACT_VERSION = '16.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
@@ -805,6 +815,21 @@ const INVERSE_DEDUPED = { group: 'border.inverse', leaf: 'default', replacedBy: 
  * `replacedBy` to the new live name (the rungs were renamed out from under them), and the #1317 block
  * itself is `color.veil.<pol>.<old>` → `color.veil.<pol>.<new>`. One pairing, so the two cannot diverge.
  */
+/**
+ * #4165 — the four link families whose resting leaf `default` became `rest`, as guaranteed paths. Stated LITERALLY, not
+ * read from `modes.ts`'s `LINK_STATES`, so a family the rename missed dangles in `token-contract.ts --check` instead of
+ * agreeing with its subject. Read TWICE, like `VEIL_RUNG_RENAMES`: the #4165 block below retires each `.default`, and
+ * every older entry whose `replacedBy` named one follows it to the `.rest` twin (the "renamed out from under them" rule:
+ * `path` is history and never moves, `replacedBy` follows the live name). Eight such entries exist, from the #891,
+ * #1140 and #1148 eras.
+ */
+const LINK_REST_FAMILIES: readonly string[] = ['color.text.link', 'color.icon.link', 'color.inverse.text.link', 'color.inverse.icon.link'];
+/** An older entry that pointed at a retired `….link.default`, pointed at its `rest` twin instead. */
+const followLinkRest = (d: Deprecation): Deprecation =>
+  d.since !== '16.0.0' && LINK_REST_FAMILIES.some((fam) => d.replacedBy === `${fam}.default`)
+    ? { ...d, replacedBy: `${d.replacedBy.slice(0, -'default'.length)}rest` }
+    : d;
+
 const VEIL_RUNG_RENAMES: ReadonlyArray<readonly [string, string, string]> = [
   ['dark', 'large', 'subtle'], ['dark', 'body', 'medium'], ['dark', 'enhanced', 'strong'],
   ['light', 'large', 'subtle'], ['light', 'body', 'medium'], ['light', 'enhanced', 'strong'],
@@ -1172,7 +1197,12 @@ export const DEPRECATIONS: Deprecation[] = [
     replacedBy: `color.veil.${pol}.${newR}`,
     since: '10.0.0',
   })),
-];
+  // ── #4165: THE RESTING LINK STATE IS `rest` ────────────────────────────────────────────────────────
+  //
+  // A pure name change, like #1317's: the values do not move. The Figma side is derived from these entries
+  // (`projectionsOf`), not recorded in `MATERIALIZATION_RENAMES`.
+  ...LINK_REST_FAMILIES.map((fam) => ({ path: `${fam}.default`, replacedBy: `${fam}.rest`, since: '16.0.0' })),
+].map(followLinkRest);
 
 /** Semver levels, ordered — `LEVELS.indexOf` is the comparison. */
 export const LEVELS = ['none', 'patch', 'minor', 'major'] as const;

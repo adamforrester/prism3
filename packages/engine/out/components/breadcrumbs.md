@@ -160,7 +160,7 @@ Keyed by `path`, `separator`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/backGlyph` | — | — | — | `color.icon.link.default` |
+| `container/backGlyph` | — | — | — | `color.icon.link.rest` |
 
 ### Nesting and properties
 

@@ -486,11 +486,12 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
 // NOT a per-fill state — it's the one cross-cutting disabled.* family (one treatment, any intent).
 const FILL_STATES = ['default', 'hover', 'pressed', 'focused', 'selected'] as const;
 // `pressed` is appended (#1486) so the existing four keep their emission order and only the new leaf
-// is added. Link DEPTH order is default → hover → pressed → visited (see `linkStateCand`): hover and
+// is added. Link DEPTH order is rest → hover → pressed → visited (see `linkStateCand`): hover and
 // pressed are the even engagement ladder (like a button's rest → hover → pressed), and visited sits
-// beyond as the deepest, most-settled state. `focused` stays a colour no-op (== default) — the focus
-// ring carries focus, not an ink shift.
-const LINK_STATES = ['default', 'hover', 'visited', 'focused', 'pressed'] as const;
+// beyond as the deepest, most-settled state. `focused` stays a colour no-op (== rest) — the focus
+// ring carries focus, not an ink shift. The resting state was `default` until #4165 (CONTRACT 16.0.0) gave it
+// the name every other interactive role uses; `DEPRECATIONS` points each retired path at its `rest` twin.
+const LINK_STATES = ['rest', 'hover', 'visited', 'focused', 'pressed'] as const;
 // A link role in ANY family — `text.link.*`, `icon.link.*`, and the two inverse twins — all carry the
 // `.link.` segment and nothing else does. Used by the per-mode override floor guard (#1510): a link
 // override is held to contrast, a non-link override keeps the warn-not-block posture.
@@ -2301,12 +2302,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // families and both mode families and reflects inward at a ramp end. It BYPASSES the #1486 ΔE
     // auto-spacing for that state (the brand is spacing it by hand) but keeps the floor clamp (`linkGuard`),
     // so an override can respace a link but never drop it below its 4.5:1 contract. An unset state keeps the
-    // tuned ladder; `default`/`focused` are the resting link, unaffected.
+    // tuned ladder; `rest`/`focused` are the resting link, unaffected.
     const linkRungs = theme.linkStateRungs;
     const engaged = (st: 'hover' | 'pressed' | 'visited'): Cand =>
       linkRungs?.[st] !== undefined ? walk(linkPal, linkNum, linkRungs[st]!, g.dir, linkGuard) : linkLadder[st];
     const linkStateCand = (st: typeof LINK_STATES[number]): Cand =>
-      st === 'default' || st === 'focused' ? linkBase : engaged(st);
+      st === 'rest' || st === 'focused' ? linkBase : engaged(st);
     for (const st of LINK_STATES)
       T(`link.${st}`, rated(linkStateCand(st), g.floor), `Link ${p.label}${on} — ${st}, ${p.semanticMin}:1 on ${g.floorLabel}`, g.floorName, p.semanticMin);
     return out;

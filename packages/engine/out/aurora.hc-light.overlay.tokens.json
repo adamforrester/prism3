@@ -127,10 +127,10 @@
           "$description": "Muted info text — 4.5:1 on `background.primary`"
         },
         "link": {
-          "default": {
+          "rest": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.700}",
-            "$description": "Link text — default, 7:1 on `background.secondary`"
+            "$description": "Link text — rest, 7:1 on `background.secondary`"
           },
           "hover": {
             "$type": "color",
@@ -268,10 +268,10 @@
           "$description": "Muted info icon — low-emphasis accent, 4.5:1 on `background.primary`"
         },
         "link": {
-          "default": {
+          "rest": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.600}",
-            "$description": "Link icon — default, 4.5:1 on `background.secondary`"
+            "$description": "Link icon — rest, 4.5:1 on `background.secondary`"
           },
           "hover": {
             "$type": "color",
@@ -715,10 +715,10 @@
             "$description": "Muted info text — 4.5:1 on `inverse.background.primary`"
           },
           "link": {
-            "default": {
+            "rest": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.350}",
-              "$description": "Link text on an inverse surface — default, 7:1 on `inverse.background.secondary`"
+              "$description": "Link text on an inverse surface — rest, 7:1 on `inverse.background.secondary`"
             },
             "hover": {
               "$type": "color",
@@ -856,10 +856,10 @@
             "$description": "Muted info icon — low-emphasis accent, 4.5:1 on `inverse.background.primary`"
           },
           "link": {
-            "default": {
+            "rest": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.500}",
-              "$description": "Link icon on an inverse surface — default, 4.5:1 on `inverse.background.secondary`"
+              "$description": "Link icon on an inverse surface — rest, 4.5:1 on `inverse.background.secondary`"
             },
             "hover": {
               "$type": "color",

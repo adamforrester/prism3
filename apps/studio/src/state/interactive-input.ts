@@ -123,8 +123,8 @@ export const setLinkRung = (state: LinkRungState, rung: number | undefined): voi
   if (!Object.keys(m).length) brandState.linkStateRungs = undefined;
 };
 /** The five link states a family carries, in the engine's walk order. */
-export const LINK_STATES = ['default', 'hover', 'pressed', 'visited', 'focused'] as const;
-/** Pin link family `prefix` in `mode` (#1510): `default` and `focused` take `step`, each engaged state keeps
+export const LINK_STATES = ['rest', 'hover', 'pressed', 'visited', 'focused'] as const;
+/** Pin link family `prefix` in `mode` (#1510): `rest` and `focused` take `step`, each engaged state keeps
  *  the signed step distance from the resting link its derived layout has, clamped to the ramp, all from
  *  `theme.linkPalette` (#1496). `undefined` (Auto) clears all five. The baselines are read off the theme as
  *  it stands when the call is made. */
@@ -134,10 +134,10 @@ export const setLinkFamilyOverride = (mode: string, prefix: string, step: string
   if (step === undefined) { for (const st of LINK_STATES) setRoleOverride(mode, `${prefix}.link.${st}`, pal, undefined); return; }
   const idx = (k: string): number => steps.indexOf(k);
   const clamp = (i: number): number => Math.max(0, Math.min(steps.length - 1, i));
-  const defBase = idx(baselineStepOf(`${prefix}.link.default`, mode));
+  const defBase = idx(baselineStepOf(`${prefix}.link.rest`, mode));
   const i0 = idx(step);
   for (const st of LINK_STATES) {
-    if (st === 'default' || st === 'focused') { setRoleOverride(mode, `${prefix}.link.${st}`, pal, step); continue; }
+    if (st === 'rest' || st === 'focused') { setRoleOverride(mode, `${prefix}.link.${st}`, pal, step); continue; }
     const dist = idx(baselineStepOf(`${prefix}.link.${st}`, mode)) - defBase;
     setRoleOverride(mode, `${prefix}.link.${st}`, pal, steps[clamp(i0 + dist)]);
   }
@@ -231,10 +231,10 @@ export const interactiveRowsFor = (col: string, paletteKey: string): Interactive
 };
 /** The link rows: each family's resting link (the family pin), in the legacy Links section's order. */
 export const LINK_ROWS: readonly InteractiveRow[] = [
-  { role: 'text.link.default', group: 'Text link', label: 'Text link', paletteKey: 'link', write: 'link-family' },
-  { role: 'inverse.text.link.default', group: 'Text link · inverse', label: 'Text link · inverse', paletteKey: 'link', write: 'link-family' },
-  { role: 'icon.link.default', group: 'Icon link', label: 'Icon link', paletteKey: 'link', write: 'link-family' },
-  { role: 'inverse.icon.link.default', group: 'Icon link · inverse', label: 'Icon link · inverse', paletteKey: 'link', write: 'link-family' },
+  { role: 'text.link.rest', group: 'Text link', label: 'Text link', paletteKey: 'link', write: 'link-family' },
+  { role: 'inverse.text.link.rest', group: 'Text link · inverse', label: 'Text link · inverse', paletteKey: 'link', write: 'link-family' },
+  { role: 'icon.link.rest', group: 'Icon link', label: 'Icon link', paletteKey: 'link', write: 'link-family' },
+  { role: 'inverse.icon.link.rest', group: 'Icon link · inverse', label: 'Icon link · inverse', paletteKey: 'link', write: 'link-family' },
 ];
 /** The surfaces a text link sits on beside its own floor ground, by family (#2990, Q2990.4 A): the page's and the
  *  inverse band's primary and secondary tiers. The third tier is held as #2991. */
@@ -243,7 +243,7 @@ export const LINK_SURFACES: Readonly<Record<'text' | 'inverse.text', readonly st
   'inverse.text': ['inverse.background.primary', 'inverse.background.secondary'],
 };
 /** True for the two resting text-link rows, which show their contrast in every mode and gate every pick (#2990). */
-export const isTextLinkRow = (r: InteractiveRow): boolean => r.write === 'link-family' && /^(inverse\.)?text\.link\.default$/.test(r.role);
+export const isTextLinkRow = (r: InteractiveRow): boolean => r.write === 'link-family' && /^(inverse\.)?text\.link\.rest$/.test(r.role);
 /** The surfaces a text-link role sits on, by its family. */
 export const linkSurfacesOf = (role: string): readonly string[] => LINK_SURFACES[role.startsWith('inverse.') ? 'inverse.text' : 'text'];
 /** The built-in columns, by name, with the palette key each draws its steps from. */
@@ -293,7 +293,7 @@ export const writeInteractiveRow = (mode: string, row: InteractiveRow, value: st
       return setRoleOverride(mode, row.role, pal, step);
     }
     case 'inverse-fill': return setInverseFillSource(mode, row.role, palette, value ?? '');
-    case 'link-family': return setLinkFamilyOverride(mode, row.role.slice(0, -'.link.default'.length), value);
+    case 'link-family': return setLinkFamilyOverride(mode, row.role.slice(0, -'.link.rest'.length), value);
     case 'readout': return;
   }
 };

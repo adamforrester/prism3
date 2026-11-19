@@ -164,7 +164,7 @@ export const previewSpec: PreviewSpec = {
         { name: 'title', bindings: { type: 'type.title.lg.strong', text: 'color.text.primary' }, contracts: [{ fg: 'color.text.primary', bg: 'color.background.primary', min: TEXT, label: 'title on page' }] },
         { name: 'body', bindings: { type: 'type.body.md.default', text: 'color.text.primary' }, contracts: [{ fg: 'color.text.primary', bg: 'color.background.primary', min: TEXT, label: 'body on page' }] },
         { name: 'secondary', bindings: { type: 'type.body.md.default', text: 'color.text.secondary' }, contracts: [{ fg: 'color.text.secondary', bg: 'color.background.primary', min: TEXT, label: 'secondary on page' }] },
-        { name: 'link', bindings: { type: 'type.body.md.default', text: 'color.text.link.default' }, contracts: [{ fg: 'color.text.link.default', bg: 'color.background.primary', min: TEXT, label: 'link on page' }] },
+        { name: 'link', bindings: { type: 'type.body.md.default', text: 'color.text.link.rest' }, contracts: [{ fg: 'color.text.link.rest', bg: 'color.background.primary', min: TEXT, label: 'link on page' }] },
       ],
     },
   ],

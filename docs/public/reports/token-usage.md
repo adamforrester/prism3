@@ -591,16 +591,6 @@ Type: color. Bound by 3 component(s).
 | banner | `info.icon` | infoGlyph | tone: info (2 of 10) |
 | icon | `tone.info` | (not drawn) | — |
 
-### `color.icon.link.default`
-
-Type: color. Bound by 2 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| breadcrumbs | `icon` | backGlyph | path: parent · separator: chevron (2 of 6) |
-| link | `fill.selected.rest`, `icon` | bar | selection: selected · state: rest · style: standalone · surface: default (8 of 192) |
-|  |  | trailingVisual | state: rest · style: standalone · surface: default (16 of 192) |
-
 ### `color.icon.link.focused`
 
 Type: color. Bound by 1 component(s).
@@ -627,6 +617,16 @@ Type: color. Bound by 1 component(s).
 |---|---|---|---|
 | link | `fill.selected.pressed`, `icon.pressed` | bar | selection: selected · state: pressed · style: standalone · surface: default (8 of 192) |
 |  |  | trailingVisual | state: pressed · style: standalone · surface: default (16 of 192) |
+
+### `color.icon.link.rest`
+
+Type: color. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| breadcrumbs | `icon` | backGlyph | path: parent · separator: chevron (2 of 6) |
+| link | `fill.selected.rest`, `icon` | bar | selection: selected · state: rest · style: standalone · surface: default (8 of 192) |
+|  |  | trailingVisual | state: rest · style: standalone · surface: default (16 of 192) |
 
 ### `color.icon.primary`
 
@@ -1401,15 +1401,6 @@ Type: color. Bound by 1 component(s).
 |---|---|---|---|
 | badge | `neutral.count.contained.bold.fill`, `neutral.dot.contained.bold.fill`, `neutral.status.contained.bold.fill` | surface | emphasis: bold · style: contained · tone: neutral (4 of 50) |
 
-### `color.inverse.icon.link.default`
-
-Type: color. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| link | (projection only) | bar | selection: selected · state: rest · style: standalone · surface: inverse (8 of 192) |
-|  |  | trailingVisual | state: rest · style: standalone · surface: inverse (16 of 192) |
-
 ### `color.inverse.icon.link.focused`
 
 Type: color. Bound by 1 component(s).
@@ -1436,6 +1427,15 @@ Type: color. Bound by 1 component(s).
 |---|---|---|---|
 | link | (projection only) | bar | selection: selected · state: pressed · style: standalone · surface: inverse (8 of 192) |
 |  |  | trailingVisual | state: pressed · style: standalone · surface: inverse (16 of 192) |
+
+### `color.inverse.icon.link.rest`
+
+Type: color. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| link | (projection only) | bar | selection: selected · state: rest · style: standalone · surface: inverse (8 of 192) |
+|  |  | trailingVisual | state: rest · style: standalone · surface: inverse (16 of 192) |
 
 ### `color.inverse.icon.success`
 
@@ -1883,14 +1883,6 @@ Type: color. Bound by 1 component(s).
 |---|---|---|---|
 | button | (projection only) | label | appearance: outline, text · state: focus-visible, pending, rest · surface: inverse (108 of 576) |
 
-### `color.inverse.text.link.default`
-
-Type: color. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| link | (projection only) | label | state: rest · surface: inverse (24 of 192) |
-
 ### `color.inverse.text.link.focused`
 
 Type: color. Bound by 1 component(s).
@@ -1914,6 +1906,14 @@ Type: color. Bound by 1 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | link | (projection only) | label | state: pressed · surface: inverse (24 of 192) |
+
+### `color.inverse.text.link.rest`
+
+Type: color. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| link | (projection only) | label | state: rest · surface: inverse (24 of 192) |
 
 ### `color.inverse.text.primary`
 
@@ -1942,14 +1942,6 @@ Type: color. Bound by 1 component(s).
 |---|---|---|---|
 | badge | `info.status.contained.subtle.label`, `info.status.contained.surface.label` | label | emphasis: subtle, surface · style: contained · tone: info · type: status (4 of 50) |
 
-### `color.text.link.default`
-
-Type: color. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| link | `label` | label | state: rest · surface: default (24 of 192) |
-
 ### `color.text.link.focused`
 
 Type: color. Bound by 1 component(s).
@@ -1973,6 +1965,14 @@ Type: color. Bound by 1 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | link | `label.pressed` | label | state: pressed · surface: default (24 of 192) |
+
+### `color.text.link.rest`
+
+Type: color. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| link | `label` | label | state: rest · surface: default (24 of 192) |
 
 ### `color.text.on-danger`
 
@@ -3825,7 +3825,7 @@ Declared, not drawn: `color.border.focus`
 
 4 token(s); 6 design-file member(s).
 
-`color.icon.link.default`, `icon.size.xs`, `space.050`, `space.100`
+`color.icon.link.rest`, `icon.size.xs`, `space.050`, `space.100`
 
 ### button
 
@@ -4019,9 +4019,9 @@ Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fi
 
 39 token(s); 192 design-file member(s).
 
-`border-width.thick`, `color.icon.link.default`, `color.icon.link.focused`, `color.icon.link.hover`, `color.icon.link.pressed`, `color.inverse.icon.link.default`, `color.inverse.icon.link.focused`, `color.inverse.icon.link.hover`, `color.inverse.icon.link.pressed`, `color.inverse.text.link.default`, `color.inverse.text.link.focused`, `color.inverse.text.link.hover`, `color.inverse.text.link.pressed`, `color.text.link.default`, `color.text.link.focused`, `color.text.link.hover`, `color.text.link.pressed`, `focus.ring.offset`, `focus.ring.width`, `icon.size.sm`, `icon.size.xs`, `space.050`, `space.100`, `type.body.lg.default`, `type.body.lg.default-link`, `type.body.lg.strong`, `type.body.lg.strong-link`, `type.body.md.default`, `type.body.md.default-link`, `type.body.md.strong`, `type.body.md.strong-link`, `type.body.sm.default`, `type.body.sm.default-link`, `type.body.sm.strong`, `type.body.sm.strong-link`, `type.body.xs.default`, `type.body.xs.default-link`, `type.body.xs.strong`, `type.body.xs.strong-link`
+`border-width.thick`, `color.icon.link.focused`, `color.icon.link.hover`, `color.icon.link.pressed`, `color.icon.link.rest`, `color.inverse.icon.link.focused`, `color.inverse.icon.link.hover`, `color.inverse.icon.link.pressed`, `color.inverse.icon.link.rest`, `color.inverse.text.link.focused`, `color.inverse.text.link.hover`, `color.inverse.text.link.pressed`, `color.inverse.text.link.rest`, `color.text.link.focused`, `color.text.link.hover`, `color.text.link.pressed`, `color.text.link.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.sm`, `icon.size.xs`, `space.050`, `space.100`, `type.body.lg.default`, `type.body.lg.default-link`, `type.body.lg.strong`, `type.body.lg.strong-link`, `type.body.md.default`, `type.body.md.default-link`, `type.body.md.strong`, `type.body.md.strong-link`, `type.body.sm.default`, `type.body.sm.default-link`, `type.body.sm.strong`, `type.body.sm.strong-link`, `type.body.xs.default`, `type.body.xs.default-link`, `type.body.xs.strong`, `type.body.xs.strong-link`
 
-Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link.focused`, `color.inverse.icon.link.hover`, `color.inverse.icon.link.pressed`, `color.inverse.text.link.default`, `color.inverse.text.link.focused`, `color.inverse.text.link.hover`, `color.inverse.text.link.pressed`
+Drawn, not declared: `color.inverse.icon.link.focused`, `color.inverse.icon.link.hover`, `color.inverse.icon.link.pressed`, `color.inverse.icon.link.rest`, `color.inverse.text.link.focused`, `color.inverse.text.link.hover`, `color.inverse.text.link.pressed`, `color.inverse.text.link.rest`
 
 ### list
 

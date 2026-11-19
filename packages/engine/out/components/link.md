@@ -285,8 +285,8 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.text.link.default` | — |
-| `container/trailingVisual` | — | — | — | `color.icon.link.default` |
+| `container/label` | — | — | `color.text.link.rest` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.rest` |
 
 **style=standalone, weight=emphasis, surface=default, selection=unselected, state=hover**
 
@@ -313,9 +313,9 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.text.link.default` | — |
-| `container/trailingVisual` | — | — | — | `color.icon.link.default` |
-| `container/bar` | `color.icon.link.default` | — | — | — |
+| `container/label` | — | — | `color.text.link.rest` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.rest` |
+| `container/bar` | `color.icon.link.rest` | — | — | — |
 
 **style=standalone, weight=emphasis, surface=default, selection=selected, state=hover**
 
@@ -345,8 +345,8 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.inverse.text.link.default` | — |
-| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.default` |
+| `container/label` | — | — | `color.inverse.text.link.rest` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.rest` |
 
 **style=standalone, weight=emphasis, surface=inverse, selection=unselected, state=hover**
 
@@ -373,9 +373,9 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.inverse.text.link.default` | — |
-| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.default` |
-| `container/bar` | `color.inverse.icon.link.default` | — | — | — |
+| `container/label` | — | — | `color.inverse.text.link.rest` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.rest` |
+| `container/bar` | `color.inverse.icon.link.rest` | — | — | — |
 
 **style=standalone, weight=emphasis, surface=inverse, selection=selected, state=hover**
 
@@ -405,8 +405,8 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.text.link.default` | — |
-| `container/trailingVisual` | — | — | — | `color.icon.link.default` |
+| `container/label` | — | — | `color.text.link.rest` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.rest` |
 
 **style=standalone, weight=default, surface=default, selection=unselected, state=hover**
 
@@ -433,9 +433,9 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.text.link.default` | — |
-| `container/trailingVisual` | — | — | — | `color.icon.link.default` |
-| `container/bar` | `color.icon.link.default` | — | — | — |
+| `container/label` | — | — | `color.text.link.rest` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.rest` |
+| `container/bar` | `color.icon.link.rest` | — | — | — |
 
 **style=standalone, weight=default, surface=default, selection=selected, state=hover**
 
@@ -465,8 +465,8 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.inverse.text.link.default` | — |
-| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.default` |
+| `container/label` | — | — | `color.inverse.text.link.rest` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.rest` |
 
 **style=standalone, weight=default, surface=inverse, selection=unselected, state=hover**
 
@@ -493,9 +493,9 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.inverse.text.link.default` | — |
-| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.default` |
-| `container/bar` | `color.inverse.icon.link.default` | — | — | — |
+| `container/label` | — | — | `color.inverse.text.link.rest` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.rest` |
+| `container/bar` | `color.inverse.icon.link.rest` | — | — | — |
 
 **style=standalone, weight=default, surface=inverse, selection=selected, state=hover**
 
@@ -525,7 +525,7 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.text.link.default` | — |
+| `container/label` | — | — | `color.text.link.rest` | — |
 
 **style=inline, weight=emphasis, surface=default, selection=unselected, state=hover**
 
@@ -549,7 +549,7 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.inverse.text.link.default` | — |
+| `container/label` | — | — | `color.inverse.text.link.rest` | — |
 
 **style=inline, weight=emphasis, surface=inverse, selection=unselected, state=hover**
 
@@ -573,7 +573,7 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.text.link.default` | — |
+| `container/label` | — | — | `color.text.link.rest` | — |
 
 **style=inline, weight=default, surface=default, selection=unselected, state=hover**
 
@@ -597,7 +597,7 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/label` | — | — | `color.inverse.text.link.default` | — |
+| `container/label` | — | — | `color.inverse.text.link.rest` | — |
 
 **style=inline, weight=default, surface=inverse, selection=unselected, state=hover**
 

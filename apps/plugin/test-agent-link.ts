@@ -1629,9 +1629,9 @@ section('set-override — color overrides: a preview that writes nothing, refusa
     `set-override/refuses-below-minimum-write: the confirmed write is refused too, with no Theme write (${calls.join(', ')})`);
 
   // The link clamp: the engine would emit 550 for an asked 300, so the change is refused rather than stored.
-  const cl = await run({ changes: [{ mode: 'light', role: 'text.link.default', palette: 'neutral', step: '300' }], confirm: false });
+  const cl = await run({ changes: [{ mode: 'light', role: 'text.link.rest', palette: 'neutral', step: '300' }], confirm: false });
   ok(cl.ok === false && dataOf(cl).refusals?.[0]?.reason === 'clamped'
-    && verdictOf(cl)?.summary === 'Light · text.link.default → neutral 300 resolves to neutral 550 — links hold 4.5:1. Pick neutral 550 or a step with more contrast.',
+    && verdictOf(cl)?.summary === 'Light · text.link.rest → neutral 300 resolves to neutral 550 — links hold 4.5:1. Pick neutral 550 or a step with more contrast.',
     `set-override/refuses-clamped-link: "${verdictOf(cl)?.summary}"`);
 
   // A role the mode lacks is refused, not skipped; every refusal in a list comes back in one round.

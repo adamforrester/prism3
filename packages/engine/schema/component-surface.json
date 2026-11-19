@@ -631,7 +631,7 @@
     },
     "link": {
       "members": 192,
-      "sha256": "16e0073c231e814b5caf1bd67a98b1d88077f5c3b80389e53330431184e18069",
+      "sha256": "9056c3c1b92d6b52f674340bf252aecd4e8e616aef89e95b80457a46843ddf02",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -639,7 +639,7 @@
     },
     "link@body-emphasis": {
       "members": 192,
-      "sha256": "ab7f1a7e59cfad55c61f662598bf18f02ad14738720410945bfc6feee22d7cfa",
+      "sha256": "ee4cfd736b65417adf815db6537323d8b4cfadf32c8f9b4c8c4ce8c09be0e2bd",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -647,7 +647,7 @@
     },
     "link@body-single": {
       "members": 96,
-      "sha256": "ecb43650436f4586e713190576b245a2bef582f45d8cb75b4a098847048f5411",
+      "sha256": "4d6c99de7914ad6c2a4d6135266acaaaf718f044506b3d16e684f35d95e956b1",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -706,7 +706,7 @@
     },
     "breadcrumbs": {
       "members": 6,
-      "sha256": "d7fa10a639e25d6cc7ddf6d2461ef0ad8b34a9efc65dab8207907d35a85471d3",
+      "sha256": "6999b34bff7f950110a9b56a17b5deafb9ce7f0ff65a361808749070a3894df5",
       "properties": [
         "items:SLOT"
       ]

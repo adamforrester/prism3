@@ -12,7 +12,7 @@ import { SG_ICON } from './cards';
 import { el, hook, legibleInkOn, palSection, specimen, type SgCtx } from './kit';
 
 /** The link states, in the depth order the engine walks them, `focused` last (it equals the resting link). */
-export const LINK_PREVIEW_STATES = ['default', 'hover', 'pressed', 'visited', 'focused'] as const;
+export const LINK_PREVIEW_STATES = ['rest', 'hover', 'pressed', 'visited', 'focused'] as const;
 /** The link families, by role prefix, with the row label each draws. Page first, then the inverse band. */
 export const LINK_PREVIEW_ROWS: ReadonlyArray<readonly [string, string, boolean]> = [
   ['text', 'Text link', false], ['icon', 'Icon link', false],

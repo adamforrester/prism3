@@ -88,7 +88,7 @@ b0.customModes = [{ name: 'promo', base: 'dark' }];
 b0.modeLevers = { dark: { density: 'compact' }, promo: { density: 'spacious' } };
 // A step the engine's own primary ramp carries, read from the resolved theme rather than guessed.
 const pstep = store.theme.palettes.find((p) => p.palette === 'primary')!.steps[4];
-b0.overrides = { dark: { 'text.link.default': { palette: 'primary', step: pstep.key } } };
+b0.overrides = { dark: { 'text.link.rest': { palette: 'primary', step: pstep.key } } };
 b0.modeAnchors = { dark: { primary: 400 } };
 b0.surfaces = { light: { base: 100 }, dark: { base: 950 } };
 store.rebuild();
@@ -120,7 +120,7 @@ reset();
 B.addCustomMode();
 const pm = store.brandState as unknown as Record<string, Record<string, unknown> | undefined>;
 const cstep = store.theme.palettes.find((p) => p.palette === 'primary')!.steps[4];
-pm.overrides = { 'custom-1': { 'text.link.default': { palette: 'primary', step: cstep.key } } };
+pm.overrides = { 'custom-1': { 'text.link.rest': { palette: 'primary', step: cstep.key } } };
 pm.modeLevers = { dark: { density: 'compact' }, 'custom-1': { density: 'spacious' } };
 pm.modeAnchors = { 'custom-1': { primary: 400 } };
 pm.surfaces = { light: { base: 'white' }, 'custom-1': { base: 100 } };

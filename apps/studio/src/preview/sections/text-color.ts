@@ -24,7 +24,7 @@ export const textColorSection = (c: SgCtx): HTMLElement => {
     ['Neutral', [['Primary', 'text.primary'], ['Secondary', 'text.secondary'], ['Tertiary', 'text.tertiary']], false],
     ['Semantic', SEM.map(([n, s]) => [n, `text.${s}`] as [string, string]), false],
     ['Semantic — subtle', SEM.map(([n, s]) => [n, `text.${s}-subtle`] as [string, string]), false],
-    ['Links', [['Link', 'text.link.default'], ['Hover', 'text.link.hover'], ['Pressed', 'text.link.pressed'], ['Visited', 'text.link.visited'], ['Focused', 'text.link.focused']], true],
+    ['Links', [['Link', 'text.link.rest'], ['Hover', 'text.link.hover'], ['Pressed', 'text.link.pressed'], ['Visited', 'text.link.visited'], ['Focused', 'text.link.focused']], true],
   ];
   for (const [glab, items, ul] of tcGroups) {
     secText.append(subHead(glab));
@@ -37,11 +37,11 @@ export const textColorSection = (c: SgCtx): HTMLElement => {
     secText.append(g);
   }
   const callout = el('div', 'sg-callout');
-  // `LINK_STATES` has five (#1486 added `pressed`). Focused resolves to the same color as default BY DESIGN
+  // `LINK_STATES` has five (#1486 added `pressed`). Focused resolves to the same color as rest BY DESIGN
   // (the focus ring carries the state), which is why the row reads as a duplicate and why it is said.
   callout.append(document.createTextNode('Links draw only from the action ramp — the engine defines '));
-  callout.append(el('span', 'mono', 'text.link.default / hover / pressed / visited / focused'));
-  callout.append(document.createTextNode(' and no neutral or accent link roles. The engaged states step by a perceptual interval, so hover, pressed, and visited stay clearly distinct even where the link color sits deep in the ramp. Focused resolves to the same color as default: the focus ring carries that state, so the link text does not shift.'));
+  callout.append(el('span', 'mono', 'text.link.rest / hover / pressed / visited / focused'));
+  callout.append(document.createTextNode(' and no neutral or accent link roles. The engaged states step by a perceptual interval, so hover, pressed, and visited stay clearly distinct even where the link color sits deep in the ramp. Focused resolves to the same color as rest: the focus ring carries that state, so the link text does not shift.'));
   secText.append(callout);
   return secText;
 };
