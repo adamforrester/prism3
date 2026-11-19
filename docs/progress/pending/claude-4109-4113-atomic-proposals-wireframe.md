@@ -2,7 +2,7 @@
 
 **What.** A DRAFT wireframe, `docs/superpowers/4109-4113-atomic-proposals-wireframe.html`, draws the four atomic
 proposals filed from #4001 (Q-AT2) before the owner review. It follows the #4001 Menu, Popover and Tooltip
-wireframe: grey boxes for parts, axes and set members, light and dark with a theme toggle, an RTL toggle, and a
+wireframe: gray boxes for parts, axes and set members, light and dark with a theme toggle, an RTL toggle, and a
 reduced-motion toggle that also follows the system setting. Every owner decision (OD-S1 to S7, OD-A1 to A8, OD-T1 to
 T5, OD-I1 to I9) carries an `OD-xx` tag on the recommended option, and a decision index at the foot links all 29.
 Nothing is decided and nothing is built: no engine, plugin or skill change.
