@@ -497,7 +497,16 @@
           "subtle-fill": {
             "selected": {
               "$type": "color",
-              "$value": "#71add04d",
+              "$value": {
+                "colorSpace": "srgb",
+                "components": [
+                  0.4431,
+                  0.6784,
+                  0.8157
+                ],
+                "alpha": 0.302,
+                "hex": "#71add0"
+              },
               "$description": "primary interactive subtle fill — selected (the primary fill at `opacity.30`; translucent, the selected background of a selectable control or an outline/text control)"
             }
           }

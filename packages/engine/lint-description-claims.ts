@@ -88,6 +88,11 @@ const BLACK: RGBA = { r: 0, g: 0, b: 0, a: 1 };
 
 const parseColor = (v: unknown): RGBA | undefined => {
   if (v && typeof v === 'object' && 'r' in (v as object)) { const o = v as RGBA; return { r: o.r, g: o.g, b: o.b, a: o.a ?? 1 }; }
+  // The DTCG 2025.10 color object the conforming projection carries (#4123): `{ colorSpace, components, alpha?, hex? }`.
+  if (v && typeof v === 'object' && Array.isArray((v as { components?: unknown }).components)) {
+    const o = v as { components: number[]; alpha?: number };
+    return { r: o.components[0]!, g: o.components[1]!, b: o.components[2]!, a: o.alpha ?? 1 };
+  }
   if (typeof v !== 'string') return undefined;
   let m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(v);
   if (m) {
@@ -243,6 +248,8 @@ const checkView = (label: string, mode: string, view: View): void => {
   };
   const px = (path: string): number | undefined => {
     const v = deref(path);
+    // A dimension object (#4123) is read in px only, the unit the string form carried here.
+    if (v && typeof v === 'object' && (v as { unit?: unknown }).unit === 'px' && typeof (v as { value?: unknown }).value === 'number') return (v as { value: number }).value;
     return typeof v === 'number' ? v : typeof v === 'string' && /^-?[\d.]+px$/.test(v) ? parseFloat(v) : undefined;
   };
   const tokenPath = (named: string): string | undefined =>

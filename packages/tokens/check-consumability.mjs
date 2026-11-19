@@ -165,6 +165,65 @@ const readEmitted = (cssPath) => {
   return { vars, unique: new Set(vars).size, selectors: [...new Set(selectors)], refs, byName, corrupt };
 };
 
+/**
+ * A CSS value with every color literal rewritten as `rgba(R,G,B,A)`, channels rounded to integers and alpha to two
+ * places: `#rrggbb[aa]`, `rgb()`/`rgba()` with numbers, and the CSS Color 4 `rgb(r% g% b% / a)` form (#4123).
+ */
+const sameColorSpelling = (v) => String(v).replace(/#([0-9a-f]{8}|[0-9a-f]{6})\b|rgba?\(([^)]*)\)/gi, (all, hex, args) => {
+  let ch, a;
+  if (hex) {
+    ch = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    a = hex.length === 8 ? parseInt(hex.slice(6), 16) / 255 : 1;
+  } else {
+    const parts = args.split(/[\s,/]+/).filter(Boolean);
+    if (parts.length < 3) return all;
+    ch = parts.slice(0, 3).map((p) => (p.endsWith('%') ? parseFloat(p) * 2.55 : Number(p)));
+    a = parts[3] === undefined ? 1 : parts[3].endsWith('%') ? parseFloat(parts[3]) / 100 : Number(parts[3]);
+  }
+  return `rgba(${ch.map((c) => Math.round(c)).join(',')},${Math.round(a * 100) / 100})`;
+});
+
+/**
+ * [SHAPE] (#4123): the leaves whose literal value is not in its DTCG 2025.10 object form. A color is
+ * `{ colorSpace, components: [3 numbers], alpha?, hex? }` (Color module §4.1); a dimension is `{ value: number,
+ * unit: 'px' | 'rem' }` (Format §8.2), and a shadow layer's color and four lengths follow the same rules (§9.6), as
+ * does a type style's `letterSpacing` (§9.8: a dimension, or a reference to a dimension token; #4128). An
+ * alias (`{a.b}`) is a reference and passes. Each fault is named by its path and value.
+ */
+const isAlias = (v) => typeof v === 'string' && /^\{[^}]+\}$/.test(v);
+const colorOk = (v) => isAlias(v) || (!!v && typeof v === 'object' && typeof v.colorSpace === 'string'
+  && Array.isArray(v.components) && v.components.length === 3 && v.components.every((c) => typeof c === 'number')
+  && (v.alpha === undefined || typeof v.alpha === 'number') && (v.hex === undefined || /^#[0-9a-f]{6}$/i.test(v.hex)));
+const dimOk = (v) => isAlias(v) || (!!v && typeof v === 'object' && typeof v.value === 'number' && ['px', 'rem'].includes(v.unit));
+const shapeFaults = (tree, base = tree) => {
+  const faults = [];
+  const bad = (path, v) => faults.push(`${path}: ${JSON.stringify(v)}`);
+  /** The `$type` of the leaf an alias names, in the BASE (an overlay's aliases resolve there). */
+  const typeOf = (alias) => alias.slice(1, -1).split('.').reduce((n, k) => n?.[k], base)?.$type;
+  const walk = (node, path) => {
+    if (!node || typeof node !== 'object') return;
+    if ('$value' in node) {
+      const v = node.$value;
+      // #4128: Format §9.8 types a typography value's `letterSpacing` as a dimension, or a reference to one.
+      if (node.$type === 'typography' && v && typeof v === 'object' && 'letterSpacing' in v) {
+        const ls = v.letterSpacing;
+        if (isAlias(ls) ? typeOf(ls) !== 'dimension' : !dimOk(ls)) bad(`${path}.letterSpacing`, isAlias(ls) ? `${ls} (a ${typeOf(ls) ?? 'missing'} token)` : ls);
+      }
+      if (node.$type === 'color' && !colorOk(v)) bad(path, v);
+      if (node.$type === 'dimension' && !dimOk(v)) bad(path, v);
+      if (node.$type === 'shadow') for (const [i, l] of (Array.isArray(v) ? v : [v]).entries()) {
+        if (isAlias(l)) continue;
+        if (!colorOk(l?.color)) bad(`${path}[${i}].color`, l?.color);
+        for (const k of ['offsetX', 'offsetY', 'blur', 'spread']) if (!dimOk(l?.[k])) bad(`${path}[${i}].${k}`, l?.[k]);
+      }
+      return;
+    }
+    for (const [k, c] of Object.entries(node)) if (!k.startsWith('$')) walk(c, path ? `${path}.${k}` : k);
+  };
+  walk(tree, '');
+  return faults;
+};
+
 const fail = [];
 const ok = (cond, label) => { console.log(`  ${cond ? '✓' : '✗'} ${label}`); if (!cond) fail.push(label); };
 
@@ -289,6 +348,15 @@ for (const brand of brands) {
     ok(ov.nonConforming.length === 0,
       `${brand}/${mode}: [RULE] every \`$type\` in the OVERLAY is a DTCG type${ov.nonConforming.length ? ` — ${ov.nonConforming.join(', ')} (#642)` : ''}`);
   }
+  // ---- [SHAPE] (#4123): every literal color and dimension is a DTCG 2025.10 object ----
+  // Read off the projection's JSON with this gate's own reading of the spec (Color module §4.1, Format §8.2), never
+  // the engine's converter. A duration stays a string on purpose (`emit-dtcg-overlay.ts`), so it is not asserted here.
+  const baseJson = JSON.parse(readFileSync(resolve(OUT_ROOT, `${brand}.base.tokens.json`), 'utf8'));
+  for (const [label, file] of [['BASE', `${brand}.base.tokens.json`], ...src.modes.map((m) => [`${m} overlay`, `${brand}.${m}.overlay.tokens.json`])]) {
+    const faults = shapeFaults(JSON.parse(readFileSync(resolve(OUT_ROOT, file), 'utf8')), baseJson);
+    ok(faults.length === 0,
+      `${brand}: [SHAPE] every color and dimension in the ${label} is a DTCG 2025.10 object, a type style's letterSpacing included (#4123, #4128)${faults.length ? ` — ${faults.length} not, e.g. ${faults.slice(0, 3).join('; ')}` : ''}`);
+  }
   // And the rule's consequence, read off the EMITTED CSS rather than the JSON: whatever the projection
   // still cannot serialize is standard-typed, so it is the consumer's gap and not ours. PINNED.
   ok(base.corrupt.length === CONSUMER_GAP[brand],
@@ -316,7 +384,11 @@ for (const brand of brands) {
   const missing = Object.keys(css.byName).filter((k) => base.byName[k] === undefined);
   ok(missing.length === expectedAbsent.size && missing.every((k) => expectedAbsent.has(k)),
     `${brand}: [#642] exactly the non-DTCG tokens are absent from the base (${missing.length}/${expectedAbsent.size})${missing.some((k) => !expectedAbsent.has(k)) ? ` — UNEXPECTED: ${missing.filter((k) => !expectedAbsent.has(k)).slice(0, 3).join(', ')}` : ''}`);
-  const baseDrift = Object.keys(css.byName).filter((k) => base.byName[k] !== undefined && css.byName[k] !== base.byName[k]);
+  // #4123: the projection writes colors as DTCG 2025.10 objects, and stock Style Dictionary prints an object color
+  // INSIDE a composite (a shadow layer) as `rgb(3.92% 7.06% 15.69% / 0.102)` where the canonical string printed
+  // `#0a12281a`. Same color, other spelling, so each color is compared as its rounded RGBA. Anything else that moves
+  // still differs: an offset, a layer, an alias, or a color off by more than rounding.
+  const baseDrift = Object.keys(css.byName).filter((k) => base.byName[k] !== undefined && sameColorSpelling(css.byName[k]) !== sameColorSpelling(base.byName[k]));
   ok(baseDrift.length === 0,
     `${brand}: [#609] the base projection reproduces the canonical build value-for-value, for every token it carries${baseDrift.length ? ` — ${baseDrift.length} differ, e.g. ${baseDrift.slice(0, 2).join(', ')}` : ''}`);
 
