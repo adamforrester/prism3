@@ -9,4 +9,4 @@ The #4104 accessibility audit recorded two polite live regions speaking for the 
 
 ### Test
 
-`test-chrome.mjs` section 3170 records every non-empty write to both regions through one failing Theme run, on the plugin at light and dark 1280 and light 380. The strip writes nothing. Activity writes twice, at the start and at the end, and the end is the issue's literal. On `main` the strip arm reads `["Applying the theme","Writing color variables","Stopped at Theme"]` and the reason arm reads `"Update file failed: ✗ Apply failed."`. Each of the two edits, reverted on its own, fails its arm by name.
+`test-chrome.mjs` section 3170 records every non-empty write to both regions through one failing Theme run, on the plugin at light and dark 1280 and light 380. The strip writes nothing. Activity writes twice, at the start and at the end, and the end is the issue's literal. On `main` the strip arm reads `["Applying the theme","Writing color variables","Stopped at Theme"]` and the reason arm reads `"Update file failed: ✗ Apply failed."`. With both edits reverted, both arms fail by name, each naming its own edit's symptom.
