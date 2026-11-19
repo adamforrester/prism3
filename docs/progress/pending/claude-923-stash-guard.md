@@ -15,7 +15,7 @@ says it applies once `settings.json` wires it.
 **Choices.** The empty stack is not special-cased: the decision names the command, and a bare pop on an empty stack
 does nothing either way. The tokenizer is copied from the auto-stash hook, not imported, so each hook stays one file its
 own battery can mutate. `git stash clear` and `git stash branch` (which pops `stash@{0}`) are out of the decision's
-scope and filed separately.
+scope and filed as #4290.
 
 **Measured.** `sh tools/stash-guard/mutations.sh`: 25 passed, 0 failed. That is 10 denied forms, 8 allowed forms
 (A1 runs `git stash apply 'stash@{1}'` and checks it applied that entry), and 7 mutants, each failing its named arm.

@@ -23,7 +23,7 @@
 //   • The empty stack is not special-cased. The owner's decision names the command, not the stack, and a
 //     bare pop on an empty stack does nothing either way.
 //   • NOT GUARDED, stated rather than implied: `git stash clear` and `git stash branch <name>` (which pops
-//     `stash@{0}`), a command built at runtime (`$(...)`, `eval`, `xargs`, a script file), and git aliases.
+//     `stash@{0}`; #4290), a command built at runtime (`$(...)`, `eval`, `xargs`, a script file), and git aliases.
 //
 // WHAT IT SEES. The command is tokenized like a shell would (quotes, escapes, `&&` `||` `;` `|` `&`,
 // newlines, subshell parens), each simple command is read separately, `cd <dir>` and `git -C <dir>` are
