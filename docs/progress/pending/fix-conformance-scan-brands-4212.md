@@ -10,5 +10,6 @@
 
 - `--selftest` gains arm 3: one row per brand on disk, asserting it has a `THEME_OF` entry. On `main` it fails by name for harbor and prism3. On the fix every row passes, and arm 2 (the committed emission matches the design file it was built from, tier by tier and file by file) now runs for harbor and prism3 too, and passes.
 - Mutation: filtering prism3 out of the derivation fails `arm 3 prism3` by name.
+- Arm 2 walks the design files in `examples/`, not `DESIGN_OF`. `DESIGN_OF` is read off the disk, so a brand whose emission disappeared would have dropped out of the self-test without a word. Now it fails by name (`arm 2 <brand>: an emission is on disk to compare against`). `nb-redesign` is exempt by name: it is a seed brief with no emission. `mutations.sh` hides wendys from the disk read and the row fails by name; before this change the same mutation left no wendys row and the self-test passed.
 - `expected.ts harbor` and `expected.ts prism3` build (964 contrast contracts each).
 - The tool is not wired into CI, so nothing outside `tools/` moves.
