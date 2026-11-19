@@ -6,8 +6,9 @@ string here is DRAFT and comes back to the owner in the PR.
 
 - **Decision 3 (b):** `score_consumption` adds `vacuous: true` when no pair resolved in any mode. `rate` keeps
   its `1`, so no consumer breaks.
-- **Decision 4 (a):** `theme_brand`'s `contracts.failures` are `{ role, mode, ratio, against, min }`, matching
-  `score_consumption` and the line #4271 prints from the CLI. This changes a public output shape, as decided.
+- **Decision 4 (a):** `theme_brand`'s `contracts.failures` are `{ role, mode, ratio, against, min }`, the fields
+  of the line #4271 prints from the CLI. `score_consumption`'s failures share `mode`, `ratio` and `min` but key by
+  `pair` and carry no `against`; whether the two should match is an open owner question on the PR. This changes a public output shape, as decided.
   The ratio goes through `floorRatio` (#3759), so a near-miss never reads as the floor.
 - **Decision 1 (a):** the alias is named on both sides, `theme_brand`'s description and the agent link's
   `apply-theme` / `prune` (plus `figma_run`'s description). The rename waits for the next contract bump.
