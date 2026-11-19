@@ -526,6 +526,7 @@
       "description": "BOOLEAN",
       "description text": "TEXT",
       "dividers": "BOOLEAN",
+      "show title": "BOOLEAN",
       "title": "TEXT"
     }
   },

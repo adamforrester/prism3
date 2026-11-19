@@ -32178,7 +32178,10 @@ arm: {
 
   const g = mkFake();
   mcpCallTool('export_theme', { brand: xbrand, outDir: './t2', include: ['tokens'] }, undefined, g.io);
-  ok(g.files.size === 1 && g.files.has('./t2/tokens.json'), 'export_theme: include:[tokens] writes only the DTCG tree');
+  // #4144: the tokens family is the DTCG tree under the CLI's name, its base + overlay set, and the old unprefixed
+  // name for one release, and nothing from another family.
+  ok([...g.files.keys()].every((k) => /^\.\/t2\/(x\.tokens|x\.base\.tokens|x\.[a-z-]+\.overlay\.tokens|tokens)\.json$/.test(k)) && g.files.has('./t2/x.tokens.json') && g.files.has('./t2/tokens.json'),
+    `export_theme: include:[tokens] writes only the DTCG tree and its projections (${[...g.files.keys()].join(', ')})`);
   ok(mcpCallTool('export_theme', { brand: xbrand, outDir: './t3', include: ['nope'] }, undefined, mkFake().io).isError === true,
     'export_theme: an unknown include section errors rather than silently writing nothing');
   ok(EXPORT_SECTIONS.length === 4, 'export_theme: four artifact families');
@@ -32187,7 +32190,9 @@ arm: {
   ok(![...f.files.keys()].some((k) => k.includes('component-defs')), 'export_theme: the default call writes no component-defs export (opt-in)');
   const cs = mkFake();
   ok(!mcpCallTool('export_theme', { brand: xbrand, outDir: './cs', include: ['componentSpecs'] }, undefined, cs.io).isError, 'export_theme: include:[componentSpecs] writes');
-  ok(cs.files.size === 3 && cs.files.has('./cs/component-contracts.json') && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json')
+  // #4144: each under the brand-prefixed name and, for one release, the unprefixed one.
+  ok(cs.files.size === 6 && cs.files.has('./cs/component-contracts.json') && cs.files.has('./cs/component-defs.json') && cs.files.has('./cs/component-defs.specs.json')
+    && cs.files.has('./cs/x.component-contracts.json') && cs.files.has('./cs/x.component-defs.json') && cs.files.has('./cs/x.component-defs.specs.json')
     && cs.files.get('./cs/component-contracts.json') === cs.files.get('./cs/component-defs.json'),
     `#1325 export_theme: include:[componentSpecs] writes exactly the component contracts, their compatibility copy (the same bytes) and the Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
@@ -41002,9 +41007,53 @@ arm: {
   // THE PROPERTIES: two texts and three toggles, `dividers` driving both rules together, off.
   ok(JSON.stringify(planSetProperties(plans).filter((x) => x.type !== 'SLOT')) === JSON.stringify([
     { name: 'title', type: 'TEXT', default: 'Dialog title' }, { name: 'description text', type: 'TEXT', default: 'Supporting text' },
+    { name: 'show title', type: 'BOOLEAN', default: true },
     { name: 'description', type: 'BOOLEAN', default: false }, { name: 'close', type: 'BOOLEAN', default: true }, { name: 'dividers', type: 'BOOLEAN', default: false },
   ]) && plans.every((p) => find(p.root as DN, 'headerDivider')?.visibleProp === 'dividers'),
-    `#2609 dialog properties: title "Dialog title", description text "Supporting text", description off, close on, dividers off over both rules (got ${JSON.stringify(planSetProperties(plans))})`);
+    `#2609 dialog properties: title "Dialog title", description text "Supporting text", show title on, description off, close on, dividers off over both rules (got ${JSON.stringify(planSetProperties(plans))})`);
+
+  // ── #2895 SHOW TITLE (owner Q692 A; the wireframe's Q1–Q7 all A, approved 2026-11-18). EXPECTED is typed here from the
+  // wireframe; ACTUAL is the projected plans and the def's code contract. Q1 A: Figma `show title`, default on; the code
+  // prop is `hideTitle`, default off (owner decision B, 2026-11-18: Q-CC7 A's one hidden-label convention, `hideLabel`). Q4 A: on every member. Q2 A, Q3 A, Q6 A: nothing else moves (the description, close and divider keep
+  // their own toggles, and the title keeps its text property and style binding while hidden). Q5 A and Q7 A: the code
+  // contract. Remove the boolean, flip its default, or drop a code line, and the arm it breaks fails by name.
+  {
+    const st = dg.props.find((x) => x.name === 'hideTitle');
+    const fb = (dg.figmaProperties?.booleans as Record<string, unknown> | undefined)?.showTitle as { figmaName?: string; figmaOnly?: boolean } | undefined;
+    ok(st?.type === 'boolean' && st.default === false && st.required === false && !dg.props.some((x) => x.name === 'showTitle')
+      && fb?.figmaName === 'show title' && fb.figmaOnly === true && dg.props.find((x) => x.name === 'title')?.required === true,
+      `#2895 dialog hideTitle: the code prop is hideTitle, an optional boolean, default false, with no showTitle prop (owner decision B, Q-CC7 A's hideLabel convention); the Figma "show title" switch is figma-only; title stays required as the accessible name (got ${JSON.stringify({ st, fb })})`);
+    const titleBad = plans.filter((p) => {
+      const t = find(p.root as DN, 'title') as (DN & { visibleProp?: string; visible?: boolean; textStyle?: string; propertyRef?: { prop: string } }) | undefined;
+      return !(t && t.visibleProp === 'show title' && t.visible !== false && t.propertyRef?.prop === 'title' && /^label\/(lg|md|sm)\/emphasis$/.test(t.textStyle ?? ''));
+    });
+    ok(plans.length === 24 && titleBad.length === 0,
+      `#2895 dialog show title: every one of the 24 members binds the title's visibility to "show title", shown by default, keeping its title text property and its label emphasis style (${titleBad.length ? `WRONG: ${titleBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    const desc = plans.every((p) => (find(p.root as DN, 'description') as { visibleProp?: string } | undefined)?.visibleProp === 'description');
+    ok(desc, '#2895 dialog show title Q2 A: the description keeps its own toggle, independent of the title');
+    // Q3 A: the header collapses to its content, so a hidden title takes its gap with it. That holds only while the header
+    // (a row: its height is the counter axis) and the titleBox (a column: its height is the primary axis) both hug on y,
+    // with no minimum height on either. ACTUAL is the projected frames, not the def's sizing literals.
+    const q3Bad = plans.filter((p) => {
+      const h = find(p.root as DN, 'header') as Record<string, unknown> | undefined;
+      const tb = find(p.root as DN, 'titleBox') as Record<string, unknown> | undefined;
+      const noMin = (n: Record<string, unknown>) => n.minHeight === undefined && (n.bound as Record<string, unknown> | undefined)?.minHeight === undefined;
+      return !(h && tb && h.layoutMode === 'HORIZONTAL' && h.counterAxisSizingMode === 'AUTO' && noMin(h)
+        && tb.layoutMode === 'VERTICAL' && tb.primaryAxisSizingMode === 'AUTO' && noMin(tb));
+    });
+    ok(plans.length === 24 && q3Bad.length === 0,
+      `#2895 dialog show title Q3 A: on every member the header and the titleBox hug their height with no minimum, so a hidden title collapses the header (${q3Bad.length ? `WRONG: ${q3Bad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    const co =codeOnlyText(dg.anatomy!.codeOnly);
+    ok(co.some((e) => /^labeling — /.test(e) && /`hideTitle` the `<h2>` stays in the DOM, visually hidden/.test(e) && /`aria-labelledby` still points at it/.test(e) && /never `display: none`/.test(e)),
+      '#2895 dialog show title Q7 A: a hidden title is a visually hidden <h2> that aria-labelledby still points at, never display: none');
+    ok(co.some((e) => /^focus in — /.test(e) && /`hideTitle`, never to the hidden title/.test(e) && /first control in the body/.test(e)),
+      '#2895 dialog show title Q7 A: with the title hidden, focus on open goes to the first body control, never the hidden title');
+    ok(co.some((e) => /^the hidden title on an alertdialog — an alertdialog always shows its title/.test(e) && /ignores `hideTitle` with `role="alertdialog"` and warns in development/.test(e))
+      && /An alertdialog always shows its title/.test(st?.description ?? '') && dg.docs.dont.some((x) => /^Hide the title of an alertdialog/.test(x)),
+      '#2895 dialog show title Q5 A: an alertdialog always shows its title; code ignores hideTitle there and warns in development, and the prop and docs say so');
+    ok(/Turn the title off only when tabs or a heading in the body already name the content, most often in a full-screen dialog or a bottom sheet/.test(dg.docs.usage ?? ''),
+      '#2895 dialog show title Q4 A: the docs recommend hiding the title for full and bottom when tabs or a heading name the content');
+  }
 
   // THE ALERTDIALOG HIDES CLOSE, in the docs: the role prop and the code contract both say so (Q303.9 A).
   const role = dg.props.find((x) => x.name === 'role');
@@ -41615,7 +41664,7 @@ arm: {
     ['focus held line', line('focus held'), 'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.'],
     ['backdrop line', line('the backdrop'), 'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.'],
     ['accessibility.role', dg.accessibility.role, '`role="dialog"` with `aria-modal="true"`, or `role="alertdialog"` for a confirmation that needs an answer. A native `<dialog>` opened with `showModal()` provides the dialog role, the modal state, the top layer and an inert page.'],
-    ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
+    ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title, a heading that stays in place, visually hidden, when the title is hidden; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
   ];
   const moved = pinned.filter(([, actual, expected]) => actual !== expected).map(([name]) => name);
   ok(moved.length === 0 && carved.length === 0,
@@ -44098,6 +44147,66 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const decided = body('RUNG_REPEATS').split('\n').find((l) => l.includes("'code-input-cell'")) ?? '';
   ok(decided.includes("'radius.*'") && decided.includes('#3551'), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(decided)})`);
   ok(!body('RUNG_REPEATS_OPEN').includes("'code-input-cell'"), '#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered');
+}
+
+// #4120 (owner decision A, 2026-11-19) — every brand-taking MCP tool takes `{ brand }`. validate_brand took the
+// BrandInput bare, so the documented pre-flight (validate_brand, then theme_brand, one object) failed its first call;
+// the bare form is still read for one release. A missing `brand` is named, not reported as "(root): expected object".
+{
+  const b4120 = { id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 'cool', chroma: 0.01 } };
+  const vb = (a: unknown) => mcpCallTool('validate_brand', a).structuredContent as { valid: boolean; errors: string[] };
+  const wrapped = vb({ brand: b4120 }), bare = vb(b4120);
+  ok(wrapped.valid === true && wrapped.errors.length === 0, `#4120 validate_brand accepts { brand } (got ${JSON.stringify(wrapped)})`);
+  ok(bare.valid === true, `#4120 validate_brand still accepts a bare BrandInput for one release (got ${JSON.stringify(bare)})`);
+  const vbDef = toolDefs({}).find((t) => t.name === 'validate_brand')!.inputSchema as { required?: string[]; properties?: Record<string, unknown> };
+  ok(JSON.stringify(vbDef.required) === '["brand"]' && 'brand' in (vbDef.properties ?? {}),
+    `#4120 validate_brand's inputSchema declares { brand }, as theme_brand's does (got ${JSON.stringify(vbDef)})`);
+  const io4120 = { mkdir: () => {}, writeFile: () => {} };
+  for (const [tool, a] of [['export_theme', { id: 'acme', outDir: './unw' }], ['score_consumption', { refs: ['color.text.primary'] }]] as const) {
+    const r = mcpCallTool(tool, a, undefined, io4120);
+    const msg = JSON.parse(r.content[0].text).error as string;
+    ok(r.isError === true && msg === `${tool} requires \`brand\`: a BrandInput object`,
+      `#4120 ${tool} with no \`brand\` names the missing argument (got ${JSON.stringify(msg)})`);
+  }
+}
+
+// #4141 (owner decision A, 2026-11-19) — export_theme's `include` REPLACES the default, as theme_brand's does. The
+// description said "add componentSpecs", so an agent that named it alone got no tokens. Semantics are unchanged;
+// the description and the include property say "replaces", and include:["componentSpecs"] still writes no tokens.
+{
+  const et = toolDefs({}).find((t) => t.name === 'export_theme')!;
+  const incDesc = ((et.inputSchema as { properties: { include: { description: string } } }).properties.include.description);
+  ok(/replac/i.test(et.description) && !/add "componentSpecs"/.test(et.description) && /replac/i.test(incDesc),
+    `#4141 export_theme says include replaces the default (description ${JSON.stringify(et.description.slice(0, 80))}…, include ${JSON.stringify(incDesc)})`);
+  const files = new Map<string, string>();
+  mcpCallTool('export_theme', { brand: { id: 'x', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } }, outDir: './c', include: ['componentSpecs'] },
+    undefined, { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } });
+  ok(files.size > 0 && ![...files.keys()].some((k) => /tokens\.json$|ai/.test(k.replace('./c/', ''))),
+    `#4141 include:["componentSpecs"] writes the component files only, as the description now says (${[...files.keys()].join(', ')})`);
+}
+
+// #4144 (owner decision A, 2026-11-19) — export_theme writes the CLI's names: <id>.tokens.json, <id>.ai.json, the base +
+// overlay set, <id>.component-contracts.json; the unprefixed names stay for one release. The prefixed ai.json points at
+// <id>.tokens.json, so it sits beside a CLI tree. The overlay set is byte-identical to what the CLI writes.
+{
+  const brand = { id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 }, modes: ['light', 'dark'] };
+  const files = new Map<string, string>();
+  const r = mcpCallTool('export_theme', { brand, outDir: './e', include: ['tokens', 'aiMetadata', 'componentSpecs'] },
+    undefined, { mkdir: () => {}, writeFile: (q: string, c: string) => { files.set(q, c); } });
+  ok(!r.isError, `#4144 export_theme writes (got ${r.content[0].text.slice(0, 160)})`);
+  const want = ['acme.tokens.json', 'acme.base.tokens.json', 'acme.dark.overlay.tokens.json', 'acme.ai.json',
+    'acme.component-contracts.json', 'acme.component-defs.json', 'acme.component-defs.specs.json'];
+  const missing = want.filter((n) => !files.has(`./e/${n}`));
+  ok(missing.length === 0, `#4144 export_theme writes the CLI's file names (missing ${missing.join(', ') || 'none'}; wrote ${[...files.keys()].join(', ')})`);
+  const legacy = ['tokens.json', 'ai-metadata.json', 'component-contracts.json', 'component-defs.json', 'component-defs.specs.json'].filter((n) => !files.has(`./e/${n}`));
+  ok(legacy.length === 0, `#4144 the unprefixed names are still written for one release (missing ${legacy.join(', ') || 'none'})`);
+  const ai = JSON.parse(files.get('./e/acme.ai.json') ?? '{}');
+  ok(JSON.stringify(ai).includes('companion to acme.tokens.json') && !JSON.stringify(ai).includes('companion to tokens.json'),
+    `#4144 acme.ai.json names acme.tokens.json as its tree, so it sits beside the CLI's files`);
+  const projected = buildOverlaySet(JSON.parse(files.get('./e/acme.tokens.json') ?? '{}'));
+  ok(files.get('./e/acme.base.tokens.json') === JSON.stringify(projected.base, null, 2) + '\n'
+    && files.get('./e/acme.dark.overlay.tokens.json') === JSON.stringify(projected.overlays.find((o) => o.mode === 'dark')?.tree, null, 2) + '\n',
+    '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
