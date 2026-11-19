@@ -138,9 +138,12 @@ export const contrast = (a: RGB, b: RGB): number => {
 
 /** A contrast ratio as a NUMBER, the way `formatRatio` prints it (#3759): two places, floored. For a field that stores a
  *  ratio for someone to read (`.ai.json`'s `contrast_with[].ratio`, an eval failure), so it never reads at or above a
- *  floor it misses. Floor the RAW ratio once: re-flooring an already-floored value can drop a step to float error
- *  (1.15 * 100 is 114.999…), so a value meant for `formatRatio` later stays raw. */
-export const floorRatio = (ratio: number): number => Math.floor(ratio * 100) / 100;
+ *  floor it misses. `ratio * 100` carries float error (4.6 * 100 is 459.99999999999994, 1.15 * 100 is 114.999…), so a
+ *  bare floor drops an exact step (#4211: 141 of the two-decimal values 1.00–21.00 did). `FLOOR_EPSILON` absorbs that
+ *  error and nothing more: it is far above the error of `r * 100` for any ratio up to 21 (about 5e-13) and far below
+ *  any real miss a pass/fail could hinge on, so a pair at 4.5 - 1e-8 still prints 4.49. Re-flooring is a no-op. */
+const FLOOR_EPSILON = 1e-9;
+export const floorRatio = (ratio: number): number => Math.floor(ratio * 100 + FLOOR_EPSILON) / 100;
 
 /** A contrast ratio as every surface prints one (#3697 L3): two places, FLOORED, then `:1`. A stated ratio is read as a
  *  floor, so it never reads above what it measures: a 4.496 pair prints "4.49:1", never "4.50:1" beside a 4.5 minimum.
