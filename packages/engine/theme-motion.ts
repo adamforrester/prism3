@@ -19,7 +19,24 @@ export type MotionPersonality = {
   // nobody could set — you could change Dark but not Light, which is backwards. Same shape as the
   // per-mode map; absent entries keep the engine default.
   easingRoles?: Partial<Record<string, string>>;
+  // Which duration STEP each motion preset plays on, brand-wide (#2857, owner Q-MP7 option 3). A preset binds a
+  // semantic step of the one shared scale (`motion.duration.<step>`), never a per-preset duration token, so a
+  // brand's own timing snaps to the scale. Absent entries keep the engine's default mapping
+  // (`MOTION_PRESET_DEFAULTS`). An unknown preset or step is refused by name.
+  presets?: Partial<Record<string, string>>;
+  // The brand-only motion group (#2857, Q-MP7 option 3 item 3): true one-offs that are not part of the guaranteed
+  // contract. Each entry is emitted under `motion.brand.<name>` for this brand only. Omitted, nothing is emitted.
+  brandOnly?: Record<string, MotionBrandOnly>;
 };
+/** One brand-only motion value (#2857). The three shapes the owner named: a spring, a duration that scales with the
+ *  distance travelled, and gesture physics. The fields are DRAFT. No example brand sets one. */
+export type MotionBrandOnly =
+  | { kind: 'spring'; damping: number; stiffness: number }
+  | { kind: 'distance'; baseMs: number; msPerPx: number; minMs?: number; maxMs?: number }
+  | { kind: 'gesture'; coastTauMs?: number; rubberBand?: number; parallax?: number };
+/** A motion preset resolved through the brand's mapping (#2857): the step it plays on, the easing role it names and
+ *  the step its reduced-motion sibling plays on (`motion.duration-reduced.<reduced>`). */
+export type MotionPreset = { preset: string; duration: string; easing: string; reduced: string };
 export type MotionAxis = {
   tempo: 'snappy' | 'standard' | 'relaxed';
   duration: Record<string, number>;            // ms, semantic roles (tempo-scaled)
@@ -40,6 +57,10 @@ export type MotionAxis = {
   easingRoles: { role: string; curve: string }[];
   // Only modes that actually re-point get an entry; absent ⇒ byte-identical emit.
   easingRolesByMode?: Record<string, Record<string, string>>;
+  // Every starter preset, resolved through the brand's mapping (#2857). Emitted to the agent sidecar, not the tree.
+  presets: MotionPreset[];
+  // The brand-only group, validated, in input order. Absent when the brand sets none.
+  brandOnly?: Record<string, MotionBrandOnly>;
 };
 
 // The engine's opinion about which curve each intent starts from. A brand overrides any of them via
@@ -50,7 +71,55 @@ export const EASING_ROLE_DEFAULTS = [
   { role: 'exit', curve: 'accelerate' },
   { role: 'emphasized', curve: 'expressive' },
 ] as const;
-const DURATION_BASE: Record<string, number> = { instant: 50, fast: 100, normal: 200, moderate: 300, slow: 500, slower: 800 };
+// The semantic duration scale, shortest to longest. `long`, `longer` and `longest` (#2857, Q-MP7 option 3) extend
+// it past `slower` for surface and choreographed moves, near where a reference brand's long motions cluster. Their
+// names and values are DRAFT for the owner. Every step scales with tempo, and the reduce-motion rule below sets
+// each of the three to 0, as it does every step above 200ms.
+const DURATION_BASE: Record<string, number> = { instant: 50, fast: 100, normal: 200, moderate: 300, slow: 500, slower: 800, long: 900, longer: 1100, longest: 1300 };
+/** The steps of the semantic duration scale, shortest to longest: what a preset may map to. Loop periods are not steps. */
+export const DURATION_STEPS: readonly string[] = Object.keys(DURATION_BASE);
+/**
+ * The default preset → step mapping (#2857, owner Q-MP7 option 3 item 2): the #2857 starter set, each on the step
+ * its wireframe card plays (`docs/superpowers/2857-motion-presets-wireframe.html`). A brand overrides `duration`
+ * per preset with `motionPersonality.presets`; the easing role and the reduced step are the preset's own. The preset
+ * names and the set are DRAFT (Q-MP1 to Q-MP6 are open).
+ */
+export const MOTION_PRESET_DEFAULTS: readonly MotionPreset[] = [
+  { preset: 'dialog/enter', duration: 'moderate', easing: 'enter', reduced: 'normal' },
+  { preset: 'dialog/exit', duration: 'normal', easing: 'exit', reduced: 'normal' },
+  { preset: 'drawer/enter', duration: 'moderate', easing: 'enter', reduced: 'normal' },
+  { preset: 'drawer/exit', duration: 'normal', easing: 'exit', reduced: 'normal' },
+  { preset: 'toast/enter', duration: 'normal', easing: 'enter', reduced: 'normal' },
+  { preset: 'toast/exit', duration: 'fast', easing: 'exit', reduced: 'normal' },
+  { preset: 'tooltip/show', duration: 'fast', easing: 'enter', reduced: 'fast' },
+  { preset: 'accordion/expand', duration: 'normal', easing: 'enter', reduced: 'normal' },
+  { preset: 'hover', duration: 'fast', easing: 'default', reduced: 'fast' },
+  { preset: 'pressed', duration: 'fast', easing: 'default', reduced: 'fast' },
+  { preset: 'fade/in', duration: 'normal', easing: 'enter', reduced: 'normal' },
+];
+/** The fields each brand-only kind takes, and which are required. */
+const BRAND_ONLY_FIELDS: Record<MotionBrandOnly['kind'], { required: string[]; optional: string[] }> = {
+  spring: { required: ['damping', 'stiffness'], optional: [] },
+  distance: { required: ['baseMs', 'msPerPx'], optional: ['minMs', 'maxMs'] },
+  gesture: { required: [], optional: ['coastTauMs', 'rubberBand', 'parallax'] },
+};
+/** The brand-only group, checked: a name is a token key, a kind is one of the three, every field is a finite number
+ *  and none is unknown. Refused by name, so the input path that is wrong is in the message. */
+const checkBrandOnly = (group: Record<string, MotionBrandOnly>): Record<string, MotionBrandOnly> => {
+  for (const [name, v] of Object.entries(group)) {
+    const at = `motionPersonality.brandOnly.${name}`;
+    if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error(`${at}: a brand-only motion name is lowercase letters, digits and hyphens`);
+    const shape = BRAND_ONLY_FIELDS[(v as { kind?: string })?.kind as MotionBrandOnly['kind']];
+    if (!shape) throw new Error(`${at}: unknown kind '${(v as { kind?: string })?.kind}' (have: ${Object.keys(BRAND_ONLY_FIELDS).join(', ')})`);
+    const fields = Object.keys(v).filter((k) => k !== 'kind');
+    for (const f of fields) {
+      if (![...shape.required, ...shape.optional].includes(f)) throw new Error(`${at}: unknown field '${f}' for kind '${v.kind}' (have: ${[...shape.required, ...shape.optional].join(', ')})`);
+      if (!Number.isFinite((v as Record<string, unknown>)[f])) throw new Error(`${at}.${f}: must be a finite number`);
+    }
+    for (const f of shape.required) if (!fields.includes(f)) throw new Error(`${at}: kind '${v.kind}' needs '${f}'`);
+  }
+  return group;
+};
 const TEMPO_FACTOR = { snappy: 0.8, standard: 1, relaxed: 1.3 } as const;
 /** The spinner's turn (#1670): `motion.duration.spin` / `motion.duration-reduced.spin`. Fixed, not tempo-scaled. */
 export const SPIN_ROLE = 'spin';
@@ -67,6 +136,9 @@ export const LOOP_ROLES: readonly string[] = [SPIN_ROLE, SWEEP_ROLE];
 const round5 = (n: number) => Math.round(n / 5) * 5;
 
 export const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
+  const known = new Set(MOTION_PRESET_DEFAULTS.map((d) => d.preset));
+  for (const name of Object.keys(p.presets ?? {}))
+    if (!known.has(name)) throw new Error(`motionPersonality.presets: unknown preset '${name}' (have: ${[...known].join(', ')})`);
   const tempo = p.tempo ?? 'standard';
   const f = TEMPO_FACTOR[tempo];
   const duration: Record<string, number> = {};
@@ -115,6 +187,13 @@ export const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
         throw new Error(`motionPersonality.easingRoles.${r.role}: unknown easing curve '${picked}' (have: ${Object.keys(easing).join(', ')})`);
       return { role: r.role, curve: picked ?? r.curve };
     }),
+    presets: MOTION_PRESET_DEFAULTS.map((d) => {
+      const picked = p.presets?.[d.preset];
+      if (picked !== undefined && !DURATION_STEPS.includes(picked))
+        throw new Error(`motionPersonality.presets.${d.preset}: unknown duration step '${picked}' (have: ${DURATION_STEPS.join(', ')})`);
+      return { ...d, duration: picked ?? d.duration };
+    }),
+    ...(p.brandOnly && Object.keys(p.brandOnly).length ? { brandOnly: checkBrandOnly(p.brandOnly) } : {}),
     transitions: [
       { name: 'default', duration: 'normal', easing: 'standard', desc: 'standard in-place transition' },
       { name: 'enter', duration: 'normal', easing: 'decelerate', desc: 'element settles in' },

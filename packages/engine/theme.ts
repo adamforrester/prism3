@@ -21,8 +21,8 @@ export { ALL_MODES, VALID_MODES, RESERVED_ROOTS, CORE_TIER, RAISED_SURFACE_VALUE
 export type { NbMeasured, Role, OKLCH, PaletteBuild, ModeLevers, Dims, InteractivePalette, LinkStateRungs, RaisedSurface, ScrimStrength, SecondaryTextGround, GlassRoleInput, OutlineInteraction, OutlineHoverPick, OutlineHoverFill, OutlineWash, Theme, SurfaceSpec, SurfaceStep, InverseSurfaceSpec, SurfaceMode, SurfacesConfig, BrandInput, BrandInputAuthored } from './theme-types';
 export { isReservedPalette, RED_CHROMA_FLOOR, inRedTerritory, DISABLED_FLOOR_MIN, DISABLED_FLOOR_MAX, normalizeDisabledStrategy, normalizeDisabledMin } from './theme-color';
 export { buildDims } from './theme-dims';
-export { EASING_ROLE_DEFAULTS, SPIN_ROLE, SPIN_MS, SPIN_REDUCED_MS, SWEEP_ROLE, SWEEP_MS, SWEEP_REDUCED_MS, LOOP_ROLES } from './theme-motion';
-export type { Bezier, MotionPersonality, MotionAxis } from './theme-motion';
+export { EASING_ROLE_DEFAULTS, SPIN_ROLE, SPIN_MS, SPIN_REDUCED_MS, SWEEP_ROLE, SWEEP_MS, SWEEP_REDUCED_MS, LOOP_ROLES, DURATION_STEPS, MOTION_PRESET_DEFAULTS } from './theme-motion';
+export type { Bezier, MotionPersonality, MotionAxis, MotionBrandOnly, MotionPreset } from './theme-motion';
 export { typefaceSlug, WEIGHT_ROLE_ORDER, TYPE_GROUPS, isItalicCut, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, TYPE_WEIGHTS_DEFAULT, REQUIRED_WEIGHT_ROLES, BUTTON_LABEL_DEFAULT_ROLE, weightAvailability, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS, UNDERLINE_BOUNDS, UNDERLINE_ON_DEFAULT, resolveUnderline, BODY_XS_DESCRIPTION, DISPLAY_VARIANTS, mobileEndpoint, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, CAPTION_SIZE_FLOOR, BRAND_SIZE_GROUPS, derivedRungFor, shiftRung, brandLineHeights, brandLetterSpacings } from './theme-type';
 export type { FontFamilyBinding, Typeface, WeightRoleName, WeightRole, TypeGroup, FacePin, TypeComposite, Typography, LineHeightKey, LetterSpacingKey, TypographyInput, ResolvedUnderline, DisplayVariant, PerModeSizeGroup, BrandSizeGroup } from './theme-type';
 export type { ShadowLayer, ShadowStep, ShadowAxis } from './theme-shadow';

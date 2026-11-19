@@ -31940,21 +31940,26 @@ arm: {
   const prim = (key: number, sec: number): Row => [`motion/duration-ms/${key}`, sec, null];
   const sem = (name: string, key: number, sec: number): Row => [`motion/${name}`, sec, `motion/duration-ms/${key}`];
   const NB_MOTION: Row[] = [
-    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8), prim(1600, 1.6), prim(2600, 2.6),
+    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8),
+    prim(900, 0.9), prim(1100, 1.1), prim(1300, 1.3), prim(1600, 1.6), prim(2600, 2.6),
     sem('duration/instant', 50, 0.05), sem('duration/fast', 100, 0.1), sem('duration/normal', 200, 0.2), sem('duration/moderate', 300, 0.3),
     sem('duration/slow', 500, 0.5), sem('duration/slower', 800, 0.8), sem('duration/spin', 800, 0.8), sem('duration/sweep', 1600, 1.6),
+    sem('duration/long', 900, 0.9), sem('duration/longer', 1100, 1.1), sem('duration/longest', 1300, 1.3),
     sem('duration-reduced/instant', 50, 0.05), sem('duration-reduced/fast', 100, 0.1), sem('duration-reduced/normal', 50, 0.05),
     sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
+    sem('duration-reduced/long', 0, 0), sem('duration-reduced/longer', 0, 0), sem('duration-reduced/longest', 0, 0),
     sem('duration-reduced/spin', 2600, 2.6), sem('duration-reduced/sweep', 2600, 2.6),
     sem('stagger', 40, 0.04),
   ];
   const AURORA_MOTION: Row[] = [
     prim(0, 0), prim(30, 0.03), prim(40, 0.04), prim(50, 0.05), prim(80, 0.08), prim(160, 0.16), prim(240, 0.24), prim(400, 0.4),
-    prim(640, 0.64), prim(800, 0.8), prim(1600, 1.6), prim(2600, 2.6),
+    prim(640, 0.64), prim(720, 0.72), prim(800, 0.8), prim(880, 0.88), prim(1040, 1.04), prim(1600, 1.6), prim(2600, 2.6),
     sem('duration/instant', 40, 0.04), sem('duration/fast', 80, 0.08), sem('duration/normal', 160, 0.16), sem('duration/moderate', 240, 0.24),
     sem('duration/slow', 400, 0.4), sem('duration/slower', 640, 0.64), sem('duration/spin', 800, 0.8), sem('duration/sweep', 1600, 1.6),
+    sem('duration/long', 720, 0.72), sem('duration/longer', 880, 0.88), sem('duration/longest', 1040, 1.04),
     sem('duration-reduced/instant', 40, 0.04), sem('duration-reduced/fast', 80, 0.08), sem('duration-reduced/normal', 50, 0.05),
     sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
+    sem('duration-reduced/long', 0, 0), sem('duration-reduced/longer', 0, 0), sem('duration-reduced/longest', 0, 0),
     sem('duration-reduced/spin', 2600, 2.6), sem('duration-reduced/sweep', 2600, 2.6),
     sem('stagger', 30, 0.03),
   ];
@@ -32023,7 +32028,9 @@ arm: {
 
   // "Every DTCG motion token has a Figma form or a stated reason" (#2412 done-when): every family under
   // `<root>.motion` in the DTCG is a key of MOTION_FIGMA_COVERAGE, and the one with no form says why.
-  const nbDtcgMotion = Object.keys(buildTree(nbTheme()).tree[NB_ROOT].motion);
+  // NB's families, plus the brand-only group (#2857), which only a brand that sets it emits.
+  const brandOnlyFamilies = Object.keys(buildTree(brandTheme({ ...MINIMAL_BRAND, motionPersonality: { brandOnly: { coast: { kind: 'gesture', coastTauMs: 325 } } } } as unknown as BrandInput)).tree.prism.motion);
+  const nbDtcgMotion = [...new Set([...Object.keys(buildTree(nbTheme()).tree[NB_ROOT].motion), ...brandOnlyFamilies])];
   const uncovered = nbDtcgMotion.filter((f) => !(f in MOTION_FIGMA_COVERAGE));
   ok(uncovered.length === 0 && nbDtcgMotion.length === Object.keys(MOTION_FIGMA_COVERAGE).length,
     `motion: every DTCG motion family has a Figma form or a stated reason (${nbDtcgMotion.join(', ')}${uncovered.length ? ` — UNCOVERED: ${uncovered.join(', ')}` : ''})`);
@@ -43568,6 +43575,101 @@ arm: {
     ok(parts[h.part]?.kind === h.kind && !!typeKey && !threw && host !== undefined && host.textStyle === undefined && offText.length === 0,
       `#3783 a '${h.kind}' part carrying 'type' (${h.def}.${h.part}, synthetic) plans NO text style — only a TEXT node takes one (${threw ? `threw: ${threw}` : !host ? 'the part was not built at this coordinate' : `text style on ${offText.join(', ') || 'none'}`})`);
   }
+}
+
+// #2857 (owner decision Q-MP7 option 3, 2026-11-19) — the engine foundation for motion presets: the long steps of the
+// one duration scale, the brand's preset → step mapping, and the brand-only group outside the contract.
+{
+  const base = { id: 'presets2857', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  const withMotion = (mp: Record<string, unknown>) => ({ ...base, motionPersonality: mp }) as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const sidecar = (input: BrandInput) => { const th = brandTheme(input); return buildAiMetadata(th, buildTree(th).tree) as any; };
+  const treeOf = (input: BrandInput) => buildTree(brandTheme(input)).tree.prism;
+
+  // (1) THE DEFAULT MAPPING IS IDENTITY ON TODAY'S EMISSION. EXPECTED is the #2857 wireframe's own PATTERNS table (each
+  // card's data name, duration role, easing role and reduced duration role), read from the HTML, never from the
+  // engine's MOTION_PRESET_DEFAULTS. ACTUAL is the sidecar the engine emits for the canonical brand.
+  const html = readFileSync(join(import.meta.dirname, '../../docs/superpowers/2857-motion-presets-wireframe.html'), 'utf8');
+  const cards = [...html.matchAll(/data: '([^']+)'[\s\S]*?dur: '([a-z]+)', ease: '([a-z]+)'[\s\S]*?rdur: '([a-z]+)'/g)]
+    .map(([, data, dur, ease, rdur]) => ({ data, dur, ease, rdur }));
+  const prism3Input = readExampleBrand('./examples/prism3.design.md');
+  const stockPresets = sidecar(prism3Input).motion_presets ?? {};
+  const wrongCards = cards.filter((c) => {
+    const p = stockPresets[c.data];
+    return !p || p.duration !== `motion.duration.${c.dur}` || p.easing !== `motion.easing-role.${c.ease}` || p.reduced_duration !== `motion.duration-reduced.${c.rdur}`;
+  });
+  ok(cards.length >= 11 && wrongCards.length === 0 && Object.keys(stockPresets).length === cards.length,
+    `#2857 default mapping: every wireframe card's preset plays on its own step, easing role and reduced step for prism3 (${cards.length} cards, ${Object.keys(stockPresets).length} emitted)${wrongCards.length ? ` — wrong: ${wrongCards.map((c) => `${c.data} wants ${c.dur}/${c.ease}/${c.rdur}, got ${JSON.stringify(stockPresets[c.data])}`).join('; ')}` : ''}`);
+  // Every path a preset names is a real tree leaf, so a preset resolves through the mapping to the semantic step.
+  const p3tree = buildTree(brandTheme(prism3Input)).tree;
+  const p3root = Object.keys(p3tree)[0];
+  const dangling = Object.entries<any>(stockPresets).flatMap(([n, p]) => [p.duration, p.easing, p.reduced_duration].filter((path) => !at(p3tree[p3root], path)).map((path) => `${n} → ${path}`));
+  ok(Object.keys(stockPresets).length > 0 && dangling.length === 0, `#2857 default mapping: every preset names a leaf the prism3 tree emits${dangling.length ? ` — dangling: ${dangling.join('; ')}` : ''}`);
+  // No value moves: the steps that existed before keep the values they had at the standard tempo (frozen here), and
+  // spelling the default mapping out in the input changes nothing the engine emits.
+  const BEFORE: Record<string, number> = { instant: 50, fast: 100, normal: 200, moderate: 300, slow: 500, slower: 800 };
+  const msOf = (v: string) => Number(/duration-ms\.(\d+)\}$/.exec(v)?.[1]);
+  const moved = Object.entries(BEFORE).filter(([k, v]) => msOf(p3tree[p3root].motion.duration[k]?.$value ?? '') !== v);
+  ok(moved.length === 0, `#2857 default mapping: no existing duration step moves for prism3${moved.length ? ` — moved: ${moved.map(([k]) => `${k} → ${p3tree[p3root].motion.duration[k]?.$value}`).join('; ')}` : ''}`);
+  const spelled = { ...prism3Input, motionPersonality: { ...(prism3Input.motionPersonality ?? {}), presets: Object.fromEntries(cards.map((c) => [c.data, c.dur])) } } as BrandInput;
+  ok(JSON.stringify(buildTree(brandTheme(spelled)).tree) === JSON.stringify(p3tree) && JSON.stringify(sidecar(spelled)) === JSON.stringify(sidecar(prism3Input)),
+    '#2857 default mapping: writing the wireframe mapping into the input is byte-identical to leaving it out (tree and sidecar)');
+
+  // The long steps: three steps past `slower`, tempo-scaled like every step, 0ms under reduced motion. Values frozen.
+  for (const [tempo, f] of [['snappy', 0.8], ['standard', 1], ['relaxed', 1.3]] as const) {
+    const mo = treeOf(withMotion({ tempo })).motion;
+    const want = { long: 900, longer: 1100, longest: 1300 };
+    const bad = Object.entries(want).filter(([k, v]) => msOf(mo.duration[k]?.$value ?? '') !== Math.round((v * f) / 5) * 5 || msOf(mo['duration-reduced'][k]?.$value ?? '') !== 0
+      || mo['duration-ms'][String(Math.round((v * f) / 5) * 5)]?.$type !== 'duration');
+    ok(bad.length === 0, `#2857 long steps (${tempo}): motion.duration.{long,longer,longest} are 900/1100/1300ms × ${f}, reduced to 0, each on a real duration-ms primitive${bad.length ? ` — wrong: ${bad.map(([k]) => `${k} ${mo.duration[k]?.$value} / reduced ${mo['duration-reduced'][k]?.$value}`).join('; ')}` : ''}`);
+  }
+
+  // (2) AN OVERRIDE MOVES EXACTLY ONE PRESET, and only in the sidecar: a preset is not a token, so the tree is
+  // byte-identical.
+  const stock = sidecar(withMotion({})).motion_presets;
+  const over = sidecar(withMotion({ presets: { 'dialog/enter': 'longest' } })).motion_presets;
+  const differ = Object.keys({ ...stock, ...over }).filter((k) => JSON.stringify(stock[k]) !== JSON.stringify(over[k]));
+  ok(differ.length === 1 && differ[0] === 'dialog/enter' && over['dialog/enter']?.duration === 'motion.duration.longest'
+    && over['dialog/enter']?.easing === stock['dialog/enter']?.easing && over['dialog/enter']?.reduced_duration === stock['dialog/enter']?.reduced_duration,
+    `#2857 override: presets {'dialog/enter': 'longest'} moves exactly that preset's step and nothing else (moved: ${JSON.stringify(differ)}, now ${JSON.stringify(over['dialog/enter'])})`);
+  ok(JSON.stringify(treeOf(withMotion({ presets: { 'dialog/enter': 'longest' } }))) === JSON.stringify(treeOf(withMotion({}))),
+    '#2857 override: a preset mapping moves no token (the tree is byte-identical)');
+
+  // (3) AN UNKNOWN ENTRY IS REFUSED BY NAME: an unknown preset, an unknown step, a loop period (not a step), and in
+  // the brand-only group an unknown kind and an unknown field.
+  const refusals: Array<[string, Record<string, unknown>, RegExp]> = [
+    ['unknown preset', { presets: { 'modal/enter': 'normal' } }, /motionPersonality\.presets: unknown preset 'modal\/enter'/],
+    ['unknown step', { presets: { 'toast/exit': 'huge' } }, /motionPersonality\.presets\.toast\/exit: unknown duration step 'huge'/],
+    ['a loop period', { presets: { 'toast/exit': 'spin' } }, /motionPersonality\.presets\.toast\/exit: unknown duration step 'spin'/],
+    ['unknown brand-only kind', { brandOnly: { thumb: { kind: 'wobble' } } }, /motionPersonality\.brandOnly\.thumb: unknown kind 'wobble'/],
+    ['unknown brand-only field', { brandOnly: { coast: { kind: 'gesture', friction: 2 } } }, /motionPersonality\.brandOnly\.coast: unknown field 'friction'/],
+    ['missing brand-only field', { brandOnly: { thumb: { kind: 'spring', damping: 0.7 } } }, /motionPersonality\.brandOnly\.thumb: kind 'spring' needs 'stiffness'/],
+  ];
+  for (const [label, mp, want] of refusals) {
+    const msg = refusal(() => brandTheme(withMotion(mp)));
+    ok(want.test(msg), `#2857 refused by name: ${label} (got ${JSON.stringify(msg)})`);
+  }
+  ok(validateBrandInput(withMotion({ presets: { 'toast/exit': 'huge' } }) as never).some((e) => /motionPersonality\.presets\.toast\/exit: "huge" not in/.test(String(e))),
+    '#2857 refused by name: the schema refuses an unknown step too');
+
+  // (4) THE BRAND-ONLY GROUP STAYS OUT OF THE CONTRACT. A brand that sets it gets custom-typed leaves under
+  // motion.brand.*, which the conforming projection omits; no corpus member emits them, so the live corpus
+  // intersection and the committed baseline both leave every one out, as guaranteed and as brand-dependent.
+  const oneOffs = { thumb: { kind: 'spring', damping: 0.7, stiffness: 300 }, travel: { kind: 'distance', baseMs: 200, msPerPx: 0.5, maxMs: 900 }, coast: { kind: 'gesture', coastTauMs: 325, rubberBand: 0.55, parallax: 0.3 } };
+  const brandOnlyTheme = brandTheme(withMotion({ brandOnly: oneOffs }));
+  const bo = buildTree(brandOnlyTheme).tree.prism.motion.brand ?? {};
+  ok(bo.thumb?.$type === 'spring' && bo.travel?.$type === 'distanceDuration' && bo.coast?.$type === 'gesture'
+    && bo.travel?.$value?.msPerPx === 0.5 && bo.coast?.$value?.coastTauMs === 325 && Object.values<any>(bo).every((l) => l.$extensions?.prism3?.brandOnly === true),
+    `#2857 brand-only: a brand that sets the group emits one custom-typed motion.brand.* leaf per entry (${JSON.stringify(Object.fromEntries(Object.entries<any>(bo).map(([k, l]) => [k, l.$type])))})`);
+  ok(treeOf(withMotion({})).motion.brand === undefined, '#2857 brand-only: a brand that sets none emits no motion.brand group');
+  const baseProj = JSON.stringify(buildBase(buildTree(brandOnlyTheme).tree));
+  ok(!/"brand":\{"thumb"/.test(baseProj) && !baseProj.includes('distanceDuration'), '#2857 brand-only: the conforming projection omits the custom-typed leaves (#642)');
+  const live = buildContract();
+  const committed = readBaseline();
+  const inContract = (c: { guaranteed: Record<string, string>; brandDependent: string[] }) =>
+    [...Object.keys(c.guaranteed), ...c.brandDependent].filter((p) => p.startsWith('motion.brand.') || p === 'motion.brand');
+  ok(inContract(live).length === 0 && inContract(committed).length === 0 && Object.keys(live.guaranteed).includes('motion.duration.longest'),
+    `#2857 brand-only: no motion.brand.* path is guaranteed or brand-dependent, in the live corpus contract or the committed baseline (live ${JSON.stringify(inContract(live))}, committed ${JSON.stringify(inContract(committed))})`);
 }
 
 // ------------------------------------------------------------------- report

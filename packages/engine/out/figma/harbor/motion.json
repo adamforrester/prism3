@@ -102,6 +102,28 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "hds/motion/duration-ms/1170",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "1170ms — duration primitive",
+      "value": 1.17,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "hds/motion/duration-ms/1430",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "1430ms — duration primitive",
+      "value": 1.43,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "hds/motion/duration-ms/1600",
       "resolvedType": "TIMING",
       "scopes": [
@@ -109,6 +131,17 @@
       ],
       "description": "1600ms — duration primitive",
       "value": 1.6,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "hds/motion/duration-ms/1690",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "1690ms — duration primitive",
+      "value": 1.69,
       "alias": null,
       "hiddenFromPublishing": true
     },
@@ -199,6 +232,45 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "hds/motion/duration-ms/1040"
+      }
+    },
+    {
+      "name": "hds/motion/duration/long",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "1170ms — long duration",
+      "value": 1.17,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/motion/duration-ms/1170"
+      }
+    },
+    {
+      "name": "hds/motion/duration/longer",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "1430ms — longer duration",
+      "value": 1.43,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/motion/duration-ms/1430"
+      }
+    },
+    {
+      "name": "hds/motion/duration/longest",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "1690ms — longest duration",
+      "value": 1.69,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/motion/duration-ms/1690"
       }
     },
     {
@@ -299,6 +371,45 @@
         "ALL_SCOPES"
       ],
       "description": "0ms — slower duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "hds/motion/duration-reduced/long",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "0ms — long duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "hds/motion/duration-reduced/longer",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "0ms — longer duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "hds/motion/duration-reduced/longest",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "0ms — longest duration with reduce motion on",
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",

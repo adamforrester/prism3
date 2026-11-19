@@ -102,6 +102,17 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "ads/motion/duration-ms/720",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "720ms — duration primitive",
+      "value": 0.72,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "ads/motion/duration-ms/800",
       "resolvedType": "TIMING",
       "scopes": [
@@ -109,6 +120,28 @@
       ],
       "description": "800ms — duration primitive",
       "value": 0.8,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/880",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "880ms — duration primitive",
+      "value": 0.88,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/1040",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "1040ms — duration primitive",
+      "value": 1.04,
       "alias": null,
       "hiddenFromPublishing": true
     },
@@ -213,6 +246,45 @@
       }
     },
     {
+      "name": "ads/motion/duration/long",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "720ms — long duration",
+      "value": 0.72,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/720"
+      }
+    },
+    {
+      "name": "ads/motion/duration/longer",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "880ms — longer duration",
+      "value": 0.88,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/880"
+      }
+    },
+    {
+      "name": "ads/motion/duration/longest",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "1040ms — longest duration",
+      "value": 1.04,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/1040"
+      }
+    },
+    {
       "name": "ads/motion/duration/spin",
       "resolvedType": "TIMING",
       "scopes": [
@@ -310,6 +382,45 @@
         "ALL_SCOPES"
       ],
       "description": "0ms — slower duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "ads/motion/duration-reduced/long",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "0ms — long duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "ads/motion/duration-reduced/longer",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "0ms — longer duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "ads/motion/duration-reduced/longest",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "0ms — longest duration with reduce motion on",
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",
