@@ -12453,6 +12453,7 @@ arm: {
 // override's flag reads the declared ground; (h) the input is validated and the schema lists the same values;
 // (i) it survives the design.md round trip.
 // MUTATIONS, each failing by name: measure `field.border` on `background.secondary` while it names the page → (b);
+// drop the page-under-wash ground from `fieldStatusGrounds` under 'page' → (b);
 // drop `!hc` from `pageControls` → (c); let the setting reach the links → (d); drop the enum entry in `theme-brand.ts` → (h).
 {
   const IN_PAGE = ['field.border.rest', 'field.border.hover', 'disabled.text', 'disabled.icon', 'interactive.primary.fill.rest',
@@ -12460,6 +12461,7 @@ arm: {
   const IN_INV = ['inverse.field.border.rest', 'inverse.field.border.hover', 'inverse.disabled.text', 'inverse.disabled.icon',
     'inverse.interactive.destructive.text.rest', 'inverse.interactive.destructive.border.rest'];
   const LIGHTEST = ['field.border.rest', 'disabled.text', 'inverse.field.border.rest', 'inverse.disabled.text'];
+  const STATUS = ['border.danger', 'border.warning', 'border.success'];
   const OUT = ['text.primary', 'text.secondary', 'text.tertiary', 'field.placeholder', 'text.link.default', 'icon.link.default', 'border.focus',
     'interactive.neutral.border.rest', 'interactive.primary.border.rest', 'interactive.primary.text.rest', 'interactive.neutral.text.rest',
     'foreground.danger', 'border.tertiary', 'background.secondary', 'foreground.primary'];
@@ -12469,7 +12471,7 @@ arm: {
   ];
   type R = Record<string, { path: string; hex: string; against: string; min: number; ratio: number }>;
   const offA: string[] = [], offB: string[] = [], offC: string[] = [], offD: string[] = [], offE: string[] = [];
-  let cellsB = 0, cellsD = 0;
+  let cellsB = 0, cellsBW = 0, cellsD = 0;
   for (const [id, t] of brands) {
     const unset = resolveAllModes({ ...t, interactiveGround: undefined } as Theme);
     const floor = resolveAllModes({ ...t, interactiveGround: 'floor' } as Theme);
@@ -12494,6 +12496,28 @@ arm: {
           }
         }
       }
+      // The field status borders (#4077 review M2): under 'page' they drop the inset grounds and keep the page and the
+      // page under the hover wash. Both grounds are recomputed here from emitted hex, the wash at the alpha its dialect
+      // ships (rounded here, not by the engine's `emittedAlpha`), so dropping the washed ground fails this by name.
+      {
+        const pageRgb = hexToRgb(P['background.primary'].hex);
+        const wash = P['interactive.neutral.overlay.hover'] as (R[string] & { alpha?: number }) | undefined;
+        const shipped = wash?.alpha === undefined ? undefined
+          : t.colorFormat === 'hex' ? Math.round(wash.alpha * 255) / 255 : Math.round(wash.alpha * 100) / 100;
+        const washed = shipped === undefined ? undefined : composite(pageRgb, hexToRgb(wash!.hex), shipped);
+        for (const k of STATUS) {
+          const r = P[k]; cellsB++;
+          if (!r) { offB.push(`${id} ${pm.mode} ${k}: missing`); continue; }
+          if (r.against !== 'background.primary') offB.push(`${id} ${pm.mode} ${k}: against ${r.against}, want background.primary`);
+          const x = contrast(hexToRgb(r.hex), pageRgb);
+          if (x < r.min - 1e-9) offB.push(`${id} ${pm.mode} ${k}: ${x.toFixed(2)} < ${r.min} on background.primary`);
+          if (washed) {
+            cellsBW++;
+            const y = contrast(hexToRgb(r.hex), washed);
+            if (y < r.min - 1e-9) offB.push(`${id} ${pm.mode} ${k}: ${r.hex} ${y.toFixed(2)} < ${r.min} on background.primary under the hover wash (${hex({ r: Math.round(washed.r), g: Math.round(washed.g), b: Math.round(washed.b) })})`);
+          }
+        }
+      }
       for (const k of OUT) { if (!F[k]) continue; cellsD++; if (P[k]?.path !== F[k].path || P[k]?.against !== F[k].against) offD.push(`${id} ${pm.mode} ${k}: ${F[k].path} → ${P[k]?.path}`); }
       const failing = (rs: R) => new Set(Object.entries(rs).filter(([, r]) => r.min > 0 && r.ratio < r.min - 1e-9).map(([k]) => k));
       const ff = failing(F);
@@ -12502,7 +12526,7 @@ arm: {
     }
   }
   ok(brands.length >= 6 && offA.length === 0, `#3339 (a) interactiveGround unset is identical to 'floor' in every corpus brand (${brands.length} brands${offA.length ? `; differ: ${offA.join(', ')}` : ''})`);
-  ok(cellsB >= 100 && offB.length === 0, `#3339 (b) under 'page' every in-scope interactive role names the page (inverse page on the band), clears its bar there, and the neutral ones are the lightest step that does (${cellsB} cells${offB.length ? ` — ${offB.slice(0, 3).join('; ')}` : ''})`);
+  ok(cellsB >= 100 && cellsBW >= 10 && offB.length === 0, `#3339 (b) under 'page' every in-scope interactive role names the page (inverse page on the band), clears its bar there, the field status borders also clear it under the hover wash, and the neutral ones are the lightest step that does (${cellsB} cells, ${cellsBW} washed${offB.length ? ` — ${offB.slice(0, 3).join('; ')}` : ''})`);
   ok(offC.length === 0, `#3339 (c) high contrast is identical under 'floor' and 'page'${offC.length ? ` — moved: ${offC.slice(0, 4).join(', ')}` : ''}`);
   ok(cellsD >= 100 && offD.length === 0, `#3339 (d) out-of-scope roles (text, links, focus, the button borders that follow their label, surfaces) do not move under 'page' (${cellsD} cells${offD.length ? ` — ${offD.slice(0, 3).join('; ')}` : ''})`);
   ok(offE.length === 0, `#3339 (e) nothing fails under 'page' that passes under 'floor' (${offE.length ? offE.slice(0, 4).join('; ') : 'none'})`);

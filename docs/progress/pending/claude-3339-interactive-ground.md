@@ -21,11 +21,15 @@ It is a port of the throwaway prototype on `claude/3339-prototype`. The one chan
 "Every surface" / "The page only". The `prism3-theme` settings table and the build-component lever-kind table each gain
 a row. The native design.md carries the key generically, and arm (i) holds the round trip.
 
-**Measured** (`page` vs today, light mode; dark moves only the destructive outline and fills):
+**Measured** (`page` vs today, light mode unless named; dark also moves the destructive outline, the fills, the inverse
+field border and disabled text, and the field status borders):
 - Field border: 450 → 400 in both the default brand and the reference brand, 3.86 → 3.28 and 3.84 → 3.27 on white.
 - Field hover border: 650 → 600.
 - Destructive outline: 600 → 500 in the default brand, 600 → 550 in the reference brand.
 - Neutral and primary button borders: unchanged.
+- Field status borders (`border.danger`, `.warning`, `.success`) in the default brand: light 550 → 500 (4.57, 4.54, 4.57
+  on the page); dark 450 → 500 (4.25, 4.27, 4.25 on the page). Each also clears 3:1 on the page under the hover wash.
+- Dark, the default brand: inverse field border 450 → 400 and inverse disabled text 450 → 400 (3.06 on the inverse page).
 - No role in either brand falls below its bar on its declared ground (69 and 72 role-cells move).
 
 **Tests.** `test.ts` #3339 arms (a)–(i). On main's engine, (b), (f), (g) and (h) fail by name. Mutations, each failing by
@@ -34,6 +38,8 @@ name:
 - `page` reaching HC: (c).
 - The text ground, and so the links, following the setting: (d).
 - The enum check dropped: (h).
+- The field status borders' page-under-wash ground dropped under `page`: (b). It was added after review; before it,
+  this mutation passed `test.ts`.
 
 Studio's `test-fills-input.ts` adds 5 assertions.
 
