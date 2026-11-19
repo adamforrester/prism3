@@ -19,3 +19,5 @@ The studio tsconfig reported 352 errors in 78 files. This stage cleans the 22 st
 ### Proof
 
 Three mutations, each committed against first: deleting the flag from the engine tsconfig fails `typecheck-components.ts` by name ("does not resolve to noUncheckedIndexedAccess: true"). Putting back `ids[0]` in `rtl-mirror.ts` fails its main run with the TS2345 by line. Putting back `w[0]` in `shell/activity.ts` fails the studio clean-list run by line (TS2532).
+
+The new import lines move code the public guides cite by line, so 32 citations in seven guides are re-pointed. Each old line is mapped through this diff's hunks to its new line, and nothing a citation quotes changed, so `lint-guide-claims.ts` matches every fingerprint again.
