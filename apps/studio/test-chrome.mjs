@@ -16407,6 +16407,9 @@ for (const [theme, H] of [['light', 420], ['dark', 420], ['light', 300]]) {
   try {
     await page.evaluate((input) => window.postMessage({ pluginMessage: { type: 'restore-input', input } }, '*'), REFUSED_2105);
     await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    // #4222: the line is the strip's short frame now, and the refusal's own words are under Details. Opened, they are the
+    // long text #2105 measured, so the cap below is held against them.
+    await page.evaluate(() => { const d = document.querySelector('[data-p3="error-detail"]'); if (d) d.open = true; return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
     const g = await page.evaluate(() => {
       const r = (s) => { const n = document.querySelector(s); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: b.height }; };
       const err = document.querySelector('[data-p3="error-bar"]');
