@@ -533,20 +533,13 @@ export const spacingMenu = (g: string, kind: SpacingKind, ty: Typography = theme
   const selected = pin ?? (!shift ? 'default' : distinct.length === 1 ? distinct[0] : 'current');
   return { selected, now, derived, ...(pin ? { pin } : {}), shift };
 };
-/** Drop `g` from the map at `typography.<field>`, unsetting a map left empty (#2006's rule), so a brand that clears
- *  every pin or nudge reads as one that never set one. */
-const dropKey = (field: string, g: string): void => {
-  const ty = brandState.typography as Record<string, unknown> | undefined;
-  const m = ty?.[field] as Record<string, unknown> | undefined;
-  if (!ty || !m || !(g in m)) return;
-  delete m[g];
-  if (!Object.keys(m).length) delete ty[field];
-};
 /** A menu pick. A rung writes the pin and removes the nudge; `null` (Default) removes both. Brand-wide. The Current
  *  entry writes nothing, so its caller never calls this. */
 export const setSpacing = (g: string, kind: SpacingKind, rung: string | null): void => {
   const spec = SPACING[kind];
   if (rung !== null) setPath(brandState, `typography.${spec.pin}.${g}`, rung);
-  else dropKey(spec.pin, g);
-  dropKey(spec.shift, g);
+  else setPath(brandState, `typography.${spec.pin}.${g}`, undefined);
+  // `setPath`'s clear prunes every emptied parent up to `typography` (#1071, #4208), so a brand that clears every
+  // pin or nudge reads as one that never set one.
+  setPath(brandState, `typography.${spec.shift}.${g}`, undefined);
 };

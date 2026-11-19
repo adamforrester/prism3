@@ -596,6 +596,9 @@ console.log('\n12. A brand with no typography key stays byte-identical when a si
     // #4208: the two sibling setters #3890 missed.
     ['a caption size (setCaptionSize)', () => T.setCaptionSize('md', 13), () => T.setCaptionSize('md', undefined)],
     ['a letter spacing pin (setTrackingPin)', () => T.setTrackingPin('body', 'wide'), () => T.setTrackingPin('body', undefined)],
+    // #4254 delta review: the type view's two menus, picked and then returned to Default.
+    ['a line height pick (setSpacing lh)', () => T.setSpacing('title', 'lh', 'normal'), () => T.setSpacing('title', 'lh', null)],
+    ['a letter spacing pick (setSpacing ls)', () => T.setSpacing('title', 'ls', 'open'), () => T.setSpacing('title', 'ls', null)],
   ] as const) {
     fresh();
     clear();
