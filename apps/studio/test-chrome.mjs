@@ -5121,25 +5121,45 @@ for (const host of ['web', 'figma']) {
   await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'));
   const cm = await page.evaluate(() => ({ name: document.querySelector('[data-p3="custom-mode-name"]')?.value, focus: document.activeElement?.getAttribute('data-p3') }));
   ok(cm.name === 'custom-1' && cm.focus === 'custom-mode-name', `custom modes: Add custom mode adds custom-1, previewable, its name focused (${JSON.stringify(cm)})`);
-  // A custom mode based on Dark no longer stops Dark off (#1946, owner decision 2026-11-18 A: a custom mode is a
-  // snapshot). The confirm carries no refusal line, confirming turns Dark off, and the custom mode stays, still
-  // previewable and still recording Dark as where it started. Dark here drops nothing and takes no other mode (high
-  // contrast dark is already off), so it turns off at once, with no confirm: before #1946 the custom mode alone forced
-  // one, to say the change would be refused. Dark then comes back on for the rest of the case.
-  await page.locator('[data-p3="custom-mode-base"]').selectOption('dark');
-  await page.waitForFunction(() => document.querySelector('[data-p3="custom-mode-base"]')?.value === 'dark');
+  // #1946 O1 B (owner decision 2026-11-19): the source is asked at creation, and afterward only recorded. custom-1 was
+  // created from Light (the default source), so its row records Light as text: there is no control left that sets it.
+  const rec1 = await page.evaluate(() => { const b = document.querySelector('[data-p3="custom-mode-row"] [data-p3="custom-mode-base"]'); const row = b?.closest('[data-p3="custom-mode-row"]');
+    return { tag: b?.tagName ?? null, text: b?.textContent ?? null, controls: row ? [...row.querySelectorAll('select, input:not([data-p3="custom-mode-name"]), [role="combobox"], [role="listbox"]')].length : -1 }; });
+  ok(rec1.tag === 'SPAN' && rec1.text === 'Started from Light' && rec1.controls === 0,
+    `#1946 O1 B: after creation the base is a read-only record, not a select, so it can't change base (${JSON.stringify(rec1)})`);
+  // A custom mode created from Dark (the source select, before Add): it records Dark, and no longer stops Dark off
+  // (#1946, owner decision 2026-11-18 A: a custom mode is a snapshot). Dark here drops nothing and takes no other mode
+  // (high contrast dark is already off), so it turns off at once, with no confirm: before #1946 the custom mode alone
+  // forced one, to say the change would be refused. Dark then comes back on for the rest of the case.
+  await page.locator('[data-p3="custom-mode-source"]').selectOption('dark');
+  await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="custom-2"]'));
+  const lastBase = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="custom-mode-base"]')].pop()?.textContent ?? null);
+  const savedOn = await persisted(page);
+  ok(await lastBase() === 'Started from Dark' && savedOn?.customModes?.at(-1)?.base === 'dark',
+    `#1946 O1 B: a custom mode created from Dark records Dark, on screen and saved (${await lastBase()}, ${JSON.stringify(savedOn?.customModes)})`);
+  // What it copied is the state suites' claim (test-brand-input.ts §3d: a mode created from Dark resolves dark surfaces);
+  // here dark holds nothing of its own at this point, so there is nothing to compare on screen.
   await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
-  const offDone = await page.waitForFunction(() => document.querySelector('[data-p3="mode-on-dark"]')?.getAttribute('aria-checked') === 'false', null, { timeout: 5000 }).then(() => true, () => false);
-  const afterOff = await page.evaluate(() => ({ refused: document.querySelector('[data-p3="lever-modes"]')?.dataset.refused ?? null, base: document.querySelector('[data-p3="custom-mode-base"]')?.value ?? null }));
-  const savedOff = await persisted(page);
   const askedFirst = await page.evaluate(() => !!document.querySelector('[data-p3="mode-off-confirm"]'));
   ok(!askedFirst, '#1946: a custom mode based on dark no longer brings up the Dark-off confirm by itself');
-  ok(offDone && afterOff.refused !== 'true' && JSON.stringify(await modeRadios(page)) === '["light","hc-light","custom-1"]',
+  const offDone = await page.waitForFunction(() => document.querySelector('[data-p3="mode-on-dark"]')?.getAttribute('aria-checked') === 'false', null, { timeout: 5000 }).then(() => true, () => false);
+  const afterOff = await page.evaluate(() => ({ refused: document.querySelector('[data-p3="lever-modes"]')?.dataset.refused ?? null, base: [...document.querySelectorAll('[data-p3="custom-mode-base"]')].pop()?.textContent ?? null,
+    source: document.querySelector('[data-p3="custom-mode-source"]')?.value ?? null, darkOffered: !document.querySelector('[data-p3="custom-mode-source"] option[value="dark"]')?.disabled }));
+  const savedOff = await persisted(page);
+  ok(offDone && afterOff.refused !== 'true' && JSON.stringify(await modeRadios(page)) === '["light","hc-light","custom-1","custom-2"]',
     `#1946: Dark off is taken with a custom mode based on dark, and the custom mode stays previewable (${JSON.stringify(afterOff)}, modes ${await modeRadios(page)})`);
-  ok(afterOff.base === 'dark' && JSON.stringify(savedOff?.customModes) === '[{"name":"custom-1","base":"dark"}]',
+  ok(afterOff.base === 'Started from Dark' && JSON.stringify(savedOff?.customModes) === '[{"name":"custom-1","base":"light"},{"name":"custom-2","base":"dark"}]',
     `#1946: the custom mode keeps the record of where it started, on screen and saved (${afterOff.base}, ${JSON.stringify(savedOff?.customModes)})`);
+  ok(afterOff.source === 'light' && !afterOff.darkOffered, `#1946 O1 B: with Dark off, Dark is not offered as a source (${JSON.stringify(afterOff)})`);
   await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
   await page.waitForFunction(() => document.querySelector('[data-p3="mode-on-dark"]')?.getAttribute('aria-checked') === 'true');
+  // custom-2 goes first, by its own remove (its confirm, if dark's copy holds anything, is taken), so custom-1's below is
+  // the case's first remove button, as before.
+  await hooks.click(page.locator('[data-p3="custom-mode-remove"]').last());
+  if (await page.evaluate(() => !!document.querySelector('[data-p3="custom-mode-confirm"]'))) await hooks.click(page.locator('[data-p3="custom-mode-confirm-go"]'));
+  const custom2Gone = await page.waitForFunction(() => !document.querySelector('[data-p3="mode-option"][data-mode="custom-2"]'), null, { timeout: 5000 }).then(() => true, () => false);
+  ok(custom2Gone, `custom modes: removing custom-2 takes it out of the preview's modes (modes ${await modeRadios(page)})`);
   // custom-1 holds a copy of light's per-mode input since #1946 (this theme sets a light surface), so removing it
   // drops that copy, and the confirm lists it first. The surface line is the confirm's own row format, typed here.
   await hooks.click(page.locator('[data-p3="custom-mode-remove"]'));
@@ -9305,11 +9325,8 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
       await goPlace(page, place);
       // Type (S6.3): every Show advanced open, so its size, weight, line height and letter spacing rows are read.
       if (place === 'type') await openTypeAdvanced(page);
-      // Brand draws a select only for a custom mode's base: add one, so the page is represented.
-      if (place === 'brand') {
-        await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
-        await hooks.need(page, '[data-p3="custom-mode-base"]');
-      }
+      // Brand's one select is the source a new custom mode copies (#1946 O1 B), drawn with or without a custom mode.
+      if (place === 'brand') await hooks.need(page, '[data-p3="custom-mode-source"]');
       names.push(...(await readNames(page)).map((n) => ({ ...n, place })));
       ctls.push(...(await readControls(page)).map((c) => ({ ...c, place })));
       gaps.push(...(await readRowGaps(page)).map(([l, g]) => ({ list: `${place} ${l}`, g })));
@@ -9353,7 +9370,7 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
     ok(notMono.length === 0, `QA-B2: ${where}: every token under a label is set in the chrome's mono${notMono.length ? ` — ${JSON.stringify(notMono.slice(0, 2))}` : ''}`);
     // QA-B5, QA-B18: selects and step-picker buttons, each page represented.
     const placesWith = (k) => [...new Set(ctls.filter((c) => c.kind === k).map((c) => c.place))];
-    ok(placesWith('select').length === 4 && JSON.stringify(placesWith('pick')) === '["color-fills","color-interactive","layout"]' && ctls.some((c) => c.hook === 'custom-mode-base'),
+    ok(placesWith('select').length === 4 && JSON.stringify(placesWith('pick')) === '["color-fills","color-interactive","layout"]' && ctls.some((c) => c.hook === 'custom-mode-source'),
       `QA-B5: ${where}: selects are read on the four pages that draw one and picker buttons on Surfaces & fills, Interactive and Layout (selects on ${JSON.stringify(placesWith('select'))}, picks on ${JSON.stringify(placesWith('pick'))})`);
     const hs = [...new Set(ctls.map((c) => c.h))];
     ok(ctls.length >= 20 && Math.max(...hs) - Math.min(...hs) <= 0.5,
@@ -9623,17 +9640,24 @@ for (const host of ['web', 'figma']) {
     const b5 = await persisted(page);
     ok(b5?.modeLevers?.dark?.tempo === 'relaxed' && b5?.motionPersonality?.tempo === b4?.motionPersonality?.tempo,
       `Q22: previewing Dark, a tempo edit writes modeLevers.dark.tempo and not the brand value (dark ${JSON.stringify(b5?.modeLevers?.dark ?? null)})`);
-    // A custom mode based on Dark: Auto names Light's value, never Dark's override (the engine resolves from the brand).
+    // A custom mode created from Dark (#1946 O1 B: the source is chosen at creation) holds a copy of Dark's tempo as its
+    // own setting; returned to Auto, it names Light's value, never Dark's override (the engine resolves from the brand).
     await goPlace(page, 'brand');
+    await page.locator('[data-p3="custom-mode-source"]').selectOption('dark');
     await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
     await hooks.need(page, '[data-p3="custom-mode-base"]');
-    await page.locator('[data-p3="custom-mode-base"]').selectOption('dark');
+    const b6 = await persisted(page);
+    ok(b6?.modeLevers?.['custom-1']?.tempo === 'relaxed', `#1946 O1 B: custom-1, created from Dark, holds a copy of Dark's tempo (custom-1 ${JSON.stringify(b6?.modeLevers?.['custom-1'] ?? null)})`);
     await openDepth(page);
     await openTint(page);
     await chooseModeAny(page, 'custom-1');
+    const t0 = await autoOf('tempo');
+    ok(t0.auto === null && t0.reset, `#1946 O1 B: previewing custom-1, its copied tempo is its own setting, with Return to Auto (${JSON.stringify(t0)})`);
+    await hooks.click(page.locator('[data-p3="tempo-reset"]'));
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput')).input.modeLevers?.['custom-1']?.tempo === undefined; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
     const t = await autoOf('tempo');
     const lightTempo = { snappy: 'Snappy', standard: 'Standard', relaxed: 'Relaxed' }[b5?.motionPersonality?.tempo ?? 'standard'];
-    ok(t.auto === `Auto: follows Light (${lightTempo})`, `Q22: previewing custom-1 (based on Dark), Auto names Light's value, not its base's override — says ${JSON.stringify(t.auto)}, want "Auto: follows Light (${lightTempo})" (Dark is relaxed)`);
+    ok(t.auto === `Auto: follows Light (${lightTempo})`, `Q22: previewing custom-1 (created from Dark) on Auto, Auto names Light's value, not its source's override — says ${JSON.stringify(t.auto)}, want "Auto: follows Light (${lightTempo})" (Dark is relaxed)`);
     // Q59: a derived mode draws the preview and disables every control.
     await chooseModeAny(page, 'hc-light');
     const d = await page.evaluate(() => {
@@ -10376,18 +10400,22 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="radius-scale-reset"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="radius-scale-auto"]'), null, { timeout: 5000 }).catch(() => {});
     ok(JSON.stringify(await persisted(page)) === JSON.stringify(pBase), 'Q22: Return to Auto on both prunes modeLevers: the persisted brand is the one before Dark');
-    // A custom mode based on Dark, with Dark's own density set: on Auto it follows LIGHT, not Dark (scope finding 7).
+    // A custom mode created from Dark, with Dark's own density set (#1946 O1 B): it holds a copy of Dark's Compact as its
+    // own; returned to Auto it follows LIGHT, not Dark (scope finding 7).
     await chip('density-choice-compact');
     await goPlace(page, 'brand');
+    await page.locator('[data-p3="custom-mode-source"]').selectOption('dark');
     await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
     await hooks.need(page, '[data-p3="custom-mode-base"]');
-    await page.locator('[data-p3="custom-mode-base"]').last().selectOption('dark');
     const custom = await page.evaluate(() => [...document.querySelectorAll('[data-p3="custom-mode-name"]')].pop()?.value);
     await goPlace(page, 'shape');
     const cm = (await persisted(page))?.customModes?.at(-1)?.name ?? custom;
+    ok((await persisted(page))?.modeLevers?.[cm]?.density === 'compact', `#1946 O1 B: a custom mode created from Dark holds a copy of Dark's Compact (${cm}: ${JSON.stringify((await persisted(page))?.modeLevers?.[cm] ?? null)})`);
     await chooseAnyMode(page, cm);
+    await hooks.click(page.locator('[data-p3="density-reset"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="density-auto"]') && !document.querySelector('[data-p3="density-auto"]').hidden, null, { timeout: 5000 }).catch(() => {});
     const ca = await page.evaluate(() => document.querySelector('[data-p3="density-auto"]')?.textContent ?? null);
-    ok(ca === 'Auto: follows Light (Comfortable)', `a custom mode based on Dark, on Auto, says it follows Light, not Dark's Compact (${cm}: "${ca}")`);
+    ok(ca === 'Auto: follows Light (Comfortable)', `a custom mode created from Dark, on Auto, says it follows Light, not Dark's Compact (${cm}: "${ca}")`);
     ok((await previewView(page)).view === view0, `V1 edit: Shape's edits never move the preview's home (${view0})`);
     ok(errors.length === 0, `shape edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {

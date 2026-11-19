@@ -146,6 +146,39 @@ store.rebuild();
 ok(store.lastError === null && modeRoles('light') !== addedBefore, `light's edits are real: light moved (${store.lastError ?? 'resolved'})`);
 ok(copied() === lightInput && modeRoles(added) === addedBefore, 'a later edit to light leaves the custom mode, and what it resolves to, as they were');
 
+console.log('\n3d. The source is chosen at creation, then only recorded (#1946, owner decision O1 B, 2026-11-19)');
+// EXPECTED: the owner's O1 B, typed here: creation asks Light or Dark and copies that mode's per-mode input; afterward
+// `base` is a record nothing sets. ACTUAL: the store, and the engine's own resolution of the result.
+reset();
+const b3 = store.brandState as unknown as Record<string, Record<string, unknown> | undefined>;
+const dstep = store.theme.palettes.find((p) => p.palette === 'primary')!.steps[3];
+b3.overrides = { dark: { 'text.link.default': { palette: 'primary', step: dstep.key } } };
+b3.modeLevers = { dark: { density: 'compact' } };
+b3.surfaces = { light: { base: 50 }, dark: { base: 900 } };
+store.rebuild();
+ok(store.lastError === null, `dark carries per-mode input of its own (${store.lastError ?? 'no error'})`);
+const darkInput = JSON.stringify(['overrides', 'modeLevers', 'surfaces'].map((k) => b3[k]?.dark ?? null));
+const fromDark = B.addCustomMode('dark');
+ok(fromDark === 'custom-1' && JSON.stringify(store.brandState.customModes) === '[{"name":"custom-1","base":"dark"}]',
+  `#1946 O1 B: a custom mode created from Dark records dark as where it started (${JSON.stringify(store.brandState.customModes)})`);
+ok(JSON.stringify(['overrides', 'modeLevers', 'surfaces'].map((k) => b3[k]?.['custom-1'] ?? null)) === darkInput,
+  `#1946 O1 B: it holds a copy of dark's per-mode input, not light's (${JSON.stringify(['overrides', 'modeLevers', 'surfaces'].map((k) => b3[k]?.['custom-1'] ?? null))})`);
+store.rebuild();
+const pageOf = (m: string): string | null => resolveAllModes(brandTheme(structuredClone(store.brandState))).find((r) => r.mode === m)?.roles['background.primary']?.path ?? null;
+ok(store.lastError === null && pageOf('custom-1') === pageOf('dark') && pageOf('custom-1') !== pageOf('light'),
+  `#1946 O1 B: a mode created from Dark resolves dark surfaces (custom-1 ${pageOf('custom-1')}, dark ${pageOf('dark')}, light ${pageOf('light')})`);
+ok(modeRoles('custom-1') === modeRoles('dark'), '#1946 O1 B: at creation it resolves exactly as dark does');
+// Nothing the Brand page writes through can move `base` after creation: no export of the module sets it.
+const baseWriters = Object.entries(B).filter(([k, v]) => typeof v === 'function' && /base/i.test(k)).map(([k]) => k);
+ok(baseWriters.length === 0, `#1946 O1 B: the base can't be changed after creation: no writer for it (${baseWriters.join(', ') || 'none'})`);
+B.renameCustomMode(0, 'night');
+ok(JSON.stringify(store.brandState.customModes) === '[{"name":"night","base":"dark"}]', '#1946 O1 B: a rename keeps the record of where it started');
+// Dark off: dark has nothing of its own to copy, so it is not a source.
+ok(B.setModeOff('dark') === null, 'dark turns off');
+const before3d = JSON.stringify(store.brandState);
+ok(B.addCustomMode('dark') === null && JSON.stringify(store.brandState) === before3d, '#1946 O1 B: with dark off, a custom mode cannot be created from dark, and nothing is written');
+ok(B.addCustomMode() === 'custom-2' && store.brandState.customModes?.at(-1)?.base === 'light', '#1946 O1 B: Light stays the default source');
+
 console.log('\n4. Custom modes and personality');
 reset();
 const name = B.addCustomMode();

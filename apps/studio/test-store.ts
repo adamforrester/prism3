@@ -427,6 +427,37 @@ ok(store.getPath(o, 'a.b.c') === 3 && store.getPath(o, 'a.x.c') === undefined, '
     `#4209 Undo load, then reload: the saved copy is the restored brand, with its origin and baseline (name ${r?.input.name}, origin ${JSON.stringify(r?.origin)})`);
 }
 
+// ---- #1946 O2 A: a brand saved before snapshots reloads looking as it did --------------------------------------------
+// Owner decision O2 A (2026-11-19). Before #1946 a custom mode followed its base's surfaces live; now it reads its own.
+// The saved storage here is typed as a pre-#1946 web session wrote it: a v2 blob, and its origin entry beside it, with
+// no surfaces.<custom>. EXPECTED: each custom mode's page is its base's, as the old engine drew it, read off the engine
+// for the base mode. ACTUAL: what the web boot restores, started as a session.
+// Mutation that fails here BY NAME: `deserializeBrandInput` returning a v2 input unmigrated → `#1946 O2 A reload: …`.
+{
+  const map = new Map<string, string>();
+  const local: LocalStore = { getItem: (k) => map.get(k) ?? null, setItem: (k, v) => { map.set(k, v); }, removeItem: (k) => { map.delete(k); } };
+  const shipped = (exampleBrands as Record<string, BrandInput>).harbor;
+  const old = { ...structuredClone(shipped), customModes: [{ name: 'promo', base: 'dark' }, { name: 'paper', base: 'light' }], surfaces: { light: { base: 50 }, dark: { base: 900 } } };
+  const blob = JSON.stringify({ v: 2, input: old });
+  map.set(BRAND_KEY, blob);
+  const r = restoreSession(local);
+  ok(r !== null && same((r.input.surfaces as Record<string, unknown>)?.promo, { base: 900 }) && same((r.input.surfaces as Record<string, unknown>)?.paper, { base: 50 }),
+    `#1946 O2 A reload: a brand saved before snapshots restores with its base's surfaces copied to each custom mode (${JSON.stringify(r?.input.surfaces)})`);
+  if (r) {
+    store.initSession(r.input, r.origin, r.baseline);
+    const { resolveAllModes } = await import('@prism3/engine');
+    const bg = (m: string): string | null => resolveAllModes(store.theme).find((x) => x.mode === m)?.roles['background.primary']?.path ?? null;
+    ok(bg('promo') === bg('dark') && bg('paper') === bg('light') && bg('promo') !== bg('paper'),
+      `#1946 O2 A reload: each saved custom mode keeps the page it showed (promo ${bg('promo')} = dark ${bg('dark')}, paper ${bg('paper')} = light ${bg('light')})`);
+    // Once: the next save is v3, and its custom modes hold their own surfaces.
+    store.setPersist((input, prov) => persistInput(local, input, prov));
+    store.rebuild();
+    store.setPersist(null);
+    const saved = JSON.parse(map.get(BRAND_KEY) ?? 'null');
+    ok(saved?.v === 3 && same(saved?.input?.surfaces?.promo, { base: 900 }), `#1946 O2 A reload: the next save is v3 and keeps the copy, so the migration runs once (v ${saved?.v})`);
+  }
+}
+
 // ---- #4234: one edit resolves every mode once — the store's resolve fills the cache the verdict reads -------------
 // Before #4234, `resolvePreview` ran `resolveAllModes` itself and the verdict ran it again on the same theme. Two
 // readings, neither derived from the subject: the cache's own run count across a rebuild and a verdict read, and a

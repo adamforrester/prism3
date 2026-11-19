@@ -146,16 +146,20 @@ export const MODE_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 type CustomMode = NonNullable<typeof brandState.customModes>[number];
 export const customModes = (): readonly CustomMode[] => brandState.customModes ?? [];
 
-/** Add a custom mode started from light, named `custom-‹n›` with the first free number (concept v6). It is a snapshot
- *  (#1946, owner decision 2026-11-18 A): light's per-mode input is copied under the new name now, and later edits to
- *  light never reach it. `base` keeps the record of where it started. */
-export const addCustomMode = (): string => {
+/** Add a custom mode started from `from` (light or dark), named `custom-‹n›` with the first free number (concept v6).
+ *  It is a snapshot (#1946, owner decision 2026-11-18 A): the source's per-mode input is copied under the new name now,
+ *  and later edits to the source never reach it. The source is chosen here, at creation, and only here (owner decision
+ *  O1 B, 2026-11-19): `base` is then a read-only record of where it started, so nothing can set it afterward and
+ *  leave a dark-appearance mode holding light's copy. Dark is a source only while dark is generated: a mode that is
+ *  off has no settings of its own to copy. Returns the new name, or null when the source is not on. */
+export const addCustomMode = (from: 'light' | 'dark' = 'light'): string | null => {
+  if (from === 'dark' && !modesOn().includes('dark')) return null;
   const taken = new Set([...BUILTIN_ORDER, ...customModes().map((c) => c.name)]);
   let n = customModes().length + 1;
   while (taken.has(`custom-${n}`)) n++;
   const name = `custom-${n}`;
-  copyMode(brandState, 'light', name);
-  brandState.customModes = [...customModes(), { name, base: 'light' }];
+  copyMode(brandState, from, name);
+  brandState.customModes = [...customModes(), { name, base: from }];
   return name;
 };
 
@@ -185,7 +189,3 @@ export const renameCustomMode = (i: number, next: string): boolean => {
   }) === null;
 };
 
-/** Base custom mode `i` on light or dark. */
-export const setCustomBase = (i: number, base: 'light' | 'dark'): void => {
-  brandState.customModes = customModes().map((x, j) => (j === i ? { ...x, base } : x));
-};

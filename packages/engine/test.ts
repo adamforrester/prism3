@@ -6548,6 +6548,26 @@ arm: {
   }
   ok(surfErr({ promo: { base: 900 } }, [{ name: 'promo', base: 'dark' }]) === '' && surfErr({ light: { base: 50 }, dark: { base: 900 } }) === '',
     '#1946: surfaces keyed by light, dark or a declared custom mode are taken');
+  // O2 A (owner decision 2026-11-19): a brand SAVED before #1946 migrates once, on read. Before #1946 a custom mode
+  // followed its base's surfaces live, so the saved blob (v2, typed here as it was stored) holds no surfaces.<name>.
+  // EXPECTED: each custom mode's page is its base's page, as the pre-#1946 engine drew it (custom modes read the
+  // family's surfaces then), and the copy is surfaces[base], typed here. ACTUAL: the engine's own read of the blob.
+  const saved = { ...base, customModes: [{ name: 'promo', base: 'dark' }, { name: 'paper', base: 'light' }], surfaces: { light: { base: 50 }, dark: { base: 900 } } };
+  const v2 = JSON.stringify({ v: 2, input: saved });
+  let read: any = null, readErr = '';
+  try { read = deserializeBrandInput(v2); } catch (e) { readErr = (e as Error).message; }
+  ok(read !== null && JSON.stringify(read.surfaces) === '{"light":{"base":50},"dark":{"base":900},"promo":{"base":900},"paper":{"base":50}}',
+    `#1946: a brand saved before snapshots (v2) loads with surfaces[base] copied to each custom mode (${readErr || JSON.stringify(read?.surfaces)})`);
+  ok(read !== null && bgOf(read, 'promo') === bgOf(read, 'dark') && bgOf(read, 'paper') === bgOf(read, 'light') && bgOf(read, 'promo') !== bgOf(read, 'paper'),
+    `#1946: after the migration each saved custom mode keeps the page it showed (promo ${read ? bgOf(read, 'promo') : '-'} = dark, paper ${read ? bgOf(read, 'paper') : '-'} = light)`);
+  ok(JSON.stringify(saved.surfaces) === '{"light":{"base":50},"dark":{"base":900}}', '#1946: the migration does not write into the blob it read');
+  // Once: what this build writes is v3, and a v3 custom mode with no surfaces of its own is a snapshot that took none.
+  // Reading it copies nothing, so a later change to its base's surfaces never reaches it through a reload.
+  ok(JSON.parse(serializeBrandInput(read ?? saved)).v === 3, '#1946: a migrated brand is written back as v3, so it migrates once');
+  const v3 = deserializeBrandInput(JSON.stringify({ v: 3, input: saved })) as any;
+  ok(JSON.stringify(v3?.surfaces) === '{"light":{"base":50},"dark":{"base":900}}', `#1946: a v3 brand's custom mode with no surfaces of its own is not given its base's on load (${JSON.stringify(v3?.surfaces)})`);
+  const own2 = deserializeBrandInput(JSON.stringify({ v: 2, input: { ...saved, surfaces: { ...saved.surfaces, promo: { base: 800 } } } })) as any;
+  ok(JSON.stringify(own2?.surfaces?.promo) === '{"base":800}', '#1946: a saved custom mode that has surfaces of its own keeps them (the copy is only where absent)');
 }
 
 // PER-MODE RADIUS LEVER (Phase D) — a customizable mode overrides the `radius` scale; the engine

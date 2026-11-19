@@ -23,29 +23,32 @@ frozen at creation, with no live link afterward; provenance records where it sta
 - **Test arms.** `test-brand-input.ts`'s #1939 arm (a refused Dark off loses nothing) is retired with the refusal it
   tested; its place is the #1946 arm that Dark off is taken and the custom mode keeps its copy.
 
+### Owner decisions O1 B, O2 A, O3 C (2026-11-19), built
+
+- **O1 B: the source is chosen at creation.** Brand's custom modes ask for the source (Light, or Dark while dark is
+  on) before Add, and the new mode copies that mode's per-mode input. After creation the Base select is gone: the
+  row records `Started from Light` or `Started from Dark` as text, and nothing in Studio sets `base` again
+  (`setCustomBase` is removed). This retires the light-page-in-a-dark-mode result the select gave.
+- **O2 A: saved brands migrate once.** `PERSIST_VERSION` goes from 2 to 3. A v2 blob is migrated on read, not
+  refused: for each custom mode with no `surfaces[name]`, `surfaces[base]` is copied to it, so each saved custom mode
+  keeps the page it showed. What this build writes is v3, and v3 is never migrated, so the copy runs once and a
+  snapshot that took no surfaces is never given its base's on a later reload. It covers the web's saved brand and the
+  plugin's file blob, which share `deserializeBrandInput`. A design.md or JSON import is not a saved brand and is
+  not migrated.
+- **O3 C: editing custom-mode surfaces in Studio** is a follow-up, filed as its own issue.
+
 ### Held for the owner
 
-- **Changing a custom mode's base after creation.** Studio's add starts every custom mode from Light; the Base select
-  then changes `base`. It now changes only the record and the appearance, and does not re-copy the new source's
-  per-mode input, because a re-copy would overwrite the designer's edits. So setting the select to Dark on a new
-  custom mode yields a light page in a dark-appearance mode (Light's copied page and overrides, drawn with Dark's
-  contrast rules: contrast passes, so nothing flags it), or, where Light's copied `floorStep` is on no dark ground,
-  a refusal of `surfaces.<name>.floorStep`. Whether the select should re-take the snapshot (and with what warning), or
-  creation should offer the source up front, is a UI decision.
 - **Brand-wide levers.** Light has no per-mode non-color levers (`modeLevers.light` is refused: light's are the
   brand-wide ones), and every mode shares the palettes and globals. Those still flow into a custom mode, read as
   brand edits rather than edits to the source mode.
-- **Saved brands (a migration rule).** A custom mode saved before this change followed its base family's surfaces,
-  so in a saved brand with `surfaces.light` (every shipped example sets one) or `surfaces.dark`, its custom modes'
-  pages change on load: they now read only their own `surfaces.<name>`, which they do not have. No migration was
-  written; Studio's saved brand carries no format version to run one against. The rule that would keep each such
-  mode as it looked is to copy `surfaces[base]` to `surfaces[name]` once, where absent.
-- **Editing a custom mode's surfaces in Studio.** Background fills now shows a custom mode's own `surfaces.<name>`
-  (what the engine renders), read-only as before. Whether those controls become editable is held.
 - **Copy.** The DECISIONS LOG note (`custom modes: … (started from dark) — each keeps the copy …`) and the schema
   descriptions of `customModes`, `customModes[].base` and `surfaces` are DRAFT, as are the `surfaces.<key>` refusal
   (`… is not light, dark or a custom mode of this brand …`) and Background fills' line for a custom mode (`Custom
-  modes keep the surfaces they were given when they were made.`).
+  modes keep the surfaces they were given when they were made.`). Also DRAFT, from O1 B: the source select's label
+  `Start from` (its accessible name `Start the new custom mode from`, options `Light` and `Dark`, and the disabled
+  Dark's reason `Dark is off, so it has no settings to copy.`), the row's record `Started from Light` / `Started from
+  Dark`, and the add row's line `Copies the mode it starts from; later changes to that mode don’t reach it.`
 
 ### Verification
 
@@ -61,3 +64,9 @@ add copies light deep, and a later light edit reaches neither the copy nor what 
 Dark off with a dark-based custom mode is taken in the browser, with no confirm, and the record stays. `npm run verify`'s list ran in chunks under ten minutes, the
 plugin suites one by one with `run-suites.ts`'s verdict, and the Chrome suite in fifteen smaller shards (a local
 split, not committed) whose records `test:chrome-shards` merged: 47,340 assertions, every section once.
+
+O1 B and O2 A (2026-11-19): `test-brand-input.ts` 3d: a mode created from Dark holds dark's copy and resolves dark
+surfaces; no export of the module writes `base`; with dark off, Dark is no source. `test.ts` and `test-store.ts`: a
+v2 saved brand loads with `surfaces[base]` copied to each custom mode and keeps each page; the next save is v3, and a
+v3 blob is not migrated. `test-chrome.mjs`: the record is text with no control in the row, a mode created from Dark
+records Dark, and with Dark off Dark is not offered.
