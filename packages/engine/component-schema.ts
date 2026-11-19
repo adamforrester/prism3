@@ -358,6 +358,12 @@ export type PartFields = {
   layout?: LayoutDef;
   padding?: PaddingDef;
   gap?: string;
+  /** THE SPACE BETWEEN WRAPPED LINES (#1739): the binding key for a wrapping row's line gap, CSS `row-gap`. A row that
+   *  wraps (`layout.wrap`) otherwise takes the host's default between its lines, which is none, so wrapped items would
+   *  touch. PROJECTS `bound.counterAxisSpacing`; both executors bind `bound` after the layout and the wrap, so it needs
+   *  no executor change. `box` only, and refused on a box whose layout does not wrap: Figma reads the line gap on a
+   *  wrapping frame only. Tag.Group binds it to the same step as `gap`, so tags sit as far apart down as across. */
+  rowGap?: string;
   height?: string;
   /** The binding key for the four corner radii. `box` only (#3698 Q-PU1 A): the projector binds it only in the box
    *  branch. Refused on every other kind (a vector's corners are `tileEdge.radius`). */
@@ -1445,8 +1451,26 @@ export type PartFields = {
    *  node), under a parent that is not an auto-layout `box` binding `size`, when the glyph binds a different size from
    *  its parent, and under a parent with no in-flow child to draw over. */
   stackCentered?: true;
+  /** What the part does in right-to-left text (#3986, owner decision Q-RTL1 A): the component contract states it, code
+   *  proves it, and Figma, which draws left to right only, shows it as a note. Filled from each def's right-to-left
+   *  prose, and the #3986 arm in `test.ts` fails a def whose prose and fields disagree.
+   *
+   *    - `reverses`  — a box whose row reverses: what sits at the start moves to the other edge. A box only.
+   *    - `mirrors`   — a glyph, or what a slot or nest holds, flips to face the other way. Not a box or a text.
+   *    - `never`     — never mirrors: a glyph drawn as it is in every script, a row that keeps its order (a code's
+   *                    cells), digits that stay left to right.
+   *    - `per-glyph` — an icon, flipped or not by which glyph it is (`RTL_MIRRORED_GLYPHS` in `icon-set.ts`): the Icon's
+   *                    own glyph, and a slot that holds one. Not a box or a text.
+   *
+   *  Absent says nothing. It is not projected into the Figma member: no executor reads it. */
+  mirror?: Mirror;
   note?: string;
 };
+
+/** A part's right-to-left behavior (`PartFields.mirror`, #3986). */
+export type Mirror = 'mirrors' | 'never' | 'reverses' | 'per-glyph';
+/** Every `Mirror` value, for a reader that walks them. */
+export const MIRRORS: readonly Mirror[] = ['reverses', 'mirrors', 'never', 'per-glyph'];
 
 // ---------------------------------------------------------------------------------------
 // PartDef — DISCRIMINATED BY `kind` (#3698 F4, R5 item 3).
@@ -1466,7 +1490,7 @@ export type PartFields = {
 
 /** Fields every kind admits: the validator refuses none of them by kind. `role`, `optional` and `note` say nothing a
  *  projection builds from per kind. */
-export type PartBaseKey = 'role' | 'optional' | 'note';
+export type PartBaseKey = 'role' | 'optional' | 'note' | 'mirror';
 
 /** A kind's part: its `kind`, the base fields, the fields `F` it admits, and every other field `never`. */
 type PartOf<K extends PartKind, F extends Exclude<keyof PartFields, 'kind' | PartBaseKey>> =
@@ -1475,7 +1499,7 @@ type PartOf<K extends PartKind, F extends Exclude<keyof PartFields, 'kind' | Par
 /** The fields a box admits — the one kind that lays out, paints a surface and becomes a frame. */
 export type BoxKey =
   | 'innerTarget' | 'children' | 'size' | 'presentWhen' | 'positionWhen' | 'height' | 'crossAxisFill' | 'grow' | 'literal'
-  | 'radius' | 'layout' | 'padding' | 'gap' | 'strokeWidth' | 'strokeEdges' | 'width' | 'paddingTop' | 'firstLine'
+  | 'radius' | 'layout' | 'padding' | 'gap' | 'rowGap' | 'strokeWidth' | 'strokeEdges' | 'width' | 'paddingTop' | 'firstLine'
   | 'contentSlot' | 'slotSettings' | 'preferred' | 'preferredWhenBuilt' | 'paintSlots' | 'paintGroup' | 'gradient'
   | 'clipsContent' | 'scroll' | 'minWidth' | 'placementWidth' | 'placementHeight' | 'directionWhen' | 'sizingWhen'
   | 'builtSize' | 'elevation' | 'radiusEdges' | 'minHeight' | 'minWidthKey' | 'minWidthRatio' | 'flush' | 'center'
@@ -1894,7 +1918,8 @@ export type FigmaProperties = {
  * nothing read or checked the value. The KB catalogue (`components/index.md`) groups every brief under
  * exactly seven headings, and each brief's frontmatter names one of them, so this list is those seven,
  * lower-cased, in the catalogue's order. `media` is not among them; `veil` and `image-placeholder` moved
- * to `foundations` (image.md's category, and veil's stated choice in its header).
+ * to `foundations` (image.md's category, and veil's stated choice in its header; veil is `overlay` since
+ * #4045 A).
  *
  * A def TAKES ITS BRIEF'S CATEGORY. That is gated in `test.ts` (#1700, the brief-citation arm) against
  * an authored table of the briefs and their KB categories, not against this list: this list says what a
@@ -4694,7 +4719,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartFields): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.firstLine?.glyph, p.nestPaddingBlock]
+    [p.gap, p.rowGap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.tileEdge?.radius, p.tileEdge?.strokeWidth, p.strokeEdges?.top, p.strokeEdges?.right, p.strokeEdges?.bottom, p.strokeEdges?.left, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.blockEnd, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key, p.firstLine?.glyph, p.nestPaddingBlock]
       .filter((k): k is string => typeof k === 'string');
   // A TYPE KEY MAY ALSO NAME `{state}` (#2580): a standalone Link sets its label in the underlined style at hover,
   // pressed and focus-visible and the plain one at rest, so its text style moves with the interaction state while
@@ -5074,8 +5099,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // from the child's side; stated here too, because a track may bind a width for its own sake.
     if (p.kind === 'box' && p.width && p.layout && p.layout.sizing.x !== 'fixed')
       e.push(`anatomy part '${n}' binds 'width' but its main-axis sizing is '${p.layout.sizing.x}' — a bound dimension needs 'fixed': with 'hug' the content decides the length, and with 'fill' the parent does, so either way the binding is overridden`);
-    if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined))
+    if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined || p.rowGap !== undefined))
       e.push(`anatomy part '${n}' is kind '${p.kind}' but carries layout/padding/gap — only a 'box' lays out`);
+    // THE LINE GAP (#1739) needs lines: Figma reads `counterAxisSpacing` on a wrapping frame only.
+    if (p.kind === 'box' && p.rowGap !== undefined && !p.layout?.wrap)
+      e.push(`anatomy part '${n}' binds 'rowGap' but its layout does not wrap — the space between lines exists only on a row that wraps (layout.wrap)`);
     // ---- THE WRAPPING LABEL (#1424) ----
     // `wrap` fills the parent's main axis and reflows (`layoutGrow: 1` + `textAutoResize: 'HEIGHT'`), which
     // is a TEXT-only capability — a box sizes with `sizing`, a slot/vector by its artboard.
@@ -6115,6 +6143,19 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // validates and draws somewhere else: on a kind the projector does not read it on, on the root, beside another
     // placement, under a parent Figma ignores `layoutPositioning` in, at a size other than the parent's (it would sit
     // off the drawing under it), or with nothing in the flow to draw over.
+    // `mirror` (#3986): each value on the kinds it can describe. A row reverses only in a box; a text or a box has no
+    // shape to flip; `per-glyph` is the Icon's own glyph (its name is a template) or a slot that holds an icon.
+    if (p.mirror !== undefined) {
+      const m = p.mirror as string;
+      if (!(MIRRORS as readonly string[]).includes(m))
+        e.push(`anatomy part '${n}' declares mirror '${m}' — the values are ${MIRRORS.join(', ')}`);
+      else if (m === 'reverses' && p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares mirror 'reverses' — only a box has a row to reverse`);
+      else if ((m === 'mirrors' || m === 'per-glyph') && (p.kind === 'box' || p.kind === 'text'))
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares mirror '${m}' — a ${p.kind} has no shape to flip; a box's row is 'reverses'`);
+      else if (m === 'per-glyph' && p.kind !== 'slot' && !(p.kind === 'vector' && /\{/.test(p.glyph ?? '')))
+        e.push(`anatomy part '${n}' declares mirror 'per-glyph' — only a slot, or a vector whose glyph is chosen by name, holds an icon whose glyph decides`);
+    }
     if (p.stackCentered !== undefined) {
       const parent = Object.keys(parts).find((k) => (parts[k]?.children ?? []).includes(n));
       const pp = parent ? parts[parent] : undefined;

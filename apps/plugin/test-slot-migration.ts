@@ -829,12 +829,13 @@ section('failed — a throw outside the set\'s write returns what was done, not 
   let res: Awaited<ReturnType<typeof applyUpdate>> | null = null, threw = '';
   try { res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre)); } catch (e) { threw = (e as Error).message; }
   ok(!!res && !threw, `failed/returned: the run returns its result rather than throwing (${threw || 'returned'})`);
-  ok(res?.failed === 'the instance could not be read', `failed/why: the result says why the run ended (${res?.failed})`);
+  // #4205: as `failureDetail` gives it, the class in front, so Report a problem keeps the class alone.
+  ok(res?.failed === 'Error: the instance could not be read', `failed/why: the result says why the run ended (${res?.failed})`);
   const o = res?.outcomes[0];
   ok(!!o && o.set === 'checkbox-group' && o.updated.length > 0 && !o.stopped,
     `failed/partial: the set written before the throw is in the result, with its members updated (${o?.updated.length ?? 0})`);
   const v = res ? applyVerdict(res) : null;
-  ok(!!v && !v.ok && v.headline === '✗ update failed' && v.lines[0].startsWith('The update failed: the instance could not be read.') && v.lines.slice(1).some((l) => l.startsWith('checkbox-group:')),
+  ok(!!v && !v.ok && v.headline === '✗ update failed' && v.lines[0].startsWith('The update failed: Error: the instance could not be read.') && v.lines.slice(1).some((l) => l.startsWith('checkbox-group:')),
     `failed/verdict: the verdict fails, says why first, and keeps the set's line for what was done (${v?.headline}; ${JSON.stringify(v?.lines.slice(0, 2))})`);
   // #3758: a run that threw did not go through every set, so Update file's run must stop there, not go on as a warning.
   ok(v?.completed === false, `failed/not completed: a thrown update's verdict says the run did not complete (completed ${String(v?.completed)})`);

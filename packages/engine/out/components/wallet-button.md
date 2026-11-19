@@ -39,6 +39,8 @@ Shown on the default member: provider `apple-pay`, style `any`, size `medium`.
 
 Offer the wallets the checkout accepts as a row or stack of buttons, each the same height, above or beside the card form. Pick each provider's style for the ground, and let the provider draw the button.
 
+**In RTL.** The container does not mirror.
+
 ### Do
 
 - Give every wallet button in a group the same size
