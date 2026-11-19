@@ -19267,7 +19267,7 @@
         },
         "avatar": {
           "keys": [
-            "size.large.glyph",
+            "glyph.large",
             "size.small.box"
           ],
           "parts": {
@@ -20084,7 +20084,7 @@
         },
         "avatar": {
           "keys": [
-            "size.medium.glyph",
+            "glyph.medium",
             "size.x-small.box"
           ],
           "parts": {
@@ -20830,8 +20830,8 @@
       "components": {
         "avatar": {
           "keys": [
-            "size.large.box",
-            "size.x-large.glyph"
+            "glyph.x-large",
+            "size.large.box"
           ],
           "parts": {
             "container": {
@@ -21064,8 +21064,8 @@
         },
         "avatar": {
           "keys": [
-            "size.small.glyph",
-            "size.x-small.glyph"
+            "glyph.small",
+            "glyph.x-small"
           ],
           "parts": {
             "organizationGlyph": {
@@ -21748,9 +21748,9 @@
       "components": {
         "avatar": {
           "keys": [
-            "size.large.square.radius",
-            "size.medium.square.radius",
-            "size.x-large.square.radius"
+            "square.large.radius",
+            "square.medium.radius",
+            "square.x-large.radius"
           ],
           "parts": {
             "mask": {
@@ -22051,12 +22051,12 @@
         },
         "avatar": {
           "keys": [
-            "presence-ring.radius",
-            "size.large.circle.radius",
-            "size.medium.circle.radius",
-            "size.small.circle.radius",
-            "size.x-large.circle.radius",
-            "size.x-small.circle.radius"
+            "circle.large.radius",
+            "circle.medium.radius",
+            "circle.small.radius",
+            "circle.x-large.radius",
+            "circle.x-small.radius",
+            "presence-ring.radius"
           ],
           "parts": {
             "mask": {
@@ -22282,8 +22282,8 @@
       "components": {
         "avatar": {
           "keys": [
-            "size.small.square.radius",
-            "size.x-small.square.radius"
+            "square.small.radius",
+            "square.x-small.radius"
           ],
           "parts": {
             "mask": {

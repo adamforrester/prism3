@@ -2558,7 +2558,7 @@ Type: dimension. Bound by 25 component(s).
 |  |  | frame | size: large (4 of 12) |
 |  |  | minusGlyph | expansion: expanded · indicator: plus-minus · size: large (1 of 12) |
 |  |  | plusGlyph | expansion: collapsed · indicator: plus-minus · size: large (1 of 12) |
-| avatar | `size.large.glyph`, `size.small.box` | container | size: small (6 of 30) |
+| avatar | `glyph.large`, `size.small.box` | container | size: small (6 of 30) |
 |  |  | mask | size: small (6 of 30) |
 |  |  | organizationGlyph | shape: square · size: large · type: icon (1 of 30) |
 |  |  | personGlyph | shape: circle · size: large · type: icon (1 of 30) |
@@ -2621,7 +2621,7 @@ Type: dimension. Bound by 29 component(s).
 |  |  | frame | size: medium (4 of 12) |
 |  |  | minusGlyph | expansion: expanded · indicator: plus-minus · size: medium (1 of 12) |
 |  |  | plusGlyph | expansion: collapsed · indicator: plus-minus · size: medium (1 of 12) |
-| avatar | `size.medium.glyph`, `size.x-small.box` | container | size: x-small (6 of 30) |
+| avatar | `glyph.medium`, `size.x-small.box` | container | size: x-small (6 of 30) |
 |  |  | mask | size: x-small (6 of 30) |
 |  |  | organizationGlyph | shape: square · size: medium · type: icon (1 of 30) |
 |  |  | personGlyph | shape: circle · size: medium · type: icon (1 of 30) |
@@ -2680,7 +2680,7 @@ Type: dimension. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| avatar | `size.large.box`, `size.x-large.glyph` | container | size: large (6 of 30) |
+| avatar | `glyph.x-large`, `size.large.box` | container | size: large (6 of 30) |
 |  |  | mask | size: large (6 of 30) |
 |  |  | organizationGlyph | shape: square · size: x-large · type: icon (1 of 30) |
 |  |  | personGlyph | shape: circle · size: x-large · type: icon (1 of 30) |
@@ -2704,7 +2704,7 @@ Type: dimension. Bound by 19 component(s).
 | _breadcrumb-separator | `glyph-size` | chevronGlyph | type: chevron (1 of 2) |
 |  |  | frame | every member (2 of 2) |
 |  |  | slashGlyph | type: slash (1 of 2) |
-| avatar | `size.small.glyph`, `size.x-small.glyph` | organizationGlyph | shape: square · size: small, x-small · type: icon (2 of 30) |
+| avatar | `glyph.small`, `glyph.x-small` | organizationGlyph | shape: square · size: small, x-small · type: icon (2 of 30) |
 |  |  | personGlyph | shape: circle · size: small, x-small · type: icon (2 of 30) |
 | breadcrumbs | `back-icon` | backGlyph | path: parent · separator: chevron (2 of 6) |
 | button | `size.small.icon` | leadingVisual | leading: true · size: small · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
@@ -2824,7 +2824,7 @@ Type: dimension. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| avatar | `size.large.square.radius`, `size.medium.square.radius`, `size.x-large.square.radius` | mask | shape: square · size: large, medium, x-large (9 of 30) |
+| avatar | `square.large.radius`, `square.medium.radius`, `square.x-large.radius` | mask | shape: square · size: large, medium, x-large (9 of 30) |
 | banner | `edge.contained.radius` | container | edge: contained (5 of 10) |
 | button | `radius` | container | every member (576 of 576) |
 | button-destructive | `radius` | container | every member (576 of 576) |
@@ -2860,7 +2860,7 @@ Type: dimension. Bound by 14 component(s).
 |  |  | frame | every member (15 of 15) |
 |  |  | hoverHalo | every member (15 of 15) |
 |  |  | pressHalo | every member (15 of 15) |
-| avatar | `presence-ring.radius`, `size.large.circle.radius`, `size.medium.circle.radius`, `size.small.circle.radius`, `size.x-large.circle.radius`, `size.x-small.circle.radius` | mask | shape: circle (15 of 30) |
+| avatar | `circle.large.radius`, `circle.medium.radius`, `circle.small.radius`, `circle.x-large.radius`, `circle.x-small.radius`, `presence-ring.radius` | mask | shape: circle (15 of 30) |
 |  |  | presenceRing | every member (30 of 30) |
 | badge | `contained.count.radius`, `contained.dot.radius`, `status-dot.radius` | statusDot | emphasis: subtle · style: inline · type: status (10 of 50) |
 |  |  | surface | emphasis: bold · size: medium · style: contained · type: count, dot (10 of 50) |
@@ -2884,7 +2884,7 @@ Type: dimension. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| avatar | `size.small.square.radius`, `size.x-small.square.radius` | mask | shape: square · size: small, x-small (6 of 30) |
+| avatar | `square.small.radius`, `square.x-small.radius` | mask | shape: square · size: small, x-small (6 of 30) |
 | badge | `contained.status.radius` | surface | style: contained · type: status (30 of 50) |
 | card-number-field | `radius` | control | every member (84 of 84) |
 | code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (36 of 48) |

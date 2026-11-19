@@ -20817,6 +20817,8 @@ arm: {
       'page-nav': 2, 'page-nav-item': 9,
       // Provider logo (#2343): a glyph other components carry, placed alone only in a row of accepted cards.
       'provider-logo': 3,
+      // Avatar (#4110): a top-level component that supports another, a list row, a card or a comment.
+      avatar: 3,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -23413,6 +23415,8 @@ arm: {
       // SIGNINBUTTON (#2343 PR 5): the label emphasis style per size, on Apple and Facebook; Google's label sets a literal
       // font instead (Q-S7 A), so its members carry no style and are not in this grid.
       { def: componentDefs.find((d) => d.id === 'sign-in-button')!, part: 'label', axes: { size: 3 }, at: { provider: 'apple', style: 'black' } },
+      // AVATAR (#4110, OD-A4 A): the initials on three label rungs across five sizes, at the initials member only.
+      { def: componentDefs.find((d) => d.id === 'avatar')!, part: 'initials', axes: { size: 3 }, at: { type: 'initials' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -32931,8 +32935,9 @@ arm: {
     // 41 since the textarea's `resize-grip` joined the set (2026-09-25); 42 since the hamburger `menu` did
     // (Q253 A, 2026-10-12); 43 since the breadcrumb `slash` did (Q382 A, 2026-10-16): each a new shape, so both counts
     // move by one and the three collisions below stay the only ones.
-    ok(byShape.size === 43,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 43 distinct RENDERED shapes (got ${byShape.size}) — 44 distinct path STRINGS, so string comparison is off by one`);
+    // 45 since Avatar's `person` and `organization` did (#4110, OD-A6 A), two new shapes.
+    ok(byShape.size === 45,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 45 distinct RENDERED shapes (got ${byShape.size}) — 46 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);
@@ -33368,7 +33373,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter', 'avatar'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -34984,6 +34989,9 @@ arm: {
     // (the provider's own words), so the glyph centers against the only line, as Button's icon does.
     'sign-in-button.container':
       "a sign-in button is one fixed height and its label is the provider's one-line wording, which never wraps, so the glyph centers against the only line, as on Button.",
+    // `avatar` (#4110): the mask holds one or two initials, which never wrap, or a glyph, never both, in a fixed square.
+    'avatar.mask':
+      "an avatar's initials are one or two letters on one line, never wrapped, in a fixed square, so a centered glyph or line is the only case.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -39879,6 +39887,8 @@ arm: {
     'sign-in-button.style': { prop: 'style', map: { undefined: 'black' }, reason: 'style defaults per provider in code (black, light, blue; Q-S4 A), so no one value answers it; the first member is Apple\'s default, black' },
     // #3051 (owner Q3051.1 A): code has no labeled prop. A non-empty `label` is the labeled divider; unset, the plain rule.
     'divider.labeled': { prop: 'label', map: { undefined: 'false' }, reason: 'a divider is labeled by setting `label`; with no label it is the plain rule' },
+    // #4110: code has no type prop. With no `src` the chain shows the initials of the required `name`, the first member.
+    'avatar.type': { prop: 'src', map: { undefined: 'initials' }, reason: 'with no photo, an avatar shows the initials of its required name; the image and the glyph follow from src and name at run time' },
     'breadcrumbs.path': { prop: 'responsive', map: { undefined: 'full', false: 'full', true: 'full' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
   };
   // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and

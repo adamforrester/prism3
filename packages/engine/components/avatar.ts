@@ -276,11 +276,11 @@ export const avatar: ComponentDef = {
     ],
     keyboard: 'None. An avatar takes no focus and has no action. An avatar that opens a menu is inside a button, which carries the keyboard behavior.',
     focus: 'Never focusable. A button holding an avatar carries the focus ring.',
-    aria: 'Informative, when the avatar is the only sign of who it is: give the photo an alt, or the container an aria-label for the initials and the glyph, that is the name, "Jane Doe", never "Avatar of Jane Doe" and never "JD". Decorative, when the name is visible beside it: alt="" and aria-hidden="true", so the name is read once. The name stays the same when the photo fails to load. With presence, the status joins the name, "Jane Doe, online", and the dot is aria-hidden. Use the name as the interface shows it: when the screen shows "Jane D.", the name is "Jane D.", never more of the record. The name is translatable; nothing in the avatar mirrors except the dot\'s corner.',
+    aria: 'Informative, when the avatar is the only sign of who it is: give the photo an alt, or the container an aria-label for the initials and the glyph, that is the name, "Jane Doe", never "Avatar of Jane Doe" and never the initials. Decorative, when the name is visible beside it: alt="" and aria-hidden="true", so the name is read once. The name stays the same when the photo fails to load. With presence, the status joins the name, "Jane Doe, online", and the dot is aria-hidden. Use the name as the interface shows it: when the screen shows "Jane D.", the name is "Jane D.", never more of the record. The name is translatable; nothing in the avatar mirrors except the dot\'s corner.',
   },
 
   content: {
-    labelPattern: 'The name as the interface shows it: "Jane Doe", "Design team". The initials come from it: "JD", or "J" below medium. For presence, a word after a comma in the name: "Jane Doe, online".',
+    labelPattern: 'The name as the interface shows it: "Jane Doe", "Design team". The initials come from it: J and D, or J alone below medium. For presence, a word after a comma in the name: "Jane Doe, online".',
   },
 
   docs: {
@@ -293,7 +293,7 @@ export const avatar: ComponentDef = {
       'Use one initial at x-small and small, and two from medium up',
     ],
     dont: [
-      'Name it "Avatar of Jane Doe" or "JD". The name is the name',
+      'Name it "Avatar of Jane Doe" or by its initials. The name is the name',
       'Make the avatar itself clickable. Put it in a button or an icon button',
       'Use an avatar for a concept or an action, such as a profile link. That is an icon',
       'Use color as the only way to tell people apart, or the dot as the only sign of presence',

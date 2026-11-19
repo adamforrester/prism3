@@ -2917,11 +2917,6 @@
         },
         {
           "section": "related",
-          "field": "composition.alternativeTo",
-          "reason": "empty"
-        },
-        {
-          "section": "related",
           "field": "composition.supersedes",
           "reason": "empty"
         },
