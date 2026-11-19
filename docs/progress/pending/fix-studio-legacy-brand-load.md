@@ -21,4 +21,4 @@ The ramp a step must sit on is the engine's generated ramp (an anchored ramp can
 ### Traps
 
 - `docs/public/guides/*` cite `main.ts` by line, so any line added above line 1386 moves seven citations. `lint-guide-claims.ts` names each one.
-- The web's stored brand (`localStorage`) has the same legacy shapes and still boots on the refused-brand screen. That path is not a file restore and is filed separately.
+- The web's stored brand (`localStorage`) has the same legacy shapes and still boots on the refused-brand screen. That path is not a file restore and is filed as #4284.
