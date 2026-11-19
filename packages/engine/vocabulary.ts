@@ -112,7 +112,9 @@ export const TRAITS: Record<string, Trait> = {
     why: 'Larger headings, crisp shadows, a subtle neutral fill — hierarchy from type, not effects.',
   },
   restrained: {
-    levers: { neutralEmphasis: 'subtle', 'neutral.chroma': 'subtle', 'shadow.softness': 'crisp' },
+    // No `neutral.chroma` (#1863): the schema requires it, so every valid input sets it and a trait's value for it
+    // could never apply. `test.ts` fails any trait that targets a schema-required lever.
+    levers: { neutralEmphasis: 'subtle', 'shadow.softness': 'crisp' },
     why: 'Crisp shadows and a subtle neutral fill — less visual weight on interface elements.',
   },
   bold: {

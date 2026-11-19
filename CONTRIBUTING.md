@@ -1334,6 +1334,13 @@ npx tsx packages/engine/lint-locale-order.ts        # no comparison in the engin
                                                     # on the host's locale (#3698, #3701): no bare localeCompare,
                                                     # ICU collator or locale-aware case fold. Order goes
                                                     # through localeFreeCompare (locale-free-order.ts).
+npx tsx packages/engine/lint-design-md-round-trip.ts # design.md carries every brand setting (#3984,
+                                                    # Q-DM2 A): witnesses built from theme-schema.json,
+                                                    # not from design-md.ts, set every property, branch,
+                                                    # enum value and boolean; each survives
+                                                    # toDesignMd → parseDesignMd deep-equal, or the lost
+                                                    # property fails by path. An unset schema property
+                                                    # fails as unrepresented.
 npx tsx packages/engine/lint-engine-facade.ts       # the studio and the plugin import the engine only
                                                     # through its four entries (#3698 F4): `@prism3/engine`,
                                                     # `/components`, `/figma`, `/harness`. A deep or
