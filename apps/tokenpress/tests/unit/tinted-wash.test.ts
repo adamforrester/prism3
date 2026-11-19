@@ -77,6 +77,27 @@ describe('a tinted wash exports as the resolved color with alpha (#2365)', () =>
     expect(build('light').ds.color['subtle-fill'].selected.$extensions).toBe(undefined);
   });
 
+  // The opacity step lives in a TWO-mode collection whose default mode is NOT its first key, so the default mode and
+  // the first-mode fallback give different values: 40% from the default, 10% from the first key. The value 0.4 is
+  // written by hand, not read from the code (docs/34). `exportVariables` fills the default modes; this test seeds them
+  // as it would, because `buildDTCGFile` is called directly.
+  test('an alias into another collection resolves through that collection\'s default mode, not its first', () => {
+    const multi = [
+      mkVar('o-multi', 'ds/opacity/multi', 'FLOAT', { 'op-first': 10, 'op-default': 40 }, 'co2'),
+      mkVar('fill', 'ds/color/fill/rest', 'COLOR', { light: LIGHT, dark: DARK }, 'cc'),
+      mkVar('wash-multi', 'ds/color/subtle-fill/multi', 'COLOR', {
+        light: { color: alias('fill'), opacity: alias('o-multi') },
+        dark: { color: alias('fill'), opacity: alias('o-multi') },
+      }, 'cc'),
+    ];
+    const exporter = new TokenExporter({ tokenNameCase: 'preserve' } as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (exporter as any).collectionDefaultModes = new Map([['cc', 'light'], ['co2', 'op-default']]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const out = (exporter as any).buildDTCGFile(color, color.modes[1], multi.filter((v) => v.variableCollectionId === 'cc'), multi) as any;
+    expect(out.ds.color['subtle-fill'].multi.$value.alpha).toBe(0.4);
+  });
+
   test('the exported file is valid DTCG', () => {
     expect(validateDTCGFile(build('dark')).isValid).toBe(true);
   });
