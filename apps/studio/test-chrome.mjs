@@ -2293,10 +2293,15 @@ for (const theme of ['light', 'dark']) {
       return { layout: document.querySelector('[data-p3="frame"]').dataset.layout, nav: line('[data-p3="tab-row"]'), head: line('[data-p3="preview-head"]'), sub: line('[data-p3="sub-nav"]') };
     });
     ok(g.layout === 'panes', `Q2 ${where}: the page renders the two panes itself, nothing forced (layout "${g.layout}")`);
-    ok(g.nav?.shown && g.head?.shown, `Q2 ${where}: both header rows render in the two-pane layout`);
-    ok(g.nav?.border === '1px' && g.head?.border === '1px', `Q2 ${where}: both rows draw a bottom divider (${g.nav?.border}, ${g.head?.border})`);
-    const gap = g.nav && g.head ? Math.abs(g.nav.bottom - g.head.bottom) : Infinity;
-    ok(gap <= ALIGN_TOLERANCE, `Q2 ${where}: the tab row's divider and the preview title row's divider are ${gap.toFixed(2)}px apart (tolerance ${ALIGN_TOLERANCE}px)`);
+    // #4192 F1 (owner decision 2026-11-19, A): Components draws no preview header, so Q2's shared divider is a Theme
+    // page's; on Components the header's absence is the measure (section 3149 holds where its body goes).
+    if (place === 'components') hooks.absent(ok, { seen: !!g.nav?.shown, state: 'the tab row' }, !g.head?.shown, `Q2 ${where}: #4192 F1 A: Components draws no preview header row`);
+    else {
+      ok(g.nav?.shown && g.head?.shown, `Q2 ${where}: both header rows render in the two-pane layout`);
+      ok(g.nav?.border === '1px' && g.head?.border === '1px', `Q2 ${where}: both rows draw a bottom divider (${g.nav?.border}, ${g.head?.border})`);
+      const gap = g.nav && g.head ? Math.abs(g.nav.bottom - g.head.bottom) : Infinity;
+      ok(gap <= ALIGN_TOLERANCE, `Q2 ${where}: the tab row's divider and the preview title row's divider are ${gap.toFixed(2)}px apart (tolerance ${ALIGN_TOLERANCE}px)`);
+    }
     if (place.startsWith('color-')) ok(g.sub?.shown && g.sub.bottom > g.nav.bottom, `Q1 ${where}: the Color sub-nav sits under the tab row's divider`);
     // Q2's second case, measured for real from S3: Brand is the first moved page without the sub-nav, so the
     // tab row alone meets the preview title row. The sub-nav must be absent, or this is the first case again.
@@ -21457,7 +21462,10 @@ const headNow = (page) => page.evaluate(() => {
   const r = head?.getBoundingClientRect();
   return { headShown: !!head?.checkVisibility(), headH: Math.round(r?.height ?? 0), headBottom: Math.round(r?.bottom ?? -1),
     navBottom: Math.round(nav?.getBoundingClientRect().bottom ?? -2), inspect: !!inspect?.checkVisibility(),
-    body: !!document.querySelector('[data-p3="preview-body"]')?.checkVisibility() };
+    body: !!document.querySelector('[data-p3="preview-body"]')?.checkVisibility(),
+    // #4192: where the preview body and the levers header start, so the body taking the header's row is measured.
+    bodyTop: Math.round(document.querySelector('[data-p3="preview-body"]')?.getBoundingClientRect().top ?? -1),
+    navTop: Math.round(nav?.getBoundingClientRect().top ?? -2) };
 });
 for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
   const where = `3149 ${host} ${w}`;
@@ -21471,6 +21479,9 @@ for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
     await settle(page);
     const theme = await headNow(page);
     ok(theme.headShown && theme.inspect, `${where}: Q3149.2 A: a Theme page (Brand) keeps Inspect in its preview header (${JSON.stringify(theme)})`);
+    // #4192 F2's oracle, read on this Theme page: the levers ground and the preview's page ground as drawn.
+    const grounds = await page.evaluate(() => ({ levers: getComputedStyle(document.querySelector('[data-p3="levers-pane"]')).backgroundColor,
+      preview: getComputedStyle(document.querySelector('[data-p3="preview-body"]')).backgroundColor }));
     if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
     step = 'Components';
     await goPlace(page, 'components');
@@ -21481,11 +21492,49 @@ for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
     hooks.absent(ok, { seen: theme.inspect && comp.body, state: 'a Theme page\'s Inspect, shown, and Components\' preview' }, !comp.inspect,
       `${where}: Q3149.2 A: Components shows no Inspect (${JSON.stringify(comp)})`);
     if (!narrow) {
-      ok(comp.headShown && comp.headH > 0 && Math.abs(comp.headBottom - comp.navBottom) <= 1,
-        `${where}: Q3149.1 A: the empty header row stays, its bottom edge on the levers header's, so the dividers meet (${JSON.stringify(comp)})`);
+      // #4192 F1 (owner decision 2026-11-19, A) reverses Q3149.1's wide row: the header that holds nothing is gone, and
+      // the preview body starts where the levers header does, so the family's own title is the pane's first line.
+      hooks.absent(ok, { seen: theme.headShown && comp.body, state: 'a Theme page\'s preview header, and Components\' preview' }, !comp.headShown && comp.headH === 0 && Math.abs(comp.bodyTop - comp.navTop) <= 1,
+        `${where}: #4192 F1 A: Components draws no empty preview header; its preview body takes the row (${JSON.stringify(comp)})`);
     } else {
       hooks.absent(ok, { seen: theme.headShown && comp.body, state: 'a Theme page\'s preview header, and Components\' Preview pane' }, !comp.headShown && comp.headH === 0,
         `${where}: Q3149.1 A: the empty header row collapses on the Preview pane (${JSON.stringify(comp)})`);
+    }
+    if (!narrow) {
+      // #4192 F2 (owner decision 2026-11-19, A): Export lays its grounds out in Theme's order, the settings on the levers
+      // ground and the result on the page ground. The oracle is the Brand page's two panes, measured above.
+      step = 'Export';
+      await hooks.click(page.locator('[data-p3="rail-export"]'));
+      await hooks.need(page, '.p3-export-out');
+      const ex = await page.evaluate(() => {
+        const out = document.querySelector('.p3-export-out');
+        const set = [...(out?.parentElement?.children ?? [])].find((c) => c !== out && c.classList.contains('p3-bardlg-col'));
+        return { settings: set ? getComputedStyle(set).backgroundColor : null, result: out ? getComputedStyle(out).backgroundColor : null };
+      });
+      ok(grounds.levers !== grounds.preview && ex.settings === grounds.levers && ex.result === grounds.preview,
+        `${where}: #4192 F2 A: Export's settings sit on the levers ground and its result on the page ground, as Theme's panes do (${JSON.stringify({ ex, grounds })})`);
+      // #4188 (owner decision 2026-11-19, A): the controls inside the preview pane are the chrome's, the size every
+      // select in the levers is, and the preview's tables share one header: the uppercase tracked band on the chrome's
+      // type scale. Oracles, measured here: a select in the levers pane, and the Type tables' header.
+      const box = (sel) => page.evaluate((q) => { const e = document.querySelector(q); if (!e) return null; const cs = getComputedStyle(e);
+        return { h: Math.round(e.getBoundingClientRect().height), fs: cs.fontSize, tt: cs.textTransform, cls: String(e.className) }; }, sel);
+      step = 'Type';
+      await goPlace(page, 'type');
+      await settle(page);
+      const lever = await box('[data-p3="levers-pane"] .p3-select');
+      const mtblHead = await box('.mtbl-tbl thead th');
+      step = 'Depth & motion';
+      await goPlace(page, 'depth');
+      await settle(page);
+      const play = await box('[data-p3="motion-play"]'), slow = await box('[data-p3="motion-slowmo"]'), ctHead = await box('.ctable tr:first-child > th');
+      step = 'Brand';
+      await goPlace(page, 'brand');
+      await settle(page);
+      const ground = await box('[data-p3="style-guide-ground"]');
+      ok(!!lever && !!ground && !!slow && ground.h === lever.h && ground.fs === lever.fs && slow.h === lever.h && slow.fs === lever.fs && /\bp3-btn\b/.test(play?.cls ?? ''),
+        `${where}: #4188 the preview's selects and Play are the chrome's, the levers' size (${JSON.stringify({ lever, ground, slow, play })})`);
+      ok(!!mtblHead && !!ctHead && mtblHead.fs === ctHead.fs && mtblHead.tt === 'uppercase' && ctHead.tt === 'uppercase' && mtblHead.fs === '10px',
+        `${where}: #4188 the preview's tables share one header, uppercase on the chrome's 10px (${JSON.stringify({ mtblHead, ctHead })})`);
     }
     ok(errors.length === 0, `${where}: no console errors (${errors.slice(0, 2).join(' · ')})`);
   } catch (e) {
