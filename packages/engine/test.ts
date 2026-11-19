@@ -34804,6 +34804,33 @@ arm: {
   }
 }
 
+// #4229 — `keysNotDrawn` probes every shared key of a def in ONE projection, not one projection per key. That is the
+// per-key answer only while no projection rule compares two keys' refs, so the two paths are compared here, over every
+// def whose answer is not empty and small enough to probe per key in a test, and over `banner`, whose projection reads
+// a shared key as a value and so must take the per-key path. ORACLE: `keysNotDrawnPerKey`, the exact path the report
+// used before #4229; its answer for divider is also pinned by #3157's literal arm above.
+{
+  const ear = await import('./emit-analysis-reports') as Record<string, unknown>;
+  type Def = Parameters<typeof figmaAnatomySet>[0];
+  const onePass = ear.keysNotDrawn as ((d: Def) => { dropped: Set<string>; via: string }) | undefined;
+  const perKey = ear.keysNotDrawnPerKey as ((d: Def) => Set<string>) | undefined;
+  ok(typeof onePass === 'function' && typeof perKey === 'function', '#4229: emit-analysis-reports exports keysNotDrawn (one pass) and keysNotDrawnPerKey (the oracle)');
+  if (typeof onePass === 'function' && typeof perKey === 'function') {
+    const byId = new Map((componentDefs as Def[]).map((d) => [(d as { id: string }).id, d]));
+    for (const id of ['divider', 'checkbox-row', 'radio-row', 'icon', 'tag', 'badge', 'wallet-button', 'banner']) {
+      const def = byId.get(id);
+      if (!def) { ok(false, `#4229: ${id} is a def, so the one-pass probe can be compared on it`); continue; }
+      const want = [...perKey(def)].sort().join(', ');
+      let got: { dropped: Set<string>; via: string };
+      try { got = onePass(def); } catch (err) { ok(false, `#4229: ${id}'s one-pass probe threw instead of answering: ${(err as Error).message.slice(0, 160)}`); continue; }
+      ok([...got.dropped].sort().join(', ') === want,
+        `#4229: ${id}'s keys no plan draws are the same probed in one projection as one key at a time (one pass [${[...got.dropped].sort().join(', ')}] via ${got.via}; per key [${want}])`);
+      if (id === 'banner') ok(got.via === 'per key', `#4229: banner's projection reads a shared key as a value, so it takes the per-key path (via ${got.via})`);
+      else ok(got.via === 'one pass' && want !== '', `#4229: ${id} is answered in one projection, and has keys no plan draws, so the comparison is not of two empty sets (via ${got.via}; per key [${want}])`);
+    }
+  }
+}
+
 // ---- #1009: the vertical rule — the half that is claimed, and the half that is NOT a fix -----------
 //
 // Half 2 CLAIMS `textAlignVertical`. Half 1 (a control aligned to its label's first line) is a different
