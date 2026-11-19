@@ -513,7 +513,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
     // rather than silently succeeding — it is the difference between "the guess was right" and "the
     // guess was wrong and would have cost these styles before".
-    const resolvedNote = ts.resolvedStyles ? `${ts.resolvedStyles} font styles name-resolved` : '';
+    const resolvedNote = ts.resolvedStyles ? `${ts.resolvedStyles} font style names matched to the installed font` : '';   // #4185 B (DRAFT)
     const skippedNote = ts.skipped.length
       ? `⚠ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
       : '';
@@ -530,10 +530,11 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     // One item per axis and per note, each joined by `, ` (#2177: one line each in the Activity drawer).
     const { summary, lines } = fromClauses([
       `palette ${r.paletteTotal} (+${r.paletteCreated})`, `color ${r.colorTotal} (+${r.colorCreated})`,
-      `dims/layout ${f.collections.length} collections (+${floatCreated})`,
+      // #4185 B row 3 (DRAFT): words, not abbreviations.
+      `Layout: ${f.collections.length} collections (+${floatCreated})`,
       `styles ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
-      `type ${pf.brandLoaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
-      `motion ${motionTotal} vars (+${motionCreated})`,
+      `Type: ${pf.brandLoaded} fonts, ${fontVarTotal} font variables (+${fontVarCreated}), ${ts.total} text styles (+${ts.created})`,
+      `Motion: ${motionTotal} variables (+${motionCreated})`,
       // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',

@@ -670,8 +670,8 @@ ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded ===
   // The Apply Theme summary and its agent data read that number, not `loaded`. main.ts runs only inside Figma, so the
   // wiring is read from its source: the clause and the `fontsLoaded` count must name `brandLoaded`.
   const mainSrc = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
-  ok(/`type \$\{pf\.brandLoaded\} fonts loaded \//.test(mainSrc) && /fontsLoaded: pf\.brandLoaded,/.test(mainSrc),
-    `#1090 the Apply Theme summary's "fonts loaded" and the agent data's fontsLoaded both read brandLoaded`);
+  ok(/`Type: \$\{pf\.brandLoaded\} fonts, /.test(mainSrc) && /fontsLoaded: pf\.brandLoaded,/.test(mainSrc),
+    `#1090 the Apply Theme summary's font count ("Type: N fonts" since #4185) and the agent data's fontsLoaded both read brandLoaded`);
 }
 
 // =============================================================================================
