@@ -66,6 +66,19 @@
         "type": "VARIABLE_ALIAS",
         "name": "wds/core/dimension/40"
       }
+    },
+    {
+      "name": "wds/icon/size/2xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "64px icon artboard — an x-large avatar, past the control sizes",
+      "value": 64,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/dimension/64"
+      }
     }
   ]
 }

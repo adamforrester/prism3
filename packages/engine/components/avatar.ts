@@ -105,16 +105,16 @@ export const avatar: ComponentDef = {
 
     // ── THE CORNER: round for a person; for a square, the small radius below medium, so a 20px square does not read
     // as a circle, and the medium radius from medium up (OD-A2 A).
-    'size.x-small.circle.radius': 'radius.round',
-    'size.small.circle.radius': 'radius.round',
-    'size.medium.circle.radius': 'radius.round',
-    'size.large.circle.radius': 'radius.round',
-    'size.x-large.circle.radius': 'radius.round',
-    'size.x-small.square.radius': 'radius.sm',
-    'size.small.square.radius': 'radius.sm',
-    'size.medium.square.radius': 'radius.md',
-    'size.large.square.radius': 'radius.md',
-    'size.x-large.square.radius': 'radius.md',
+    'circle.x-small.radius': 'radius.round',
+    'circle.small.radius': 'radius.round',
+    'circle.medium.radius': 'radius.round',
+    'circle.large.radius': 'radius.round',
+    'circle.x-large.radius': 'radius.round',
+    'square.x-small.radius': 'radius.sm',
+    'square.small.radius': 'radius.sm',
+    'square.medium.radius': 'radius.md',
+    'square.large.radius': 'radius.md',
+    'square.x-large.radius': 'radius.md',
 
     // ── THE INITIALS: the nearest existing label rung per size (OD-A4 A), at the emphasis weight.
     'size.x-small.initials-type': 'type.label.sm.emphasis',
@@ -123,12 +123,14 @@ export const avatar: ComponentDef = {
     'size.large.initials-type': 'type.label.md.emphasis',
     'size.x-large.initials-type': 'type.label.lg.emphasis',
 
-    // ── THE GLYPH: an icon rung about two thirds of the box, the person's ink filling the circle's middle.
-    'size.x-small.glyph': 'icon.size.xs',
-    'size.small.glyph': 'icon.size.xs',
-    'size.medium.glyph': 'icon.size.sm',
-    'size.large.glyph': 'icon.size.md',
-    'size.x-large.glyph': 'icon.size.xl',
+    // ── THE GLYPH: an icon rung about two thirds of the box, the person's ink filling the circle's middle. Keyed
+    // `glyph.<size>`, not `size.<size>.glyph`: `lint-rung-names.ts` reads one tier family per ref, and the box already
+    // walks `icon.size.*`, so a second job on the same ladder would read as one size reaching two rungs.
+    'glyph.x-small': 'icon.size.xs',
+    'glyph.small': 'icon.size.xs',
+    'glyph.medium': 'icon.size.sm',
+    'glyph.large': 'icon.size.md',
+    'glyph.x-large': 'icon.size.xl',
 
     // ── THE PRESENCE RING: 2px of page color around the dot, round, pinned flush into the container's corner. The
     // container has no stroke, so a 0 inset clears its edge (`lint-absolute-inset.ts`, corner arm).
@@ -152,7 +154,7 @@ export const avatar: ComponentDef = {
         kind: 'box',
         role: 'presentation',
         size: 'size.{size}.box',
-        radius: 'size.{size}.{shape}.radius',
+        radius: '{shape}.{size}.radius',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         clipsContent: true,
         paintSlots: ['fill'],
@@ -169,7 +171,7 @@ export const avatar: ComponentDef = {
       personGlyph: {
         kind: 'vector',
         glyph: 'person',
-        size: 'size.{size}.glyph',
+        size: 'glyph.{size}',
         paintSlot: 'icon',
         presentWhen: { type: ['icon'], shape: ['circle'] },
         note: 'A generic person, shown in a circle when there is no photo and no name. Decorative.',
@@ -177,7 +179,7 @@ export const avatar: ComponentDef = {
       organizationGlyph: {
         kind: 'vector',
         glyph: 'organization',
-        size: 'size.{size}.glyph',
+        size: 'glyph.{size}',
         paintSlot: 'icon',
         presentWhen: { type: ['icon'], shape: ['square'] },
         note: 'A generic building, shown in a square when there is no photo and no name. Decorative.',
