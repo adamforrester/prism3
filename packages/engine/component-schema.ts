@@ -1439,7 +1439,7 @@ export type PartFields = {
   stackCentered?: true;
   /** What the part does in right-to-left text (#3986, owner decision Q-RTL1 A): the component contract states it, code
    *  proves it, and Figma, which draws left to right only, shows it as a note. Filled from each def's right-to-left
-   *  prose, and `lint-rtl-mirror.ts` fails a def whose prose and fields disagree.
+   *  prose, and the #3986 arm in `test.ts` fails a def whose prose and fields disagree.
    *
    *    - `reverses`  — a box whose row reverses: what sits at the start moves to the other edge. A box only.
    *    - `mirrors`   — a glyph, or what a slot or nest holds, flips to face the other way. Not a box or a text.
