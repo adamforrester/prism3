@@ -599,7 +599,9 @@ const update = async (label: string, msg: unknown, answer: string): Promise<{ ms
   const b2 = brandLeverBuilds();
   // #4237 (review of #4261): the brand's theme is built once per run, never once per set, held by a count of the builds
   // (`brandLeverBuilds`) rather than by how `updateTargets` is spelled. The check builds it once (`updateTargets`); the
-  // apply twice (`updateTargets`, then `ledgerNow` for the ledger entries it records), over all 50 sets. Literals.
+  // apply twice (`updateTargets`, then `ledgerNow` constructing its materializer), over all 50 sets. Literals. The
+  // stand-in apply never calls `ledgerNow`'s per-def closure, so `+2` counts that materializer built, not used: a per-set
+  // rebuild inside that closure is outside this arm's reach (delta review of #4261).
   ok(b1 - b0 === 1 && b2 - b1 === 2, `update/levers-once: the check builds the brand's theme once and the apply twice, over ${SETS} sets, never once a set (check ${b1 - b0}, apply ${b2 - b1})`);
   ok(!!check && check.searches === 0, `update/check-no-walk: the Update check over ${SETS} sets searches no whole file in one turn (${check ? `${check.searches} whole-file searches` : 'no answer'})`);
   ok(!!apply && apply.searches === 0, `update/apply-no-walk: the apply under the check's hash searches no whole file in one turn (${apply ? `${apply.searches} whole-file searches` : 'no answer'})`);
