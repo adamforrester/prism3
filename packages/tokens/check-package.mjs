@@ -47,6 +47,10 @@
  * [OWN FILE] (#3877): each block also ships alone at `@prism3/tokens/prism3/<mode>.css`, and each of those
  * files runs the same [NAMES], [PREFIX], [VALUE] and [MODE] arms against the contract and the tree, not
  * against the joined file. Only the selector was checked before, so an empty `[data-theme="dark"] {}` passed.
+ *
+ * [BLOCK] `[data-theme="light"]` (#4135): the light defaults are reachable by attribute too, not only on
+ * `:root`, so `<section data-theme="light">` inside `<html data-theme="dark">` switches back. It is the
+ * base rule's second selector, so it is held to the base values, and `base.css` holds that one rule.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
@@ -75,8 +79,17 @@ const GENERIC_FAMILIES = new Set(['serif', 'sans-serif', 'monospace', 'cursive',
   'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji', 'fangsong']);
 /** The decided prefix (Q98 A): stock Style Dictionary's root-prefixed names. */
 const PREFIX = '--pds3-';
-/** The blocks the package promises, by name: the light defaults, then each theme mode. */
-const PROMISED_BLOCKS = [':root', '[data-theme="dark"]', '[data-theme="hc-dark"]', '[data-theme="hc-light"]'];
+/**
+ * The selectors the package promises, by name, each with the mode whose values it must hold: the light
+ * defaults on `:root` AND on `[data-theme="light"]` (#4135 — without the second, a light section inside a
+ * `data-theme="dark"` page matched no rule and kept the dark values), then each theme mode.
+ */
+const PROMISED_BLOCKS = [
+  [':root', 'base'], ['[data-theme="light"]', 'base'],
+  ['[data-theme="dark"]', 'dark'], ['[data-theme="hc-dark"]', 'hc-dark'], ['[data-theme="hc-light"]', 'hc-light'],
+];
+/** How many rules the CSS holds: one per mode, since the two light selectors share one rule. */
+const PROMISED_RULES = new Set(PROMISED_BLOCKS.map(([, mode]) => mode)).size;
 /** What `npm pack` may put in the tarball: the shippable CSS, the README, and the manifest npm always adds. */
 const ALLOWED_FILE = /^(package\.json|README\.md|dist\/prism3\.css|dist\/prism3\/[\w-]+\.css)$/;
 /** The DTCG spec's types — this gate's own transcription, as in `check-consumability.mjs` (docs/34). */
@@ -88,15 +101,23 @@ const DTCG_TYPES = new Set([
 const fail = [];
 const ok = (cond, label) => { console.log(`  ${cond ? '✓' : '✗'} ${label}`); if (!cond) fail.push(label); };
 
-/** Blocks in a CSS file: selector → { name → value }. Comments are stripped first. */
+/**
+ * Blocks in a CSS file: selector → { name → value }, with a selector list (`a, b { … }`) read as each of
+ * its selectors holding the rule's declarations (#4135). Also the number of rules. Comments are stripped first.
+ */
 const readBlocks = (css) => {
   const blocks = new Map();
+  let rules = 0;
   const src = css.replace(/\/\*[\s\S]*?\*\//g, '');
   for (const m of src.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
-    const vars = blocks.get(m[1].trim()) ?? {};
-    for (const d of m[2].matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) vars[d[1]] = d[2].trim();
-    blocks.set(m[1].trim(), vars);
+    rules++;
+    for (const sel of m[1].split(',').map((x) => x.trim()).filter(Boolean)) {
+      const vars = blocks.get(sel) ?? {};
+      for (const d of m[2].matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) vars[d[1]] = d[2].trim();
+      blocks.set(sel, vars);
+    }
   }
+  blocks.rules = rules;
   return blocks;
 };
 
@@ -185,20 +206,21 @@ try {
   ok(Boolean(tree.pds3), 'the [VALUE] oracle, out/prism3.tokens.json, has the pds3 root');
   const blocks = readBlocks(readFileSync(main, 'utf8'));
   console.log(`  blocks: ${[...blocks.keys()].join(' · ')}\n`);
-  ok(blocks.size === PROMISED_BLOCKS.length, `the CSS holds exactly the ${PROMISED_BLOCKS.length} promised blocks (got ${blocks.size})`);
+  ok(blocks.size === PROMISED_BLOCKS.length && blocks.rules === PROMISED_RULES,
+    `the CSS holds exactly the ${PROMISED_BLOCKS.length} promised selectors in ${PROMISED_RULES} rules (got ${blocks.size} in ${blocks.rules})`);
   /**
    * [NAMES], [PREFIX], [VALUE] and [MODE] over one block, read from `where`. Each file is held against the
    * contract and the engine's tree directly, never against another file of the build (#3877): a per-mode
    * file compared to the joined file would only prove the build agrees with itself.
    */
-  const checkBlock = (where, sel, vars, root) => {
+  const checkBlock = (where, sel, mode, vars, root) => {
     const missing = expected.filter((n) => !(n in vars));
     ok(missing.length === 0,
       `[NAMES] \`${sel}\`${where} defines every guaranteed name under \`${PREFIX}\` (${expected.length - missing.length}/${expected.length})${missing.length ? ` — missing e.g. ${missing.slice(0, 5).join(', ')}` : ''}`);
     const off = Object.keys(vars).filter((n) => !n.startsWith(PREFIX));
     ok(off.length === 0, `[PREFIX] every name in \`${sel}\`${where} starts \`${PREFIX}\`${off.length ? ` — e.g. ${off.slice(0, 3).join(', ')}` : ''}`);
     // [VALUE] (#3563): each guaranteed declaration holds the engine's value for this block's mode.
-    const mode = sel === ':root' ? null : sel.match(/"(.+)"/)[1];
+    if (mode === 'base') mode = null;
     const wrong = [];
     let compared = 0;
     for (const [key, type] of Object.entries(contract)) {
@@ -221,35 +243,37 @@ try {
     const bare = faces.filter(([, v]) => !GENERIC_FAMILIES.has(v.split(',').at(-1).trim().replace(/^['"]|['"]$/g, '')));
     ok(faces.length > 0 && bare.length === 0,
       `[FALLBACK] every typeface in \`${sel}\`${where} ends in a CSS generic family (${faces.length - bare.length}/${faces.length})${bare.length ? ` — e.g. ${bare.slice(0, 3).map(([n, v]) => `${n}: ${v}`).join('; ')}` : ''}`);
-    if (sel !== ':root') {
+    if (mode) {
       const differs = expected.some((n) => n in vars && vars[n] !== root[n]);
       ok(differs, `[MODE] \`${sel}\`${where} changes at least one guaranteed value from \`:root\` — it is a theme, not a copy`);
     }
   };
 
   const root = blocks.get(':root') ?? {};
-  for (const sel of PROMISED_BLOCKS) {
+  for (const [sel, mode] of PROMISED_BLOCKS) {
     const vars = blocks.get(sel);
     ok(Boolean(vars), `[BLOCK] \`${sel}\` is in the installed CSS`);
-    if (vars) checkBlock('', sel, vars, root);
+    if (vars) checkBlock('', sel, mode, vars, root);
   }
 
   // ---- each block also ships on its own, at @prism3/tokens/prism3/<mode>.css (#3877) ----
   // The same arms, run over the file itself. Checking only that the selector is there passed a
   // `[data-theme="dark"] {}` with no declarations, and would pass one carrying another mode's values.
   let ownRoot = {};
-  for (const sel of PROMISED_BLOCKS) {
-    const mode = sel === ':root' ? 'base' : sel.match(/"(.+)"/)[1];
+  for (const mode of new Set(PROMISED_BLOCKS.map(([, m]) => m))) {
+    const sels = PROMISED_BLOCKS.filter(([, m]) => m === mode).map(([s]) => s);
     const spec = `@prism3/tokens/prism3/${mode}.css`;
     let file;
     try { file = req.resolve(spec); } catch { file = null; }
     const own = file ? readBlocks(readFileSync(file, 'utf8')) : new Map();
-    ok(Boolean(file) && own.size === 1 && own.has(sel),
-      `[OWN FILE] \`${spec}\` resolves and holds exactly one block, \`${sel}\`${file ? ` (got ${[...own.keys()].join(' · ') || 'none'})` : ''}`);
-    const vars = own.get(sel);
-    if (!vars) continue;
-    if (sel === ':root') ownRoot = vars;
-    checkBlock(` in ${mode}.css`, sel, vars, ownRoot);
+    ok(Boolean(file) && own.rules === 1 && own.size === sels.length && sels.every((s) => own.has(s)),
+      `[OWN FILE] \`${spec}\` resolves and holds exactly one rule, \`${sels.join(', ')}\`${file ? ` (got ${[...own.keys()].join(' · ') || 'none'})` : ''}`);
+    for (const sel of sels) {
+      const vars = own.get(sel);
+      if (!vars) continue;
+      if (sel === ':root') ownRoot = vars;
+      checkBlock(` in ${mode}.css`, sel, mode, vars, ownRoot);
+    }
   }
 } finally {
   rmSync(tmp, { recursive: true, force: true });
