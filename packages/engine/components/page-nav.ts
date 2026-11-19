@@ -79,7 +79,7 @@ export const pageNav: ComponentDef = {
         note: 'The navigation: a row that hugs its items, with no padding, no fill and no baseline.',
       },
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         contentSlot: true,
         // At least two pages and at most six (Q8 A), and only a PageNav.Item.
@@ -99,7 +99,7 @@ export const pageNav: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',

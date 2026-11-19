@@ -63,7 +63,15 @@
  * EXPECTED is `FLOOR_PX = 44`, the WCAG number transcribed HERE as a literal — deliberately NOT imported
  * from `scale.ts`'s `AAA_TARGET_PX`. The emitter computes `select`'s `min-height` AS `max(md,
  * AAA_TARGET_PX)`, so asserting that emitted value `>= AAA_TARGET_PX` would be `x >= x` (docs/34 shape
- * 2). Written independently, lowering `AAA_TARGET_PX` to 40 fails THIS gate at 44.
+ * 2). The literal keeps the gate honest about the number it compares to.
+ *
+ * WHAT THAT INDEPENDENCE DOES NOT BUY (#4239). Lowering `AAA_TARGET_PX` to 40 passes THIS gate. The floor
+ * is measured on comfortable and spacious only, where `md` is already 44 and 56, so `max(md, 40)` returns
+ * `md` and the constant never decides a value this gate reads. The one density where it does decide one is
+ * compact, and compact is exempt. `AAA_TARGET_PX` is held elsewhere: `test.ts` #1437 ("the floor DOES
+ * work") fails by name on the compact fixture, and `regen --check` reports the emitted trees drifting. The
+ * mutation this gate does catch is the one in the next paragraph: point a control's default hit target at
+ * a smaller rung (`button`'s `size.medium.height` bound to `size.sm.height`) and it fails here by name.
  *
  * ACTUAL is the emitted px of the token a control ACTUALLY binds as its hit target, at its DEFAULT size,
  * read THROUGH the def's own `tokens` map (`def.tokens[bindKey]`) and resolved from a freshly built tree
@@ -349,6 +357,7 @@ const EXCLUDED: Record<string, string> = {
   'switch-control': 'a nested-only atom — the tap target is the labeled row (switch-row), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
+  'tag-group': 'a group container — its tap targets are the nested tags, each measured under its own name (#1739)',
   'pagination': 'a navigation row — its tap targets are the nested page cells, gated as pagination-item, and the previous and next IconButton.Neutral and Button.Neutral, each measured under its own name (#2665)',
   'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab-item',
   'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception; each size\'s line box is held to 24px below, as drawn or code-side (#3179)',
