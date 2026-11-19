@@ -618,6 +618,7 @@ apps/studio/test-chrome.mjs #3471
 apps/studio/test-chrome.mjs #3524
 apps/studio/test-chrome.mjs #3553
 apps/studio/test-chrome.mjs #3608
+apps/studio/test-chrome.mjs #3620
 apps/studio/test-chrome.mjs #3697
 apps/studio/test-chrome.mjs #3700
 apps/studio/test-chrome.mjs #3711
@@ -786,6 +787,7 @@ apps/studio/test-smoke.mjs #2942
 apps/studio/test-smoke.mjs #330
 apps/studio/test-smoke.mjs #3335
 apps/studio/test-smoke.mjs #388
+apps/studio/test-smoke.mjs #3880
 apps/studio/test-smoke.mjs #576
 apps/studio/test-smoke.mjs #775
 apps/studio/test-smoke.mjs #779
@@ -798,6 +800,7 @@ apps/studio/test-status-strip.ts #3177
 apps/studio/test-store.ts #1037
 apps/studio/test-store.ts #2487
 apps/studio/test-store.ts #3878
+apps/studio/test-store.ts #3880
 apps/studio/test-style-guides.ts #2372
 apps/studio/test-type-input.ts #1071
 apps/studio/test-type-input.ts #1727
@@ -807,6 +810,7 @@ apps/studio/test-type-input.ts #2194
 apps/studio/test-type-input.ts #2225
 apps/studio/test-type-input.ts #2324
 apps/studio/test-type-input.ts #3077
+apps/studio/test-type-input.ts #3707
 apps/studio/test-type-input.ts #3878
 apps/studio/test-type-input.ts #831
 apps/studio/test-update-file.ts #1234
@@ -1210,6 +1214,7 @@ packages/engine/test.ts #3595
 packages/engine/test.ts #3603
 packages/engine/test.ts #3697
 packages/engine/test.ts #3698
+packages/engine/test.ts #3707
 packages/engine/test.ts #3759
 packages/engine/test.ts #377
 packages/engine/test.ts #3779
