@@ -13,7 +13,7 @@
  * What it builds: the house brand, `prism3`, from the conforming projection the engine emits
  * (`prism3.base.tokens.json` plus one `prism3.<mode>.overlay.tokens.json` per theme mode), one stock
  * Style Dictionary run per mode — the shape the consumer build already proves. The base run (the light
- * defaults) writes under `:root`; each mode writes under `[data-theme="<mode>"]`. Names keep stock Style
+ * defaults) writes under `:root, [data-theme="light"]`; each mode writes under `[data-theme="<mode>"]`. Names keep stock Style
  * Dictionary's root prefix, `--pds3-…` (Q98 A): no `prefix` option, no rename.
  *
  * A third source rides in every run: `prism3.css-only.json`, the custom-typed leaves whose value is already CSS
@@ -36,6 +36,12 @@ const here = dirname(fileURLToPath(import.meta.url));
 const OUT_ROOT = resolve(here, '../engine/out');
 export const DIST = resolve(here, 'dist');
 export const BRAND = 'prism3';
+/**
+ * The light defaults' selector. `:root` makes them the page default; `[data-theme="light"]` makes them
+ * reachable on a subtree, as every other mode is, so a light section inside a `data-theme="dark"` page
+ * switches back (#4135). One stock `selector` option, one rule.
+ */
+const BASE_SELECTOR = ':root, [data-theme="light"]';
 
 /** `base` first, then every overlay the engine emits for the brand, sorted. */
 export const discoverModes = () => [
@@ -66,7 +72,7 @@ const buildMode = async (mode) => {
         files: [{
           destination: `${mode}.css`,
           format: 'css/variables',
-          options: { outputReferences: true, selector: mode === 'base' ? ':root' : `[data-theme="${mode}"]` },
+          options: { outputReferences: true, selector: mode === 'base' ? BASE_SELECTOR : `[data-theme="${mode}"]` },
         }],
       },
     },

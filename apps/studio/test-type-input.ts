@@ -204,9 +204,11 @@ ok(ty() === with3({ links: ['title'] }), `a second link toggle reads the set the
   T.setLink('body', false, linkSet());
   ok(JSON.stringify((store.brandState.typography as any).links) === '["caption"]', `setLink(body, off) on a default brand writes links ["caption"] (${ty()})`);
   T.setLink('caption', false, linkSet());
-  // #2324: label's link styles are fixed, so they are what is left; its cell is locked, so it never writes it.
-  ok(JSON.stringify((store.brandState.typography as any).links) === '[]' && takes() && JSON.stringify([...linkSet()]) === '["label"]',
-    `unticking every link writes links [] and the engine emits only label's fixed link composites (${ty()})`);
+  // #2324: label's cell is locked, so it never writes it. #3707 (owner decision A): the engine refuses an empty list,
+  // so this edit no longer builds; how the Studio should stop it is #4041, held for the owner.
+  const refusal = ((): string => { try { brandTheme(structuredClone(store.brandState)); return ''; } catch (e) { return (e as Error).message; } })();
+  ok(JSON.stringify((store.brandState.typography as any).links) === '[]' && /typography\.links is empty/.test(refusal),
+    `#3707 unticking every link writes links [], which the engine refuses, naming typography.links (${ty()}; ${JSON.stringify(refusal)})`);
   ok(T.linkLock('label') !== undefined && T.linkLock('body') === undefined && T.linkLock('caption') === undefined,
     `label's Link cell is locked, and body's and caption's are not (#2324): ${JSON.stringify([T.linkLock('label'), T.linkLock('body')])}`);
 }
@@ -564,6 +566,9 @@ console.log('\n12. A brand with no typography key stays byte-identical when a si
     ['a brand-wide size (setSizePin)', () => T.setSizePin(null, 'display', 'md', 60), () => T.setSizePin(null, 'display', 'md', undefined)],
     ['a mobile size (setMobileSize)', () => T.setMobileSize('display', 'md', 40), () => T.setMobileSize('display', 'md', undefined)],
     ['a size released (releasePinnedSizes)', () => T.setSizePin(null, 'display', 'md', 60), () => T.releasePinnedSizes()],
+    // #4208: the two sibling setters #3890 missed.
+    ['a caption size (setCaptionSize)', () => T.setCaptionSize('md', 13), () => T.setCaptionSize('md', undefined)],
+    ['a letter spacing pin (setTrackingPin)', () => T.setTrackingPin('body', 'wide'), () => T.setTrackingPin('body', undefined)],
   ] as const) {
     fresh();
     clear();

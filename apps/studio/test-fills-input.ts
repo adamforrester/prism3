@@ -808,8 +808,8 @@ ok(F.floorResetNotice('dark') === null, '#2250 and the notice is Light\'s alone'
 // page prints ("The background 47 …") is the one asserted. A role the engine starts measuring on the floor fails
 // too, through `other` and the total. Then the "not checked" line (Q3366.5 A) is held to the engine: no field
 // border, no button border and no focus ring is measured on the floor in any of those modes.
-// Mutations (each fails here by name): drop `disabled` from FLOOR_GROUPS → `… the "disabled" group (Disabled text and
-// icon) holds exactly …`; a field border measured on the floor → `… the "not checked" line …`.
+// Mutations (each fails here by name): drop `disabled` from FLOOR_GROUPS → `… the "disabled" group (Disabled text, icon and
+// border) holds exactly …`; a field border measured on the floor → `… the "not checked" line …`.
 console.log('\n12. The contrast floor\'s groups: every role the engine measures on the floor, in six groups (#3366, Q3366.4 A; oracle: literals)');
 const FLOOR_EXPECTED: Record<string, { label: string; roles: string[] }> = {
   links: { label: 'Links', roles: ['text.link.default', 'text.link.hover', 'text.link.visited', 'text.link.focused', 'text.link.pressed',
@@ -817,12 +817,12 @@ const FLOOR_EXPECTED: Record<string, { label: string; roles: string[] }> = {
   status: { label: 'Brand and status text, icons', roles: ['text.brand', 'text.success', 'text.warning', 'text.danger', 'text.info',
     'icon.brand', 'icon.success', 'icon.warning', 'icon.danger', 'icon.info'] },
   secondary: { label: 'Secondary and tertiary text, placeholder', roles: ['text.secondary', 'text.tertiary', 'icon.secondary', 'icon.tertiary', 'field.placeholder'] },
-  disabled: { label: 'Disabled text and icon', roles: ['disabled.text', 'disabled.icon'] },
+  disabled: { label: 'Disabled text, icon and border', roles: ['disabled.text', 'disabled.icon', 'disabled.border'] },  // the border since #2750
   bold: { label: 'Bold fills', roles: ['foreground.brand', 'foreground.success', 'foreground.warning', 'foreground.info', 'foreground.danger'] },
   buttons: { label: 'Button fills', roles: ['primary', 'destructive', 'neutral'].flatMap((c) => ['rest', 'hover', 'pressed', 'focused', 'selected'].map((st) => `interactive.${c}.fill.${st}`)) },
 };
 const FLOOR_ORDER = ['links', 'status', 'secondary', 'disabled', 'bold', 'buttons'];
-const FLOOR_TOTAL = 47;
+const FLOOR_TOTAL = 48;  // 47 until #2750 measured disabled.border on the floor
 const sortJ = (xs: readonly string[]): string => JSON.stringify([...xs].sort());
 let floorModes = 0;
 for (const brand of ['prism3', 'aurora', 'harbor']) {
