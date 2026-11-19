@@ -18073,9 +18073,11 @@ arm: {
     // THE SET: exactly the three text buttons; icon-button is outside it and every lever is its identity.
     ok(componentDefs.filter(isButtonFamily).map((d) => d.id).sort().join(',') === 'button,button-destructive,button-neutral',
       `#1667 button levers: the set is button + button-destructive + button-neutral (${componentDefs.filter(isButtonFamily).map((d) => d.id).join(', ')})`);
+    // Every setting but "Outline button border", which reaches the icon buttons by their own opt-in since #576 Q6 (held
+    // in the #576 block); at its default it is the identity here too.
     ok([iconButton, iconButtonDestructive, iconButtonNeutral].every((d) =>
-      applyButtonLayout(d, { icons: 'edges', content: 'smaller', minWidthMultiplier: 4 }, () => 44) === d),
-      '#1667 button levers: icon-button is untouched by every setting — the same object back');
+      applyButtonLayout(d, { icons: 'edges', content: 'smaller', minWidthMultiplier: 4, borderWeight: 'hairline' } as never, () => 44) === d),
+      '#1667 button levers: icon-button is untouched by every setting but Outline button border — the same object back');
 
     // (1) THE PER-SIZE FLOOR — every brand × family × size, at the default 2.25 and at 2.5.
     for (const [bid, t] of BL_BRANDS) for (const def of FAMILY) for (const m of [2.25, 2.5]) {
