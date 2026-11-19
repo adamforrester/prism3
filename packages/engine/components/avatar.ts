@@ -125,7 +125,7 @@ export const avatar: ComponentDef = {
 
     // ── THE GLYPH: an icon rung about two thirds of the box, the person's ink filling the circle's middle. Keyed
     // `glyph.<size>`, not `size.<size>.glyph`: `lint-rung-names.ts` reads one tier family per ref, and the box already
-    // walks `icon.size.*`, so a second job on the same ladder would read as one size reaching two rungs.
+    // walks `icon.size.*`, so a second job on the same ladder would read as one size reaching two rungs (#4314).
     'glyph.x-small': 'icon.size.xs',
     'glyph.small': 'icon.size.xs',
     'glyph.medium': 'icon.size.sm',

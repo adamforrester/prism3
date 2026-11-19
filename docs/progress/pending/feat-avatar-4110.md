@@ -26,7 +26,7 @@ the wireframe in #4148. Engine {{ENGINE_VERSION}}; `CONTRACT_VERSION` 15.1.0 →
   mask holds `fill`.
 - `lint-rung-names.ts` reads one tier family per ref, so a def that walks the icon ladder for two jobs (the box and the
   glyph) reads as one size reaching two rungs. The glyph's key is `glyph.<size>`, outside the gate's `size.` scope.
-  That is a gap in the gate's family model, filed separately rather than fixed here.
+  That is a gap in the gate's family model, filed as #4314 rather than fixed here.
 - The medium avatar is 32px, `icon.size.lg`, one rung above `md`: a new admission, `BOX_OFFSET_UP_ONE_DEFS`, checked
   both directions like the ring offset. The initials sit in `PINNED_LADDER_DEFS` on `type.label.*.emphasis` (OD-A4 A).
 - A Figma text property holds one default for the whole set (#1567), so the one-letter rule at x-small and small is
