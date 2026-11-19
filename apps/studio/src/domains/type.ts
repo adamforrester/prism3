@@ -69,7 +69,7 @@ import { emToPercentLabel } from '../em-percent';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock, keepFocus, pageEdit } from '../ui/lever-kit';
+import { chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock, keepFocus, pageEdit, wordsOf } from '../ui/lever-kit';
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
@@ -1017,7 +1017,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       hint: TYPE_VIEW_COPY.menuHint(g),
       current,
       values,
-      onPick: (v) => { if (v === CURRENT) return; edit(`type:${g}`, () => setSpacing(g, kind, v === DEFAULT ? null : rungs[v] ?? null)); },
+      onPick: (v) => { if (v === CURRENT) return; edit(`type.${g}`, () => setSpacing(g, kind, v === DEFAULT ? null : rungs[v] ?? null)); },
     });
     const wrap = h('div', 'p3-tmenu');
     wrap.append(f);
@@ -1049,7 +1049,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       c.setAttribute('aria-label', `${S63.groupName(g)}, ${S63.weightName(r)}`);
       c.append(glyph('check'), h('span', 'p3-btn-label', S63.weightName(r)));
       if (lock) { c.setAttribute('aria-disabled', 'true'); c.title = lock; c.setAttribute('aria-description', lock); }
-      c.onclick = () => { if (c.getAttribute('aria-disabled') !== 'true') edit(`type:${g}`, () => toggleCategoryWeight(g, r, roleOrder, has)); };
+      c.onclick = () => { if (c.getAttribute('aria-disabled') !== 'true') edit(`type.${g}`, () => toggleCategoryWeight(g, r, roleOrder, has)); };
       cells.append(c);
     }
     row.append(head, cells);
@@ -1064,7 +1064,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const italicDefG = new Set(ty.composites.filter((c) => c.italicDefault).map((c) => c.group));
     const row = hook(h('div', 'p3-titalic'), 'italic-row');
     row.dataset.group = g;
-    const c = chipChoice(`${S63.groupName(g)}: ${S63.italicsLabel}`, 'italic-choice', ITALIC_CHIPS, (v) => edit(`type:${g}`, () => setItalicStyle(g, v, italicG, italicDefG)));
+    const c = chipChoice(`${S63.groupName(g)}: ${S63.italicsLabel}`, 'italic-choice', ITALIC_CHIPS, (v) => edit(`type.${g}`, () => setItalicStyle(g, v, italicG, italicDefG)));
     c.el.dataset.group = g;
     const now = italicStyleOf(g, italicG, italicDefG);
     c.set(now);
@@ -1101,7 +1101,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       const cur = getPath(brandState, `typography.faces.${g}.${role}`) as FacePin | undefined;
       const t = textField(id, 'pin-cut-input', {
         label: S63.pinField(S63.groupName(g), role),
-        onCommit: (v) => { if ((cur?.style ?? '') === v.trim() && (!cur || cur.family === fam)) return; edit(`type:${g}`, () => setFacePin(g, role, v, fam)); },
+        onCommit: (v) => { if ((cur?.style ?? '') === v.trim() && (!cur || cur.family === fam)) return; edit(`type.${g}`, () => setFacePin(g, role, v, fam)); },
       });
       t.el.placeholder = S63.pinPlaceholder;
       t.set(cur?.style ?? '');
@@ -1118,7 +1118,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   const card = (g: string): Item[] => {
     const ty = theme.typography;
     if (!ty.composites.some((c) => c.group === g)) return [];
-    const b = leverBlock(`type:${g}`, { label: S63.groupName(g), group: true });
+    const b = leverBlock(`type.${g}`, { label: S63.groupName(g), group: true });
     // The card's frame wraps the block, so the block's legend stays its heading inside the frame.
     const box = hook(h('div', 'p3-tcard'), 'type-card');
     box.dataset.group = g;
@@ -1146,6 +1146,9 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     }
     if (g === 'title') words.push(TYPE_VIEW_COPY.addExtra('title', '2xs', 16), S63.titleFloorLabel);
     words.push(TYPE_VIEW_COPY.shipsLabel, S63.italicsLabel, ...ITALIC_CHIPS.map((x) => x.l), S63.pinLabel);
+    // #3093: the card says the manifest's words for every lever it draws, so a search by any of them finds it.
+    words.push(...['typography.weights', 'typography.italics', 'typography.italicDefault', ...(g === 'title' ? ['typography.titleFloor'] : []),
+      ...(g === 'caption' ? ['typography.captionFloor', 'typography.sizeFloor'] : []), ...(g === 'display' ? ['typography.displayCeiling'] : [])].map(wordsOf));
     if (advShown()) {
       const kids: HTMLElement[] = [];
       if (g === 'display') {
@@ -1157,7 +1160,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       b.ctl.append(advZone('type-card-advanced', kids));
     }
     if (g === 'display') words.push(S63.ceilingLabel, S63.ceilingTip);
-    return [{ el: box, said: `${b.said} ${words.join(' ')}`.toLowerCase(), key: `type:${g}`, block: b }, ...out];
+    return [{ el: box, said: `${b.said} ${words.join(' ')}`.toLowerCase(), key: `type.${g}`, block: b }, ...out];
   };
 
   // ── Every text type (#3079: brand-wide, advanced only) ───────────────────────────────────────────────────────

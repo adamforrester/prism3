@@ -2538,14 +2538,16 @@ const RAISED_QUERIES = ['dialog', 'dialog surface', 'white', 'raisedSurface'];
  *  and says its words (`alsoSays`, #2175): a search for the lever shows that block. Typed here, each by its reason. */
 const SEARCH_STANDS_IN = {
   'neutral.anchor': 'neutral.hue',            // Pin a neutral: the Pinned choice in the neutral source, until pinned (#2175)
-  'typography.links': 'typography.weights',   // Underlined link styles: the weights table's Link column
-  'typography.italicDefault': 'typography.italics', // Italic-only text types: each text type's Only chip
   'outlineHoverFill': 'outlineInteraction',   // Outline hover fill: drawn only under Opaque fill; Outline hover's description names it (#3071)
   'outlineWash.pressed': 'outlineWash.hover', // #3335: Wash opacity is one block, its Hover and Pressed both, under the hover key
 };
 /** #3335 (Q3335.2 A): a lever with no lever block at all, and the hook that stands in for it: the button sets lever is the
  *  set cards and Add button set, whose heading and ⓘ went. */
-const SEARCH_STANDS_IN_HOOK = { interactivePalettes: 'column-add' };
+const SEARCH_STANDS_IN_HOOK = { interactivePalettes: 'column-add',
+  // #3079 (Q809 A, Q3079.6 A): Type's per-text-type levers live in each text type's card, whose block says their words;
+  // the extra small sizes in their own card, the weights and italics in every card (the first, Display, stands in).
+  'typography.titleFloor': 'lever-type-title', 'typography.captionFloor': 'lever-type-caption', 'typography.sizeFloor': 'lever-type-caption',
+  'typography.weights': 'lever-type-display', 'typography.italics': 'lever-type-display', 'typography.italicDefault': 'lever-type-display' };
 /** Every place a lever can live, in the tab row's order (`PLACE_CLICKS`, typed above). */
 const SEARCH_PLACES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
 if (runs('6b')) {
