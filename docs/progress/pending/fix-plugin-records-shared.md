@@ -17,3 +17,5 @@ The issue names two more records. Both are in files open PRs are rewriting, so e
 ### The test's oracle
 
 It models Figma's documented storage by hand: one shared map per file, and one private map per plugin id. It doesn't use `file-shim.ts`, whose root models shared data only, and it doesn't use the subject. Mutations, each failing by name: `writeRecord` writing private only → the cross-build arms; no private fallback in `readRecord` → `#4154: a file saved before keeps its doc settings`; `figma.root.getPluginData(FILE_ID_KEY)` back in `main.ts` → the register arm names `main.ts`.
+
+After review: the suite's last line is `✅ ALL PASS — N assertions executed`, the form `run-suites.ts` reads, so `plugin-test` holds it to its floor (7). With the old `file records: N passed` line the runner failed it as a suite defect. A seventh arm pins the namespace: `RECORD_NS` set to anything but `prism3` → `#4154: the record is kept in shared data under the prism3 namespace`.
