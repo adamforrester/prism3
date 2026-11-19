@@ -848,6 +848,11 @@ for (const c of ['skip', 'rename'] as const) {
   ok(JSON.stringify(short) === '[4]', `#4157 a color collection holding 2 of its 4 modes needs 4 (${JSON.stringify(short)})`);
   const lim = await modeLimitOf(p, api);
   ok(JSON.stringify(lim) === '{"allowed":1,"needed":4}' && JSON.stringify(asked) === '[4]', `#4157 a cap of 1 against that need is a limit, asked once for 4 (${JSON.stringify(lim)}, asked ${JSON.stringify(asked)})`);
+  // reconcileModes' step 2: a lone mode under a name the plan doesn't use is renamed, not added beside, so a color
+  // collection holding one mode called "Foo" grows to 4, not 5 (#4157 review). Off by one here, a file that fits is refused.
+  color.modes = [{ ...color.modes[0], name: 'Foo' }];
+  const lone = modesNeeded(p, await f.getLocalVariableCollectionsAsync());
+  ok(JSON.stringify(lone) === '[4]', `#4157 a color collection holding one mode under a name the plan doesn't use is renamed, so it needs 4 (${JSON.stringify(lone)})`);
 }
 
 console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed'} — ${executed} assertions executed`);
