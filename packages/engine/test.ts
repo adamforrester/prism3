@@ -6338,6 +6338,28 @@ arm: {
     'A2b(d): an empty modeAnchors map produces byte-identical output');
 }
 
+// #2076 (owner decision 2026-11-18, A): `controlShape`'s schema description is the lever manifest's wording, with the
+// token names an agent reads kept. Held: it names each shape's rung, and none of the words #2050 retired from visible
+// copy or the claim #2059 made false ("implies the hairline rung": radius.hairline ships for every brand). The token
+// names are typed here, not read from the emitter.
+{
+  const cs = JSON.parse(readFileSync(resolve(HERE, 'schema', 'theme-schema.json'), 'utf8')).properties.controlShape.description as string;
+  const missing = ['radius.none', 'radius.hairline', 'radius.md', 'radius.capsule'].filter((t) => !cs.includes(t));
+  ok(missing.length === 0, `#2076: controlShape's schema description names every shape's token (missing: ${missing.join(', ') || 'none'})`);
+  const stale = ['implies', 'pill-able', 'rung'].filter((w) => cs.toLowerCase().includes(w));
+  ok(stale.length === 0, `#2076: controlShape's schema description carries none of the retired words or the false claim (found: ${stale.join(', ') || 'none'})`);
+}
+// #4019 (#2343 Q-B6 A): Link's usage carries the social follow-link example, and the mark it names is one the set ships.
+// The set is read from the artwork folder on disk, not from the glyph table the defs import.
+{
+  const usage = componentDefs.find((d) => d.id === 'link')!.docs.usage;
+  const named = usage.match(/social\/[a-z0-9-]+-mono/)?.[0];
+  const shipped = readdirSync(resolve(HERE, 'marks', 'social')).filter((f) => f.endsWith('.svg')).map((f) => `social/${f.slice(0, -4)}`);
+  ok(/follow link/i.test(usage) && !!named && shipped.includes(named),
+    `#4019: Link's usage gives the social follow-link example around a one-color mark the set ships (${named ?? 'none named'})`);
+  ok(/aria-label/.test(usage) && /aria-hidden/.test(usage), "#4019: the follow-link example names the link by aria-label and hides the mark");
+}
+
 // USER-ADDED CUSTOM MODES (Phase C1) — a custom mode `{ name, base }` LIVE-INHERITS a customizable
 // built-in (light/dark): it re-derives EXACTLY like its base each build, then its own overrides/
 // modeAnchors deviate it. Reserved/duplicate/bad-base/bad-slug names throw; byte-identical when absent.
