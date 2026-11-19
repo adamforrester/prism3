@@ -112,7 +112,7 @@ ready line on stderr naming the six tools, then waits for JSON-RPC on stdin.
 that is the directory you launched `claude` from. Some desktop clients start servers in `/`, where
 the write fails; set the server's working directory in the client's config if it offers one. It
 refuses absolute paths and `..`. Use it instead of `theme_brand` with `include: ["tokens"]` when you
-want the files: a four-mode token tree is close to a megabyte.
+want the files: a four-mode token tree is roughly 440,000 characters in a tool result.
 
 What it doesn't do:
 - It doesn't write to Figma. That goes through the Figma plugin's agent link (`apps/plugin/README.md`).
