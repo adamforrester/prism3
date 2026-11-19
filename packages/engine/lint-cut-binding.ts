@@ -27,7 +27,8 @@
  *   A. CUT IS BOUND — every text style's `fontStyle` is `{ bound: true, variable, collection: 'core',
  *      resolvedType: 'STRING' }`, and the variable name is a cut name (`.../font/style/<cat>/<role>`).
  *      This is the #1485 claim, and the arm the "revert to baked" mutation trips.
- *   B. CUT VARIABLE EXISTS — that bound variable is present in the brand's `core.font.json`, STRING,
+ *   B. CUT VARIABLE EXISTS — that bound variable is present in the brand's `core.font.json` (in EACH per-mode
+ *      `core.font.<mode>.json` for a brand with per-mode typography, #1729), STRING,
  *      with NO scope (#2602: every `core` row but the font family and weight rows is unscoped, so no
  *      local picker offers it; the style binds it through the API, which scopes do not limit) and a
  *      NON-EMPTY string value. The scope set is held to the literal `[]`, not the emitter's constant. A bind to a missing variable is a dangling
@@ -166,16 +167,20 @@ let cutBinds = 0;
 for (const brand of brands) {
   const dir = join(OUT_FIGMA, brand);
   const tsPath = join(dir, 'text-styles.json');
-  const fontPath = join(dir, 'core.font.json');
+  // One `core.font.json`, or one `core.font.<mode>.json` per mode for a brand with per-mode typography (prism3's
+  // Brand B, #1729). Every file is checked: a cut bound in one mode must resolve in each.
+  const fontFiles = existsSync(join(dir, 'core.font.json')) ? ['core.font.json']
+    : readdirSync(dir).filter((f) => /^core\.font\.[^.]+\.json$/.test(f)).sort();
   if (!existsSync(tsPath)) { failures.push(`${brand}: no text-styles.json — the cut-binding claim cannot be checked for it`); continue; }
-  if (!existsSync(fontPath)) { failures.push(`${brand}: no core.font.json — the cut variables a style binds cannot be resolved`); continue; }
+  if (!fontFiles.length) { failures.push(`${brand}: no core.font.json, and no per-mode core.font.<mode>.json — the cut variables a style binds cannot be resolved`); continue; }
   const ts = JSON.parse(readFileSync(tsPath, 'utf8')) as { styles?: Array<{ name: string; properties: Record<string, Prop> }> };
-  const font = JSON.parse(readFileSync(fontPath, 'utf8')) as { variables?: Array<{ name: string; resolvedType?: string; scopes?: string[]; value?: unknown }> };
+  type FontVar = { name: string; resolvedType?: string; scopes?: string[]; value?: unknown };
+  const fonts = fontFiles.map((f) => [f, JSON.parse(readFileSync(join(dir, f), 'utf8')) as { variables?: FontVar[] }] as const);
   const styles = ts.styles ?? [];
   if (styles.length === 0) { failures.push(`${brand}: text-styles.json has zero styles — the checks below would pass over nothing`); continue; }
-  const varByName = new Map((font.variables ?? []).map((v) => [v.name, v] as const));
-  const cutVarsInFont = (font.variables ?? []).filter((v) => CUT_NAME.test(v.name));
-  if (cutVarsInFont.length === 0) failures.push(`${brand}: core.font.json emits NO font/style/<cat>/<role> cut variables, but the styles are expected to bind them (#1485)`);
+  const varsByFile = fonts.map(([f, font]) => [f, new Map((font.variables ?? []).map((v) => [v.name, v] as const))] as const);
+  for (const [f, font] of fonts)
+    if (!(font.variables ?? []).some((v) => CUT_NAME.test(v.name))) failures.push(`${brand}: ${f} emits NO font/style/<cat>/<role> cut variables, but the styles are expected to bind them (#1485)`);
 
   for (const s of styles) {
     const p = s.properties ?? {};
@@ -189,12 +194,14 @@ for (const brand of brands) {
     if (cut?.bound === true && cut.variable && CUT_NAME.test(cut.variable)) {
       cutBinds++;
       // B — the bound cut variable exists in core, STRING, unscoped (#2602), non-empty value.
-      const v = varByName.get(cut.variable);
-      if (!v) failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' is bound but NOT emitted in core.font.json — a dangling reference`);
-      else {
-        if (v.resolvedType !== 'STRING') failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' is ${v.resolvedType}, not STRING`);
-        if (JSON.stringify(v.scopes) !== '[]') failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' carries scopes ${JSON.stringify(v.scopes)} — a \`core\` cut is unscoped (#2602)`);
-        if (typeof v.value !== 'string' || v.value.length === 0) failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' has an empty/non-string value (${JSON.stringify(v.value)}) — a silent downgrade`);
+      for (const [f, varByName] of varsByFile) {
+        const v = varByName.get(cut.variable);
+        if (!v) failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' is bound but NOT emitted in ${f} — a dangling reference`);
+        else {
+          if (v.resolvedType !== 'STRING') failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' is ${v.resolvedType} in ${f}, not STRING`);
+          if (JSON.stringify(v.scopes) !== '[]') failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' carries scopes ${JSON.stringify(v.scopes)} in ${f} — a \`core\` cut is unscoped (#2602)`);
+          if (typeof v.value !== 'string' || v.value.length === 0) failures.push(`${brand}/${s.name}: cut variable '${cut.variable}' has an empty/non-string value (${JSON.stringify(v.value)}) in ${f} — a silent downgrade`);
+        }
       }
       // D — per-category isolation: the cut's category matches the style's family category.
       const fam = p.fontFamily as { bound?: boolean; variable?: string } | undefined;
@@ -204,7 +211,7 @@ for (const brand of brands) {
         failures.push(`${brand}/${s.name}: cut category '${cc}' != family category '${fc}' — a cut must be per-CATEGORY so two categories in one weight role cannot collapse onto one value (the silent cut swap #1485 guards)`);
     }
   }
-  notes.push(`${brand}: ${styles.length} style(s), ${cutVarsInFont.length} cut variable(s)`);
+  notes.push(`${brand}: ${styles.length} style(s), ${(fonts[0]?.[1].variables ?? []).filter((v) => CUT_NAME.test(v.name)).length} cut variable(s)${fonts.length > 1 ? ` in each of ${fonts.length} mode files` : ""}`);
 }
 
 // ---- SCOPE FLOORS --------------------------------------------------------------------------------

@@ -1,0 +1,441 @@
+{
+  "pds3": {
+    "core": {
+      "font": {
+        "family": {
+          "display": {
+            "$type": "fontFamily",
+            "$value": "{pds3.core.font.typeface.clash-display}",
+            "$description": "font family — display → Clash Display"
+          },
+          "title": {
+            "$type": "fontFamily",
+            "$value": "{pds3.core.font.typeface.clash-display}",
+            "$description": "font family — title → Clash Display"
+          }
+        }
+      }
+    },
+    "color": {
+      "foreground": {
+        "brand": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.brand-b-primary.550}",
+          "$description": "Bold brand fill — clears 3:1 on `background.secondary`"
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.brand-b-primary.100}",
+          "$description": "Subtle brand tint surface — banners, badges, selected rows"
+        }
+      },
+      "text": {
+        "brand": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.brand-b-primary.550}",
+          "$description": "brand text — 4.5:1 on `background.secondary` and on its own tint"
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.brand-b-primary.450}",
+          "$description": "Muted brand text — 3:1 on `background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
+        },
+        "link": {
+          "default": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.550}",
+            "$description": "Link text — default, 4.5:1 on `background.secondary`"
+          },
+          "hover": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.650}",
+            "$description": "Link text — hover, 4.5:1 on `background.secondary`"
+          },
+          "visited": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.850}",
+            "$description": "Link text — visited, 4.5:1 on `background.secondary`"
+          },
+          "focused": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.550}",
+            "$description": "Link text — focused, 4.5:1 on `background.secondary`"
+          },
+          "pressed": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.750}",
+            "$description": "Link text — pressed, 4.5:1 on `background.secondary`"
+          }
+        }
+      },
+      "border": {
+        "brand": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.brand-b-primary.500}",
+          "$description": "brand border — SC 1.4.11 non-text contrast, 3:1"
+        },
+        "focus": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.brand-b-primary.550}",
+          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on `background.primary`"
+        }
+      },
+      "icon": {
+        "brand": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.brand-b-primary.550}",
+          "$description": "brand icon — 4.5:1 on `background.secondary` and on its own tint"
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.brand-b-primary.450}",
+          "$description": "Muted brand icon — low-emphasis accent, 3:1 on `background.primary`"
+        },
+        "link": {
+          "default": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.550}",
+            "$description": "Link icon — default, 4.5:1 on `background.secondary`"
+          },
+          "hover": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.650}",
+            "$description": "Link icon — hover, 4.5:1 on `background.secondary`"
+          },
+          "visited": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.850}",
+            "$description": "Link icon — visited, 4.5:1 on `background.secondary`"
+          },
+          "focused": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.550}",
+            "$description": "Link icon — focused, 4.5:1 on `background.secondary`"
+          },
+          "pressed": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.750}",
+            "$description": "Link icon — pressed, 4.5:1 on `background.secondary`"
+          }
+        }
+      },
+      "interactive": {
+        "primary": {
+          "fill": {
+            "rest": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.550}",
+              "$description": "primary interactive fill — rest, clears 3:1 on `background.secondary`"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.650}",
+              "$description": "primary interactive fill — hover, clears 3:1 on `background.secondary`"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.750}",
+              "$description": "primary interactive fill — pressed, clears 3:1 on `background.secondary`"
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.550}",
+              "$description": "primary interactive fill — focused, clears 3:1 on `background.secondary`"
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.550}",
+              "$description": "primary interactive fill — selected, clears 3:1 on `background.secondary`"
+            }
+          },
+          "text": {
+            "rest": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.550}",
+              "$description": "primary interactive ink — rest (outline / text appearance)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.650}",
+              "$description": "primary interactive ink — hover (outline / text appearance)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.750}",
+              "$description": "primary interactive ink — pressed (outline / text appearance)"
+            }
+          },
+          "icon": {
+            "rest": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.550}",
+              "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.650}",
+              "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.750}",
+              "$description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)"
+            }
+          },
+          "border": {
+            "rest": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.550}",
+              "$description": "primary interactive border — rest (the outline edge; follows the ink)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.650}",
+              "$description": "primary interactive border — hover (the outline edge; follows the ink)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.750}",
+              "$description": "primary interactive border — pressed (the outline edge; follows the ink)"
+            }
+          },
+          "indicator": {
+            "rest": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.550}",
+              "$description": "primary interactive indicator — rest (the selection mark; matches the label)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.650}",
+              "$description": "primary interactive indicator — hover (the selection mark; matches the label)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.750}",
+              "$description": "primary interactive indicator — pressed (the selection mark; matches the label)"
+            }
+          },
+          "subtle-fill": {
+            "selected": {
+              "$type": "color",
+              "$value": "#5e4bc34d",
+              "$description": "primary interactive subtle fill — selected (the primary fill at `opacity.30`; translucent, the selected background of a selectable control or an outline/text control)"
+            }
+          }
+        }
+      },
+      "inverse": {
+        "foreground": {
+          "brand": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.500}",
+            "$description": "Bold brand fill on an inverse surface — clears 3:1 on `inverse.background.secondary`"
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.900}",
+            "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on the inverse band"
+          }
+        },
+        "text": {
+          "brand": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.450}",
+            "$description": "brand text — 4.5:1 on `inverse.background.secondary` and on its own tint"
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.550}",
+            "$description": "Muted brand text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
+          },
+          "link": {
+            "default": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.450}",
+              "$description": "Link text on an inverse surface — default, 4.5:1 on `inverse.background.secondary`"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.350}",
+              "$description": "Link text on an inverse surface — hover, 4.5:1 on `inverse.background.secondary`"
+            },
+            "visited": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.150}",
+              "$description": "Link text on an inverse surface — visited, 4.5:1 on `inverse.background.secondary`"
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.450}",
+              "$description": "Link text on an inverse surface — focused, 4.5:1 on `inverse.background.secondary`"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.250}",
+              "$description": "Link text on an inverse surface — pressed, 4.5:1 on `inverse.background.secondary`"
+            }
+          }
+        },
+        "border": {
+          "brand": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.500}",
+            "$description": "brand border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
+          },
+          "focus": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.450}",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on `inverse.background.primary`"
+          }
+        },
+        "icon": {
+          "brand": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.450}",
+            "$description": "brand icon — 4.5:1 on `inverse.background.secondary` and on its own tint"
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.brand-b-primary.550}",
+            "$description": "Muted brand icon — low-emphasis accent, 3:1 on `inverse.background.primary`"
+          },
+          "link": {
+            "default": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.450}",
+              "$description": "Link icon on an inverse surface — default, 4.5:1 on `inverse.background.secondary`"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.350}",
+              "$description": "Link icon on an inverse surface — hover, 4.5:1 on `inverse.background.secondary`"
+            },
+            "visited": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.150}",
+              "$description": "Link icon on an inverse surface — visited, 4.5:1 on `inverse.background.secondary`"
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.450}",
+              "$description": "Link icon on an inverse surface — focused, 4.5:1 on `inverse.background.secondary`"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.250}",
+              "$description": "Link icon on an inverse surface — pressed, 4.5:1 on `inverse.background.secondary`"
+            }
+          }
+        },
+        "interactive": {
+          "primary": {
+            "on-fill": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.brand-b-primary.650}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
+            },
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.450}",
+                "$description": "primary interactive ink on an inverse surface — rest (outline / text on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.350}",
+                "$description": "primary interactive ink on an inverse surface — hover (outline / text on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.250}",
+                "$description": "primary interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.450}",
+                "$description": "primary interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.350}",
+                "$description": "primary interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.250}",
+                "$description": "primary interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
+              }
+            },
+            "border": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.450}",
+                "$description": "primary interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.350}",
+                "$description": "primary interactive border on an inverse surface — hover (the outline edge; follows the ink)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.250}",
+                "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "indicator": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.450}",
+                "$description": "primary interactive indicator on an inverse surface — rest (the selection mark; matches the label)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.350}",
+                "$description": "primary interactive indicator on an inverse surface — hover (the selection mark; matches the label)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.brand-b-primary.250}",
+                "$description": "primary interactive indicator on an inverse surface — pressed (the selection mark; matches the label)"
+              }
+            }
+          }
+        }
+      }
+    },
+    "gradient": {
+      "brand": {
+        "$type": "gradient",
+        "$value": [
+          {
+            "color": "{pds3.core.palette.brand-b-primary.600}",
+            "position": 0
+          },
+          {
+            "color": "{pds3.core.palette.brand-b-accent.500}",
+            "position": 1
+          }
+        ],
+        "$description": "gradient brand — linear 135°, 2 stops, oklch interpolation — brand gradient (opt-in)"
+      },
+      "glow": {
+        "$type": "gradient",
+        "$value": [
+          {
+            "color": "{pds3.core.palette.brand-b-accent.400}",
+            "position": 0
+          },
+          {
+            "color": "{pds3.core.palette.brand-b-primary.700}",
+            "position": 1
+          }
+        ],
+        "$description": "gradient glow — radial (circle), 2 stops, oklch interpolation — brand gradient (opt-in)"
+      }
+    }
+  }
+}

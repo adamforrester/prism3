@@ -530,8 +530,9 @@ const foreignSnap = (x: ReturnType<typeof foreignFile>): string => JSON.stringif
   ok(g.ok, `Q112 rename: applies${g.ok ? '' : ` — ${'threw' in g ? `threw: ${g.threw}` : conflictSummary(g.conflicts, 3)}`}`);
   ok(foreignSnap(x) === before, 'Q112 rename: the hand-made collection, both its variables and the designer\'s style are untouched');
   const col2 = x.f.collections.find((c) => c.name === 'color (Prism3)');
-  ok(!!col2 && (col2.data.get('prism3/modes:owned') ?? '') !== '' && col2.modes.length === 4,
-    'Q112 rename: `color (Prism3)` is made, stamped, with the four appearance modes');
+  // Five: the four appearance modes and the default theme's Brand B (#1729).
+  ok(!!col2 && (col2.data.get('prism3/modes:owned') ?? '') !== '' && col2.modes.length === 5,
+    'Q112 rename: `color (Prism3)` is made, stamped, with the four appearance modes and Brand B');
   const v2 = x.f.vars.find((v) => v.name === `${VAR} (Prism3)`);
   const white = x.f.vars.find((v) => v.name === 'pds3/core/palette/white');
   ok(!!v2 && v2.variableCollectionId === col2?.id && v2.resolvedType === 'COLOR' && (Object.values(v2.valuesByMode)[0] as any)?.id === white?.id,

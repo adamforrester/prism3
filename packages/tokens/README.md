@@ -30,7 +30,7 @@ npm install ./prism3-tokens-<version>.tgz       # in the client project
 ```
 
 ```css
-@import "@prism3/tokens";                       /* every block: :root, dark, hc-dark, hc-light */
+@import "@prism3/tokens";                       /* every block: :root, brand-b, dark, hc-dark, hc-light */
 
 .card { color: var(--pds3-color-text-primary); }
 ```
@@ -43,7 +43,7 @@ npm install ./prism3-tokens-<version>.tgz       # in the client project
 |---|---|
 | `@prism3/tokens` (also `@prism3/tokens/prism3.css`) | every block, `:root` first |
 | `@prism3/tokens/prism3/base.css` | the light defaults on `:root` only |
-| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `dark`, `hc-dark`, `hc-light` |
+| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `brand-b`, `dark`, `hc-dark`, `hc-light` |
 
 Names are stock Style Dictionary's, with the token root as prefix: `--pds3-…` (`docs/35` §9.4). Every
 mode block defines every name, so a theme switch never falls back to a light value. References stay

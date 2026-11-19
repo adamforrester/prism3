@@ -51,6 +51,15 @@
       "description": "OPTIONAL (Phase A2b). Per-mode interactive anchor overrides, keyed by mode name (a customizable mode). Each mode maps an interactive column ('primary' / 'destructive' / an accent name) to a palette step number that re-anchors that column's whole fill (rest/hover/pressed/on-fill all re-derive, still floor-gated). Deep-validated by brandTheme() at resolve time; the schema enforces the object shape. Omit for none (byte-identical).",
       "additionalProperties": true
     },
+    "modePalettes": {
+      "type": "object",
+      "description": "OPTIONAL (#1729). Per-mode PALETTE SWAPS, keyed by a customizable mode other than light (dark or a `customModes` name). Each mode maps a palette (`primary` or a `brandColors` name) to its replacement (a `brandColors` name): in that mode every role, the link, each interactive column and every gradient stop that drew from the palette draws from the replacement, anchored at the replacement's own shade and held to the same contrast floors. Primitives stay mode-invariant; a swap re-points aliases. Deep-validated by brandTheme(). Omit for none (byte-identical).",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" }
+      }
+    },
     "modeLevers": {
       "type": "object",
       "description": "OPTIONAL (Phase D). Per-mode NON-COLOR lever overrides, keyed by a customizable mode name (light/dark or a `customModes` name). Each mode may override a lever the engine RE-DERIVES for it: `radius` (scale 0=sharp…1=default…2=soft), `tempo`, `density`, `families`, `weights`, `lineHeights`, `letterSpacings`, `easings`, `shadow`, `typeSizes`. NOT `typeScale` — it shifts heading rungs and stays brand-wide. Distinct from the GLOBAL `radiusScale` (the baseline every mode inherits). Deep-validated by brandTheme() at resolve time (mode customizable + generated; radius in [0,2]). Omit for none (byte-identical).",

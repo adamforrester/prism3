@@ -25,7 +25,13 @@ const ok = (cond: boolean, label: string): void => {
   else { failed++; console.error(`  ✗ ${label}`); }
 };
 
-const base = Object.values(exampleBrands as Record<string, BrandInput>)[0];
+/** The default theme without Brand B (#1729), its custom mode: these fixtures write per-mode levers and compare the
+ *  whole per-mode map, and they build every mode they use themselves. Brand B's own cascade is test-brand-input's. */
+const withoutBrandB = (b: BrandInput): BrandInput => {
+  const { customModes: _c, modePalettes: _p, modeLevers: _l, ...rest } = structuredClone(b);
+  return { ...rest, brandColors: (rest.brandColors ?? []).filter((c) => !c.name.startsWith('brand-b-')) };
+};
+const base = withoutBrandB(Object.values(exampleBrands as Record<string, BrandInput>)[0]);
 // A saturated green no sRGB display can show, and a brand color as far out; a primary nowhere near red.
 const OUT = { l: 0.7, c: 0.37, h: 145 };
 const planted: BrandInput = { ...base, primary: OUT, brandColors: [{ name: 'glow', oklch: { l: 0.65, c: 0.33, h: 300 } }], status: undefined, roleColors: undefined, gradients: undefined, interactivePalettes: undefined, overrides: undefined } as BrandInput;

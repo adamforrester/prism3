@@ -528,6 +528,33 @@ export const unownedCore = async (
 //   · A group NO plan owns (a hand-made `<root>/core/x/*`, or one the engine no longer emits). No executor
 //     can see that alone, so `unownedCore` reads it once the three have run, from `runApplyTheme`, which
 //     holds all three slices.
+/**
+ * ONE VALUE, EVERY MODE (#1729). `core` is written by three passes, and only the font pass is per mode: a brand with a
+ * per-mode face (the default theme's Brand B) gives `core` a second mode while its palette and dimension rows stay one
+ * value each. A row a plan gives one value is that value in EVERY mode its collection holds, so it is written to each,
+ * not to the first: a mode the write skipped kept whatever it held before, which on a re-apply is the last apply's
+ * value. `extraModes` writes it into the modes beyond those a plan names.
+ */
+const writeExtraModes = (v: Variable, collection: VarCollection, planned: Record<string, string>, value: Rgba | VariableAlias | number | string | FigmaEasing): void => {
+  const covered = new Set(Object.values(planned));
+  for (const m of collection.modes) if (!covered.has(m.modeId)) v.setValueForMode(m.modeId, value);
+};
+/** The modes a pass ADDS to a collection that already holds variables (#1729): each variable that pass does not plan
+ *  takes its default mode's value there, as Figma copies it when a mode is added, so the new mode never reads a row
+ *  this apply did not write. Stated here rather than left to the host, so a host or shim that does not copy agrees. */
+const fillAddedModes = async (vars: VariablesApi, collection: VarCollection, before: readonly string[], plannedNames: ReadonlySet<string>, tick?: Tick): Promise<void> => {
+  const added = collection.modes.filter((m) => !before.includes(m.modeId));
+  const first = collection.modes[0];
+  if (!added.length || !first) return;
+  for (const v of await vars.getLocalVariablesAsync()) {
+    if (v.variableCollectionId !== collection.id || plannedNames.has(v.name)) continue;
+    const value = v.valuesByMode[first.modeId];
+    if (value === undefined) continue;
+    for (const m of added) v.setValueForMode(m.modeId, value as Rgba | VariableAlias | number | string | FigmaEasing);
+    await tick?.();   // a chance to hand back per variable, as every row loop here gives (#2537's cadence)
+  }
+};
+
 const upsertCollection = async (
   vars: VariablesApi,
   name: string,
@@ -605,6 +632,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     v.description = row.description;
     v.hiddenFromPublishing = row.hidden;
     v.setValueForMode(palModeId, row.value);
+    writeExtraModes(v, pal.collection, { first: palModeId }, row.value);   // a primitive is one value in every `core` mode (#1729)
     await tick?.();
   }
 
@@ -763,6 +791,8 @@ export const applyFloatPlan = async (
       v.description = row.description;
       v.hiddenFromPublishing = row.hidden;
       p.modes.forEach((m, i) => v!.setValueForMode(modeIds[m], row.valuesByMode[i]));
+      // A one-mode plan into a collection with more modes (`core` beside a per-mode font, #1729): every mode holds it.
+      if (p.modes.length === 1 && row.valuesByMode[0] !== undefined) writeExtraModes(v, collection, modeIds, row.valuesByMode[0]);
       await tick?.();
     }
     const createNames = p.create.map((r) => r.name);
@@ -894,8 +924,10 @@ export const applyVarCollectionPlan = async (
     const preExisting = [...byName.keys()];
     // Modes by stable identity (#1570) — `core` is reconciled by three executors in one apply, and this
     // is the one that may declare MORE modes than the float pass did (`Default` + any font modes).
+    const modesBefore = collection.modes.map((m) => m.modeId);
     const modeIds = reconcileModes(collection, p.modes);
     modeIdsByCollection.set(p.name, modeIds);
+    await fillAddedModes(vars, collection, modesBefore, new Set(p.rows.map((r) => r.name)), tick);
 
     let created = 0;
     for (const row of p.rows) {

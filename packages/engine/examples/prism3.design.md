@@ -31,6 +31,31 @@ neutral: { hue: 266.75, chroma: 0.005 }
 brandColors:
   - name: accent
     oklch: { l: 0.5573, c: 0.2634, h: 289.32 }
+  # Brand B's two colors (#1729), Aurora's primary and accent verbatim (examples/aurora.design.md): a violet
+  # hero and an azure accent. Declared here so their ramps ship in every mode; only `brand-b` reads them.
+  - name: brand-b-primary
+    oklch: { l: 0.5, c: 0.18, h: 285 }
+  - name: brand-b-accent
+    oklch: { l: 0.55, c: 0.15, h: 235 }
+
+# ── BRAND B: A SECOND BRAND IN THE SAME FILE (#1729, owner decision Q-BB1 A) ──────────────────
+# One file, two brands. `brand-b` is a custom mode built on light, so it shares everything Prism3
+# decides — neutrals, surfaces, status colors, radius, density, motion, shadows and the type scale —
+# and swaps exactly three things, each with the lever made for it:
+#   · colors: `modePalettes` swaps primary and accent for Aurora's pair. Every role on either
+#     palette moves with it, re-anchored and held to the same contrast floors as light.
+#   · display font: `modeLevers.families` sets display and title, Prism3's heading face, on
+#     Aurora's display face (per-mode family by category, #415).
+#   · gradient: the gradients' stops name `primary` and `accent`, so the swap carries them.
+# Identity reused from Aurora, not invented: its colors, display face and gradient, not its shape
+# or motion.
+customModes:
+  - { name: brand-b, base: light }
+modePalettes:
+  brand-b: { primary: brand-b-primary, accent: brand-b-accent }
+modeLevers:
+  brand-b:
+    families: { display: Clash Display, title: Clash Display }
 
 # Pure white page: the clean product-tool starting point.
 surfaces:

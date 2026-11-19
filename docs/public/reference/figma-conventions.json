@@ -3741,7 +3741,8 @@
           "light",
           "dark",
           "hc-light",
-          "hc-dark"
+          "hc-dark",
+          "brand-b"
         ]
       },
       {
@@ -3814,7 +3815,8 @@
       {
         "name": "core",
         "modes": [
-          "Default"
+          "Default",
+          "brand-b"
         ]
       },
       {

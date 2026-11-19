@@ -1289,9 +1289,14 @@ Component sizes — t-shirt, density `comfortable` (control heights; each compon
 
 # Theme: prism3 (pds3.* / hex)
 
+- custom modes: brand-b (based on light) — each rebuilds from its base on every build; overrides and modeAnchors adjust it.
+- modeLevers: global levers overridden in brand-b (radius, font family, weight, line height, letter spacing, motion tempo, shadow, density) — rebuilt the same way as the base; the token set is unchanged.
 - namespace: tokens emit under 'pds3.*' instead of the default 'prism.*'.
 - primary: the brand color is pinned at step 600 (hue 266.75) — the ramp is built around it.
+- anchor 'brand-b-accent' (oklch 0.55 0.15 235) is outside the sRGB gamut — sRGB shows at most 0.117 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.117 ships exactly.
 - brand color: 'accent' added (hue 289.32).
+- brand color: 'brand-b-primary' added (hue 285).
+- brand color: 'brand-b-accent' added (hue 235).
 - success: the brand's hue 155 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
 - warning: the brand's hue 70 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
 - info: the brand's hue 230 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
@@ -1305,10 +1310,11 @@ Component sizes — t-shirt, density `comfortable` (control heights; each compon
 - typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/500/600/900; families display Playfair Display, title Playfair Display, body Inter, label Inter, caption Inter, eyebrow Inter, code JetBrains Mono; 'default' type scale. 80 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 21 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and in desktop and mobile modes.
 - disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.
 - interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.
+- modePalettes: in brand-b, primary → brand-b-primary, accent → brand-b-accent — every role, link, interactive column and gradient stop on a swapped palette uses its replacement there, anchored at the replacement's own shade and held to the same contrast floors.
 - neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.
 - strict interactive contrast: off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it.
 
-Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws from `danger`.
+Palettes: primary, neutral, accent, brand-b-primary, brand-b-accent, success, warning, info, danger. Danger draws from `danger`.
 
 ## prism3 — color mode: light
 
@@ -2481,6 +2487,299 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.info | info.500 | 4.54 | 4.5 | ✅ |
 | inverse.border.focus | primary.600 | 7.82 | 4.5 | ✅ |
 | interactive.primary.subtle-fill.selected | primary.300 | — | — | · |
+
+## prism3 — color mode: brand-b
+
+| role | → step | contrast | floor | result |
+|---|---|---|---|---|
+| background.primary | white | — | — | · |
+| background.secondary | neutral.050 | — | — | · |
+| background.tertiary | neutral.100 | — | — | · |
+| inverse.background.primary | neutral.950 | — | — | · |
+| inverse.background.secondary | neutral.900 | — | — | · |
+| inverse.background.tertiary | neutral.850 | — | — | · |
+| scrim.default | black-alpha.40 | — | — | · |
+| glass.surface | white-alpha.70 | — | — | · |
+| veil.dark.subtle | black-alpha.50 | — | — | · |
+| veil.dark.medium | black-alpha.60 | — | — | · |
+| veil.dark.strong | black-alpha.70 | — | — | · |
+| veil.dark.clear | transparent | — | — | · |
+| veil.light.subtle | white-alpha.40 | — | — | · |
+| veil.light.medium | white-alpha.50 | — | — | · |
+| veil.light.strong | white-alpha.60 | — | — | · |
+| veil.light.clear | white-alpha.0 | — | — | · |
+| foreground.primary | neutral.050 | — | — | · |
+| foreground.secondary | neutral.100 | — | — | · |
+| foreground.tertiary | neutral.150 | — | — | · |
+| foreground.raised | neutral.050 | — | — | · |
+| inverse.foreground.primary | neutral.900 | — | — | · |
+| inverse.foreground.secondary | neutral.850 | — | — | · |
+| inverse.foreground.tertiary | neutral.800 | 13.93 | 3 | ✅ |
+| foreground.brand | brand-b-primary.550 | 5.28 | 3 | ✅ |
+| foreground.success | success.500 | 3.76 | 3 | ✅ |
+| foreground.warning | warning.500 | 3.74 | 3 | ✅ |
+| foreground.info | info.500 | 3.74 | 3 | ✅ |
+| foreground.brand-subtle | brand-b-primary.100 | — | — | · |
+| foreground.success-subtle | success.100 | — | — | · |
+| foreground.warning-subtle | warning.100 | — | — | · |
+| foreground.danger-subtle | danger.100 | — | — | · |
+| foreground.info-subtle | info.100 | — | — | · |
+| inverse.foreground.brand | brand-b-primary.500 | 3.91 | 3 | ✅ |
+| inverse.foreground.success | success.500 | 3.92 | 3 | ✅ |
+| inverse.foreground.warning | warning.500 | 3.94 | 3 | ✅ |
+| inverse.foreground.danger | danger.500 | 3.92 | 3 | ✅ |
+| inverse.foreground.info | info.500 | 3.93 | 3 | ✅ |
+| inverse.foreground.brand-subtle | brand-b-primary.900 | — | — | · |
+| inverse.foreground.success-subtle | success.900 | — | — | · |
+| inverse.foreground.warning-subtle | warning.900 | — | — | · |
+| inverse.foreground.danger-subtle | danger.900 | — | — | · |
+| inverse.foreground.info-subtle | info.900 | — | — | · |
+| foreground.danger | danger.500 | 3.76 | 3 | ✅ |
+| interactive.primary.fill.rest | brand-b-primary.550 | 5.28 | 3 | ✅ |
+| interactive.primary.fill.hover | brand-b-primary.650 | 7.56 | 3 | ✅ |
+| interactive.primary.fill.pressed | brand-b-primary.750 | 10.54 | 3 | ✅ |
+| interactive.primary.fill.focused | brand-b-primary.550 | 5.28 | 3 | ✅ |
+| interactive.primary.fill.selected | brand-b-primary.550 | 5.28 | 3 | ✅ |
+| interactive.primary.on-fill | white | 6.42 | 4.5 | ✅ |
+| interactive.primary.text.rest | brand-b-primary.550 | 6.42 | 4.5 | ✅ |
+| interactive.primary.icon.rest | brand-b-primary.550 | 6.42 | 4.5 | ✅ |
+| interactive.primary.text.hover | brand-b-primary.650 | 9.17 | 4.5 | ✅ |
+| interactive.primary.icon.hover | brand-b-primary.650 | 9.17 | 4.5 | ✅ |
+| interactive.primary.text.pressed | brand-b-primary.750 | 12.80 | 4.5 | ✅ |
+| interactive.primary.icon.pressed | brand-b-primary.750 | 12.80 | 4.5 | ✅ |
+| interactive.primary.border.rest | brand-b-primary.550 | 6.42 | 3 | ✅ |
+| interactive.primary.border.hover | brand-b-primary.650 | 9.17 | 3 | ✅ |
+| interactive.primary.border.pressed | brand-b-primary.750 | 12.80 | 3 | ✅ |
+| interactive.primary.indicator.rest | brand-b-primary.550 | 6.42 | 3 | ✅ |
+| interactive.primary.indicator.hover | brand-b-primary.650 | 9.17 | 3 | ✅ |
+| interactive.primary.indicator.pressed | brand-b-primary.750 | 12.80 | 3 | ✅ |
+| interactive.destructive.fill.rest | danger.500 | 3.76 | 3 | ✅ |
+| interactive.destructive.fill.hover | danger.600 | 5.58 | 3 | ✅ |
+| interactive.destructive.fill.pressed | danger.700 | 8.24 | 3 | ✅ |
+| interactive.destructive.fill.focused | danger.500 | 3.76 | 3 | ✅ |
+| interactive.destructive.fill.selected | danger.500 | 3.76 | 3 | ✅ |
+| interactive.destructive.on-fill | white | 4.56 | 4.5 | ✅ |
+| interactive.destructive.text.rest | danger.600 | 4.90 | 4.5 | ✅ |
+| interactive.destructive.icon.rest | danger.600 | 4.90 | 4.5 | ✅ |
+| interactive.destructive.text.hover | danger.700 | 7.23 | 4.5 | ✅ |
+| interactive.destructive.icon.hover | danger.700 | 7.23 | 4.5 | ✅ |
+| interactive.destructive.text.pressed | danger.800 | 10.24 | 4.5 | ✅ |
+| interactive.destructive.icon.pressed | danger.800 | 10.24 | 4.5 | ✅ |
+| interactive.destructive.border.rest | danger.600 | 4.90 | 3 | ✅ |
+| interactive.destructive.border.hover | danger.700 | 7.23 | 3 | ✅ |
+| interactive.destructive.border.pressed | danger.800 | 10.24 | 3 | ✅ |
+| interactive.destructive.indicator.rest | danger.600 | 4.90 | 3 | ✅ |
+| interactive.destructive.indicator.hover | danger.700 | 7.23 | 3 | ✅ |
+| interactive.destructive.indicator.pressed | danger.800 | 10.24 | 3 | ✅ |
+| interactive.neutral.fill.rest | neutral.150 | — | — | · |
+| interactive.neutral.fill.hover | neutral.250 | — | — | · |
+| interactive.neutral.fill.pressed | neutral.350 | — | — | · |
+| interactive.neutral.fill.focused | neutral.150 | — | — | · |
+| interactive.neutral.fill.selected | neutral.150 | — | — | · |
+| interactive.neutral.on-fill | neutral.950 | 12.35 | 4.5 | ✅ |
+| interactive.neutral.text.rest | neutral.950 | 19.42 | 4.5 | ✅ |
+| interactive.neutral.icon.rest | neutral.950 | 19.42 | 4.5 | ✅ |
+| interactive.neutral.text.hover | neutral.850 | 16.07 | 4.5 | ✅ |
+| interactive.neutral.icon.hover | neutral.850 | 16.07 | 4.5 | ✅ |
+| interactive.neutral.text.pressed | neutral.750 | 11.73 | 4.5 | ✅ |
+| interactive.neutral.icon.pressed | neutral.750 | 11.73 | 4.5 | ✅ |
+| interactive.neutral.border.rest | neutral.950 | 19.42 | 3 | ✅ |
+| interactive.neutral.border.hover | neutral.850 | 16.07 | 3 | ✅ |
+| interactive.neutral.border.pressed | neutral.750 | 11.73 | 3 | ✅ |
+| interactive.neutral.indicator.rest | neutral.950 | 19.42 | 3 | ✅ |
+| interactive.neutral.indicator.hover | neutral.850 | 16.07 | 3 | ✅ |
+| interactive.neutral.indicator.pressed | neutral.750 | 11.73 | 3 | ✅ |
+| inverse.interactive.primary.text.rest | brand-b-primary.450 | 4.99 | 4.5 | ✅ |
+| inverse.interactive.primary.icon.rest | brand-b-primary.450 | 4.99 | 4.5 | ✅ |
+| inverse.interactive.primary.text.hover | brand-b-primary.350 | 6.94 | 4.5 | ✅ |
+| inverse.interactive.primary.icon.hover | brand-b-primary.350 | 6.94 | 4.5 | ✅ |
+| inverse.interactive.primary.text.pressed | brand-b-primary.250 | 9.37 | 4.5 | ✅ |
+| inverse.interactive.primary.icon.pressed | brand-b-primary.250 | 9.37 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.rest | white | 19.42 | 3 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.100 | 14.04 | 3 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.200 | 10.77 | 3 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.100 | 14.04 | 3 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.200 | 10.77 | 3 | ✅ |
+| inverse.interactive.primary.on-fill | brand-b-primary.650 | 9.17 | 4.5 | ✅ |
+| inverse.interactive.primary.border.rest | brand-b-primary.450 | 4.99 | 3 | ✅ |
+| inverse.interactive.primary.border.hover | brand-b-primary.350 | 6.94 | 3 | ✅ |
+| inverse.interactive.primary.border.pressed | brand-b-primary.250 | 9.37 | 3 | ✅ |
+| inverse.interactive.primary.indicator.rest | brand-b-primary.450 | 4.99 | 3 | ✅ |
+| inverse.interactive.primary.indicator.hover | brand-b-primary.350 | 6.94 | 3 | ✅ |
+| inverse.interactive.primary.indicator.pressed | brand-b-primary.250 | 9.37 | 3 | ✅ |
+| inverse.interactive.destructive.text.rest | danger.400 | 4.84 | 4.5 | ✅ |
+| inverse.interactive.destructive.icon.rest | danger.400 | 4.84 | 4.5 | ✅ |
+| inverse.interactive.destructive.text.hover | danger.300 | 6.69 | 4.5 | ✅ |
+| inverse.interactive.destructive.icon.hover | danger.300 | 6.69 | 4.5 | ✅ |
+| inverse.interactive.destructive.text.pressed | danger.200 | 8.93 | 4.5 | ✅ |
+| inverse.interactive.destructive.icon.pressed | danger.200 | 8.93 | 4.5 | ✅ |
+| inverse.interactive.destructive.fill.rest | white | 19.42 | 3 | ✅ |
+| inverse.interactive.destructive.fill.hover | neutral.100 | 14.04 | 3 | ✅ |
+| inverse.interactive.destructive.fill.pressed | neutral.200 | 10.77 | 3 | ✅ |
+| inverse.interactive.destructive.fill.focused | neutral.100 | 14.04 | 3 | ✅ |
+| inverse.interactive.destructive.fill.selected | neutral.200 | 10.77 | 3 | ✅ |
+| inverse.interactive.destructive.on-fill | danger.650 | 8.27 | 4.5 | ✅ |
+| inverse.interactive.destructive.border.rest | danger.400 | 4.84 | 3 | ✅ |
+| inverse.interactive.destructive.border.hover | danger.300 | 6.69 | 3 | ✅ |
+| inverse.interactive.destructive.border.pressed | danger.200 | 8.93 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.rest | danger.400 | 4.84 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.hover | danger.300 | 6.69 | 3 | ✅ |
+| inverse.interactive.destructive.indicator.pressed | danger.200 | 8.93 | 3 | ✅ |
+| inverse.interactive.neutral.text.rest | neutral.025 | 18.13 | 4.5 | ✅ |
+| inverse.interactive.neutral.icon.rest | neutral.025 | 18.13 | 4.5 | ✅ |
+| inverse.interactive.neutral.text.hover | neutral.100 | 14.04 | 4.5 | ✅ |
+| inverse.interactive.neutral.icon.hover | neutral.100 | 14.04 | 4.5 | ✅ |
+| inverse.interactive.neutral.text.pressed | neutral.200 | 10.77 | 4.5 | ✅ |
+| inverse.interactive.neutral.icon.pressed | neutral.200 | 10.77 | 4.5 | ✅ |
+| inverse.interactive.neutral.fill.rest | white | 19.42 | 3 | ✅ |
+| inverse.interactive.neutral.fill.hover | neutral.100 | 14.04 | 3 | ✅ |
+| inverse.interactive.neutral.fill.pressed | neutral.200 | 10.77 | 3 | ✅ |
+| inverse.interactive.neutral.fill.focused | neutral.100 | 14.04 | 3 | ✅ |
+| inverse.interactive.neutral.fill.selected | neutral.200 | 10.77 | 3 | ✅ |
+| inverse.interactive.neutral.on-fill | neutral.950 | 19.42 | 4.5 | ✅ |
+| inverse.interactive.neutral.border.rest | neutral.025 | 18.13 | 3 | ✅ |
+| inverse.interactive.neutral.border.hover | neutral.100 | 14.04 | 3 | ✅ |
+| inverse.interactive.neutral.border.pressed | neutral.200 | 10.77 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.rest | neutral.025 | 18.13 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.hover | neutral.100 | 14.04 | 3 | ✅ |
+| inverse.interactive.neutral.indicator.pressed | neutral.200 | 10.77 | 3 | ✅ |
+| interactive.primary.overlay.hover | black-alpha.10 | 15.42 | 4.5 | ✅ |
+| interactive.primary.overlay.pressed | black-alpha.20 | 12.09 | 4.5 | ✅ |
+| interactive.primary.overlay.selected | black-alpha.20 | 12.09 | 4.5 | ✅ |
+| interactive.neutral.overlay.hover | black-alpha.10 | 15.42 | 4.5 | ✅ |
+| interactive.neutral.overlay.pressed | black-alpha.20 | 12.09 | 4.5 | ✅ |
+| interactive.neutral.overlay.selected | black-alpha.20 | 12.09 | 4.5 | ✅ |
+| interactive.destructive.overlay.hover | black-alpha.10 | 15.42 | 4.5 | ✅ |
+| interactive.destructive.overlay.pressed | black-alpha.20 | 12.09 | 4.5 | ✅ |
+| interactive.destructive.overlay.selected | black-alpha.20 | 12.09 | 4.5 | ✅ |
+| inverse.interactive.primary.overlay.hover | white-alpha.10 | 14.17 | 4.5 | ✅ |
+| inverse.interactive.primary.overlay.pressed | white-alpha.20 | 10.06 | 4.5 | ✅ |
+| inverse.interactive.primary.overlay.selected | white-alpha.20 | 10.06 | 4.5 | ✅ |
+| inverse.interactive.neutral.overlay.hover | white-alpha.10 | 14.17 | 4.5 | ✅ |
+| inverse.interactive.neutral.overlay.pressed | white-alpha.20 | 10.06 | 4.5 | ✅ |
+| inverse.interactive.neutral.overlay.selected | white-alpha.20 | 10.06 | 4.5 | ✅ |
+| inverse.interactive.destructive.overlay.hover | white-alpha.10 | 14.17 | 4.5 | ✅ |
+| inverse.interactive.destructive.overlay.pressed | white-alpha.20 | 10.06 | 4.5 | ✅ |
+| inverse.interactive.destructive.overlay.selected | white-alpha.20 | 10.06 | 4.5 | ✅ |
+| disabled.fill | neutral.200 | — | — | · |
+| disabled.on-fill | neutral.550 | 3.05 | 3 | ✅ |
+| disabled.text | neutral.450 | 3.17 | 3 | ✅ |
+| disabled.icon | neutral.450 | 3.17 | 3 | ✅ |
+| disabled.border | neutral.450 | 3.17 | 3 | ✅ |
+| inverse.disabled.fill | neutral.800 | — | — | · |
+| inverse.disabled.on-fill | neutral.500 | 3.05 | 3 | ✅ |
+| inverse.disabled.text | neutral.550 | 3.25 | 3 | ✅ |
+| inverse.disabled.icon | neutral.550 | 3.25 | 3 | ✅ |
+| inverse.disabled.border | neutral.550 | 3.25 | 3 | ✅ |
+| field.fill | transparent | — | — | · |
+| field.border.rest | neutral.450 | 3.17 | 3 | ✅ |
+| field.border.hover | neutral.650 | 6.66 | 3 | ✅ |
+| field.placeholder | neutral.550 | 4.54 | 4.5 | ✅ |
+| inverse.field.fill | transparent | — | — | · |
+| inverse.field.border.rest | neutral.550 | 3.25 | 3 | ✅ |
+| inverse.field.border.hover | neutral.350 | 6.36 | 3 | ✅ |
+| inverse.field.placeholder | neutral.450 | 4.64 | 4.5 | ✅ |
+| text.primary | neutral.950 | 19.42 | 7 | ✅ |
+| text.secondary | neutral.550 | 4.54 | 4.5 | ✅ |
+| text.tertiary | neutral.450 | 3.17 | 3 | ✅ |
+| text.brand | brand-b-primary.550 | 5.28 | 4.5 | ✅ |
+| text.success | success.600 | 5.51 | 4.5 | ✅ |
+| text.warning | warning.600 | 5.53 | 4.5 | ✅ |
+| text.danger | danger.600 | 5.58 | 4.5 | ✅ |
+| text.info | info.600 | 5.47 | 4.5 | ✅ |
+| text.brand-subtle | brand-b-primary.450 | 3.88 | 3 | ✅ |
+| text.success-subtle | success.450 | 3.85 | 3 | ✅ |
+| text.warning-subtle | warning.450 | 3.87 | 3 | ✅ |
+| text.danger-subtle | danger.450 | 3.91 | 3 | ✅ |
+| text.info-subtle | info.450 | 3.83 | 3 | ✅ |
+| text.on-brand | white | 6.42 | 4.5 | ✅ |
+| text.on-success | white | 4.56 | 4.5 | ✅ |
+| text.on-warning | white | 4.54 | 4.5 | ✅ |
+| text.on-danger | white | 4.56 | 4.5 | ✅ |
+| text.on-info | white | 4.54 | 4.5 | ✅ |
+| text.link.default | brand-b-primary.550 | 5.28 | 4.5 | ✅ |
+| text.link.hover | brand-b-primary.650 | 7.56 | 4.5 | ✅ |
+| text.link.visited | brand-b-primary.850 | 13.75 | 4.5 | ✅ |
+| text.link.focused | brand-b-primary.550 | 5.28 | 4.5 | ✅ |
+| text.link.pressed | brand-b-primary.750 | 10.54 | 4.5 | ✅ |
+| icon.primary | neutral.950 | 19.42 | 7 | ✅ |
+| icon.secondary | neutral.550 | 4.54 | 4.5 | ✅ |
+| icon.tertiary | neutral.450 | 3.17 | 3 | ✅ |
+| icon.brand | brand-b-primary.550 | 5.28 | 4.5 | ✅ |
+| icon.success | success.600 | 5.51 | 4.5 | ✅ |
+| icon.warning | warning.600 | 5.53 | 4.5 | ✅ |
+| icon.danger | danger.600 | 5.58 | 4.5 | ✅ |
+| icon.info | info.600 | 5.47 | 4.5 | ✅ |
+| icon.brand-subtle | brand-b-primary.450 | 3.88 | 3 | ✅ |
+| icon.success-subtle | success.450 | 3.85 | 3 | ✅ |
+| icon.warning-subtle | warning.450 | 3.87 | 3 | ✅ |
+| icon.danger-subtle | danger.450 | 3.91 | 3 | ✅ |
+| icon.info-subtle | info.450 | 3.83 | 3 | ✅ |
+| icon.on-brand | white | 6.42 | 4.5 | ✅ |
+| icon.on-success | white | 4.56 | 4.5 | ✅ |
+| icon.on-warning | white | 4.54 | 4.5 | ✅ |
+| icon.on-danger | white | 4.56 | 4.5 | ✅ |
+| icon.on-info | white | 4.54 | 4.5 | ✅ |
+| icon.link.default | brand-b-primary.550 | 5.28 | 4.5 | ✅ |
+| icon.link.hover | brand-b-primary.650 | 7.56 | 4.5 | ✅ |
+| icon.link.visited | brand-b-primary.850 | 13.75 | 4.5 | ✅ |
+| icon.link.focused | brand-b-primary.550 | 5.28 | 4.5 | ✅ |
+| icon.link.pressed | brand-b-primary.750 | 10.54 | 4.5 | ✅ |
+| inverse.text.primary | neutral.025 | 18.13 | 7 | ✅ |
+| inverse.text.secondary | neutral.450 | 4.64 | 4.5 | ✅ |
+| inverse.text.tertiary | neutral.550 | 3.25 | 3 | ✅ |
+| inverse.text.brand | brand-b-primary.450 | 4.60 | 4.5 | ✅ |
+| inverse.text.success | success.450 | 4.64 | 4.5 | ✅ |
+| inverse.text.warning | warning.450 | 4.62 | 4.5 | ✅ |
+| inverse.text.danger | danger.450 | 4.58 | 4.5 | ✅ |
+| inverse.text.info | info.450 | 4.67 | 4.5 | ✅ |
+| inverse.text.brand-subtle | brand-b-primary.550 | 3.02 | 3 | ✅ |
+| inverse.text.success-subtle | success.550 | 3.52 | 3 | ✅ |
+| inverse.text.warning-subtle | warning.550 | 3.53 | 3 | ✅ |
+| inverse.text.danger-subtle | danger.550 | 3.50 | 3 | ✅ |
+| inverse.text.info-subtle | info.550 | 3.52 | 3 | ✅ |
+| inverse.text.link.default | brand-b-primary.450 | 4.60 | 4.5 | ✅ |
+| inverse.text.link.hover | brand-b-primary.350 | 6.40 | 4.5 | ✅ |
+| inverse.text.link.visited | brand-b-primary.150 | 11.40 | 4.5 | ✅ |
+| inverse.text.link.focused | brand-b-primary.450 | 4.60 | 4.5 | ✅ |
+| inverse.text.link.pressed | brand-b-primary.250 | 8.64 | 4.5 | ✅ |
+| inverse.icon.primary | neutral.025 | 18.13 | 7 | ✅ |
+| inverse.icon.secondary | neutral.450 | 4.64 | 4.5 | ✅ |
+| inverse.icon.tertiary | neutral.550 | 3.25 | 3 | ✅ |
+| inverse.icon.brand | brand-b-primary.450 | 4.60 | 4.5 | ✅ |
+| inverse.icon.success | success.450 | 4.64 | 4.5 | ✅ |
+| inverse.icon.warning | warning.450 | 4.62 | 4.5 | ✅ |
+| inverse.icon.danger | danger.450 | 4.58 | 4.5 | ✅ |
+| inverse.icon.info | info.450 | 4.67 | 4.5 | ✅ |
+| inverse.icon.brand-subtle | brand-b-primary.550 | 3.02 | 3 | ✅ |
+| inverse.icon.success-subtle | success.550 | 3.52 | 3 | ✅ |
+| inverse.icon.warning-subtle | warning.550 | 3.53 | 3 | ✅ |
+| inverse.icon.danger-subtle | danger.550 | 3.50 | 3 | ✅ |
+| inverse.icon.info-subtle | info.550 | 3.52 | 3 | ✅ |
+| inverse.icon.link.default | brand-b-primary.450 | 4.60 | 4.5 | ✅ |
+| inverse.icon.link.hover | brand-b-primary.350 | 6.40 | 4.5 | ✅ |
+| inverse.icon.link.visited | brand-b-primary.150 | 11.40 | 4.5 | ✅ |
+| inverse.icon.link.focused | brand-b-primary.450 | 4.60 | 4.5 | ✅ |
+| inverse.icon.link.pressed | brand-b-primary.250 | 8.64 | 4.5 | ✅ |
+| border.primary | neutral.100 | — | — | · |
+| border.secondary | neutral.250 | — | — | · |
+| border.tertiary | neutral.550 | 5.51 | 3 | ✅ |
+| border.brand | brand-b-primary.500 | 4.57 | 3 | ✅ |
+| border.success | success.550 | 5.51 | 3 | ✅ |
+| border.warning | warning.550 | 5.49 | 3 | ✅ |
+| border.danger | danger.550 | 5.54 | 3 | ✅ |
+| border.info | info.500 | 4.54 | 3 | ✅ |
+| border.focus | brand-b-primary.550 | 6.42 | 3 | ✅ |
+| inverse.border.primary | neutral.800 | — | — | · |
+| inverse.border.secondary | neutral.600 | — | — | · |
+| inverse.border.tertiary | neutral.350 | — | — | · |
+| inverse.border.brand | brand-b-primary.500 | 4.24 | 3 | ✅ |
+| inverse.border.success | success.500 | 4.25 | 3 | ✅ |
+| inverse.border.warning | warning.500 | 4.27 | 3 | ✅ |
+| inverse.border.danger | danger.500 | 4.25 | 3 | ✅ |
+| inverse.border.info | info.500 | 4.27 | 3 | ✅ |
+| inverse.border.focus | brand-b-primary.450 | 4.99 | 3 | ✅ |
+| interactive.primary.subtle-fill.selected | brand-b-primary.550 | — | — | · |
 
 ## prism3 — dimension axis
 

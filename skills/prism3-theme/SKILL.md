@@ -13,7 +13,7 @@ description: >-
 documents: brandInput
 # Deliberately out of scope for a BRIEF-authoring skill: the per-mode override layer and the
 # fine-tuning knobs are studio work done after a theme exists, not things a brand brief states.
-omits: customModes, overrides, modeAnchors, modeLevers, roleColors, disabledMin, baseMd,
+omits: customModes, overrides, modeAnchors, modeLevers, modePalettes, roleColors, disabledMin, baseMd,
   actionAnchorStep, destructiveAnchorStep, linkStateRungs, accentPalette, interactivePalettes,
   outlineInteraction, outlineHoverFill, outlineWash, neutralEmphasis, strictInteractiveContrast
 when_to_use: >-

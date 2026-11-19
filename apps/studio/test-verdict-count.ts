@@ -8,7 +8,7 @@
  * until #3346 added 18 gated selection-mark roles per mode: the rule is the owner's, the count follows it.)
  *
  * WHY IT IS INDEPENDENT OF WHAT IT CHECKS (docs/34). The oracle is the decision's literal numbers, typed
- * here: 964, 241 and the four mode names. They are never computed from the engine or the module. An
+ * here: 1205 (964 before #1729's Brand B), 241 and the five mode names. They are never computed from the engine or the module. An
  * engine change that adds or drops gated roles fails this BY NAME, which is the point: the decision named
  * a number, and a moved number is the owner's to re-decide, not this file's to follow.
  *
@@ -44,9 +44,10 @@ const ok = (cond: boolean, label: string): void => {
   else { failed++; console.error(`  ✗ ${label}`); }
 };
 
-const PRISM3_TOTAL = 964;
+// 1205 since #1729: Brand B, the default theme's fifth mode, gates the same 241 (964 over the four built-in modes).
+const PRISM3_TOTAL = 1205;
 const PRISM3_PER_MODE = 241;
-const PRISM3_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+const PRISM3_MODES = ['light', 'dark', 'hc-light', 'hc-dark', 'brand-b'];
 
 const input = (examples as Record<string, BrandInput>).prism3;
 const theme = brandTheme(structuredClone(input));
@@ -59,12 +60,12 @@ ok(v.fail === 0 && v.modesFailing === 0, `prism3 has no role below its floor (fa
 ok(verdictOf(theme, modes) === v, 'the verdict is cached per theme (one resolve per edit)');
 
 // The copy, verbatim from concept v6.
-ok(verdictLine(v) === 'All 964 pairs at or above floor', `the bar reads "All 964 pairs at or above floor" — read "${verdictLine(v)}"`);
+ok(verdictLine(v) === 'All 1205 pairs at or above floor', `the bar reads "All 1205 pairs at or above floor" — read "${verdictLine(v)}"`);
 // #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps v6's "floor". Literal.
-ok(healthLine(v) === 'All 964 pairs at or above their minimum.', `Health reads "All 964 pairs at or above their minimum." (Q3366.3 A) — read "${healthLine(v)}"`);
+ok(healthLine(v) === 'All 1205 pairs at or above their minimum.', `Health reads "All 1205 pairs at or above their minimum." (Q3366.3 A) — read "${healthLine(v)}"`);
 ok(FLOOR_POINTER.line([['Light', 'neutral.050'], ['Dark', 'neutral.900']]) === 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.'
   && FLOOR_POINTER.link === 'Change the contrast floor', `Health's pointer to the contrast floor reads as rendered (Q3366.2 A) — read ${JSON.stringify([FLOOR_POINTER.line([['Light', 'neutral.050'], ['Dark', 'neutral.900']]), FLOOR_POINTER.link])}`);
-ok(breadthLine(v, (m) => m) === '241 per mode × 4 modes', `Health's breadth reads "241 per mode × 4 modes" — read "${breadthLine(v, (m) => m)}"`);
+ok(breadthLine(v, (m) => m) === '241 per mode × 5 modes', `Health's breadth reads "241 per mode × 5 modes" — read "${breadthLine(v, (m) => m)}"`);
 ok(modeLine(v.per[0], 'Light') === 'Light: 241 of 241 at or above', `a passing mode reads "Light: 241 of 241 at or above" — read "${modeLine(v.per[0], 'Light')}"`);
 
 // A failing role is counted. The default theme's own override seam: point a text role at a pale step.
@@ -76,7 +77,7 @@ if (badTheme) {
   const bv = verdictOf(badTheme, resolvePreview(badTheme).modes);
   const light = bv.per.find((m) => m.mode === 'light')!;
   ok(light.f >= 1 && bv.fail >= 1 && bv.modesFailing >= 1, `an override below its floor is counted as a failure (light fails ${light.f}, total fail ${bv.fail})`);
-  ok(/^\d+ of 964 below floor, \d+ modes?$/.test(verdictLine(bv)), `the failing bar line reads "<n> of 964 below floor, <m> mode(s)" — read "${verdictLine(bv)}"`);
+  ok(/^\d+ of 1205 below floor, \d+ modes?$/.test(verdictLine(bv)), `the failing bar line reads "<n> of 1205 below floor, <m> mode(s)" — read "${verdictLine(bv)}"`);
   ok(modeLine(light, 'Light') === `Light: ${light.f} of ${light.n} below`, `a failing mode reads "Light: <f> of <n> below" — read "${modeLine(light, 'Light')}"`);
 }
 
@@ -90,11 +91,11 @@ if (badTheme) {
 // 4.54:1, neutral.450 in Dark at 4.64:1, read once off the engine's resolved record), so it passes as it does
 // with no override, and the explicit icon override wins over the carry.
 // High contrast light and dark are resolved on their own and carry no override. So: 2 failures, 1 in Light
-// and 1 in Dark, 2 modes failing, out of the same 964.
-const TWO_MODES_LINE = '2 of 964 below floor, 2 modes';
-const TWO_MODES_HEALTH = '2 of 964 pairs below their minimum in 2 modes.';
-const TWO_MODES_PER = ['Light: 1 of 241 below', 'Dark: 1 of 241 below', 'High contrast light: 241 of 241 at or above', 'High contrast dark: 241 of 241 at or above'];
-const LABELS: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'High contrast light', 'hc-dark': 'High contrast dark' };
+// and 1 in Dark, 2 modes failing, out of the same 1205.
+const TWO_MODES_LINE = '2 of 1205 below floor, 2 modes';
+const TWO_MODES_HEALTH = '2 of 1205 pairs below their minimum in 2 modes.';
+const TWO_MODES_PER = ['Light: 1 of 241 below', 'Dark: 1 of 241 below', 'High contrast light: 241 of 241 at or above', 'High contrast dark: 241 of 241 at or above', 'Brand B: 241 of 241 at or above'];
+const LABELS: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'High contrast light', 'hc-dark': 'High contrast dark', 'brand-b': 'Brand B' };
 const two = structuredClone(input) as BrandInput;
 two.overrides = {
   light: { 'text.secondary': { palette: 'neutral', step: '100' }, 'icon.secondary': { palette: 'neutral', step: '550' } },
@@ -115,7 +116,7 @@ if (twoTheme) {
 // below from the engine's own resolved record, never from the verdict module). Nothing else is measured
 // against `text.tertiary`, and no other mode carries an override. Its icon twin is pinned at its own derived step,
 // neutral.450 (3.18:1), for the same reason as above (#1968). So: 1 failure, in Light, 1 mode.
-const NEAR_LINE = '1 of 964 below floor, 1 mode';
+const NEAR_LINE = '1 of 1205 below floor, 1 mode';
 const near = structuredClone(input) as BrandInput;
 near.overrides = { light: { 'text.tertiary': { palette: 'neutral', step: '400' }, 'icon.tertiary': { palette: 'neutral', step: '450' } } } as BrandInput['overrides'];
 let nearTheme;

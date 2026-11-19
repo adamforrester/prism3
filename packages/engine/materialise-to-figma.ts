@@ -69,7 +69,7 @@
  * file over MCP and get every colour and dimension and no typography at all. `test.ts` now asserts
  * axis parity between the two paths, so the gap can't silently reopen.
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import type { FigmaCollectionFile } from './emit-figma';
@@ -170,9 +170,21 @@ const load = (brand: string, file: string): FigmaCollectionFile => {
   return JSON.parse(readFileSync(p, 'utf8'));
 };
 
-// Which colour modes did this brand emit? (light/dark/hc-* always; wireframe if opted in.)
-const colourModes = (brand: string): string[] =>
-  MODE_ORDER.filter((m) => has(brand, `color.${m}.json`));
+/** Every mode a per-mode file family (`<stem>.<mode>.json`) carries for this brand: the known modes first, in the
+ *  order given, then any other mode found on disk, sorted — a brand's CUSTOM modes (#1729), whose names no list
+ *  here can know. Reading only the known names dropped a custom mode's files from the paste path: its color mode
+ *  silently, and its per-mode font files entirely, which left the font pass with no file to read. */
+const modesOnDisk = (brand: string, stem: string, known: readonly string[]): string[] => {
+  const mem = MEMORY_TREES.get(brand);
+  const dir = resolve(HERE, `out/figma/${brand}`);
+  const files = mem ? [...mem.keys()] : existsSync(dir) ? readdirSync(dir) : [];
+  const found = files.flatMap((f) => f.startsWith(`${stem}.`) && f.endsWith('.json') ? [f.slice(stem.length + 1, -'.json'.length)] : [])
+    .filter((m) => m && !m.includes('.'));
+  return [...known.filter((m) => found.includes(m)), ...found.filter((m) => !known.includes(m)).sort()];
+};
+
+// Which colour modes did this brand emit? (light/dark/hc-* always; wireframe if opted in; any custom mode after.)
+const colourModes = (brand: string): string[] => modesOnDisk(brand, 'color', MODE_ORDER);
 
 // The disk-read SHELL: read the emitted raw-figma files → collections → the pure `buildWritePlan`.
 // Every pass below (and `aliasRows`) projects THIS plan, so the CLI paste-path and the live plugin
@@ -273,7 +285,7 @@ const fontFiles = (brand: string): { font: FigmaCollectionFile[]; fluid: FigmaCo
   const single = 'core.font.json';
   // Mode names aren't known ahead of time here (they're the brand's appearance modes), so read the
   // per-mode files by the same MODE_ORDER the colour lane uses, then fall back to the single file.
-  const perMode = MODE_ORDER.map((m) => `core.font.${m}.json`).filter((f) => has(brand, f));
+  const perMode = modesOnDisk(brand, 'core.font', ['Default', ...MODE_ORDER]).map((m) => `core.font.${m}.json`);
   const font = perMode.length ? perMode : has(brand, single) ? [single] : [];
   const fluid = FONT_FLUID_MODES.map((m) => `type-sets.${m}.json`).filter((f) => has(brand, f));
   return { font: font.map((f) => load(brand, f)), fluid: fluid.map((f) => load(brand, f)) };

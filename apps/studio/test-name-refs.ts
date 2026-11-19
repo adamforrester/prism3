@@ -96,6 +96,8 @@ const FIELDS: Record<string, Seed | Seed[] | string> = {
   ],
   modeAnchors: { seed: (b) => { b.modeAnchors = { dark: { acc: 400 }, promo: { acc: 500 } } as BrandInput['modeAnchors']; } },
   modeLevers: { seed: (b) => { b.modeLevers = { dark: { tempo: 'relaxed' }, promo: { tempo: 'snappy' } } as BrandInput['modeLevers']; } },
+  // #1729: keyed by the modes, valued by the color it swaps in; a removal drops the swap, so that mode stops swapping.
+  modePalettes: { confirms: 1, seed: (b) => { b.modePalettes = { promo: { primary: 'acc' } }; } },
   disabledStrategy: 'an enum', disabledMin: 'a number', iconContrast: 'an enum', outlineInteraction: 'an enum',
   outlineHoverFill: { confirms: 3, seed: (b) => {   // light's mode-wide pick, light's and dark's primary set; the acc sets are the column's
     b.outlineInteraction = 'opaque-fill';

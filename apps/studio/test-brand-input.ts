@@ -24,7 +24,14 @@ const ok = (cond: boolean, label: string): void => {
   console.error(`  ✗ ${label}`);
 };
 const prism3 = (exampleBrands as Record<string, BrandInput>).prism3;
-const reset = (): void => store.initSession(structuredClone(prism3), { kind: 'example', id: 'prism3' });
+/** The default theme without Brand B (#1729), its one custom mode: sections 3b and 4 build their custom modes from
+ *  none, so their names and counts are the ones typed below. Section 11 works on the default theme as it ships. */
+const withoutBrandB = (b: BrandInput): BrandInput => {
+  const { customModes: _c, modePalettes: _p, modeLevers: _l, ...rest } = structuredClone(b);
+  return { ...rest, brandColors: (rest.brandColors ?? []).filter((c) => !c.name.startsWith('brand-b-')) };
+};
+const reset = (): void => store.initSession(withoutBrandB(prism3), { kind: 'example', id: 'prism3' });
+const resetShipped = (): void => store.initSession(structuredClone(prism3), { kind: 'example', id: 'prism3' });
 const takes = (): boolean => { try { brandTheme(structuredClone(store.brandState)); return true; } catch { return false; } };
 
 console.log('\n1. The namespace (T2)');
@@ -139,6 +146,19 @@ B.setPersonality('soft', true);
 ok(JSON.stringify(B.personality()) === '["soft"]' && takes(), 'a personality word is set, and the engine takes it');
 B.setPersonality('soft', false);
 ok(B.personality().length === 0 && !('personality' in store.brandState), 'unsetting the last word clears the field');
+
+console.log('\n5. Brand B, the default theme\'s custom mode (#1729)');
+// The default theme ships one custom mode, brand-b, with a palette swap and a per-mode font. Renaming it carries both
+// per-mode keys to the new name; removing it takes both out, and the engine still builds. Names and keys typed here.
+resetShipped();
+ok(JSON.stringify(B.customModes()) === '[{"name":"brand-b","base":"light"}]' && takes(), `the default theme ships brand-b, built on light (${JSON.stringify(B.customModes())})`);
+ok(B.renameCustomMode(0, 'second') && takes()
+  && JSON.stringify(Object.keys(store.brandState.modePalettes ?? {})) === '["second"]' && JSON.stringify(Object.keys(store.brandState.modeLevers ?? {})) === '["second"]',
+  `renaming brand-b carries its palette swap and its font to the new name (${JSON.stringify({ modePalettes: store.brandState.modePalettes, modeLevers: Object.keys(store.brandState.modeLevers ?? {}) })})`);
+resetShipped();
+B.removeCustomMode(0);
+ok(store.brandState.customModes === undefined && store.brandState.modePalettes === undefined && store.brandState.modeLevers === undefined && takes(),
+  `removing brand-b takes its palette swap and its font with it, and the engine still builds (${JSON.stringify({ modePalettes: store.brandState.modePalettes, modeLevers: store.brandState.modeLevers })})`);
 
 console.log(`\n${executed - failed}/${executed} brand-input assertions passed.`);
 if (failed) process.exit(1);

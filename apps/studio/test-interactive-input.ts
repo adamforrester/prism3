@@ -337,7 +337,7 @@ console.log('\n10. #3405: renaming a brand color carries every override that nam
   const ROLE = 'interactive.primary.border.rest', TEXT = 'interactive.primary.text.rest';
   reset();
   (store.brandState.brandColors ??= []).push({ name: 'accent-x', oklch: { l: 0.55, c: 0.15, h: 235 } });
-  store.brandState.customModes = [{ name: 'promo', base: 'light' }];
+  store.brandState.customModes = [...(store.brandState.customModes ?? []), { name: 'promo', base: 'light' }];   // beside the default theme's brand-b (#1729)
   store.rebuild();
   store.brandState.overrides = {
     light: { [ROLE]: { palette: 'accent-x', step: '350' } },
@@ -376,7 +376,7 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
   // The ORACLE is the engine's own `resolveAllModes`: what each role resolves to after the rename, never the module.
   reset();
   (store.brandState.brandColors ??= []).push({ name: 'accent-x', oklch: { l: 0.55, c: 0.15, h: 235 } }, { name: 'accent-n', oklch: { l: 0.55, c: 0.15, h: 40 } });
-  store.brandState.customModes = [{ name: 'promo', base: 'light' }];
+  store.brandState.customModes = [...(store.brandState.customModes ?? []), { name: 'promo', base: 'light' }];   // beside the default theme's brand-b (#1729)
   store.brandState.interactivePalettes = [{ palette: 'accent-x' }, { name: 'named', palette: 'accent-n' }];
   store.rebuild();
   const FILL = (c: string): string => `interactive.${c}.fill.rest`, BORDER = (c: string): string => `interactive.${c}.border.rest`;
@@ -529,7 +529,7 @@ console.log('\n11. #3448: renaming a brand color carries its interactive column\
   // The expected shapes are literals typed here.
   reset();
   (store.brandState.brandColors ??= []).push({ name: 'acc-p', oklch: { l: 0.55, c: 0.15, h: 235 } });
-  store.brandState.customModes = [{ name: 'promo', base: 'light' }];
+  store.brandState.customModes = [...(store.brandState.customModes ?? []), { name: 'promo', base: 'light' }];   // beside the default theme's brand-b (#1729)
   store.brandState.interactivePalettes = [{ palette: 'acc-p' }];
   store.rebuild();
   const empties = (): string[] => Object.entries(store.brandState.modeAnchors ?? {}).filter(([, m]) => !Object.keys(m ?? {}).length).map(([mode]) => mode);
@@ -608,7 +608,7 @@ console.log('\n13. #3549: removing a brand color drops its interactive column\'s
   reset();
   (store.brandState.brandColors ??= []).push({ name: 'accent-y', oklch: { l: 0.55, c: 0.15, h: 235 } },
     { name: 'acc-n', oklch: { l: 0.55, c: 0.15, h: 40 } }, { name: 'named', oklch: { l: 0.55, c: 0.15, h: 140 } });
-  store.brandState.customModes = [{ name: 'promo', base: 'light' }];
+  store.brandState.customModes = [...(store.brandState.customModes ?? []), { name: 'promo', base: 'light' }];   // beside the default theme's brand-b (#1729)
   store.brandState.interactivePalettes = [{ palette: 'accent-y' }, { name: 'named', palette: 'acc-n' }];
   store.rebuild();
   const FILL = (c: string): string => `interactive.${c}.fill.rest`, BORDER = (c: string): string => `interactive.${c}.border.rest`;

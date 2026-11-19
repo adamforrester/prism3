@@ -66,7 +66,9 @@ const CSS_ORDER = {
 /** The decided prefix (Q98 A): stock Style Dictionary's root-prefixed names. */
 const PREFIX = '--pds3-';
 /** The blocks the package promises, by name: the light defaults, then each theme mode. */
-const PROMISED_BLOCKS = [':root', '[data-theme="dark"]', '[data-theme="hc-dark"]', '[data-theme="hc-light"]'];
+const PROMISED_BLOCKS = [':root', '[data-theme="dark"]', '[data-theme="hc-dark"]', '[data-theme="hc-light"]',
+  // #1729: the default theme's Brand B, a second brand in the same file, is a theme mode like the others.
+  '[data-theme="brand-b"]'];
 /** What `npm pack` may put in the tarball: the shippable CSS, the README, and the manifest npm always adds. */
 const ALLOWED_FILE = /^(package\.json|README\.md|dist\/prism3\.css|dist\/prism3\/[\w-]+\.css)$/;
 /** The DTCG spec's types — this gate's own transcription, as in `check-consumability.mjs` (docs/34). */
