@@ -22,7 +22,8 @@
  * decision (raised on the PR), so the build is not silently green over it either: it prints on every run.
  *
  * MUTATION: map `muted-foreground` → `color.text.tertiary` and this fails `prism3 light: muted-foreground on muted 3.17 <
- * 4.5` by name.
+ * 4.5` by name. Emit prism3's dark `primary` as `oklch(0.25 0.1 266.7)` and it fails `prism3 dark: primary on background
+ * 1.19 < 4.5 — BELOW ACCEPTED 4.24` by name: a known pair is held to the ratio the owner accepted, not muted at any ratio.
  */
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
