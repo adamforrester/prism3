@@ -502,6 +502,7 @@
         },
         "links": {
           "type": "array",
+          "minItems": 1,
           "items": { "type": "string", "enum": ["display", "title", "body", "label", "caption", "eyebrow", "code"] },
           "description": "Roles that get an underlined `.<weight>-link` variant per size×weight (underline baked; color stays text.link.*). Default ['body','caption']. `label` is always included, whatever is listed: a text button underlines its label, in the button's own ink (#2324)."
         },
