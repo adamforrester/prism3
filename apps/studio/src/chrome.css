@@ -895,7 +895,7 @@
 .p3-frame[data-w="narrow"] .p3-agent-switch-word { display: none; }
 /* #2368 (owner decision A): the busy mark beside the Agent switch while an agent's command that writes the file runs.
    The chrome's spinner, in the bar's secondary ink, and "Running", which drops at the narrow tier with the switch's word.
-   DRAFT look for the owner. */
+   Look approved as built by the owner, 2026-11-18. */
 .p3-agent-busy { display: inline-flex; align-items: center; gap: var(--p3-space-075); color: var(--p3-text-2);
   font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); white-space: nowrap; }
 .p3-agent-busy[hidden] { display: none; }

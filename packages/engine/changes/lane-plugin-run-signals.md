@@ -8,5 +8,5 @@ dimension collection named `border` draws "Border (border)" beside the border co
 
 An agent's command that writes the file is announced (#2368, owner decision A): a busy mark beside the Agent switch from
 its start until its result is written, a host notice at the start that says closing Prism3 stops the run and stays up
-until the finish, and a finish notice with the command's headline. Reads, `status` and previews show nothing. The
-wording is draft for the owner. Plugin only; no committed artifact moves.
+until the finish, and a finish notice with the command's headline. Reads, `status` and previews show nothing.
+Plugin only; no committed artifact moves.

@@ -20,7 +20,7 @@
  * it does after the result is stored in the mailbox (`agent-link.ts` `poll`) or sent over the bridge (`noteCommand`),
  * not when the handler returns (`agent-finished`), which comes first. Before that moment the agent has no answer.
  *
- * All wording here is DRAFT for the owner (#2368: "Notice and warning wording is DRAFT").
+ * All wording here was approved by the owner as built on 2026-11-18 (#2368, on #4063).
  *
  * Pure: no `figma` and no DOM. `main.ts` owns the notices, `agent-link-ui.ts` the busy mark; `test-agent-link.ts` and
  * `test-start-screen.mjs` drive both.
@@ -44,14 +44,14 @@ export const announces = (cmd: string, confirm: boolean): boolean =>
 
 const words = (cmd: string): string => AGENT_RUN_WORDS[cmd] ?? cmd;
 
-/** How long the finish notice stays up, in ms: the run notice's (#533). DRAFT. The start notice stays until the finish. */
+/** How long the finish notice stays up, in ms: the run notice's (#533). The start notice stays until the finish. */
 export const AGENT_DONE_MS = 6000;
 
-/** The start notice and the busy mark's description. DRAFT. */
+/** The start notice and the busy mark's description. */
 export const agentStartLine = (cmd: string): string => `Agent running ${words(cmd)} — closing Prism3 now stops it partway.`;
 
 /** The finish notice for the run `announced` once the link publishes `last`, or `null` when `last` is not that run.
- *  The headline loses its leading mark ("✓ ", "⚠ "), as the drawer's status line does. DRAFT. */
+ *  The headline loses its leading mark ("✓ ", "⚠ "), as the drawer's status line does. */
 export const agentDoneNotice = (
   announced: { readonly id: string; readonly cmd: string } | null,
   last: { readonly id: string; readonly ok: boolean; readonly headline?: string | null } | null | undefined,

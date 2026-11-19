@@ -253,7 +253,8 @@ export const mountAgentLink = (): void => {
   // #2368 (owner decision A): the busy mark, beside the switch while an agent's command that writes the file runs, until
   // its result is written (`nextAgentBusy`). The chrome's spinner (shown after its anti-flash wait) and "Running", which
   // drops at the narrow tier as the switch's word does. Its line, also the start notice's, is its tooltip and the switch's
-  // description, so the warning that closing stops the run is in reach of the bar. DRAFT wording.
+  // description, so the warning that closing stops the run is in reach of the bar. Wording
+  // approved as built, 2026-11-18.
   const busyMark = hook(h('span', 'p3-agent-busy'), 'agent-busy');
   busyMark.hidden = true;
   const busyWord = h('span', 'p3-agent-busy-word', 'Running');
