@@ -8,7 +8,7 @@ and reports `dialect: "standard"`, the classification log, `xApplied` and `xWarn
 supersedes #4200 Q2 (the owner chose accepting both dialects over a description-only fix).
 
 - **Test:** `mcp-test.ts` journey ⑦ sends the issue's standard brief over real stdio (6 `#4118` arms). On `main`:
-  6 failed. With the fix: 91 passed.
+  the 5 standard-brief arms fail (the sixth, an engine-native brief stays off the converter, holds on both). With the fix: 91 passed.
 - **Mutation:** the standard branch removed (always the engine-native parser) fails the `#4118` arms by name.
 - **Left for others:** the parse error for a file with no fence still says "standard design.md must open with…"
   for either dialect, as the CLI's does (#4200 E, #4029). The tool's description still says "plus prose", which
