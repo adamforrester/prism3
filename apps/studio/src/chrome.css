@@ -1557,6 +1557,10 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-textra[data-off="true"] .p3-fill-label { color: var(--p3-text-2); }
 .p3-tsizes-row > .p3-state, .p3-tsizes-row > .p3-sub:last-child:not(:nth-child(2)) { grid-column: 1 / -1; }
 .p3-frame[data-w="narrow"] .p3-tmenus { grid-template-columns: minmax(0, 1fr); }
+/* At the narrow tier a card's size row puts its name over its pickers, so "128px" fits (the rows are shown by default
+   since #3079, Q3079.3 A); the card's side padding tightens to match the pane's snug fit. */
+.p3-frame[data-w="narrow"] .p3-tcard { padding-inline: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-tcard :is(.p3-tsizes-head, .p3-tsizes-row) { grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-050); }
 .p3-btn.p3-mcheck { min-height: var(--p3-hit-min); min-width: var(--p3-hit-min); padding: 0; justify-content: center; }
 .p3-btn.p3-mcheck > .p3-ico { visibility: hidden; }
 .p3-btn.p3-mcheck[aria-checked="true"] { border-color: var(--p3-ctl-edge); }
