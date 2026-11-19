@@ -18,8 +18,8 @@
  * #2997 PR 2) proves that through Chromium's own parser, which shares no code with this file. A value with alpha
  * keeps it in the `oklch(L C H / NN%)` form shadcn uses for its dark `border`.
  *
- * NOT YET A REGEN STEP. #2997 §10 lands the delivery (regen artifacts, Q2997.5 B) in its own PR; until then the gates
- * render a fresh copy with `--out`.
+ * A REGEN STEP (Q2997.5 B, #2997 PR 4): `out/shadcn/**` is committed and drift-checked like every artifact. The gates
+ * still render a fresh copy with `--out`, so they never read a stale one.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';

@@ -12,7 +12,7 @@
  * Read from the emitted handoff only, like `emit-shadcn.ts`; `projections/tailwind.ts` holds no values. Gate 5
  * (`packages/tokens` `check:shadcn`) compiles a fixture against this file with the stock Tailwind CLI.
  *
- * NOT YET A REGEN STEP: delivery is #2997 PR 4.
+ * A REGEN STEP (Q2997.5 B, #2997 PR 4): `out/tailwind/**` is committed and drift-checked like every artifact.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
