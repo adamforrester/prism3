@@ -1,6 +1,6 @@
 ## (2026-11-19) — Brand B: a second brand inside the Prism3 reference theme (#1729)
 
-**What.** The default theme carries a second brand as a custom mode, `brand-b`, built on light (owner decision Q-BB1 A).
+**What.** The default theme carries a second brand as a custom mode, `brand-b` (owner decision Q-BB1 A). It is built on light, the mechanical default for one mode: Q-BB1 names no base.
 It swaps only the primary and accent colors, the display face and the gradient. Neutrals, surfaces, status colors,
 radius, density, motion and shadows stay Prism3's. The identity is Aurora's, not a new one: its primary and accent
 verbatim (Brand B's two ramps are byte-identical to Aurora's), Clash Display on display and title (per-mode family by
