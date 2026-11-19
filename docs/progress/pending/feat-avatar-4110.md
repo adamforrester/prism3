@@ -1,0 +1,40 @@
+## (2026-11-19) — Avatar: a photo, initials or a glyph, with a presence dot outside the mask (#4110)
+
+Built from the proposal with every owner decision at its recommendation (OD-A1 to OD-A8, all A, 2026-11-19), after
+the wireframe in #4148. Engine {{ENGINE_VERSION}}; `CONTRACT_VERSION` 15.1.0 → 15.2.0.
+
+### What landed
+
+- **`avatar`**, category `foundations`, priority 3, `states: []`. A 30-member Figma set: `size` (5) × `shape`
+  (circle, square) × `type` (initials, icon, image). `type` is runtime and has no prop behind it: in code the chain
+  follows `src` and `name`, so `test.ts` bridges it through `src` (`#2752 avatar.type`).
+- **An unclipped container and a clipping mask.** The root (`container`, not the proposal's `host`, since the root
+  list is closed by Q365) sets the size and clips nothing; `mask` carries the corner, `clipsContent` and the backdrop.
+  The presence ring is the container's child, so the dot overhangs the picture.
+- **Presence** nests Badge at `type=dot` (`nest-exposed`, `tone`) inside a box painted `color.background.primary` with
+  2px of padding, pinned into the container's bottom-right corner. Badge's dot has no stroke in Figma, so the ring is
+  drawn here. A Figma-only `presence` boolean shows it, off by default.
+- **`icon.size.2xl`, 64px** (OD-A3 A): the x-large avatar. The other four sizes bind `icon.size.sm` … `.xl`.
+  `ICON_PAIRED` in `scale.ts` keeps the #324 pairing with `size.*` to the first five steps.
+- **`person` and `organization`**, two glyphs drawn for this project on the 24px grid (OD-A6 A), DRAFT artwork.
+- **`PartDef.corner` takes a box** as well as a glyph. Both executors' corner passes already placed any child by name,
+  so neither executor file changed and `EXECUTOR_REVISION` does not move; only the projector and the validator did.
+
+### Diagnosis worth keeping
+
+- Two boxes cannot share a paint slot (#933), so the ring paints through `overlay`, the box's other ground slot; the
+  mask holds `fill`.
+- `lint-rung-names.ts` reads one tier family per ref, so a def that walks the icon ladder for two jobs (the box and the
+  glyph) reads as one size reaching two rungs. The glyph's key is `glyph.<size>`, outside the gate's `size.` scope.
+  That is a gap in the gate's family model, filed separately rather than fixed here.
+- The medium avatar is 32px, `icon.size.lg`, one rung above `md`: a new admission, `BOX_OFFSET_UP_ONE_DEFS`, checked
+  both directions like the ring offset. The initials sit in `PINNED_LADDER_DEFS` on `type.label.*.emphasis` (OD-A4 A).
+- A Figma text property holds one default for the whole set (#1567), so the one-letter rule at x-small and small is
+  in code only; every member's text is "JD".
+- The KB brief itself was not reachable from this lane; its positions come from the proposal's paraphrase.
+
+### Held for the owner
+
+The x-large token's name (`icon.size.2xl`), the shape words against Icon button's `circular`, the presence tone mapping
+and the dot's starting tone, the x-large initials rung, the glyph sizes, one initial in Figma at the small sizes, the
+page, and the glyph artwork. Each is in the PR body as an OWNER DECISION with options and a recommendation.
