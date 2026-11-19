@@ -221,7 +221,8 @@ await new Promise((r) => setTimeout(r, 3000));
 // way the block says. Run in a scratch directory, so `export_theme`'s "./tokens" writes there and not into the repo.
 // Represented, not counted (docs/34 shape 13): every tool `tools/list` advertises has an example.
 // BY-NAME MUTATIONS: break the brand in one example (`"neutral": {"hue": "cool"}`) → the runs-as-written arm names
-// that line; delete the export_theme line → the every-tool arm names export_theme.
+// that line; delete the export_theme line → the every-tool arm names export_theme; write `"include": ["tokens"]` in the
+// prose under the block → the include arm names the missing notes.
 {
   const llms = readFileSync(resolve(HERE, '../../docs/public/llms.txt'), 'utf8');
   const section = llms.split(/\n## /).find((s) => s.startsWith('Use the MCP server')) ?? '';
@@ -240,8 +241,19 @@ await new Promise((r) => setTimeout(r, 3000));
   });
   examples.forEach((ex, i) => proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: i + 1, method: 'tools/call', params: ex }) + '\n'));
   proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 0, method: 'tools/list' }) + '\n');
+  // The prose under the block promises the decisions log AND the token tree from the `include` it names; that sentence
+  // is run too, with the theme_brand example's brand (#4335 review: `include` replaces the default, it does not add).
+  const prose = section.slice(section.indexOf('```', section.indexOf('```jsonl') + 3) + 3);
+  const proseInclude = (() => { try { return JSON.parse(/"include":\s*(\[[^\]]*\])/.exec(prose)?.[1] ?? 'null') as unknown; } catch { return null; } })();
+  const themeEx = examples.find((ex) => ex.name === 'theme_brand');
+  const PROSE_ID = 9999;
+  if (themeEx && Array.isArray(proseInclude)) {
+    proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: PROSE_ID, method: 'tools/call',
+      params: { name: 'theme_brand', arguments: { ...(themeEx.arguments as object), include: proseInclude } } }) + '\n');
+  }
+  const want = examples.length + 1 + (themeEx && Array.isArray(proseInclude) ? 1 : 0);
   const deadline = Date.now() + 60_000;
-  while (got.size < examples.length + 1 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+  while (got.size < want && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
   proc.kill();
   const broken = examples.map((ex, i) => [ex, got.get(i + 1)] as const)
     .filter(([, r]) => !r || r.error || r.result?.isError === true)
@@ -251,6 +263,9 @@ await new Promise((r) => setTimeout(r, 3000));
   const unshown = advertised.filter((n) => !examples.some((ex) => ex.name === n));
   ok(advertised.length > 0 && unshown.length === 0, `#4156: llms.txt gives an example call for every tool tools/list advertises (${advertised.length} tools; no example: ${unshown.join(', ') || 'none'})`);
   ok(existsSync(join(scratch, 'tokens')), '#4156: the export_theme example wrote into the directory the server was started in');
+  const proseKeys = (() => { try { return Object.keys(JSON.parse(String(got.get(PROSE_ID)?.result?.content?.[0]?.text ?? '{}'))); } catch { return []; } })();
+  ok(/decisions log/.test(prose) && proseKeys.includes('notes') && proseKeys.includes('tokens'),
+    `#4156: the include llms.txt names returns the decisions log and the token tree it promises (include ${JSON.stringify(proseInclude)} → ${proseKeys.join(', ') || 'no reply'})`);
   rmSync(scratch, { recursive: true, force: true });
 }
 
