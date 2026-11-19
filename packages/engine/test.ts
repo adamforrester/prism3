@@ -11520,6 +11520,14 @@ arm: {
   const conv4137 = standardToBrandInput(parseStandardDesignMd('---\nname: H\ncolors:\n  primary: "#6B3E26"\n  neutral-900: "#2A2522"\ntypography:\n  display: { fontFamily: Fraunces }\n  body: { fontFamily: Inter }\n  code: { fontFamily: JetBrains Mono }\n  caption: { fontFamily: Inter }\n---\n'));
   ok(conv4137.xWarnings.some((w) => w.includes("'code'") && w.includes('JetBrains Mono')) && !conv4137.xWarnings.some((w) => /'(display|body|caption)'/.test(w)),
     `#4137 a typography token whose face no category reads is named in the warnings, and the faces it reads are not (got ${JSON.stringify(conv4137.xWarnings)})`);
+  // A second heading face is skipped too, and the warning's reason must say why: only the FIRST heading face is read,
+  // not "only heading and body faces", which a heading face contradicts. EXPECTED (typed here): the 'headline' token is
+  // named, and its reason names the first heading face. Mutation that fails here BY NAME: the reason back to "only
+  // heading and body faces are read".
+  const second4137 = standardToBrandInput(parseStandardDesignMd('---\nname: H\ncolors:\n  primary: "#6B3E26"\n  neutral-900: "#2A2522"\ntypography:\n  display: { fontFamily: Playfair }\n  headline: { fontFamily: Fraunces }\n  body: { fontFamily: Inter }\n---\n'));
+  const w4137 = second4137.xWarnings.find((w) => w.includes("'headline'") && w.includes('Fraunces')) ?? '';
+  ok(/\bfirst heading face\b/.test(w4137) && !/only heading and body faces/.test(w4137),
+    `#4137 a second heading face is named, and the reason says only the first heading face is read (got ${JSON.stringify(second4137.xWarnings)})`);
 }
 // (7) LEVER MANIFEST — the shared-control contract (docs/08 §4). The presentation
 // half must NOT drift from theme-schema.json (the validation half): every key

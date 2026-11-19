@@ -208,13 +208,13 @@ export const xPrism3Warnings = (x: Record<string, unknown>): string[] =>
 
 /** #4137: one warning per typography token whose `fontFamily` no category reads, in the file's order, on the same
  *  channel as the skipped `x-prism3:` keys (#2678's rule: compile on what it carries, and say what it skipped). A token
- *  whose face IS read, under any name, is not named: nothing of it was lost. Wording is DRAFT, held for the owner's
- *  voice pass. */
+ *  whose face IS read, under any name, is not named: nothing of it was lost. A second heading or body face is named
+ *  too, so the reason says "the first" (review S3 on #4265). Wording is DRAFT, held for the owner's voice pass. */
 export const typeFaceWarnings = (typography: StandardDesignMd['typography'], families: Record<string, unknown>): string[] => {
   const read = new Set(Object.values(families).flat().filter((f): f is string => typeof f === 'string'));
   return Object.entries(typography)
     .filter(([, tok]) => tok?.fontFamily && !read.has(tok.fontFamily))
-    .map(([name, tok]) => `typography: ignored the '${name}' face (${tok.fontFamily}); only heading and body faces are read`);
+    .map(([name, tok]) => `typography: ignored the '${name}' face (${tok.fontFamily}); only the first heading face and the first body face are read`);
 };
 
 export type StandardConversion = { input: BrandInput; classification: ColorClassification; xApplied: string[]; xWarnings: string[] };
