@@ -297,6 +297,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'baseMd', value: input.baseMd, min: 2, max: 12 },
     { path: 'buttonMinWidthMultiplier', value: input.buttonMinWidthMultiplier, min: 1, max: 4 },
     { path: 'shadow.softness', value: input.shadow?.softness, min: 0, max: 2 },
+    // #3874: the tint's lightness and chroma both scale with the amount (`theme-shadow.ts`), so past about 5 every
+    // shadow turned white, and past 1 its chroma left the gamut. 1 is the bound the per-mode tint, its schema and
+    // the studio's slider already hold; the global lever had only a minimum.
+    { path: 'shadow.tint.amount', value: input.shadow?.tint?.amount, min: 0, max: 1 },
     { path: 'layout.columns', value: input.layout?.columns, min: 4, max: 24 },
     { path: 'layout.containerMax', value: input.layout?.containerMax, min: 960, max: 1920 },
     { path: 'layout.containerNarrow', value: input.layout?.containerNarrow, min: 480, max: 960 },
