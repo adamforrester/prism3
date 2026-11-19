@@ -588,8 +588,13 @@ const update = async (label: string, msg: unknown, answer: string): Promise<{ ms
   return out;
 };
 {
+  const { brandLeverBuilds } = await import('./src/brand-def');
+  const b0 = brandLeverBuilds();
   const check = await update('check', { type: 'update-check-request', defs: setIds, input: stored }, 'update-check');
+  const b1 = brandLeverBuilds();
   const apply = check ? await update('apply', { type: 'update-sets', defs: setIds, previewHash: check.msg.previewHash, handEdits: 'keep', input: stored }, 'component-update-result') : null;
+  const b2 = brandLeverBuilds();
+  console.log(`    MEASURE brand theme builds: check ${b1 - b0}, apply ${b2 - b1}`);
   ok(!!check && check.searches === 0, `update/check-no-walk: the Update check over ${SETS} sets searches no whole file in one turn (${check ? `${check.searches} whole-file searches` : 'no answer'})`);
   ok(!!apply && apply.searches === 0, `update/apply-no-walk: the apply under the check's hash searches no whole file in one turn (${apply ? `${apply.searches} whole-file searches` : 'no answer'})`);
   ok(!!check && !!apply && check.worst <= 1 && apply.worst <= 1, `update/search-yields: no turn of the check or the apply searches more than one page (worst ${check?.worst ?? '—'} and ${apply?.worst ?? '—'})`);
