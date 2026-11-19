@@ -1103,6 +1103,14 @@ jobs:
       - name: "A live styles.css rule is not removed without an accept (#2201)"
         run: npm run -w @prism3/studio lint:live-css
 
+      # #2997 gates 1 and 2 — the shadcn theme, rendered fresh and measured in Chromium (installed above): every typed
+      # ink-on-ground pair clears the higher of WCAG and the engine's own floor, and every oklch() parses back to the
+      # emitted 8-bit color. In this job because it is where the browser is.
+      - name: The shadcn theme clears its contrast floors in Chromium (#2997)
+        run: npx tsx packages/engine/lint-shadcn-contrast.ts
+      - name: Every shadcn oklch() is the emitted color, through Chromium (#2997)
+        run: npx tsx packages/engine/lint-shadcn-roundtrip.ts
+
       # The studio's DOM/interaction coverage (#767, deciding #333) — and the ONLY step in this
       # workflow that runs a browser. It loads every page in every mode across both corpus brands
       # (72 states), drives the mode switch, an override picker and an export, and asserts zero
