@@ -1068,7 +1068,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const now = italicStyleOf(g, italicG, italicDefG);
     c.set(now);
     const pinned = Object.keys((getPath(brandState, `typography.faces.${g}`) as Record<string, unknown> | undefined) ?? {}).length > 0;
-    row.append(h('span', 'p3-field-label', S63.italicsLabel), c.el);
+    // #2217: the row names its token on the label's line.
+    row.append(tokenLabel(`type.${g}`, S63.italicsLabel, undefined, { onLine: true }), c.el);
     // RS1 A (#2451): the reason is also a hint line under the chips, describing the group.
     if (pinned && now !== 'only') {
       const id = `p3-italic-why-${g}`;
@@ -1117,10 +1118,10 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const ty = theme.typography;
     if (!ty.composites.some((c) => c.group === g)) return [];
     const b = leverBlock(`type:${g}`, { label: S63.groupName(g), group: true });
-    b.el.classList.add('p3-tcard');
-    b.el.dataset.p3Card = g;
-    hook(b.el, 'type-card');
-    b.el.dataset.group = g;
+    // The card's frame wraps the block, so the block's legend stays its heading inside the frame.
+    const box = hook(h('div', 'p3-tcard'), 'type-card');
+    box.dataset.group = g;
+    box.append(b.el);
     const fams = ty.familiesByMode?.[currentMode] ?? ty.families;
     const fam = fams.find((f) => f.group === g)?.stack[0] ?? '';
     b.ctl.append(hook(subLine(TYPE_VIEW_COPY.familyLine(fam)), 'type-card-family'));
@@ -1155,7 +1156,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       b.ctl.append(advZone('type-card-advanced', kids));
     }
     if (g === 'display') words.push(S63.ceilingLabel, S63.ceilingTip);
-    return [{ el: b.el, said: `${b.said} ${words.join(' ')}`.toLowerCase(), key: `type:${g}`, block: b }, ...out];
+    return [{ el: box, said: `${b.said} ${words.join(' ')}`.toLowerCase(), key: `type:${g}`, block: b }, ...out];
   };
 
   // ── Every text type (#3079: brand-wide, advanced only) ───────────────────────────────────────────────────────
@@ -1418,7 +1419,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
 
   /** The page's one Show advanced settings switch (Q3079.2 A). */
   const advSwitch = (): HTMLElement => {
-    const row = hook(h('div', 'p3-tadv-switch'), 'type-advanced-row');
+    // The switch's own name above it, as a field label sits over its field (as Custom underline's).
+    const row = hook(h('div', 'p3-field p3-tadv-switch'), 'type-advanced-row');
     const sw = switchButton('p3-type-advanced', TYPE_VIEW_COPY.advSwitch, 'type-advanced', (on) => { advOn = on; render(); });
     sw.set(advOn);
     // It edits nothing, so it stays live in a derived mode's read-only panel (RX1 A's rule, `STAYS_LIVE` in frame.ts).
@@ -1486,7 +1488,9 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     // #3093: the block shows for its own words too (Font families), not only for a text type's row that matches.
     const famSaid = items.find((it) => it.key === 'typography.families')?.block?.said ?? '';
     if (fam) fam.hidden = !!q && !famSaid.includes(q) && !fam.querySelector('[data-p3="family-row"]:not([hidden])');
-    for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) s.hidden = !!q && !s.querySelector('.p3-lever:not([hidden])');
+    // A card hides on its frame, so a section shows while any lever in it sits outside a hidden node.
+    for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) s.hidden = false;
+    for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) s.hidden = !!q && ![...s.querySelectorAll<HTMLElement>('.p3-lever')].some((n) => !n.closest('[hidden]'));
     for (const n of root.querySelectorAll<HTMLElement>('.p3-tintro')) n.hidden = !!q;
     for (const n of root.querySelectorAll<HTMLElement>('.p3-nextrow')) n.hidden = !!q;
     setSearchHits(q ? shown.filter((it) => !it.el.hidden).length : null);

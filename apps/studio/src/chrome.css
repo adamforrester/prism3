@@ -1537,17 +1537,15 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
    advanced settings switch; advanced rows sit in place under a side rule and an "Advanced" mark; each text type is a
    card holding its two menus (two columns, one at narrow widths), its size rows and its advanced rows. */
 .p3-tintro { display: grid; gap: var(--p3-space-100); }
-.p3-tadv-switch { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-150); }
 .p3-tadv { display: grid; gap: var(--p3-space-150); padding-inline-start: var(--p3-space-150); border-inline-start: var(--p3-bw-thick) solid var(--p3-line-2); }
 .p3-tadv-mark { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
-.p3-lever.p3-tcard { gap: var(--p3-space-150); padding: var(--p3-space-150) var(--p3-space-200); border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-lg); }
-.p3-lever.p3-tcard > .p3-lever-head { float: left; width: 100%; margin-block-end: var(--p3-space-050); }
+.p3-tcard { padding: var(--p3-space-150) var(--p3-space-200); border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-lg); }
 .p3-tmenus { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: start; }
 .p3-tmenu { display: grid; gap: var(--p3-space-100); min-width: 0; }
 .p3-tmenus:has(.p3-picker) { grid-template-columns: minmax(0, 1fr); }
 .p3-pick-tok { flex: none; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
 .p3-vpick-note { color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); }
-.p3-tships-head { display: flex; align-items: baseline; gap: var(--p3-space-100); }
+.p3-tships-head { display: flex; align-items: flex-end; gap: var(--p3-space-100); }
 .p3-tships { display: flex; flex-wrap: wrap; gap: var(--p3-space-050); }
 .p3-btn.p3-mcheck.p3-tship { padding: 0 var(--p3-space-150) 0 var(--p3-space-100); gap: var(--p3-space-050); }
 .p3-tsizes-px { color: var(--p3-text); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
