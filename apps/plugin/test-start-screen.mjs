@@ -1569,6 +1569,39 @@ const BRAND_WRITES = ['apply-theme', 'build-components', 'prune', 'file-setup', 
   ok(links.at(-1)?.type === 'agent-link' && links.at(-1)?.on === false, `the tile turns it off through the same request — ${JSON.stringify(links.at(-1))}`);
   await page.close();
 }
+{
+  // #2368 (owner decision A): the bar's busy mark beside the Agent switch, from an agent-started that carries busy until the
+  // link state that publishes that command's result; agent-finished alone does not end it. Words typed here (DRAFT).
+  const { page } = await openPanel();
+  const state = (last) => ({ type: 'agent-link-state', state: { on: true, pollMs: 2000, transports: { mailbox: true, bridge: false }, lastCommand: last, inboxError: null } });
+  await post(page, state(null));
+  await post(page, { type: 'restore-input-library', library: LIB });
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="bar-agent"] [data-p3="agent-toggle"]'), null, { timeout: 4000 }).catch(() => {});
+  const read = () => page.evaluate(() => {
+    const m = document.querySelector('[data-p3="agent-busy"]'), sw = document.querySelector('[data-p3="agent-toggle"]');
+    const d = sw?.getAttribute('aria-describedby');
+    return { inBar: !!m?.closest('[data-p3="bar-agent"]'), drawn: !!m && !m.hidden && m.getClientRects().length > 0, title: m?.getAttribute('title') ?? null,
+      spin: !!m?.querySelector('.p3-spin'), word: m?.querySelector('.p3-agent-busy-word')?.textContent ?? null, desc: d ? document.getElementById(d)?.textContent ?? null : null };
+  });
+  const LINE = 'Agent running Style guides — closing Prism3 now stops it partway.';
+  let s = await read();
+  ok(s.inBar && !s.drawn && s.desc === null, `#2368 busy/idle: the bar holds the busy mark, not drawn, while nothing runs — ${JSON.stringify(s)}`);
+  await post(page, { type: 'agent-started', id: 'sg-1', cmd: 'status' });
+  s = await read();
+  ok(!s.drawn, `#2368 busy/quiet: a command started without busy (a read) draws no busy mark — ${JSON.stringify(s)}`);
+  await post(page, { type: 'agent-started', id: 'sg-2', cmd: 'style-guide', busy: true });
+  s = await read();
+  ok(s.drawn && s.spin && s.word === 'Running' && s.title === LINE && s.desc === LINE,
+    `#2368 busy/drawn: a write's start draws the spinner and "Running", its line the tooltip and the switch's description — ${JSON.stringify(s)}`);
+  await post(page, { type: 'agent-finished', id: 'sg-2', cmd: 'style-guide' });
+  await post(page, state({ id: 'sg-1', cmd: 'status', ok: true, finishedAt: new Date().toISOString(), headline: '' }));
+  s = await read();
+  ok(s.drawn, `#2368 busy/until-result: agent-finished, and another command's result, leave it busy — ${JSON.stringify(s)}`);
+  await post(page, state({ id: 'sg-2', cmd: 'style-guide', ok: true, finishedAt: new Date().toISOString(), headline: '✓ 41 tables drawn' }));
+  s = await read();
+  ok(!s.drawn && s.desc === null, `#2368 busy/done: the link state publishing its result returns the bar to idle — ${JSON.stringify(s)}`);
+  await page.close();
+}
 
 await browser.close();
 server.close();

@@ -21,8 +21,9 @@ npm run -w @prism3/tokens check:package         # pack, install outside the repo
 
 ## Using the package
 
-The package holds CSS custom properties for the house brand. The light defaults are on `:root`, and
-each theme mode is a `[data-theme="…"]` block. It isn't on a registry: install it from the tarball.
+The package holds CSS custom properties for the house brand. The light defaults are on `:root` and on
+`[data-theme="light"]`, and each theme mode is a `[data-theme="…"]` block. It isn't on a registry:
+install it from the tarball.
 
 ```bash
 npm pack -w @prism3/tokens                      # builds dist/ and writes prism3-tokens-<version>.tgz
@@ -30,19 +31,22 @@ npm install ./prism3-tokens-<version>.tgz       # in the client project
 ```
 
 ```css
-@import "@prism3/tokens";                       /* every block: :root, dark, hc-dark, hc-light */
+@import "@prism3/tokens";                       /* every block: :root and light, dark, hc-dark, hc-light */
 
 .card { color: var(--pds3-color-text-primary); }
 ```
 
 ```html
 <html data-theme="dark">
+  …
+  <section data-theme="light">…</section>       <!-- any mode works on a subtree, light included -->
+</html>
 ```
 
 | Import | What it holds |
 |---|---|
 | `@prism3/tokens` (also `@prism3/tokens/prism3.css`) | every block, `:root` first |
-| `@prism3/tokens/prism3/base.css` | the light defaults on `:root` only |
+| `@prism3/tokens/prism3/base.css` | the light defaults, on `:root` and `[data-theme="light"]` |
 | `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `dark`, `hc-dark`, `hc-light` |
 
 Names are stock Style Dictionary's, with the token root as prefix: `--pds3-…` (`docs/35` §9.4). Every
@@ -58,6 +62,32 @@ That check ignores spelling (`#0000001a` or `rgba(0, 0, 0, 0.1)`, quoted or not)
 reversed `cubic-bezier( )` or reordered shadow layers fail it. Each per-mode file
 (`prism3/<mode>.css`) gets the same checks on its own, not only the joined file (#3877). A non-DTCG type (today the three `spring` tokens) isn't in the
 projection, so it isn't in the CSS (#642).
+
+### What a typography style's `font` shorthand leaves out (#3507)
+
+Each `type.*` style is written as one `font` shorthand: font style, weight, size / line height, family. The style
+in the DTCG tree carries two more fields, and the shorthand has no place for either, so neither is in
+the CSS value:
+
+| Field | Which styles carry it | Set it beside the `font` |
+|---|---|---|
+| `letterSpacing` | every `type.*` style, as an alias of a `core.font.letter-spacing-role.*` | `letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-<role>) * 1em)` — the role is a multiplier of the font size ([Letter spacing](#letter-spacing-a-multiplier-of-the-font-size-2434)) |
+| `textDecoration` | every `*-link` style, body, label and caption (`type.body.md.default-link`, `type.label.md.default-link`, `type.caption.md.default-link` and their siblings), as `underline` | `text-decoration-line: underline` |
+
+```css
+.text-button {
+  font: var(--pds3-type-label-md-default-link);
+  letter-spacing: calc(var(--pds3-core-font-letter-spacing-role-normal) * 1em);
+  text-decoration-line: underline;
+}
+```
+
+Which role a style uses is in the DTCG tree, not in the CSS: the comment after each `type.*` style
+names its tracking and its underline in words. The exception is `type.body.xs.*`: its comment is
+authored, so it names the underline but not the tracking, and the role is only in the DTCG tree.
+This package stays stock Style Dictionary with no custom transform (owner decision on #3507), so it
+writes no per-style `-letter-spacing` or `-text-decoration` property. A component package reads both fields from the DTCG tree and writes the
+two declarations itself.
 
 ## The rule
 
@@ -149,22 +179,23 @@ a manifest of which files belong to a distribution. Membership is a separate con
 The gate originally measured **one** brand (`nb`), which answered "can a stranger consume `nb`?" and
 was silent on the other three. #635 widened it to the whole corpus.
 
-Brands are **discovered** from `packages/engine/out/`, so a fifth is covered the day it lands. The four
-known profiles are then asserted **by name**, because a gate with a scope must prove each promised
-surface is represented rather than count files — if `aurora` stopped being emitted, a count-based
-check would report "3 brands, all green" and the only brand with gradients would have left the corpus
-unnoticed.
+Brands are **discovered** from `packages/engine/out/`, so a new one is covered the day it lands. Every
+brand in the gate's `PROMISED` list is then asserted **by name**, because a gate with a scope must
+prove each promised surface is represented rather than count files — if `aurora` stopped being emitted,
+a count-based check would report every remaining brand green and a brand with gradients would have left
+the corpus unnoticed. The table below is that list; `[SCOPE-DOC]` fails if it and `PROMISED` disagree (#4134).
 
 | brand | what it exercises that the others do not |
 |---|---|
 | `nb` | the legacy `nbds.*` dialect, and the hand-authored regression target |
+| `prism3` | the canonical default theme (#1296): an italic-default heading category, one weight on two family spellings, gradients on a primary-action brand |
 | `aurora` | gradients (Paint Styles) + a decoupled action palette |
 | `harbor` | a third input profile |
 | `wendys` | the standard-dialect front door (`parseStandard` + classifier) |
 
 **Every expectation is derived per brand.** Leaf counts, mode lists and the token root all differ —
-`nb` roots at `nbds`, the rest at `prism` — so a shared literal would be one measurement standing in
-for four. The page-background check reads the root off each brand's own tree and compares the
+`nb` roots at `nbds`, `prism3` at `pds3`, and each other brand at its own root — so a shared literal
+would be one measurement standing in for all of them. The page-background check reads the root off each brand's own tree and compares the
 canonical build against that brand's dark projection, rather than asserting a hard-coded color.
 
 ## What widening it found: `[object Object]`, and the split that fixed half of it
