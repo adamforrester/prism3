@@ -20,7 +20,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Foundations",
     "buildable": true,
     "reason": null,
-    "members": 46,
+    "members": 48,
     "nests": []
   },
   {
@@ -929,6 +929,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 50,
     "nests": []
+  },
+  {
+    "id": "avatar",
+    "name": "Avatar",
+    "category": "foundations",
+    "summary": "A person or organization, shown as a photo, initials or a generic glyph, in that order.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Avatar",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "badge",
+      "icon"
+    ]
   },
   {
     "id": "tag",

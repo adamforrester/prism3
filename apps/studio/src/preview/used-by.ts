@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 63,
+  defs: 64,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -23,6 +23,7 @@ export const USED_BY = {
         "WalletButton",
         "SignInButton",
         "IconButton",
+        "Avatar",
         "SegmentedControl",
         "Pagination",
         "Banner"
@@ -39,6 +40,7 @@ export const USED_BY = {
         "Radio.Control",
         "Switch.Control",
         "Badge",
+        "Avatar",
         "Tag",
         "List",
         "Slider"
@@ -49,6 +51,7 @@ export const USED_BY = {
         "Textarea",
         "Select",
         "Badge",
+        "Avatar",
         "SegmentedControl",
         "PasswordField",
         "Counter",
@@ -75,6 +78,7 @@ export const USED_BY = {
         "CodeInput"
       ],
       "radius.md": [
+        "Avatar",
         "SegmentedControl",
         "Pagination",
         "Banner"
@@ -91,6 +95,7 @@ export const USED_BY = {
         "Radio.Control",
         "Switch.Control",
         "Badge",
+        "Avatar",
         "Tag",
         "List",
         "Slider"
@@ -101,6 +106,7 @@ export const USED_BY = {
         "Textarea",
         "Select",
         "Badge",
+        "Avatar",
         "SegmentedControl",
         "PasswordField",
         "Counter",
@@ -120,6 +126,7 @@ export const USED_BY = {
         "Progress"
       ],
       "radius.md": [
+        "Avatar",
         "SegmentedControl",
         "Pagination",
         "Banner"
@@ -148,6 +155,7 @@ export const USED_BY = {
         "Radio.Control",
         "Switch.Control",
         "Badge",
+        "Avatar",
         "Tag",
         "List",
         "Slider"
@@ -155,6 +163,7 @@ export const USED_BY = {
       "radius.sm": [
         "ProviderLogo",
         "Badge",
+        "Avatar",
         "SegmentedControl",
         "Counter"
       ],
@@ -184,6 +193,7 @@ export const USED_BY = {
         "CodeInput"
       ],
       "radius.md": [
+        "Avatar",
         "SegmentedControl",
         "Pagination",
         "Banner"
@@ -200,6 +210,7 @@ export const USED_BY = {
         "Radio.Control",
         "Switch.Control",
         "Badge",
+        "Avatar",
         "Tag",
         "List",
         "Slider"
@@ -207,6 +218,7 @@ export const USED_BY = {
       "radius.sm": [
         "ProviderLogo",
         "Badge",
+        "Avatar",
         "SegmentedControl",
         "Counter"
       ],
