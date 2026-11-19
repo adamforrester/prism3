@@ -22,7 +22,7 @@
  * ── THE BUILT WIDTH ─────────────────────────────────────────────────────────────────────────────────────────────
  *
  * The proposal's 240 min and 360 max are literals, as Dialog's widths (Q303.5 A). The member is BUILT at 320, between
- * them, with the 240 floor as Figma's min width; the 360 cap is code only. The 320 is this build's, held for the owner.
+ * them, with the 240 floor as Figma's min width; the 360 cap is code only. The 320 is the owner's (decision 2, 2026-11-19).
  */
 import { ComponentDef } from '../component-schema';
 
@@ -92,7 +92,7 @@ export const popover: ComponentDef = {
         elevation: 'shadow',
         radius: 'radius',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
-        // Built at 320, between the 240 floor and the 360 cap (held for the owner); an instance a designer resizes keeps
+        // Built at 320, between the 240 floor and the 360 cap (owner decision 2, 2026-11-19); an instance a designer resizes keeps
         // the floor.
         placementWidth: 320,
         minWidth: 240,
@@ -102,7 +102,7 @@ export const popover: ComponentDef = {
         note: 'The panel: the raised surface, its edge, its shadow and its corners. It pads all four sides.',
       },
       header: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',   // as Dialog's header (#3986): the close button moves to the start edge in RTL
         role: 'presentation',
         // Dialog's and the accordion's title row (Q262 A): the title beside the close button, top-aligned, so a wrapped
         // title keeps the close button beside its first line.

@@ -1025,7 +1025,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'The side of its trigger a popover opens on (#4008, owner decision Q-FL2 on OD-P2 A and OD-X2 A): Dialog\'s word for '
       + 'where a layer sits, and its `bottom` means the same edge. Code takes top, bottom, start or end; with no arrow the '
       + 'panel draws the same on every side, so the set is one member at the default side, and a one-value axis is how '
-      + 'the engine projects one member (held for the owner on #4008). Same vocabulary, shorter.',
+      + 'the engine projects one member (owner decision 1 on #4252, 2026-11-19). Same vocabulary, shorter.',
   },
   {
     axis: 'kind',

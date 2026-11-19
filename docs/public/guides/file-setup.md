@@ -16,7 +16,7 @@ Setting up again is safe: it adds only what is missing, matched by name. <!-- sr
 
 ## The pages it creates
 
-The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxonomy.ts:1-17#54450f84 --> <!-- src: apps/plugin/src/file-taxonomy.ts:77-204#245510a8 -->
+The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxonomy.ts:1-17#54450f84 --> <!-- src: apps/plugin/src/file-taxonomy.ts:77-204#6703fbdb -->
 
 - `Cover`
 - A divider, then `Foundations`, with `↳ Primitive tokens`, `↳ Semantic tokens` and `↳ Grids & layouts`

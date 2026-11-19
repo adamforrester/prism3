@@ -147,8 +147,8 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
-        // Popover (#4008, owner Q-FL2) — its own page under Components, beside Dialog. Which section it belongs in is the
-        // owner's call, held in the PR as Link's and Banner's were. It nests FlushIconButton.Neutral and the Button group.
+        // Popover (#4008, owner Q-FL2) — its own page under Components, beside Dialog (owner decision 5 on #4252,
+        // 2026-11-19). It nests FlushIconButton.Neutral and the Button group.
         { page: 'Popover', defs: ['popover'] },
         // Banner (#2579, Q327) — its own page under Components. The proposal named a feedback section; none exists, so the
         // section is held as an owner item in the PR, as Link's was. It nests Button.Neutral and FlushIconButton.Neutral.

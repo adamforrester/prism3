@@ -18844,8 +18844,16 @@ arm: {
       // after its trigger in the DOM; aria-controls is not the guarantee. Held on the code note, and on the focus note not
       // claiming aria-controls as the way in.
       const announce = popCode.find((e) => e.class === 'semantics' && /^read-only announcement/.test(e.description))?.description ?? '';
-      ok(/polite live region \(`role="status"`\)/.test(announce) && /right after its trigger in the DOM/.test(announce) && !/through `aria-controls`/.test(focusOnOpen),
-        '#4008 popover read-only announcement (S1 A): a code note says a read-only popover announces through a polite live region (role="status") and sits right after its trigger in the DOM, and no note relies on aria-controls');
+      // Every code note and the aria contract are scanned for an aria-controls claim, not the focus note alone (delta
+      // review nit): a "through `aria-controls`" sentence put back anywhere fails here by name.
+      const leansOnControls = [...popCode.map((e) => e.description), pop.accessibility?.aria ?? ''].filter((t) => /through `?aria-controls`?/.test(t));
+      ok(/polite live region \(`role="status"`\)/.test(announce) && /right after its trigger in the DOM/.test(announce) && leansOnControls.length === 0,
+        `#4008 popover read-only announcement (S1 A): a code note says a read-only popover announces through a polite live region (role="status") and sits right after its trigger in the DOM, and no note relies on aria-controls (${leansOnControls.length} do)`);
+      // #3986 on Popover's own parts (delta review S1): its right-to-left prose says the close button moves to the start
+      // edge, so the header row itself reverses, as Dialog's does. EXPECTED (typed here): the header part declares
+      // 'reverses'. The #3986 arm passes through the nested Button group alone, so it cannot see this part.
+      ok((pop.anatomy.parts as any)?.header?.mirror === 'reverses',
+        `#4008 popover right-to-left: the header part declares mirror 'reverses', as its prose and Dialog's header do (got ${JSON.stringify((pop.anatomy.parts as any)?.header?.mirror)})`);
       // OD-P5 A: no automatic switch to a sheet on a small screen.
       ok(popCode.some((e) => e.class === 'responsive-layout' && /^no automatic switch — on a small screen it stays a popover/.test(e.description)),
         '#4008 popover small screen (OD-P5 A): a code note says it stays a popover, with no automatic sheet');
