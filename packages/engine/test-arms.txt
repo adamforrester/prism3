@@ -155,6 +155,7 @@ apps/plugin/test-rename-parity.ts #1024
 apps/plugin/test-rename-parity.ts #3857
 apps/plugin/test-report-redaction.ts #3697
 apps/plugin/test-report-redaction.ts #3702
+apps/plugin/test-report-redaction.ts #4205
 apps/plugin/test-roundtrip.ts #1318
 apps/plugin/test-roundtrip.ts #1331
 apps/plugin/test-roundtrip.ts #1332

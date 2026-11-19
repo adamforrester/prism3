@@ -41,6 +41,7 @@
  * itself: they go on `↳ File Components`, a page only file setup may create, and an update's apply may write only
  * what its dry run showed.
  */
+import { failureDetail } from './apply-summary';
 import { planSetLayout, CANVAS_FURNITURE, type AnatomyPlan } from '@prism3/engine/components';
 import { isTemplateSet } from './file-components';
 import { LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, SCRIM_BACKDROP, BRACKET_PROPERTY, labelVariant, bindBackdrop } from './furniture-templates';
@@ -759,7 +760,7 @@ export const furnishUpdate = async (
       if (panel) withPanel(f, await panel(sets[0], o.def));
       out.push(f);
     }
-    catch (e) { out.push({ def: o.def, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${o.def}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], fontMisses: [] }); }
+    catch (e) { out.push({ def: o.def, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${o.def}: Figma refused the write (${failureDetail(e)})`], fontMisses: [] }); }
   }
   return out;
 };

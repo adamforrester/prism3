@@ -35,6 +35,10 @@
  *   · #3702 second review: `failureDetail` collapsing `[\r\n]` only → `#3702 D3703.1 B Set up file, a host message
  *     split by U+2028: the drawer line keeps the host's message, its class in front` (and U+2029). The report arm holds
  *     under it: the report's own cut (`test-report.ts`) closes the same leak a second time.
+ *   · #4205: any one of Update file's sites put back to `(e as Error)?.message` (`update-apply.ts`, `canvas-furniture.ts`,
+ *     `main.ts`) → `#4205 <site>: the site posts failureDetail`, and for the four `main.ts` catches `#4205 Update check: …`
+ *     (and Record as built, Adopt); `': stopped ('` or `'The update failed: '` dropped from `DETAIL_HEADS` →
+ *     `#4205 Update file, a stopped set: the report keeps the class, …` (and the run that threw).
  */
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { brandTheme, type BrandInput } from '@prism3/engine';
@@ -281,7 +285,8 @@ const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
 // `DOMException`'s message. Read from the plugin's source, independent of the list: every `${failureDetail(` in a
 // template is preceded by one of the report's heads, or by `write failed: ` (cut by its own rule). The two calls
 // outside a template are named: prune's (`prune failed: ${why}`, its own rule; `PRUNE_COPY.stopped`, filed as #3865)
-// and its version note (`PRUNE_COPY.noVersion`, whose head is checked in `prune-figma.ts`).
+// and its version note (`PRUNE_COPY.noVersion`, whose head is checked in `prune-figma.ts`), and since #4205 the four
+// Update file catches (`const why = failureDetail(e)`: the check or apply, Record, Adopt, Draw specs), held in 11.
 {
   const fs = await import('node:fs');
   const src = fs.readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
@@ -290,7 +295,7 @@ const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
   const unheaded = sites.filter((before) => !heads.some((h) => before.endsWith(h)));
   const outside = [...src.matchAll(/failureDetail\(/g)].length - sites.length;
   const prune = fs.readFileSync(new URL('./src/prune-figma.ts', import.meta.url), 'utf8');
-  ok(sites.length >= 12 && unheaded.length === 0 && outside === 2 && /noVersion: \(why: string\): string => `[^`]*the named version could not be saved \(\$\{why\}\)/.test(prune),
+  ok(sites.length >= 12 && unheaded.length === 0 && outside === 6 && /noVersion: \(why: string\): string => `[^`]*the named version could not be saved \(\$\{why\}\)/.test(prune),
     `#3702 review: every head main.ts posts a failureDetail after is one the report cuts at (${sites.length} sites; unheaded ${JSON.stringify(unheaded.map((b) => b.slice(-40)))}; ${outside} outside a template)`);
 }
 
@@ -307,6 +312,86 @@ const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
     const at = src.indexOf(phrase);
     ok(at >= 0 && src.startsWith('${failureDetail(e)})', at + phrase.length),
       `#3702 ${phrase.replace(/\$\{[^}]+\}/g, '…').replace(/ \($/, '')}: the site posts failureDetail(e) (${at < 0 ? 'phrase not found' : JSON.stringify(src.slice(at + phrase.length, at + phrase.length + 40))})`);
+  }
+}
+
+/* ── 11. #4205: Update file's lines carry a host message as `failureDetail` does ───────────────────────────────── */
+// The #3702 arms above read `main.ts` and `prune-figma.ts` only, so Update file's own lines (`update-apply.ts`) and the
+// canvas labels it redraws (`canvas-furniture.ts`) went into the report with Figma's message whole: Figma's own read
+// `in <method>: …`, a shape `reduceFailure` does not cut. 11a runs the real actions, thrown by the host, through the
+// report; 11b and 11c read every plugin source file (listed from the folder, not from a list here), so a new file or a
+// site put back to the raw message fails by name; 11d holds Update file's verdict lines over the report's heads.
+{
+  // 11a. The Update check, the host throwing as it reads the file's pages. Record as built and Adopt read the pages
+  // through `run-read.ts`, which takes a refused read as no pages, so their catches are held by their text below.
+  const root = figmaShim.root as object;
+  const own = Object.getOwnPropertyDescriptor(root, 'children');
+  const proto = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(root), 'children');
+  Object.defineProperty(root, 'children', { configurable: true, get: () => { throw new TypeError(HOST_SECRET); } });
+  const runs: [string, (sink: unknown) => Promise<void>][] = [
+    ['Update check', (sink) => A.updateComponents(undefined, null, undefined, undefined, sink)],
+  ];
+  for (const [name, f] of runs) {
+    const posted = (await run(f)).filter((m) => m.type === 'component-update-result');
+    thrown(`#4205 ${name}`, posted, posted[0]?.lines?.[0], TE, 'TypeError');
+  }
+  if (own) Object.defineProperty(root, 'children', own); else delete (root as { children?: unknown }).children;
+  ok(!!(own ?? proto) && Array.isArray((root as { children?: unknown }).children), '#4205 premise: the file reads its pages again after 11a');
+}
+{
+  const fs = await import('node:fs');
+  const dir = new URL('./src/', import.meta.url);
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.ts')).sort();
+  const read = (f: string): string => fs.readFileSync(new URL(f, dir), 'utf8');
+  ok(files.includes('update-apply.ts') && files.includes('canvas-furniture.ts') && files.includes('main.ts') && files.length > 40,
+    `#4205 premise: the scan reads every plugin source file (${files.length})`);
+  // 11b. Every `${failureDetail(` in a template, in any file, follows a head the report cuts at (9c held main.ts only).
+  const heads = [...DETAIL_HEADS, 'write failed: '];
+  const unheaded = files.flatMap((f) => { const src = read(f); return [...src.matchAll(/\$\{failureDetail\(/g)]
+    .map((m) => src.slice(Math.max(0, m.index - 60), m.index)).filter((b) => !heads.some((h) => b.endsWith(h))).map((b) => `${f}: …${b.slice(-40)}`); });
+  ok(!unheaded.length, `#4205 every file: each failureDetail in a template follows a head the report cuts at (${JSON.stringify(unheaded)})`);
+  // 11c. A head the report cuts at, followed in any file by anything but `failureDetail(`: the raw message after it.
+  // Heads that name a value of their own (`stopped (${o.stopped})`, `The update failed: ${r.failed}`) are held in 11d.
+  const cutAt = DETAIL_HEADS.filter((h) => !/stopped|update failed/.test(h));
+  // One is named: prune's version note (`PRUNE_COPY.noVersion`, `${why}`), which `main.ts` calls with `failureDetail` (9c).
+  const raw = files.flatMap((f) => { const src = read(f); return cutAt.flatMap((h) => [...src.matchAll(new RegExp(`${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\$\\{(?!failureDetail\\()`, 'g'))]
+    .map((m) => `${f}: ${src.slice(m.index, m.index + h.length + 30)}`)); })
+    .filter((x) => !x.startsWith('prune-figma.ts: the named version could not be saved (${why})'));
+  ok(!raw.length, `#4205 every file: no head the report cuts at is followed by a raw host message (${JSON.stringify(raw)})`);
+  // The six sites #4205 names, and the four Update-file catches in main.ts, each by its own text.
+  const ua = read('update-apply.ts'), cf = read('canvas-furniture.ts'), mn = read('main.ts');
+  const site = (name: string, src: string, re: RegExp): void => ok(re.test(src), `#4205 ${name}: the site posts failureDetail`);
+  site('update-apply.ts the cover', ua, /skipped: `not updated, Figma refused the write \(\$\{failureDetail\(e\)\}\)`/);
+  site('update-apply.ts the About frame', ua, /skipped: `Figma refused the write \(\$\{failureDetail\(e\)\}\)`/);
+  site('update-apply.ts the version save', ua, /refusedAll = `the named version could not be saved \(\$\{failureDetail\(err\)\}\)/);
+  ok((ua.match(/out\.stopped = failureDetail\(err\);/g) ?? []).length === 2 && !/out\.stopped = \(/.test(ua), '#4205 update-apply.ts a stopped set (both sites): the site posts failureDetail');
+  site('update-apply.ts the run that threw', ua, /res\.failed = failureDetail\(err\);/);
+  site('canvas-furniture.ts the canvas labels', cf, /No canvas labels for \$\{o\.def\}: Figma refused the write \(\$\{failureDetail\(e\)\}\)/);
+  ok((mn.match(/const why = failureDetail\(e\);/g) ?? []).length >= 5 && !/const why = \(e as Error\)/.test(mn), '#4205 main.ts Update, Record, Adopt and Draw specs: each catch posts failureDetail');
+  // No raw host message read is left in update-apply.ts: Update file's write path posts each through failureDetail.
+  const code = ua.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const rawReads = [...code.matchAll(/\((?:e|err)\s+as\s+Error\)\??\.message|\b(?:e|err)\.message\b/g)].length;
+  ok(rawReads === 0, `#4205 update-apply.ts reads no host message raw (${rawReads})`);
+}
+{
+  // 11d. Update file's verdict over those values (`applyVerdict`), thrown as a class `…Error` does not name: the
+  // report cuts at the head and keeps the class.
+  const { applyVerdict } = await import('./src/update-apply');
+  const { failureDetail } = await import('./src/apply-summary');
+  const dom = Object.assign(new Error(HOST_SECRET), { name: 'DOMException' });
+  const set = { set: 'Button', def: 'button', updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], identity: [], content: [], misses: [], unrecorded: [], kept: [], handEdits: 'keep' };
+  const base = { outcomes: [], missing: [], refused: [] };
+  const cases: [string, Record<string, unknown>][] = [
+    ['a stopped set', { ...base, outcomes: [{ ...set, stopped: failureDetail(dom) }] }],
+    ['the run that threw', { ...base, failed: failureDetail(dom) }],
+    ['the version save', { ...base, refusedAll: `the named version could not be saved (${failureDetail(dom)}), so nothing was written` }],
+  ];
+  for (const [name, r] of cases) {
+    const v = applyVerdict(r as never);
+    const posted = [{ headline: v.headline, lines: v.lines }];
+    const text = report('Update file', posted);
+    ok(rawText(posted).includes(HOST_SECRET) && !/Checkout Hero|Unannounced|get_name/.test(text) && text.includes('DOMException'),
+      `#4205 Update file, ${name}: the report keeps the class, not the host's message (${JSON.stringify(text.split('\n').filter((l) => l.startsWith('  - ')))})`);
   }
 }
 
