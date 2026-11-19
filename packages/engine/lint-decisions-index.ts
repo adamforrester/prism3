@@ -350,6 +350,7 @@ const docsWithHeadings = new Set(allHeadings.map((h) => h.doc));
  */
 const REQUIRED_DECISION_DOCS: readonly string[] = [
   'docs/06-surface-and-content-color-model.md',
+  'docs/12-token-press-monorepo-eval.md',
   'docs/19-code-library-and-dx.md',
   'docs/20-interactive-color-system.md',
   'docs/28-component-anatomy-schema.md',
