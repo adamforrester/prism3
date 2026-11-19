@@ -25,7 +25,8 @@
 import { type BrandInput, brandTheme, typefaceSlug } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
-import { isDirty, needsOverwriteConfirm } from './src/provenance';
+import { editCount, isDirty, needsOverwriteConfirm } from './src/provenance';
+import { BRAND_KEY, ORIGIN_KEY, persistInput, restoreSession, type LocalStore } from './src/persist-local';
 import { stashBefore, stillOffered } from './src/state/undo-load';
 
 let failed = 0;
@@ -307,6 +308,100 @@ ok(store.getPath(o, 'a.b.c') === 3 && store.getPath(o, 'a.x.c') === undefined, '
   ok(same(o, { keep: { arr: [1] } }), '#3878: setPath(undefined) prunes every parent it empties and creates none');
   store.setPath(o, 'keep.arr.0', undefined);
   ok(Array.isArray(o.keep.arr) && 'keep' in o, '#3878: setPath(undefined) never prunes an array, nor its owner through it');
+}
+
+// ---- #3880: a web reload keeps the origin and baseline, so edits still count -----------------------------------------
+// Owner decision A (2026-11-18). The web entry wires `persistInput` to `localStorage` and boots on `restoreSession`; here
+// the same two calls run over a `Map`-backed store, and a "reload" is a fresh `initSession` from what the store holds,
+// which is what `entry.ts`'s `bootBrand` does. Before #3880 the restored brand was its own baseline (origin `file`), so
+// the reload made the edit stop counting and the next load went through unguarded.
+// Expected values come from outside the store: the example as the engine ships it, and the edit this test makes.
+// Mutations that fail here BY NAME: `persistInput` not writing `ORIGIN_KEY` → `#3880 reload: the edit still counts`;
+// `initSession` ignoring the restored baseline → `#3880 reload: the edit still counts`; `restoreSession` skipping the
+// fingerprint check → `#3880 reload: an origin entry written beside another brand is not read`.
+{
+  const map = new Map<string, string>();
+  const local: LocalStore = { getItem: (k) => map.get(k) ?? null, setItem: (k, v) => { map.set(k, v); }, removeItem: (k) => { map.delete(k); } };
+  const aurora = (exampleBrands as Record<string, BrandInput>).aurora;
+  store.setPersist((input, prov) => persistInput(local, input, prov));
+  store.loadInput(structuredClone(aurora), { kind: 'example', id: 'aurora' });
+  const h = (aurora.primary.h + 40) % 360;
+  store.brandState.primary.h = h;
+  store.rebuild();
+  ok(store.lastError === null && needsOverwriteConfirm(store.brandState, store.provenance),
+    `#3880 premise: an edit to the aurora example asks before a load replaces it (h ${h})`);
+  store.setPersist(null);
+
+  // The reload: what `bootBrand` restores, booted as `entry.ts` boots it.
+  const reload = (): void => {
+    const r = restoreSession(local);
+    if (!r) throw new Error('premise: the store holds no brand after a persisted edit');
+    store.initSession(r.input, r.origin, r.baseline);
+  };
+  reload();
+  ok(store.brandState.primary.h === h && same(store.provenance.origin, { kind: 'example', id: 'aurora' })
+    && isDirty(store.brandState, store.provenance) && editCount(store.brandState, store.provenance.baseline) === 1,
+    `#3880 reload: the edit still counts — the aurora example is the origin, its baseline is the example's, 1 edit (origin ${JSON.stringify(store.provenance.origin)}, edits ${editCount(store.brandState, store.provenance.baseline)})`);
+  ok(needsOverwriteConfirm(store.brandState, store.provenance),
+    '#3880 reload: the next load is guarded — replacing the brand asks first, as before the reload');
+  ok(same(store.provenance.baseline, aurora), '#3880 reload: the restored baseline is the example as shipped, not the edited brand');
+
+  // A slider drag stores its edit once, on release (`holdPersist` … `releasePersist`, #2487 B1): that write must pair the
+  // brand with the provenance of the load it edits, not the boot's (#4049 review). The session boots on a file first, so
+  // the boot's provenance and the example's differ, then loads the example and drags.
+  // Mutation that fails here BY NAME: `releasePersist` writing `bootProvenance` → `#3880 reload: a dragged edit still counts`.
+  map.clear();
+  store.initSession(structuredClone(aurora), { kind: 'file' });
+  store.setPersist((input, prov) => persistInput(local, input, prov));
+  store.loadInput(structuredClone(aurora), { kind: 'example', id: 'aurora' });
+  const dragH = (aurora.primary.h + 80) % 360;
+  store.holdPersist();
+  store.brandState.primary.h = dragH;
+  store.rebuild();
+  const held = JSON.parse(map.get(BRAND_KEY) ?? 'null')?.input?.primary?.h;
+  store.releasePersist();
+  const released = JSON.parse(map.get(BRAND_KEY) ?? 'null')?.input?.primary?.h;
+  store.setPersist(null);
+  ok(store.lastError === null && held === aurora.primary.h && released === dragH,
+    `#3880 premise: a held drag stores nothing until its release, then stores the dragged brand (held h ${held}, released h ${released}, dragged h ${dragH})`);
+  reload();
+  ok(store.brandState.primary.h === dragH && same(store.provenance.origin, { kind: 'example', id: 'aurora' })
+    && same(store.provenance.baseline, aurora) && editCount(store.brandState, store.provenance.baseline) === 1
+    && needsOverwriteConfirm(store.brandState, store.provenance),
+    `#3880 reload: a dragged edit still counts — stored on release beside the example's origin and baseline, 1 edit, the next load guarded (origin ${JSON.stringify(store.provenance.origin)}, edits ${editCount(store.brandState, store.provenance.baseline)})`);
+  // Put back the stored state the arms below start from: the aurora example with the one edit above.
+  map.clear();
+  store.setPersist((input, prov) => persistInput(local, input, prov));
+  store.loadInput(structuredClone(aurora), { kind: 'example', id: 'aurora' });
+  store.brandState.primary.h = h;
+  store.rebuild();
+  store.setPersist(null);
+
+  // Storage written before #3880 holds the brand alone: it restores as it always did.
+  map.delete(ORIGIN_KEY);
+  reload();
+  ok(store.brandState.primary.h === h && same(store.provenance.origin, { kind: 'file' }) && !isDirty(store.brandState, store.provenance),
+    `#3880 reload: storage with no origin entry restores as before — the brand is its own baseline, origin file (${JSON.stringify(store.provenance.origin)})`);
+
+  // An origin entry that was not written beside this brand (a write that failed, or another brand stored over it).
+  store.setPersist((input, prov) => persistInput(local, input, prov));
+  store.loadInput(structuredClone(aurora), { kind: 'example', id: 'aurora' });
+  store.brandState.primary.h = h;
+  store.rebuild();
+  store.setPersist(null);
+  const other = structuredClone(aurora);
+  other.primary.h = (h + 40) % 360;
+  map.set(BRAND_KEY, JSON.stringify({ ...JSON.parse(map.get(BRAND_KEY)!), input: other }));
+  reload();
+  ok(store.brandState.primary.h === other.primary.h && same(store.provenance.origin, { kind: 'file' }) && !isDirty(store.brandState, store.provenance),
+    `#3880 reload: an origin entry written beside another brand is not read — the brand restores as before (${JSON.stringify(store.provenance.origin)})`);
+
+  // The empty state keeps no origin entry, and a junk entry restores as before.
+  map.set(ORIGIN_KEY, '{not json');
+  reload();
+  ok(same(store.provenance.origin, { kind: 'file' }), '#3880 reload: a junk origin entry restores the brand as before, never refuses it');
+  persistInput(local, store.brandState, { origin: { kind: 'none' }, baseline: store.brandState });
+  ok(!map.has(ORIGIN_KEY) && map.has(BRAND_KEY), '#3880 persist: the empty state keeps no origin entry, and the brand is still kept');
 }
 
 console.log(`\n${executed - failed}/${executed} passed`);

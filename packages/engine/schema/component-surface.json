@@ -567,7 +567,7 @@
     },
     "accordion": {
       "members": 48,
-      "sha256": "dc52c7ff7338b6e649934b6a35a1e2c6213803c11419942a047e499cd09e9ea9",
+      "sha256": "63e36ce6da8f3bd8f7c029d7c9573ff85ecf1307cafe25844cbed14c5277534a",
       "properties": [
         "content:SLOT",
         "divider:BOOLEAN",
@@ -788,7 +788,7 @@
     },
     "banner": {
       "members": 10,
-      "sha256": "98b213e4a4b838c344273c80ccfd8db7525c0e15c93024e6dba36e76679543a8",
+      "sha256": "eacee8f04e6becd490b764e9ba5d48065aa8220fd16c9d15873739002a06b8bd",
       "properties": [
         "actions:BOOLEAN",
         "body text:TEXT",
