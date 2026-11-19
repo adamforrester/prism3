@@ -1855,5 +1855,19 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "page-nav-item"
     ]
+  },
+  {
+    "id": "skeleton",
+    "name": "Skeleton",
+    "category": "foundations",
+    "summary": "Content-shaped placeholder for a first load. Reserves the box so nothing shifts on arrival.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Skeleton",
+    "section": "Subcomponents",
+    "buildable": true,
+    "reason": null,
+    "members": 4,
+    "nests": []
   }
 ];

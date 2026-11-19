@@ -452,8 +452,8 @@ export const progress: ComponentDef = {
 
   composition: {
     composesWith: ['field-message'],
-    alternativeTo: ['spinner'],
-    planned: ['skeleton', 'meter', 'stepper'],
+    alternativeTo: ['spinner', 'skeleton'],
+    planned: ['meter', 'stepper'],
     replacesPatterns: ['a bar that creeps to 99% while the real amount is unknown', 'a label printed inside the moving fill'],
   },
 

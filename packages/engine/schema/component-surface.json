@@ -855,6 +855,11 @@
       "properties": [
         "items:SLOT"
       ]
+    },
+    "skeleton": {
+      "members": 4,
+      "sha256": "f0d3b1ba3f4c2639a66c813484a4dd0a476538c1274663e1bf474e8b7882439d",
+      "properties": []
     }
   }
 }
