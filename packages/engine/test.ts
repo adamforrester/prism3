@@ -43524,10 +43524,15 @@ arm: {
 // ------------------------------------------------------------------- #4131: hc-dark takes the reduced dark shadow
 // Owner decision A: every dark-appearance mode follows the shadow model, full in light and reduced in dark. Read through
 // the overlay a consumer installs (base + hc-dark), not the theme, so a seed that never reaches the projection fails too.
-// Mutation: drop the hc-dark seeding in theme-brand.ts → every brand's row fails by name.
+// The regression brand nb is built by nbThemeFrom, not brandTheme, so it is read here too.
+// Mutation: drop the hc-dark seeding in theme-brand.ts → every example brand's row fails by name; drop it in
+// theme-nb.ts → `#4131 nb` fails by name.
 {
-  for (const [id, input] of Object.entries(exampleBrands())) {
-    const t = exampleTheme(`${id} (#4131)`, () => brandTheme(input as BrandInput));
+  const themes: Array<[string, Theme | undefined]> = [
+    ...Object.entries(exampleBrands()).map(([id, input]): [string, Theme | undefined] => [id, exampleTheme(`${id} (#4131)`, () => brandTheme(input as BrandInput))]),
+    ['nb', nbTheme()],
+  ];
+  for (const [id, t] of themes) {
     if (!t || !t.modes.includes('hc-dark')) { ok(false, `#4131 ${id}: the brand loads and generates hc-dark`); continue; }
     const tree = (buildTree(t) as any).tree;
     const ov = buildOverlay(tree, 'hc-dark') as any;
