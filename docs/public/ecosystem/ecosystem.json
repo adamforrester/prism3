@@ -294,6 +294,8 @@
           "flush-icon-button",
           "flush-icon-button-destructive",
           "flush-icon-button-neutral",
+          "toggle-button",
+          "toggle-icon-button",
           "field-label",
           "field-message",
           "text-field",

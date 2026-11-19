@@ -71,6 +71,8 @@ Parts that take any icon from the set. The file nominates the default unless the
 | tab-item | leadingVisual |
 | tag | leadingVisual |
 | text-field | leadingVisual, trailingVisual |
+| toggle-button | leadingVisual |
+| toggle-icon-button | icon |
 
 ## By glyph
 

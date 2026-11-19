@@ -227,6 +227,7 @@ const MUST_PROJECT = [
   'icon', 'provider-logo', 'focus-ring',
   'button', 'button-destructive', 'button-neutral', 'wallet-button', 'sign-in-button',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+  'toggle-button', 'toggle-icon-button',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'select', 'password-field',
   'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row',

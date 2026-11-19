@@ -98,6 +98,8 @@ export const TAXONOMY: Taxonomy = {
         // leads (the plain variant, or the composite over its building block) are DRAFT, held for the owner in the PR.
         { page: 'Buttons', defs: ['button', 'button-destructive', 'button-neutral', 'button-group'], lead: 'button' },
         { page: 'Icon button', defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'], lead: 'icon-button' },
+        // #4112: the toggle pair on its own page beside Button's. DRAFT, held for the owner (the proposal leaves the page open).
+        { page: 'Toggle button', defs: ['toggle-button', 'toggle-icon-button'], lead: 'toggle-button' },
         // #2343 PR 4: the express-checkout button a wallet provider draws. Its own page, DRAFT, held for the owner (Q-W4).
         { page: 'Wallet button', defs: ['wallet-button'], lead: 'wallet-button' },
         // #2343 PR 5: the social sign-in button Prism3 draws to each provider's rules. Its own page (owner decision Q-S10 A).

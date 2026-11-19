@@ -326,6 +326,42 @@
       "sha256": "9f310a9f47ce85fdd3eda0744bee64b3ff4c00bd22ecdd31c8433f9a04ede751",
       "properties": []
     },
+    "toggle-button": {
+      "members": 120,
+      "sha256": "405e20a18347595eb3b6abeea74fa9e22128fde8505021c3ac4f50ebb4245ad3",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@outline-solid-tint": {
+      "members": 120,
+      "sha256": "4d985ae3d121124f83878434d06b7c34efd232869443eec0d0a2de556d6039d3",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@outline-none": {
+      "members": 120,
+      "sha256": "bf6cb7f6c44a7f918fd318e10bd295a7c7f70f5631500fe1c04fbdaa488072b4",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-icon-button": {
+      "members": 60,
+      "sha256": "f98a699435a2278a4907099a5f49a016013382b51e046466a640d99b5b260664",
+      "properties": []
+    },
+    "toggle-icon-button@outline-solid-tint": {
+      "members": 60,
+      "sha256": "f12b8d7f73c6f872785b2c5ac9b1eedc187339691c0cd68d446a7ce09a6f1266",
+      "properties": []
+    },
+    "toggle-icon-button@outline-none": {
+      "members": 60,
+      "sha256": "d55536d4d77cf15d43e6f56fef2ee56072ddffbbedb1c2640174e88662aa513c",
+      "properties": []
+    },
     "field-label": {
       "members": 24,
       "sha256": "a8ca097d3837145eb1348f5e19f0830376c3cc9510c44e2cbc915bae2dbdb9a5",

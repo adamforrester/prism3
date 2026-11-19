@@ -225,6 +225,7 @@ const ZERO_OK: Record<string, string> = {
 const MUST_COVER = [
   'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing', 'wallet-button.focusRing', 'sign-in-button.focusRing',
   'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
+  'toggle-button.focusRing', 'toggle-icon-button.focusRing',
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
@@ -244,6 +245,7 @@ const MUST_COVER = [
 const MUST_CLEAR_STROKE = [
   'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing', 'wallet-button.focusRing', 'sign-in-button.focusRing',
   'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
+  'toggle-button.focusRing', 'toggle-icon-button.focusRing',
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',

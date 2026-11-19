@@ -4241,6 +4241,8 @@ for (const b of brands) {
     const BUTTONISH: Spec = { keys: ['padding-x', 'padding-x-visual', 'padding-y', 'gap'], sizes: ['small', 'medium', 'large'] };
     const SPECS: Record<string, Spec & { bare?: string[] }> = {
       button: BUTTONISH, 'button-destructive': BUTTONISH, 'button-neutral': BUTTONISH,
+      // #4112 — ToggleButton binds Button's spacing keys (`BUTTON_SPACING`).
+      'toggle-button': BUTTONISH,
       // The three fields project `size` since #2266, so every spacing key is a per-size rung; the bare `md` keys are gone.
       'text-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       // #2317: the Password field binds text-field's token block exactly, through the shared field factory.
@@ -4280,6 +4282,8 @@ for (const b of brands) {
     const ROWS = { compact: 'small 4/6 · medium 6/8 · large 8/8', comfortable: 'small 6/8 · medium 8/12 · large 12/12', spacious: 'small 8/12 · medium 12/16 · large 16/16' };
     const EXPECTED: Record<string, Record<typeof densities[number], string>> = {
       button: BTN, 'button-destructive': BTN, 'button-neutral': BTN,
+      // #4112 — ToggleButton reuses Button's spacing (`BUTTON_SPACING`), so it carries Button's table.
+      'toggle-button': BTN,
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'password-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'search-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
@@ -4357,6 +4361,7 @@ for (const b of brands) {
       button: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'button-destructive': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'button-neutral': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'toggle-button': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'text-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       select: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
@@ -4422,6 +4427,7 @@ for (const b of brands) {
     const P326: [string, string][] = [['gap', 'padding-x-visual'], ['padding-x-visual', 'padding-x'], ['gap', 'padding-x']];
     const RULES: Record<string, { prefix: 'sized' | 'bare'; lt: [string, string][] }> = {
       button: { prefix: 'sized', lt: P326 }, 'button-destructive': { prefix: 'sized', lt: P326 }, 'button-neutral': { prefix: 'sized', lt: P326 },
+      'toggle-button': { prefix: 'sized', lt: P326 },
       'text-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       'password-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       'search-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
@@ -17335,7 +17341,7 @@ arm: {
   {
     // THE PILL-ABLE SET, typed (Q-CS5 B, #3765): the defs whose `levers.controlShape.capsules` every shape rebinds.
     const capsuled = (d: ComponentDef): readonly string[] => d.levers?.controlShape?.capsules ?? [];
-    const PILLABLE = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'sign-in-button', 'wallet-button'];
+    const PILLABLE = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'sign-in-button', 'toggle-button', 'toggle-icon-button', 'wallet-button'];
     const pillable = componentDefs.filter((d) => capsuled(d).length).map((d) => d.id).sort();
     ok(JSON.stringify(pillable) === JSON.stringify(PILLABLE) && componentDefs.filter((d) => capsuled(d).length).every((d) => JSON.stringify(capsuled(d)) === '["radius.md"]'),
       `controlShape: the pill-able set is the buttons, each naming levers.controlShape.capsules ['radius.md'] (${pillable.join(', ')})`);
@@ -20818,6 +20824,8 @@ arm: {
       'page-nav': 2, 'page-nav-item': 9,
       // Provider logo (#2343): a glyph other components carry, placed alone only in a row of accepted cards.
       'provider-logo': 3,
+      // Toggle button (#4112, the proposal's tier): a top-level control that loses the tiebreak to Button.
+      'toggle-button': 3, 'toggle-icon-button': 3,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -22944,13 +22952,64 @@ arm: {
     // `pagination-item` joins (#2665): a page cell's hover and pressed are IconButton.Neutral ghost's neutral wash.
     // `code-input-cell` joined with #2428 and every field (text-field, password-field, search-field, select, textarea) left
     // with #2926: a field binds no wash, so the lever has nothing to reach on it.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'segmented-control-segment', 'tag']),
-      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, pagination-item, segmented-control-segment, tag, and no field (${binders.join(', ')})`);
+    // `toggle-button` and `toggle-icon-button` join (#4112): an unselected toggle's hover and pressed are Button.Neutral's
+    // wash, and its selected tint is Tag's subtle fill, so a solid-tint or no-hover brand reaches them as it reaches a tag.
+    // They stay out of the opaque fill below, on Tag's reason: a fill on an unselected toggle reads as selected.
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'segmented-control-segment', 'tag', 'toggle-button', 'toggle-icon-button']),
+      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, pagination-item, segmented-control-segment, tag, the two toggles, and no field (${binders.join(', ')})`);
     // #3071 (owner Q3071.4 A): the opaque fill reaches Button, Icon button and Flush icon button only. Tag, Segmented
     // control and Pagination keep the neutral wash: a fill on an unselected item reads as selected.
     const opaqueReach = componentDefs.filter((d) => applyOutlineInteraction(d, 'opaque-fill') !== d).map((d) => d.id).sort();
     ok(JSON.stringify(opaqueReach) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral']),
       `#3071 the opaque fill reaches button ×3, icon-button ×3 and flush-icon-button ×3, and no tag, segment or page (${opaqueReach.join(', ')})`);
+
+    // #4112 — THE TOGGLE PAIR'S OWNER DECISIONS (OD-T1 to OD-T5, all A, 2026-11-19), each held against a literal typed
+  // from the decision, never read off the def. The oracle is the projected plan, the wire the executor writes.
+  // Mutations: drop the tint or point it at another fill → `#4112 OD-T2 tint`; bind the outline to `.border.*` or leave it
+  // at hairline → `#4112 OD-T2 outline`; give the selected label the primary ink → `#4112 OD-T2 ink`; add `filled`
+  // → `#4112 OD-T3`; add a check glyph or a trailing slot → `#4112 OD-T2 no check`; rebind the unselected outline
+  // → `#4112 OD-T1 unselected`.
+  {
+    const TOGGLES = ['toggle-button', 'toggle-icon-button'];
+    for (const id of TOGGLES) {
+      const d = componentDefs.find((x) => x.id === id);
+      ok(!!d, `#4112 ${id}: is registered`);
+      if (!d) continue;
+      const set = figmaAnatomySet(d);
+      const at = (sel: string, ap: string, st: string) => set.filter((m) => {
+        const n = planComponentName(m);
+        return n.includes(`selection=${sel},`) && n.includes(`appearance=${ap},`) && n.includes(`state=${st}`);
+      });
+      const STATES_LIVE = ['rest', 'hover', 'pressed', 'focus-visible'];
+      const IND: Record<string, string> = { rest: 'rest', hover: 'hover', pressed: 'pressed', 'focus-visible': 'rest' };
+      const tintBad: string[] = [], lineBad: string[] = [], inkBad: string[] = [];
+      for (const ap of ['outline', 'text']) for (const st of STATES_LIVE) for (const m of at('selected', ap, st)) {
+        if (m.root.paints?.fills !== 'color/interactive/primary/subtle-fill/selected') tintBad.push(`${ap}/${st}: ${m.root.paints?.fills}`);
+        if (m.root.paints?.strokes !== `color/interactive/primary/indicator/${IND[st]}` || m.root.bound?.strokeWeight !== 'border-width/thick')
+          lineBad.push(`${ap}/${st}: ${m.root.paints?.strokes} @ ${m.root.bound?.strokeWeight}`);
+        const label = (m.root.children ?? []).find((c) => c.name === 'label');
+        if (label && label.paints?.fills !== `color/interactive/neutral/text/${IND[st]}`) inkBad.push(`${ap}/${st}: ${label.paints?.fills}`);
+      }
+      ok(tintBad.length === 0, `#4112 OD-T2 tint ${id}: every live selected member's box binds color/interactive/primary/subtle-fill/selected, holding at hover and pressed (${tintBad.join(' | ') || 'all'})`);
+      ok(lineBad.length === 0, `#4112 OD-T2 outline ${id}: every live selected member draws color/interactive/primary/indicator/<state> at border-width/thick, inside the box (${lineBad.join(' | ') || 'all'})`);
+      ok(inkBad.length === 0, `#4112 OD-T2 ink ${id}: a selected label keeps the unselected neutral ink, since the primary ink misses 4.5:1 on the tint (${inkBad.join(' | ') || 'all'})`);
+      // OD-T2: no check glyph and no trailing visual, so selected and unselected share one part tree.
+      const parts = Object.keys(d.anatomy?.parts ?? {}).sort();
+      const WANT_PARTS = id === 'toggle-button' ? ['container', 'focusRing', 'label', 'leadingVisual'] : ['container', 'focusRing', 'icon'];
+      ok(JSON.stringify(parts) === JSON.stringify(WANT_PARTS) && !Object.values(d.anatomy?.parts ?? {}).some((p) => p.presentWhen),
+        `#4112 OD-T2 no check ${id}: the parts are exactly [${WANT_PARTS.join(', ')}], none gated on selection (got [${parts.join(', ')}])`);
+      // OD-T3: outline and text only, outline first (the code default).
+      ok(JSON.stringify(d.variants?.appearance) === JSON.stringify(['outline', 'text']) && JSON.stringify(d.variants?.selection) === JSON.stringify(['unselected', 'selected']),
+        `#4112 OD-T3 ${id}: appearance is [outline, text] and selection [unselected, selected] (got [${d.variants?.appearance?.join(', ')}] and [${d.variants?.selection?.join(', ')}])`);
+      // OD-T1: the unselected outline member is Button.Neutral's outline paint, and its edge Button's 1px hairline.
+      const un = at('unselected', 'outline', 'rest')[0];
+      ok(un?.root.paints?.strokes === 'color/interactive/neutral/border/rest' && un?.root.bound?.strokeWeight === 'border-width/hairline' && un?.root.paints?.fills === undefined,
+        `#4112 OD-T1 unselected ${id}: the resting outline member is a 1px color/interactive/neutral/border/rest edge with no fill (${un?.root.paints?.strokes} @ ${un?.root.bound?.strokeWeight}, fill ${un?.root.paints?.fills})`);
+      // The member counts the proposal states: 120 and 60.
+      const WANT_COUNT = id === 'toggle-button' ? 120 : 60;
+      ok(set.length === WANT_COUNT, `#4112 ${id}: projects ${WANT_COUNT} members (got ${set.length})`);
+    }
+    }
     const keptWash = ['tag', 'segmented-control-segment', 'pagination-item'].map((id) => componentDefs.find((d) => d.id === id)!)
       .filter((d) => Object.values(applyOutlineInteraction(d, 'opaque-fill').tokens).some((r) => /^color\.interactive\.neutral\.overlay\.(hover|pressed)$/.test(r)));
     ok(keptWash.length === 3, `#3071 tag, segmented-control-segment and pagination-item still bind the neutral wash under opaque-fill (${keptWash.map((d) => d.id).join(', ')})`);
@@ -23335,6 +23394,8 @@ arm: {
       { def: button, part: 'label', axes: { size: 3, appearance: 2 } },
       { def: buttonDestructive, part: 'label', axes: { size: 3, appearance: 2 } },
       { def: buttonNeutral, part: 'label', axes: { size: 3, appearance: 2 } },
+      // #4112 — ToggleButton binds Button's label keys for its two appearances, so outline and text are two styles.
+      { def: componentDefs.find((d) => d.id === 'toggle-button')!, part: 'label', axes: { size: 3, appearance: 2 } },
       { def: checkboxRow, part: 'label', axes: { size: 3 } },
       { def: radioRow, part: 'label', axes: { size: 3 } },
       // #3153 (Q853 A, Q3153.1 A): the description is one rung under the label, floored at body.xs, so small and
@@ -29975,6 +30036,7 @@ arm: {
       'textarea:style', 'textarea:pending', 'textarea:empty', 'select:style', 'select:pending', 'select:empty', 'code-input:pending', 'code-input-cell:style',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
       'sign-in-button:pending', 'sign-in-button:disabled',
+      'toggle-button:inactive', 'toggle-icon-button:inactive',
     ];
     ok(JSON.stringify([...found].sort()) === JSON.stringify([...EXPECTED_ADMISSIONS].sort()),
       `#2711 codeOnly admissions: the admissions found are exactly the ${EXPECTED_ADMISSIONS.length} listed (got ${found.length}: ${[...found].sort().join(', ')})`);
@@ -34957,6 +35019,8 @@ arm: {
     // #1223 split the semantic intents into sibling components that share Button's exact anatomy, so the
     // same design fact exempts them — a Destructive or Neutral button label is the same short action phrase.
     'button-destructive.container': buttonCentreReason,
+    // #4112 — ToggleButton is Button's anatomy, and its label is the same short phrase naming an action or mode.
+    'toggle-button.container': buttonCentreReason,
     'button-neutral.container': buttonCentreReason,
     // `select`'s value row pairs an optional leading glyph with the value/placeholder text, and the same
     // design fact exempts it: a select shows ONE selected option's label, ellipsized to a single line
@@ -39984,6 +40048,8 @@ arm: {
     'tag.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a select tag is selected by `selected`' },
     'tab-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
+    'toggle-button.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a toggle button is pressed by `selected`, rendering aria-pressed (#4112)' },
+    'toggle-icon-button.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a toggle icon button is pressed by `selected`, rendering aria-pressed (#4112)' },
     'pagination-item.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'the current page is marked by `current`, rendering aria-current="page", as Link does (#2665, #3554 Q-CC15 A)' },
     'page-nav-item.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'a page navigation item marks the current page by `current`, as Link does (#3345)' },
     'link.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'a link marks the current page by `current`, rendering aria-current="page" (#2872, Q507.3 A)' },
@@ -42646,7 +42712,7 @@ arm: {
     ok(shapedBad.length === 0, `Q-CS5 B levers: every capsuled def, materialized under each shape, still validates its levers (${shapedBad.join(' | ') || 'clean'})`);
     // The reach of each setting, typed: the defs that carry each entry (was the eight tables in anatomy-figma.ts). Code input's cell joins Control shape in #3765.
     const REACH: Record<string, string[]> = {
-      controlShape: ['button', 'button-destructive', 'button-neutral', 'card-number-field', 'checkbox-control', 'code-input-cell', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'search-field', 'select', 'sign-in-button', 'text-field', 'textarea', 'wallet-button'],
+      controlShape: ['button', 'button-destructive', 'button-neutral', 'card-number-field', 'checkbox-control', 'code-input-cell', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'search-field', 'select', 'sign-in-button', 'text-field', 'textarea', 'toggle-button', 'toggle-icon-button', 'wallet-button'],
       fieldStyle: ['card-number-field', 'code-input-cell', 'password-field', 'search-field', 'select', 'text-field', 'textarea'],
       tagStyle: ['tag'], buttonLabelWeight: ['tag'], dialogTitleSize: ['dialog'], bannerStyle: ['banner'], currentIndicator: ['link'],
       outlineInteraction: ['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'],

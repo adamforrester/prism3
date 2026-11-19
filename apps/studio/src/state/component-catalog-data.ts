@@ -489,6 +489,89 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "toggle-button",
+    "name": "ToggleButton",
+    "category": "form",
+    "summary": "A button that stays pressed, for a mode that persists, such as Pin or Show archived.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.padding-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.medium.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.small.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.padding-x-visual",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.medium.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.padding-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.150"
+      }
+    ],
+    "page": "Toggle button",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 120,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "toggle-icon-button",
+    "name": "ToggleIconButton",
+    "category": "form",
+    "summary": "An icon-only button that stays pressed, such as Bold or Mute. Needs an accessible name.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Toggle button",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 60,
+    "nests": [
+      "icon",
+      "focus-ring"
+    ]
+  },
+  {
     "id": "field-label",
     "name": "FieldLabel",
     "category": "form",

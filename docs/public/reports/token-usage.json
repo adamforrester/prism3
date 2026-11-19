@@ -12,7 +12,7 @@
     "used": 290,
     "unusedSemantic": 252,
     "unusedPrimitive": 280,
-    "components": 63
+    "components": 65
   },
   "tokens": {
     "border-width.hairline": {
@@ -571,6 +571,36 @@
             }
           }
         },
+        "toggle-button": {
+          "keys": [
+            "unselected.border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 60,
+              "where": {
+                "selection": [
+                  "unselected"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "unselected.border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 30,
+              "where": {
+                "selection": [
+                  "unselected"
+                ]
+              }
+            }
+          }
+        },
         "wallet-button": {
           "keys": [
             "border-width"
@@ -868,6 +898,36 @@
                 ],
                 "type": [
                   "select"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 60,
+              "where": {
+                "selection": [
+                  "selected"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "selected.border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 30,
+              "where": {
+                "selection": [
+                  "selected"
                 ]
               }
             }
@@ -1686,6 +1746,18 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "focus-ring"
+          ],
+          "parts": {}
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "focus-ring"
+          ],
+          "parts": {}
         }
       }
     },
@@ -2947,6 +3019,36 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 9,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -3691,6 +3793,39 @@
             },
             "leadingVisual": {
               "members": 9,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 12,
+              "where": {
+                "leading": [
+                  "true"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 12,
               "where": {
                 "state": [
                   "disabled"
@@ -4507,6 +4642,21 @@
           "parts": {
             "counter": {
               "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 24,
               "where": {
                 "state": [
                   "disabled"
@@ -7427,6 +7577,48 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "unselected.outline.border.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "unselected.outline.border.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -7507,6 +7699,48 @@
             "container": {
               "members": 6,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "unselected.outline.border.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "unselected.outline.border.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -7619,6 +7853,50 @@
             "container": {
               "members": 12,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "unselected.outline.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "unselected.outline.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -7996,6 +8274,45 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.outline.icon.hover",
+            "selected.text.icon.hover",
+            "unselected.outline.icon.hover",
+            "unselected.text.icon.hover"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 12,
+              "where": {
+                "leading": [
+                  "true"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "selected.outline.icon.hover",
+            "selected.text.icon.hover",
+            "unselected.outline.icon.hover",
+            "unselected.text.icon.hover"
+          ],
+          "parts": {
+            "icon": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -8202,6 +8519,45 @@
             },
             "leadingVisual": {
               "members": 9,
+              "where": {
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.outline.icon.pressed",
+            "selected.text.icon.pressed",
+            "unselected.outline.icon.pressed",
+            "unselected.text.icon.pressed"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 12,
+              "where": {
+                "leading": [
+                  "true"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "selected.outline.icon.pressed",
+            "selected.text.icon.pressed",
+            "unselected.outline.icon.pressed",
+            "unselected.text.icon.pressed"
+          ],
+          "parts": {
+            "icon": {
+              "members": 12,
               "where": {
                 "state": [
                   "pressed"
@@ -8507,6 +8863,47 @@
             },
             "leadingVisual": {
               "members": 18,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.outline.icon",
+            "selected.text.icon",
+            "unselected.outline.icon",
+            "unselected.text.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 24,
+              "where": {
+                "leading": [
+                  "true"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "selected.outline.icon",
+            "selected.text.icon",
+            "unselected.outline.icon",
+            "unselected.text.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 24,
               "where": {
                 "state": [
                   "focus-visible",
@@ -8902,6 +9299,46 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "unselected.outline.overlay.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "unselected.outline.overlay.hover",
+            "unselected.text.overlay.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -9028,6 +9465,46 @@
         "tag": {
           "keys": [
             "unselected.overlay.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "unselected.outline.overlay.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "unselected.outline.overlay.pressed",
+            "unselected.text.overlay.pressed"
           ],
           "parts": {
             "container": {
@@ -9233,6 +9710,24 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.outline.label.hover",
+            "selected.text.label.hover",
+            "unselected.outline.label.hover",
+            "unselected.text.label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -9417,6 +9912,24 @@
           "parts": {
             "label": {
               "members": 9,
+              "where": {
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.outline.label.pressed",
+            "selected.text.label.pressed",
+            "unselected.outline.label.pressed",
+            "unselected.text.label.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 24,
               "where": {
                 "state": [
                   "pressed"
@@ -9638,6 +10151,25 @@
           "parts": {
             "label": {
               "members": 18,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.outline.label",
+            "selected.text.label",
+            "unselected.outline.label",
+            "unselected.text.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 48,
               "where": {
                 "state": [
                   "focus-visible",
@@ -10539,6 +11071,44 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.outline.border.hover",
+            "selected.text.border.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "selected.outline.border.hover",
+            "selected.text.border.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -10600,6 +11170,44 @@
                 ],
                 "type": [
                   "select"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.outline.border.pressed",
+            "selected.text.border.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "selected.outline.border.pressed",
+            "selected.text.border.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
                 ]
               }
             }
@@ -10668,6 +11276,46 @@
                 ],
                 "type": [
                   "select"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.outline.border",
+            "selected.text.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 24,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "selected.outline.border",
+            "selected.text.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
                 ]
               }
             }
@@ -11023,6 +11671,50 @@
                 ],
                 "type": [
                   "select"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "selected.outline.overlay",
+            "selected.text.overlay"
+          ],
+          "parts": {
+            "container": {
+              "members": 48,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "selected.outline.overlay",
+            "selected.text.overlay"
+          ],
+          "parts": {
+            "container": {
+              "members": 24,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
                 ]
               }
             }
@@ -18373,6 +19065,36 @@
             }
           }
         },
+        "toggle-button": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "wallet-button": {
           "keys": [
             "ring-offset"
@@ -18877,6 +19599,36 @@
             }
           }
         },
+        "toggle-button": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "wallet-button": {
           "keys": [
             "ring-width"
@@ -19041,6 +19793,21 @@
             },
             "ringGlyph": {
               "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 20,
               "where": {
                 "size": [
                   "large"
@@ -19819,6 +20586,39 @@
             }
           }
         },
+        "toggle-button": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 20,
+              "where": {
+                "leading": [
+                  "true"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "size.medium.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "wallet-button": {
           "keys": [
             "size.medium.any.mark"
@@ -20580,6 +21380,39 @@
             }
           }
         },
+        "toggle-button": {
+          "keys": [
+            "size.medium.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 20,
+              "where": {
+                "leading": [
+                  "true"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "wallet-button": {
           "keys": [
             "size.small.any.mark"
@@ -21232,6 +22065,24 @@
               "where": {}
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 20,
+              "where": {
+                "leading": [
+                  "true"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -21259,6 +22110,18 @@
         "spinner": {
           "keys": [
             "motion.enter-reduced"
+          ],
+          "parts": {}
+        },
+        "toggle-button": {
+          "keys": [
+            "motion.state-reduced"
+          ],
+          "parts": {}
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "motion.state-reduced"
           ],
           "parts": {}
         }
@@ -21304,6 +22167,20 @@
             "motion.enter"
           ],
           "parts": {}
+        },
+        "toggle-button": {
+          "keys": [
+            "motion.press",
+            "motion.state"
+          ],
+          "parts": {}
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "motion.press",
+            "motion.state"
+          ],
+          "parts": {}
         }
       }
     },
@@ -21336,6 +22213,20 @@
           "parts": {}
         },
         "button-neutral": {
+          "keys": [
+            "motion.press-easing",
+            "motion.state-easing"
+          ],
+          "parts": {}
+        },
+        "toggle-button": {
+          "keys": [
+            "motion.press-easing",
+            "motion.state-easing"
+          ],
+          "parts": {}
+        },
+        "toggle-icon-button": {
           "keys": [
             "motion.press-easing",
             "motion.state-easing"
@@ -21557,6 +22448,28 @@
           "parts": {
             "container": {
               "members": 96,
+              "where": {}
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 120,
+              "where": {}
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 60,
               "where": {}
             }
           }
@@ -22498,6 +23411,36 @@
             }
           }
         },
+        "toggle-button": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 40,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "size.large.side"
+          ],
+          "parts": {
+            "container": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "wallet-button": {
           "keys": [
             "size.large.black.mark",
@@ -22895,6 +23838,36 @@
             "container": {
               "members": 2,
               "where": {}
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 40,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "size.medium.side"
+          ],
+          "parts": {
+            "container": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
             }
           }
         },
@@ -23348,6 +24321,36 @@
                 ],
                 "type": [
                   "dismissible"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 40,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-icon-button": {
+          "keys": [
+            "size.small.side"
+          ],
+          "parts": {
+            "container": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "small"
                 ]
               }
             }
@@ -24578,6 +25581,21 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.small.padding-y"
+          ],
+          "parts": {
+            "container": {
+              "members": 40,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -25280,6 +26298,20 @@
               "where": {}
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.large.padding-y",
+            "size.medium.gap",
+            "size.medium.padding-y",
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 120,
+              "where": {}
+            }
+          }
         }
       }
     },
@@ -25634,6 +26666,19 @@
           "parts": {
             "content": {
               "members": 2,
+              "where": {}
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.large.gap",
+            "size.medium.padding-x-visual",
+            "size.small.padding-x-visual"
+          ],
+          "parts": {
+            "container": {
+              "members": 80,
               "where": {}
             }
           }
@@ -26075,6 +27120,19 @@
               "where": {}
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.large.padding-x-visual",
+            "size.medium.padding-x",
+            "size.small.padding-x"
+          ],
+          "parts": {
+            "container": {
+              "members": 100,
+              "where": {}
+            }
+          }
         }
       }
     },
@@ -26481,6 +27539,25 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.large.padding-x",
+            "size.small.hit-target"
+          ],
+          "keysNotDrawn": [
+            "size.small.hit-target"
+          ],
+          "parts": {
+            "container": {
+              "members": 40,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -26548,6 +27625,13 @@
           "parts": {}
         },
         "button-neutral": {
+          "keys": [
+            "size.large.hit-target",
+            "size.medium.hit-target"
+          ],
+          "parts": {}
+        },
+        "toggle-button": {
           "keys": [
             "size.large.hit-target",
             "size.medium.hit-target"
@@ -29183,6 +30267,24 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.large.outline.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 20,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -29232,6 +30334,24 @@
           "parts": {
             "label": {
               "members": 96,
+              "where": {
+                "appearance": [
+                  "text"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.large.text.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 20,
               "where": {
                 "appearance": [
                   "text"
@@ -29677,6 +30797,24 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.medium.outline.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 20,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -29726,6 +30864,24 @@
           "parts": {
             "label": {
               "members": 96,
+              "where": {
+                "appearance": [
+                  "text"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.medium.text.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 20,
               "where": {
                 "appearance": [
                   "text"
@@ -30216,6 +31372,24 @@
               }
             }
           }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.small.outline.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 20,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -30265,6 +31439,24 @@
           "parts": {
             "label": {
               "members": 96,
+              "where": {
+                "appearance": [
+                  "text"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "toggle-button": {
+          "keys": [
+            "size.small.text.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 20,
               "where": {
                 "appearance": [
                   "text"
@@ -33497,6 +34689,153 @@
         "type.body.sm.line-box"
       ],
       "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "toggle-button": {
+      "members": 120,
+      "axes": {
+        "appearance": [
+          "outline",
+          "text"
+        ],
+        "leading": [
+          "false",
+          "true"
+        ],
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "border-width.thick",
+        "color.border.focus",
+        "color.disabled.border",
+        "color.disabled.icon",
+        "color.disabled.text",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.overlay.hover",
+        "color.interactive.neutral.overlay.pressed",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
+        "color.interactive.primary.indicator.hover",
+        "color.interactive.primary.indicator.pressed",
+        "color.interactive.primary.indicator.rest",
+        "color.interactive.primary.subtle-fill.selected",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.md",
+        "icon.size.sm",
+        "icon.size.xs",
+        "motion.duration-reduced.fast",
+        "motion.duration.fast",
+        "motion.easing-role.default",
+        "radius.md",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.075",
+        "space.100",
+        "space.150",
+        "space.200",
+        "space.300",
+        "space.550",
+        "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
+        "type.label.md.emphasis",
+        "type.label.md.emphasis-link",
+        "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link"
+      ],
+      "declaredNotDrawn": [
+        "color.border.focus",
+        "motion.duration-reduced.fast",
+        "motion.duration.fast",
+        "motion.easing-role.default",
+        "space.550"
+      ],
+      "drawnNotDeclared": []
+    },
+    "toggle-icon-button": {
+      "members": 60,
+      "axes": {
+        "appearance": [
+          "outline",
+          "text"
+        ],
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "border-width.thick",
+        "color.border.focus",
+        "color.disabled.border",
+        "color.disabled.icon",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.overlay.hover",
+        "color.interactive.neutral.overlay.pressed",
+        "color.interactive.primary.indicator.hover",
+        "color.interactive.primary.indicator.pressed",
+        "color.interactive.primary.indicator.rest",
+        "color.interactive.primary.subtle-fill.selected",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.lg",
+        "icon.size.md",
+        "icon.size.sm",
+        "motion.duration-reduced.fast",
+        "motion.duration.fast",
+        "motion.easing-role.default",
+        "radius.md",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height"
+      ],
+      "declaredNotDrawn": [
+        "color.border.focus",
+        "motion.duration-reduced.fast",
+        "motion.duration.fast",
+        "motion.easing-role.default"
+      ],
       "drawnNotDeclared": []
     },
     "veil": {

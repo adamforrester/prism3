@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 63,
+  defs: 65,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -23,6 +23,8 @@ export const USED_BY = {
         "WalletButton",
         "SignInButton",
         "IconButton",
+        "ToggleButton",
+        "ToggleIconButton",
         "SegmentedControl",
         "Pagination",
         "Banner"
@@ -69,6 +71,8 @@ export const USED_BY = {
         "WalletButton",
         "SignInButton",
         "IconButton",
+        "ToggleButton",
+        "ToggleIconButton",
         "Progress"
       ],
       "radius.lg": [
@@ -130,6 +134,8 @@ export const USED_BY = {
         "SignInButton",
         "IconButton",
         "FlushIconButton",
+        "ToggleButton",
+        "ToggleIconButton",
         "TextField",
         "Textarea",
         "Checkbox.Control",
@@ -174,6 +180,8 @@ export const USED_BY = {
         "WalletButton",
         "SignInButton",
         "IconButton",
+        "ToggleButton",
+        "ToggleIconButton",
         "TextField",
         "Textarea",
         "Checkbox.Control",
@@ -222,6 +230,8 @@ export const USED_BY = {
       "SignInButton",
       "IconButton",
       "FlushIconButton",
+      "ToggleButton",
+      "ToggleIconButton",
       "TextField",
       "Checkbox.Row",
       "Radio.Row",
@@ -243,6 +253,8 @@ export const USED_BY = {
       "SignInButton",
       "IconButton",
       "FlushIconButton",
+      "ToggleButton",
+      "ToggleIconButton",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",
@@ -260,6 +272,8 @@ export const USED_BY = {
       "SignInButton",
       "IconButton",
       "FlushIconButton",
+      "ToggleButton",
+      "ToggleIconButton",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",

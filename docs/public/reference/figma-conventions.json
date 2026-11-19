@@ -55,6 +55,14 @@
             "usagePanelLead": "icon-button"
           },
           {
+            "name": "↳ Toggle button",
+            "components": [
+              "toggle-button",
+              "toggle-icon-button"
+            ],
+            "usagePanelLead": "toggle-button"
+          },
+          {
             "name": "↳ Wallet button",
             "components": [
               "wallet-button"
@@ -1214,6 +1222,118 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button-neutral.md"
+      },
+      {
+        "id": "toggle-button",
+        "name": "ToggleButton",
+        "figmaName": "toggle-button",
+        "kind": "component set",
+        "page": "↳ Toggle button",
+        "section": "Components",
+        "members": 120,
+        "variantProperties": [
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
+            ]
+          },
+          {
+            "name": "appearance",
+            "values": [
+              "outline",
+              "text"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          },
+          {
+            "name": "leading icon",
+            "values": [
+              "false",
+              "true"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/toggle-button.md"
+      },
+      {
+        "id": "toggle-icon-button",
+        "name": "ToggleIconButton",
+        "figmaName": "toggle-icon-button",
+        "kind": "component set",
+        "page": "↳ Toggle button",
+        "section": "Components",
+        "members": 60,
+        "variantProperties": [
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
+            ]
+          },
+          {
+            "name": "appearance",
+            "values": [
+              "outline",
+              "text"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/toggle-icon-button.md"
       },
       {
         "id": "field-label",
@@ -3908,7 +4028,9 @@
       "wallet-button",
       "sign-in-button",
       "page-nav-item",
-      "page-nav"
+      "page-nav",
+      "toggle-button",
+      "toggle-icon-button"
     ],
     "templates": [
       {
