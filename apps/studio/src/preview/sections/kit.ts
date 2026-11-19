@@ -92,9 +92,8 @@ export const palSection = (title: string, sub: string): HTMLElement => {
   sec.append(head);
   return sec;
 };
-/** A sub-heading inside a section. */
 /** A table's horizontal scroll wrapper (`.mtbl-scroll`), a Tab stop named for its table (#4223): a keyboard can scroll a
- *  table wider than its card, on a browser that does not make a scroller focusable by itself (Safari). */ 
+ *  table wider than its card, on a browser that does not make a scroller focusable by itself (Safari). */
 export const scrollBox = (name: string): HTMLElement => {
   const s = el('div', 'mtbl-scroll');
   s.tabIndex = 0;
@@ -102,6 +101,7 @@ export const scrollBox = (name: string): HTMLElement => {
   s.setAttribute('aria-label', name);
   return s;
 };
+/** A sub-heading inside a section. */
 export const subHead = (title: string): HTMLElement => { const s = el('div', 'sub-lab'); s.append(el('h4', 'sub-t', title)); return s; };
 
 /** The resolvable DTCG path for a color role. #1148 collapsed the pointer and value tiers into one `color`,

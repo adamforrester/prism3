@@ -23289,6 +23289,20 @@ if (runs('markup-audit')) {
         return { cls: a.className, style: c.outlineStyle, color: c.outlineColor, want, width: parseFloat(c.outlineWidth) };
       });
       ok(/\bmtbl-scroll\b/.test(ring.cls) && ring.style === 'solid' && ring.color === ring.want && ring.width >= 1, `#4223 ${where}: a focused scroll wrapper draws the chrome's focus ring (${JSON.stringify(ring)})`);
+      // #4223, Shape's tables: `shapeTable` builds every one (Spacing, Radius, Control heights, the building blocks), so
+      // each Shape section's wrappers are read here, grouped by section. EXPECTED (typed here): the four Shape sections
+      // each hold at least one wrapper, and every wrapper is a Tab stop and a named group. Mutation that fails here BY
+      // NAME: `shapeTable`'s `scrollBox(name)` back to `el('div', 'mtbl-scroll')` → `#4223 … Shape`.
+      step = 'Shape, the preview tables';
+      await goPlace(page, 'shape');
+      await hooks.need(page, '.mtbl-scroll');
+      const sh = await page.evaluate(() => [...document.querySelectorAll('[data-p3="section-head"]')].map((h) => h.parentElement)
+        .filter((sec) => sec.querySelector('.mtbl-scroll')).map((sec) => ({
+          section: sec.querySelector('[data-p3="section-title"]')?.textContent ?? '',
+          scrolls: [...sec.querySelectorAll('.mtbl-scroll')].map((s) => ({ tab: s.tabIndex, role: s.getAttribute('role'), name: s.getAttribute('aria-label') ?? '' })),
+        })));
+      const shOff = sh.filter((s) => s.scrolls.some((x) => x.tab !== 0 || x.role !== 'group' || !x.name.trim()));
+      ok(sh.length >= 4 && shOff.length === 0, `#4223 ${where}: each Shape section's table wrappers are Tab stops and named groups (${sh.length} section(s); off ${JSON.stringify(shOff.slice(0, 2))})`);
       // #4221: Export's settings are radio groups. EXPECTED (typed here): each named by its label, one checked radio, one
       // Tab stop each; an arrow key moves the selection and focus with it. Mutation that fails here BY NAME: the options
       // back to `aria-pressed` buttons → `#4221 …`.
