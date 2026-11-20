@@ -18,6 +18,7 @@
  */
 import { brandTheme, type BrandInput, resolvePreview } from '@prism3/engine';
 import { brandState } from './store';
+import { modeLabel } from './mode-label';
 
 type Rec = Record<string, unknown>;
 type ByMode = Record<string, Rec | undefined>;
@@ -116,7 +117,8 @@ export const PALETTE_REFS: readonly NameRef[] = [
   },
   {
     // A per-mode palette swap (#1729) names a palette on both sides: the palette a mode replaces and its replacement.
-    // A rename follows either side; a removal drops every swap naming the palette, so that mode stops swapping it.
+    // A rename follows either side; a removal drops every swap naming the palette, so that mode stops swapping it. The
+    // confirm names the mode as the mode control does ("In Brand B"), not by its slug (owner decision 2026-11-19).
     field: 'modePalettes.<mode>.<palette>', kind: 'palette',
     rename: (b, p, n) => {
       for (const sw of Object.values((b.modePalettes ?? {}) as Record<string, Record<string, string> | undefined>)) {
@@ -136,7 +138,7 @@ export const PALETTE_REFS: readonly NameRef[] = [
       if (!Object.keys(mp).length) b.modePalettes = undefined;
     },
     effects: (b, x) => Object.entries((b.modePalettes ?? {}) as Record<string, Record<string, string> | undefined>).flatMap(([m, sw]) =>
-      Object.entries(sw ?? {}).filter(([from, to]) => from === x || to === x).map(([from, to]) => `In ${m}, ${from} is no longer swapped for ${to}.`)),
+      Object.entries(sw ?? {}).filter(([from, to]) => from === x || to === x).map(([from, to]) => `In ${modeLabel(m)}, ${from} is no longer swapped for ${to}.`)),
   },
   {
     field: 'interactivePalettes[].palette', kind: 'palette',

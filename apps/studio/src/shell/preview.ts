@@ -24,16 +24,12 @@ import { INSPECT, type InspectId } from './pages';
 import { glyph, h, hook, menuButton, tile } from './dom';
 import { ENGINE_VERSION } from '@prism3/engine';
 import { buildChip, buildTitle } from '../build-identity';
+import { customModeLabel, modeLabel } from '../state/mode-label';
 
-/** Short mode names, as the legacy mode strip and concept v6 show them. A custom mode shows its own name, read as
- *  words (`customModeLabel`). */
-const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
 /** Full mode names, for Health's per-mode lines (concept v6's `FULL_MODE_LABEL`). */
 const MODE_NAME: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'High contrast light', 'hc-dark': 'High contrast dark', wireframe: 'Wireframe' };
-/** A custom mode's slug as the menu shows it (#1729): each hyphen a space, each word capitalized, so the default
- *  theme's `brand-b` reads "Brand B", the name its issue gives it. The slug stays the mode's name everywhere else. */
-export const customModeLabel = (m: string): string => m.split('-').filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || m;
-export const modeLabel = (m: string): string => MODE_LABEL[m] ?? customModeLabel(m);
+/** A mode's name as the mode control shows it (`state/mode-label.ts`, #1729). */
+export { customModeLabel, modeLabel };
 
 /** The verdict for the resolved theme, over the modes it ships. */
 export const verdict = (): Verdict => verdictOf(theme, rp.modes);

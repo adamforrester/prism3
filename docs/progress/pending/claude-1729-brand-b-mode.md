@@ -40,10 +40,15 @@ read it as words (`customModeLabel`: `brand-b` → "Brand B").
 is unchanged (`token-contract.ts --check`); the new names are prism3's own palette primitives (`core.palette.brand-b-*`).
 The shipped token CSS gains a `[data-theme="brand-b"]` block.
 
-**Owner decisions held on the PR:** the "Brand B" label rule; the glow gradient ending on Brand B's violet rather than
-Aurora's azure; the gamut note Aurora's accent brings to the default theme; Brand B's ramps showing in every palette
-picker; and the five-mode header falling back to the select at 1280 on four pages, against Q-UI1 (#3553), which the
-chrome test holds on four modes until answered.
+The removal confirm names the mode the same way ("In Brand B, accent is no longer swapped for brand-b-accent.";
+the label moved to `state/mode-label.ts` so `name-refs.ts` can read it), and the plugin's style guide titles a
+palette's one-letter word as a letter's name: "Brand B primary", "Brand B accent", not "Brand b".
+
+**Owner decisions (2026-11-19, on the PR):** decision 7 is A, so Brand B's controls stay on `brand-b-primary` (violet)
+with no per-mode `actionPalette`. Decisions 1–6 and the new strings are approved as recommended: the "Brand B" label
+rule; the glow gradient ending on Brand B's violet rather than Aurora's azure; the gamut note Aurora's accent brings to
+the default theme; Brand B's ramps showing in every palette picker; and the five-mode header falling back to the select
+at 1280 on four pages, against Q-UI1 (#3553), which the chrome test holds on four modes.
 
 **Measured.** On main's Prism3 input the new arms fail by name (plugin read-back: "brand B (#1729): the saved default
 theme declares brand-b"; Studio: "the default theme ships brand-b"; verdict: "prism3 gates 1205 roles"). Mutation:

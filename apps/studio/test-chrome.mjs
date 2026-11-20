@@ -4597,7 +4597,7 @@ console.log(`\nRemove a brand color — the confirm\n${'='.repeat(78)}`);
   const p1 = await panel();
   confirmChecks: {
   // #1729: the default theme's Brand B swaps accent for its own, so that swap goes too, and the confirm says so.
-  const WANT_ITEMS = ['The success color goes back to Auto.', 'In brand-b, accent is no longer swapped for brand-b-accent.', 'In the brand gradient, 1 stop switches to primary.', 'In the glow gradient, 1 stop switches to primary.'];
+  const WANT_ITEMS = ['The success color goes back to Auto.', 'In Brand B, accent is no longer swapped for brand-b-accent.', 'In the brand gradient, 1 stop switches to primary.', 'In the glow gradient, 1 stop switches to primary.'];
   ok(p1.n === 1 && p1.title === 'Remove accent?' && p1.named === 'Remove accent?' && p1.focus === 'brand-color-confirm-go',
     `confirm: Remove accent asks first, "Remove accent?" names it and focus is on its action, as S3's confirms do (${JSON.stringify(p1)})`);
   ok(JSON.stringify(p1.items) === JSON.stringify(WANT_ITEMS), `confirm: it names what else the removal changes — ${JSON.stringify(p1.items)}, want ${JSON.stringify(WANT_ITEMS)}`);

@@ -333,7 +333,7 @@ import type { CellsApi } from './src/style-guide-cells';
 import { STYLE_GUIDE_GROUPS, styleGuideGroupOf } from '@prism3/engine/figma';
 import { planStyleGuide, runStyleGuide, removeRetiredTables, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp, tableMovesDue, relocateTables } from './src/style-guide';
 import { createRunGuard, busyMessage } from './src/run-guard';
-import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
+import type { StyleGuideApi, SgCatalog, SgCollection, SgVariable, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd, brandTheme, resolveAllModes } from '@prism3/engine';
 
 let failures = 0;
@@ -1393,6 +1393,13 @@ const main = async (): Promise<void> => {
     ok(noBrand.tables.every((t) => t.rows.every((r) => r.cells.every((c) => c.contrast === null))) && noBrand.notes.some((n) => n.startsWith('No saved brand')), '3: no saved brand — every contrast "—", said once');
     ok(planStyleGuide(catalog, contract, { types: ['motion'] }).tables.length === 0 && planStyleGuide(catalog, contract, { types: ['motion'] }).notes.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient, grid'), '3: a later-phase type is named, not drawn');
     ok(planStyleGuide(catalog, contract, { valueFormat: 'rgba' }).tables.find((t) => t.title === 'Scrim')!.rows[0].cells[0].value === 'rgba(0, 0, 0, 0.4)', '3: rgba format');
+    // Brand B's two ramps (#1729), left out of the four-mode file above, title as the Studio names the mode: "Brand B
+    // primary", never "Brand b primary" (owner decision 2026-11-19 on #4269). The titles are typed here.
+    const bbCol: SgCollection = { id: 'VariableCollectionId:bb', name: 'core', modes: [{ modeId: 'bb:0', name: 'Default' }], defaultModeId: 'bb:0' };
+    const bbVars: SgVariable[] = readJson('core.palette.json').variables.filter((v) => /\/core\/palette\/(brand-b-(primary|accent)|primary)\//.test(v.name))
+      .map((v, i) => ({ id: `VariableID:bb:${i}`, name: v.name, variableCollectionId: bbCol.id, resolvedType: v.resolvedType, description: v.description, valuesByMode: { 'bb:0': v.value } }));
+    const bbTitles = planStyleGuide({ collections: [bbCol], variables: bbVars }, null).tables.filter((t) => t.kind === 'primitive').map((t) => t.title);
+    ok(JSON.stringify(bbTitles) === JSON.stringify(['Primary', 'Brand B primary', 'Brand B accent']), `3: #1729 Brand B's ramps title "Brand B primary" and "Brand B accent" (${JSON.stringify(bbTitles)})`);
   }
 
   console.log('4. numeric order');
