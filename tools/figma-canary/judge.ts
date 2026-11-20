@@ -190,7 +190,7 @@ export const judge = (run: unknown, expect: string, opts: { fileName?: string } 
       // #3394 §5b: a preview of one change that sets a role to the step it already resolves to. It reads and writes nothing.
       if (verdict?.preview !== true || verdict?.applied !== false) { no('not a preview: the overrides were written'); continue; }
       const d = data as { previewHash?: unknown; newMisses?: unknown; changes?: { before?: Record<string, unknown> | null; after?: Record<string, unknown> | null }[] };
-      if (typeof d.previewHash !== 'string' || !/^[0-9a-f]{8}$/.test(d.previewHash)) { no(`no previewHash: ${JSON.stringify(d.previewHash)}`); continue; }
+      if (typeof d.previewHash !== 'string' || !/^[0-9a-f]{16}$/.test(d.previewHash)) { no(`no previewHash: ${JSON.stringify(d.previewHash)}`); continue; }
       if (!Array.isArray(d.newMisses) || d.newMisses.length) { no(`a pair moved below its minimum: ${JSON.stringify(d.newMisses)}`); continue; }
       const c = Array.isArray(d.changes) ? d.changes[0] : undefined;
       const same = (x: Record<string, unknown> | null | undefined) => JSON.stringify(x ? [x.resolved, x.hex, x.ratio] : null);
