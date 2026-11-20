@@ -10047,9 +10047,17 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
         const time = [...a.mtimes].find(([p, t]) => Math.abs((b.mtimes.get(p) ?? -1e15) - t) > 1);
         return time ? `mtime: ${time[0]} ${time[1]} → ${b.mtimes.get(time[0])}` : '';
       };
-      const temps = (): number => readdirSync(tmpdir()).filter((f) => f.startsWith('prism3-regen-')).length;
-      const stubs = mkdtempSync(join(tmpdir(), 'prism3-4198-'));
+      // #4371: the checks run with the temp root pointed at a PRIVATE directory, and the count reads only that, so
+      // another `regen --check` on the machine (its own `prism3-regen-*` in the shared tmpdir) is not counted.
+      const sharedTmp = tmpdir();
+      const privateTmp = mkdtempSync(join(sharedTmp, 'prism3-4371-'));
+      const temps = (): number => readdirSync(privateTmp).filter((f) => f.startsWith('prism3-regen-')).length;
+      const neighbor4371 = join(sharedTmp, `prism3-regen-4371-neighbor-${process.pid}`);
+      const stubs = mkdtempSync(join(sharedTmp, 'prism3-4198-'));
+      const envWas = { TMPDIR: process.env.TMPDIR, TMP: process.env.TMP, TEMP: process.env.TEMP };
       try {
+        for (const k of Object.keys(envWas)) process.env[k] = privateTmp;
+        ok(tmpdir() === privateTmp, `#4371: the regen --check arms run under a private temp root (tmpdir() is ${tmpdir()})`);
         const quiet = join(stubs, 'quiet.ts'), rewrite = join(stubs, 'rewrite.ts'), fail = join(stubs, 'fail.ts');
         writeFileSync(quiet, 'export {};\n');
         writeFileSync(rewrite, "import { appendFileSync } from 'node:fs';\nappendFileSync(process.argv[2], '\\n');\n");
@@ -10073,8 +10081,14 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
         const failDiff = differs(print0, fingerprint());
         ok(failDiff === '',
           `#4199: regen --check puts every artifact back, bytes and mtimes, when a step fails after another rewrote one (${failDiff || 'same'})`);
+        // #4371: another `regen --check` on this machine, mid-arm. Its temp directory sits in the SHARED tmpdir,
+        // and counting there read it as this check's leftover (`-1 left` or `1 left`), a red run with no defect.
+        mkdirSync(neighbor4371);
         ok(temps() === temps0, `#4199: regen --check removes its temp directory when a step fails (${temps() - temps0} left)`);
-      } finally { rmSync(stubs, { recursive: true, force: true }); }
+      } finally {
+        for (const [k, v] of Object.entries(envWas)) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+        for (const d of [stubs, neighbor4371, privateTmp]) rmSync(d, { recursive: true, force: true });
+      }
     }
   }
 }
@@ -14781,14 +14795,16 @@ arm: {
   const shadows = { ...allEffects, styles: allEffects.styles.filter((s) => s.name !== 'glass') };
   ok(allEffects.styles.length === shadows.styles.length + 1, `figma shadow: the effect list is the shadow sets plus exactly one glass style`);
 
-  // (a) One style per shadow step, TWO SETS (light + dark). NB ships 7 steps
-  // (xs..2xl + inset) × 2 modes = 14 styles.
-  ok(shadows.styles.length === nbShadowKeys.length * 2, `figma shadow: emits N×2 styles for N shadow steps (light + dark mode sets) — expected ${nbShadowKeys.length * 2}, got ${shadows.styles.length}`);
+  // (a) One style per shadow step, THREE SETS (light + dark + hc-dark, #4131). NB ships 7 steps
+  // (xs..2xl + inset) × 3 modes = 21 styles.
+  ok(shadows.styles.length === nbShadowKeys.length * 3, `figma shadow: emits N×3 styles for N shadow steps (light + dark + hc-dark mode sets) — expected ${nbShadowKeys.length * 3}, got ${shadows.styles.length}`);
 
   // (b) Names split cleanly by prefix.
   const lightNames = shadows.styles.filter((s) => s.name.startsWith('shadow/')).map((s) => s.name);
   const darkNames = shadows.styles.filter((s) => s.name.startsWith('shadow-dark/')).map((s) => s.name);
-  ok(lightNames.length === nbShadowKeys.length && darkNames.length === nbShadowKeys.length, `figma shadow: N light styles ('shadow/*') + N dark styles ('shadow-dark/*') — got ${lightNames.length}L / ${darkNames.length}D`);
+  const hcDarkNames = shadows.styles.filter((s) => s.name.startsWith('shadow-hc-dark/')).map((s) => s.name);
+  ok(lightNames.length === nbShadowKeys.length && darkNames.length === nbShadowKeys.length && hcDarkNames.length === nbShadowKeys.length,
+    `figma shadow: N light styles ('shadow/*') + N dark styles ('shadow-dark/*') + N hc-dark styles ('shadow-hc-dark/*') — got ${lightNames.length}L / ${darkNames.length}D / ${hcDarkNames.length}HC`);
 
   // (c) Every effect layer has color + offset + radius + spread + type +
   // blendMode. Colours have {r,g,b,a} in [0,1].
@@ -44147,6 +44163,32 @@ arm: {
     const offText = nodes.filter((n) => n.textStyle !== undefined && n.type !== 'TEXT').map((n) => `${n.name}:${n.type}`);
     ok(parts[h.part]?.kind === h.kind && !!typeKey && !threw && host !== undefined && host.textStyle === undefined && offText.length === 0,
       `#3783 a '${h.kind}' part carrying 'type' (${h.def}.${h.part}, synthetic) plans NO text style — only a TEXT node takes one (${threw ? `threw: ${threw}` : !host ? 'the part was not built at this coordinate' : `text style on ${offText.join(', ') || 'none'}`})`);
+  }
+}
+
+// ------------------------------------------------------------------- #4131: hc-dark takes the reduced dark shadow
+// Owner decision A: every dark-appearance mode follows the shadow model, full in light and reduced in dark. Read through
+// the overlay a consumer installs (base + hc-dark), not the theme, so a seed that never reaches the projection fails too.
+// The regression brand nb is built by nbThemeFrom, not brandTheme, so it is read here too.
+// Mutation: drop the hc-dark seeding in theme-brand.ts → every example brand's row fails by name; drop it in
+// theme-nb.ts → `#4131 nb` fails by name.
+{
+  const themes: Array<[string, Theme | undefined]> = [
+    ...Object.entries(exampleBrands()).map(([id, input]): [string, Theme | undefined] => [id, exampleTheme(`${id} (#4131)`, () => brandTheme(input as BrandInput))]),
+    ['nb', nbTheme()],
+  ];
+  for (const [id, t] of themes) {
+    if (!t || !t.modes.includes('hc-dark')) { ok(false, `#4131 ${id}: the brand loads and generates hc-dark`); continue; }
+    const tree = (buildTree(t) as any).tree;
+    const ov = buildOverlay(tree, 'hc-dark') as any;
+    const rows = [...t.shadow.steps.map((s) => s.name), 'inset'].map((step) => {
+      const light = JSON.stringify(tree[t.root].shadow[step].$value);
+      const dark = JSON.stringify(tree[t.root].shadow[step].$extensions.prism3.modes.dark?.$value);
+      const hc = JSON.stringify(ov?.[t.root]?.shadow?.[step]?.$value);
+      return { step, ok: hc !== undefined && hc === dark && hc !== light };
+    });
+    const bad = rows.filter((r) => !r.ok).map((r) => r.step);
+    ok(bad.length === 0, `#4131 ${id}: the hc-dark overlay carries the reduced dark shadow on every step, not the light one (wrong: ${bad.join(', ') || 'none'})`);
   }
 }
 
