@@ -1,6 +1,7 @@
 # test-arms.txt — the named-arm registry lint-test-arms.ts reads (#1834). One "<suite> #NNNN" per line.
 # Add lines with: npx tsx packages/engine/lint-test-arms.ts --accept  (it adds, keeps the file sorted, never removes).
 # Retire an arm by deleting its line by hand, in the diff that removes the arm, so a reviewer sees it.
+apps/plugin/test-absolute-path.ts #2028
 apps/plugin/test-agent-bridge.ts #1684
 apps/plugin/test-agent-bridge.ts #2497
 apps/plugin/test-agent-bridge.ts #3109
@@ -84,6 +85,7 @@ apps/plugin/test-canvas-furniture.ts #2609
 apps/plugin/test-canvas-furniture.ts #2723
 apps/plugin/test-canvas-furniture.ts #2803
 apps/plugin/test-canvas-furniture.ts #2828
+apps/plugin/test-canvas-furniture.ts #3392
 apps/plugin/test-canvas-furniture.ts #3467
 apps/plugin/test-component-specs-export.ts #1325
 apps/plugin/test-consistency-audit.ts #3701
@@ -204,6 +206,7 @@ apps/plugin/test-roundtrip.ts #3344
 apps/plugin/test-roundtrip.ts #3345
 apps/plugin/test-roundtrip.ts #3347
 apps/plugin/test-roundtrip.ts #3382
+apps/plugin/test-roundtrip.ts #3392
 apps/plugin/test-roundtrip.ts #3399
 apps/plugin/test-roundtrip.ts #3476
 apps/plugin/test-roundtrip.ts #3554
@@ -338,6 +341,7 @@ apps/plugin/test-update-apply.ts #3330
 apps/plugin/test-update-apply.ts #3343
 apps/plugin/test-update-apply.ts #3348
 apps/plugin/test-update-apply.ts #3364
+apps/plugin/test-update-apply.ts #3392
 apps/plugin/test-update-apply.ts #3399
 apps/plugin/test-update-apply.ts #3474
 apps/plugin/test-update-apply.ts #3554
@@ -437,6 +441,7 @@ apps/plugin/test-write-components.ts #3179
 apps/plugin/test-write-components.ts #3192
 apps/plugin/test-write-components.ts #3200
 apps/plugin/test-write-components.ts #3360
+apps/plugin/test-write-components.ts #3392
 apps/plugin/test-write-components.ts #3731
 apps/plugin/test-write-components.ts #3783
 apps/plugin/test-write-components.ts #487
@@ -651,6 +656,9 @@ apps/studio/test-chrome.mjs #3910
 apps/studio/test-chrome.mjs #3911
 apps/studio/test-chrome.mjs #3938
 apps/studio/test-chrome.mjs #3976
+apps/studio/test-chrome.mjs #4127
+apps/studio/test-chrome.mjs #4188
+apps/studio/test-chrome.mjs #4192
 apps/studio/test-chrome.mjs #4219
 apps/studio/test-chrome.mjs #4220
 apps/studio/test-chrome.mjs #4221
@@ -698,6 +706,7 @@ apps/studio/test-component-groups.ts #3199
 apps/studio/test-component-groups.ts #3226
 apps/studio/test-component-groups.ts #3306
 apps/studio/test-component-groups.ts #3345
+apps/studio/test-component-groups.ts #3392
 apps/studio/test-component-groups.ts #3439
 apps/studio/test-component-groups.ts #4008
 apps/studio/test-depth-motion-input.ts #2051
@@ -880,6 +889,9 @@ packages/engine/mcp-test.ts #2209
 packages/engine/mcp-test.ts #2227
 packages/engine/mcp-test.ts #3109
 packages/engine/mcp-test.ts #3698
+packages/engine/mcp-test.ts #4120
+packages/engine/mcp-test.ts #4122
+packages/engine/mcp-test.ts #4151
 packages/engine/mcp-test.ts #4156
 packages/engine/test.ts #1007
 packages/engine/test.ts #1009
@@ -1255,6 +1267,7 @@ packages/engine/test.ts #3360
 packages/engine/test.ts #3365
 packages/engine/test.ts #3375
 packages/engine/test.ts #3382
+packages/engine/test.ts #3392
 packages/engine/test.ts #3397
 packages/engine/test.ts #3399
 packages/engine/test.ts #3408
@@ -1304,11 +1317,14 @@ packages/engine/test.ts #3986
 packages/engine/test.ts #4008
 packages/engine/test.ts #4019
 packages/engine/test.ts #4045
+packages/engine/test.ts #4119
 packages/engine/test.ts #4120
 packages/engine/test.ts #4123
 packages/engine/test.ts #4128
 packages/engine/test.ts #4130
+packages/engine/test.ts #4131
 packages/engine/test.ts #4136
+packages/engine/test.ts #4137
 packages/engine/test.ts #4139
 packages/engine/test.ts #4141
 packages/engine/test.ts #4143
@@ -1324,11 +1340,14 @@ packages/engine/test.ts #4177
 packages/engine/test.ts #4198
 packages/engine/test.ts #4199
 packages/engine/test.ts #4203
+packages/engine/test.ts #4207
 packages/engine/test.ts #4211
+packages/engine/test.ts #4213
 packages/engine/test.ts #4214
 packages/engine/test.ts #4229
 packages/engine/test.ts #4236
 packages/engine/test.ts #4242
+packages/engine/test.ts #4371
 packages/engine/test.ts #479
 packages/engine/test.ts #480
 packages/engine/test.ts #482
