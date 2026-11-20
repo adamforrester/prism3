@@ -76,6 +76,13 @@ reversed `cubic-bezier( )` or reordered shadow layers fail it. Each per-mode fil
 (`prism3/<mode>.css`) gets the same checks on its own, not only the joined file (#3877). A non-DTCG type (today the three `spring` tokens) isn't in the
 projection, so it isn't in the CSS (#642).
 
+Each typeface ships with its fallback stack, ending in a generic family:
+`--pds3-core-font-typeface-inter: Inter, system-ui, …, sans-serif` (#4155). If a face doesn't load, text
+falls back to the same kind of face rather than the browser default. The build reads the web base,
+`prism3.web.base.tokens.json`, which is the conforming base with each stack as its DTCG array value. The
+platform-neutral `prism3.base.tokens.json` keeps one family per typeface, because a comma list isn't a font
+name on Android. `check-package.mjs`'s [FALLBACK] arm checks the generic family in every block.
+
 ### What a typography style's `font` shorthand leaves out (#3507)
 
 Each `type.*` style is written as one `font` shorthand: font style, weight, size / line height, family. The style
