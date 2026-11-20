@@ -23033,8 +23033,9 @@ arm: {
       ok(nameOff.length === 0, `#3055 steps/name (decision 3): only a complete step's name is a Link (inline, default weight, state exposed); every other name is body text, primary at current and error, secondary at upcoming${nameOff.length ? ` — OFF: ${nameOff.map((p) => `${p.status}/${p.orient}/${p.size}`).join(', ')}` : ''}`);
 
       // THE CONNECTOR (decision 7): a line, never a glyph. Across a row it is the last cell, a hairline in a cell one disc
-      // tall; down a column it sits under the disc in the rail. The brand fill after a complete step, neutral otherwise.
-      const LINE = (s: string) => (s === 'complete' ? 'color/interactive/primary/fill/rest' : 'color/icon/secondary');
+      // tall; down a column it sits under the disc in the rail. Every line, at every status, in the neutral secondary icon
+      // role, the Breadcrumbs chevron's gray (owner decision 2026-11-20 on #4341, option 3): a complete step's line too.
+      const LINE = (_s: string) => 'color/icon/secondary';
       const lineOff = itemPlans.filter((p) => {
         const h = find(p.root, 'connectorH'), v = find(p.root, 'connectorV'), cell = find(p.root, 'connectorCell'), rail = find(p.root, 'rail');
         const line = p.orient === 'horizontal' ? h : v;
@@ -23043,7 +23044,7 @@ arm: {
           : !h && !cell && !!rail && rail.children[1] === v && line?.bound?.width === 'border-width/hairline';
         return !(placed && line && line.children.length === 0 && line.paints?.fills === LINE(p.status) && !all(p.root).some((n) => /chevron/.test(n.nestTarget ?? '')));
       });
-      ok(lineOff.length === 0, `#3055 steps/connector (decision 7): one hairline line per step, across in a disc-tall end cell or down under the disc, in the brand fill after a complete step and color/icon/secondary otherwise, and no chevron${lineOff.length ? ` — OFF: ${lineOff.map((p) => `${p.status}/${p.orient}/${p.size}`).join(', ')}` : ''}`);
+      ok(lineOff.length === 0, `#3055 steps/connector (decision 7): one hairline line per step, across in a disc-tall end cell or down under the disc, in color/icon/secondary at every status (a complete step's line too), and no chevron${lineOff.length ? ` — OFF: ${lineOff.map((p) => `${p.status}/${p.orient}/${p.size}`).join(', ')}` : ''}`);
 
       // THE ITEMS SLOT: at least two, StepItem only, complete / current / upcoming by default at the indicator's orientation
       // and size, running across or down with the orientation.
