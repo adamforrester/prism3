@@ -509,7 +509,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { launchWithoutWebFonts } from './test-web-fonts-stub.mjs';
 import { hookGuard } from './test-hooks.mjs';
-import { INPUT_MS, makeBounded, watchStalls } from './test-bounded.mjs';
+import { INPUT_MS, makeBounded, rendersFrame, watchStalls } from './test-bounded.mjs';
 import { P, loadModes, resolve as resolveToken } from './chrome/tokens.mjs';
 import { assertBundleFresh, PLUGIN_UI_SOURCE_ROOTS, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 import { SHARDS } from './chrome-shards.mjs';
@@ -1127,6 +1127,25 @@ const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3', pr
   return { ctx, page, errors };
 };
 
+/** A WAIT WITH A BOUND OF ITS OWN (#4127). A `page.evaluate` has no timeout: one awaiting a frame that never comes, or a
+ *  font load that never ends, waits until the section watchdog (#3044) stops the run 600s later, and that names only the
+ *  last check that passed. Section 21 stalled that way three times in 26 hours on CI, after its QA-B17 check had passed,
+ *  so the log blamed a check that held. `within` races `work` against `ms` and throws on the bound with `label` and
+ *  whether the page still renders a frame (busy, waiting on something else) or none (stuck). The case's own catch
+ *  reports it by name. 30s matches Playwright's own action timeout, the bound every click on the same path already has.
+ *  The message carries no issue number: the label names the step, and `lint-test-arms` reads `#4127` in a literal as
+ *  the arm itself, so a number here would keep the registry line green with the self-check arm deleted (review). */
+const STEP_MS = 30000;
+const within = async (page, label, work, ms = STEP_MS) => {
+  let timer;
+  const out = await Promise.race([work.then((v) => ({ v }), (e) => ({ e })), new Promise((r) => { timer = setTimeout(() => r(null), ms); })]);
+  clearTimeout(timer);
+  if (out && 'e' in out) throw out.e;
+  if (out) return out.v;
+  const live = await rendersFrame(page);
+  throw new Error(`${label} did not settle within ${ms / 1000}s; the page ${live ? 'still renders frames, so the wait was on something else' : 'renders no frame'}`);
+};
+
 /** Reach a place through the tab row (the select, when narrow), and wait for the frame to show it. */
 const goPlace = async (page, place) => {
   const { narrow, rail, at } = await page.evaluate(() => { const f = document.querySelector('[data-p3="frame"]'); return { narrow: f?.dataset.w === 'narrow', rail: f?.dataset.shell === 'rail', at: f?.dataset.place ?? '' }; });
@@ -1141,7 +1160,7 @@ const goPlace = async (page, place) => {
   }
   if (subSel) await hooks.click(page.locator(subSel));
   await page.waitForFunction((p) => document.querySelector('[data-p3="frame"]')?.dataset.place === p, place);
-  await page.evaluate(() => document.fonts.ready);
+  await within(page, `goPlace(${place}): the fonts`, page.evaluate(() => document.fonts.ready.then(() => true)));
 };
 
 /** Wait until the mode control has settled on radios or the select. The control measures itself after it is drawn and on
@@ -8910,8 +8929,9 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     const setTop = (hook, y) => page.evaluate(([h, v]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.scrollTop = v; return Math.round(n.scrollTop); }, [hook, y]);
     /** Every animation frame's scrollTop of a pane, until it has held still for ten frames (how a check waits
      *  for a scroll to finish), with the glide log of each pane taken since the last call (what it checks). */
-    const frames = async (which) => {
-      const tops = await page.evaluate((w) => new Promise((res) => {
+    // #4127: bounded by `within`, named by `step`; a frame that never comes fails here in seconds, not at the watchdog.
+    const frames = async (which, step = `frames('${which}')`, ms = STEP_MS) => {
+      const tops = await within(page, `${step}: the ${which} pane's frames`, page.evaluate((w) => new Promise((res) => {
         const b = document.querySelector(w === 'levers' ? '[data-p3="levers-pane"]' : '[data-p3="preview-body"]');
         const t = [Math.round(b.scrollTop)];
         let still = 0;
@@ -8922,12 +8942,29 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
           if (still >= 10 || t.length > 400) res(t); else requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
-      }), which);
-      const g = glideOf(await takeGlideLog(page), which === 'levers' ? 'levers-pane' : 'preview-body', MOTION_MS, MOTION.ease);
+      }), which), ms);
+      const g = glideOf(await within(page, `${step}: the glide log`, takeGlideLog(page)), which === 'levers' ? 'levers-pane' : 'preview-body', MOTION_MS, MOTION.ease);
       return { tops, g };
     };
     const between = (tops) => new Set(tops.filter((t) => t !== tops[0] && t !== tops[tops.length - 1])).size;
     const lands = (s) => s.inView && (Math.abs(s.rel - s.pad) <= 2 || s.top >= s.max - 1);
+
+    // #4127: a frame wait that never settles stops within its own bound and names its step. Before, it waited until
+    // the section watchdog stopped the run 600s later, naming only the last check that PASSED (QA-B17's "Jump to:",
+    // three CI runs in 26 hours). The page's frames are stopped here (`requestAnimationFrame` holds its callbacks) and
+    // restored after; the expected words are typed here, not imported. Mutation this fails by name: the bound
+    // dropped from `frames` → this section stops at the watchdog with this arm as its last step.
+    {
+      // Held, not dropped: a frame requested and never produced keeps its callback, and so the wait's promise, reachable.
+      // A dropped callback lets the page collect the promise, and Playwright rejects it about 30s later (measured).
+      await page.evaluate(() => { window.__p3Raf = window.requestAnimationFrame; window.__p3Held = []; window.requestAnimationFrame = (cb) => window.__p3Held.push(cb); });
+      const t0 = Date.now();
+      const stall = await frames('preview', '#4127 self-check', 3000).then(() => 'returned', (e) => String(e?.message ?? e));
+      const took = Date.now() - t0;
+      await page.evaluate(() => { const held = window.__p3Held; window.requestAnimationFrame = window.__p3Raf; window.__p3Held = []; held.forEach((cb) => window.requestAnimationFrame(cb)); });
+      ok(stall.startsWith("#4127 self-check: the preview pane's frames did not settle within 3s; the page renders no frame") && took < 15000,
+        `#4127: a frame wait that never settles fails by name within its bound, not at the 600s watchdog (${took}ms: ${stall.slice(0, 160)})`);
+    }
 
     await installGlideLog(page);
     await goPlace(page, 'color-fills');
@@ -9068,14 +9105,16 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     // type scale to Scale; a limit (the caption floor) to Scale too, its pair by the scope (§3); a weight tick to
     // Weights and styles. Pairs typed here.
     await goPlace(page, 'type');
-    await openTypeAdvanced(page);
+    await within(page, 'Type: opening the advanced scale and sections', openTypeAdvanced(page), 2 * STEP_MS);
+    // #4127: each wait on the way names its step, so a stall here fails by name, not at the 600s watchdog.
     const typeEdit = async (what, sel, want) => {
-      await setTop('preview-body', 0);
-      const t0 = await sec(want);
-      await takeGlideLog(page);
-      await hooks.click(page.locator(sel));
-      const f = await frames('preview');
-      const t1 = await sec(want);
+      const step = `Type: ${what}`;
+      await within(page, `${step}: the preview to its top`, setTop('preview-body', 0));
+      const t0 = await within(page, `${step}: reading ${want} before`, sec(want));
+      await within(page, `${step}: emptying the glide log`, takeGlideLog(page));
+      await within(page, `${step}: the click on ${sel}`, hooks.click(page.locator(sel)), 2 * STEP_MS);
+      const f = await frames('preview', step);
+      const t1 = await within(page, `${step}: reading ${want} after`, sec(want));
       ok(t0.found && !t0.inView && lands(t1) && t1.view === 'type' && t1.place === 'type',
         `QA-B9: editing ${what} on Type brings the preview's ${want} section into view, on the same page (from below the fold: ${!t0.inView}; top at ${t1.rel}px, scrollTop ${t1.top} of ${t1.max}; ${t1.place} / ${t1.view})`);
       return f;
