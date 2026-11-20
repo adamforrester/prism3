@@ -112,8 +112,8 @@ const emitAndGate = (theme: Theme, resolvedOut: string, designPath: string, sour
   console.log(`  palettes: ${theme.palettes.map((p) => p.palette).join(', ')} (danger ← ${theme.roleToPalette.danger})`);
   console.log(`  aliases: ${stats.resolved}/${stats.aliases} resolve | mode contracts: ${stats.modePass}/${stats.modeChecks} pass`);
   // #4153: every file `emitTheme` writes, not two of them: the full tree, the sidecar, and the base + per-mode overlay
-  // set that a multi-mode build reads (skills/prism3-build-ui rule 3).
-  for (const name of [`${theme.id}.tokens.json`, `${theme.id}.ai.json`, `${theme.id}.base.tokens.json`,
+  // set that a multi-mode build reads (skills/prism3-build-ui rule 3), and the web base beside it (#4155).
+  for (const name of [`${theme.id}.tokens.json`, `${theme.id}.ai.json`, `${theme.id}.base.tokens.json`, `${theme.id}.web.base.tokens.json`,
     ...overlayModes(emitted.tree).map((m) => `${theme.id}.${m}.overlay.tokens.json`)]) console.log(`  [written] ${resolve(resolvedOut, name)}`);
   const broken = stats.broken.length > 0;
   const contractsFail = stats.modePass < stats.modeChecks;
