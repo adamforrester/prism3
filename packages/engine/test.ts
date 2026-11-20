@@ -32889,6 +32889,45 @@ arm: {
   ok(set.overlays.length === modes.length, `overlay: the set carries one overlay per mode (${set.overlays.length})`);
 }
 
+// ---- #4155: the WEB base carries each typeface's fallback stack; the conforming base does not ----------------
+// Owner decision B (2026-11-19). The canonical tree holds one family per typeface (#105.3, for the Figma and
+// TokenPress round trip) and the curated stack under `$extensions.prism3.fallbackStack`, which every projection
+// strips. The platform-neutral base must STAY single-family: stock Style Dictionary's android group would write a
+// stack as one unusable `<string>`. The web base (`<brand>.web.base.tokens.json`, what `@prism3/tokens` builds from)
+// carries the stack as DTCG 2025.10 §8.3's array, primary first, ending in a CSS generic family, and differs from
+// the base in nothing else. Read from the COMMITTED files, so this holds what a consumer gets (`regen --check` ties
+// them to the engine). The generic list is CSS Fonts 4 §4.1.1, written here, not read off the engine.
+{
+  const GENERIC = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-serif',
+    'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji', 'fangsong']);
+  const OUT = resolve(HERE, 'out');
+  const rootOf = (x: any) => x?.[Object.keys(x ?? {}).find((k) => !k.startsWith('$'))!];
+  const brands = readdirSync(OUT).filter((f) => /^[^.]+\.base\.tokens\.json$/.test(f)).map((f) => f.split('.')[0]).sort();
+  ok(brands.length >= 5, `#4155: every brand with a conforming base is checked (${brands.join(', ')})`);
+  for (const b of brands) {
+    const read = (f: string) => JSON.parse(readFileSync(resolve(OUT, f), 'utf8'));
+    const canonFaces = Object.entries((rootOf(read(`${b}.tokens.json`))?.core?.font?.typeface ?? {}) as Record<string, any>);
+    const base = read(`${b}.base.tokens.json`);
+    const webFile = `${b}.web.base.tokens.json`;
+    const web = existsSync(resolve(OUT, webFile)) ? read(webFile) : undefined;
+    ok(web !== undefined, `#4155 ${b}: the web base ${webFile} is emitted`);
+    const baseFaces = (rootOf(base)?.core?.font?.typeface ?? {}) as Record<string, any>;
+    const webFaces = (rootOf(web)?.core?.font?.typeface ?? {}) as Record<string, any>;
+    ok(canonFaces.length > 0 && canonFaces.every(([k, f]) => typeof baseFaces[k]?.$value === 'string' && baseFaces[k].$value === f.$value),
+      `#4155 ${b}: the conforming base keeps each typeface a single family, the canonical one (${canonFaces.length} faces)`);
+    for (const [k, f] of canonFaces) {
+      const v = webFaces[k]?.$value;
+      ok(Array.isArray(v) && v[0] === f.$value && v.length > 1 && GENERIC.has(v[v.length - 1]),
+        `#4155 ${b}: the web base's typeface \`${k}\` is a fallback stack, primary first, ending in a CSS generic family (got ${JSON.stringify(v)})`);
+    }
+    // Nothing else moves: the web base with its typefaces put back to the base's values IS the base.
+    const restored = web === undefined ? undefined : structuredClone(web);
+    if (restored) for (const k of Object.keys(webFaces)) rootOf(restored).core.font.typeface[k].$value = baseFaces[k]?.$value;
+    ok(JSON.stringify(restored) === JSON.stringify(base),
+      `#4155 ${b}: the web base differs from the conforming base only in its typefaces' values`);
+  }
+}
+
 // ---- Arc 2's primitives: `icon` and `focus-ring` as real defs (#741) ---------------------------
 // The two defs Button and IconButton already NOMINATE by name. Before this, both nested references
 // resolved against whatever the Figma file happened to contain (`compByName.get(n.nestTarget)`), which
