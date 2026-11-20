@@ -33,15 +33,23 @@ frozen at creation, with no live link afterward; provenance records where it sta
   refused: for each custom mode with no `surfaces[name]`, `surfaces[base]` is copied to it, so each saved custom mode
   keeps the page it showed. What this build writes is v3, and v3 is never migrated, so the copy runs once and a
   snapshot that took no surfaces is never given its base's on a later reload. It covers the web's saved brand and the
-  plugin's file blob, which share `deserializeBrandInput`. A design.md or JSON import is not a saved brand and is
-  not migrated.
+  plugin's file blob, which share `deserializeBrandInput`. The migration reads a custom mode's base only as an own
+  key of the stored `surfaces`, so a base that names an `Object.prototype` key copies nothing.
 - **O3 C: editing custom-mode surfaces in Studio** is a follow-up, filed as its own issue.
+
+### Owner decisions 5a and 5b (2026-11-20)
+
+- **5a: brand-wide settings still reach custom modes**, built as the current behavior. Light has no per-mode
+  non-color levers (`modeLevers.light` is refused: light's are the brand-wide ones), and every mode shares the
+  palettes and globals. Those flow into a custom mode as brand edits; the snapshot covers per-mode values only.
+- **5b: a design.md or JSON import saved before #1946 migrates the same way a saved brand does.** Not built yet:
+  an import carries no version stamp, so how an older file is told apart is held for the owner (below).
 
 ### Held for the owner
 
-- **Brand-wide levers.** Light has no per-mode non-color levers (`modeLevers.light` is refused: light's are the
-  brand-wide ones), and every mode shares the palettes and globals. Those still flow into a custom mode, read as
-  brand edits rather than edits to the source mode.
+- **How 5b tells an older import apart.** A: copy `surfaces[base]` on every import wherever `surfaces[name]` is
+  absent. B: stamp the design.md and JSON export with a version. C: always write `surfaces.<name>` for each custom
+  mode from now on, so an absent key means the file predates #1946.
 - **Copy.** The DECISIONS LOG note (`custom modes: … (started from dark) — each keeps the copy …`) and the schema
   descriptions of `customModes`, `customModes[].base` and `surfaces` are DRAFT, as are the `surfaces.<key>` refusal
   (`… is not light, dark or a custom mode of this brand …`) and Background fills' line for a custom mode (`Custom
