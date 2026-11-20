@@ -69,7 +69,7 @@ export { resolvePreview } from './resolve-preview';
 export type { ResolvedPreview } from './resolve-preview';
 export { autoPlaceStep } from './ramp';
 export { isInverseRole } from './inverse-roles';
-export { TRAITS } from './vocabulary';
+export { TRAITS, TRAIT_OPPOSITES } from './vocabulary';
 export { colorVariablesOutOfOrder } from './color-order';
 export { buildBase, buildOverlaySet, stripExtensions } from './emit-dtcg-overlay';
 export { BUTTON_SPACING } from './button-spacing';
