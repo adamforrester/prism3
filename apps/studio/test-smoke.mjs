@@ -5609,7 +5609,9 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   // default export leaves out since #2552, so "Include build metadata" is switched On to read it.
   await hooks.click(page.locator('[data-p3="rail-export"]'));
   await hooks.need(page, '[data-p3="export-page"]');
-  await hooks.click(page.locator('[data-p3="export-setting"][aria-label="Include build metadata: On"]'));
+  // #4221: the setting is a radio group named by its label, so its option is found by its row and its own word.
+  await hooks.click(page.locator('.p3-export-set').filter({ has: page.locator('.p3-export-lab', { hasText: 'Include build metadata' }) })
+    .locator('[data-p3="export-setting"]').filter({ hasText: /^On$/ }));
   let emitted = null;
   try {
     const set = await downloadSet(page, brand.toLowerCase());
