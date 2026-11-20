@@ -1942,10 +1942,10 @@ const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo 
 const SPECS_NONE = "Off after a failed restore: these component contracts would be the demo brand's, not this file's.";
 const SPECS_NO_SETTINGS = "Nothing to set — the component contracts follow this brand's component settings.";
 const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built from the component definitions, which the web Studio leaves out.';   // a fallback no host reaches since #3429: the plugin provides the exporter, the web a loader
-/** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
- *  rebuild that resolves also ends it; the other two end only when a brand loads. */
+/** The error bar after a failed restore, by kind (owner, 2026-10-02). Every kind says "until a brand loads": the
+ *  owner's words (#4222, 2026-11-19), though a rebuild that resolves also ends `unresolved`. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
-  unresolved: () => "This file's saved brand didn't resolve. Update file and Clean up are off until a brand resolves. Load an example or import a design.md to continue.",
+  unresolved: () => "This file's saved brand didn't resolve. Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.",
   rejected: () => "This file's saved brand didn't resolve. Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.",
   unreadable: (r) => `This file's saved brand couldn't be read: ${r} Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.`,
 };

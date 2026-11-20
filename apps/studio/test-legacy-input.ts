@@ -57,7 +57,7 @@ console.log('\n1. #4206: a current brand comes through untouched');
 console.log('\n2. #4206: typography.links: [] (written by the Studio before #3707)');
 {
   const b = plant({ typography: { ...(aurora as { typography?: object }).typography, links: [] } });
-  ok(/typography\.links is empty/.test(refusal(b) ?? ''), `#4206 links premise: the engine refuses the stored brand (${refusal(b)})`);
+  ok(/typography\.links is empty/.test(refusal(b) ?? ''), `#4206 links premise: the engine refuses the stored brand, as #3707 made it (${refusal(b)})`);
   ok(!restores(b), '#4206 links premise: the restore refuses it as stored');
   const m = migrateStoredInput(b);
   const t = (m.input as { typography?: Record<string, unknown> }).typography ?? {};
@@ -69,7 +69,7 @@ console.log('\n2. #4206: typography.links: [] (written by the Studio before #370
 console.log('\n3. #4206: a modeAnchors column that is no interactive column (ignored before #3873)');
 {
   const b = plant({ modeAnchors: { dark: { secondary: 500, primary: 400 }, light: { ghost: 300 } } });
-  ok(/'secondary' is not an interactive column/.test(refusal(b) ?? ''), `#4206 modeAnchors column premise: the engine refuses it (${refusal(b)})`);
+  ok(/'secondary' is not an interactive column/.test(refusal(b) ?? ''), `#4206 modeAnchors column premise: the engine refuses it, as #3873 made it (${refusal(b)})`);
   const m = migrateStoredInput(b);
   ok(JSON.stringify((m.input as { modeAnchors?: unknown }).modeAnchors) === JSON.stringify({ dark: { primary: 400 } }) && refusal(m.input) === null && restores(m.input),
     `#4206 modeAnchors column: secondary and ghost go, primary stays, an emptied mode goes, and it loads (${JSON.stringify((m.input as { modeAnchors?: unknown }).modeAnchors)})`);
