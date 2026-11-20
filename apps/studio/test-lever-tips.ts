@@ -57,9 +57,10 @@ for (const [label, key, tip] of PAIRS) {
   const files = readdirSync(dir).filter((f) => f.endsWith('.ts'));
   const long: string[] = [];
   let seen = 0;
-  for (const f of files) for (const m of readFileSync(dir + f, 'utf8').matchAll(/\b(\w*Tip|info)\s*:\s*'((?:[^'\\]|\\.)*)'/g)) {
+  // Single-quoted, double-quoted and template literals alike, so a tip quoted another way can't slip past the 90.
+  for (const f of files) for (const m of readFileSync(dir + f, 'utf8').matchAll(/\b(\w*Tip|info)\s*:\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g)) {
     seen++;
-    const text = m[2].replace(/\\'/g, "'");
+    const text = m[3].replace(/\\(.)/g, '$1');
     if (text.length > 90) long.push(`${f} ${m[1]} (${text.length})`);
   }
   ok(seen > 20 && long.length === 0, `#4193 every Studio ⓘ line is at most 90 characters (${seen} read; over: ${long.join(', ') || 'none'})`);

@@ -12,8 +12,11 @@ longest, Outline hover, ran to 574.
 - #4193 B and C rows in `levers.ts`: "Neutral chroma" → "Neutral tint strength"; the display ceiling options read
   "display sm (1 step)"; "8px (adds caption xs, for fine print only)"; the brand-color item hint drops "+ OKLCH"; Strict
   interactive contrast drops "guaranteed legibility", and Reduced contrast floor drops the third-party names.
+- #4193's B row for Shadow softness (review on #4367): the description is the issue's accepted line, "How soft every
+  shadow is: low keeps edges crisp, high blurs them wider than they're offset." At 91 characters it takes a DRAFT tip.
 
 ### The rule, now gated
 `test.ts` reads the emitted manifest: every lever's UI line is at most 90 characters, and a lever has a tip exactly
 when its description runs past 90. `test-lever-tips.ts` holds every Studio ⓘ literal in `src/domains` to the same 90,
-and each restated tooltip to its lever's tip.
+and each restated tooltip to its lever's tip, whichever quote the literal uses. `test.ts` also fails a lever text that
+says a four-word clause twice back to back, the slip the review found in Strict interactive contrast.

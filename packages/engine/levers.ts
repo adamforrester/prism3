@@ -137,7 +137,7 @@ export const leverManifest: Lever[] = [
     description: 'Glass fills the brand adds beside the white glass. Each takes a color, from a palette or from a role such as the card, at an opacity, and is named color.glass.<name>.' },
   { key: 'strictInteractiveContrast', group: 'color', kind: 'value', label: 'Strict interactive contrast', control: 'toggle', advanced: true, default: false,
     tip: 'Keeps inverse button labels at 4.5:1 on hover and pressed, not only at rest.',
-    description: 'Opt-in (off by default). The inverse filled button steps its fill per state; the primary and destructive labels’ colored ink clears AA at rest but dips on the transient hover/pressed steps. On swaps both inverse labels to the neutral high-contrast ink so every state clears AA — every state clears AA over brand color.' },
+    description: 'Opt-in (off by default). The inverse filled button steps its fill per state; the primary and destructive labels’ colored ink clears AA at rest but dips on the transient hover/pressed steps. On swaps both inverse labels to the neutral high-contrast ink so every state clears AA over brand color.' },
   { key: 'linkStateRungs', group: 'color', kind: 'value', label: 'Link states', control: 'object', advanced: true,
     tip: 'How far hover, pressed and visited links step from the resting link, in ramp steps.',
     description: 'Optional. Set how far each engaged link state — hover, pressed, visited — steps from the resting link, one state at a time, as a count of ramp steps. An unset state keeps the tuned walk; the resting link and its focus follow the link palette. Each step is held to the link’s contrast floor, so it respaces a state without dropping the link below 4.5:1.' },
@@ -164,7 +164,7 @@ export const leverManifest: Lever[] = [
   // #2888 — label, option labels and description are the owner's (Q514 taking Q?2 A, approved as drafted).
   { key: 'searchFieldStyle', group: 'form', kind: 'structural', label: 'Search field style', control: 'enum', default: 'follow',
     options: enumOpts(['follow', 'Follow field style'], ['outline', 'Outline'], ['underline', 'Underline']),
-    tip: 'The edge of the search field: the field style, a box, or one line. Both clear 3:1.',
+    tip: 'The edge of the search field: the field style, a box, or one line. Each clears 3:1.',
     description: 'The edge of the search field. Follow field style matches every other field; Outline or Underline sets search apart. Either way the line clears 3:1.' },
   // #2887 — label, option labels and description are the owner's (Q513.1 A, Q540 taking Q8 A as revised for the 2px hover).
   { key: 'tagStyle', group: 'form', kind: 'structural', label: 'Tag style', control: 'enum', default: 'pill',
@@ -216,7 +216,7 @@ export const leverManifest: Lever[] = [
   // plugin and Studio keep working.
   { key: 'buttonLabelWeight', group: 'form', kind: 'value', label: 'Control label weight', control: 'enum', default: 'emphasis',
     options: enumOpts(['default', 'Default'], ['emphasis', 'Emphasis']),
-    tip: 'The weight of button and tag labels: Emphasis (600) or Default (400).',
+    tip: 'The weight of button and tag labels: Emphasis or Default.',
     description: 'The weight of button and tag labels: Emphasis (600 by default) or Default (400). Default adds that weight to the label styles. Badges keep Emphasis.' },
   // #2324 — label and option labels are the owner's words (2026-10-08); the description is a DRAFT for the owner.
   { key: 'buttonTextHover', group: 'form', kind: 'value', label: 'Text button hover', control: 'enum', default: 'text',
@@ -297,7 +297,8 @@ export const leverManifest: Lever[] = [
     description: 'How fast every duration runs: Snappy is 0.8×, Standard 1×, Relaxed 1.3×. Reduced motion is set for you.' },
   // ---- ELEVATION ----
   { key: 'shadow.softness', group: 'elevation', kind: 'value', label: 'Shadow softness', control: 'slider', default: 1, min: 0, max: 2, step: 0.1,
-    description: 'Blur:offset dial. Low → crisp/product; high → soft/marketing.' },
+    tip: 'How soft every shadow is: low keeps edges crisp, high blurs them past their offset.',
+    description: 'How soft every shadow is: low keeps edges crisp, high blurs them wider than they’re offset.' },
   { key: 'shadow.tint', group: 'elevation', kind: 'value', label: 'Shadow tint', control: 'object', advanced: true,
     tip: 'How far shadows move off pure black, and toward which hue. 0 is pure black.',
     description: 'How far the shadow color moves off pure black, and toward which hue. Amount 0 is pure black; the default is a slight neutral tint.' },

@@ -44341,6 +44341,18 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(mismatched.length === 0, `#4193 a lever has a tip exactly when its description runs past 90 characters (mismatched: ${mismatched.join(', ') || 'none'})`);
   const notShorter = manifest.levers.filter((l) => l.tip !== undefined && !(l.tip.length < l.description.length && l.tip.trim() === l.tip && l.tip.length > 20)).map((l) => l.key);
   ok(notShorter.length === 0, `#4193 each tip is a real line, shorter than its description (${notShorter.join(', ') || 'none'})`);
+  // #4367 review: a rewrite left Strict interactive contrast saying "so every state clears AA — every state clears AA
+  // over brand color". A run of four words said again within two words of where it ended is a doubled clause, never
+  // emphasis. Mutation that fails BY NAME: restore the doubled clause → `#4193 no lever text says a clause twice …`.
+  const doubled: string[] = [];
+  for (const l of manifest.levers) for (const [field, text] of [['description', l.description], ['tip', l.tip]] as const) {
+    if (!text) continue;
+    const w = text.toLowerCase().split(/[^a-z0-9:.]+/).filter(Boolean);
+    const gram = (i: number): string => w.slice(i, i + 4).join(' ');
+    let hit = false;
+    for (let i = 0; i + 8 <= w.length && !hit; i++) for (let j = i + 4; j <= i + 6 && j + 4 <= w.length; j++) if (gram(i) === gram(j)) { doubled.push(`${l.key} ${field}: "${gram(i)}"`); hit = true; break; }
+  }
+  ok(doubled.length === 0, `#4193 no lever text says a clause twice, back to back (${doubled.join('; ') || 'none'})`);
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
