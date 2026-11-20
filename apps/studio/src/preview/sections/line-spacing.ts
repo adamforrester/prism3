@@ -7,7 +7,7 @@
  *  reads the session. */
 import type { Theme } from '@prism3/engine';
 import { emToPercentLabel } from '../../em-percent';
-import { el, hook, palSection, specimen, subHead, type SgCtx } from './kit';
+import { el, hook, palSection, scrollBox, specimen, subHead, type SgCtx } from './kit';
 
 /** The specimens' words. APPROVED (owner, 2026-10-03), as the section's copy is. */
 const LH_TEXT = 'Line height sets the space between the lines of a paragraph, so a long passage reads evenly.';
@@ -20,7 +20,7 @@ export const lineSpacingSection = (c: SgCtx, ty: Theme['typography'], mode: stri
   const table = (caption: string, rows: { key: string; to: string; val: number; fmt: string; who: string[] }[], paint: (e: HTMLElement, v: number) => void, hk: string): void => {
     sec.append(subHead(caption));
     const box = el('div', 'mtbl');
-    const scroll = el('div', 'mtbl-scroll');
+    const scroll = scrollBox(caption);
     const t = el('table', 'mtbl-tbl');
     const head = el('thead'), htr = el('tr');
     ['Name', 'Step', 'Used by', 'Specimen'].forEach((x, i) => htr.append(el('th', i === 0 ? 'mtbl-stick' : i === 3 ? 'mtbl-fill mtbl-spec' : 'mtbl-mode', x)));
