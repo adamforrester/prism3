@@ -21595,6 +21595,24 @@
                     "spread": "0px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#17133508",
+                    "offsetX": "0px",
+                    "offsetY": "1px",
+                    "blur": "3px",
+                    "spread": "0px"
+                  },
+                  {
+                    "color": "#17133505",
+                    "offsetX": "0px",
+                    "offsetY": "1px",
+                    "blur": "4px",
+                    "spread": "0px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -21637,6 +21655,24 @@
             "layers": 2,
             "modes": {
               "dark": {
+                "$value": [
+                  {
+                    "color": "#1713350a",
+                    "offsetX": "0px",
+                    "offsetY": "1px",
+                    "blur": "3px",
+                    "spread": "-1px"
+                  },
+                  {
+                    "color": "#17133508",
+                    "offsetX": "0px",
+                    "offsetY": "2px",
+                    "blur": "8px",
+                    "spread": "-1px"
+                  }
+                ]
+              },
+              "hc-dark": {
                 "$value": [
                   {
                     "color": "#1713350a",
@@ -21711,6 +21747,24 @@
                     "spread": "-3px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#1713350f",
+                    "offsetX": "0px",
+                    "offsetY": "2px",
+                    "blur": "5px",
+                    "spread": "-2px"
+                  },
+                  {
+                    "color": "#1713350a",
+                    "offsetX": "0px",
+                    "offsetY": "4px",
+                    "blur": "16px",
+                    "spread": "-3px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -21753,6 +21807,24 @@
             "layers": 2,
             "modes": {
               "dark": {
+                "$value": [
+                  {
+                    "color": "#17133512",
+                    "offsetX": "0px",
+                    "offsetY": "3px",
+                    "blur": "8px",
+                    "spread": "-3px"
+                  },
+                  {
+                    "color": "#1713350d",
+                    "offsetX": "0px",
+                    "offsetY": "8px",
+                    "blur": "26px",
+                    "spread": "-5px"
+                  }
+                ]
+              },
+              "hc-dark": {
                 "$value": [
                   {
                     "color": "#17133512",
@@ -21827,6 +21899,24 @@
                     "spread": "-8px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#17133517",
+                    "offsetX": "0px",
+                    "offsetY": "4px",
+                    "blur": "10px",
+                    "spread": "-4px"
+                  },
+                  {
+                    "color": "#17133512",
+                    "offsetX": "0px",
+                    "offsetY": "14px",
+                    "blur": "42px",
+                    "spread": "-8px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -21885,6 +21975,24 @@
                     "spread": "-12px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#1713351c",
+                    "offsetX": "0px",
+                    "offsetY": "6px",
+                    "blur": "16px",
+                    "spread": "-6px"
+                  },
+                  {
+                    "color": "#17133517",
+                    "offsetX": "0px",
+                    "offsetY": "22px",
+                    "blur": "68px",
+                    "spread": "-12px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -21921,6 +22029,18 @@
             "layers": 1,
             "modes": {
               "dark": {
+                "$value": [
+                  {
+                    "color": "#1713354d",
+                    "offsetX": "0px",
+                    "offsetY": "2px",
+                    "blur": "5px",
+                    "spread": "0px",
+                    "inset": true
+                  }
+                ]
+              },
+              "hc-dark": {
                 "$value": [
                   {
                     "color": "#1713354d",

@@ -1,0 +1,497 @@
+title: button
+anatomy:
+  root:
+    $extensions:
+      com.prism3:
+        part: container
+        rtl: reverses
+        tokens:
+          border-width/pds3/border-width/hairline:
+            dtcg: pds3.border-width.hairline
+            css: "--pds3-border-width-hairline"
+          color/pds3/color/disabled/border:
+            dtcg: pds3.color.disabled.border
+            css: "--pds3-color-disabled-border"
+          color/pds3/color/disabled/fill:
+            dtcg: pds3.color.disabled.fill
+            css: "--pds3-color-disabled-fill"
+          color/pds3/color/interactive/primary/border/hover:
+            dtcg: pds3.color.interactive.primary.border.hover
+            css: "--pds3-color-interactive-primary-border-hover"
+          color/pds3/color/interactive/primary/border/pressed:
+            dtcg: pds3.color.interactive.primary.border.pressed
+            css: "--pds3-color-interactive-primary-border-pressed"
+          color/pds3/color/interactive/primary/border/rest:
+            dtcg: pds3.color.interactive.primary.border.rest
+            css: "--pds3-color-interactive-primary-border-rest"
+          color/pds3/color/interactive/primary/fill/hover:
+            dtcg: pds3.color.interactive.primary.fill.hover
+            css: "--pds3-color-interactive-primary-fill-hover"
+          color/pds3/color/interactive/primary/fill/pressed:
+            dtcg: pds3.color.interactive.primary.fill.pressed
+            css: "--pds3-color-interactive-primary-fill-pressed"
+          color/pds3/color/interactive/primary/fill/rest:
+            dtcg: pds3.color.interactive.primary.fill.rest
+            css: "--pds3-color-interactive-primary-fill-rest"
+          color/pds3/color/interactive/primary/overlay/hover:
+            dtcg: pds3.color.interactive.primary.overlay.hover
+            css: "--pds3-color-interactive-primary-overlay-hover"
+          color/pds3/color/interactive/primary/overlay/pressed:
+            dtcg: pds3.color.interactive.primary.overlay.pressed
+            css: "--pds3-color-interactive-primary-overlay-pressed"
+          color/pds3/color/inverse/disabled/border:
+            dtcg: pds3.color.inverse.disabled.border
+            css: "--pds3-color-inverse-disabled-border"
+          color/pds3/color/inverse/disabled/fill:
+            dtcg: pds3.color.inverse.disabled.fill
+            css: "--pds3-color-inverse-disabled-fill"
+          color/pds3/color/inverse/interactive/primary/border/hover:
+            dtcg: pds3.color.inverse.interactive.primary.border.hover
+            css: "--pds3-color-inverse-interactive-primary-border-hover"
+          color/pds3/color/inverse/interactive/primary/border/pressed:
+            dtcg: pds3.color.inverse.interactive.primary.border.pressed
+            css: "--pds3-color-inverse-interactive-primary-border-pressed"
+          color/pds3/color/inverse/interactive/primary/border/rest:
+            dtcg: pds3.color.inverse.interactive.primary.border.rest
+            css: "--pds3-color-inverse-interactive-primary-border-rest"
+          color/pds3/color/inverse/interactive/primary/fill/hover:
+            dtcg: pds3.color.inverse.interactive.primary.fill.hover
+            css: "--pds3-color-inverse-interactive-primary-fill-hover"
+          color/pds3/color/inverse/interactive/primary/fill/pressed:
+            dtcg: pds3.color.inverse.interactive.primary.fill.pressed
+            css: "--pds3-color-inverse-interactive-primary-fill-pressed"
+          color/pds3/color/inverse/interactive/primary/fill/rest:
+            dtcg: pds3.color.inverse.interactive.primary.fill.rest
+            css: "--pds3-color-inverse-interactive-primary-fill-rest"
+          color/pds3/color/inverse/interactive/primary/overlay/hover:
+            dtcg: pds3.color.inverse.interactive.primary.overlay.hover
+            css: "--pds3-color-inverse-interactive-primary-overlay-hover"
+          color/pds3/color/inverse/interactive/primary/overlay/pressed:
+            dtcg: pds3.color.inverse.interactive.primary.overlay.pressed
+            css: "--pds3-color-inverse-interactive-primary-overlay-pressed"
+          radius/pds3/radius/md:
+            dtcg: pds3.radius.md
+            css: "--pds3-radius-md"
+          size/pds3/size/lg/height:
+            dtcg: pds3.size.lg.height
+            css: "--pds3-size-lg-height"
+          size/pds3/size/md/height:
+            dtcg: pds3.size.md.height
+            css: "--pds3-size-md-height"
+          size/pds3/size/sm/height:
+            dtcg: pds3.size.sm.height
+            css: "--pds3-size-sm-height"
+          space/pds3/space/0:
+            dtcg: pds3.space.0
+            css: "--pds3-space-0"
+          space/pds3/space/075:
+            dtcg: pds3.space.075
+            css: "--pds3-space-075"
+          space/pds3/space/100:
+            dtcg: pds3.space.100
+            css: "--pds3-space-100"
+          space/pds3/space/150:
+            dtcg: pds3.space.150
+            css: "--pds3-space-150"
+          space/pds3/space/200:
+            dtcg: pds3.space.200
+            css: "--pds3-space-200"
+          space/pds3/space/300:
+            dtcg: pds3.space.300
+            css: "--pds3-space-300"
+  label:
+    $extensions:
+      com.prism3:
+        part: label
+        tokens:
+          color/pds3/color/disabled/on-fill:
+            dtcg: pds3.color.disabled.on-fill
+            css: "--pds3-color-disabled-on-fill"
+          color/pds3/color/disabled/text:
+            dtcg: pds3.color.disabled.text
+            css: "--pds3-color-disabled-text"
+          color/pds3/color/interactive/primary/on-fill:
+            dtcg: pds3.color.interactive.primary.on-fill
+            css: "--pds3-color-interactive-primary-on-fill"
+          color/pds3/color/interactive/primary/text/hover:
+            dtcg: pds3.color.interactive.primary.text.hover
+            css: "--pds3-color-interactive-primary-text-hover"
+          color/pds3/color/interactive/primary/text/pressed:
+            dtcg: pds3.color.interactive.primary.text.pressed
+            css: "--pds3-color-interactive-primary-text-pressed"
+          color/pds3/color/interactive/primary/text/rest:
+            dtcg: pds3.color.interactive.primary.text.rest
+            css: "--pds3-color-interactive-primary-text-rest"
+          color/pds3/color/inverse/disabled/on-fill:
+            dtcg: pds3.color.inverse.disabled.on-fill
+            css: "--pds3-color-inverse-disabled-on-fill"
+          color/pds3/color/inverse/disabled/text:
+            dtcg: pds3.color.inverse.disabled.text
+            css: "--pds3-color-inverse-disabled-text"
+          color/pds3/color/inverse/interactive/primary/on-fill:
+            dtcg: pds3.color.inverse.interactive.primary.on-fill
+            css: "--pds3-color-inverse-interactive-primary-on-fill"
+          color/pds3/color/inverse/interactive/primary/text/hover:
+            dtcg: pds3.color.inverse.interactive.primary.text.hover
+            css: "--pds3-color-inverse-interactive-primary-text-hover"
+          color/pds3/color/inverse/interactive/primary/text/pressed:
+            dtcg: pds3.color.inverse.interactive.primary.text.pressed
+            css: "--pds3-color-inverse-interactive-primary-text-pressed"
+          color/pds3/color/inverse/interactive/primary/text/rest:
+            dtcg: pds3.color.inverse.interactive.primary.text.rest
+            css: "--pds3-color-inverse-interactive-primary-text-rest"
+          label/lg/emphasis:
+            dtcg: pds3.type.label.lg.emphasis
+            css: "--pds3-type-label-lg-emphasis"
+          label/lg/emphasis-link:
+            dtcg: pds3.type.label.lg.emphasis-link
+            css: "--pds3-type-label-lg-emphasis-link"
+          label/md/emphasis:
+            dtcg: pds3.type.label.md.emphasis
+            css: "--pds3-type-label-md-emphasis"
+          label/md/emphasis-link:
+            dtcg: pds3.type.label.md.emphasis-link
+            css: "--pds3-type-label-md-emphasis-link"
+          label/sm/emphasis:
+            dtcg: pds3.type.label.sm.emphasis
+            css: "--pds3-type-label-sm-emphasis"
+          label/sm/emphasis-link:
+            dtcg: pds3.type.label.sm.emphasis-link
+            css: "--pds3-type-label-sm-emphasis-link"
+  leadingVisual:
+    $extensions:
+      com.prism3:
+        part: leadingVisual
+        rtl: per-glyph
+        tokens:
+          color/pds3/color/disabled/icon:
+            dtcg: pds3.color.disabled.icon
+            css: "--pds3-color-disabled-icon"
+          color/pds3/color/disabled/on-fill:
+            dtcg: pds3.color.disabled.on-fill
+            css: "--pds3-color-disabled-on-fill"
+          color/pds3/color/interactive/primary/icon/hover:
+            dtcg: pds3.color.interactive.primary.icon.hover
+            css: "--pds3-color-interactive-primary-icon-hover"
+          color/pds3/color/interactive/primary/icon/pressed:
+            dtcg: pds3.color.interactive.primary.icon.pressed
+            css: "--pds3-color-interactive-primary-icon-pressed"
+          color/pds3/color/interactive/primary/icon/rest:
+            dtcg: pds3.color.interactive.primary.icon.rest
+            css: "--pds3-color-interactive-primary-icon-rest"
+          color/pds3/color/interactive/primary/on-fill:
+            dtcg: pds3.color.interactive.primary.on-fill
+            css: "--pds3-color-interactive-primary-on-fill"
+          color/pds3/color/inverse/disabled/icon:
+            dtcg: pds3.color.inverse.disabled.icon
+            css: "--pds3-color-inverse-disabled-icon"
+          color/pds3/color/inverse/disabled/on-fill:
+            dtcg: pds3.color.inverse.disabled.on-fill
+            css: "--pds3-color-inverse-disabled-on-fill"
+          color/pds3/color/inverse/interactive/primary/icon/hover:
+            dtcg: pds3.color.inverse.interactive.primary.icon.hover
+            css: "--pds3-color-inverse-interactive-primary-icon-hover"
+          color/pds3/color/inverse/interactive/primary/icon/pressed:
+            dtcg: pds3.color.inverse.interactive.primary.icon.pressed
+            css: "--pds3-color-inverse-interactive-primary-icon-pressed"
+          color/pds3/color/inverse/interactive/primary/icon/rest:
+            dtcg: pds3.color.inverse.interactive.primary.icon.rest
+            css: "--pds3-color-inverse-interactive-primary-icon-rest"
+          color/pds3/color/inverse/interactive/primary/on-fill:
+            dtcg: pds3.color.inverse.interactive.primary.on-fill
+            css: "--pds3-color-inverse-interactive-primary-on-fill"
+          icon/pds3/icon/size/md:
+            dtcg: pds3.icon.size.md
+            css: "--pds3-icon-size-md"
+          icon/pds3/icon/size/sm:
+            dtcg: pds3.icon.size.sm
+            css: "--pds3-icon-size-sm"
+          icon/pds3/icon/size/xs:
+            dtcg: pds3.icon.size.xs
+            css: "--pds3-icon-size-xs"
+  trailingVisual:
+    $extensions:
+      com.prism3:
+        part: trailingVisual
+        rtl: per-glyph
+        tokens:
+          color/pds3/color/disabled/icon:
+            dtcg: pds3.color.disabled.icon
+            css: "--pds3-color-disabled-icon"
+          color/pds3/color/disabled/on-fill:
+            dtcg: pds3.color.disabled.on-fill
+            css: "--pds3-color-disabled-on-fill"
+          color/pds3/color/interactive/primary/icon/hover:
+            dtcg: pds3.color.interactive.primary.icon.hover
+            css: "--pds3-color-interactive-primary-icon-hover"
+          color/pds3/color/interactive/primary/icon/pressed:
+            dtcg: pds3.color.interactive.primary.icon.pressed
+            css: "--pds3-color-interactive-primary-icon-pressed"
+          color/pds3/color/interactive/primary/icon/rest:
+            dtcg: pds3.color.interactive.primary.icon.rest
+            css: "--pds3-color-interactive-primary-icon-rest"
+          color/pds3/color/interactive/primary/on-fill:
+            dtcg: pds3.color.interactive.primary.on-fill
+            css: "--pds3-color-interactive-primary-on-fill"
+          color/pds3/color/inverse/disabled/icon:
+            dtcg: pds3.color.inverse.disabled.icon
+            css: "--pds3-color-inverse-disabled-icon"
+          color/pds3/color/inverse/disabled/on-fill:
+            dtcg: pds3.color.inverse.disabled.on-fill
+            css: "--pds3-color-inverse-disabled-on-fill"
+          color/pds3/color/inverse/interactive/primary/icon/hover:
+            dtcg: pds3.color.inverse.interactive.primary.icon.hover
+            css: "--pds3-color-inverse-interactive-primary-icon-hover"
+          color/pds3/color/inverse/interactive/primary/icon/pressed:
+            dtcg: pds3.color.inverse.interactive.primary.icon.pressed
+            css: "--pds3-color-inverse-interactive-primary-icon-pressed"
+          color/pds3/color/inverse/interactive/primary/icon/rest:
+            dtcg: pds3.color.inverse.interactive.primary.icon.rest
+            css: "--pds3-color-inverse-interactive-primary-icon-rest"
+          color/pds3/color/inverse/interactive/primary/on-fill:
+            dtcg: pds3.color.inverse.interactive.primary.on-fill
+            css: "--pds3-color-inverse-interactive-primary-on-fill"
+          icon/pds3/icon/size/md:
+            dtcg: pds3.icon.size.md
+            css: "--pds3-icon-size-md"
+          icon/pds3/icon/size/sm:
+            dtcg: pds3.icon.size.sm
+            css: "--pds3-icon-size-sm"
+          icon/pds3/icon/size/xs:
+            dtcg: pds3.icon.size.xs
+            css: "--pds3-icon-size-xs"
+  spinner:
+    $extensions:
+      com.prism3:
+        part: spinner
+        tokens:
+          color/pds3/color/interactive/primary/icon/rest:
+            dtcg: pds3.color.interactive.primary.icon.rest
+            css: "--pds3-color-interactive-primary-icon-rest"
+          color/pds3/color/interactive/primary/on-fill:
+            dtcg: pds3.color.interactive.primary.on-fill
+            css: "--pds3-color-interactive-primary-on-fill"
+          color/pds3/color/inverse/interactive/primary/icon/rest:
+            dtcg: pds3.color.inverse.interactive.primary.icon.rest
+            css: "--pds3-color-inverse-interactive-primary-icon-rest"
+          color/pds3/color/inverse/interactive/primary/on-fill:
+            dtcg: pds3.color.inverse.interactive.primary.on-fill
+            css: "--pds3-color-inverse-interactive-primary-on-fill"
+          icon/pds3/icon/size/md:
+            dtcg: pds3.icon.size.md
+            css: "--pds3-icon-size-md"
+          icon/pds3/icon/size/sm:
+            dtcg: pds3.icon.size.sm
+            css: "--pds3-icon-size-sm"
+          icon/pds3/icon/size/xs:
+            dtcg: pds3.icon.size.xs
+            css: "--pds3-icon-size-xs"
+  focusRing:
+    $extensions:
+      com.prism3:
+        part: focusRing
+        focusRing:
+          offset:
+            dtcg: pds3.focus.ring.offset
+            css: "--pds3-focus-ring-offset"
+            figma: focus/pds3/focus/ring/offset
+          width:
+            dtcg: pds3.focus.ring.width
+            css: "--pds3-focus-ring-width"
+            figma: focus/pds3/focus/ring/width
+          style:
+            dtcg: pds3.focus.ring.style
+            css: "--pds3-focus-ring-style"
+props:
+  appearance:
+    $extensions:
+      com.prism3:
+        codeProp: appearance
+        axisKind: runtime
+  surface:
+    $extensions:
+      com.prism3:
+        codeProp: surface
+        axisKind: authoring
+  inset:
+    $extensions:
+      com.prism3:
+        codeProp: inset
+        axisKind: authoring
+  size:
+    $extensions:
+      com.prism3:
+        codeProp: size
+        axisKind: authoring
+  state:
+    $extensions:
+      com.prism3:
+        codeOnlyStates:
+          - inactive
+  leadingIcon:
+    $extensions:
+      com.prism3:
+        figmaName: "leading icon"
+        codeProp: leadingVisual
+        part: leadingVisual
+        controls: presence
+  trailingIcon:
+    $extensions:
+      com.prism3:
+        figmaName: "trailing icon"
+        codeProp: trailingVisual
+        part: trailingVisual
+        controls: presence
+  label:
+    $extensions:
+      com.prism3:
+        codeProp: label
+        part: label
+  swapLeadingIcon:
+    $extensions:
+      com.prism3:
+        figmaName: "↳ swap leading icon"
+        codeProp: leadingVisual
+        part: leadingVisual
+        controls: content
+  swapTrailingIcon:
+    $extensions:
+      com.prism3:
+        figmaName: "↳ swap trailing icon"
+        codeProp: trailingVisual
+        part: trailingVisual
+        controls: content
+$extensions:
+  com.prism3:
+    format: prism3-spec-supplement/0.1
+    component: button
+    name: Button
+    accessibility:
+      role: "button (native `<button>`; never `div[role=button]` — it inherits Space/Enter activation, focus, and high-contrast affordances for free)"
+      keyboard: "Native `<button>`: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating \"button\" must be a real link.)"
+      focus: "A `:focus-visible` ring (`color.border.focus`) with an `outline-offset` so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (`aria-disabled`, not native disabled)."
+      aria: "State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region (\"Saving…\"), and set aria-hidden=\"true\" on the embedded spinner, which otherwise announces its own \"Loading\" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization: the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip."
+      wcag:
+        - "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)"
+        - "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)"
+        - "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge, so a sliver of background separates it from the fill)"
+        - "2.5.3 Label in Name (an aria-label starts with the visible label text)"
+        - "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)"
+        - "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)"
+        - "4.1.2 Name/Role/Value (native <button>: the label is the name, the role is button, and state rides aria-disabled and aria-busy, plus aria-pressed on a toggle button only)"
+      hitTarget:
+        small:
+          dtcg: pds3.space.300
+          css: "--pds3-space-300"
+          figma: space/pds3/space/300
+        medium:
+          dtcg: pds3.space.550
+          css: "--pds3-space-550"
+          figma: space/pds3/space/550
+        large:
+          dtcg: pds3.space.550
+          css: "--pds3-space-550"
+          figma: space/pds3/space/550
+    behavior:
+      states:
+        - rest
+        - hover
+        - pressed
+        - pending
+        - focus-visible
+        - disabled
+        - inactive
+      codeOnlyStates:
+        - inactive
+      codeOnlyProps:
+        - name: onClick
+          type: function
+          required: false
+          description: "Action handler. Suppressed while isPending or isInactive."
+        - name: fullWidth
+          type: boolean
+          default: false
+          required: false
+          description: "Stretch to container. Aliases: block / isFullWidth."
+        - name: type
+          type: "enum: 'button' | 'submit' | 'reset'"
+          default: button
+          required: false
+          description: "Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly."
+        - name: isPending
+          type: boolean
+          default: false
+          required: false
+          description: "Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over a loading prop."
+        - name: isInactive
+          type: boolean
+          default: false
+          required: false
+          description: "Focusable disabled — visually muted, retains tab order, surfaces the blockage reason on focus. Use for a control blocked by satisfiable app state (e.g. submit on an incomplete form)."
+        - name: disabled
+          type: boolean
+          default: false
+          required: false
+          description: "Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes it from the tab order and the accessibility tree. Prefer isInactive for anything relevant-but-blocked."
+        - name: href
+          type: string
+          required: false
+          description: "A destination, for a navigation that needs a button's weight, such as \"Continue to checkout\". With an href, the button renders an <a href> in the same style, Enter follows it, and type and disabled no longer apply. Anything lighter is a Link."
+        - name: aria-label
+          type: string
+          required: false
+          description: "Extends the visible label with context it does not carry (\"Delete invoice 1042\" on a \"Delete\" button). Start it with the visible text, so a voice-control user who speaks the label still activates the control (WCAG 2.5.3 Label in Name)."
+      codeOnlyAxes:
+        - name: width
+          values:
+            - auto
+            - full
+          axisKind: authoring
+      syncBoundary:
+        - class: hit-target
+          disposition: UNSUPPORTED
+        - class: focus-ring
+          disposition: LOWERED
+        - class: focus-ring
+          disposition: UNSUPPORTED
+        - class: live-geometry
+          disposition: LOWERED
+        - class: live-geometry
+          disposition: LOWERED
+        - class: not-projected
+          disposition: REFUSED
+        - class: localization
+          disposition: LOWERED
+        - class: right-to-left
+          disposition: UNSUPPORTED
+        - class: runtime-behavior
+          disposition: REFUSED
+        - class: runtime-behavior
+          disposition: REFUSED
+        - class: not-projected
+          disposition: REFUSED
+    motion:
+      enter: "none (present on mount)"
+      exit: none
+      reduceMotion: "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) on the same duration and curve gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+      tokens:
+        motion.state:
+          dtcg: pds3.motion.duration.fast
+          css: "--pds3-motion-duration-fast"
+          figma: motion/pds3/motion/duration/fast
+        motion.state-easing:
+          dtcg: pds3.motion.easing-role.default
+          css: "--pds3-motion-easing-role-default"
+          figma: motion/pds3/motion/easing-role/default
+        motion.state-reduced:
+          dtcg: pds3.motion.duration-reduced.fast
+          css: "--pds3-motion-duration-reduced-fast"
+          figma: motion/pds3/motion/duration-reduced/fast
+        motion.press:
+          dtcg: pds3.motion.duration.fast
+          css: "--pds3-motion-duration-fast"
+          figma: motion/pds3/motion/duration/fast
+        motion.press-easing:
+          dtcg: pds3.motion.easing-role.default
+          css: "--pds3-motion-easing-role-default"
+          figma: motion/pds3/motion/easing-role/default
