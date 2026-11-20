@@ -33,13 +33,14 @@
 import { readFileSync } from 'node:fs';
 
 /** Every object key the stock configs may use: Style Dictionary's own options, the platform names, and the
- * built-in formats' options. Plus `default`, the `{ default: StyleDictionary }` of a dynamic import, and
+ * built-in formats' options (`showFileHeader`, #4140: the system-preference rule appended to `dark.css` carries no
+ * second banner). Plus `default`, the `{ default: StyleDictionary }` of a dynamic import, and
  * `recursive` and `force`, the `rmSync` options of `sd.ship.mjs`'s clean step. */
 export const ALLOWED_KEYS = new Set([
   'source', 'usesDtcg', 'log', 'warnings', 'verbosity', 'platforms',
   'css', 'scss', 'js', 'ios', 'android', 'compose',
   'transformGroup', 'buildPath', 'files', 'destination', 'format',
-  'options', 'outputReferences', 'selector', 'className', 'packageName',
+  'options', 'outputReferences', 'selector', 'showFileHeader', 'className', 'packageName',
   'default', 'recursive', 'force',
 ]);
 

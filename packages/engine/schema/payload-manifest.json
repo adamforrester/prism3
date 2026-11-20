@@ -39,6 +39,11 @@
       "why": "One overlay per theme mode. Base + overlay is the projection a conforming consumer resolves, and (#2552) it carries no `$extensions`."
     },
     {
+      "kind": "web-base",
+      "pattern": "out/{brand}.web.base.tokens.json",
+      "why": "The web flavor of the conforming base (#4155, owner decision B): identical to `{brand}.base.tokens.json` except that each typeface's `$value` is its curated fallback stack as the DTCG array, primary first and ending in a CSS generic family. PAYLOAD because the web build reads it in place of the base: `@prism3/tokens` (`sd.ship.mjs`) builds the shipped CSS from it with each `{brand}.{mode}.overlay.tokens.json`. A separate file so the platform-neutral base stays single-family for every other platform, where a stack is not a font name. No `$extensions`, like the base."
+    },
+    {
       "kind": "agent-metadata",
       "pattern": "out/{brand}.ai.json",
       "why": "Per-brand agent metadata. Travels because an ejected repo has no Prism3 MCP to query (#668)."
@@ -92,6 +97,11 @@
       "kind": "component-defs-specs",
       "pattern": "out/components/component-defs.specs.json",
       "why": "The same export as a Specs components set (#3425), valid against the published Specs schema, for a tool that reads that format. PAYLOAD for the same reason as the export it projects. What the Specs format has no place for stays in the export."
+    },
+    {
+      "kind": "spec-supplement",
+      "pattern": "out/specs/{file}.supplement.yaml",
+      "why": "Prism3's supplement to Spectacular's spec for its own components (#2996, Q2996.1 hybrid A): accessibility, behavior, motion, RTL and the shipped token names, keyed to Spectacular's element and prop names. PAYLOAD (DRAFT, owner decision on #2996): it is written for a consumer reading a component's spec, the same reader as the component docs."
     },
     {
       "kind": "component-docs-page",
