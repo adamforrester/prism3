@@ -43652,8 +43652,8 @@ arm: {
   const QMP1 = 'state, fade, crossfade, move, reveal, draw, surface, expand, step and settle'.split(/, | and /);
   const DRAFT_DEFAULTS: Record<string, [string, string, string]> = {
     state: ['fast', 'default', 'fast'], fade: ['normal', 'enter', 'normal'], crossfade: ['normal', 'default', 'normal'],
-    move: ['moderate', 'default', 'normal'], reveal: ['slow', 'enter', 'normal'], draw: ['slow', 'default', 'slow'],
-    surface: ['moderate', 'enter', 'normal'], expand: ['normal', 'enter', 'normal'], step: ['moderate', 'default', 'normal'],
+    move: ['moderate', 'default', 'normal'], reveal: ['slow', 'enter', 'normal'], draw: ['slow', 'default', 'normal'],
+    surface: ['moderate', 'enter', 'normal'], expand: ['normal', 'default', 'normal'], step: ['moderate', 'default', 'normal'],
     settle: ['slow', 'enter', 'normal'],
   };
   const cards = QMP1.map((data) => { const [dur, ease, rdur] = DRAFT_DEFAULTS[data] ?? ['?', '?', '?']; return { data, dur, ease, rdur }; });
@@ -43666,6 +43666,18 @@ arm: {
   const emittedNames = Object.keys(stockPresets);
   ok(QMP1.length === 10 && Object.keys(DRAFT_DEFAULTS).length === 10 && wrongCards.length === 0 && JSON.stringify(emittedNames) === JSON.stringify(QMP1),
     `#2857 default mapping: the owner's ten Q-MP1 presets, in order, each on its DRAFT step, easing role and reduced step for prism3 (${QMP1.length} named, ${emittedNames.length} emitted: ${emittedNames.join(', ')})${wrongCards.length ? ` — wrong: ${wrongCards.map((c) => `${c.data} wants ${c.dur}/${c.ease}/${c.rdur}, got ${JSON.stringify(stockPresets[c.data])}`).join('; ')}` : ''}`);
+  // OWNER DECISIONS 2026-11-20 on #4332, each resolved through the prism3 tree to the value it lands on, with the
+  // EXPECTED written here as literals. `draw` FADES under reduced motion rather than disappearing: its reduced
+  // duration is a real fade (50ms at the standard tempo), not the 0ms "eliminated" twin of its `slow` step.
+  const decTree = buildTree(brandTheme(prism3Input)).tree;
+  const leafOf = (path: string | undefined): any => (path ? path.split('.').reduce((n: any, k) => n?.[k], decTree[Object.keys(decTree)[0]]) : undefined);
+  const drawReduced = stockPresets.draw?.reduced_duration;
+  ok(drawReduced === 'motion.duration-reduced.normal' && leafOf(drawReduced)?.$extensions?.prism3?.ms === 50,
+    `#2857 owner 2026-11-20: draw fades under reduced motion (motion.duration-reduced.normal, 50ms), not eliminated at 0ms (got ${drawReduced} → ${leafOf(drawReduced)?.$extensions?.prism3?.ms}ms)`);
+  // `expand` plays on the in-place `default` curve (standard, [0.2, 0, 0, 1]), not the arriving `enter` one.
+  const expandEasing = stockPresets.expand?.easing;
+  ok(expandEasing === 'motion.easing-role.default' && leafOf(expandEasing)?.$value === '{pds3.motion.easing.standard}',
+    `#2857 owner 2026-11-20: expand takes the in-place default curve (motion.easing-role.default → standard; got ${expandEasing} → ${leafOf(expandEasing)?.$value})`);
   // The owner's own examples (Q-MP7 option 3) name `crossfade` and `surface`: a brand can map both.
   const mapped = sidecar({ ...prism3Input, motionPersonality: { ...(prism3Input.motionPersonality ?? {}), presets: { crossfade: 'long', surface: 'longest' } } } as BrandInput).motion_presets ?? {};
   ok(mapped.crossfade?.duration === 'motion.duration.long' && mapped.surface?.duration === 'motion.duration.longest',

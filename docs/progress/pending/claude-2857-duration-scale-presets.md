@@ -25,7 +25,9 @@ their primitives and the sidecar's new block.
 **DRAFT for the owner.** The step names and values (recommended `long`/`longer`/`longest`; the alternative is a
 t-shirt scale, `xl`/`2xl`/`3xl`, which renames the existing steps and so belongs in the batched MAJOR, #4165 with
 #1421). The preset names (Q-MP2 is open) and each preset's default step, easing role and reduced step (Q-MP1 named the
-presets, not their steps). The reduced step staying the preset's own rather than
+presets, not their steps). **Owner decisions, 2026-11-20:** the long-step names and values are approved as built; `draw` fades under
+reduced motion (its reduced step is `normal`, a 50ms fade, not its `slow` step's 0ms); `expand` takes the in-place
+`default` curve, not `enter`. The reduced step staying the preset's own rather than
 the brand's. The brand-only group's name (`motion.brand`) and fields. The reference brand's mapping waits on the
 brand-team questions.
 

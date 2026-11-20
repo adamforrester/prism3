@@ -9462,7 +9462,7 @@
     "draw": {
       "duration": "motion.duration.slow",
       "easing": "motion.easing-role.default",
-      "reduced_duration": "motion.duration-reduced.slow"
+      "reduced_duration": "motion.duration-reduced.normal"
     },
     "surface": {
       "duration": "motion.duration.moderate",
@@ -9471,7 +9471,7 @@
     },
     "expand": {
       "duration": "motion.duration.normal",
-      "easing": "motion.easing-role.enter",
+      "easing": "motion.easing-role.default",
       "reduced_duration": "motion.duration-reduced.normal"
     },
     "step": {

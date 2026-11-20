@@ -89,14 +89,15 @@ export const DURATION_STEPS: readonly string[] = Object.keys(DURATION_BASE);
  * - crossfade: one thing replaced by another in place → `normal`.
  * - move: a change of position within the layout; dialog-sized moves run 200–300ms → `moderate`, in place.
  * - reveal: content arriving on view. No field figure → `slow`, arriving.
- * - draw: a line drawn on. No field figure → `slow`, in place; reduced to 0 (the step's own reduced twin).
+ * - draw: a line drawn on. No field figure → `slow`, in place. Under reduced motion it fades in rather than
+ *   disappearing (owner decision, 2026-11-20): the drawn line is content, so it reduces like the others.
  * - surface: a dialog, sheet or drawer arriving, 200–300ms → `moderate`, arriving.
- * - expand: a height change, 100–200ms → `normal`. The field splits between an in-place and an arriving curve;
- *   this keeps the arriving one the skill's accordion recipe uses.
+ * - expand: a height change, 100–200ms → `normal`, in place: the content grows where it already is (owner
+ *   decision, 2026-11-20, of the field's in-place and arriving curves).
  * - step: a carousel advancing one item. Only spring data exists → `moderate`, in place.
  * - settle: a moved thing coming to rest. Only spring data exists → `slow`, arriving.
- * Every preset but `state` and `draw` reduces to a short fade on `motion.duration-reduced.normal`; `state` keeps its
- * own step, since a state change is not movement.
+ * Every preset but `state` reduces to a short fade on `motion.duration-reduced.normal`; `state` keeps its own step,
+ * since a state change is not movement.
  */
 export const MOTION_PRESET_DEFAULTS: readonly MotionPreset[] = [
   { preset: 'state', duration: 'fast', easing: 'default', reduced: 'fast' },
@@ -104,9 +105,9 @@ export const MOTION_PRESET_DEFAULTS: readonly MotionPreset[] = [
   { preset: 'crossfade', duration: 'normal', easing: 'default', reduced: 'normal' },
   { preset: 'move', duration: 'moderate', easing: 'default', reduced: 'normal' },
   { preset: 'reveal', duration: 'slow', easing: 'enter', reduced: 'normal' },
-  { preset: 'draw', duration: 'slow', easing: 'default', reduced: 'slow' },
+  { preset: 'draw', duration: 'slow', easing: 'default', reduced: 'normal' },
   { preset: 'surface', duration: 'moderate', easing: 'enter', reduced: 'normal' },
-  { preset: 'expand', duration: 'normal', easing: 'enter', reduced: 'normal' },
+  { preset: 'expand', duration: 'normal', easing: 'default', reduced: 'normal' },
   { preset: 'step', duration: 'moderate', easing: 'default', reduced: 'normal' },
   { preset: 'settle', duration: 'slow', easing: 'enter', reduced: 'normal' },
 ];
