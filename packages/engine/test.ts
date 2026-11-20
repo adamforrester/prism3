@@ -35,7 +35,8 @@ import { buildIdentity } from './build-identity';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
-import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
+import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES, buildCssOnly } from './emit-dtcg-overlay';
+import { Spring, springPosition, springSettleMs, springLinearEasing, springEasingStops, SPRING_EASING_ERROR_BOUND, SPRING_SETTLE_EPSILON, SPRING_SAMPLE_MS, SPRING_MAX_STIFFNESS } from './spring';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput, readExampleBrand, contractReportRow, emitTheme } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
@@ -32356,6 +32357,72 @@ arm: {
   const threw = (fn: () => unknown): boolean => { try { fn(); return false; } catch { return true; } };
   ok(springBounce(0.9) === 0.1 && springBounce(1) === 0 && threw(() => springBounce(1.2)) && threw(() => springBounce(0)),
     'motion: springBounce is 1 − ζ on (0, 1] and throws outside it (0.9 → 0.1; 1.2 and 0 refused)');
+
+  // #3510 (Q-SP1 E): each spring ships to CSS as a `linear()` curve over its settle time, both from spring.ts. The
+  // oracle is the analytic spring, evaluated here densely and independently of the stops the engine wrote: the
+  // curve a browser plays (straight lines between the stops) may differ from it by at most the stated bound,
+  // anywhere on [0, settle]. Run over the shipped springs and a sweep of the domain the bound is argued for.
+  {
+    const errorOf = (sp: Spring): number => {
+      const ms = springSettleMs(sp);
+      const css = springLinearEasing(sp);
+      const stops = /^linear\((.*)\)$/.exec(css)![1].split(', ').map(Number);
+      const n = stops.length - 1;
+      let worst = 0;
+      for (let j = 0; j <= 20000; j++) {
+        const u = j / 20000, x = u * n, i = Math.min(Math.floor(x), n - 1), f = x - i;
+        worst = Math.max(worst, Math.abs(stops[i] * (1 - f) + stops[i + 1] * f - springPosition(sp, u * ms)));
+      }
+      return worst;
+    };
+    const shipped = buildTree(nbTheme()).tree[NB_ROOT].motion.spring as Record<string, { $value: Spring }>;
+    const shippedErr = Object.entries(shipped).map(([k, v]) => [k, errorOf(v.$value)] as const);
+    ok(shippedErr.length === 3 && shippedErr.every(([, e]) => e <= SPRING_EASING_ERROR_BOUND),
+      `#3510: each shipped spring's linear() curve stays within ${SPRING_EASING_ERROR_BOUND} of the analytic spring over its settle time (${shippedErr.map(([k, e]) => `${k} ${e.toFixed(4)}`).join(', ')})`);
+    const sweep: Spring[] = [];
+    for (const damping of [0.1, 0.3, 0.5, 0.7, 0.9, 1]) for (const stiffness of [50, 200, 500, 800, SPRING_MAX_STIFFNESS]) sweep.push({ damping, stiffness });
+    const worstSweep = sweep.map((sp) => ({ sp, e: errorOf(sp) })).sort((a, b) => b.e - a.e)[0];
+    ok(worstSweep.e <= SPRING_EASING_ERROR_BOUND,
+      `#3510: across ${sweep.length} springs (ζ 0.1–1, k 50–${SPRING_MAX_STIFFNESS}) the linear() curve stays within ${SPRING_EASING_ERROR_BOUND} (worst ${worstSweep.e.toFixed(4)} at ζ ${worstSweep.sp.damping}, k ${worstSweep.sp.stiffness})`);
+    // Settled means settled: past the settle time the spring never leaves the threshold band again, and 1ms
+    // earlier it is still outside it, so the duration is not padded. Checked on the analytic curve, finely.
+    const settledRight = sweep.every((sp) => {
+      const ms = springSettleMs(sp);
+      let after = 0;
+      for (let t = ms; t <= ms * 4; t += 0.05) after = Math.max(after, Math.abs(springPosition(sp, t) - 1));
+      let before = 0;
+      for (let t = ms - 1; t < ms; t += 0.01) before = Math.max(before, Math.abs(springPosition(sp, t) - 1));
+      return after <= SPRING_SETTLE_EPSILON && before > SPRING_SETTLE_EPSILON * 0.999;
+    });
+    ok(settledRight, `#3510: each spring's settle time is the first whole millisecond after which it stays within ${SPRING_SETTLE_EPSILON} of its target`);
+    ok(springEasingStops({ damping: 0.9, stiffness: 700 }).length - 1 === Math.ceil(springSettleMs({ damping: 0.9, stiffness: 700 }) / SPRING_SAMPLE_MS),
+      `#3510: one linear() stop every ${SPRING_SAMPLE_MS}ms of the settle time`);
+    ok(threw(() => springSettleMs({ damping: 1.2, stiffness: 700 })) && threw(() => springSettleMs({ damping: 0.5, stiffness: SPRING_MAX_STIFFNESS + 1 })),
+      '#3510: a spring outside the argued domain (ζ in (0, 1], k up to the bound) is refused, not approximated');
+    // The tree pairs them, by name, with the same settle time the description states.
+    const m = buildTree(nbTheme()).tree[NB_ROOT].motion;
+    const paired = Object.keys(shipped).every((k) => m['spring-duration'][k].$value === `${springSettleMs(shipped[k].$value)}ms`
+      && m['spring-duration'][k].$type === 'duration'
+      && m['spring-easing'][k].$value === springLinearEasing(shipped[k].$value) && m['spring-easing'][k].$type === 'linearEasing');
+    ok(paired, '#3510: every motion.spring.<name> has a spring-duration (DTCG duration) and a spring-easing (linearEasing) of the same name');
+    // The description's spacing claim is a ceiling, not an exact step (owner decision 2026-11-20): the stops are evenly
+    // spaced at settle / n, which is under 5ms for snappy (317 / 64). So each description states "at most every Nms",
+    // and the stops it describes are never further apart than N.
+    const spacing = Object.keys(shipped).map((k) => {
+      const claim = /sampled at most every (\d+)ms/.exec(m['spring-easing'][k].$description ?? '');
+      const gap = springSettleMs(shipped[k].$value) / (springEasingStops(shipped[k].$value).length - 1);
+      return { k, claimed: claim ? Number(claim[1]) : NaN, gap };
+    });
+    ok(spacing.every(({ claimed, gap }) => claimed === SPRING_SAMPLE_MS && gap <= claimed),
+      `#3510: each spring-easing description says its stops are "sampled at most every ${SPRING_SAMPLE_MS}ms", and they are (${spacing.map(({ k, claimed, gap }) => `${k} claims ${claimed}, gap ${gap.toFixed(2)}ms`).join('; ')})`);
+    // The CSS-only source carries exactly the linearEasing leaves; the projection carries none of them.
+    const cssOnly = buildCssOnly(buildTree(nbTheme()).tree) as any;
+    const projected = buildOverlaySet(buildTree(nbTheme()).tree).base as any;
+    ok(Object.keys(cssOnly[NB_ROOT].motion).join() === 'spring-easing' && Object.keys(cssOnly[NB_ROOT].motion['spring-easing']).length === 3
+      && !('$extensions' in cssOnly[NB_ROOT].motion['spring-easing'].snappy)
+      && !('spring-easing' in projected[NB_ROOT].motion) && Object.keys(projected[NB_ROOT].motion['spring-duration']).length === 3,
+      '#3510: the CSS-only source holds the three spring-easing curves and nothing else; the projection holds the durations and not the curves');
+  }
 
   // Apply Theme writes it: the motion var plan carries the collection, same rows, typed per row.
   const nbMotionPlan = buildMotionVarPlan(nbTheme()).find((c) => c.name === 'motion');

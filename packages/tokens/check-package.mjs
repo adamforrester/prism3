@@ -13,8 +13,10 @@
  * read off the build. So renaming the prefix or dropping a mode in `sd.ship.mjs` fails here by name.
  *
  * Which contract names: every guaranteed name with a DTCG `$type`, by this gate's own copy of the spec
- * list. A non-DTCG type (today `spring`) is not in the conforming projection the build reads (#642), so it
- * is out of the package by design; the exclusion is printed, not hidden.
+ * list, plus every guaranteed name of a type the package promises as CSS though DTCG has no type for it
+ * (`CSS_TYPES`: today `linearEasing`, each spring's `linear()` curve, #3510). Any other non-DTCG type (today
+ * `spring`, whose damping and stiffness no CSS property holds) is not in the package by design (#642); the
+ * exclusion is printed, not hidden.
  *
  * Mapping a contract key to a CSS name is stock Style Dictionary's `name/kebab` over the `pds3` root:
  * `color.text.primary` → `--pds3-color-text-primary`. Written out here as `.` → `-`, not by calling
@@ -103,6 +105,14 @@ const DTCG_TYPES = new Set([
   'color', 'dimension', 'fontFamily', 'fontWeight', 'duration', 'cubicBezier', 'number',
   'strokeStyle', 'border', 'transition', 'shadow', 'gradient', 'typography',
 ]);
+/**
+ * The custom types the package promises as CSS (#3510, owner Q-SP1 E: each spring ships as a `linear()` curve and
+ * its settle time). Written here, not imported from the engine's `CSS_ONLY_TYPES`: taken from the build's side, a
+ * type the engine stopped emitting would leave this list too, and its names would drop out of the check unseen.
+ */
+const CSS_TYPES = new Set(['linearEasing']);
+/** Whether the package promises a guaranteed name of this type. */
+const shipped = (t) => DTCG_TYPES.has(t) || CSS_TYPES.has(t);
 
 const fail = [];
 const ok = (cond, label) => { console.log(`  ${cond ? '✓' : '✗'} ${label}`); if (!cond) fail.push(label); };
@@ -151,6 +161,10 @@ const atom = (x) => {
  */
 const expectedAtoms = (v, type) => {
   if (typeof v === 'number') return [String(v)];
+  if (type === 'linearEasing' && typeof v === 'string') {
+    const stops = /^linear\((.*)\)$/.exec(v);
+    return stops ? ['linear', ...stops[1].split(/[\s,]+/).filter(Boolean)] : [`<not a linear() curve: ${v}>`];
+  }
   if (typeof v === 'string') {
     const alias = /^\{([^}]+)\}$/.exec(v);
     return alias ? [`var(--${alias[1].replaceAll('.', '-')})`] : v.split(/\s+/).filter(Boolean);
@@ -164,10 +178,12 @@ const expectedAtoms = (v, type) => {
   }
   return [String(v)];
 };
-/** The CSS side: `rgb[a]( )` read as one color, `cubic-bezier( )` as its numbers, split on space, `,` and `/`. */
+/** The CSS side: `rgb[a]( )` read as one color, `cubic-bezier( )` as its numbers, `linear( )` as `linear` and its
+ *  stops, split on space, `,` and `/`. */
 const cssAtoms = (s) => s
   .replace(/rgba?\(([^)]*)\)/g, (_, a) => { const [r, g, b, al = '1'] = a.split(/[\s,/]+/).filter(Boolean); return rgba(r, g, b, al); })
   .replace(/cubic-bezier\(([^)]*)\)/g, '$1')
+  .replace(/linear\(([^)]*)\)/g, 'linear $1')
   .split(/[\s,/]+/).filter(Boolean);
 /** Equal atom for atom, in order: a reversed curve, a swapped size and line-height, or reordered layers differ. */
 const sameValue = (want, got, type) => {
@@ -211,9 +227,11 @@ try {
 
   // ---- THE ORACLE: contract names in every promised block ----
   const contract = JSON.parse(readFileSync(CONTRACT, 'utf8')).guaranteed;
-  const expected = Object.entries(contract).filter(([, t]) => DTCG_TYPES.has(t)).map(([k]) => PREFIX + k.replaceAll('.', '-'));
-  const excluded = Object.entries(contract).filter(([, t]) => !DTCG_TYPES.has(t)).map(([k, t]) => `${k} (\`${t}\`)`);
-  console.log(`\n  contract: ${expected.length} guaranteed names with a DTCG type; not projected (#642): ${excluded.join(', ') || 'none'}\n`);
+  const expected = Object.entries(contract).filter(([, t]) => shipped(t)).map(([k]) => PREFIX + k.replaceAll('.', '-'));
+  const asCss = Object.entries(contract).filter(([, t]) => CSS_TYPES.has(t)).length;
+  const excluded = Object.entries(contract).filter(([, t]) => !shipped(t)).map(([k, t]) => `${k} (\`${t}\`)`);
+  console.log(`\n  contract: ${expected.length} guaranteed names the package carries (${asCss} of them CSS-only, #3510); not in the package (#642): ${excluded.join(', ') || 'none'}\n`);
+  ok(asCss > 0, `the contract names the CSS-only types the package promises (${[...CSS_TYPES].join(', ')}) — that arm is not vacuous`);
   ok(expected.length > 0, 'the contract names a non-empty guaranteed surface — the check is not vacuous');
 
   const tree = JSON.parse(readFileSync(TREE, 'utf8'));
@@ -238,7 +256,7 @@ try {
     const wrong = [];
     let compared = 0;
     for (const [key, type] of Object.entries(contract)) {
-      if (!DTCG_TYPES.has(type)) continue;
+      if (!shipped(type)) continue;
       const name = PREFIX + key.replaceAll('.', '-');
       if (!(name in vars)) continue;
       const leaf = key.split('.').reduce((n, k) => n?.[k], tree.pds3);
