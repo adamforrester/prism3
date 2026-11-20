@@ -4,7 +4,7 @@ Two PRs a day apart, each right on its own, combined into one the guide didn't d
 
 ### What changed
 
-- The guide's table gets a row for the case: a hand edit on a variant whose layers the update adds, removes or retypes is skipped whole, the set's updates turn off, and **Overwrite** writes it instead. The "Updates off" paragraph's last line adds "unless an update changes that variant's layers". Both cite `update-apply.ts:375`, the skip that pushes the member onto `around`, and are fingerprinted.
+- The guide's table gets a row for the case: a hand edit on a variant whose layers the update adds, removes or retypes is skipped whole, the set's updates turn off, and **Overwrite** writes it instead. The "Updates off" paragraph's last line adds "unless an update changes that variant's layers". Both cite `update-apply.ts:381`, the skip that pushes the member onto `around`, and are fingerprinted.
 - `apps/plugin/test-update-apply.ts`, `structure —` section: every `structure/<kind>` arm now also asserts `turnedOff`. It is on for the four skips (added, removed, retyped under Keep, and added under Accept) and off for Overwrite and the fill-only control.
 
 ### Test

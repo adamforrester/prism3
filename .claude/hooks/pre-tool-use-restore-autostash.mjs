@@ -25,7 +25,16 @@
 //     commit SHA, which never moves, rather than leaning on `stash@{n}`, which shifts as others push.
 //   • FALSE-DENIAL COST: zero — the hook never refuses a restore. Its cost is one stash entry per
 //     restore of a dirty path, including a deliberate discard. Entries accumulate; drop them by explicit
-//     index (`git stash drop stash@{n}`), which #923's guard allows.
+//     index (`git stash drop stash@{n}`). #923's guard (`pre-tool-use-stash-guard.mjs`) allows that form
+//     and denies a bare pop, apply or drop, once `.claude/settings.json` wires it.
+//   • DURING A MERGE CONFLICT (#4195) `git stash create` cannot run: it refuses an index with unmerged
+//     entries ("Cannot save the current index state"). Taking one side (`git checkout --ours/--theirs`)
+//     is how a conflict is resolved, so a deny there blocks the resolution itself. Instead the entry is
+//     built from a TEMPORARY index (`GIT_INDEX_FILE`): HEAD's tree plus the working copy of every tracked
+//     path and every path the merge staged. It has the stash shape `git stash store` requires (parents
+//     HEAD and an index commit), the index commit is HEAD's tree because an unmerged index has no single
+//     state to record, and the real index and working tree are never touched, so the restore still does
+//     what it would have done. A hand-edited conflicted file is saved with its markers, as it stands.
 //   • FAIL CLOSED ON ONE CASE ONLY: the restore names dirty paths AND the stash could not be written.
 //     Then the work is known to be at risk and known to be unsaved, so the command is denied with the
 //     reason. Anything else that goes wrong (not a repo, unparseable input) lets the command through:
@@ -52,8 +61,9 @@
 // Input: the PreToolUse JSON on stdin (`tool_input.command`, `cwd`). Output: nothing, or one JSON object.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 
 const STASH_PREFIX = 'auto-before-restore-';
 
@@ -211,8 +221,34 @@ function findRestores(command, cwd, depth = 0) {
 }
 
 // ── Act. ────────────────────────────────────────────────────────────────────────────────────────────
-function git(dir, args) {
-  return execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+function git(dir, args, env) {
+  return execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...(env ? { env } : {}) });
+}
+
+/** Whether the index holds unmerged entries (a merge, rebase or cherry-pick stopped on a conflict). */
+function hasUnmerged(dir) {
+  try { return git(dir, ['ls-files', '-u', '-z']).length > 0; } catch { return false; }
+}
+
+/** A stash-shaped commit of the working tree's tracked work, built without the real index (#4195), for the case
+ *  `git stash create` refuses: unmerged entries. Returns the commit; touches neither the index nor the tree. */
+function conflictSnapshot(dir, name) {
+  const top = git(dir, ['rev-parse', '--show-toplevel']).trim();
+  const tmp = mkdtempSync(join(tmpdir(), 'p3-autostash-'));
+  const env = { ...process.env, GIT_INDEX_FILE: join(tmp, 'index') };
+  try {
+    git(top, ['read-tree', 'HEAD'], env);
+    git(top, ['add', '-u'], env);
+    // The paths the merge staged that HEAD may not have (added on one side, or both), as they stand on disk.
+    const staged = [...git(top, ['diff', '--cached', '--name-only', '-z']).split('\0'), ...git(top, ['ls-files', '-u', '-z']).split('\0').map((l) => l.split('\t')[1])]
+      .filter((p) => p && existsSync(join(top, p)));
+    // `-f`: each path is already in the real index (staged or unmerged), so an ignore rule that matches it
+    // (a path force-added upstream) must not refuse the save and turn it into a deny (#4357 review).
+    if (staged.length) git(top, ['--literal-pathspecs', 'add', '-f', '--', ...new Set(staged)], env);
+    const tree = git(top, ['write-tree'], env).trim();
+    const index = git(top, ['commit-tree', 'HEAD^{tree}', '-p', 'HEAD', '-m', `index on ${name}: unmerged, so not recorded`]).trim();
+    return git(top, ['commit-tree', tree, '-p', 'HEAD', '-p', index, '-m', name]).trim();
+  } finally { rmSync(tmp, { recursive: true, force: true }); }
 }
 
 /** The tracked paths with uncommitted work that this restore names ([] when clean or not a repo). */
@@ -243,8 +279,10 @@ function main() {
   const name = `${STASH_PREFIX}${stamp}`;
   const shown = hit.dirty.slice(0, 5).join(', ') + (hit.dirty.length > 5 ? `, +${hit.dirty.length - 5} more` : '');
   let sha;
+  const conflicted = hasUnmerged(hit.dir);
   try {
-    sha = git(hit.dir, ['stash', 'create', name]).trim();
+    if (conflicted) sha = conflictSnapshot(hit.dir, name);
+    else { sha = git(hit.dir, ['stash', 'create', name]).trim(); }
     if (!sha) throw new Error('git stash create wrote no commit');
     git(hit.dir, ['stash', 'store', '-m', `${name} -- ${shown}`, sha]);
   } catch (e) {
@@ -262,6 +300,7 @@ function main() {
   }
   const msg =
     `Saved uncommitted work before a restore (#1050): stash entry "${name}", commit ${sha}, holding ${shown}. ` +
+    (conflicted ? `The index has unmerged paths, which a stash cannot hold, so the entry holds each path's working copy as it stood (conflict markers included) and not the index (#4195). ` : '') +
     `The restore runs unchanged. To get a file back: git show ${sha}:<path-from-repo-root> > <path>. ` +
     `To list entries: git stash list. Drop this one by its explicit index once it is not needed (never a bare pop or drop, #923).`;
   emit({ systemMessage: msg, hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: msg } });

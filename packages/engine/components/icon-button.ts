@@ -614,7 +614,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     primaryPurpose: { primary: 'Trigger an action with an icon alone, no visible label, in the brand\'s primary style.', destructive: 'With an icon alone and no visible label, trigger an action that deletes or removes something.', neutral: 'With an icon alone and no visible label, trigger an action that carries no brand emphasis.' }[family],
     whenToUse: sibling.whenToUse ?? 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header).',
     avoidWhen: `The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. ${sibling.avoidWhen}`,
-    commonPartners: ['icon', 'spinner', 'focus-ring'],
+    commonPartners: ['icon', 'spinner', 'focus-ring', 'popover'],
     triggerKeywords: sibling.triggerKeywords,
     generationPriority: sibling.generationPriority,
   },
@@ -626,7 +626,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // `icon` the required slot carries is a partner, not a part — a slot names no component (#513).
     composesWith: ['focus-ring', 'spinner'],
     alternativeTo: [inheritsFrom, family === 'primary' ? 'flush-icon-button' : `flush-icon-button-${family}`],
-    planned: ['tooltip', 'menu', 'popover'],
+    planned: ['tooltip', 'menu'],
     replacesPatterns: ['`div[role=button]` wrapping an icon', 'a `<button>` holding only an `<svg>` and no accessible name'],
   },
 

@@ -44,6 +44,13 @@ role fits, don't invent one (rule 1) and don't bind a primitive (rule 2). A plai
 built from tokens is covered by "or token covers the need" and is fine; a stand-in for a missing
 component is not.
 
+A component's token bindings are in its contract, not in the catalog. Get them resolved for your
+brand with `npx tsx packages/engine/cli.ts <brief> --out <dir> --component-specs`, which writes
+`<brand>.component-contracts.json`, or with the MCP tool `export_theme`, adding `componentSpecs` to
+`include`. The committed `<id>.md` pages beside the catalog are drawn at the default brand settings,
+and a brand's settings change bindings: with `controlShape: pill` a Button binds `radius.capsule`,
+not `radius.md`, and with `fieldStyle: underline` a field draws one line with no side padding.
+
 When the brief asks for something the system doesn't have:
 
 1. **Leave it out.** Don't approximate it with other components, a native control or custom markup.
@@ -223,7 +230,7 @@ or role in the third column instead.
 | **Dashed or dotted lines** as decoration | Prism3 draws every rule solid; even the focus ring is solid (`focus.ring.style`), because a dashed line breaks up at small sizes. A dash reads as a state, such as a drop target or an empty slot, so a decorative one signals something that isn't there. | Space first: a `space.*` step between groups. When space alone leaves the grouping unclear, a Divider: a solid 1px rule in `border.secondary`, or `border.primary` when it's subtle. |
 | **A label on everything**: an eyebrow over every heading, a caption under every value, a badge on every row | When every item is labeled, none stands out, and each label is one more string a screen reader reads aloud. | Let the heading and the layout do the grouping. Use `type.eyebrow.*` once per section at most, and a Badge only for a status the user needs. A form field keeps its field label: that one is required. |
 | **A gradient nobody asked for** | A brand's gradient tokens, where it ships any, are for brand and marketing surfaces, and no text promise holds on them: each one's `avoid_when` names the worst ratio measured across it. On a product screen a gradient adds a contrast question with no answer. | A solid surface role: `background.primary`, or `foreground.brand` for a brand moment. Use a gradient only where the brief asks for one, and read its `avoid_when` first. |
-| **One radius on every corner** | Prism3 sets the radius per part, and the difference carries meaning: a status Badge is `radius.sm` so it never reads as a Tag, a Tag is `radius.round`, and a Button is `radius.md`. One radius everywhere erases that difference. | Take each component's radius from its spec. For a new surface, use the radius of the nearest Prism3 part. |
+| **One radius on every corner** | Prism3 sets the radius per part, and the difference carries meaning: a status Badge is `radius.sm` so it never reads as a Tag, a Tag is `radius.round`, and a Button is `radius.md` at the default settings. One radius everywhere erases that difference. | Take each component's radius from your brand's component contract ("Say what you can't build", above), not from the default-brand pages. For a new surface, use the radius of the nearest Prism3 part. |
 | **An icon beside every heading, button and row** | An icon helps when it is faster to read than the word, or when it tells two things apart (each Banner tone has its own glyph shape). Everywhere else it competes with the text, and a decorative icon is hidden from assistive technology, so it adds nothing there. | An Icon only where it carries meaning, at an `icon.size.*` step and in `icon.primary` or `icon.secondary`. An Icon button with an accessible name when the icon is the whole control. |
 | **Status color as decoration**: green for good news, a brand fill on a tip | The status roles (`foreground.success`, `text.danger` and the rest) mean a status. Spent on decoration, they stop meaning anything, and the next real error looks like decoration. | The neutral roles (`text.primary`, `background.secondary`) for content that carries no status. A status role only for a status, with a glyph or text beside the color. |
 | **Opacity to quiet text**, such as `opacity: 0.6` on a label | Opacity mixes the text with whatever is behind it, so its ratio changes with every surface and every mode, and no contract covers the result. | `text.secondary`, or `text.tertiary` for large text and non-essential text. Each is measured on its `sits_on` surfaces in every mode. |
@@ -243,6 +250,11 @@ Only pair colors where a real contrast contract applies — a **decorative** bor
 3:1 UI edge. A **disabled** label is not exempt: score it as `ui` (3:1). If a pair fails on the floor surface or nearer the page, you reached for the wrong role — the
 system has a role that passes there (that's what the generation-time contracts guarantee). Below
 the floor there is no promise: move the content to a shallower surface, or move the brand's floor.
+A filled control's hover and pressed label is the other exception. Each `interactive.<intent>.on-fill`
+is promised only on `interactive.<intent>.fill.rest` (read its `sits_on`), and by current policy the
+hover and pressed fills may fall below 4.5:1 under it. For the `primary` and `destructive` intents
+they do, in dark mode on every shipped brand (#1626). Don't score those pairs as failures, and don't
+swap the ink.
 
 Then reread the brief against what you built. Each thing it asks for is either built from a Prism3
 component and its tokens, or named in your report as not built ("Say what you can't build", above).
