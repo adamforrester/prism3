@@ -1575,7 +1575,7 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
     .flatMap((b) => (b.type === 'Links' && b.label !== 'Replaces' ? [`${b.label}: ${b.items.map((i) => `${i.name}>${i.def}`).join(' / ')}`] : []));
   // #3555 Q-MD10 A: `alternativeTo` is symmetric, so Checkbox gains TextField (which names it) and Button gains Tag and Link.
   const cb = ['Instead, consider: Switch>switch-row / Radio>radio-row / TextField>text-field', 'Often used with: FieldLabel>field-label / FieldMessage>field-message / FocusRing>focus-ring / Buttons>button'];
-  const bt = ['Built from: FocusRing>focus-ring / Spinner>spinner', 'Instead, consider: Icon button>icon-button / Switch>switch-row / Tag>tag / Link>link', 'Often used with: Icon>icon'];
+  const bt = ['Built from: FocusRing>focus-ring / Spinner>spinner', 'Instead, consider: Icon button>icon-button / Switch>switch-row / Tag>tag / Link>link', 'Often used with: Icon>icon / Popover>popover'];
   ok(related('checkbox-row').join('\n') === cb.join('\n'), 'family/related: Checkbox names families, its own parts dropped, Built from gone', related('checkbox-row').join(' | '));
   ok(related('button').join('\n') === bt.join('\n'), 'family/related buttons: Buttons as the wireframe has it', related('button').join(' | '));
   // A list naming one family twice, through two members: one entry.
@@ -1586,9 +1586,9 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   // EACH ONCE ACROSS THE LISTS (#3552 Q-UG3 A), typed from the defs: Dialog is built from Button.Group and names Button,
   // Button.Neutral and Button.Destructive as partners, all of the Buttons family, so Buttons is under Built from alone;
   // Tag names Badge, Checkbox.Group and Radio.Group as alternatives and as partners, so they stay under Instead, consider. Then over every lead: no family or component in two lists.
-  ok(related('dialog').join('\n') === ['Built from: Flush Icon Button>flush-icon-button / Divider>divider / Buttons>button', 'Instead, consider: Accordion>accordion / Toast>toast / Banner>banner',
+  ok(related('dialog').join('\n') === ['Built from: Flush Icon Button>flush-icon-button / Divider>divider / Buttons>button', 'Instead, consider: Accordion>accordion / Toast>toast / Banner>banner / Popover>popover',
     'Often used with: TextField>text-field / Select>select / Checkbox>checkbox-row / Radio>radio-row'].join('\n'), 'related/dialog: Buttons once, under Built from', related('dialog').join(' | '));
-  ok(related('tag').join('\n') === ['Built from: FocusRing>focus-ring', 'Instead, consider: Badge>badge / Buttons>button / Checkbox>checkbox-row / Radio>radio-row', 'Often used with: Icon>icon'].join('\n'),
+  ok(related('tag').join('\n') === ['Built from: FocusRing>focus-ring', 'Instead, consider: Badge>badge / Buttons>button / Checkbox>checkbox-row / Radio>radio-row', 'Often used with: Icon>icon / Popover>popover'].join('\n'),
     'related/tag: Badge, Checkbox and Radio once, under Instead, consider', related('tag').join(' | '));
   const twiceIn: string[] = [];
   for (const d of componentDefs.filter((x) => leadsPanel(x.id))) {
@@ -1952,7 +1952,9 @@ section('due/… — the dry run reads the panel as the draw would draw it');
 }
 
 /* ── last changed: the "Last changed in" block (#2889) ──────────────────────────────────────────────────── */
-section('last changed/… — "Last changed in <version> · <date>" under the header, above Overview (#2889, #2858 piece 2, Q479.3 A)');
+// #2889 and #2858 (piece 2) ride in each assertion's label, not in this heading (#4241): `section()` only prints, so a
+// tag here kept both arms registered with every assertion under it deleted.
+section('last changed/… — "Last changed in <version> · <date>" under the header, above Overview (Q479.3 A)');
 {
   // The notes as the approved wireframe read them: every release up to 0.237.0, so a later fold does not move these arms.
   const num = (v: string) => v.split('.').map(Number);
@@ -1975,41 +1977,41 @@ section('last changed/… — "Last changed in <version> · <date>" under the he
   ] as const) {
     const { panel } = await drawWith(id, base);
     const lc = panel && blockOf(panel);
-    ok(!!lc && JSON.stringify(texts(lc)) === JSON.stringify(want), `last changed/${id}: the block reads the wireframe's release`, JSON.stringify(lc ? texts(lc) : null));
+    ok(!!lc && JSON.stringify(texts(lc)) === JSON.stringify(want), `#2858 last changed/${id}: the block reads the wireframe's release`, JSON.stringify(lc ? texts(lc) : null));
     // Under the header, above Overview: the header first, the block next, and Overview the first section after it.
     const kids = panel?.children ?? [];
     const at = lc ? kids.indexOf(lc) : -1;
     const next = kids.slice(at + 1).map((c) => c.getSharedPluginData!('prism3', 'docSection')).find(Boolean);
-    ok(at === 1 && kids[0].name === 'header' && next === 'overview', `last changed/${id} placed: under the header, above Overview`, `at ${at}, next section ${next}`);
+    ok(at === 1 && kids[0].name === 'header' && next === 'overview', `#2889 last changed/${id} placed: under the header, above Overview`, `at ${at}, next section ${next}`);
     // The items as a bulleted list, as the wireframe draws them.
     const items = lc?.children[1] && walk(lc.children[1]).find((c) => c.type === 'TEXT');
-    if (want.length > 1) ok(!!items && JSON.stringify(items._lists) === `[{"s":0,"e":${String(items.characters).length},"o":{"type":"UNORDERED"}}]`, `last changed/${id} bullets: the items bulleted`);
+    if (want.length > 1) ok(!!items && JSON.stringify(items._lists) === `[{"s":0,"e":${String(items.characters).length},"o":{"type":"UNORDERED"}}]`, `#2858 last changed/${id} bullets: the items bulleted, as the wireframe draws them`);
   }
   // A FOLD THAT LEAVES A PANEL'S BLOCK ALONE LEAVES THE PANEL CURRENT (owner decision A on #2889); one that moves it makes
   // the panel due. Read twice: the dry run's own check (`docPanelDue`) and the as-built ledger's (`dueOf`).
   const tagDef = componentDefs.find((d) => d.id === 'tag')!, dividerDef = componentDefs.find((d) => d.id === 'divider')!;
   const t = await drawWith('tag', base), dv = await drawWith('divider', base);
   ok(docPanelDue(t.api, t.set, planDocPanel(tagDef, { modes: ['light', 'dark'], names, releases: fold as never })) === 0,
-    'fold/unmoved panel not due: the fold names no Tag item, so Tag\'s panel stays current');
+    '#2889 fold/unmoved panel not due: the fold names no Tag item, so Tag\'s panel stays current');
   ok(docPanelDue(dv.api, dv.set, planDocPanel(dividerDef, { modes: ['light', 'dark'], names, releases: fold as never })) === 1,
-    'fold/moved panel due: the fold names Divider, so Divider\'s panel is due');
+    '#2889 fold/moved panel due: the fold names Divider, so Divider\'s panel is due');
   const entry = (id: string, r: unknown): LedgerEntry => ({ def: `d:${id}`, rev: EXECUTOR_REVISION, engine: ENGINE_VERSION, panel: PANEL_FORMAT, changed: lastChangedKey(id, r as never) });
   const ledger = { tag: entry('tag', base), divider: entry('divider', base) };
   const read = dueOf(ledger, ['tag', 'divider'], (id) => entry(id, fold));
   ok(read.tag.state === 'current' && read.divider.state === 'due' && (read.divider as { reason?: string }).reason === 'panel',
-    `fold/ledger: Tag current, Divider due for its panel (${JSON.stringify(read)})`);
-  ok(dueOf(ledger, ['tag', 'divider'], (id) => entry(id, base)).divider.state === 'current', 'fold/ledger unchanged: no fold, nothing due');
+    `#2889 fold/ledger: Tag current, Divider due for its panel (${JSON.stringify(read)})`);
+  ok(dueOf(ledger, ['tag', 'divider'], (id) => entry(id, base)).divider.state === 'current', '#2889 fold/ledger unchanged: no fold, nothing due');
   // A write with the panels off keeps the block's record, as it keeps the panel format (#3205).
   const root = (() => { const d: Record<string, string> = {}; return { getPluginData: (k: string) => d[k] ?? '', setPluginData: (k: string, v: string) => { d[k] = v; } }; })();
   recordSets(root, ledger);
   recordSets(root, { divider: { def: 'd:divider', rev: EXECUTOR_REVISION, engine: ENGINE_VERSION } });
-  ok(readLedger(root).divider?.changed === ledger.divider.changed, 'fold/record keeps: a write with the panels off keeps the block\'s record');
+  ok(readLedger(root).divider?.changed === ledger.divider.changed, '#2889 fold/record keeps: a write with the panels off keeps the block\'s record');
   // The print covers the block: its line rewritten by hand keeps the panel aside on the next draw.
   const line = t.panel && blockOf(t.panel) && walk(blockOf(t.panel)!).find((c) => c.type === 'TEXT');
   if (line) line.characters = 'Last changed when we said so';
   await drawDocPanel(t.api, t.set, tagDef, { names, releases: base as never });
   const kept = panelsOn(t.p).find((n) => tagOf(n).state === 'kept');
-  ok(kept === t.panel && texts(kept).includes('Last changed when we said so') && panelsOn(t.p).length === 2, 'last changed/hand edit: an edited block keeps its panel aside');
+  ok(kept === t.panel && texts(kept).includes('Last changed when we said so') && panelsOn(t.p).length === 2, '#2889 last changed/hand edit: an edited block keeps its panel aside');
 }
 
 /* ── room: the update spaces sets past the panel ───────────────────────────────────────────────────────── */
@@ -2571,7 +2573,7 @@ section('qa/… — usage panels QA round 1 (#2970): titles, the space above Do 
   ok(lists.join('\n') === [
     'Built from: FocusRing',
     'Instead, consider: Badge / Buttons / Checkbox / Radio',
-    'Often used with: Icon',
+    'Often used with: Icon / Popover',
     'Replaces: a removable token list built as a listbox / a clickable div styled as a pill / a bare × glyph with no accessible name',
   ].join('\n'), 'qa/related lists: 4 lists, one line per name, no chips', lists.join(' | '));
   ok(!related.children.some((b) => walk(b).some((c) => /^chip\d/.test(String(c.name)))) && rows.every((x) => JSON.stringify(x.text._lists) === `[{"s":0,"e":${String(x.text.characters).length},"o":{"type":"UNORDERED"}}]`),
