@@ -472,13 +472,13 @@
     "accordion": {
       "set": {
         "members": 48,
-        "assignments": 72,
-        "sha256": "79b4765acbe9f328fe56ff4839f67e29dded84fc669d75855e815d1e2c3bac95"
+        "assignments": 96,
+        "sha256": "29a8364b7253fd476e5abf8f0ad78598ef2b56212367ef9b1d10118082cae5bd"
       },
       "grid": {
         "members": 48,
-        "assignments": 72,
-        "sha256": "f15d8dcc89705f1668d26675318aa5a748fd1e3102c480b1f1e562af8bc409aa"
+        "assignments": 96,
+        "sha256": "044415365edf8368dcf464be70466a05c16b66ebd93f69b2b69b3d1c36bcd9ee"
       }
     },
     "list-item": {
@@ -555,14 +555,14 @@
     },
     "dialog": {
       "set": {
-        "members": 24,
-        "assignments": 96,
-        "sha256": "13167a4c67256a9d7fb38c7df2c9240621545096f059ebdb0110cdb6fa7c5e2e"
+        "members": 16,
+        "assignments": 64,
+        "sha256": "0180e1f5ec7c8b763421f3c1a576ac7fa4a2aa3e390d4b4319c2dba83a03e2ce"
       },
       "grid": {
-        "members": 24,
-        "assignments": 96,
-        "sha256": "cadef9fdf791c963be09da86b843eb8729e6fe9603bb135acb4f1dc6b226efce"
+        "members": 16,
+        "assignments": 64,
+        "sha256": "45ae2ae9d9e1064488bc7aedc7694bc9f41094d540330f7254240966aa958235"
       }
     },
     "password-field": {

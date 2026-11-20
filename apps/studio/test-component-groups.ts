@@ -390,7 +390,7 @@ ok(JSON.stringify(familiesToOpen(catalog, 'neutral')) === JSON.stringify(['compo
 console.log('\n4. What a selection costs, and what it builds first (calls 17, idea 7)');
 const four = ['button', 'button-destructive', 'dialog', 'text-field'];
 const c4 = costOf(catalog, four);
-ok(c4.sets === 4 && c4.variants === 576 + 576 + 24 + 84 && c4.components === 0, `four sets cost ${c4.variants} variants (the wireframe's 1,251, plus Dialog's 3 end members, #2877, and 6 fill members, #2880)`);
+ok(c4.sets === 4 && c4.variants === 576 + 576 + 16 + 84 && c4.components === 0, `four sets cost ${c4.variants} variants (Dialog's 16: its end placement, #2877, and fill footer, #2880, with the width-only size off the variants since #3392 A)`);
 const ci = costOf(catalog, ['icon', 'badge']);
 ok(ci.variants === 50 && ci.components === 46, `a set built as separate components counts as components, not variants (Icon: ${ci.components}; Badge's 50 members, its contained status label at two sizes and three emphases since #2983 and its inline style since #3199: ${ci.variants})`);
 ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinner', 'Focus ring', 'Flush icon button Neutral', 'Divider', 'Button Group', 'Field label', 'Field message']),

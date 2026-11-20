@@ -989,7 +989,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "spinner",
     "name": "Spinner",
     "category": "foundations",
-    "summary": "Indeterminate loading indicator on the icon ladder. Announces \"Loading\" unless its host hides it.",
+    "summary": "Indeterminate loading indicator in the icon sizes. Announces \"Loading\" unless its host hides it.",
     "unit": "components",
     "spacing": [],
     "page": "Spinner",
@@ -1002,7 +1002,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
   {
     "id": "badge",
     "name": "Badge",
-    "category": "foundations",
+    "category": "feedback",
     "summary": "A static status label, count or dot. Nothing to click; color is not meant to be the only signal.",
     "unit": "variants",
     "spacing": [],
@@ -1016,7 +1016,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
   {
     "id": "tag",
     "name": "Tag",
-    "category": "foundations",
+    "category": "form",
     "summary": "An interactive token a user toggles or removes. A static label is a badge.",
     "unit": "variants",
     "spacing": [
@@ -1441,7 +1441,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 24,
+    "members": 16,
     "nests": [
       "flush-icon-button-neutral",
       "icon",
