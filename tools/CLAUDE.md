@@ -399,3 +399,14 @@ sibling, and the reason is the subject:** the question is what a live Figma host
 offline gate (`apps/plugin/test-roundtrip.ts`) already covers what a shim can. `field-label` is its first named case
 and #866's permanent guard. It has not yet run against real Figma; its README's "Not yet verified live" lists what is
 unconfirmed.
+
+## `tools/poc-scorecard/`
+
+The code POC's one-page KPI table (#3408). It's built from records, never from memory. `measures.ts` lists the brief's
+KPI rows by hand, and gives each arm the command that measures each row it can, or the reason it can't yet. `scorecard.ts record`
+runs an arm's commands and stores each run's exit code and summary line under `records/` (uncommitted: a record
+measures one tree and cites its commit). `render` writes the card. A row with no record reads "not measured", a failed
+run reads FAIL with its first failing line, and a run whose summary matches no pattern reads "unparsed". None of the
+three ever reads as 0, and `--self-test` holds that. **No gate sibling, on purpose:** each row's command is already a
+check in the POC packages, gated where it belongs. The card's job is to show both arms side by side, and arm 2 has no
+records yet.
