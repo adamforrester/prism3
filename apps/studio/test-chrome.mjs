@@ -21436,24 +21436,32 @@ console.log(`\n#3199 — Badge's inline style, laid out by the browser: the dot 
 } // 3199
 
 // =============================================================================================
-// #3149 — Components' preview header: no Inspect, the empty row kept at wide widths and collapsed at 380
-// (Q3149.1–.4, all A, the owner, 2026-11-01)
+// #3149 — Components' preview header: no Inspect, and no empty row (Q3149.2–.4 A, the owner, 2026-11-01; #4192 F1 A,
+// 2026-11-19, which reverses Q3149.1's wide row); plus #4192 F2 (Export's grounds) and #4188 (the preview's controls and tables)
 // =============================================================================================
 // WHAT THIS HOLDS. Inspect comes off the Components page's preview header on both hosts (Q3149.2 A, Q3149.4 A), and only
-// there: a Theme page keeps it, with the build stamp and the privacy note at its foot (Q3149.3 A). Since #3129 R3 and R4
-// Inspect was all that header held, so the row is now empty: at 1280 it stays, its bottom edge on the levers header's, so
-// the two dividers still meet at one y (Q2); at 380, on the Preview pane, it collapses (Q3149.1 A).
+// there: a Theme page keeps it, with the build stamp and the privacy note at its foot (Q3149.3 A). Inspect was all that
+// header held, so on Components the header is not drawn at any width (#4192 F1 A): at 1280 the preview body takes its grid
+// row, starting where the levers header does; at 380, on the Preview pane, the row is gone too. At 1280 it also holds
+// Export's grounds in Theme's order (#4192 F2 A), and #4188 A: the preview's two selects at the levers' size, Play a chrome
+// button on the Slow motion select's middle, and the preview tables' one uppercase 10px header, which Inspect's own
+// Contrast and Tokens tables do not take ("preview tables").
 // INDEPENDENCE (docs/34): the expectations are the decision's, typed here. Each absence reads against a Theme page's
-// header measured in the same run (`hooks.absent`), and the 1280 row's edge against the levers header, not against itself.
+// header measured in the same run (`hooks.absent`); the body's top against the levers header; the selects against a lever's
+// select; Export's grounds against the Brand page's panes; Inspect's headers against the preview table's band.
 //
 // Mutations, each after a `wip:` commit, each failing by name:
 //   · Inspect restored on Components (the `.p3-popwrap` rule in `chrome.css` dropped) → `3149 <host> 1280: Q3149.2 A:
-//     Components shows no Inspect` on both hosts (at 380 the collapsed row hides it all the same);
-//   · the row kept at 380 (the narrow collapse rule dropped) → `3149 <host> 380: Q3149.1 A: the empty header row collapses`;
-//   · the row collapsed at every width (the collapse rule unscoped from the narrow tier) → `3149 <host> 1280: Q3149.1 A:
-//     the empty header row stays`.
+//     Components shows no Inspect` on both hosts (at 380 the absent row hides it all the same);
+//   · the header drawn again (F1's `.p3-preview-head` rule dropped) → `3149 <host> 380: Q3149.1 A: the empty header row
+//     collapses` and `3149 <host> 1280: #4192 F1 A: Components draws no empty preview header`;
+//   · F1's grid override dropped → `3149 <host> 1280: #4192 F1 A: Components draws no empty preview header; its preview
+//     body takes the row`;
+//   · a top margin on Play → `3149 <host> 1280: #4188 Play sits on the Slow motion select's middle`;
+//   · the Durations header rule unscoped to `.ctable` → `3149 <host> 1280: #4188 Inspect's Contrast and Tokens tables keep
+//     their own header`; the rule dropped → `3149 <host> 1280: #4188 the preview's tables share one header`.
 if (runs('3149')) {
-console.log(`\n#3149 — Components' preview header: no Inspect; the row kept at 1280, collapsed at 380\n${'='.repeat(78)}`);
+console.log(`\n#3149 — Components' preview header: no Inspect, no empty row; Export's grounds; the preview's controls and tables\n${'='.repeat(78)}`);
 /** The preview header and its Inspect, read where they are drawn, beside the levers header's bottom edge. */
 const headNow = (page) => page.evaluate(() => {
   const head = document.querySelector('[data-p3="preview-head"]');
@@ -21517,7 +21525,8 @@ for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
       // select in the levers is, and the preview's tables share one header: the uppercase tracked band on the chrome's
       // type scale. Oracles, measured here: a select in the levers pane, and the Type tables' header.
       const box = (sel) => page.evaluate((q) => { const e = document.querySelector(q); if (!e) return null; const cs = getComputedStyle(e);
-        return { h: Math.round(e.getBoundingClientRect().height), fs: cs.fontSize, tt: cs.textTransform, cls: String(e.className) }; }, sel);
+        const r = e.getBoundingClientRect();
+        return { h: Math.round(r.height), mid: Math.round((r.top + r.height / 2) * 10) / 10, fs: cs.fontSize, tt: cs.textTransform, cls: String(e.className) }; }, sel);
       step = 'Type';
       await goPlace(page, 'type');
       await settle(page);
@@ -21535,6 +21544,24 @@ for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
         `${where}: #4188 the preview's selects and Play are the chrome's, the levers' size (${JSON.stringify({ lever, ground, slow, play })})`);
       ok(!!mtblHead && !!ctHead && mtblHead.fs === ctHead.fs && mtblHead.tt === 'uppercase' && ctHead.tt === 'uppercase' && mtblHead.fs === '10px',
         `${where}: #4188 the preview's tables share one header, uppercase on the chrome's 10px (${JSON.stringify({ mtblHead, ctHead })})`);
+      // #4188: Play stands in the toolbar on the Slow motion select's middle, as the legacy button did (main's `.dm-block
+      // .mo-replay{margin-top:0}`): a chrome button pushed down by a margin fails here.
+      ok(!!play && !!slow && Math.abs(play.mid - slow.mid) <= 1,
+        `${where}: #4188 Play sits on the Slow motion select's middle, within 1px (${JSON.stringify({ play: play?.mid, slow: slow?.mid })})`);
+      // #4188 A is "preview tables": Inspect opens over the page as a lent host, not the preview, so its Contrast and Tokens
+      // tables (`.ctable` too) keep their own header. Oracle: the preview table's band read above.
+      step = 'Inspect';
+      await hooks.click(page.locator('[data-p3="inspect-open"]'));
+      await hooks.click(page.locator('[data-p3="inspect-option-contrast"]'));
+      await hooks.need(page, '[data-p3="inspect-contrast-table"] table');
+      const inContrast = await box('[data-p3="inspect-contrast-table"] table tr:first-child > th');
+      await hooks.click(page.locator('[data-p3="inspect-tab-tokens"]'));
+      await hooks.need(page, '[data-p3="inspect-token-list"] table');
+      const inTokens = await box('[data-p3="inspect-token-list"] table tr:first-child > th');
+      await hooks.click(page.locator('[data-p3="inspect-close"]'));
+      const band = (b) => !!b && b.tt === mtblHead?.tt && b.fs === mtblHead?.fs;
+      ok(!!mtblHead && !!inContrast && !!inTokens && !band(inContrast) && !band(inTokens),
+        `${where}: #4188 Inspect's Contrast and Tokens tables keep their own header, not the preview tables' uppercase 10px band (${JSON.stringify({ inContrast, inTokens, mtblHead })})`);
     }
     ok(errors.length === 0, `${where}: no console errors (${errors.slice(0, 2).join(' · ')})`);
   } catch (e) {

@@ -2032,14 +2032,13 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-frame[data-shell="rail"][data-place="components"] .p3-nav .p3-tabs { display: none; }
 .p3-frame[data-place="components"] .p3-nav > .p3-search { margin-left: auto; }
 .p3-frame[data-place="components"] .p3-preview-head > .p3-modes-wrap { display: none; }
-/* #3149 (Q3149.1–.4, all A, the owner, 2026-11-01): Components shows no Inspect either, on both hosts, so its preview
-   header holds nothing. At wide widths the empty row stays, so the preview's divider still meets the levers header's at
-   one y (Q2). At the narrow tier the Preview pane has no levers pane beside it to line up with, so the row collapses.
-   Inspect stays on every Theme page, and with it the build stamp and the privacy note at its foot (Q3149.3 A). */
+/* #3149 (Q3149.2–.4 A, the owner, 2026-11-01): Components shows no Inspect, on both hosts; Inspect stays on every Theme
+   page, and with it the build stamp and the privacy note at its foot (Q3149.3 A). Its own rule, so Inspect stays off
+   Components even if the header below is drawn again. */
 .p3-frame[data-place="components"] .p3-preview-head > .p3-popwrap { display: none; }
-.p3-frame[data-w="narrow"][data-place="components"] .p3-preview-head { display: none; }
-/* #4192 F1 (owner decision 2026-11-19, A; it reverses Q3149's empty row at wide widths): the header row that holds
-   nothing on Components is gone, so the family's own title is the pane's first line; the preview body takes the row. */
+/* #4192 F1 (owner decision 2026-11-19, A; it reverses Q3149.1's empty row at wide widths): the header row that holds
+   nothing on Components is gone at every width, so the family's own title is the pane's first line; the preview body
+   takes the row. */
 .p3-frame[data-place="components"] .p3-preview-head { display: none; }
 .p3-frame[data-layout="panes"][data-place="components"] { grid-template-areas: "bar bar" "notices notices" "nav pbody" "subnav pbody" "levers pbody" "levers drawer"; }
 
@@ -2403,9 +2402,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
   .p3-popwrap > .p3-menu.p3-agent-pair { transition-property: opacity, display; transition-duration: var(--p3-motion-reduced); transition-behavior: allow-discrete; }
 }
 
-/* #4188 (owner decision 2026-11-19): the controls inside the preview pane are chrome (they steer the preview), drawn
-   with the chrome's own select and page button. Play keeps the gap above it the legacy button had. */
-.p3-mo-play { margin-top: var(--p3-space-150); }
-/* #4188 A: the Durations table (`.ctable`, no `<thead>`) takes the preview tables' one header, the uppercase tracked band
-   `.mtbl-tbl thead th` draws in `styles.css`, on the chrome's 10px. */
-.ctable tr:first-child > th { font-size: var(--p3-fs-10); font-weight: var(--p3-fw-bold); letter-spacing: var(--p3-ls-wide); text-transform: uppercase; color: var(--p3-text-2); background: var(--p3-fill-1); }
+/* #4188 A ("preview tables"): the Durations table (`.ctable.mo-ramp`, no `<thead>`) takes the preview tables' one header,
+   the uppercase tracked band `.mtbl-tbl thead th` draws in `styles.css`, on the chrome's 10px. Scoped to the preview's
+   table: Inspect's Contrast and Tokens tables are `.ctable` too, and keep their own header. */
+.mo-ramp tr:first-child > th { font-size: var(--p3-fs-10); font-weight: var(--p3-fw-bold); letter-spacing: var(--p3-ls-wide); text-transform: uppercase; color: var(--p3-text-2); background: var(--p3-fill-1); }
