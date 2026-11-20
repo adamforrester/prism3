@@ -8377,8 +8377,8 @@ arm: {
   // THE CODE-SIDE RULE, as the def states it to whoever builds it: linear and infinite, the reduced-motion
   // substitute a slower turn under `prefers-reduced-motion`, and both tokens named where the motion is.
   const codeOnly = codeOnlyText(spinner.anatomy!.codeOnly).join('\n');
-  ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && /\b800ms\b/.test(spinner.motion?.reduceMotion ?? '') && /\b2600ms\b/.test(spinner.motion?.reduceMotion ?? ''),
-    '#1670 spinner: the motion field names both turn tokens and their values');
+  ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && !/\d\s?ms\b/.test(spinner.motion?.reduceMotion ?? ''),
+    '#1670 spinner: the motion field names both turn tokens and no millisecond value (#4174 a: the token, never its number)');
   ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly),
     '#1670 spinner: the code rule spins linear and infinite and slows under prefers-reduced-motion');
 
@@ -39830,8 +39830,8 @@ arm: {
   ok(committedBrands.length >= 5 && sweepMissing.length === 0,
     `#2670 call 6 motion: every committed brand emits motion.duration.sweep and motion.duration-reduced.sweep (${committedBrands.length} brands${sweepMissing.length ? `; missing in ${sweepMissing.join(', ')}` : ''})`);
   const motionProse = `${progress.motion?.reduceMotion ?? ''}\n${codeOnlyText(progress.anatomy!.codeOnly).join('\n')}`;
-  ok(/motion\.duration-reduced\.sweep/.test(motionProse) && /2600ms/.test(motionProse) && /--motion-duration-sweep/.test(motionProse) && /prefers-reduced-motion: reduce/.test(motionProse) && /never (stopped|removed)/.test(motionProse),
-    '#2670 call 7 progress: the shipped motion and the code rules name the reduced sweep (2600ms), under prefers-reduced-motion, kept and never removed');
+  ok(/motion\.duration-reduced\.sweep/.test(motionProse) && !/\d\s?ms\b/.test(progress.motion?.reduceMotion ?? '') && /--motion-duration-sweep/.test(motionProse) && /prefers-reduced-motion: reduce/.test(motionProse) && /never (stopped|removed)/.test(motionProse),
+    '#2670 call 7 progress: the shipped motion and the code rules name the reduced sweep by its token and no millisecond value (#4174), under prefers-reduced-motion, kept and never removed');
 
   // Call 8: announced at 25, 50 and 75%, and at the end; never from aria-valuenow.
   const aria = `${progress.accessibility.aria}\n${codeOnlyText(progress.anatomy!.codeOnly).join('\n')}`;
