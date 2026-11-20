@@ -14,8 +14,8 @@ Figma plugin without touching either UI (docs/08 §4).
 
 ## Shell
 
-The shell is a rail of areas: Theme · Components · Documentation · Export (#2909, IA v2;
-`src/shell/pages.ts`). Theme holds the levers as a tab row in the order a theme composes:
+The shell is a rail of areas: Theme · Components · Docs · Export (#2909, IA v2;
+`src/shell/pages.ts`; the Docs area's id is `documentation`, #3553 Q-UI9 A). Theme holds the levers as a tab row in the order a theme composes:
 Brand, Color, Type, Shape, Depth & motion, Layout. Each page puts its levers beside the live
 preview, which has its own mode selector. What each area holds today: **Scope**, below.
 
@@ -94,8 +94,8 @@ Two smaller traps worth inheriting rather than rediscovering:
 
 ## Scope (what's here vs. next)
 
-- ✅ **The shell (IA v2, #2909):** a rail of areas, Theme · Components · Documentation · Export
-  (`RAIL_AREAS`, `src/shell/pages.ts`). The web hides Documentation, which documents a Figma file
+- ✅ **The shell (IA v2, #2909):** a rail of areas, Theme · Components · Docs · Export
+  (`RAIL_AREAS`, `src/shell/pages.ts`). The web hides Docs, which documents a Figma file
   (`railAreas`). Theme's pages are a tab row: Brand, Color (Palettes, Surfaces & fills, Interactive),
   Type, Shape, Depth & motion and Layout (`DOMAINS`, `THEME_TABS`). Every lever edit runs the
   engine again, and the preview redraws.
