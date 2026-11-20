@@ -1869,5 +1869,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 4,
     "nests": []
+  },
+  {
+    "id": "popover",
+    "name": "Popover",
+    "category": "overlay",
+    "summary": "A panel beside the control that opened it, for detail or a short task. The page stays usable.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Popover",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 1,
+    "nests": [
+      "flush-icon-button-neutral",
+      "icon",
+      "button-group"
+    ]
   }
 ];

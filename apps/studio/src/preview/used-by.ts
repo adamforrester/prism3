@@ -16,7 +16,8 @@ export const USED_BY = {
         "Progress"
       ],
       "radius.lg": [
-        "CodeInput"
+        "CodeInput",
+        "Popover"
       ],
       "radius.md": [
         "Button",
@@ -75,7 +76,8 @@ export const USED_BY = {
         "Progress"
       ],
       "radius.lg": [
-        "CodeInput"
+        "CodeInput",
+        "Popover"
       ],
       "radius.md": [
         "SegmentedControl",
@@ -124,6 +126,9 @@ export const USED_BY = {
       ],
       "radius.capsule": [
         "Progress"
+      ],
+      "radius.lg": [
+        "Popover"
       ],
       "radius.md": [
         "SegmentedControl",
@@ -191,6 +196,9 @@ export const USED_BY = {
         "SearchField",
         "CardNumberField",
         "CodeInput"
+      ],
+      "radius.lg": [
+        "Popover"
       ],
       "radius.md": [
         "SegmentedControl",
