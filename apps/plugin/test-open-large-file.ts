@@ -938,7 +938,10 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   //   · `check/drops`: a hand edit made after the pass, heard as Figma's `documentchange`, is in the check's answer: the
   //     edited set is read again. Mutation: the listener's drop removed → `check/drops`.
   // Measured, not asserted: the check's host calls on a fresh read of every set.
-  const CHECK_CAP = 900_000;
+  // #3055: 900,000 → 950,000. Steps and StepItem, landing with Popover, took the template to 66 sets, and the check grew
+  // with them to 905,404 calls (882,494 at 64 sets), linear in the members it reads. The regressions this cap exists for
+  // stay far above it: the fresh read of every set measures 2.09M, and `main` before #3313 made 2.6M.
+  const CHECK_CAP = 950_000;
   const checkOf = async (): Promise<{ msg: any; calls: number; progress: { msg: any; turn: number; i: number }[]; answerAt: number }> => {
     const at = posted.length;
     calls = 0; callsIn.clear();

@@ -37,3 +37,9 @@ DRAFT spacing, the default last step's trailing line (nested overrides take no b
 
 **After review:** the default Steps numbers its second and third items "2" and "3" in Figma (`nestTexts`, #2317);
 StepItem's own default is "1", so an inserted Steps read 1, 1 before. `#3055 steps/slot` asserts the numbers.
+
+**After the merge with Popover:** the template reached 66 sets, and the Update check's host calls grew with it to
+905,404, past `test-open-large-file.ts`'s `CHECK_CAP` of 900,000. Neither PR alone crossed it. The cap is now
+950,000, with the measurement in its comment. The regressions it exists for stay far above it: `fileBlockers`
+reading every name per set again measured 1.8M and failed `check/calls` by name. The merge also takes
+`EXECUTOR_REVISION` to 67, because `CANVAS_FURNITURE` is executor-run code since #4325.
