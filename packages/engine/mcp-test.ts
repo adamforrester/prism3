@@ -371,6 +371,98 @@ await new Promise((r) => setTimeout(r, 3000));
   }
 }
 
+// ------------------------------------------- #4122: every tool refuses an argument its schema does not declare
+// All six tools declare `additionalProperties: false`, and `include` is an enum, but only `export_theme` checked either:
+// a typo in `include` quietly shrank the answer. EXPECTED is typed here per tool, never read from the schemas. The one
+// named exception is a call with no `brand` key to a tool that requires one (#4120), such as theme_brand's bare
+// BrandInput; test.ts's #4120 block holds the missing-`brand` message. BY-NAME MUTATION: turn the
+// shared argument check off in mcp.ts → every refusal arm below fails.
+{
+  const B = { id: 'args', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const brief = ['---', 'id: args', 'primary: { l: 0.5, c: 0.15, h: 250 }', 'neutral: { hue: 250, chroma: 0.01 }', '---'].join('\n');
+  for (const [tool, args, named] of [
+    ['theme_brand', { brand: B, include: ['tokenz'] }, 'tokenz'],
+    ['theme_from_brief', { brief, include: ['aiMetaData'] }, 'aiMetaData'],
+    ['theme_from_brief', { brief, brand: B }, 'brand'],
+    ['list_levers', { foo: 1 }, 'foo'],
+    ['score_consumption', { brand: B, refs: ['color.text.primary'], ref: ['x'] }, 'ref'],
+    ['export_theme', { brand: B, outDir: 'packages/engine/.mcp-test-4122-out', bogus: true }, 'bogus'],
+  ] as const) {
+    const r = await server.callJson(tool, args);
+    ok(r.isError === true && JSON.stringify(r.payload).includes(named),
+      `#4122 ${tool} refuses the undeclared ${JSON.stringify(named)} by name instead of ignoring it (got ${JSON.stringify(r.payload).slice(0, 200)})`);
+  }
+  rmSync(resolve(HERE, '.mcp-test-4122-out'), { recursive: true, force: true });   // written only when the check is off
+  const bare = await server.callJson('theme_brand', B);
+  ok(!bare.isError, '#4122 theme_brand still accepts a bare BrandInput, the one named exception (#4120)');
+  const none = await server.callJson('theme_brand', { brand: B, include: [] });
+  ok(!none.isError && none.payload.omitted?.length === 3, '#4122 theme_brand still accepts an empty include');
+  // A present `include` that is not an array (#4277 review): it fell through to the default sections with no error, and
+  // export_theme threw `want.filter is not a function` (#4281). EXPECTED: an isError result naming the argument.
+  // BY-NAME MUTATION: drop the array-type check from mcp.ts `argumentErrors` → each of these fails.
+  for (const [tool, args] of [
+    ['theme_brand', { brand: B, include: 'tokens' }],
+    ['theme_brand', { brand: B, include: null }],
+    ['theme_from_brief', { brief, include: 'aiMetadata' }],
+    ['export_theme', { brand: B, outDir: 'packages/engine/.mcp-test-4122-out', include: 'tokenz' }],
+  ] as const) {
+    let seen: string;
+    let refused = false;
+    try {
+      const r = await server.callJson(tool, args);
+      seen = JSON.stringify(r.payload ?? r).slice(0, 200);
+      refused = r.isError === true && seen.includes('include must be an array');
+    } catch (err) { seen = `threw: ${(err as Error).message.slice(0, 160)}`; }
+    ok(refused, `#4122 ${tool} refuses include ${JSON.stringify(args.include)} as not an array instead of answering with the default sections (got ${seen})`);
+  }
+  rmSync(resolve(HERE, '.mcp-test-4122-out'), { recursive: true, force: true });
+}
+
+// ---------------------------------- #4151: a tool that returns structuredContent declares an outputSchema it meets
+// theme_brand and theme_from_brief returned structuredContent with no outputSchema, so the generated reference said
+// they had none. Every tool in tools/list is called once with a valid input (a tool missing from SAMPLES fails by
+// name), and each structured result is checked against the declared schema with a small validator written here, not
+// imported from mcp.ts. BY-NAME MUTATION: drop theme_brand's outputSchema → its arm fails.
+{
+  const conforms = (v: any, s: any, at = '$'): string[] => {
+    if (!s || typeof s !== 'object') return [];
+    const e: string[] = [];
+    const t = s.type;
+    const typeOk = !t || (t === 'array' ? Array.isArray(v) : t === 'object' ? v !== null && typeof v === 'object' && !Array.isArray(v)
+      : t === 'integer' ? Number.isInteger(v) : typeof v === t);
+    if (!typeOk) return [`${at}: not ${t}`];
+    if (Array.isArray(s.required)) for (const k of s.required) if (v?.[k] === undefined) e.push(`${at}: missing '${k}'`);
+    if (s.properties && v && typeof v === 'object') for (const [k, sub] of Object.entries(s.properties)) if (v[k] !== undefined) e.push(...conforms(v[k], sub, `${at}.${k}`));
+    if (s.items && Array.isArray(v)) v.forEach((x: unknown, i: number) => e.push(...conforms(x, s.items, `${at}[${i}]`)));
+    if (Array.isArray(s.anyOf) && !s.anyOf.some((b: any) => conforms(v, b, at).length === 0)) e.push(`${at}: matches no anyOf branch`);
+    return e;
+  };
+  const B = { id: 'schema', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const SAMPLES: Record<string, unknown> = {
+    list_levers: {},
+    theme_brand: { brand: B, include: ['notes', 'tokens', 'aiMetadata'] },
+    score_consumption: { brand: B, refs: ['color.text.primary'], pairs: [{ fg: 'color.text.primary', bg: 'color.background.primary' }] },
+    theme_from_brief: { brief: ['---', 'id: schema', 'primary: { l: 0.5, c: 0.15, h: 250 }', 'neutral: { hue: 250, chroma: 0.01 }', '---'].join('\n') },
+    export_theme: { brand: B, outDir: 'packages/engine/.mcp-test-4151-out', include: ['tokens'] },
+    validate_brand: B,
+  };
+  const listed = ((await server.reply(server.send('tools/list'))).result?.tools ?? []) as Array<{ name: string; outputSchema?: unknown }>;
+  try {
+    for (const tool of listed) {
+      if (!(tool.name in SAMPLES)) { ok(false, `#4151 ${tool.name} has no sample input here, so its output contract went unchecked`); continue; }
+      const res = await server.call(tool.name, SAMPLES[tool.name]);
+      if (res.isError || res.structuredContent === undefined) {
+        ok(res.structuredContent === undefined && !res.isError, `#4151 ${tool.name}: the sample call succeeded (got ${JSON.stringify(res).slice(0, 200)})`);
+        continue;
+      }
+      const bad = tool.outputSchema ? conforms(res.structuredContent, tool.outputSchema) : ['declares no outputSchema'];
+      ok(bad.length === 0, `#4151 ${tool.name} returns structuredContent and declares an outputSchema it meets (${bad.slice(0, 4).join('; ') || 'ok'})`);
+    }
+  } finally {
+    rmSync(resolve(HERE, '.mcp-test-4151-out'), { recursive: true, force: true });
+  }
+}
+
 // ------------------------------- #2227: a contrast floor no page ground sits on is refused, by sentence
 // `surfaces.light.floorStep: 25` sits under no light page ground (white, neutral.050, neutral.100). The DTCG and
 // Figma prose name the ground every floor-gated fill clears its bar on, so the Figma color emission had no ground

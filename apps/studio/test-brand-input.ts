@@ -140,5 +140,37 @@ ok(JSON.stringify(B.personality()) === '["soft"]' && takes(), 'a personality wor
 B.setPersonality('soft', false);
 ok(B.personality().length === 0 && !('personality' in store.brandState), 'unsetting the last word clears the field');
 
+// #3976 (owner decision Q-PW1 A): the stored order is the pick order, and a word turns its opposite off. The engine
+// reads the list first-listed-wins, so the order is what decides a setting two words share; the evidence of that is the
+// engine's own note (`brandTheme`'s `notes`), not this module's. premium and bold are NOT opposites and both set the
+// neutral fill (bold → strong, premium → subtle), which the prism3 example leaves unset. Bold is picked first, against
+// the engine's own word order (premium before bold), so a list stored in that order fails here: bold's fill must stay.
+console.log('\n5. Personality: pick order and opposites (#3976)');
+const authoredOrder = (): string => JSON.stringify((store.brandState as unknown as { personality?: string[] }).personality ?? null);
+reset();
+B.setPersonality('bold', true);
+B.setPersonality('premium', true);
+ok(authoredOrder() === '["bold","premium"]', `#3976 the stored personality is the pick order: bold, then premium (stored ${authoredOrder()})`);
+ok(JSON.stringify(B.personality()) === '["bold","premium"]', `#3976 the words on read back in the pick order (${JSON.stringify(B.personality())})`);
+const notes = takes() ? brandTheme(structuredClone(store.brandState)).notes : [];
+ok(notes.some((n) => n.startsWith("personality 'premium'") && n.includes("neutralEmphasis (already set by 'bold')")),
+  `#3976 the engine gives the shared setting to the first word picked: premium keeps bold's neutral fill (${notes.filter((n) => n.startsWith('personality')).join(' | ')})`);
+B.setPersonality('calm', true);
+B.setPersonality('premium', false);
+ok(authoredOrder() === '["bold","calm"]', `#3976 turning a word off keeps the others in their pick order (stored ${authoredOrder()})`);
+// The owner's four pairs, typed here, never read from the engine's TRAIT_OPPOSITES: each way round, the second pick
+// turns the first off, and a word outside the pair stays on.
+for (const [a, b] of [['soft', 'sharp'], ['dense', 'generous'], ['calm', 'energetic'], ['bold', 'restrained']]) {
+  for (const [first, second] of [[a, b], [b, a]]) {
+    reset();
+    B.setPersonality('premium', true);
+    B.setPersonality(first, true);
+    B.setPersonality(second, true);
+    ok(authoredOrder() === JSON.stringify(['premium', second]) && takes(),
+      `#3976 picking ${second} turns its opposite ${first} off, and premium stays on (stored ${authoredOrder()})`);
+  }
+}
+ok(B.PERSONALITY_ORDER_LINE.length > 0 && B.PERSONALITY_ORDER_LINE.length <= 90, `#3976 the order line is one line of at most 90 characters (${B.PERSONALITY_ORDER_LINE.length})`);
+
 console.log(`\n${executed - failed}/${executed} brand-input assertions passed.`);
 if (failed) process.exit(1);

@@ -31,8 +31,8 @@ With **One per mode** <!-- src: apps/studio/src/export-settings.ts:218 -->, the 
 - `<brand>.base.tokens.json` holds every token at its default-mode value.
 - `<brand>.<mode>.overlay.tokens.json`, for example `<brand>.dark.overlay.tokens.json`, holds only the tokens whose value changes in that mode.
 
-A build reads the base and then the overlay for the mode it wants. Style Dictionary does this with its stock setup, and CI checks that it still does. <!-- src: packages/engine/emit-dtcg-overlay.ts:22-25#827e558d --> <!-- src: packages/tokens/check-consumability.mjs:279-288#306a7f75 -->
-The modes here are the appearance modes (such as dark and the high-contrast pair). Breakpoint values travel inside the layout tokens themselves; the per-breakpoint detail the engine keeps for its own use is left out of these files. <!-- src: packages/engine/emit-dtcg-overlay.ts:37-41#daf3ffcf -->
+A build reads the base and then the overlay for the mode it wants. Style Dictionary does this with its stock setup, and CI checks that it still does. <!-- src: packages/engine/emit-dtcg-overlay.ts:23-26#827e558d --> <!-- src: packages/tokens/check-consumability.mjs:279-288#306a7f75 -->
+The modes here are the appearance modes (such as dark and the high-contrast pair). Breakpoint values travel inside the layout tokens themselves; the per-breakpoint detail the engine keeps for its own use is left out of these files. <!-- src: packages/engine/emit-dtcg-overlay.ts:38-42#daf3ffcf -->
 
 Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1396-1403#12963735 -->
 

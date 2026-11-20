@@ -121,8 +121,97 @@
             "additionalProperties": false
           },
           "output": {
-            "structuredContent": null,
-            "text": "a JSON object in content[0].text; this tool declares no outputSchema"
+            "structuredContent": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "modes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "contracts": {
+                  "type": "object",
+                  "description": "Every declared contrast pair across every mode: how many were checked, how many pass, and each failure.",
+                  "properties": {
+                    "checks": {
+                      "type": "number"
+                    },
+                    "pass": {
+                      "type": "number"
+                    },
+                    "failures": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "checks",
+                    "pass",
+                    "failures"
+                  ]
+                },
+                "aliases": {
+                  "type": "object",
+                  "description": "Alias integrity: how many aliases, how many resolve, and each broken one.",
+                  "properties": {
+                    "total": {
+                      "type": "number"
+                    },
+                    "resolved": {
+                      "type": "number"
+                    },
+                    "broken": {
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "resolved",
+                    "broken"
+                  ]
+                },
+                "omitted": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The sections this result leaves out."
+                },
+                "hint": {
+                  "type": "string",
+                  "description": "How to add the sections it leaves out."
+                },
+                "notes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "With include notes (the default): the decisions log."
+                },
+                "tokens": {
+                  "type": "object",
+                  "description": "With include tokens: the DTCG token tree."
+                },
+                "aiMetadata": {
+                  "type": "object",
+                  "description": "With include aiMetadata: the agent metadata."
+                }
+              },
+              "required": [
+                "id",
+                "modes",
+                "contracts",
+                "aliases",
+                "omitted"
+              ]
+            },
+            "text": "the same object as JSON in content[0].text"
           },
           "source": "packages/engine/mcp.ts#name: 'theme_brand'"
         },
@@ -230,8 +319,102 @@
             "additionalProperties": false
           },
           "output": {
-            "structuredContent": null,
-            "text": "a JSON object in content[0].text; this tool declares no outputSchema"
+            "structuredContent": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "modes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "contracts": {
+                  "type": "object",
+                  "description": "Every declared contrast pair across every mode: how many were checked, how many pass, and each failure.",
+                  "properties": {
+                    "checks": {
+                      "type": "number"
+                    },
+                    "pass": {
+                      "type": "number"
+                    },
+                    "failures": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "checks",
+                    "pass",
+                    "failures"
+                  ]
+                },
+                "aliases": {
+                  "type": "object",
+                  "description": "Alias integrity: how many aliases, how many resolve, and each broken one.",
+                  "properties": {
+                    "total": {
+                      "type": "number"
+                    },
+                    "resolved": {
+                      "type": "number"
+                    },
+                    "broken": {
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "resolved",
+                    "broken"
+                  ]
+                },
+                "omitted": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The sections this result leaves out."
+                },
+                "hint": {
+                  "type": "string",
+                  "description": "How to add the sections it leaves out."
+                },
+                "notes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "With include notes (the default): the decisions log."
+                },
+                "tokens": {
+                  "type": "object",
+                  "description": "With include tokens: the DTCG token tree."
+                },
+                "aiMetadata": {
+                  "type": "object",
+                  "description": "With include aiMetadata: the agent metadata."
+                },
+                "derivedBrandInput": {
+                  "type": "object",
+                  "description": "The BrandInput the brief was read as."
+                }
+              },
+              "required": [
+                "id",
+                "modes",
+                "contracts",
+                "aliases",
+                "omitted",
+                "derivedBrandInput"
+              ]
+            },
+            "text": "the same object as JSON in content[0].text"
           },
           "source": "packages/engine/mcp.ts#name: 'theme_from_brief'"
         },
