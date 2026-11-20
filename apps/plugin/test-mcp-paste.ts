@@ -666,15 +666,19 @@ const driveEmit = async (name: string, defId: string, input: BrandInput, boxOf: 
   const marks = page.children.filter((n) => n.type === 'COMPONENT' && String(n.name).startsWith(`${defId}/`));
   ok(emits.length >= minSlices && marks.length === plans.length && marks.every((n) => n.width > 0 && n.height > 0) && reports.every((r) => !r.threw),
     `${name}: the def is pasted in ${emits.length} slice(s) and every one of its ${plans.length} members is placed, at a nonzero box (${marks.length} placed; ${reports.filter((r) => r.threw).map((r) => r.threw).join('; ') || 'nothing threw'})`);
+  // Clearing is not enough: the plugin's grid keeps a 24px gap between neighbors (#3134), a literal here, so a pitch that only
+  // just clears the members in one column (a 2×2 spinner grid at 25) fails too. Each box is widened by the gap on its right
+  // and bottom; a gap of exactly 24 passes.
+  const GAP = 24;
   const over: string[] = [];
   marks.forEach((a, i) => marks.slice(i + 1).forEach((b) => {
-    if (a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height) over.push(`${a.name} × ${b.name}`);
+    if (a.x < b.x + b.width + GAP && b.x < a.x + a.width + GAP && a.y < b.y + b.height + GAP && b.y < a.y + a.height + GAP) over.push(`${a.name} × ${b.name}`);
   }));
-  ok(over.length === 0, `${name}: no two ${name === 'emit/brand marks' ? 'marks' : 'members'} overlap (${over.length} overlapping pair(s)${over.length ? `, first ${over[0]}` : ''})`);
+  ok(over.length === 0, `${name}: no two ${name === 'emit/brand marks' ? 'marks' : 'members'} overlap or come within the plugin's 24px gap (${over.length} pair(s) too close${over.length ? `, first ${over[0]}` : ''})`);
 };
 
 // Provider-logo: every member has an artboard (`glyphViewBox`), the box the executors build its frame at. Mutation: the 48
-// put back in `runComponentEmit` → `emit/brand marks: no two marks overlap`.
+// put back in `runComponentEmit` → `emit/brand marks: no two marks overlap or come within the plugin's 24px gap`.
 await section('emit/brand marks', async () => {
   await driveEmit('emit/brand marks', 'provider-logo', PARITY[1][1], (p) => p.root.glyphViewBox ?? [0, 0], 2);
 });
@@ -682,7 +686,7 @@ await section('emit/brand marks', async () => {
 // Spinner: no artboard, so `emitPitch` takes the bound branch, resolving each size's `icon/size/*` through the brand's tree.
 // THE ORACLE is the host, not that tree: the brand's theme is pasted into a file shim, and each stand-in is sized from the
 // `icon/size/*` variable the shim holds, aliases followed by id, so a wrong resolution in `emitPitch` cannot size its own
-// check. Mutations: `emitPitch`'s bound width read as 1 → `emit/spinner: no two members overlap`; the throw dropped →
+// check. Mutations: `emitPitch`'s bound width read as 1 → `emit/spinner: no two members overlap or come within the plugin's 24px gap`; the throw dropped →
 // `emit/no box: a member with neither box throws by name`.
 await section('emit/spinner', async () => {
   const input = PARITY[1][1];
