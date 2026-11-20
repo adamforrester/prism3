@@ -73,8 +73,10 @@ const block = (theme: string, surface: string, appearances: [string, string][], 
 /** `fields`: the field sizes and statuses from `specs.json` (S3). */
 export const demoHtml = (sizes: string[], fields: { sizes: string[]; statuses: string[] }): string => {
   const all: [string, string][] = [['filled', 'default'], ['outline', 'default'], ['text', 'default'], ['text', 'flush']];
+  // every section names its theme, light too: since #4140 the token CSS follows the OS into dark wherever no
+  // `data-theme` is set, so an unnamed light section shows dark tokens on a dark OS
   const section = (theme: string, title: string) => `
-<section class="demo-theme"${theme === 'light' ? '' : ` data-theme="${theme}"`} aria-labelledby="h-${theme}">
+<section class="demo-theme" data-theme="${theme}" aria-labelledby="h-${theme}">
 <h2 id="h-${theme}">${title}</h2>
 <p>Hover, press or tab to a button to see its live states.</p>
 ${block(theme, 'default', all, sizes)}
