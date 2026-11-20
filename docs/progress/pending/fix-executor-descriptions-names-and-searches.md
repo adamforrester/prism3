@@ -3,11 +3,12 @@
 One `EXECUTOR_REVISION` bump (66 → 67, reach `"all"`) carries three executor changes, as the owner asked on #4160 (decision C): designers see one round of every set reading as due.
 
 ### #2865 — the description record (owner decision A)
-- **Executor.** `writeDescription` (`write-components.ts`) writes a set's (or an emitted component's) description and records it in shared plugin data `prism3`/`description`. `descriptionIsOurs` reads a description as Prism3's when it is empty, has no record, or still equals its record. An existing set now takes the summary on those terms, where before it took it only while empty.
+- **Executor.** `writeDescription` (`write-components.ts`) writes a set's (or an emitted component's) description and records it in shared plugin data `prism3`/`description`. `descriptionIsOurs` reads a description as Prism3's when it is empty, has no record, or still equals its record. An existing set Prism3 built (some member stamped, the check's own test) now takes the summary on those terms, where before it took it only while empty. A set with no stamped member keeps its description, record or not: decision A is scoped to a Prism3-built set (review should-fix 1).
 - **Check.** `descriptionDue` (`update-plan.ts`) plans a description row for the set, or for each stamped component of a single-component def. The row is in the set's `previewHash`. A set whose only change is its description is no longer up to date. The check names the change, and names a designer's line it keeps.
 - **Apply.** A description-only set enters the run (`descOnly`), and every applied set writes its due descriptions (`describe`). The publish description counts a described set as changed.
 - **Narrowed, flagged on the issue:** an EMPTY description is not a row of its own. Nothing in it is stale, and the build's pass fills it whenever it writes the set, as before. Planned as a row, it would have listed every pre-#1623 set and every test world.
-- **Wording:** DRAFT strings, on the issue as an owner decision.
+- **Arms added in review:** `#2865 hand-made set kept` (the build leaves an unstamped set's description), `description/single` (the apply keeps a designer's line on one icon while it writes another's), `#4160 flag restored` (`searchComponents` puts the flag back, after a build and after a search that throws).
+- **Wording:** DRAFT strings, on the issue as an owner decision. The guide sentence now says "a set Prism3 built" (DRAFT).
 
 ### #3828 — the other two readers of a duplicated name
 - **Nest override.** `applyNestOverrides` takes an optional `ambiguous` resolver. Both executors pass the #1796 rule (`oneComp`/`one`, the `AMBIGUOUS` words), so a swap value two plain components hold is named, and the nested instance keeps its default.

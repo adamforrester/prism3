@@ -33,7 +33,7 @@ For each set, the plugin: <!-- src: apps/plugin/src/main.ts:915-1038#34f3a25b --
 - adds the page header and the labels beside the set;
 - draws the family's usage panel beside its lead, while Docs has usage panels on. <!-- src: apps/plugin/src/main.ts:1003-1004#03cbfa05 --> A family has one panel, beside its lead set: the Buttons page has one, beside Button, and the other sets on the page have none of their own. An icon, the spinner and a provider logo are single components, with no set and no panel. <!-- src: apps/plugin/src/doc-panel.ts:225-226#b6f87a5f -->
 
-A new set's description in Figma is its one-line summary from the engine. When the summary changes, Update file rewrites a description Prism3 wrote, and keeps one you changed. On a file built before Prism3 recorded its descriptions, Update file can't tell the two apart and rewrites it. <!-- src: apps/plugin/src/write-components.ts:150-151#b707248a -->
+A new set's description in Figma is its one-line summary from the engine. When the summary changes, Update file rewrites a description Prism3 wrote, and keeps one you changed. On a set Prism3 built before it recorded its descriptions, Update file can't tell the two apart and rewrites it. <!-- src: apps/plugin/src/write-components.ts:150-151#b707248a -->
 
 *[Screenshot placeholder: the Components area with a family ticked, and Update file's To add list.]*
 

@@ -642,7 +642,8 @@ export type ComponentApplyOptions = {
   /** THE FIGMA DESCRIPTION (#1623 sign-off) — the def's one-line `summary`, which the plugin reads off
    *  the def and passes here. Written on a set this run creates (or on each component, in
    *  `emitAsComponents` mode), and on a set the file already had only while that set's description is
-   *  Prism3's (`descriptionIsOurs`, #2865): a designer's own description is theirs. Each write records itself. A write-time option like `emitAsComponents`, so it
+   *  Prism3's (`descriptionIsOurs`, #2865) and some member carries a stamp: a designer's own description, or any on a set
+   *  Prism3 never built, is theirs. Each write records itself. A write-time option like `emitAsComponents`, so it
    *  stays off the plan and out of `planStamp`. */
   description?: string;
   /** WHERE THE SET IS PLACED (#1554) — the `↳ <family>` section page the page-aware build resolved,
@@ -3191,6 +3192,10 @@ const writeComponentSet = async (
   // field added there costs ~19 KB of payload on Button for something the payload never reads. Both
   // derivations call `planComponentName`, so the key agrees with `spec.name` by construction.
   const stampByMember = new Map(plans.map((p) => [planComponentName(p), memberStamp(p)] as const));
+  // A SET PRISM3 BUILT (#2865, owner decision A is scoped to one): some member carries a stamp, read before this run writes
+  // any. The check's `descriptionDue` reads the same thing (`counts.members > counts.unstamped`). A set no member of which
+  // Prism3 stamped is the designer's, and so is its description, with or without a record.
+  const setBuiltByUs = !!set && (set.children ?? []).some((c) => !!(c as CompNode).getSharedPluginData?.(NS, STAMP_KEY));
 
   // CHUNKED (#684). The yield is on the CELL index, not on `fresh.length`, because `fresh.length` is not
   // monotonic with the loop — a run that skips every member by name leaves it at 0 for all 648 cells, so
@@ -3537,9 +3542,10 @@ const writeComponentSet = async (
     claimDefaults(wr(set), null, misses, 'created');
   } else {
     // AN EXISTING SET gets the description only while it is Prism3's (#2865, owner decision A): empty, with no record,
-    // or still the one Prism3 last wrote. The fill and radius below are the designer's on this branch, and a
-    // description they changed after Prism3's record is too.
-    if (opts.description && descriptionIsOurs(set as unknown as Described)) writeDescription(set as unknown as Described, opts.description);
+    // or still the one Prism3 last wrote, and only on a set Prism3 built (`setBuiltByUs`). The fill and radius below are
+    // the designer's on this branch, and so is the description of a set Prism3 never built, or one they changed after
+    // Prism3's record.
+    if (opts.description && setBuiltByUs && descriptionIsOurs(set as unknown as Described)) writeDescription(set as unknown as Described, opts.description);
   }
   if (!createdSet) for (const c of fresh) {
     set.appendChild?.(c);

@@ -7378,7 +7378,7 @@ section('description — a def summary that moved reaches a set whose members ar
   // while it has no record at all; one a designer changed after the record is kept. Expected values typed here, the
   // summary read off the def. Mutations: the check's row dropped → `description/planned`, `description/unrecorded`;
   // the apply's write dropped → `description/applied`, `description/unrecorded`; `descriptionIsOurs` taking every
-  // description → `description/designer-kept`.
+  // description → `description/designer-kept`; `describe`'s `descriptionIsOurs` guard dropped → `description/single`.
   const summary = componentDefs.find((d) => d.id === TAG)!.summary!;
   const OLD = 'An old line about tags.';
   const rec = (n: Node): string => (n.getSharedPluginData as (a: string, b: string) => string)('prism3', 'description');
@@ -7427,6 +7427,27 @@ section('description — a def summary that moved reaches a set whose members ar
     ok(!pre.sets[0].description && pre.sets[0].descriptionKept === 1 && v.headline === '✓ All sets up to date' && v.lines.includes("tag · description: edited by hand, so it's kept.")
       && w.set().description === 'Our team calls these chips.' && rec(w.set()) === OLD,
       `description/designer-kept: a description changed after the record is kept through a check and an update that rewrites every member (${JSON.stringify(v.lines.slice(0, 2))}; ${JSON.stringify(w.set().description)})`);
+  }
+  {
+    // A SINGLE-COMPONENT DEF (#2865 review should-fix 2): each stamped component is its own description. Of two icons, one
+    // still carries Prism3's old line and its record; on the other a designer changed it after the record. The check
+    // plans the one and keeps the other, and the confirm writes the one only. Mutation: `describe`'s
+    // `descriptionIsOurs` guard dropped → `description/single`.
+    const icSummary = componentDefs.find((d) => d.id === 'icon')!.summary!;
+    const plans = plansOf('icon');
+    const w = await singleWorld(plans);
+    const [ours, theirs] = w.comps();
+    ours.description = OLD; mark(ours, OLD);
+    theirs.description = 'Our team draws these by hand.'; mark(theirs, OLD);
+    const t: UpdateTarget = { def: 'icon', plans, single: true };
+    const pre = await previewUpdate(w.host, [t]);
+    const p = pre.sets[0];
+    const v = previewVerdict(pre);
+    const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+    ok(JSON.stringify(p.description) === JSON.stringify({ to: icSummary, from: [OLD], nodes: 1 }) && p.descriptionKept === 1
+      && v.lines.some((l) => l.endsWith(' description to update.')) && v.lines.includes(`${p.set} · description: edited by hand, so it's kept.`)
+      && ours.description === icSummary && rec(ours) === icSummary && theirs.description === 'Our team draws these by hand.' && rec(theirs) === OLD && res.outcomes[0]?.described === 1,
+      `description/single: of two icons, the one still Prism3's takes the summary and the one a designer changed is kept (${JSON.stringify(p.description)}, kept ${p.descriptionKept}; ${JSON.stringify(ours.description)} / ${JSON.stringify(theirs.description)})`);
   }
 }
 

@@ -73,6 +73,7 @@ import { materializeForBrand } from './src/brand-def';
 import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET, labelAfterBuilds } from './src/build-deps';
 import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson, REF_BACKOFF_MS } from './src/write-components';
 import { refsNote } from './src/apply-summary';
+import { searchComponents } from './src/component-search';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
 
@@ -3962,6 +3963,29 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
   await run(fmPlans, { ...fmVars, page: pgD }, { description: fm.summary });
   ok(setOf(pgD)?.description === fm.summary && recOf(setOf(pgD)) === fm.summary,
     `#2865 stale replaced: a set whose description is still Prism3's earlier one takes the new summary on the next build ("${setOf(pgD)?.description}")`);
+
+  // DECISION A IS SCOPED TO A SET PRISM3 BUILT (#2865 review should-fix 1): a description with no record is Prism3's only
+  // there. A set none of whose members carries a stamp (`memberStamp`, typed here) is the designer's, and so is its
+  // description. The control: the same unrecorded description on a set whose members keep their stamps is replaced.
+  // Mutation: the executor's `setBuiltByUs` dropped → `#2865 hand-made set kept`.
+  const DESIGNER = 'A designer wrote this.';
+  const unrecorded = async (clearStamps: boolean): Promise<{ desc: unknown; stamps: string[] }> => {
+    const pg: Page = { children: [] };
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    const set = setOf(pg)!;
+    const kids = (set.children ?? []) as Record<string, unknown>[];
+    const put = (n: Record<string, unknown>, k: string, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', k, v);
+    if (clearStamps) for (const c of kids) put(c, 'memberStamp', '');
+    set.description = DESIGNER;
+    put(set, 'description', '');
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    return { desc: setOf(pg)?.description, stamps: kids.map((c) => (c.getSharedPluginData as (a: string, b: string) => string)('prism3', 'memberStamp')) };
+  };
+  const built = await unrecorded(false);
+  ok(built.desc === fm.summary, `#2865 unrecorded on a built set: a description with no record on a set Prism3 stamped takes the summary ("${built.desc}")`);
+  const hand = await unrecorded(true);
+  ok(hand.desc === DESIGNER && hand.stamps.length > 0 && hand.stamps.every((x) => x === ''),
+    `#2865 hand-made set kept: a set with no stamped member keeps its description on a build, record or not ("${hand.desc}"; stamps ${JSON.stringify(hand.stamps)})`);
 }
 
 // ---- #1611: THE FOOTPRINT HOLDS ACROSS RUNTIME AXES, NOT AUTHORING AXES --------------------
@@ -5158,7 +5182,7 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
 // hidden instance children (`searchComponents`, `component-search.ts`). THE ORACLE is the host: a counting host whose
 // `root.findAllWithCriteria` records each call and the flag as it stood. List, its `items` slot cloned under a second
 // name so the plan carries two preferred SLOT properties. Mutations: the slot searches back inside the loop →
-// `#4160 searched once`; a search unwrapped → `#4160 flag`.
+// `#4160 searched once`; a search unwrapped → `#4160 flag`; the flag left on → `#4160 flag restored`.
 {
   const listPlans = figmaAnatomySet(byId('list')!).map((pl) => {
     const q = JSON.parse(JSON.stringify(pl)) as AnatomyPlan;
@@ -5175,17 +5199,25 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
   const calls: { types: string; skip: unknown }[] = [];
   const g = globalThis as { figma?: { skipInvisibleInstanceChildren?: boolean } };
   const before = g.figma;
+  const flagAfter: unknown[] = [];
   g.figma = { skipInvisibleInstanceChildren: false };
   try {
     const shim = makeShim({ ...fullFor(listPlans), page: { children: [] }, looseHost: '#4160 counts the build\'s root.findAllWithCriteria calls' }) as unknown as { root: { findAllWithCriteria: (c: { types: string[] }) => unknown[] } };
     const real = shim.root.findAllWithCriteria.bind(shim.root);
     shim.root.findAllWithCriteria = (c) => { calls.push({ types: c.types.join(), skip: g.figma?.skipInvisibleInstanceChildren }); return real(c); };
     await applyComponentPlan(listPlans, shim as never);
+    flagAfter.push(g.figma?.skipInvisibleInstanceChildren);
+    try { searchComponents(['COMPONENT'], () => { throw new Error('#4160 a search that throws'); }); } catch { /* the throw is the point */ }
+    flagAfter.push(g.figma?.skipInvisibleInstanceChildren);
   } finally { g.figma = before; }
   ok(slots.length === 2 && calls.length === 4,
     `#4160 searched once: a build whose plan carries ${slots.length} preferred slot properties searches the whole file 4 times, 2 to set up and 2 for all its slots (${calls.length}: ${JSON.stringify(calls.map((x) => x.types))})`);
   ok(calls.length > 0 && calls.every((x) => x.skip === true),
     `#4160 flag: every component search runs with hidden instance children skipped (${JSON.stringify(calls.map((x) => x.skip))})`);
+  // The flag is put back: left on, reading a hidden layer inside an instance throws, and the hand-edit pass reads those.
+  // Mutation: `searchComponents`'s `finally` emptied → `#4160 flag restored`.
+  ok(JSON.stringify(flagAfter) === '[false,false]',
+    `#4160 flag restored: after the build, and after a search that throws, hidden instance children are read again (${JSON.stringify(flagAfter)})`);
 }
 
 // ---- #1750: a new set lands beside the page's content, never on top of it ------------------------------
