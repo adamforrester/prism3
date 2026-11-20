@@ -2,8 +2,8 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Components area and Update file for #3264). -->
 
-Prism3 defines its components once, and the plugin builds each one as a Figma component set bound to the brand's variables. <!-- src: packages/engine/components/index.ts:110-283#efed1991 -->
-The engine currently defines 63 component sets, from Button and Checkbox to Tabs, Accordion and List. <!-- src: packages/engine/components/index.ts:110-283#efed1991 -->
+Prism3 defines its components once, and the plugin builds each one as a Figma component set bound to the brand's variables. <!-- src: packages/engine/components/index.ts:111-287#3faea520 -->
+The engine currently defines 64 component sets, from Button and Checkbox to Tabs, Accordion and List. <!-- src: packages/engine/components/index.ts:111-287#3faea520 -->
 
 You choose sets in the **Components** area of the rail, and **Update file** builds them. <!-- src: apps/studio/src/state/update-file.ts:330 -->
 Building needs the Figma plugin. On the web, the Components area lists the same sets and says "Building sets needs the Figma plugin." <!-- src: apps/studio/src/preview/sections/component-sets.ts:29 -->
@@ -65,3 +65,13 @@ Only one write runs at a time, from the panel or an agent: a build asked for whi
 
 Sets build onto pages under Components (such as `↳ Buttons`, `↳ Checkbox`, `↳ Tabs`) and Subcomponents (such as `↳ Focus Ring`, `↳ Field Label`, `↳ Spinner`). <!-- src: apps/plugin/src/file-taxonomy.ts:92-190 -->
 Icons and provider logos build onto `↳ Icons & assets` under Foundations. <!-- src: apps/plugin/src/file-taxonomy.ts:87 -->
+
+## Specs for your components
+
+<!-- DRAFT copy for the owner (#2996, Q2996.1 hybrid A): the wording, where it sits and the file's path are the owner's to decide. -->
+
+Use Spectacular for any component's spec. It reads a component set in your Figma file and writes its anatomy, props and styles.
+
+Prism3's own components also come with a supplement, starting with Button. It adds what a Figma file can't hold: accessibility, the props and states that exist only in code, motion, right-to-left rules, and the CSS and DTCG name of each token the component uses. It uses the element and prop names Spectacular writes, so you can read the two side by side. Everything it adds sits under `com.prism3`. <!-- src: packages/engine/spec-supplement.ts:64 -->
+
+For a component your team builds itself, Spectacular Pro adds token references to its spec. Prism3 has no supplement for those.

@@ -17,10 +17,11 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis appearance** — the appearance axis takes 3 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [ghost, outline] in counter
 - **axis emphasis** — the emphasis axis takes 3 value sets — [bold, subtle] in divider; [bold, subtle, surface] in badge; [primary, secondary] in field-label
 - **axis inset** — the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider
+- **axis placement** — the placement axis takes 2 value sets — [bottom] in popover; [bottom, center, end, full] in dialog
 - **axis provider** — the provider axis takes 2 value sets — [apple, facebook, google] in sign-in-button; [apple-pay, google-pay, paypal, shop-pay] in wallet-button
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in link, page-nav-item, pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
 - **axis shape** — the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress
-- **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell
+- **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell
 - **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
 - **axis style** — the style axis takes 6 value sets — [outline] in card-number-field, code-input-cell, password-field, search-field, select, text-field, textarea; [border, underline] in pagination, pagination-item; [any, black, blue, gold, purple, silver, white, white-outline] in wallet-button; [black, blue, dark, light, neutral, outline, white] in sign-in-button; [contained, inline] in badge; [inline, standalone] in link
 - **axis tone** — the tone axis takes 2 value sets — [danger, info, neutral, success, warning] in badge, banner; [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon
@@ -69,7 +70,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### size default
 
-- **field-label** — field-label defaults size to small; 51 of 52 sized components default to medium
+- **field-label** — field-label defaults size to small; 50 of 51 sized components default to medium
 
 ### size order
 
@@ -89,7 +90,6 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **code-input** — code-input declares its sizes as [medium, small, large, x-large], not smallest first
 - **code-input-cell** — code-input-cell declares its sizes as [medium, small, large, x-large], not smallest first
 - **counter** — counter declares its sizes as [medium, small, large], not smallest first
-- **dialog** — dialog declares its sizes as [medium, small, large], not smallest first
 - **flush-icon-button** — flush-icon-button declares its sizes as [medium, small, large], not smallest first
 - **flush-icon-button-destructive** — flush-icon-button-destructive declares its sizes as [medium, small, large], not smallest first
 - **flush-icon-button-neutral** — flush-icon-button-neutral declares its sizes as [medium, small, large], not smallest first
@@ -186,7 +186,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | _breadcrumb-separator | navigation | — | — |
 | _slider-thumb | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | accordion | navigation | rest, focus-visible | rest, focus-visible |
-| badge | foundations | — | — |
+| badge | feedback | — | — |
 | banner | feedback | — | — |
 | breadcrumb-item | navigation | — | — |
 | breadcrumbs | navigation | — | — |
@@ -222,6 +222,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | pagination | navigation | — | — |
 | pagination-item | navigation | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | password-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
+| popover | overlay | — | — |
 | progress | feedback | — | — |
 | provider-logo | foundations | — | — |
 | radio-control | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
@@ -238,7 +239,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | switch-row | form | rest, hover, pressed, pending, focus-visible, disabled, read-only | — |
 | tab-item | navigation | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | tabs | navigation | — | — |
-| tag | foundations | rest, hover, pressed, focus-visible, disabled, read-only | rest, hover, pressed, focus-visible, disabled |
+| tag | form | rest, hover, pressed, focus-visible, disabled, read-only | rest, hover, pressed, focus-visible, disabled |
 | tag-group | foundations | — | — |
 | text-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | textarea | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
@@ -289,7 +290,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 | offset | control, field | focus-ring |
 | orientation | horizontal, vertical | divider |
 | path | full, parent | breadcrumbs |
-| placement | bottom, center, end, full | dialog |
+| placement | bottom | popover |
+|  | bottom, center, end, full | dialog |
 | provider | apple, facebook, google | sign-in-button |
 |  | apple-pay, google-pay, paypal, shop-pay | wallet-button |
 | ratio | 16:9, 1:1, 2:3, 3:2, 3:4, 4:3, 4:5 | image-placeholder |
@@ -301,7 +303,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | shape | circular, square | icon-button, icon-button-destructive, icon-button-neutral |
 |  | flush, round | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
 |  | circular, linear | progress |
-| size | large, medium, small | _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button |
+| size | large, medium, small | _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button |
 |  | medium, small | badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row |
 |  | large, medium, small, x-small | link, list, list-item, spinner |
 |  | large, medium, small, x-large | code-input, code-input-cell |
@@ -352,7 +354,6 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | code-input | medium, small, large, x-large | medium |
 | code-input-cell | medium, small, large, x-large | medium |
 | counter | medium, small, large | medium |
-| dialog | medium, small, large | medium |
 | field-label | small, medium, large | small |
 | flush-icon-button | medium, small, large | medium |
 | flush-icon-button-destructive | medium, small, large | medium |
@@ -431,6 +432,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | banner | — | — |
 |  | dialog | — | — |
 |  | list-item | — | — |
+|  | popover | — | — |
 | count | pagination | — | — |
 |  | tab-item | — | — |
 | current | link | false | — |
@@ -491,6 +493,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | emphasis | badge | subtle | subtle, bold, surface |
 |  | divider | bold | bold, subtle |
 |  | field-label | primary | primary, secondary |
+| footer | dialog | inline | inline, stacked, fill, none |
+|  | popover | — | — |
 | fullWidth | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |
@@ -677,8 +681,12 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | tag | — | — |
 | onDismiss | banner | — | — |
 |  | toast | — | — |
+| onOpenChange | dialog | — | — |
+|  | popover | — | — |
 | onRemove | tag | — | — |
 |  | tag-group | — | — |
+| open | dialog | false | — |
+|  | popover | false | — |
 | page | pagination | — | — |
 |  | pagination-item | — | — |
 | placeholder | card-number-field | — | — |
@@ -687,6 +695,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | select | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
+| placement | dialog | center | center, bottom, full, end |
+|  | popover | bottom | top, bottom, start, end |
 | provider | sign-in-button | — | apple, google, facebook |
 |  | wallet-button | — | apple-pay, google-pay, paypal, shop-pay |
 | readOnly | card-number-field | false | — |
@@ -816,6 +826,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | title | accordion | — | — |
 |  | banner | — | — |
 |  | dialog | — | — |
+|  | popover | — | — |
 | tone | badge | neutral | neutral, info, success, warning, danger |
 |  | banner | info | info, success, warning, danger, neutral |
 |  | icon | inherit | 9 values |

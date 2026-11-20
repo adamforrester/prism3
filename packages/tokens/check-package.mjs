@@ -37,6 +37,13 @@
  * order written down, or a field the order does not name, fails rather than being compared loosely.
  * What the split still loses: the separators themselves (`,` between shadow layers, `/` in the shorthand).
  *
+ * [FALLBACK] (#4155): every typeface primitive (`--pds3-core-font-typeface-*`) in every block ends in a CSS
+ * generic family, so a face that does not load falls back to its kind (sans-serif, monospace, …), not to the
+ * browser default. The generic list is this gate's own transcription of CSS Fonts 4 §4.1.1. For [VALUE], a
+ * `fontFamily` leaf's engine value is its `$value` followed by its `fallbackStack`, the stack the engine
+ * curates in the tree and the web base (`<brand>.web.base.tokens.json`, the one `sd.ship.mjs` builds from)
+ * carries as the DTCG array form. The platform-neutral base stays single-family; `test.ts` holds that side.
+ *
  * [OWN FILE] (#3877): each block also ships alone at `@prism3/tokens/prism3/<mode>.css`, and each of those
  * files runs the same [NAMES], [PREFIX], [VALUE] and [MODE] arms against the contract and the tree, not
  * against the joined file. Only the selector was checked before, so an empty `[data-theme="dark"] {}` passed.
@@ -67,6 +74,11 @@ const CSS_ORDER = {
   typography: FONT_SHORTHAND,
 };
 
+/** CSS Fonts 4 §4.1.1's generic family names — the [FALLBACK] arm's own list (#4155). */
+const GENERIC_FAMILIES = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-serif',
+  'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji', 'fangsong']);
+/** The system-preference query the dark values also apply under (#4140), written here, not read off the build. */
+const SYSTEM_DARK = '@media (prefers-color-scheme: dark)';
 /** The decided prefix (Q98 A): stock Style Dictionary's root-prefixed names. */
 const PREFIX = '--pds3-';
 /**
@@ -77,9 +89,13 @@ const PREFIX = '--pds3-';
 const PROMISED_BLOCKS = [
   [':root', 'base'], ['[data-theme="light"]', 'base'],
   ['[data-theme="dark"]', 'dark'], ['[data-theme="hc-dark"]', 'hc-dark'], ['[data-theme="hc-light"]', 'hc-light'],
+  // #4140 (owner decision A): a page that sets no `data-theme` follows the OS into dark, and `dark.css` carries it.
+  [`${SYSTEM_DARK} :root:not([data-theme])`, 'dark'],
 ];
-/** How many rules the CSS holds: one per mode, since the two light selectors share one rule. */
-const PROMISED_RULES = new Set(PROMISED_BLOCKS.map(([, mode]) => mode)).size;
+/** The rule a promised selector belongs to: a nested `@media` block is a rule of its own; the rest share one per mode. */
+const ruleOf = ([sel, mode]) => (sel.startsWith('@media') ? sel : mode);
+/** How many rules the CSS holds: one per mode, since the two light selectors share one rule, plus each `@media` block. */
+const PROMISED_RULES = new Set(PROMISED_BLOCKS.map(ruleOf)).size;
 /** What `npm pack` may put in the tarball: the shippable CSS, the README, and the manifest npm always adds. */
 const ALLOWED_FILE = /^(package\.json|README\.md|dist\/prism3\.css|dist\/prism3\/[\w-]+\.css)$/;
 /** The DTCG spec's types — this gate's own transcription, as in `check-consumability.mjs` (docs/34). */
@@ -98,7 +114,15 @@ const ok = (cond, label) => { console.log(`  ${cond ? '✓' : '✗'} ${label}`);
 const readBlocks = (css) => {
   const blocks = new Map();
   let rules = 0;
-  const src = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // A nested `@media (…) { sel { … } }` block (#4140) is read as the selector `@media (…) sel`, then cut out, so the
+  // flat pass below never sees its braces.
+  const src = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(@media[^{]+)\{\s*([^{}]+)\{([^}]*)\}\s*\}/g, (_, q, sel, body) => {
+    rules++;
+    const vars = {};
+    for (const d of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) vars[d[1]] = d[2].trim();
+    for (const one of sel.split(',').map((x) => x.trim()).filter(Boolean)) blocks.set(`${q.trim()} ${one}`, vars);
+    return '';
+  });
   for (const m of src.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
     rules++;
     for (const sel of m[1].split(',').map((x) => x.trim()).filter(Boolean)) {
@@ -218,7 +242,9 @@ try {
       const name = PREFIX + key.replaceAll('.', '-');
       if (!(name in vars)) continue;
       const leaf = key.split('.').reduce((n, k) => n?.[k], tree.pds3);
-      const base = mode ? leaf?.$extensions?.prism3?.modes?.[mode]?.$value ?? leaf?.$value : leaf?.$value;
+      const own = mode ? leaf?.$extensions?.prism3?.modes?.[mode]?.$value ?? leaf?.$value : leaf?.$value;
+      const stack = leaf?.$extensions?.prism3?.fallbackStack;
+      const base = type === 'fontFamily' && typeof own === 'string' && Array.isArray(stack) ? [own, ...stack] : own;
       const want = type === 'typography' && base && typeof base === 'object'
         ? Object.fromEntries(FONT_SHORTHAND.filter((f) => f in base).map((f) => [f, base[f]])) : base;
       compared++;
@@ -226,6 +252,11 @@ try {
     }
     ok(compared === expected.length - missing.length && wrong.length === 0,
       `[VALUE] \`${sel}\`${where} holds the engine's ${mode ?? 'base'} value for every guaranteed name (${compared - wrong.length}/${compared})${wrong.length ? ` — e.g. ${wrong.slice(0, 3).join('; ')}` : ''}`);
+    // [FALLBACK] (#4155): each typeface primitive ends in a generic family.
+    const faces = Object.entries(vars).filter(([n]) => n.startsWith(`${PREFIX}core-font-typeface-`));
+    const bare = faces.filter(([, v]) => !GENERIC_FAMILIES.has(v.split(',').at(-1).trim().replace(/^['"]|['"]$/g, '')));
+    ok(faces.length > 0 && bare.length === 0,
+      `[FALLBACK] every typeface in \`${sel}\`${where} ends in a CSS generic family (${faces.length - bare.length}/${faces.length})${bare.length ? ` — e.g. ${bare.slice(0, 3).map(([n, v]) => `${n}: ${v}`).join('; ')}` : ''}`);
     if (mode) {
       const differs = expected.some((n) => n in vars && vars[n] !== root[n]);
       ok(differs, `[MODE] \`${sel}\`${where} changes at least one guaranteed value from \`:root\` — it is a theme, not a copy`);
@@ -244,13 +275,15 @@ try {
   // `[data-theme="dark"] {}` with no declarations, and would pass one carrying another mode's values.
   let ownRoot = {};
   for (const mode of new Set(PROMISED_BLOCKS.map(([, m]) => m))) {
-    const sels = PROMISED_BLOCKS.filter(([, m]) => m === mode).map(([s]) => s);
+    const mine = PROMISED_BLOCKS.filter(([, m]) => m === mode);
+    const sels = mine.map(([s]) => s);
+    const nRules = new Set(mine.map(ruleOf)).size;
     const spec = `@prism3/tokens/prism3/${mode}.css`;
     let file;
     try { file = req.resolve(spec); } catch { file = null; }
     const own = file ? readBlocks(readFileSync(file, 'utf8')) : new Map();
-    ok(Boolean(file) && own.rules === 1 && own.size === sels.length && sels.every((s) => own.has(s)),
-      `[OWN FILE] \`${spec}\` resolves and holds exactly one rule, \`${sels.join(', ')}\`${file ? ` (got ${[...own.keys()].join(' · ') || 'none'})` : ''}`);
+    ok(Boolean(file) && own.rules === nRules && own.size === sels.length && sels.every((s) => own.has(s)),
+      `[OWN FILE] \`${spec}\` resolves and holds exactly ${nRules === 1 ? 'one rule' : `${nRules} rules`}, \`${sels.join(', ')}\`${file ? ` (got ${[...own.keys()].join(' · ') || 'none'})` : ''}`);
     for (const sel of sels) {
       const vars = own.get(sel);
       if (!vars) continue;
