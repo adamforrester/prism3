@@ -74,7 +74,7 @@ Quote paths that contain spaces; use repo-relative paths, because the absolute r
    - **Docs-only exemption** — `bash .github/scripts/test-docs-only.sh` — CI's one named exemption: a PR whose every file is docs skips the browser jobs, and `gates` records it (#3698 R4; the rule: `CONTRIBUTING.md` §3).
    - **Gates aggregator** — `bash .github/scripts/test-all-gates.sh` — the base cases of `all-gates.sh`, the step the merge rule reads (#3736): a failed, cancelled or skipped job, or an empty NEEDS, fails by name.
    - **Install script** — `bash .github/scripts/test-install-chromium.sh` — the test for `install-chromium.sh`, which all four browser jobs run (#2981): a stand-in install and dpkg lock, no browser, no network.
-   - **Last, after BOTH the web and plugin builds** — `npx tsx packages/engine/lint-us-english.ts` and `npx tsx packages/engine/lint-voice.ts`; their scope includes the built bundles, so running them earlier scans a stale one. Scope details (the `apps/plugin/dist` coverage #937 added, and the matching gap in `lint-voice.ts` filed as #948) live in each gate's own header.
+   - **Last, after BOTH the web and plugin builds** — `npx tsx packages/engine/lint-us-english.ts` and `npx tsx packages/engine/lint-voice.ts`; their scope includes the built bundles, so running them earlier scans a stale one. Scope details (the `apps/plugin/dist` coverage #937 added, which `lint-voice.ts` matched in #948) live in each gate's own header.
 
    **Per-gate rationale lives in `CONTRIBUTING.md` §3 and each gate's header.** `lint-doc-gates.ts` fails CI if this list, `CONTRIBUTING.md` §3, or the PR template drifts from `ci.yml`.
 
