@@ -103,6 +103,8 @@ apps/plugin/test-doc-panel.ts #4070
 apps/plugin/test-doc-panel.ts #848
 apps/plugin/test-file-components.ts #1600
 apps/plugin/test-file-components.ts #1713
+apps/plugin/test-file-records.ts #4154
+apps/plugin/test-file-records.ts #4267
 apps/plugin/test-file-setup.ts #1561
 apps/plugin/test-file-setup.ts #1670
 apps/plugin/test-file-setup.ts #2597
