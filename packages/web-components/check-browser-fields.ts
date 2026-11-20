@@ -229,9 +229,11 @@ export const run = async (browser: any, src: Sources): Promise<{ failures: strin
     ok(await page.evaluate(`document.getElementById('pre').type`) === 'text', 'with @prism3/css\'s script only: the Show/Hide button did not show the value');
     // #3946: the second press, the typing and the caret are written in ONE task, so the script's delayed caret restore
     // (captured at the press, on the empty input: 0,0) always runs after them, as it did on a slow CI runner. Written as
-    // separate Playwright steps, the timer almost always ran first and the check passed by timing. The read waits 50 ms
+    // separate Playwright steps, the timer almost always ran first and the check passed by timing. The evaluate then
+    // waits on a zero-delay timer of its own, queued after the script's, so that restore has run before the upgrade
+    // (run after it, it would touch the replaced input and the check would pass by timing again). The read waits 50 ms
     // so a restore or reset that lands a task after the upgrade shows too.
-    await page.evaluate(`(() => { const i = document.getElementById('pre'); i.focus(); document.querySelector('.p3-password-field__toggle').click(); i.value = 'typed early'; i.setSelectionRange(1, 4); })()`);
+    await page.evaluate(`(() => { const i = document.getElementById('pre'); i.focus(); document.querySelector('.p3-password-field__toggle').click(); i.value = 'typed early'; i.setSelectionRange(1, 4); return new Promise((done) => setTimeout(done, 0)); })()`);
     await load(page);
     await page.waitForTimeout(50);
     const up = await page.evaluate(`(() => { const host = document.querySelector('p3-password-field'); const i = host.querySelector('.p3-password-field__entry'); return { id: i.id, value: i.value, focus: document.activeElement === i, sel: [i.selectionStart, i.selectionEnd], label: host.label, size: host.size, required: i.required, message: host.helpText, one: host.querySelectorAll('.p3-password-field').length }; })()`);
