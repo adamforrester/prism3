@@ -1176,7 +1176,7 @@ section('strip — minimizing resizes the window and never touches the link or i
   ok(offTrail() === 0, `strip/no-bounce: from Minimize to Restore the link never published off, to the panel or the record (${offTrail()} off)`);
   root.setSharedPluginData = origLinkSet;
 
-  const fid = root.getPluginData('prism3:file-id');
+  const fid = root.getSharedPluginData('prism3', 'prism3:file-id');   // #4154: the id is a shared record
   const spot = kept.filter(([key]) => key.startsWith('prism3:strip-at:'));
   ok(fid.length > 0 && JSON.stringify(spot) === JSON.stringify([[`prism3:strip-at:${fid}`, { x: 1200, y: 800 }]]),
     `strip/kept-spot: Restore keeps the strip's spot, window (1200,800), for this file, keyed by its id (${JSON.stringify({ fid, spot })})`);
@@ -1607,8 +1607,8 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   ok(JSON.stringify(pvd.changes?.[0]?.before) === JSON.stringify({ override: { palette: 'neutral', step: '600' }, resolved: { palette: 'neutral', step: '600' }, hex: '#5c5c61', ratio: 6.64, min: 3, against: 'background.primary' })
     && JSON.stringify(pvd.changes?.[0]?.after) === JSON.stringify({ override: { palette: 'neutral', step: '400' }, resolved: { palette: 'neutral', step: '400' }, hex: '#8e8e92', ratio: 3.26, min: 3, against: 'background.primary' }),
     `set-override/before-names-real-palette: before is the stored neutral 600, never the row's accent (${JSON.stringify(pvd.changes?.[0]?.before?.override)})`);
-  ok(typeof pvd.previewHash === 'string' && /^[0-9a-f]{8}$/.test(pvd.previewHash) && Array.isArray(pvd.newMisses) && pvd.newMisses.length === 0,
-    `set-override/preview-hash: an 8-digit previewHash, no new misses (${pvd.previewHash})`);
+  ok(typeof pvd.previewHash === 'string' && /^[0-9a-f]{16}$/.test(pvd.previewHash) && Array.isArray(pvd.newMisses) && pvd.newMisses.length === 0,
+    `set-override/preview-hash: a 16-digit previewHash (the brand's 8, then the changes' 8: #3693), no new misses (${pvd.previewHash})`);
   ok(!(await activityRuns()).some((x: any) => x.op === 'override'), 'set-override/preview-not-logged: Activity records no run for a preview');
 
   // The contrast refusal: the pair, its ratio and its minimum, and nothing stored.
@@ -1692,8 +1692,42 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   const bm = await run({ changes: [one], confirm: true, previewHash: hash });
   ok(bm.ok === false && verdictOf(bm)?.headline === "Not saved — the file's brand changed after the preview. Preview again." && !calls.includes('applyTheme'),
     `set-override/brand-moved: "${verdictOf(bm)?.headline}"`);
+  ok(dataOf(bm).refusals?.[0]?.reason === 'brand-moved', `#3693 set-override/brand-moved: only the brand moved, so the reason is brand-moved (${dataOf(bm).refusals?.[0]?.reason})`);
+  // #3693 (owner decision 2026-11-18, A): the brand moved AND other changes are sent. The changes are named first: previewing
+  // them is the remedy either way.
+  calls.length = 0; prismWrites = 0;
+  const both = await run({ changes: [{ ...one, step: '500' }], confirm: true, previewHash: hash });
+  ok(both.ok === false && dataOf(both).refusals?.[0]?.reason === 'changes-moved' && !calls.includes('applyTheme') && prismWrites === 0,
+    `#3693 set-override/changes-moved-and-brand-moved: other changes against a moved brand read changes-moved, nothing written (${dataOf(both).refusals?.[0]?.reason}, ${calls.join(', ')}, ${prismWrites} writes)`);
   putBrand(stored);
   await toUi({ type: 'due-request', input: stored, seq: 3 });
+
+  // #3693: a confirm whose changes differ from the ones previewed is refused as its own case, changes-moved, not as the file's
+  // brand moving: the file is as it was, and the fault is in the request. Nothing is written.
+  calls.length = 0; prismWrites = 0;
+  const cm = await run({ changes: [{ ...one, step: '500' }], confirm: true, previewHash: hash });
+  ok(cm.ok === false && dataOf(cm).refusals?.[0]?.reason === 'changes-moved' && dataOf(cm).refusals?.length === 1,
+    `#3693 set-override/changes-moved: other changes than the preview's are refused as changes-moved, the only refusal (${JSON.stringify(dataOf(cm).refusals?.map((x: any) => x.reason))})`);
+  ok(verdictOf(cm)?.headline === "Not saved — these changes aren't the ones previewed. Preview them first."
+    && dataOf(cm).refusals?.[0]?.line === verdictOf(cm)?.headline,
+    `#3693 set-override/changes-moved-copy: "${verdictOf(cm)?.headline}"`);
+  ok(!calls.includes('applyTheme') && prismWrites === 0 && JSON.stringify(storedOverrides()) === JSON.stringify(stored.overrides),
+    `#3693 set-override/changes-moved-writes-nothing: no Theme write, 0 brand writes, the overrides as they were (${calls.join(', ')}, ${prismWrites})`);
+  // The refusal hands back the hash these changes WOULD need, and it differs from the echoed one only in its changes half.
+  const cmHash = dataOf(cm).previewHash as string;
+  ok(typeof cmHash === 'string' && cmHash.length === 16 && hash.length === 16 && cmHash.slice(0, 8) === hash.slice(0, 8) && cmHash.slice(8) !== hash.slice(8),
+    `#3693 set-override/hash-halves: the preview hash is the brand's 8 digits then the changes' 8, and only the changes half moved (${hash} → ${cmHash})`);
+  // A list reordered is a different list: the changes are applied in order, so their hash is too.
+  const two = [one, { mode: 'dark', role: BORDER, palette: 'neutral', step: '400' }];
+  const pvTwo = await run({ changes: two, confirm: false });
+  calls.length = 0;
+  const ro = await run({ changes: [two[1], two[0]], confirm: true, previewHash: dataOf(pvTwo).previewHash });
+  ok(ro.ok === false && dataOf(ro).refusals?.[0]?.reason === 'changes-moved' && !calls.includes('applyTheme'),
+    `#3693 set-override/changes-moved-order: the previewed changes in another order read changes-moved (${dataOf(ro).refusals?.[0]?.reason})`);
+  // An echo that is not this command's hash at all (another command's 8 digits) cannot be these changes' preview.
+  const junk = await run({ changes: [one], confirm: true, previewHash: hash.slice(0, 8) });
+  ok(junk.ok === false && dataOf(junk).refusals?.[0]?.reason === 'changes-moved' && !calls.includes('applyTheme'),
+    `#3693 set-override/changes-moved-foreign-hash: an 8-digit echo reads changes-moved (${dataOf(junk).refusals?.[0]?.reason})`);
 
   // THE WRITE, against a file model that can take the Theme write: through ACTIONS.applyTheme (the spy is the table's
   // own entry, so a copy of the handler fails here), the stored overrides, the variable alias, the panel's restore.
@@ -1921,7 +1955,9 @@ section('strip-relaunch — a new launch puts the first Minimize on the spot thi
       getAsync: async (key: string) => { asked.push(key); return key === 'prism3:strip-at:f-relaunch' ? { x: 1200, y: 800 } : undefined; },
       setAsync: async () => undefined,
     },
-    root: { ...root, getPluginData: (key: string) => relaunchStore.get(key) ?? '', setPluginData: (key: string, v: string) => { relaunchStore.set(key, v); } },
+    root: { ...root, getPluginData: (key: string) => relaunchStore.get(key) ?? '', setPluginData: (key: string, v: string) => { relaunchStore.set(key, v); },
+      // #4154: the file id is a shared record, so this file's id is read there.
+      getSharedPluginData: (ns: string, key: string) => (ns === 'prism3' && key === 'prism3:file-id' ? relaunchStore.get(key) ?? '' : root.getSharedPluginData(ns, key)) },
     viewport: { bounds: { x: 100, y: 200, width: 800, height: 500 }, zoom: 2 },
   };
   g.figma = launch2;
