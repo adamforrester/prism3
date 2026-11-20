@@ -52,3 +52,7 @@ Mutations, each failing by name in the gate it targets:
 
 Against the real 0.238.0 pages from #3570, placed in the tree: with the carve, both pages pass both gates. Without
 it, #3570 measured 23 and 4 hits on the same pages.
+
+After merging `main`, `lint-voice` read one real hit in a note merged since: `fix-1779-requirement-per-mode-floor.md`
+quoted a sidecar `requirement` verbatim, `MUST` included. A change note is not the payload channel, so the note now
+says what the requirement asks for without the RFC 2119 level.
