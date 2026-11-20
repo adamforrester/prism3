@@ -44466,6 +44466,12 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     for (let i = 0; i + 8 <= w.length && !hit; i++) for (let j = i + 4; j <= i + 6 && j + 4 <= w.length; j++) if (gram(i) === gram(j)) { doubled.push(`${l.key} ${field}: "${gram(i)}"`); hit = true; break; }
   }
   ok(doubled.length === 0, `#4193 no lever text says a clause twice, back to back (${doubled.join('; ') || 'none'})`);
+  // #4367 owner decision (2026-11-20, Outline hover → A): the tip names the four hover treatments, in the owner's
+  // words. The expected line is the decision's text, typed here; the actual is the EMITTED manifest. Mutation that
+  // fails BY NAME: any other tip on outlineInteraction → `#4367 the Outline hover tip is the owner's line …`.
+  const OUTLINE_HOVER_TIP = 'How outline and text controls show hover: a neutral wash, a tinted wash, a fill, or none.';
+  const outlineTip = manifest.levers.find((l) => l.key === 'outlineInteraction')?.tip;
+  ok(outlineTip === OUTLINE_HOVER_TIP && OUTLINE_HOVER_TIP.length <= 90, `#4367 the Outline hover tip is the owner's line, at most 90 characters (tip: ${JSON.stringify(outlineTip)})`);
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
