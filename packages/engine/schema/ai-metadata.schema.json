@@ -140,7 +140,7 @@
       "properties": {
         "token": { "$ref": "#/$defs/path", "description": "The role this one is measured against: its ground, or, for a translucent wash, the ink that has to stay legible on it." },
         "min": { "$ref": "#/$defs/ratio", "description": "The contrast floor in light mode. Where another mode holds a different floor, `requirement` names it." },
-        "ratio": { "type": "number", "minimum": 1, "description": "The measured ratio in light mode, to two decimals." },
+        "ratio": { "type": "number", "minimum": 1, "description": "The measured ratio in light mode, floored to two decimals, so it never reads at or above a floor it misses." },
         "composited_over": { "$ref": "#/$defs/path", "description": "For a translucent role: the ground it is composited over before `token` is measured on the result." },
         "requirement": { "type": "string", "minLength": 1, "description": "The contract as one normative sentence, and the only place this file uses an RFC 2119 keyword. Built from `min`, `token` and `composited_over`, so a reader can check it with the token tree alone: resolve both roles in each mode, composite a translucent one over its ground, and compare the ratio with the floor it states for that mode. Where the modes hold different floors, it names each mode's floor by its id in the token tree." }
       }
