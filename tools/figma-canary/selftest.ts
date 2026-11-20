@@ -110,6 +110,8 @@ held('wrote/set-override', judge(edit((r) => { r['set-override'].result.verdict.
 held('misses/set-override', judge(edit((r) => { r['set-override'].result.data.newMisses = [{ mode: 'light', role: 'interactive.primary.border.rest', against: 'background.primary', ratio: 2.4, min: 3 }]; }), EXPECT), {
   'set-override': 'a pair moved below its minimum' });
 held('hash/set-override', judge(edit((r) => { delete r['set-override'].result.data.previewHash; }), EXPECT), { 'set-override': 'no previewHash' });
+// #3693: the preview hash is the brand's FNV-1a and the changes', 16 hex digits. An 8-digit one is the pre-#3693 hash.
+held('hash-8-digits/set-override', judge(edit((r) => { r['set-override'].result.data.previewHash = '4c1d07e2'; }), EXPECT), { 'set-override': 'no previewHash: "4c1d07e2"' });
 held('noop/set-override', judge(edit((r) => { r['set-override'].result.data.changes[0].after.hex = '#8e8e92'; }), EXPECT), { 'set-override': 'not a no-op' });
 held('other/command', judge(edit((r) => { r['build-components'] = r.readback; }), EXPECT), { '(other)': 'build-components' });
 held('input/not-a-run', judge([], EXPECT), { '(run)': 'not a canary run file', status: 'no response', readback: 'no response', 'update-components': 'no response', prune: 'no response', 'set-override': 'no response', 'status-after': 'no response' });
