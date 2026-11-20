@@ -146,7 +146,9 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   paintKeys: ['{shape}.{slot}.{state}', '{shape}.{slot}'],
 
   // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
-  levers: { outlineInteraction: { opaqueFill: true } },
+  // #576 Q6 (owner decision 2026-11-19): "Outline button border" reaches the round shape's edge, as it does IconButton's
+  // outline edge. Flush members bind the key and draw no stroke, so they don't move.
+  levers: { outlineInteraction: { opaqueFill: true }, buttonBorderWeight: { edge: true } },
 
   tokens: {
     // THE GLYPH, both shapes. Q283.13 A: 20 / 20 / 24.

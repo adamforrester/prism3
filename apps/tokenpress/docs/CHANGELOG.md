@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **No `currentuser` permission.** The manifest no longer asks Figma for the
+  signed-in user's name, id and photo. The plugin read them only to check that
+  someone was signed in, which no editor session can fail, and the export never
+  used them. The check is gone with the permission.
+
 ### Fixed
 - **Gradients are exported.** Gradient paint styles now export to
   `gradients.json` (`shared/gradients.json` in a multi-mode export) as DTCG
