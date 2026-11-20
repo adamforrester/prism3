@@ -29,8 +29,9 @@
  *
  * PAINT. The disc paints `fill` (complete, current) and `border` (upcoming); the number paints `body`; the glyphs
  * paint `icon`; the label paints `label`. The line paints the box `indicator` slot, a fill: the border roles are
- * scoped to strokes only, and the #933 rule lets no second box claim the disc's `border` slot. So the line's neutral
- * color is a fill-scoped role, held for the owner in `notes.contested`.
+ * scoped to strokes only, and the #933 rule lets no second box claim the disc's `border` slot. So the line takes a
+ * fill-scoped role: `color.icon.secondary` at every status, a complete step's line too (owner decision 2026-11-20 on
+ * #4341, option 3, chosen from a render beside Progress, Tabs and Breadcrumbs).
  */
 import { ComponentDef } from '../component-schema';
 
@@ -42,7 +43,7 @@ export const stepItem: ComponentDef = {
   status: 'draft',
   summary: 'One step of a step indicator: a numbered disc, the step name and a line to the next step.',
   description:
-    'One step in a Steps indicator. Its disc shows the step number, filled for the current step and outlined for a step not started yet. A complete step shows a check in a filled disc, and its name can be a link back to that step. A step with an error shows an error glyph in the danger color and keeps its name. A line runs to the next step, in the brand color after a complete step. Items live inside Steps and are never placed on their own.',
+    'One step in a Steps indicator. Its disc shows the step number, filled for the current step and outlined for a step not started yet. A complete step shows a check in a filled disc, and its name can be a link back to that step. A step with an error shows an error glyph in the danger color and keeps its name. A line runs to the next step. Items live inside Steps and are never placed on their own.',
 
   props: [
     { name: 'status', type: "enum: 'upcoming' | 'current' | 'complete' | 'error'", values: ['upcoming', 'current', 'complete', 'error'], default: 'upcoming', required: false, description: 'Where the step stands. upcoming: not started and not reachable yet. current: the step the person is on. complete: done, and a link back when href is set. error: needs attention before the flow can finish.' },
@@ -102,11 +103,9 @@ export const stepItem: ComponentDef = {
     'current.label': 'color.text.primary',
     'upcoming.label': 'color.text.secondary',
     'error.label': 'color.text.primary',
-    // The line: the brand fill after a complete step, the neutral secondary icon role after any other (held, see header).
-    'complete.indicator': 'color.interactive.primary.fill.rest',
-    'current.indicator': 'color.icon.secondary',
-    'upcoming.indicator': 'color.icon.secondary',
-    'error.indicator': 'color.icon.secondary',
+    // The line: the neutral secondary icon role at every status, the Breadcrumbs chevron's gray (owner decision
+    // 2026-11-20 on #4341, option 3). One status-free key, answered by the `{slot}` template.
+    'indicator': 'color.icon.secondary',
   },
 
   anatomy: {
@@ -193,7 +192,7 @@ export const stepItem: ComponentDef = {
         width: 'size.{size}.connector',
         height: 'connector-thickness',
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
-        note: 'The line to the next step, across: the brand color after a complete step, neutral after any other.',
+        note: 'The line to the next step, across, neutral at every status.',
       },
       connectorV: {
         kind: 'box',
@@ -205,7 +204,7 @@ export const stepItem: ComponentDef = {
         width: 'connector-thickness',
         height: 'size.{size}.connector',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
-        note: 'The line to the next step, down from the disc: the brand color after a complete step, neutral after any other.',
+        note: 'The line to the next step, down from the disc, neutral at every status.',
       },
     },
     codeOnly: [
@@ -331,7 +330,6 @@ export const stepItem: ComponentDef = {
 
   notes: {
     contested: [
-      'The line\'s neutral color (OWNER DECISION, held on the PR): the proposal named the border role, but every `color.border.*` is scoped to strokes only and the disc already claims the `border` slot, so the line paints the box `indicator` slot, a fill, in `color.icon.secondary`. Options: keep `color.icon.secondary`; use Progress\'s pale track role `color.background.tertiary`; or a schema change that lets a second box take a stroke under its own key.',
       'A complete step without href: Figma always draws a complete step\'s name as the nested Link (the proposal\'s set shape, 16 members), so a complete step that is not a link has no member of its own; code renders it as text.',
       'The step name\'s Figma default reads "Step name" on a text step and the nested Link\'s own "Link text" on a complete step: a host cannot yet override a text two nesting levels down (#2781, BreadcrumbItem\'s case).',
     ],
@@ -340,6 +338,7 @@ export const stepItem: ComponentDef = {
     ],
     evolution: [
       '2026-11-19 (#3055): built from the approved proposal, all nine owner decisions as recommended, on Breadcrumbs\' items-slot shape. No KB brief exists (decision 9).',
+      '2026-11-20 (#4341): every line takes `color.icon.secondary`, a complete step\'s line too, by owner decision (option 3). The proposal named the border role, but every `color.border.*` is scoped to strokes only and the disc already claims the `border` slot, so the line paints the box `indicator` slot, a fill. An icon role is not the ideal type for a line; a dedicated line role is a possible follow-up.',
     ],
   },
 };

@@ -667,8 +667,8 @@ Type: color. Bound by 6 component(s).
 | badge | `neutral.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: neutral · type: status (2 of 50) |
 | field-message | `default.icon` | (not drawn) | — |
 | icon | `tone.secondary` | (not drawn) | — |
-| step-item | `current.indicator`, `error.indicator`, `upcoming.indicator` | connectorH | orientation: horizontal · status: current, error, upcoming (6 of 16) |
-|  |  | connectorV | orientation: vertical · status: current, error, upcoming (6 of 16) |
+| step-item | `indicator` | connectorH | orientation: horizontal (8 of 16) |
+|  |  | connectorV | orientation: vertical (8 of 16) |
 | textarea | `icon` | gripGlyph | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 
 ### `color.icon.success`
@@ -1147,9 +1147,7 @@ Type: color. Bound by 3 component(s).
 |---|---|---|---|
 | button | `filled.fill` | container | appearance: filled · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button | `filled.fill` | container | appearance: filled · state: focus-visible, pending, rest · surface: default (18 of 216) |
-| step-item | `complete.fill`, `complete.indicator`, `current.fill` | connectorH | orientation: horizontal · status: complete (2 of 16) |
-|  |  | connectorV | orientation: vertical · status: complete (2 of 16) |
-|  |  | marker | status: complete, current (8 of 16) |
+| step-item | `complete.fill`, `current.fill` | marker | status: complete, current (8 of 16) |
 
 ### `color.interactive.primary.fill.selected`
 

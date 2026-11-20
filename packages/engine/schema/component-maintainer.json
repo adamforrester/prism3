@@ -7059,7 +7059,6 @@
       ],
       "notes": {
         "contested": [
-          "The line's neutral color (OWNER DECISION, held on the PR): the proposal named the border role, but every `color.border.*` is scoped to strokes only and the disc already claims the `border` slot, so the line paints the box `indicator` slot, a fill, in `color.icon.secondary`. Options: keep `color.icon.secondary`; use Progress's pale track role `color.background.tertiary`; or a schema change that lets a second box take a stroke under its own key.",
           "A complete step without href: Figma always draws a complete step's name as the nested Link (the proposal's set shape, 16 members), so a complete step that is not a link has no member of its own; code renders it as text.",
           "The step name's Figma default reads \"Step name\" on a text step and the nested Link's own \"Link text\" on a complete step: a host cannot yet override a text two nesting levels down (#2781, BreadcrumbItem's case)."
         ],
@@ -7067,7 +7066,8 @@
           "The disc, the number and the step name's contrast are stated as intent; `test.ts` holds the pairs over every committed brand and mode."
         ],
         "evolution": [
-          "2026-11-19 (#3055): built from the approved proposal, all nine owner decisions as recommended, on Breadcrumbs' items-slot shape. No KB brief exists (decision 9)."
+          "2026-11-19 (#3055): built from the approved proposal, all nine owner decisions as recommended, on Breadcrumbs' items-slot shape. No KB brief exists (decision 9).",
+          "2026-11-20 (#4341): every line takes `color.icon.secondary`, a complete step's line too, by owner decision (option 3). The proposal named the border role, but every `color.border.*` is scoped to strokes only and the disc already claims the `border` slot, so the line paints the box `indicator` slot, a fill. An icon role is not the ideal type for a line; a dedicated line role is a possible follow-up."
         ],
         "projection": []
       },

@@ -6220,34 +6220,22 @@
         },
         "step-item": {
           "keys": [
-            "current.indicator",
-            "error.indicator",
-            "upcoming.indicator"
+            "indicator"
           ],
           "parts": {
             "connectorH": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "orientation": [
                   "horizontal"
-                ],
-                "status": [
-                  "current",
-                  "error",
-                  "upcoming"
                 ]
               }
             },
             "connectorV": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "orientation": [
                   "vertical"
-                ],
-                "status": [
-                  "current",
-                  "error",
-                  "upcoming"
                 ]
               }
             }
@@ -10160,32 +10148,9 @@
         "step-item": {
           "keys": [
             "complete.fill",
-            "complete.indicator",
             "current.fill"
           ],
           "parts": {
-            "connectorH": {
-              "members": 2,
-              "where": {
-                "orientation": [
-                  "horizontal"
-                ],
-                "status": [
-                  "complete"
-                ]
-              }
-            },
-            "connectorV": {
-              "members": 2,
-              "where": {
-                "orientation": [
-                  "vertical"
-                ],
-                "status": [
-                  "complete"
-                ]
-              }
-            },
             "marker": {
               "members": 8,
               "where": {

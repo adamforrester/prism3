@@ -353,14 +353,6 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     "status `upcoming` maps to `color.text.secondary`, the quieter text role, for a step not started yet",
   'step-item|error.label':
     "status `error` maps to `color.text.primary`: the name of a step with an error stays at full strength, and the glyph carries the danger color",
-  'step-item|complete.indicator':
-    'same mapping as `complete.fill`, for the line after a complete step, so a run of complete steps reads as one brand color',
-  'step-item|current.indicator':
-    "status `current` maps to `color.icon.secondary`, a fill-scoped neutral role, for the line after the current step: the border roles are scoped to strokes, and the disc already claims the stroke slot (held for the owner)",
-  'step-item|upcoming.indicator':
-    'same mapping as `current.indicator`, for the line after a step not started yet',
-  'step-item|error.indicator':
-    'same mapping as `current.indicator`, for the line after a step with an error',
   // Dialog (#2880): the key is the panel's `fill` PAINT SLOT (its surface), whose spelling matches the `footer` value
   // `fill` (Q492 B). It is the slot that leads, not the axis value: the key binds at every footer.
   'dialog|fill':

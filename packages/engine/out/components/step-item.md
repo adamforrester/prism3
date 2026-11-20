@@ -9,7 +9,7 @@
 
 ## Overview
 
-One step in a Steps indicator. Its disc shows the step number, filled for the current step and outlined for a step not started yet. A complete step shows a check in a filled disc, and its name can be a link back to that step. A step with an error shows an error glyph in the danger color and keeps its name. A line runs to the next step, in the brand color after a complete step. Items live inside Steps and are never placed on their own.
+One step in a Steps indicator. Its disc shows the step number, filled for the current step and outlined for a step not started yet. A complete step shows a check in a filled disc, and its name can be a link back to that step. A step with an error shows an error glyph in the danger color and keeps its name. A line runs to the next step. Items live inside Steps and are never placed on their own.
 
 - **Purpose:** Show one step of a Steps indicator: its number or a check, its name, and the line to the next step.
 - **Use when:** Only as a child of Steps. Generate Steps, which places each step and sets the orientation and size for all of them.
@@ -28,8 +28,8 @@ Shown on the default member: status `upcoming`, orientation `horizontal`, size `
 7. **Label** — The step name: primary text for the current step and a step with an error, secondary text for a step not started yet. Never a link.
 8. **Link** — A complete step's name: a Link, inline and default weight, underlined at every state, back to that step. Its state is set on the step.
 9. **Connector cell** (optional) — A cell one disc tall, so the line to the next step sits on the middle of the disc.
-10. **Connector h** — The line to the next step, across: the brand color after a complete step, neutral after any other.
-11. **Connector v** (optional) — The line to the next step, down from the disc: the brand color after a complete step, neutral after any other.
+10. **Connector h** — The line to the next step, across, neutral at every status.
+11. **Connector v** (optional) — The line to the next step, down from the disc, neutral at every status.
 
 ## Styles
 
@@ -217,7 +217,7 @@ Keyed by `status`, `orientation`.
 | --- | --- | --- | --- | --- |
 | `container/rail/marker` | `color.interactive.primary.fill.rest` | — | — | — |
 | `container/rail/marker/checkGlyph` | — | — | — | `color.interactive.primary.on-fill` |
-| `container/connectorCell/connectorH` | `color.interactive.primary.fill.rest` | — | — | — |
+| `container/connectorCell/connectorH` | `color.icon.secondary` | — | — | — |
 
 **status=complete, orientation=vertical**
 
@@ -225,7 +225,7 @@ Keyed by `status`, `orientation`.
 | --- | --- | --- | --- | --- |
 | `container/rail/marker` | `color.interactive.primary.fill.rest` | — | — | — |
 | `container/rail/marker/checkGlyph` | — | — | — | `color.interactive.primary.on-fill` |
-| `container/rail/connectorV` | `color.interactive.primary.fill.rest` | — | — | — |
+| `container/rail/connectorV` | `color.icon.secondary` | — | — | — |
 
 **status=error, orientation=horizontal**
 

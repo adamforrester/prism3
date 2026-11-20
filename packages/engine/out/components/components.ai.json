@@ -15294,7 +15294,7 @@
       "category": "navigation",
       "status": "draft",
       "summary": "One step of a step indicator: a numbered disc, the step name and a line to the next step.",
-      "description": "One step in a Steps indicator. Its disc shows the step number, filled for the current step and outlined for a step not started yet. A complete step shows a check in a filled disc, and its name can be a link back to that step. A step with an error shows an error glyph in the danger color and keeps its name. A line runs to the next step, in the brand color after a complete step. Items live inside Steps and are never placed on their own.",
+      "description": "One step in a Steps indicator. Its disc shows the step number, filled for the current step and outlined for a step not started yet. A complete step shows a check in a filled disc, and its name can be a link back to that step. A step with an error shows an error glyph in the danger color and keeps its name. A line runs to the next step. Items live inside Steps and are never placed on their own.",
       "props": [
         {
           "name": "status",

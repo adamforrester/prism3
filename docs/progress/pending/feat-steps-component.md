@@ -18,8 +18,10 @@ member.
 
 **The trap: the line cannot be a border role.** The proposal named the border role for the neutral line. Every
 `color.border.*` is scoped to strokes only, and #933 lets no second box claim the disc's `border` slot. So the line
-paints the box `indicator` slot, a fill. The neutral line is `color.icon.secondary`, and the line after a complete step
-is the primary fill. Owner decision held on the PR.
+paints the box `indicator` slot, a fill. Every line is `color.icon.secondary`, the Breadcrumbs chevron's gray, at every
+status, a complete step's line too (owner decision 2026-11-20, option 3, picked from a render beside Progress, Tabs and
+Breadcrumbs). It is one status-free `indicator` key. An icon role is not the ideal type for a line; a dedicated line role
+is a possible follow-up.
 
 **Fallout.** Progress, Breadcrumbs, Tabs and PageNav said "a stepper, not built yet" and now name Steps. Progress
 drops `stepper` from `planned`. Breadcrumbs and Progress list Steps under `alternativeTo`, which the symmetry arm

@@ -870,7 +870,7 @@
     },
     "step-item": {
       "members": 16,
-      "sha256": "9af0853b81b252c10bb04d991315c982353a981234838e47ef6b68fa345e14f8",
+      "sha256": "5cea9e6e38e9452fb68350682ebdd5ebe7c8544dcbb7faddf679a5385aa111e7",
       "properties": [
         "connector:BOOLEAN",
         "label:TEXT",
