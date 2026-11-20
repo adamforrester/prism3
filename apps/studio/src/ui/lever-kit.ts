@@ -289,17 +289,22 @@ export const onCommitted = (el: HTMLInputElement, commit: (value: string) => voi
  * frame, and holds the store's persist from the first `input` until the control is released, so a drag stores once.
  * The release (`change`, `pointerup`, `pointercancel`, `blur`, or `QUIET_MS` with no `input`) runs a value still waiting first. The control's own
  * readout (`aria-valuetext`) stays the caller's to write at once.
+ * While a pointer is pressed on the control, `QUIET_MS` does not release it (#2641): a drag that pauses, or one frame
+ * that runs long under load, released the hold mid-gesture, and the pointer's release then wrote a second time. The
+ * pointer's own release ends that drag.
  */
-/** How long a held control may sit with no `input` before its value is stored anyway. */
+/** How long a held control may sit with no `input` before its value is stored anyway (not while a pointer is pressed). */
 const QUIET_MS = 400;
 export const perFrame = <T>(el: HTMLElement, run: (v: T) => void): ((v: T) => void) => {
   let raf = 0;
   let next: T;
   let held = false;
   let quiet = 0;
+  let pressed = false;
   const flush = (): void => { if (raf) { cancelAnimationFrame(raf); raf = 0; run(next); } };
-  const release = (): void => { clearTimeout(quiet); flush(); if (held) { held = false; releasePersist(); } };
+  const release = (): void => { pressed = false; clearTimeout(quiet); flush(); if (held) { held = false; releasePersist(); } };
   for (const t of ['change', 'pointerup', 'pointercancel', 'blur']) el.addEventListener(t, release);
+  el.addEventListener('pointerdown', () => { pressed = true; });
   return (v) => {
     next = v;
     if (!held) {
@@ -311,7 +316,7 @@ export const perFrame = <T>(el: HTMLElement, run: (v: T) => void): ((v: T) => vo
     if (!raf) raf = requestAnimationFrame(() => { raf = 0; run(next); if (!el.isConnected) release(); });
     // And a value set with no release at all (an `input` and nothing after it) is stored once things go quiet.
     clearTimeout(quiet);
-    quiet = window.setTimeout(release, QUIET_MS);
+    if (!pressed) quiet = window.setTimeout(release, QUIET_MS);
   };
 };
 /** A page's edit (#2487 B5: four pages carried this body word for word): note which key moved, write, note the edit
