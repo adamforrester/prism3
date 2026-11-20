@@ -257,8 +257,10 @@ const ENGINE_DESCRIPTION: Record<'grid' | 'effect' | 'paint', RegExp> = {
   ].join('|')),
   /** `buildFigmaGradient`: the leaf's `gradient <key> — <kind>, N stops, <interp> interpolation` prose. The
    *  emitter appends nothing here, so the signature is the leaf template and the tail is left open (the
-   *  brand-gradient suffix is `tree.ts`'s, not this emitter's). */
-  paint: /^gradient \S+ — (?:linear \d+(?:\.\d+)?°|radial \([^)]+\)), \d+ stops?, (?:oklch|srgb) interpolation/,
+   *  brand-gradient suffix is `tree.ts`'s, not this emitter's). The angle is any number the description formatter
+   *  prints (`figmaGradientDescription`: `${angle}°`, JavaScript's own number form): a sign, decimals, an exponent
+   *  (#1908). The brand schema does not bound it. */
+  paint: /^gradient \S+ — (?:linear -?\d+(?:\.\d+)?(?:e[+-]\d+)?°|radial \([^)]+\)), \d+ stops?, (?:oklch|srgb) interpolation/,
 };
 
 /**
