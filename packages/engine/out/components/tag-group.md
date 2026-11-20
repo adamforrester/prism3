@@ -81,7 +81,7 @@ The group name says what the tags filter or hold; the tags carry the short value
 
 - **Built from:** `tag`
 - **Instead, consider:** `checkbox-group`
-- **Often used with:** `search-field`, `list`
+- **Often used with:** `search-field`, `list`, `popover`
 - **Replaces:**
   - a removable token list built as a listbox
   - a row of tags each its own Tab stop, with no group name

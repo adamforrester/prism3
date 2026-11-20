@@ -1062,6 +1062,21 @@
       "↳ swap leading icon": "INSTANCE_SWAP"
     }
   },
+  "popover": {
+    "axes": {
+      "placement": [
+        "bottom"
+      ]
+    },
+    "members": 1,
+    "properties": {
+      "body": "SLOT",
+      "close": "BOOLEAN",
+      "footer": "BOOLEAN",
+      "title": "BOOLEAN",
+      "title text": "TEXT"
+    }
+  },
   "progress": {
     "axes": {
       "shape": [
