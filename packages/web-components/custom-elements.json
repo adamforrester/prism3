@@ -1020,7 +1020,7 @@
               "kind": "field",
               "name": "#toggle",
               "privacy": "private",
-              "description": "Masked ↔ plain. The input's type is set at once and the caret put back; focus stays on the button. Chromium resets\nthe caret of an input that has had focus one task after its type changes while it is blurred (a click on this\nbutton blurs it), so the caret is put back again after that task."
+              "description": "Masked ↔ plain. The input's type is set at once and the caret put back; focus stays on the button. Chromium resets\nthe caret of an input that has had focus one task after its type changes while it is blurred (a click on this\nbutton blurs it), so the caret is put back again after that task, but only while it sits at Chromium's reset 0,0:\na caret written since the press is kept (#3947), as the CSS package's script has done since #3945."
             },
             {
               "kind": "field",

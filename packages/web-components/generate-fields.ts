@@ -291,7 +291,8 @@ ${password ? `
   /**
    * Masked ↔ plain. The input's type is set at once and the caret put back; focus stays on the button. Chromium resets
    * the caret of an input that has had focus one task after its type changes while it is blurred (a click on this
-   * button blurs it), so the caret is put back again after that task.
+   * button blurs it), so the caret is put back again after that task, but only while it sits at Chromium's reset 0,0:
+   * a caret written since the press is kept (#3947), as the CSS package's script has done since #3945.
    */
   #toggle = () => {
     const input = this.#input;
@@ -302,7 +303,9 @@ ${password ? `
     input.type = this.#shown ? 'text' : 'password';
     if (start !== null && end !== null) {
       input.setSelectionRange(start, end);
-      setTimeout(() => input.setSelectionRange(start, end), 0);
+      setTimeout(() => {
+        if (input.selectionStart === 0 && input.selectionEnd === 0) input.setSelectionRange(start, end);
+      }, 0);
     }
     this.requestUpdate();
     announce(this.#say(this.#shown ? 'shown' : 'hidden'));
