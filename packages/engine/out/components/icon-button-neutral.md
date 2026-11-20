@@ -90,7 +90,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 
 - **Built from:** `focus-ring`, `spinner`
 - **Instead, consider:** `button-neutral`, `flush-icon-button-neutral`
-- **Often used with:** `icon`
+- **Often used with:** `icon`, `popover`
 - **Replaces:**
   - `div[role=button]` wrapping an icon
   - a `<button>` holding only an `<svg>` and no accessible name
