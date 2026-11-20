@@ -56,6 +56,7 @@ import { ENGINE_VOCABULARY, brandWords, buildReport, isIssueUrl, issueUrl, scrub
 import { brandTheme, type BrandInput, buildTree, EXAMPLE_BRANDS_JSON } from '@prism3/engine';
 import * as store from './src/state/store';
 import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 
 let failed = 0;
 let executed = 0;
@@ -498,13 +499,44 @@ ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github
 
   // main.ts touches the DOM at import, so its wiring is read as source: every post that carries the brand records it
   // first (a rename skips the rebuild, so a post is the one moment its words are known), and the report reads the list.
+  // The claim is POSITIVE and PARSED (#4244): a grep for one bad spelling, `commit.x(lastGoodInput`, passed
+  // `const brief = lastGoodInput; commit.postTheme(brief)`. The brand-carrying methods are the `HostCommit` methods with
+  // an `input` parameter (`write-adapter.ts`, the contract main.ts posts through), and at that position every call in
+  // main.ts must pass `posted()` or `panelBrand(…)`, whose body must be `brandFor(theme, posted())`. MUTATIONS VERIFIED
+  // (#4244, each fails the arm by name): the issue's alias above · `panelBrand` returning `lastGoodInput`.
   const main = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
-  const bare = main.match(/commit\.\w+\(lastGoodInput\b/g) ?? [];
-  ok(bare.length === 0 && /brandFor\(theme, posted\(\)\)/.test(main),
-    `#3883: no post to the host carries lastGoodInput without adding its words to the session (${bare.length} bare)`);
+  const parse = (name: string, text: string) => ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true);
+  const adapter = parse('write-adapter.ts', readFileSync(new URL('./src/write-adapter.ts', import.meta.url), 'utf8'));
+  const inputAt = new Map<string, number>();
+  adapter.forEachChild((n) => {
+    if (ts.isInterfaceDeclaration(n) && n.name.text === 'HostCommit')
+      for (const m of n.members) if (ts.isMethodSignature(m)) {
+        const at = m.parameters.findIndex((p) => p.name.getText(adapter) === 'input');
+        if (at >= 0) inputAt.set(m.name.getText(adapter), at);
+      }
+  });
+  const sf = parse('main.ts', main);
+  const viaSession: string[] = [], bare: string[] = [];
+  let panelBody = '', postedInit = '';
+  const visit = (n: ts.Node): void => {
+    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && inputAt.has(n.expression.name.text)) {
+      const arg = n.arguments[inputAt.get(n.expression.name.text)!];
+      const text = arg ? arg.getText(sf) : '(none)';
+      const viaPosted = !!arg && ts.isCallExpression(arg) && ts.isIdentifier(arg.expression) && (arg.expression.text === 'posted' ? arg.arguments.length === 0 : arg.expression.text === 'panelBrand');
+      (viaPosted ? viaSession : bare).push(`${n.expression.getText(sf)}(${text})`);
+    }
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer) {
+      if (n.name.text === 'panelBrand' && ts.isArrowFunction(n.initializer)) panelBody = n.initializer.body.getText(sf);
+      if (n.name.text === 'posted') postedInit = n.initializer.getText(sf);
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  ok(inputAt.size >= 4 && viaSession.length >= 4 && bare.length === 0 && panelBody === 'brandFor(theme, posted())',
+    `#3883: every post to the host that carries the brand passes posted() or panelBrand(), which adds its words to the session (${inputAt.size} brand-carrying methods, ${viaSession.length} posts; bare: ${JSON.stringify(bare)}; panelBrand: ${JSON.stringify(panelBody)})`);
   ok(/seen: mergeWords\(sessionBrandWords\(\)/.test(main) && /brand: briefInput\(\)/.test(main),
     '#3883: the report reads the session list, and includes the failed restore\'s brand, not the boot demo');
-  ok(/const posted = postedInput;/.test(main) && /restoreFailure\?\.brand, heldRestore\]/.test(main),
+  ok(postedInit === 'postedInput' && /restoreFailure\?\.brand, heldRestore\]/.test(main),
     '#3883: every post goes through the store\'s postedInput, and the scrub list takes a held restore\'s brand');
 }
 

@@ -24,7 +24,7 @@ MCP (Model Context Protocol) is the standard way an AI agent connects to a tool 
 2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:232-235 -->
 3. Tell the agent the link is on. It sends a status request first, to confirm the plugin answers.
 
-To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:235 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2573#13449644 -->
+To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:235 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2575#13449644 -->
 
 The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:124-127 -->
 
@@ -55,6 +55,8 @@ The Activity drawer's bar shows the link's state in a word: "Listening · bridge
 | `context` | Says what the open file is: its brand and modes, its variable collections, the sets Prism3 built and which are due, and what is read-only: pages whose name contains FINAL, locked layers and `Original · …` copies. Writes nothing. <!-- src: apps/plugin/src/agent-protocol.ts:95-96 --> |
 
 Every write an agent asks for passes the same checks as Update file, and is refused for the same reasons. <!-- src: apps/plugin/src/run-guard.ts:1-20#802b70d3 -->
+
+A color override's confirm is refused as `changes-moved` when its changes aren't the ones it previewed, and as `brand-moved` when the file's brand changed after the preview. Either way, nothing is written: preview again. <!-- src: apps/plugin/src/set-override.ts:143-144 -->
 
 ## Safety
 
