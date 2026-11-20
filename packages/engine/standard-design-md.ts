@@ -127,13 +127,17 @@ export const idFromName = (name: string): string =>
  *  family roles); the fan-out is the same mapping the engine used to apply downstream, moved here now
  *  that categories bind faces directly. The heading face falls back to the text face, which is what
  *  keeps a spec that only styles body copy from jumping to the engine's default face. */
+const TEXT_TOKEN = /^(body|caption|paragraph)/;
+// #4137: `headline`, `heading` and `h1`–`h6` are common heading names in standard files. Without them a brief whose
+// headings are `headline` got the body face for display, title, label and eyebrow, and nothing said so.
+const HEADING_TOKEN = /^(mega|display|title|button|label|eyebrow|headline|heading|h[1-6](?![0-9]))/;
 export const deriveFamilies = (typography: StandardDesignMd['typography']): Record<string, string> => {
   const firstFamilyFor = (pred: (name: string) => boolean): string | undefined => {
     for (const [name, tok] of Object.entries(typography)) if (pred(name.toLowerCase()) && tok.fontFamily) return tok.fontFamily;
     return undefined;
   };
-  const text = firstFamilyFor((n) => /^(body|caption|paragraph)/.test(n));
-  const heading = firstFamilyFor((n) => /^(mega|display|title|button|label|eyebrow)/.test(n)) ?? text;
+  const text = firstFamilyFor((n) => TEXT_TOKEN.test(n));
+  const heading = firstFamilyFor((n) => HEADING_TOKEN.test(n)) ?? text;
   const out: Record<string, string> = {};
   for (const g of ['display', 'title', 'label', 'eyebrow']) if (heading) out[g] = heading;
   for (const g of ['body', 'caption']) if (text) out[g] = text;
@@ -202,6 +206,17 @@ export const X_PRISM3_KEYS = ['radiusScale', 'personality', 'root', 'typeScale',
 export const xPrism3Warnings = (x: Record<string, unknown>): string[] =>
   Object.keys(x).filter((k) => !(X_PRISM3_KEYS as readonly string[]).includes(k)).map((k) => `x-prism3: ignored unknown setting '${k}'`);
 
+/** #4137: one warning per typography token whose `fontFamily` no category reads, in the file's order, on the same
+ *  channel as the skipped `x-prism3:` keys (#2678's rule: compile on what it carries, and say what it skipped). A token
+ *  whose face IS read, under any name, is not named: nothing of it was lost. A second heading or body face is named
+ *  too, so the reason says "the first" (review S3 on #4265). Wording is DRAFT, held for the owner's voice pass. */
+export const typeFaceWarnings = (typography: StandardDesignMd['typography'], families: Record<string, unknown>): string[] => {
+  const read = new Set(Object.values(families).flat().filter((f): f is string => typeof f === 'string'));
+  return Object.entries(typography)
+    .filter(([, tok]) => tok?.fontFamily && !read.has(tok.fontFamily))
+    .map(([name, tok]) => `typography: ignored the '${name}' face (${tok.fontFamily}); only the first heading face and the first body face are read`);
+};
+
 export type StandardConversion = { input: BrandInput; classification: ColorClassification; xApplied: string[]; xWarnings: string[] };
 
 /** Convert a parsed standard `design.md` into a `BrandInput` (+ the classification
@@ -219,5 +234,5 @@ export const standardToBrandInput = (std: StandardDesignMd, id?: string): Standa
     typography: { families: deriveFamilies(std.typography) },   // typeScale via x-prism3 or engine default
   };
   const xApplied = Object.keys(std.xPrism3).length ? applyXPrism3(input, std.xPrism3) : [];
-  return { input, classification, xApplied, xWarnings: xPrism3Warnings(std.xPrism3) };
+  return { input, classification, xApplied, xWarnings: [...xPrism3Warnings(std.xPrism3), ...typeFaceWarnings(std.typography, input.typography?.families ?? {})] };
 };

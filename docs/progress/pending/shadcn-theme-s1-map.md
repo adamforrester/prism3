@@ -9,10 +9,18 @@ emitted handoff (`<brand>.base.tokens.json` plus the dark overlay) and writes `s
 rule that restores a full-strength ring (Q2997.17 B). It is not a regen step yet: delivery is PR 4.
 
 **Two gates.** `shadcn-vars.ts --check` (gate 3) holds the map's keys to `schema/shadcn-vars.json` both ways, and the pin to
-`SHADCN_MAP_VERSION`; only `--accept` writes the pin, and it refuses without a version raise. `lint-shadcn-contract.ts`
+`SHADCN_MAP_VERSION`; only `--accept` writes the pin, and it refuses without a version raise. Since the review on #4286 it
+also holds the pin to the base's pin, read from git at the merge base as `lint-contract-version.ts` reads its number: a
+name added needs a MINOR raise over the base's map version, a dropped one a MAJOR raise, and with no name moved the number
+stays the base's. Before, a hand edit that added a name to the map and the pin at the old number passed every gate. The
+base comes by `lint-contract-version.ts`'s ladder: in a merge-group run the group's parent (`MERGE_GROUP_BASE_SHA`, #4106),
+with no fallback, so two queued PRs that each add a name and each raise the map version to the same number no longer read
+as one raise; `lint-push-base.ts` replays main's push run and the merge-queue run against it. `lint-shadcn-contract.ts`
 (gate 4) holds the anchored rows (primary, secondary, destructive and their foregrounds, input, ring) to the bindings in the
 published contract export, which it renders itself because it is never committed. Every row is anchored or declared
 unanchored, and every mapped role is in the guaranteed set. The anchors are typed in the gate, never read from the map.
+Both gates iterate `projections/targets.ts` (Q2997.6 B: one map file per target, the gates parameterized by target), which
+has one entry, shadcn. Gate 4 types its anchors per target, and a target with no anchors fails `NO ANCHORS FOR TARGET`.
 
 **The trap for whoever re-verifies Q2997.18.** The decision was to pin shadcn as a devDependency and read its set offline,
 if the package carries the set. It does not: shadcn 4.23.0 and `@shadcn/registry` 0.2.1 ship the CLI and the registry
@@ -30,6 +38,10 @@ dark is the known Q2997.8 failure. One finding for PR 2's contrast gate: on nb, 
 **Checked.** Mutations, each failing by name: `primary` → `color.foreground.brand` fails `primary: color.foreground.brand ≠
 Button filled.fill (color.interactive.primary.fill.rest)`; `accent` → `color.interactive.neutral.overlay.hover` fails
 `NOT GUARANTEED`; dropping `sidebar-ring` fails `UNMAPPED sidebar-ring` (and gate 4's `STALE UNANCHORED`); an upstream item
-with an added name fails `UPSTREAM ADDED sidebar-glow (light)`; a raised map version with no accept fails `MAP VERSION`.
+with an added name fails `UPSTREAM ADDED sidebar-glow (light)`; a raised map version with no accept fails `MAP VERSION`; a name added to the map and the pin at `1.0.0`, over a base
+that has the pin, fails `PIN MOVED WITHOUT A MINOR RAISE 1.0.0 → 1.0.0 since the base: ADDED sidebar-glow (dark), …`; a
+second target in the registry with no anchors fails `NO ANCHORS FOR TARGET second`. In `lint-push-base.ts`, the base arm
+with its `mergeGroupBase` call removed fails the queued shadcn case (`PIN MOVED WITHOUT A MINOR RAISE`) and the fail-closed
+case (`MERGE_GROUP_BASE_SHA`), and with its `comparisonBase` call removed fails both shadcn push cases.
 Every emitted `oklch()` converts back to its emitted 8-bit color through `color.ts` (320 of 320); PR 2 proves it through
 Chromium's parser, which shares no code with the projector.
