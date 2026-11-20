@@ -7566,7 +7566,7 @@
             "busy",
             "offline"
           ],
-          "description": "Shows a status dot on the bottom corner. Absent, there is no dot. The status is also added to the accessible name, so color is never the only signal."
+          "description": "Shows a status dot on the bottom corner, in the badge tone for the status: online = success, away = warning, busy = danger, offline = neutral. Absent, there is no dot. The status is also added to the accessible name, so color is never the only signal."
         },
         {
           "name": "getInitials",

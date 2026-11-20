@@ -25,7 +25,7 @@ Shown on the default member: size `medium`, shape `circular`, type `initials`.
 4. **Person glyph** — A generic person, shown in a circle when there is no photo and no name. Decorative.
 5. **Organization glyph** — A generic building, shown in a square when there is no photo and no name. Decorative.
 6. **Presence ring** (optional) — A ring in the page color around the presence dot, on the bottom corner outside the picture, so the dot reads over a photo.
-7. **Presence dot** — A badge dot. Its tone is the presence color, picked on the instance.
+7. **Presence dot** — A badge dot. Its tone is the presence color, picked on the instance: online = success, away = warning, busy = danger, offline = neutral.
 
 ## Styles
 
@@ -106,7 +106,7 @@ Write the name the way the interface writes it next to the avatar, with the same
 | `decorative` | boolean | `false` | no | Set it when the name is already visible beside the avatar, as in a list row or a comment header. The avatar is then hidden from assistive technology, so the name is not read twice. |
 | `shape` | enum: 'circular' \| 'square' | `circular` | no | circular = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name. |
 | `size` | enum: 'x-small' \| 'small' \| 'medium' \| 'large' \| 'x-large' | `medium` | no | x-small = 20px, for dense lists and inline mentions. small = 24px, the size of a medium icon. medium = 32px, the default. large = 40px. x-large = 64px, for a profile header. Below medium the initials are one letter. |
-| `presence` | enum: 'online' \| 'away' \| 'busy' \| 'offline' | — | no | Shows a status dot on the bottom corner. Absent, there is no dot. The status is also added to the accessible name, so color is never the only signal. |
+| `presence` | enum: 'online' \| 'away' \| 'busy' \| 'offline' | — | no | Shows a status dot on the bottom corner, in the badge tone for the status: online = success, away = warning, busy = danger, offline = neutral. Absent, there is no dot. The status is also added to the accessible name, so color is never the only signal. |
 | `getInitials` | function | — | no | Replaces the default initials rule, for names it does not fit. The default takes the first letters of the first and last words, uppercased, one letter for a one-word name, the part before the at sign of an email address, and one character for a Chinese, Japanese or Korean name. |
 | `fallbackDelay` | number | — | no | How long to wait before showing the initials while the photo loads, so a fast photo does not flash the initials first. |
 

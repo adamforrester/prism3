@@ -61,7 +61,7 @@ export const avatar: ComponentDef = {
     { name: 'decorative', type: 'boolean', default: false, required: false, description: 'Set it when the name is already visible beside the avatar, as in a list row or a comment header. The avatar is then hidden from assistive technology, so the name is not read twice.' },
     { name: 'shape', type: "enum: 'circular' | 'square'", values: ['circular', 'square'], default: 'circular', required: false, description: 'circular = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name.' },
     { name: 'size', type: "enum: 'x-small' | 'small' | 'medium' | 'large' | 'x-large'", values: ['x-small', 'small', 'medium', 'large', 'x-large'], default: 'medium', required: false, description: 'x-small = 20px, for dense lists and inline mentions. small = 24px, the size of a medium icon. medium = 32px, the default. large = 40px. x-large = 64px, for a profile header. Below medium the initials are one letter.' },
-    { name: 'presence', type: "enum: 'online' | 'away' | 'busy' | 'offline'", values: ['online', 'away', 'busy', 'offline'], required: false, description: 'Shows a status dot on the bottom corner. Absent, there is no dot. The status is also added to the accessible name, so color is never the only signal.' },
+    { name: 'presence', type: "enum: 'online' | 'away' | 'busy' | 'offline'", values: ['online', 'away', 'busy', 'offline'], required: false, description: 'Shows a status dot on the bottom corner, in the badge tone for the status: online = success, away = warning, busy = danger, offline = neutral. Absent, there is no dot. The status is also added to the accessible name, so color is never the only signal.' },
     { name: 'getInitials', type: 'function', required: false, description: 'Replaces the default initials rule, for names it does not fit. The default takes the first letters of the first and last words, uppercased, one letter for a one-word name, the part before the at sign of an email address, and one character for a Chinese, Japanese or Korean name.' },
     { name: 'fallbackDelay', type: 'number', required: false, description: 'How long to wait before showing the initials while the photo loads, so a fast photo does not flash the initials first.' },
   ],
@@ -212,7 +212,7 @@ export const avatar: ComponentDef = {
           variant: { type: 'dot', style: 'contained', size: 'medium', emphasis: 'bold', tone: 'success' },
           expose: ['tone'],
         },
-        note: 'A badge dot. Its tone is the presence color, picked on the instance.',
+        note: 'A badge dot. Its tone is the presence color, picked on the instance: online = success, away = warning, busy = danger, offline = neutral.',
       },
     },
     codeOnly: [

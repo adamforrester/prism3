@@ -21005,6 +21005,26 @@ arm: {
       }
     }
     ok(pairs.length === 1 && cells === 20 && low.length === 0, `#4110 avatar: the initials' ink clears 4.5:1 on the backdrop the def binds (${pairs.join(', ').replace(/\|/g, ' on ')}) in all ${cells} of 20 brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+    // Owner decision (2026-11-20): presence maps online = success, away = warning, busy = danger, offline = neutral.
+    // EXPECTED is the decision, typed here; ACTUAL is read from the shipped spec, `out/components/avatar.md`: the
+    // `presence` prop row a developer reads and the presence-dot anatomy line a designer reads, never the def's notes,
+    // which do not ship (#4110 delta review). Each tone must also be one Badge's `tone` axis offers.
+    {
+      const PRESENCE: Record<string, string> = { online: 'success', away: 'warning', busy: 'danger', offline: 'neutral' };
+      const md = readFileSync(resolve(HERE, './out/components/avatar.md'), 'utf8').split('\n');
+      const parse = (line: string | undefined): Record<string, string> =>
+        Object.fromEntries([...(line ?? '').matchAll(/\b(online|away|busy|offline) = (\w+)/g)].map((m) => [m[1], m[2]]));
+      const shipped: [string, Record<string, string>][] = [
+        ['presence prop', parse(md.find((l) => l.startsWith('| `presence` |')))],
+        ['presence dot', parse(md.find((l) => /\*\*Presence dot\*\*/.test(l)))],
+      ];
+      const badgeTones = componentDefs.find((d) => d.id === 'badge')?.variants?.tone ?? [];
+      const presenceValues = av.props.find((p) => p.name === 'presence')?.values ?? [];
+      const offMap = shipped.filter(([, m]) => JSON.stringify(m) !== JSON.stringify(PRESENCE)).map(([w, m]) => `${w} ${JSON.stringify(m)}`);
+      const notTone = Object.values(PRESENCE).filter((t) => !badgeTones.includes(t));
+      const notValue = JSON.stringify(presenceValues) !== JSON.stringify(Object.keys(PRESENCE));
+      ok(offMap.length === 0 && notTone.length === 0 && !notValue, `#4110 avatar: the shipped spec maps presence online = success, away = warning, busy = danger, offline = neutral, in the presence prop and the presence dot, on Badge's tones${offMap.length ? ` — ${offMap.join('; ')}` : ''}${notTone.length ? ` — not a Badge tone: ${notTone.join(', ')}` : ''}${notValue ? ` — presence values ${JSON.stringify(presenceValues)}` : ''}`);
+    }
   }
 
   // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's

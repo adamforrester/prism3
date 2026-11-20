@@ -42,3 +42,8 @@ The x-large initials stay on `type.label.lg`, and the glyph sizes stay as built.
 open: one initial in Figma at the small sizes, the page, and the glyph artwork.
 
 After review: the initials-contrast arm in `test.ts` reads the ink and the backdrop off the projected plans (what the def binds), not as typed role names, and measures them in all five emitted brands (wendys added), 20 cells. Rebinding the initials to `color.text.tertiary` now fails `#4110 avatar: the initials' ink clears 4.5:1 on the backdrop the def binds` by name (2.79:1 in prism3 light); before, every `#4110` arm passed and only the paint census, which `--accept` rewrites, moved.
+
+After the delta review: the presence mapping ships. The `presence` prop description and the presence dot's part note
+both say online = success, away = warning, busy = danger, offline = neutral (DRAFT wording), so a developer reading the
+spec and a designer picking the dot's tone on the instance both see it; before, it lived only in `notes`, which does
+not ship. A `test.ts` arm reads it from `out/components/avatar.md` and fails by name when either line drifts.
