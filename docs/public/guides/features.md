@@ -7,7 +7,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 - Web studio: the studio in a browser. <!-- src: apps/studio/build-site.mjs:1-8#7ef7bf24 -->
 - Figma plugin: the same studio inside Figma <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d -->, plus **Update file**, which writes to the file. <!-- src: apps/studio/src/state/update-file.ts:330 -->
 - Agent, through the agent link: an AI agent driving the open plugin. See [Use the agent link](agent-link.md). <!-- src: apps/plugin/src/agent-protocol.ts:42#6bb39596 -->
-- Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:267-409#55cb245e -->
+- Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:265-407#55cb245e -->
 
 ✓ means the surface can do it. – means it can't.
 
@@ -22,7 +22,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
 | Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1386 --> | ✓ | – | – |
 
-<!-- src: apps/studio/src/shell/start.ts:167-218#9e39b78a --> <!-- src: packages/engine/mcp.ts:273-435 -->
+<!-- src: apps/studio/src/shell/start.ts:167-218#9e39b78a --> <!-- src: packages/engine/mcp.ts:271-433 -->
 
 ## Figma file
 
@@ -47,7 +47,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Write the Figma variable files to a folder | – | – | – | ✓ `export_theme` |
 | Score how generated UI used the tokens | – | – | – | ✓ `score_consumption` |
 
-<!-- src: packages/engine/mcp.ts:379-413 --> <!-- src: packages/engine/mcp.ts:322-357 -->
+<!-- src: packages/engine/mcp.ts:377-411 --> <!-- src: packages/engine/mcp.ts:320-355 -->
 
 TokenPress, a separate Figma plugin, exports any Figma file's variables and styles as DTCG token files. See [Export tokens](export-tokens.md#export-any-figma-file-with-tokenpress). <!-- src: apps/tokenpress/README.md:3#9efac648 -->
 
