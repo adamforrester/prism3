@@ -1051,17 +1051,17 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
     // #3467 Q5 A: read here, before the settle, because the verdict below is posted synchronously.
     const fix = await docBlockFixOf(furniture);
     const settleMs = await verdictBeforeSettle(measureSettle, () => {
-      // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
-      // starved file can produce one miss per binding per member and the whole list is not a summary.
+      // #4185 B: the screen gets a count, never the list: a starved file can produce one miss per binding per
+      // member. The lines go to the console (every one) and the in-memory run log (at most REASONS_MAX).
       const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));   // #4185 B: one line on screen;
       const missNote = missesLine(real.length);   // each engine-internal miss line goes to the run log (`annotate`) and the console
       if (real.length) console.log(`[prism3] build ${def.id}: ${real.length} misses\n${real.join('\n')}`);
       // THE STALE REASON, appended once (#827) — see `staleNote` for why the reason and the remedy are
-      // one clause. Placed after `missNote` because the per-member STALE lines are inside that list, and
-      // this is what explains them.
+      // one clause. The per-member STALE lines are not on screen (`real` drops them), so this one clause is
+      // what tells the designer some members are stale.
       const stale = staleNote(r.stale, ENGINE_VERSION);
       // One item for the set, then one per note after it (#2177: one line each in the Activity drawer). The set's own
-      // facts (variants, grid, size, axes, properties, refs) describe one set, so they stay one item.
+      // on-screen facts (variants, axes) stay one item; its grid, size, properties and refs go to the console (#4185 B).
       const head = r.emittedComponents !== undefined
         // #1012: the no-set arm. `emitAsComponents` defs build SEPARATE `<id>/<glyph>` components, so the
         // grid / axes / properties / refs the set arm prints do not exist — the useful facts are how many

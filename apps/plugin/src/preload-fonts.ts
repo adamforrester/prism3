@@ -147,10 +147,10 @@ export const facesToPreload = (
  * face is looked up. Two candidates that resolve to one face load it once; if that load fails, each
  * named candidate among them is still reported, whichever candidate made the attempt.
  *
- * The verdict's "N font styles name-resolved" stays the text-style pass's count alone. It counts STYLES
- * whose baked name was corrected; this resolves candidate FACES (file and crossed pairs included, and a
- * theme face the text-style pass will resolve again), so adding the two would count one correction twice
- * in a unit the sentence does not name.
+ * The verdict's "N font style names matched to the installed font" (#4185) stays the text-style pass's
+ * count alone. It counts STYLES whose baked name was corrected; this resolves candidate FACES (file and
+ * crossed pairs included, and a theme face the text-style pass will resolve again), so adding the two would
+ * count one correction twice in a unit the sentence does not name.
  */
 export const preloadFonts = async (
   plan: TextStylePlan,
