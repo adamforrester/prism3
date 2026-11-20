@@ -379,6 +379,23 @@
           "additionalProperties": { "type": "string", "enum": ["linear", "standard", "decelerate", "accelerate", "expressive", "calm"] },
           "propertyNames": { "enum": ["default", "enter", "exit", "emphasized"] },
           "description": "OPTIONAL. Which CURVE each motion role resolves to, brand-wide. The per-mode re-point in modeLevers.<mode>.easings deviates from THIS, so without it a mode could override a baseline nobody could set. Absent entries keep the engine default (default→standard, enter→decelerate, exit→accelerate, emphasized→expressive). Deep-validated by brandTheme()."
+        },
+        "presets": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "enum": ["instant", "fast", "normal", "moderate", "slow", "slower", "long", "longer", "longest"] },
+          "propertyNames": { "enum": ["state", "fade", "crossfade", "move", "reveal", "draw", "surface", "expand", "step", "settle"] },
+          "description": "OPTIONAL (#2857). Which step of the duration scale each motion preset plays on, brand-wide. A preset binds the step (motion.duration.<step>), never its own duration token. Absent entries keep the engine's default mapping. An unknown preset or step is refused by name. Deep-validated by brandTheme()."
+        },
+        "brandOnly": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "object", "additionalProperties": false, "required": ["kind", "damping", "stiffness"], "properties": { "kind": { "const": "spring" }, "damping": { "type": "number", "minimum": 0 }, "stiffness": { "type": "number", "minimum": 0 } } },
+              { "type": "object", "additionalProperties": false, "required": ["kind", "baseMs", "msPerPx"], "properties": { "kind": { "const": "distance" }, "baseMs": { "type": "number", "minimum": 0 }, "msPerPx": { "type": "number", "minimum": 0 }, "minMs": { "type": "number", "minimum": 0 }, "maxMs": { "type": "number", "minimum": 0 } } },
+              { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "gesture" }, "coastTauMs": { "type": "number", "minimum": 0 }, "rubberBand": { "type": "number", "minimum": 0, "maximum": 1 }, "parallax": { "type": "number", "minimum": 0 } } }
+            ]
+          },
+          "description": "OPTIONAL (#2857). The brand-only motion group: one-offs this brand needs that are not guaranteed names. Each entry is emitted under motion.brand.<name> for this brand only, as a custom-typed leaf: a spring (damping, stiffness), a duration scaled by the distance moved (baseMs plus msPerPx, clamped to minMs and maxMs), or gesture physics (a coast time constant coastTauMs, a rubber-band coefficient, a parallax ratio). The fields are DRAFT."
         }
       }
     },

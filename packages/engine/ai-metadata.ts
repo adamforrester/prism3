@@ -577,6 +577,7 @@ const primMeaning = (seg: string[], node?: any): string => {
   if (seg[0] === 'opacity') return 'Opacity scale primitive';
   // Not "grid": 1, 2, 3, 5, 6, 10, 18 and 30px are off the 4px grid (#3555 F6). The tree's own word.
   if (seg[0] === 'dimension') return `${seg[1]}px dimension primitive`;
+  if (seg[0] === 'motion' && seg[1] === 'brand') return 'Brand-only motion value — set by this brand, outside the guaranteed names';
   if (seg[0] === 'motion') return seg[1] === 'easing' ? 'Easing curve primitive (cubic-bezier)' : seg[1] === 'spring' ? 'Spring primitive (damping / stiffness)' : seg[1] === 'stagger' ? 'Stagger delay primitive' : 'Motion duration primitive';
   if (seg[0] === 'font') {
     if (seg[1] === 'family') return `Font family stack — ${seg[2]} role`;
@@ -609,7 +610,7 @@ export type AiMetadataOptions = { tokensFile?: string };
 
 /** The sidecar's schema id. The JSON Schema at `schema/ai-metadata.schema.json` carries the same `$id`,
  *  and a test holds the two equal — bump both together when a field is added, renamed or removed. */
-export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.5';
+export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.6';
 
 /** The one normative sentence (AI/C-1) — a check a reader can run with `tokens.json` alone: resolve both
  *  roles in each mode, composite a translucent one over its ground, compare with the floor. `lint-voice.ts`
@@ -1048,7 +1049,8 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       'and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and ' +
       'implies no contrast. `contrast_with` is the role\'s contrast contract: `requirement` states it as a check that ' +
       'resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is ' +
-      'for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this ' +
+      'for large text, icons and non-essential text only. `motion_presets` names, for each motion preset, the duration ' +
+      'step it plays on (the brand\'s mapping), its easing role and its reduced-motion duration. Field definitions: the JSON Schema whose `$id` is this ' +
       'file\'s `$schema`.',
     color_fields: fieldsOf(colorRoles, ['$description', 'meaning', 'when_to_use', 'avoid_when', 'usage_limit', 'sits_on', 'carries', 'tracks', 'contrast_with', 'mode_overrides']),
     typography_fields: fieldsOf(typography, ['$description', 'meaning', 'when_to_use', 'avoid_when', 'resolves_to', 'used_by']),
@@ -1059,6 +1061,11 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     typography,
     layout,
     motion,
+    // Each motion preset, resolved through the brand's preset → step mapping (#2857, Q-MP7 option 3). A preset is not
+    // a token: it names the shared scale's step, so the paths here are `motion` tier entries above.
+    motion_presets: Object.fromEntries(theme.motion.presets.map((p) => [p.preset, {
+      duration: `motion.duration.${p.duration}`, easing: `motion.easing-role.${p.easing}`, reduced_duration: `motion.duration-reduced.${p.reduced}`,
+    }])),
     ...(Object.keys(gradient).length ? { gradient_fields: fieldsOf(gradient, ['$description', 'meaning', 'when_to_use', 'avoid_when', 'resolves_to', 'a11y']), gradient } : {}),
     primitives,
   };
