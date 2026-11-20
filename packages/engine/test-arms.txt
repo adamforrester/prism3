@@ -742,6 +742,7 @@ apps/studio/test-interactive-input.ts #3608
 apps/studio/test-interactive-input.ts #3613
 apps/studio/test-interactive-input.ts #3678
 apps/studio/test-interactive-input.ts #3697
+apps/studio/test-interactive-input.ts #4294
 apps/studio/test-layout-input.ts #2045
 apps/studio/test-layout-input.ts #2047
 apps/studio/test-layout-input.ts #2139
