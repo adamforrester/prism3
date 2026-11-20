@@ -14,6 +14,7 @@
  *
  * Pure: the root is passed in, so a Node test drives it on a fake.
  */
+import { readRecord, writeRecord, type RecordNode } from './file-record';
 
 /** The root plugin-data key. */
 export const DOC_SETTINGS_KEY = 'prism3:docSettings';
@@ -31,7 +32,8 @@ export type DocSettings = {
 
 export const DEFAULT_DOC_SETTINGS: DocSettings = { panels: true, cover: true, styleGuide: null };
 
-type DataRoot = { getPluginData?(key: string): string; setPluginData?(key: string, value: string): void };
+/** #4154: kept in shared plugin data (`file-record.ts`), so the online and offline builds read one record. */
+type DataRoot = RecordNode;
 
 const isPlain = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
@@ -48,7 +50,7 @@ export const docSettingsOf = (v: unknown): DocSettings => {
 /** The file's settings. A missing, unreadable or malformed record reads as the defaults: never a throw. */
 export const readDocSettings = (root: DataRoot): DocSettings => {
   let raw = '';
-  try { raw = root.getPluginData?.(DOC_SETTINGS_KEY) ?? ''; } catch { return DEFAULT_DOC_SETTINGS; }
+  try { raw = readRecord(root, DOC_SETTINGS_KEY); } catch { return DEFAULT_DOC_SETTINGS; }
   if (!raw) return DEFAULT_DOC_SETTINGS;
   try { return docSettingsOf(JSON.parse(raw)); } catch { return DEFAULT_DOC_SETTINGS; }
 };
@@ -56,7 +58,7 @@ export const readDocSettings = (root: DataRoot): DocSettings => {
 /** Keep `next` in the file, normalized. Returns what was kept. A refused write throws, for the caller to report. */
 export const writeDocSettings = (root: DataRoot, next: unknown): DocSettings => {
   const s = docSettingsOf(next);
-  root.setPluginData?.(DOC_SETTINGS_KEY, JSON.stringify(s));
+  writeRecord(root, DOC_SETTINGS_KEY, JSON.stringify(s));
   return s;
 };
 
