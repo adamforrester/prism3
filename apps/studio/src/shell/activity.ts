@@ -217,7 +217,8 @@ export type UpdateStepReading = { readonly title: string; readonly op: OpKey; re
 export type UpdateReading = { readonly n: number; readonly steps: readonly UpdateStepReading[]; readonly done: boolean; readonly kind: Kind | null; readonly verdict: string | null };
 /** A write the main thread declined while a run of the same operation was going (#1957). `n` counts
  *  them, so each is a change. */
-export type Refusal = { readonly op: OpKey; readonly message: string; readonly agent: boolean; readonly n: number };
+/** `op`: the operation asked for; `held`: the one holding the file, when the host named it (#3760). */
+export type Refusal = { readonly op: OpKey; readonly held?: OpKey; readonly message: string; readonly agent: boolean; readonly n: number };
 /** What `main.ts` lends: every operation by key, the result a page asked to show (a page's verdict
  *  pill clicked, or a bad verdict landing), `null` when none is, and the last refusal. Pure; no DOM. */
 export type ActivityReading = { readonly ops: Readonly<Record<OpKey, OpReading>>; readonly detail: OpKey | null; readonly refused: Refusal | null;
@@ -292,6 +293,12 @@ export const finishLine = (k: RowKey, o: Pick<OpReading, 'state' | 'verdict' | '
   const warning = (kind ?? kindOf(false, o.verdict, o.failed)) === 'warn';
   return `${ROW_TITLE[k]} ${warning ? 'finished with a warning' : 'failed'}${reason ? `: ${reason}` : ''}.`;
 };
+
+/** The status line's words when a request is declined (#1957, the owner's sentence, 2026-10-02). #3760: since #3697 R7
+ *  one write holds the whole file, so the write asked for and the one holding it can differ. The line names the one
+ *  holding it, as the row's own words do (`busyMessage(held)`, whose titles `test-agent-link.ts` keeps equal to
+ *  `OP_TITLE`), so a screen-reader user hears what a sighted one reads; the asked one when the host names no holder. */
+export const refusedLine = (r: Pick<Refusal, 'op' | 'held'>): string => `${OP_TITLE[r.held ?? r.op]} already running; the second request was declined.`;
 
 /** #533 (Q110 A): a run's short line, for the completion notice shown while the panel is minimized: the status line's
  *  words (`finishLine`) without the reason, which stays in Activity. DRAFT, listed in the PR for the owner. */
@@ -1097,7 +1104,7 @@ export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narr
       const t = now();
       if (!rec.t) { rec.t = t; rec.at = ++stamp; }
       rec.history = [{ ok: true, verdict: 'Refused', summary: r.message, agent: r.agent, t, ref: r, refused: true } as Result, ...rec.history].slice(0, HISTORY_MAX);
-      live.textContent = `${OP_TITLE[r.op]} already running; the second request was declined.`;
+      live.textContent = refusedLine(r);
       liveRunning = true;
     }
     // A result a page asked to show (its verdict pill clicked, or a bad verdict) opens the drawer on it.

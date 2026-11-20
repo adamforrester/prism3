@@ -530,5 +530,28 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
 }
 for (const k of KINDS) ok(exercised.has(k), `coverage: ${k} was exercised`);
 
+// #3760: while one write holds the file, a request for another is declined, and the status line (the drawer's live
+// region) named the ASKED write: "Set up file already running; …" while Theme ran and the row read the host's words,
+// "Theme is already running". The line keeps the owner's sentence (2026-10-02) and names the write holding the file,
+// carried from the wire's `held` by the reducer. The row's words are the plugin's own `busyMessage`, so the two are held
+// to the same title. Mutations: the reducer dropping `held` → `#3760 the reducer carries the write holding the file`;
+// `refusedLine` back to `r.op` → `#3760 the status line names the write holding the file`; the refused branch not calling
+// it → `#3760 the drawer's refused branch announces refusedLine`.
+{
+  const { refusedLine } = await import('./src/shell/activity');
+  const { busyMessage } = await import('../plugin/src/run-guard');
+  const r = step(init, { kind: 'refused', code: 'busy', cmd: 'file-setup', agent: false, message: busyMessage('apply-theme'), held: 'apply-theme' }).next.refused;
+  ok(!!r && r.op === 'filesetup' && r.held === 'apply', `#3760 the reducer carries the write holding the file (${JSON.stringify(r)})`);
+  const said = r ? refusedLine(r) : '';
+  ok(said === 'Theme already running; the second request was declined.' && busyMessage('apply-theme').startsWith('Theme is already running'),
+    `#3760 the status line names the write holding the file, as the row does (${JSON.stringify(said)}; row ${JSON.stringify(busyMessage('apply-theme'))})`);
+  const old = step(init, { kind: 'refused', code: 'busy', cmd: 'file-setup', agent: false, message: 'x' }).next.refused;
+  ok(!!old && old.held === undefined && refusedLine(old) === 'Set up file already running; the second request was declined.',
+    '#3760 with no holder named (an older host), the status line names the write asked for');
+  const src = (await import('node:fs')).readFileSync(new URL('./src/shell/activity.ts', import.meta.url), 'utf8');
+  ok(/rec\.history = \[\{ ok: true, verdict: 'Refused'[^\n]*\n\s*live\.textContent = refusedLine\(r\);/.test(src),
+    '#3760 the drawer\'s refused branch announces refusedLine');
+}
+
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);
