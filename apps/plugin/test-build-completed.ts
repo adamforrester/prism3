@@ -1088,7 +1088,7 @@ const tagCause = tagBuilt?.causes?.find((c: any) => c.subject === 'tag');
 // #4185 B (owner decision 2026-11-19, option b): on screen the misses are one line, with no engine path in it; each
 // miss line itself is in the file's run log, which the agent link's `activity` reads. Expected words typed here.
 ok(tagBuilt?.ok === false && tagCause?.kind === 'warn' && tagCause.what === 'built with problems'
-  && (tagCause.reasons as string[]).some((x) => /^⚠ \d+ parts? not drawn as Prism3 expects\. The details are kept in the file’s run log for a maintainer\.$/.test(x))
+  && (tagCause.reasons as string[]).some((x) => /^⚠ \d+ bindings? Prism3 couldn't make\.$/.test(x))   // owner decision 2026-11-20 on #4364
   && !(tagCause.reasons as string[]).some((x) => x.includes(' -> ')),
   `#4185 causes/misses: a build that missed shows one line for its misses, and no engine path (${JSON.stringify(tagCause)?.slice(0, 300)})`);
 {

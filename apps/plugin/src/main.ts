@@ -529,9 +529,9 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       : '';
     // One item per axis and per note, each joined by `, ` (#2177: one line each in the Activity drawer).
     const { summary, lines } = fromClauses([
-      `palette ${r.paletteTotal} (+${r.paletteCreated})`, `color ${r.colorTotal} (+${r.colorCreated})`,
+      `Palette: ${r.paletteTotal} (+${r.paletteCreated})`, `Color: ${r.colorTotal} (+${r.colorCreated})`,   // #4185 B row 3: labels (owner, 2026-11-20)
       `Layout: ${f.collections.length} collections (+${floatCreated})`,   // #4185 B row 3 (DRAFT): words, not abbreviations
-      `styles ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
+      `Styles: ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
       `Type: ${pf.brandLoaded} fonts, ${fontVarTotal} font variables (+${fontVarCreated}), ${ts.total} text styles (+${ts.created})`,
       `Motion: ${motionTotal} variables (+${motionCreated})`,
       // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).

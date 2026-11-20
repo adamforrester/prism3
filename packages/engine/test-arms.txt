@@ -34,6 +34,7 @@ apps/plugin/test-apply-summary.ts #2412
 apps/plugin/test-apply-summary.ts #2695
 apps/plugin/test-apply-summary.ts #2887
 apps/plugin/test-apply-summary.ts #2888
+apps/plugin/test-apply-summary.ts #4185
 apps/plugin/test-apply-summary.ts #483
 apps/plugin/test-apply-summary.ts #913
 apps/plugin/test-as-built-ledger.ts #2759
@@ -136,6 +137,7 @@ apps/plugin/test-persist.ts #341
 apps/plugin/test-persist.ts #415
 apps/plugin/test-persist.ts #480
 apps/plugin/test-prune-main.ts #3697
+apps/plugin/test-prune-main.ts #4185
 apps/plugin/test-prune.ts #1521
 apps/plugin/test-prune.ts #1570
 apps/plugin/test-prune.ts #1577
