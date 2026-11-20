@@ -245,17 +245,17 @@ if (!import.meta.url.endsWith('?cov')) {
 
 let pass = 0; const fails: string[] = [];
 const ok = (cond: boolean, msg: string) => { if (cond) pass++; else fails.push(msg); };
-// A SKIP IS NOT A PASS (#3985). An arm whose FIXTURE needs something this checkout cannot give (the replays of
-// prism3's own history, in a repo seeded from an older snapshot of it) does not run, and says so: `skip` records
+// A SKIP IS NOT A PASS (#3985). An arm whose FIXTURE needs something this checkout cannot give does not run, and
+// says so (the replays of prism3's own history did, until #3408 read their base from the tree's own history; a
+// missing history now FAILS them by name, CANNOT DETERMINE, so no arm skips today): `skip` records
 // it, it counts in no `pass`, the report prints it by name, and the closing line then refuses to say "all hold".
 // Its `ok(` sites sit between `// #1268 SKIPPABLE SPAN <label> BEGIN` and `… END`; the assertion-site arm above
 // exempts them only when THIS run recorded that label; the arm that skips asserts by count that its span recorded
 // no assertion (coverage cannot see that zero, #3987). The map is on
 // `globalThis` because the `?cov` instance that records a skip is not the outer instance that reads coverage.
 //   A skip still EXITS 0, so `verify.ts` reads this suite as PASS and the skip shows only in this suite's own
-// output. That includes a local prism3 checkout without `GITHUB_REPOSITORY`: a shallow clone of prism3 skips
-// there rather than failing. CI guards it (`fetch-depth: 0` plus `GITHUB_REPOSITORY`, where a broken premise
-// FAILS by name and `failSpan` records the span as not run, so the #1268 probe adds no second, unnamed failure).
+// output. That is why a premise the replay owes FAILS instead (#3408): `failSpan` records the span as not run, so
+// the #1268 probe adds no second, unnamed failure.
 const skippedSpans = ((globalThis as Record<string, unknown>).__prism3SkippedSpans ??= new Map<string, string>()) as Map<string, string>;
 const skip = (label: string, why: string): void => { skippedSpans.set(label, why); };
 const failedSpans = ((globalThis as Record<string, unknown>).__prism3FailedSpans ??= new Map<string, string>()) as Map<string, string>;
@@ -38930,6 +38930,42 @@ arm: {
     }
     return fold ? { sha: fold.sha } : { why: `no single-parent commit in HEAD's history sets ENGINE_VERSION to ${v}` };
   };
+  // #3985 — THE REPLAY'S PREMISES, read with raw git in `src` before the fixture is built, independently of the gates
+  // (no gate's code is called). Everything the replay does re-runs fold.ts and the real gates over the history of the
+  // `main` the tree carries, and expects THAT history to hold the folds that set every version the tree's release
+  // notes name, and the landings of the fragments its log folded. Since #3408 the base is `carriedFold`, the tree's
+  // own history, and never `origin/main`: in the repository `poc/arm-1` is carried into, that name is a seed plus that
+  // repository's own commits, the merge base with it is empty or on the wrong chain, and the replay skipped there or
+  // failed on code that had not regressed. A fold the tree's history holds is in every repository its commits are in,
+  // so a broken premise here is a real fault wherever it runs, and the caller FAILS by name. A carried fold this
+  // checkout cannot find (shallow, or no single-parent commit sets the version) is CANNOT DETERMINE, named; it is
+  // never a skip that exits 0. `anchor` is the commit that introduced docs/progress/pending/ (an argument so the
+  // synthetic arms can test it).
+  const replayPremises = (src: string, anchor: string): { base: string; broken: string[] } => {
+    const raw = (args: string[]) => spawnSync('git', ['-C', src, ...args], { encoding: 'utf8', env, maxBuffer: 256 * 1024 * 1024 });
+    const carried = carriedFold(src);
+    if ('why' in carried) return { base: '', broken: [`CANNOT DETERMINE the main this tree carries, so the replay cannot judge it: ${carried.why}`] };
+    const base = carried.sha;
+    const broken: string[] = [];
+    const at = `the fold ${base.slice(0, 8)} that set HEAD's ENGINE_VERSION`;
+    if (raw(['merge-base', '--is-ancestor', anchor, base]).status !== 0)
+      broken.push(`the main HEAD carries (${at}) does not reach ${anchor.slice(0, 8)}, the commit that introduced docs/progress/pending/, so its fragments' landings are not in it`);
+    const set = new Set<string>();
+    const log = raw(['log', '-U0', '--format=%x00%H %P', '-G', 'ENGINE_VERSION = ', base, '--', 'packages/engine/version.ts']).stdout;
+    for (const rec of log.split('\0')) {
+      const [sha, ...parents] = rec.split('\n')[0].trim().split(/\s+/);
+      const v = /^\+export const ENGINE_VERSION = '(\d+\.\d+\.\d+)'/m.exec(rec)?.[1];
+      if (sha && parents.length === 1 && v) set.add(v);
+    }
+    const releases = join(src, 'docs/public/releases');
+    const named = [
+      ...(existsSync(releases) ? readdirSync(releases).filter((f) => /^\d+\.\d+\.\d+\.json$/.test(f)).map((f) => f.slice(0, -5)) : []),
+      /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(readFileSync(join(src, 'packages/engine/version.ts'), 'utf8'))?.[1] ?? 'the working tree\'s ENGINE_VERSION (unreadable)',
+    ];
+    const unset = [...new Set(named)].filter((v) => !set.has(v));
+    if (unset.length) broken.push(`no single-parent commit in the history of ${at} sets ${unset.slice(0, 5).join(', ')}${unset.length > 5 ? ` and ${unset.length - 5} more` : ''}, so the folds the tree's release notes name are not in it`);
+    return { base, broken };
+  };
   const cloneWorkingTree = (src: string, dst: string, carried: string): void => {
     gitIn(work, ['clone', '-q', '--shared', '--no-checkout', src, dst]);
     for (const ref of gitIn(dst, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).split('\n').filter(Boolean)) gitIn(dst, ['update-ref', '-d', ref]);
@@ -38994,63 +39030,48 @@ arm: {
       const seed = gitIn(syn, ['commit-tree', gitIn(syn, ['mktree'], '').trim(), '-m', 'seed: another repository\'s own main']).trim();
       gitIn(syn, ['update-ref', 'refs/heads/main', seed]);
       landsOnC1('main is another repository\'s, sharing no commit with the tree');
+      // #3408 + #3985: the premises read in that same layout (no ref carries the tree, the fold reachable only through
+      // the branch's own history) find c1 and judge it; each way the history can be missing FAILS by name as CANNOT
+      // DETERMINE or a broken premise, never an empty list. MUTATIONS VERIFIED (#3408): the premises' base put back on
+      // the merge base with `origin/main`, then `main` · a missing carried fold returning no broken premise.
+      const c0 = gitIn(syn, ['rev-list', '--max-parents=0', 'HEAD']).trim();
+      const held = replayPremises(syn, c0);
+      ok(held.base === c1 && held.broken.length === 0,
+        `#3408 replay premises (main is another repository's): they find the carried main by its fold and hold there (base ${held.base.slice(0, 8) || 'none'}, c1 ${c1.slice(0, 8)}, broken: ${held.broken.join('; ') || 'none'})`);
+      const unreached = replayPremises(syn, seed);
+      ok(unreached.broken.some((b) => b.includes('does not reach')),
+        `#3408 replay premises: a carried main that does not reach the anchor is a broken premise, named (broken: ${unreached.broken.join('; ') || 'none'})`);
+      const shallow = join(work, 'ss');
+      gitIn(work, ['clone', '-q', '--depth', '1', '--branch', 'poc/integ', `file://${syn}`, shallow]);
+      const cut = replayPremises(shallow, c0);
+      ok(cut.base === '' && cut.broken.length === 1 && cut.broken[0].startsWith('CANNOT DETERMINE') && cut.broken[0].includes('shallow'),
+        `#3408 replay premises: a shallow checkout, whose history lacks the fold, is CANNOT DETERMINE by name, never a premise that holds (broken: ${cut.broken.join('; ') || 'none'})`);
+      gitIn(syn, ['checkout', '-q', '-b', 'side', c1]); writeFileSync(join(syn, 'side.txt'), 'side\n');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'side']);
+      gitIn(syn, ['checkout', '-q', 'poc/integ']); gitIn(syn, ['merge', '-q', '--no-ff', '--no-commit', 'side']);
+      setVersion('0.3.0');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'a merge that sets 0.3.0: no fold sets it']);
+      const unfolded = replayPremises(syn, c0);
+      ok(unfolded.base === '' && unfolded.broken.length === 1 && unfolded.broken[0].startsWith('CANNOT DETERMINE') && unfolded.broken[0].includes('0.3.0'),
+        `#3408 replay premises: a version no single-parent commit sets (the fold missing from the history) is CANNOT DETERMINE by name (broken: ${unfolded.broken.join('; ') || 'none'})`);
     }
 
-    // #3408, the carry: the main this tree carries, by the fold that set its version, in whichever repository runs this.
-    const carried = carriedFold(REPO);
-    ok(!('why' in carried), `#3408 replay: the main this tree carries is found by the fold that set its ENGINE_VERSION, in any repository its history is in (${'why' in carried ? carried.why : `at ${carried.sha.slice(0, 8)}`})`);
-    // #3985 — THE REPLAY'S PREMISES, read with raw git in this checkout before the fixture is built. Everything below
-    // re-runs fold.ts and the real gates over the history of the `main` this tree carries, and expects THAT history to
-    // be prism3's: the folds that set every version the tree's release notes name, and the landings of the fragments
-    // its log folded. A repository seeded from an older snapshot of prism3 (the POC repository: its `main` a seed plus
-    // its own commits, `poc/arm-1` carried in as a PR) holds neither, and the real gates rightly call that history
-    // wrong: 3 arms failed there on code that had not regressed. So each premise is checked here, independently of
-    // the gates (no gate's code is called), and a broken one SKIPS the span by name; it is never a pass.
-    //   In prism3's own CI (`GITHUB_REPOSITORY`) the premises always hold, so there a broken one FAILS by name: the
-    //   replay can never go quiet where it guards. Reading prism3's main through a pinned SHA instead was rejected: a
-    //   repository seeded from a snapshot does not hold prism3's later commits at all, so no SHA can be read there.
-    //   MUTATIONS VERIFIED (#3985): the anchor premise inverted fails by name under GITHUB_REPOSITORY and skips without
-    //   it · `walkFrom` = 'HEAD' in lint-release-notes still fails the #3863 arms by name in prism3's history, not a skip.
-    const premiseBroken: string[] = [];
-    {
-      const raw = (args: string[]) => spawnSync('git', ['-C', REPO, ...args], { encoding: 'utf8', env, maxBuffer: 256 * 1024 * 1024 });
-      const DIR_ANCHOR = 'e6e57308d52226997922641347cad85f574d5b2c'; // #1823: introduced docs/progress/pending/
-      const mainRef = ['origin/main', 'main'].find((c) => raw(['rev-parse', '--verify', '--quiet', `${c}^{commit}`]).status === 0);
-      const base = mainRef ? raw(['merge-base', 'HEAD', mainRef]).stdout.trim() : '';
-      if (raw(['rev-parse', '--is-shallow-repository']).stdout.trim() !== 'false') premiseBroken.push('this checkout is shallow, so the history the replay re-runs is not all here');
-      else if (!base) premiseBroken.push(`HEAD carries no main (${mainRef ? `no merge base with ${mainRef}` : 'neither origin/main nor main resolves'})`);
-      else {
-        const at = `${mainRef} at ${base.slice(0, 8)}`;
-        if (raw(['merge-base', '--is-ancestor', DIR_ANCHOR, base]).status !== 0)
-          premiseBroken.push(`the main HEAD carries (${at}) does not reach ${DIR_ANCHOR.slice(0, 8)}, the commit that introduced docs/progress/pending/, so its fragments' landings are not prism3's`);
-        const set = new Set<string>();
-        const log = raw(['log', '-U0', '--format=%x00%H %P', '-G', 'ENGINE_VERSION = ', base, '--', 'packages/engine/version.ts']).stdout;
-        for (const rec of log.split('\0')) {
-          const [sha, ...parents] = rec.split('\n')[0].trim().split(/\s+/);
-          const v = /^\+export const ENGINE_VERSION = '(\d+\.\d+\.\d+)'/m.exec(rec)?.[1];
-          if (sha && parents.length === 1 && v) set.add(v);
-        }
-        const releases = join(REPO, 'docs/public/releases');
-        const named = [
-          ...(existsSync(releases) ? readdirSync(releases).filter((f) => /^\d+\.\d+\.\d+\.json$/.test(f)).map((f) => f.slice(0, -5)) : []),
-          /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(readFileSync(join(REPO, 'packages/engine/version.ts'), 'utf8'))?.[1] ?? 'the working tree\'s ENGINE_VERSION (unreadable)',
-        ];
-        const unset = [...new Set(named)].filter((v) => !set.has(v));
-        if (unset.length) premiseBroken.push(`no single-parent commit in the history of ${at} sets ${unset.slice(0, 5).join(', ')}${unset.length > 5 ? ` and ${unset.length - 5} more` : ''}, so the folds the tree's release notes name are not in it`);
-      }
-      const inPrism3 = process.env.GITHUB_REPOSITORY === 'adamforrester/prism3';
-      if (premiseBroken.length && inPrism3) {
-        for (const b of premiseBroken) ok(false, `#3985 integration replay: in prism3's own CI its premise must hold, and it does not — ${b}`);
-        failSpan('integration-replay', premiseBroken.join('; '));
-      }
-      else if (premiseBroken.length) skip('integration-replay', `#3833/#3863: the replays of prism3's own history cannot run here: ${premiseBroken.join('; ')}`);
-    }
+    // #3985 + #3408 — the replay's premises (`replayPremises`, above), read against the main this tree carries by the
+    // fold that set its version, in whichever repository runs this. A broken one FAILS by name everywhere, prism3's CI
+    // or not: the base comes from the tree's own history, so no repository holding that history can break it, and a
+    // checkout that lacks it is CANNOT DETERMINE, never a skip that exits 0. `failSpan` marks the span not run, so the
+    // #1268 probe adds no second, unnamed failure. MUTATIONS VERIFIED (#3985): the anchor premise inverted fails by
+    // name · `walkFrom` = 'HEAD' in lint-release-notes still fails the #3863 arms by name, not a skip. (#3408): the
+    // base put back on the merge base with `origin/main` fails here by name in a POC-repository layout.
+    const DIR_ANCHOR = 'e6e57308d52226997922641347cad85f574d5b2c'; // #1823: introduced docs/progress/pending/
+    const premise = replayPremises(REPO, DIR_ANCHOR);
+    for (const b of premise.broken) ok(false, `#3985 integration replay: its premise must hold in any repository this tree's history is in, and it does not — ${b}`);
+    if (premise.broken.length) failSpan('integration-replay', premise.broken.join('; '));
     const assertedBefore = pass + fails.length;
     replay: {
-    if (premiseBroken.length) break replay;
+    if (premise.broken.length) break replay;
     // #1268 SKIPPABLE SPAN integration-replay BEGIN
-    if ('why' in carried) break replay;
-    cloneWorkingTree(REPO, clone, carried.sha);
+    cloneWorkingTree(REPO, clone, premise.base);
     // executor-reach imports `@prism3/engine`; the clone has no install, so point the name at its own engine.
     mkdirSync(join(clone, 'node_modules', '@prism3'), { recursive: true });
     symlinkSync(join(clone, 'packages', 'engine'), join(clone, 'node_modules', '@prism3', 'engine'), 'dir');
