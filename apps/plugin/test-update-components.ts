@@ -1109,7 +1109,7 @@ section('#3474 nested main — a change that reaches a member only through its n
   const fresh = await check();
   ok(focused.length === 36 && fresh.counts.handEdited === 0 && fresh.counts.current === 216,
     `#3474 premise: 36 focus-visible members, every member current on a fresh build (${focused.length}, ${JSON.stringify(fresh.counts)})`);
-  const rec = (m: Node) => JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY)) as { nodes: Record<string, string>; own?: Record<string, string> };
+  const rec = (m: Node) => JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY)) as { nodes: Record<string, string>; own?: Record<string, string>; inst?: Record<string, string> };
   ok(focused.every((m) => !!rec(m).own?.focusRing), `#3474 premise: each focus-visible member's record holds its ring's own part (${focused.filter((m) => rec(m).own?.focusRing).length} of 36)`);
   // FIGMA'S OWN SHAPE (read on the real file, #3477): the host's binding work on the ring (its size bindings cleared) is
   // listed as ONE field, `boundVariables`, while the ring's `boundVariables` also holds the stroke weights its main binds.
@@ -1184,9 +1184,9 @@ section('#3474 nested main — a change that reaches a member only through its n
   ok(ur.counts.handEdited === 5 && ur.handEdits.some((h) => h.member === unread.name && h.path === 'focusRing'),
     `#3474/host rebind, main unreadable: a host rebind on a ring whose main's bindings cannot be read is a hand edit (${JSON.stringify(ur.handEdits.map((h) => `${h.member} ${h.path}`))})`);
   // A RECORD FROM BEFORE #3474 holds no own part: it is compared whole, as it always was, so the main's change still
-  // reads on it. Existing records read exactly as they did.
+  // reads on it. Existing records read exactly as they did. Such a record holds no `inst` either (#4070, which came later).
   const old = focused[0];
-  const { own: _own, ...earlier } = rec(old);
+  const { own: _own, inst: _inst, ...earlier } = rec(old);
   (old.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify(earlier));
   const legacy = await check();
   ok(legacy.handEdits.some((h) => h.member === old.name && h.path === 'focusRing'),

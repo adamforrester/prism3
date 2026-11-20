@@ -90,22 +90,23 @@
  *
  * ── THE SET THIS WALKS, AND WHY IT HAS NO HOLES (docs/34 shape 15) ──────────────────────────────
  *
- * `emit-figma.ts` writes `out/figma/<brand>/` for THREE brands (nb, aurora, wendys). `emit-dtcg.ts`
- * writes a token tree for FOUR (harbor too). Walking only the brands with a committed emission would
- * leave harbor's 258 claiming leaves — a quarter of the subject — compared against nothing, and would
- * report that as a pass. That is shape 15 in its purest form, and it is not hypothetical here: the
+ * `emit-figma.ts` once wrote `out/figma/<brand>/` for fewer brands than `emit-dtcg.ts` wrote token trees
+ * for: harbor had a tree and no emission. Walking only the brands with a committed emission would have
+ * left harbor's 258 claiming leaves — a quarter of the subject — compared against nothing, and would
+ * report that as a pass. (#1119 has since committed harbor's emission, so every brand today has a
+ * committed oracle; the computed path below stays for the next brand that ships a tree first.) That is shape 15 in its purest form, and it is not hypothetical here: the
  * `mode` claims on layout leaves are derived from the brand's own breakpoints, so a harbor-specific
  * breakpoint defect would escape a three-brand gate entirely.
  *
- * So harbor is not skipped. Its Figma emission is BUILT IN MEMORY from the same theme `visualize.ts`
+ * So such a brand is not skipped. Its Figma emission is BUILT IN MEMORY from the same theme `visualize.ts`
  * uses (~200ms) and checked identically. `COMPUTED_ORACLE` below is the one hand-maintained list in
  * this file, and a brand in NEITHER `out/figma/` nor that list is a FAILURE, not a skip — so the list
  * going stale is loud rather than silent. The excluded-member count is therefore asserted at 0 rather
  * than printed.
  *
- * **What the computed path does and does not prove.** For nb/aurora/wendys the oracle is the
- * COMMITTED artifact, so a green run says the claim agrees with what shipped. For harbor the oracle is
- * computed, so it says the claim agrees with what the emitter WOULD write — there is nothing shipped
+ * **What the computed path does and does not prove.** For a brand with an `out/figma/` emission the
+ * oracle is the COMMITTED artifact, so a green run says the claim agrees with what shipped. For a
+ * computed brand the oracle is computed, so it says the claim agrees with what the emitter WOULD write — there is nothing shipped
  * for harbor to disagree with. That is weaker, and it is the strongest statement available for a brand
  * that emits no Figma file.
  *
@@ -153,15 +154,13 @@
  * backstop), narrow, and named rather than implied. #1152 is the issue for the general form: a
  * leftover collection nothing owns.
  *
- * PURE-ADJACENT — reads the committed artifacts, like `regen --check`, plus one in-memory build.
+ * PURE-ADJACENT — reads the committed artifacts, like `regen --check`, plus an in-memory build for any brand in
+ * COMPUTED_ORACLE (none since #1119).
  */
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tailOf } from './figma-names.ts';
-import { brandTheme } from './theme.ts';
-import { readExampleBrand } from './emit-dtcg.ts';
-import { figmaArtifacts } from './emit-figma.ts';
 
 const OUT = join(import.meta.dirname, 'out');
 const FIGMA = join(OUT, 'figma');
@@ -179,9 +178,10 @@ type Emission = Map<string, { modes: Set<string>; variables: Set<string> }>;
  * shipped list means REMOVING it from here, and forgetting to is harmless — the committed emission
  * wins, and the computed one is never built.
  */
-const COMPUTED_ORACLE: Record<string, () => unknown> = {
-  harbor: () => figmaArtifacts(brandTheme(readExampleBrand('./examples/harbor.design.md'))).artifacts,
-};
+// Empty since #1119 committed harbor's emission: a brand in `out/figma/` reads its committed oracle, so an entry here
+// for it would never run. The next brand with a token tree and no emission goes here, e.g.
+//   <id>: () => figmaArtifacts(brandTheme(readExampleBrand('./examples/<id>.design.md'))).artifacts,
+const COMPUTED_ORACLE: Record<string, () => unknown> = {};
 
 const collect = (files: { content: string }[]): Emission => {
   const em: Emission = new Map();

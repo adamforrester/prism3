@@ -72,8 +72,9 @@ const cssBoxShadow = (layers: Array<Record<string, any>>): string =>
 
 const strip = (p: string) => p.replace(/^color\./, '');
 
-export const resolvePreview = (theme: Theme, spec: PreviewSpec = previewSpec): ResolvedPreview => {
-  const modes = resolveAllModes(theme);
+/** `modes` defaults to resolving `theme`. A caller that already holds them (the studio's per-theme cache, #4234) passes
+ *  them, so one edit resolves every mode once. */
+export const resolvePreview = (theme: Theme, spec: PreviewSpec = previewSpec, modes: ReturnType<typeof resolveAllModes> = resolveAllModes(theme)): ResolvedPreview => {
   const hexOf = (rolePath: string, i: number): string | undefined => modes[i].roles[strip(rolePath)]?.hex;
   // Renderable colour: for a TRANSLUCENT role (overlay washes) fold the alpha into an 8-digit
   // hex so the preview composites the real wash over its surface; opaque roles pass through.

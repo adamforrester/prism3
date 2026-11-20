@@ -110,7 +110,7 @@ const decode = new Map<string, string>(); // computed value → token path
 const name = (computed: string) => decode.get(computed) ?? (computed === 'rgba(0, 0, 0, 0)' ? '(transparent)' : `(no token: ${computed})`);
 
 // ------------------------------------------------------------------------------------------------ the probes
-type Probe = { coord: Record<string, string>; state: string; leading: boolean; trailing: boolean; checks: { part: string; prop: string; want: string; what: string }[] };
+export type Probe = { coord: Record<string, string>; state: string; leading: boolean; trailing: boolean; checks: { part: string; prop: string; want: string; what: string }[] };
 const where = (o: Record<string, string>) => Object.entries(o).map(([k, v]) => `${k}=${v}`).join(' ');
 const COLOR_PROP: Record<string, string> = { fill: 'background-color', stroke: 'border-top-color', ink: 'color', icon: 'color' };
 const SIZE_PROP: Record<string, string> = {
@@ -207,13 +207,32 @@ const html = (pr: Probe, i: number, attrs: Attrs) => {
 };
 
 // ------------------------------------------------------------------------------------------------ the run
-export const runParity = async (browser: any, css: string, markup: Markup): Promise<{ failures: string[]; checked: number }> => {
+/**
+ * A DELIVERY FORM (#3408 S6): how a probe reaches the page. The default writes the contract's markup by hand. The
+ * element form (`packages/web-components/check-token-parity.ts`) writes a `<p3-button>` from the probe's props, loads
+ * the element's script, and marks the element's rendered root as the probe, so the same EXPECTED and the same
+ * sentinel decoding hold the element's output. `props` is the probe as API props: its coordinates plus its state's prop.
+ */
+export type Form = { name: string; scripts: string[]; write: (pr: Probe, i: number, attrs: Attrs, props: Record<string, string>) => string };
+const HTML_FORM: Form = { name: 'html', scripts: [], write: (pr, i, attrs) => html(pr, i, attrs) };
+/** After a form's scripts run: each `[data-probe-host]` element's rendered root (its `data-probe-root` child) becomes the probe. */
+export const MARK_ROOTS = `(async () => { const hosts = [...document.querySelectorAll('[data-probe-host]')]; await Promise.all(hosts.map((h) => h.updateComplete)); for (const h of hosts) { const inner = h.querySelector(':scope > ' + h.getAttribute('data-probe-root')); if (inner) inner.setAttribute('data-probe', h.getAttribute('data-probe-host')); } })()`;
+export const runParity = async (browser: any, css: string, markup: Markup, form: Form = HTML_FORM): Promise<{ failures: string[]; checked: number }> => {
   const { probes, gaps } = buildProbes(markup);
   const failures = [...gaps];
   const page = await browser.newPage();
-  const built = probes.map((pr, i) => { const { attrs, missing } = attrsOf(pr, markup); for (const m of missing) failures.push(`${where(pr.coord)} state=${pr.state}: ${m} has no markup mapping`); return html(pr, i, attrs); });
+  const built = probes.map((pr, i) => {
+    const { attrs, missing } = attrsOf(pr, markup);
+    for (const m of missing) failures.push(`${where(pr.coord)} state=${pr.state}: ${m} has no markup mapping`);
+    const st = STATE[pr.state];
+    return form.write(pr, i, attrs, { ...pr.coord, ...(st.prop ? { [st.prop[0]]: st.prop[1] } : {}) });
+  });
   const root = `:root{${[...sentinel].map(([k, v]) => `${k}:${v};`).join('')}}`;
   await page.setContent(`<!doctype html><html><head><style>${root}</style><style>${css}</style></head><body>${built.join('\n')}</body></html>`);
+  if (form.scripts.length) {
+    for (const s of form.scripts) await page.addScriptTag({ content: s });
+    await page.evaluate(MARK_ROOTS);
+  }
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
@@ -222,10 +241,12 @@ export const runParity = async (browser: any, css: string, markup: Markup): Prom
     const force = STATE[probes[i].state].force;
     if (!force) continue;
     const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: doc.root.nodeId, selector: `[data-probe="${i}"]` });
+    if (!nodeId) continue; // no probe root: every check of this probe reads "(no probe root)" below
     await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [force] });
   }
   const reads = await page.evaluate(([list, parts]: [any[], Record<string, string>]) => list.map((pr: any, i: number) => {
-    const el = document.querySelector(`[data-probe="${i}"]`)!;
+    const el = document.querySelector(`[data-probe="${i}"]`);
+    if (!el) return pr.checks.map(() => '(no probe root)');
     return pr.checks.map((c: any) => {
       const node = parts[c.part] ? el.querySelector(`:scope > ${parts[c.part]}`) : el;
       if (!node) return '(no element)';

@@ -26,6 +26,8 @@
  *
  * Mirrors the other shim tests' dependency-free `ok(...)` style; exits non-zero on any failure.
  */
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 import { buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/figma';
 import { brandTheme, type BrandInput } from '@prism3/engine';
 import { exampleBrands, nbTheme } from '@prism3/engine/harness';
@@ -37,7 +39,9 @@ import { preloadFonts, facesToPreload, loadPreloadCandidates } from './src/prelo
 import type { FontPreloadApi } from './src/preload-fonts';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -639,6 +643,51 @@ const fresh = await preloadFonts(auroraTextPlan, {
 ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded === auroraFaces.length,
   `#680 a FRESH file has no cross product at all — ${fresh.loaded} faces, all from the theme. That is why aurora applied to an empty file and failed on a themed one`);
 
+// ---- #1090 (A): THE SUMMARY'S FONT COUNT IS THE BRAND'S OWN FACES, NOT THE FILE'S ------------------------
+// The live report: one brand applied twice, minutes apart, said `type 4 fonts loaded` on an empty file and `type 6`
+// once the first run's styles were in it. `loaded` counts every face preloaded, file and crossed included, so it grew
+// with the file. The owner's decision: the visible number counts only the brand's own faces. Reproduced here with a
+// Figma that lacks the brand's display family, as the reporting machine did.
+{
+  const missingFamily = 'Clash Display';
+  ok(auroraFaces.some((f) => f.family === missingFamily),
+    `#1090 reachable: aurora names ${missingFamily}, the family the reporting Figma did not have`);
+  const registry = new Set([...fullRegistry].filter((k) => !k.startsWith(`${missingFamily}|`)));
+  const hostOver = (existing: readonly { name: string; fontName: FontName }[]): FontPreloadApi => ({
+    async getLocalTextStylesAsync() { return [...existing]; },
+    async loadFontAsync(fn: FontName) { if (!registry.has(fontKey(fn))) throw new Error(`font not available: ${fontKey(fn)}`); },
+    async listAvailableFontsAsync() { return [...registry].map((k) => { const [family, style] = k.split('|'); return { fontName: { family, style } }; }); },
+  });
+  const emptyRun = await preloadFonts(auroraTextPlan, hostOver([]));
+  const fullRun = await preloadFonts(auroraTextPlan, hostOver(harborFileStyles));
+  // The arm: the old number really does move between the two runs, so the pin below is not passing on a fixture
+  // where nothing changes.
+  ok(fullRun.loaded > emptyRun.loaded,
+    `#1090 reachable: every face preloaded moves with the file (${emptyRun.loaded} on an empty file, ${fullRun.loaded} on a populated one)`);
+  // The expected number is the brand's faces this Figma has, counted off the theme, never off the preload.
+  const brandHas = auroraFaces.filter((f) => f.family !== missingFamily).length;
+  ok(emptyRun.brandLoaded === brandHas && fullRun.brandLoaded === brandHas,
+    `#1090 brand fonts loaded is ${brandHas} on an empty file and on a populated one (got ${emptyRun.brandLoaded}, ${fullRun.brandLoaded})`);
+  // The Apply Theme summary and its agent data read that number, not `loaded`. main.ts runs only inside Figma, so the
+  // wiring is read from its source, PARSED (#4243): a regex over the raw text matched the old wiring left in a comment.
+  // Every `fontsLoaded:` property and every template's "fonts loaded" clause must read `pf.brandLoaded`, and each must
+  // occur at least once. MUTATIONS VERIFIED (#4243, each fails the arm by name): `fontsLoaded: pf.loaded` with the old
+  // text in a comment beside it · the clause's `${pf.brandLoaded}` as `${pf.loaded}`.
+  const mainSrc = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+  const sf = ts.createSourceFile('main.ts', mainSrc, ts.ScriptTarget.Latest, true);
+  const props: string[] = [], clauses: string[] = [];
+  const visit = (n: ts.Node): void => {
+    if (ts.isPropertyAssignment(n) && n.name.getText(sf) === 'fontsLoaded') props.push(n.initializer.getText(sf));
+    if (ts.isShorthandPropertyAssignment(n) && n.name.getText(sf) === 'fontsLoaded') props.push('fontsLoaded (shorthand)');
+    if (ts.isTemplateExpression(n))
+      n.templateSpans.forEach((span) => { if (/^ fonts loaded\b/.test(span.literal.text)) clauses.push(span.expression.getText(sf)); });
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  ok(clauses.length > 0 && clauses.every((e) => e === 'pf.brandLoaded') && props.length > 0 && props.every((e) => e === 'pf.brandLoaded'),
+    `#1090 the Apply Theme summary's "fonts loaded" and the agent data's fontsLoaded both read brandLoaded (clauses ${JSON.stringify(clauses)}, fontsLoaded ${JSON.stringify(props)})`);
+}
+
 // =============================================================================================
 // #1296 — ONE WEIGHT, TWO FAMILY SPELLINGS, ONE FILE: THE CUT VARIABLE THE TEXT STYLE BINDS
 // =============================================================================================
@@ -819,5 +868,5 @@ ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded ===
     `#2942 underline off: every -link style of the auto brand reads AUTO for both (${autoLinks.length})`);
 }
 
-console.log(`\nplugin TYPOGRAPHY write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin TYPOGRAPHY write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

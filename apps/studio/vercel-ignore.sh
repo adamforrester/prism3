@@ -84,7 +84,9 @@ EXCLUDED=(
 
 # `docs/public` is copied whole to the site's `/docs` by `build-site.mjs` (#2637), so a docs change is a site change.
 # `apps/plugin/src/causes.ts` is the one plugin file the web bundle reads (#3326 PR 1; see the header).
-PATHS=(apps/studio packages/engine/schema vercel.json package.json package-lock.json packages/engine docs/public apps/plugin/src/causes.ts)
+# `apps/plugin/strip-maintainer-prose.mjs` is a build plugin, not a bundle input: `build-site.mjs` runs it over the
+# component specs chunk it deploys (#3429, `component-specs-build.mjs`), so a change to it alone changes the site.
+PATHS=(apps/studio packages/engine/schema vercel.json package.json package-lock.json packages/engine docs/public apps/plugin/src/causes.ts apps/plugin/strip-maintainer-prose.mjs)
 for f in "${EXCLUDED[@]}"; do PATHS+=(":(exclude)packages/engine/$f"); done
 
 # WHAT THE DIFF IS AGAINST (#1953). Not `HEAD^`: a branch whose newest commit touches only docs (a progress

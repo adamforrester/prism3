@@ -69,6 +69,11 @@
       "why": "Every component definition as one versioned JSON export (#3425): each definition's shipped fields beside the spec of the component built from it. PAYLOAD because it is the published form of the definitions for a tool that does not run the engine. Generated from the TypeScript source, never edited; token names only, so one file serves every brand, and a brand's own export is written on demand."
     },
     {
+      "kind": "component-contracts",
+      "pattern": "out/components/component-contracts.json",
+      "why": "The same export under its contract name (#1325): each entry is one component's component contract, its spec as data. PAYLOAD for the same reason as component-defs.json, which stays beside it with the same bytes for one release as a compatibility copy."
+    },
+    {
       "kind": "component-defs-specs",
       "pattern": "out/components/component-defs.specs.json",
       "why": "The same export as a Specs components set (#3425), valid against the published Specs schema, for a tool that reads that format. PAYLOAD for the same reason as the export it projects. What the Specs format has no place for stays in the export."

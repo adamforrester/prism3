@@ -210,7 +210,7 @@ export const icon: ComponentDef = {
     root: 'glyph',
     parts: {
       glyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'per-glyph',
         // `target` in the schema's sense — the single node that owns this component's paint and
         // dimensions — and NOT in the interaction sense, which an icon never has (§5). Worth stating
         // because the two readings diverge here for the first time: every def so far has been a

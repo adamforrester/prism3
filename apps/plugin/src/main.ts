@@ -19,7 +19,7 @@
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
 import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
-import { ENGINE_VERSION, serializeBrandInput, resolveAllModes, brandTheme, type BrandInput } from '@prism3/engine';
+import { ENGINE_VERSION, formerDefIds, serializeBrandInput, resolveAllModes, brandTheme, UnrecognizedPersistedInputError, type BrandInput } from '@prism3/engine';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { isIssueUrl } from '../../studio/src/state/report';
 import { onUiMessage, postToUi } from './bridge-main';
@@ -28,6 +28,7 @@ import { restorePlacement, stripPlacement } from './window-place';
 import type { Point, WindowAt } from './window-place';
 import type { MainToUi, UiToMain, StyleGuideOptions, RunProgressKind } from './messages';
 import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
+import { announces, agentStartLine, agentDoneNotice } from './agent-run-notice';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } from './file-kind';
@@ -41,6 +42,7 @@ import { emissionOf, themeDue } from './theme-emission';
 import { fieldStyleNote, searchFieldStyleNote } from './field-style-note';
 import { tagStyleNote } from './tag-style-note';
 import { gridSkippedNote } from './write-grid-styles';
+import { styleRenamedNote } from './rename-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
 import { saveBeforeBuild, saveVersion } from './version-title';
@@ -65,18 +67,19 @@ import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot 
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
 import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
 import { livePanels, livePanelsOf, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
-import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
+import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, lastChangedKey, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import { type AnatomyPlan, checkAnatomySet, figmaAnatomyMembers, figmaAnatomySet, button, componentDefs, type ComponentDef } from '@prism3/engine/components';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleNames } from './list-fonts';
 import { restoreInput, holdsInput, canon } from './persist-figma';
-import { planOverride, overrideVerdict, overrideData, wholeRunRefusal, type OverrideChange, type OverrideRefusal } from './set-override';
+import { readUpdatesOff, writeUpdatesOff, type UpdatesOff } from './updates-off';
+import { planOverride, overrideVerdict, overrideData, wholeRunRefusal, confirmMoved, type OverrideChange, type OverrideRefusal } from './set-override';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { PACE_MS, pacer } from './pace';
 import { materializeForBrand, materializerFor } from './brand-def';
-import { dueOf, entryFor, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type DueReason, type Ledger, type LedgerEntry, type PlanPrint } from './as-built-ledger';
+import { dueOf, entryFor, formerEntry, needsPrint, printOf, printSteps, quietOf, readLedger, recordSets, type DueReason, type Ledger, type LedgerEntry, type PlanPrint } from './as-built-ledger';
 import { clearQueued, readQueue, setQueued, staleOf, visibleOf, type QueueRoot } from './add-queue';
 import { presentNames, prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
@@ -89,7 +92,7 @@ import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
 import { dropFor as dropViewsFor, dropViews, keepView, keptView, noteVariables, variablesPrint, viewEpoch, watchViews } from './member-views';
 import { breakingOf, type CheckProgress } from './update-plan';
-import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
+import { locateSets, previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText, handEditsOf, checkedSetOf } from './update-plan';
 import type { UpdateHost, UpdateTarget } from './update-plan';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
@@ -402,7 +405,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts], ...collisions }, sink);
       return;
     }
-    const { mig, r, f, s, gs, tv, ts, mv, uc } = guarded.result;
+    const { mig, r, f, s, gs, tv, ts, mv, uc, styleRenames } = guarded.result;
     // `motion` (#2412) — TIMING + EASING through the mixed-type executor; its refusals count with the font ones.
     const motionTotal = mv.collections.reduce((n, c) => n + c.total, 0);
     const motionCreated = mv.collections.reduce((n, c) => n + c.created, 0);
@@ -504,6 +507,8 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       migrated.length ? `${migrated.length} renamed ${migrated.length === 1 ? 'token' : 'tokens'} migrated in place (bindings kept: ${migrated.slice(0, 3).map((o) => `${o.from}→${o.to}`).join(', ')}${migrated.length > 3 ? '…' : ''})` : '',
       migRefused.length ? `⚠ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '',
       mig.refusals.length ? `⚠ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '',
+      // #1040 (owner decision A): a style the engine renamed, moved in place by `rename-styles.ts`. Copy DRAFT.
+      styleRenamedNote(styleRenames),
     ];
     // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
     // rather than silently succeeding — it is the difference between "the guess was right" and "the
@@ -527,7 +532,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       `palette ${r.paletteTotal} (+${r.paletteCreated})`, `color ${r.colorTotal} (+${r.colorCreated})`,
       `dims/layout ${f.collections.length} collections (+${floatCreated})`,
       `styles ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
-      `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
+      `type ${pf.brandLoaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
       `motion ${motionTotal} vars (+${motionCreated})`,
       // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).
       motionReplacedItem(mv.replaced.length),
@@ -559,7 +564,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
           effects: { total: s.effects.total, created: s.effects.created, bound: s.effects.bound },
           gradients: { total: s.paints.total, created: s.paints.created, stopsBound: s.paints.bound },
           gridStyles: { total: gs.total, created: gs.created, renamed: gs.renamed, skipped: gs.skipped },
-          fontsLoaded: pf.loaded, fontVars: { total: fontVarTotal, created: fontVarCreated },
+          fontsLoaded: pf.brandLoaded, fontVars: { total: fontVarTotal, created: fontVarCreated },
           motion: { total: motionTotal, created: motionCreated, replaced: mv.replaced },
           textStyles: { total: ts.total, created: ts.created }, bindings: r.bound + f.bound + tv.bound + mv.bound + ts.bound,
         },
@@ -1273,13 +1278,19 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
     // #3301: the names as each page's turn read them, so naming every component in a full library is not one more turn.
     const recs = found.nodes.map((_, i) => ({ type: found.kinds[i], name: found.names[i] }));
     const names = presentNames({ root: { findAllWithCriteria: (c: { types: readonly string[] }) => recs.filter((r) => c.types.includes(r.type)) } } as unknown as Parameters<typeof presentNames>[0]);
-    const ids = componentDefs.filter((d) => d.figmaProperties && (names.has(d.id) || (!!d.figmaProperties.emitAsComponents && [...names].some((n) => n.startsWith(`${d.id}/`))))).map((d) => d.id);
+    // #3770: a set the file holds under an id its def was renamed from (#2759, #3148) is present too, under the current
+    // id: the update finds it there (`locateSets`, `readSingleView`) and renames it. Else it read as absent, so it was
+    // offered to add beside the one the file holds, and a set nesting it was blocked for want of it.
+    const holds = (d: (typeof componentDefs)[number], id: string): boolean => names.has(id) || (!!d.figmaProperties?.emitAsComponents && [...names].some((n) => n.startsWith(`${id}/`)));
+    const ids = componentDefs.filter((d) => d.figmaProperties && [d.id, ...formerDefIds(d.id)].some((id) => holds(d, id))).map((d) => d.id);
     // #3137 Q3137.3 A: with every page loaded, the panels census, one search, kept beside the sets so a recount reads
     // both with no page load, whichever way Documentation's switch is turned meanwhile.
     const paneled = panelCensus(found, frames);
-    if (gen === presentGen) { presentCache = ids; panelCache = paneled; }
+    // #2956: the sets whose updates are off, read off each set node the search found, by def id.
+    const off = offOf(found, ids);
+    if (gen === presentGen) { presentCache = ids; panelCache = paneled; offCache = off; }
     watchSets();
-    return { ids, nodes: found.nodes, kinds: found.kinds, paneled };
+    return { ids, nodes: found.nodes, kinds: found.kinds, paneled, off };
   })();
   presentRead = read;
   const clear = (): void => { if (presentRead === read) presentRead = null; };
@@ -1287,7 +1298,20 @@ const readPresent = (onPage?: (done: number, total: number) => void): Promise<Fi
   return read;
 };
 /** `kinds[i]` is `nodes[i]`'s type, read once, in the turn its page was searched (#3301). */
-type FileRead = { ids: string[]; nodes: readonly SearchNode[]; kinds: readonly string[]; paneled: string[] };
+type FileRead = { ids: string[]; nodes: readonly SearchNode[]; kinds: readonly string[]; paneled: string[]; off: Record<string, UpdatesOff> };
+/** #2956: each present def whose set carries the "Updates off" mark (`updates-off.ts`), from the read's own nodes: a set
+ *  under its def id or an id the def was renamed from. A single-component def has no set node, so never reads off. */
+const offOf = (found: Pick<Found, 'nodes' | 'kinds' | 'names'>, ids: readonly string[]): Record<string, UpdatesOff> => {
+  const sets = new Map<string, SearchNode>();
+  found.nodes.forEach((n, i) => { if (found.kinds[i] === 'COMPONENT_SET' && !sets.has(found.names[i])) sets.set(found.names[i], n); });
+  const out: Record<string, UpdatesOff> = {};
+  for (const id of ids) {
+    const node = [id, ...formerDefIds(id)].map((x) => sets.get(x)).find((x) => x !== undefined);
+    const v = node ? readUpdatesOff(node) : null;
+    if (v) out[id] = v;
+  }
+  return out;
+};
 /** What a page-by-page search found, each node's type and name read in its page's turn. */
 type Found = { nodes: SearchNode[]; kinds: string[]; names: string[] };
 type SearchNode = { readonly type?: string; readonly name?: string };
@@ -1356,6 +1380,8 @@ let presentCache: string[] | null = null;
 /** #3137 Q3137.3 A: the leads whose usage panel the last census found drawn (`panel-census.ts`), beside `presentCache` and
  *  cleared with it, so the badge's recount reads the panels with no page load. Null until a read has run the census. */
 let panelCache: string[] | null = null;
+/** #2956: the sets the last read found with their updates off, beside `presentCache` and cleared with it. */
+let offCache: Record<string, UpdatesOff> | null = null;
 /** #3137: the census, from a read's own searches: the panel frames it collected a page at a time, read against the set ids
  *  it found (`readPresent` keeps it as `panelCache`). Never throws: an unreadable frame reads as no panel. */
 const panelCensus = (found: Found, frames: readonly SearchNode[]): string[] => {
@@ -1408,7 +1434,7 @@ const watchSets = (): void => {
       // #3313: a change to any component or set, or any style, has the next Update check read every set again (`member-views.ts`).
       dropViewsFor(e.documentChanges as Parameters<typeof dropViewsFor>[0]);
       if (presentCache === null || !movesSets(e.documentChanges as readonly SetChange[])) return;
-      presentCache = null; panelCache = null; presentRead = null; presentGen++;
+      presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++;
     });
     watchingSets = true;
     watchViews(true);
@@ -1453,8 +1479,8 @@ const brandOf = (panel: BrandInput | undefined): BrandInput | null => {
 /** The ledger entry each def would get if it were built now, against `input`'s brand (#2909 Q2909.8 A, `brandOf`). The
  *  brand's theme is built once for every def (`materializerFor`); a def the engine cannot plan has none, and reads
  *  unrecorded. */
-const ledgerNow = (input?: BrandInput): ((def: string) => LedgerEntry | null) => {
-  const mat = materializerFor(brandOf(input)), panel = panelFormatOf(); // #3205: on a lead set, today's panel format
+const ledgerNow = (input?: BrandInput, panels?: boolean): ((def: string) => LedgerEntry | null) => {
+  const mat = materializerFor(brandOf(input)), panel = panelFormatOf(panels); // #3205: on a lead set, today's panel format
   // #3301: each def's entry worked out once per read (`needsPrint` and `dueOf` both ask for every set's).
   const memo = new Map<string, LedgerEntry | null>();
   return (id) => {
@@ -1606,7 +1632,7 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
     const print = printNow(input);
     await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
-    const due = await timed('due (file)', () => dueOf(ledger, present, now, print));
+    const due = await timed('due (file)', () => dueOf(ledger, present, now, print, read.off));
     // #3308 (Q3308.3 A): what Update file's run would build first for the usage panels, read from the same search.
     const docBlockLacks = findDocBlock({ root: rootOver(read) } as unknown as PanelApi) ? null : DOC_BLOCK_DEFS.filter((id) => !present.includes(id));
     // #3467 (Q3 A, Q4 A): what Set up file owns and the file lacks, beside `setUp`, which is unchanged (P8). Update file
@@ -1630,7 +1656,8 @@ const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
  *  no page loaded, so it is `partial` (`ledgerSets` says what it cannot see). Shared by `ledgerSets` and `context`. */
 const ledgerDue = async (time: <T>(stage: string, fn: () => T | Promise<T>) => Promise<T> = async (_s, fn) => fn()) => {
   const ledger = await time('ledger read', () => readLedger(figma.root));
-  const present = componentDefs.filter((d) => d.figmaProperties && ledger[d.id]).map((d) => d.id);
+  // #3770: an entry under an id the def was renamed from names the set too (`formerEntry`); `dueOf` reads it due.
+  const present = componentDefs.filter((d) => d.figmaProperties && (ledger[d.id] || formerEntry(ledger, d.id))).map((d) => d.id);
   // #3096 into #3090: the ledger's read prints too, as `fileSets` does, against the same stored brand: without a print
   // a printed set under a moved engine reads `unrecorded`, and the panel's first answer would disagree with the full
   // read on what is due. Printing projects the plans in memory and loads no page, a set at a time with the thread
@@ -1669,8 +1696,8 @@ const emissionNow = (input: BrandInput): string => {
 const themeDiffers = (input: BrandInput | undefined): boolean => !!input && themeDue(figma.root, input, () => emissionNow(input));
 const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void> => {
   try {
-    const cached = presentCache !== null && panelCache !== null ? { ids: presentCache, paneled: panelCache } : null;
-    const { ids: present, paneled } = cached ?? await readPresent();
+    const cached = presentCache !== null && panelCache !== null && offCache !== null ? { ids: presentCache, paneled: panelCache, off: offCache } : null;
+    const { ids: present, paneled, off } = cached ?? await readPresent();
     // #3137 Q3137.3 A: the panels switch is read each time (one root read), so turning it on recounts with no page load;
     // the census is the last read's (`panelCache`), kept beside its sets.
     const unpaneled = unpaneledNow(present, paneled);
@@ -1681,7 +1708,7 @@ const fileDue = async (input: BrandInput | undefined, seq: number): Promise<void
     const print = printNow(input);
     await nowYielding(now, present);
     await printYielding(print, needsPrint(ledger, present, now));
-    postToUi({ type: 'file-due', seq, present, theme: themeDiffers(input), due: dueOf(ledger, present, now, print), queued: queuedFor(present), ...unpaneled });
+    postToUi({ type: 'file-due', seq, present, theme: themeDiffers(input), due: dueOf(ledger, present, now, print, off), queued: queuedFor(present), ...unpaneled });
   } catch (e) {
     postToUi({ type: 'file-due', seq, present: [], theme: false, due: {}, queued: [], error: (e as Error)?.message ?? String(e) });
   }
@@ -1785,13 +1812,13 @@ const seatSet = async (setId: string, defId: string): Promise<void> => {
   } catch { /* the set stays where the executor placed it */ }
 };
 
-const updateTargets = (defId: string | readonly string[] | undefined, input?: BrandInput): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[] } => {
+const updateTargets = (defId: string | readonly string[] | undefined, input?: BrandInput): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[]; panels: boolean } => {
   const brandInput = brandOf(input);
   // #2909: the panel's Update file names a list, the sets its checklist ticked, in catalog order.
   const ids = typeof defId === 'string' ? [defId] : defId;
   const defs = ids === undefined ? componentDefs.filter((d) => d.figmaProperties) : componentDefs.filter((d) => ids.includes(d.id));
   const unknownId = ids?.find((id) => !componentDefs.some((d) => d.id === id));
-  if (unknownId !== undefined) return { targets: [], unknown: unknownId, refused: [] };
+  if (unknownId !== undefined) return { targets: [], unknown: unknownId, refused: [], panels: false };
   const targets: UpdateTarget[] = [];
   const refused: { def: string; reason: string }[] = [];
   // #2909: a set's usage panel rides its update only while Documentation has the panels on for this file.
@@ -1801,7 +1828,7 @@ const updateTargets = (defId: string | readonly string[] | undefined, input?: Br
     try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}), ...(panels && leadsPanel(d.id) ? { doc: { def: d, names: defName } } : {}) }); }
     catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${failureDetail(e)})` }); }
   }
-  return { targets, unknown: null, refused };
+  return { targets, unknown: null, refused, panels };
 };
 const breathe = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 /** #3421: the per-set hand-edit choices an `update-sets` carries, each a known choice, as `UpdateChoices.sets`; undefined
@@ -1818,7 +1845,7 @@ const unknownDef = (defId: string, sink: ActionSink): void => {
 
 const updateComponents = async (defId: string | readonly string[] | undefined, previewHash: string | null, choices: UpdateChoices | undefined, input: BrandInput | undefined, sink: ActionSink): Promise<void> => {
   try {
-    const { targets, unknown, refused } = updateTargets(defId, input);
+    const { targets, unknown, refused, panels } = updateTargets(defId, input);
     if (unknown !== null) return unknownDef(unknown, sink);
     // #3177: the check and the apply each load and search the file a page per turn, once, for every set they read.
     if (previewHash === null) {
@@ -1858,7 +1885,7 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     // brand its plans were laid from (the panel's, which the run's Theme step applied). A refused set, or an apply
     // refused whole (the file moved since the check), records nothing. CAUGHT, as the build's is.
     // #3082 Q811 A: with the print of the plans the apply laid, the target's own.
-    const now = ledgerNow(input);
+    const now = ledgerNow(input, panels); // #3870: the switch `updateTargets` read, never read again: it can move mid-run
     // #3421 (Q39 A): a set whose kept hand edits held changes back carries them (`held`), so it is listed under Kept edits.
     // #3436: the ledger before the run, so a later Keep run over a kept set keeps the `held` its entry carried.
     let was: Ledger = {};
@@ -1878,7 +1905,7 @@ const updateComponents = async (defId: string | readonly string[] | undefined, p
     const items = [...furnitureItems(furniture, 'update'), ...[docBlockLine(furniture, 'update', fix)].filter(Boolean)];
     postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), items), furniture, 'update', fix), ...(r.publish ? { publish: r.publish } : {}) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     const headline = previewHash === null ? '✗ check failed' : '✗ update failed';
     postVerdict({ type: 'component-update-result', ok: false, headline, summary: why, lines: [why], causes: [runCause(headline, why)] }, sink);
   }
@@ -1896,7 +1923,7 @@ const captureBaseline = async (defId: string | undefined, sink: ActionSink): Pro
     sink.data({ update: { mode: 'capture', ...r } });
     postVerdict({ type: 'component-update-result', ...captureVerdictText(r) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ record failed', summary: why, lines: [why] }, sink);
   }
 };
@@ -1913,7 +1940,7 @@ const adoptMembers = async (defId: string | undefined, sink: ActionSink): Promis
     sink.data({ update: { mode: 'adopt', ...r } });
     postVerdict({ type: 'component-update-result', ...adoptVerdictText(r) }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ adopt failed', summary: why, lines: [why] }, sink);
   }
 };
@@ -1956,7 +1983,7 @@ const drawSpecs = async (defId: string | undefined, scope: 'file' | 'page', sink
     const causes = clean ? [] : [{ ...runCause(headline, ''), reasons: targets.length ? [...items] : [summary] }];
     postVerdict({ type: 'component-update-result', ok: clean, headline, summary, lines: targets.length ? [`Drew ${drawn.length} of ${targets.length}.`, ...items] : [summary], causes }, sink);
   } catch (e) {
-    const why = (e as Error)?.message ?? String(e);
+    const why = failureDetail(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: '✗ draw specs failed', summary: why, lines: [why], causes: [runCause('✗ draw specs failed', why)] }, sink);
   }
 };
@@ -2061,7 +2088,7 @@ const savedContract = (): { contract: SgContract | null; note: string } => {
     const input = restoreInput(figma.root);
     return { contract: input ? resolveAllModes(brandTheme(input)) : null, note: '' };
   } catch (e) {
-    return { contract: null, note: `The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"` };
+    return { contract: null, note: `The saved brand did not resolve (${failureDetail(e)}), so the contrast column reads "—"` };
   }
 };
 
@@ -2181,7 +2208,7 @@ const restoreToUi = (): void => {
     if (input) postToUi({ type: 'restore-input', input });
     else void fileKindToUi();
   } catch (e) {
-    postToUi({ type: 'restore-input-error', message: (e as Error).message });
+    postToUi({ type: 'restore-input-error', message: e instanceof UnrecognizedPersistedInputError ? e.message : failureDetail(e) });   // #4253: a host throw as its class
   }
 };
 
@@ -2273,8 +2300,8 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
     if (holder) { sink.post(refusal(cmd, sink !== uiSink, holder)); return Promise.resolve(); }
     // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
     // cleared as the write starts too: the write's verdict posts before the write's promise settles.
-    presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews();
-    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; presentRead = null; presentGen++; dropViews(); if (handPassOwed) void handEditsPass(); }); // #3804: a hand-edit pass this write ended runs again, over the file it left.
+    presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++; dropViews();
+    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++; dropViews(); if (handPassOwed) void handEditsPass(); }); // #3804: a hand-edit pass this write ended runs again, over the file it left.
   };
 
 /**
@@ -2314,8 +2341,8 @@ const panelsClean = async (confirm: boolean, sink: ActionSink): Promise<void> =>
 
 /**
  * #3394 (Q3394.1–.7 all A): THE AGENT LINK'S COLOR OVERRIDES. A preview plans the changes against the brand the file holds
- * and writes nothing. A confirmed write plans them again, refuses when the plan's hash is not the preview's (the file's
- * brand moved) or when the panel holds Theme edits the file does not, and then hands the planned brand to
+ * and writes nothing. A confirmed write plans them again, refuses when the plan's hash is not the preview's (the changes
+ * sent are not the ones previewed, or the file's brand moved: #3693 tells the two apart) or when the panel holds Theme edits the file does not, and then hands the planned brand to
  * `ACTIONS.applyTheme`, the entry the panel's Apply reaches (so its guard, its saved version and its persist are the
  * Theme write's own). Its verdict is its own, `override-result`, one Activity row (Q3394.7 A); the Theme write's verdict
  * is read here and not posted. After a write the panel is sent the brand, so Theme shows what the agent stored.
@@ -2340,7 +2367,9 @@ const setOverride = async (changes: readonly OverrideChange[], previewHash: stri
     sink.post({ type: 'override-result', ok: v.ok, preview: !applied, applied: false, headline: v.headline, summary: v.lines.join('; '), lines: v.lines });
     return;
   }
-  if (plan.previewHash !== previewHash) { refused(wholeRunRefusal('brand-moved'), { previewHash: plan.previewHash }); return; }
+  // #3693: the echoed hash's changes half names an agent's own mismatch; its brand half, the file's.
+  const moved = confirmMoved(plan.previewHash, previewHash);
+  if (moved) { refused(wholeRunRefusal(moved), { previewHash: plan.previewHash }); return; }
   if (panelInput && !holdsInput(figma.root, panelInput)) { refused(wholeRunRefusal('theme-unsaved')); return; }
   // The Theme write, through the table: the same function object the panel's Apply reaches, read at call time.
   const posts: MainToUi[] = [];
@@ -2348,7 +2377,7 @@ const setOverride = async (changes: readonly OverrideChange[], previewHash: stri
   // The panel's brand as the write starts: an edit the designer makes while it runs must not be reloaded over.
   const asked = panelInput ? canon(panelInput) : null;
   let threw: string | null = null;
-  try { await ACTIONS.applyTheme(plan.input, undefined, inner); } catch (e) { threw = (e as Error)?.message ?? String(e); }
+  try { await ACTIONS.applyTheme(plan.input, undefined, inner); } catch (e) { threw = failureDetail(e); }
   const busy = posts.find((m) => m.type === 'refused');
   if (busy) { sink.post(busy); return; }
   sink.data(overrideData(plan));
@@ -2374,6 +2403,29 @@ const setOverride = async (changes: readonly OverrideChange[], previewHash: stri
   sink.post({ type: 'override-result', ok: true, preview: false, applied: true, headline: v.headline, summary: v.lines.join('; '), lines: v.lines });
 };
 
+/**
+ * #2956 (owner decisions 2026-11-17): "TURN OFF UPDATES" AND "TURN UPDATES BACK ON", from Update file. Writes the set's
+ * mark only (`updates-off.ts`): no member, no version, no Activity verdict. Turning off marks it the designer's
+ * (`designer`, so no reason line); turning back on clears whichever mark it holds, and the next check re-plans the set
+ * normally. Guarded as a component write, so it never lands inside an Update run, whose check hashes the mark. Answered
+ * with one `updates-off`. The panel only, for now: no agent command reaches it (OWNER DECISION in the PR).
+ */
+const setUpdatesOff = async (def: string, off: boolean, sink: ActionSink): Promise<void> => {
+  try {
+    const d = componentDefs.find((x) => x.id === def);
+    if (!d?.figmaProperties || d.figmaProperties.emitAsComponents) throw new Error(`${def} has no component set to carry it`);
+    await loadPagesYielding();
+    // The set the update check reads (`locateSets`): the current id's, or a former id's only when it is absent.
+    const set = locateSets(figma as unknown as UpdateHost, { def, plans: [] }).found[0] as SceneNode | undefined;
+    if (!set) throw new Error(`this file has no ${def} set`);
+    writeUpdatesOff(set, off ? 'designer' : null);
+    sink.post({ type: 'updates-off', def, off, ok: true });
+  } catch (e) {
+    sink.post({ type: 'updates-off', def, off, ok: false, error: (e as Error)?.message ?? String(e) });
+  }
+};
+const setUpdatesOffGuarded = guarded('build-components', setUpdatesOff);
+
 export const ACTIONS: AgentActions = {
   applyTheme: guarded('apply-theme', thenRestamp(applyTheme)),
   buildComponents: guarded('build-components', thenRestamp(buildComponents)),
@@ -2398,13 +2450,29 @@ export const ACTIONS: AgentActions = {
  */
 /** #3309: the agent command running now, so the activity log can name what an agent's forwarded verdict answered. */
 let agentCmd: string | null = null;
+/** #2368: the announced agent run, with its start notice, until the link publishes its result. */
+let announced: { id: string; cmd: string; notice: NotificationHandler | null } | null = null;
 const dispatch = createDispatcher({
   actions: ACTIONS,
   // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
   onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
-  onStart: (id, cmd, apply) => { agentCmd = cmd; postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}) }); },
+  // #2087: a build names its set (no def builds Button, as `buildComponents` does), so the Components page records its verdict.
+  // #2368 (owner decision A): a command that writes the file is announced. The panel's bar shows it busy, and a host
+  // notice says it is running and that closing Prism3 stops it; the notice stays up until its result is written.
+  onStart: (id, cmd, apply, def, confirm) => {
+    agentCmd = cmd;
+    const busy = announces(cmd, confirm === true);
+    postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}), ...(cmd === 'build-components' ? { def: def ?? button.id } : {}),
+      ...(busy ? { busy: true as const } : {}) });
+    if (busy) {
+      try { announced?.notice?.cancel(); } catch { /* a notice; never fails the command */ }
+      let notice: NotificationHandler | null = null;
+      try { notice = figma.notify(agentStartLine(cmd), { timeout: Infinity }); } catch { /* a notice; see above */ }
+      announced = { id, cmd, notice };
+    }
+  },
   onFinish: (id, cmd) => { agentCmd = null; postToUi({ type: 'agent-finished', id, cmd }); },
   // #1957, #3697 R7: an agent's write is declined before it starts while any write holds the file.
   refuse: (c) => {
@@ -2491,7 +2559,16 @@ export const agentLink = createAgentLink({
   build: PRISM3_BUILD,
   schedule: (fn, ms) => setTimeout(fn, ms),
   cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
-  onState: (state) => postToUi({ type: 'agent-link-state', state }),
+  onState: (state) => {
+    postToUi({ type: 'agent-link-state', state });
+    // #2368: the announced run's result is written once the link publishes it as its last command: its start notice
+    // gives way to the finish notice, with the command's headline.
+    const done = agentDoneNotice(announced, state.lastCommand);
+    if (!done || !announced) return;
+    try { announced.notice?.cancel(); } catch { /* a notice; never fails the command */ }
+    announced = null;
+    try { figma.notify(done.message, { timeout: done.timeout }); } catch { /* a notice; see above */ }
+  },
 });
 // Closing the plugin ends the session, so the link record says so — an agent reading `link` then knows
 // nobody is listening rather than waiting on a poll that will never come.
@@ -2545,6 +2622,10 @@ onUiMessage((msg: UiToMain) => {
     case 'add-queue':
       // #3129 Q833 A: Components' boxes and Update file's Remove, Remove all and Add all. Writes no layer: never guarded.
       void addQueue(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], msg.on === true);
+      return;
+    case 'updates-off':
+      // #2956: Update file's "Turn off updates" / "Turn updates back on". A write of plugin data on the set: guarded.
+      if (typeof msg.def === 'string') void setUpdatesOffGuarded(msg.def, msg.off === true, uiSink);
       return;
     case 'activity-note':
       // #3309: the panel's summary of a run of several writes, for the agent link's `activity`. Writes nothing.
@@ -2687,9 +2768,10 @@ onUiMessage((msg: UiToMain) => {
 
 /** THE PANEL FORMAT A SET'S ENTRY CARRIES (#3205): `PANEL_FORMAT` on a family's lead set while Documentation has the
  *  usage panels on for this file, the sets whose update checks a panel (`updateTargets`' `doc`); nothing on any other.
- *  The file's switch is read once per call. Defined here, at the end, so the lines public guides cite above stay put;
- *  it is called only once the module has loaded. */
-const panelFormatOf = (): ((def: string) => { panel?: number }) => {
-  const on = readDocSettings(figma.root).panels;
-  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
+ *  The file's switch is read once per call, unless the caller hands in the value its run already read (#3870). Defined
+ *  here, at the end, so the lines public guides cite above stay put; it is called only once the module has loaded. */
+const panelFormatOf = (panels?: boolean): ((def: string) => { panel?: number; changed?: string }) => {
+  const on = panels ?? readDocSettings(figma.root).panels;
+  // #2889: and the text of its "Last changed in" block, so a fold that moves it makes the set due (owner decision A).
+  return (id) => (on && leadsPanel(id) ? { panel: PANEL_FORMAT, changed: lastChangedKey(id) } : {});
 };

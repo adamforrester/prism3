@@ -141,7 +141,7 @@ const OUT_FIGMA = join(import.meta.dirname, 'out', 'figma');
  *  each promised surface is REPRESENTED, never merely counts — if one stops emitting a text-styles
  *  file, this fails rather than passing over a smaller set. Discovered brands are checked too, so a
  *  new brand is covered the day it emits; these are the floor. */
-const MUST_COVER = ['aurora', 'nb', 'wendys'];
+const MUST_COVER = ['aurora', 'harbor', 'nb', 'wendys'];
 
 /** The documented contract, transcribed as constants — NOT read from the emitter (the independence the
  *  header promises). A line-height / letter-spacing field must be an unbound bake in this unit. */

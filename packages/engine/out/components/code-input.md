@@ -13,7 +13,7 @@ A field for a short one-time code sent by text message, email or an authenticato
 
 - **Purpose:** Capture a short one-time code in one input, drawn as a row of cells.
 - **Use when:** A step whose job is a fixed-length code of four to eight characters sent by text message, email or an authenticator app.
-- **Avoid when:** The code length is unknown or the code sits inside a longer form (TextField with one-time-code autocomplete), the value is a password or a kept PIN (PasswordField), or it is a quantity (Counter).
+- **Avoid when:** The code length is unknown or the code sits inside a longer form (TextField with `one-time-code` `autocomplete`), the value is a password or a kept PIN (PasswordField), or it is a quantity (Counter).
 
 ## Anatomy
 
@@ -43,7 +43,9 @@ Shown on the default member: size `medium`, status `default`.
 
 ## Usage guidelines
 
-Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with one-time-code autocomplete.
+Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with `one-time-code` `autocomplete`.
+
+**In RTL.** The items do not mirror.
 
 ### Do
 
@@ -61,7 +63,7 @@ Use for a short, fixed-length code sent by text message, email or an authenticat
 
 - **Keyboard:** One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.
 - **Focus:** Focus stays on the one input. The active cell, where the next character goes, shows the 2px focus edge.
-- **Screen readers:** textbox (one native \<input>); the cells are aria-hidden
+- **Screen readers:** textbox (one native `<input>`); the cells are `aria-hidden`
 
   aria-describedby names the helper and any error, aria-required is set when the code is required, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale.
 

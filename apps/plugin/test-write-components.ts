@@ -77,7 +77,9 @@ import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } 
 import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -1822,8 +1824,8 @@ ok(unavailMisses.some((m) => m.indexOf('.font ->') >= 0) && unavailMisses.some((
 // executor's text-style font catch back to `(err as Error).message` fails this arm by name.
 {
   const r = await run(grid, { ...full(), page: { children: [] }, styleFont: missingFont, unavailableFonts: [missingFont], fontRefusal: 'string' });
-  const refused = r.misses.filter((m) => m.includes('.font -> Clash Display Semi Bold ('));
-  const off = refused.filter((m) => !/^[^ ]+\.font -> Clash Display Semi Bold \(Cannot load font "Clash Display Semi Bold": it is not available\.\)$/.test(m));
+  const refused = r.misses.filter((m) => m.includes('.font -> Clash Display Semi Bold REFUSED ('));
+  const off = refused.filter((m) => !/^[^ ]+\.font -> Clash Display Semi Bold REFUSED \(Error: Cannot load font "Clash Display Semi Bold": it is not available\.\)$/.test(m));
   ok(refused.length > 0 && off.length === 0,
     `#3731 style font reason: a host that rejects a text style's font with a string has it reported (${refused.length} reported; off: ${off[0] ?? 'none'})`);
 }
@@ -2110,8 +2112,8 @@ ok(mixedThrew === '' && !mixedRun.misses.some((m) => /\.font ->/.test(m)),
 // Mutation: the floor's catch back to `(err as Error).message` fails this arm by name.
 {
   const r = await run(labelPlans, { ...fullFor(labelPlans), styles: [], unavailableFonts: [{ family: 'Inter', style: 'Regular' }], fontRefusal: 'string', page: { children: [] } });
-  const refused = r.misses.filter((m) => m.includes('.font -> Inter Regular ('));
-  const off = refused.filter((m) => !/^[^ ]+\.font -> Inter Regular \(Cannot load font "Inter Regular": it is not available\.\)$/.test(m));
+  const refused = r.misses.filter((m) => m.includes('.font -> Inter Regular REFUSED ('));
+  const off = refused.filter((m) => !/^[^ ]+\.font -> Inter Regular REFUSED \(Error: Cannot load font "Inter Regular": it is not available\.\)$/.test(m));
   ok(refused.length > 0 && off.length === 0,
     `#3731 floor font reason: a host that rejects the node's own font with a string has it reported (${refused.length} reported; off: ${off[0] ?? 'none'})`);
 }
@@ -5302,6 +5304,7 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
     ['buttonIcons', 'edges'],
     ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
     ['buttonTextHover', 'fill'],
+    ['buttonBorderWeight', 'thick'],
     ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
     // #2695: Field style moves only the field defs' geometry and paints, never the tree.
     ['fieldStyle', 'underline'],
@@ -6057,10 +6060,10 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
       return fn?.family === FALLBACK.family && fn.style === FALLBACK.style && label?.fontSize === FALLBACK.size && lh?.unit === 'PIXELS' && lh.value === FALLBACK.lineHeight
         ? [] : [`${String(m.name)}: ${JSON.stringify(fn)} ${String(label?.fontSize)}/${JSON.stringify(lh)}`];
     });
-    const refused = fb.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium ('));
-    const other = fb.misses.filter((x) => !x.startsWith('label.font -> Google Sans Medium ('));
+    const refused = fb.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium REFUSED ('));
+    const other = fb.misses.filter((x) => !x.startsWith('label.font -> Google Sans Medium REFUSED ('));
     ok(fb.members.length === 96 && google.length === 36 && offFace.length === 0 && refused.length === google.length && other.length === 0,
-      `sign-in build/font fallback: with Google Sans refused, all 96 members build, every Google label (${google.length}) lands in Roboto Medium 14/20, and the refused face is reported once per Google label as 'label.font -> Google Sans Medium (…)' (${refused.length} reported; off: ${offFace[0] ?? 'none'}; other misses: ${other[0] ?? 'none'})`);
+      `sign-in build/font fallback: with Google Sans refused, all 96 members build, every Google label (${google.length}) lands in Roboto Medium 14/20, and the refused face is reported once per Google label as 'label.font -> Google Sans Medium REFUSED (…)' (${refused.length} reported; off: ${offFace[0] ?? 'none'}; other misses: ${other[0] ?? 'none'})`);
   }
 
   // THE REFUSAL'S REASON, WHATEVER THE HOST REJECTS WITH (the owner's Update file run, 2026-11-12). Figma's refusal of a
@@ -6070,8 +6073,8 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
   // arm by name.
   {
     const fb = await buildSignIn({ unavailableFonts: [{ family: 'Google Sans', style: 'Medium' }], fontRefusal: 'string' });
-    const refused = fb.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium ('));
-    const want = 'label.font -> Google Sans Medium (Cannot load font "Google Sans Medium": it is not available.)';
+    const refused = fb.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium REFUSED ('));
+    const want = 'label.font -> Google Sans Medium REFUSED (Error: Cannot load font "Google Sans Medium": it is not available.)';
     const off = refused.filter((x) => x !== want);
     ok(fb.members.length === 96 && refused.length === 36 && off.length === 0,
       `sign-in build/font reason: a host that rejects the load with a string has it reported, on all 36 Google labels (${refused.length} reported; off: ${off[0] ?? 'none'})`);
@@ -6232,5 +6235,5 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
     `#1857 the summary line is printed after every assertion, so it counts them all (${summaries.length} summary line(s)${at >= 0 ? ` at line ${at + 1}` : ''}; ${after.length} assertion call(s) after it${after.length ? `, first at line ${after[0]}` : ''})`);
 }
 
-console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

@@ -1,6 +1,6 @@
 /**
  * Button options (UI redesign S8.2; moved by #2700). The way to Shape › Density, then Button icons, Button label & icon,
- * Control label weight (the `buttonLabelWeight` key, #2945) and text-button hover as chips, and Button minimum width as a slider.
+ * Control label weight (the `buttonLabelWeight` key, #2945), text-button hover and the outline border (#576) as chips, and Button minimum width as a slider.
  *
  * READ-ONLY LINES (#2909 Q2909.3 A, Q2909.4 A, v2's lever-home table). Three brand-wide levers shape buttons and are
  * edited in Theme, so each shows here as a line whose link opens its home (`ui/home-line.ts`): Density (Theme › Shape),
@@ -24,10 +24,10 @@
  * HOW IT REPAINTS: by store subscription only (`brand` and `mode`), keeping focus on the element that had it, except
  * while the slider is being dragged, which updates in place.
  */
-import type { ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover } from '@prism3/engine';
+import type { ButtonBorderWeight, ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover } from '@prism3/engine';
 import { brandState, currentMode, getPath, lastError, rebuild, setPage, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { contentSizeOf, setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth, setButtonTextHover, type ContentSizeView } from '../state/button-input';
+import { contentSizeOf, setButtonBorderWeight, setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth, setButtonTextHover, type ContentSizeView } from '../state/button-input';
 import { brandDensity } from '../state/shape-input';
 import { pageOfTab } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
@@ -59,10 +59,12 @@ const WRITES: Readonly<Record<string, (v: string) => void>> = {
   buttonContentSize: (v) => setButtonContentSize(v as ButtonContentSize),
   buttonLabelWeight: (v) => setButtonLabelWeight(v as ButtonLabelWeight),
   buttonTextHover: (v) => setButtonTextHover(v as ButtonTextHover),
+  buttonBorderWeight: (v) => setButtonBorderWeight(v as ButtonBorderWeight),
 };
 
-/** The chip options, in the order the page has always drawn them. */
-export const BUTTON_OPTION_KEYS = ['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonTextHover'] as const;
+/** The chip options, in the order the page has always drawn them. #576's Outline button border comes last, after the
+ *  Outline hover line (placement DRAFT, for the owner). */
+export const BUTTON_OPTION_KEYS = ['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonTextHover', 'buttonBorderWeight'] as const;
 
 /** Everything a pointer or keyboard can operate, held in a derived mode. */
 const OPERABLE = 'button, input, select, [role="radio"], [role="slider"], [role="checkbox"], [tabindex]:not([tabindex="-1"])';

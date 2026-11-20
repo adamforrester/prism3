@@ -13,7 +13,7 @@ A single-line field for a payment card's number. TextField's anatomy and contrac
 
 - **Purpose:** Capture a payment card's number, showing the detected card network's tile and stating the network in text.
 - **Use when:** The card number in a checkout or a saved-card form, beside text fields for the expiration date and the security code.
-- **Avoid when:** The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (WalletButton). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).
+- **Avoid when:** The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (WalletButton). Never for the expiration date or the security code (TextField with `autocomplete` `cc-exp` or `cc-csc`).
 
 ## Anatomy
 
@@ -42,14 +42,16 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 ## Usage guidelines
 
-Use for a payment card's number in a checkout or a saved-card form. The field nests FieldLabel above, the input box with the card network's tile at its trailing edge, and FieldMessage below. Set brand from the card-type detection, or from the payment provider's brand event, and brandName to the network's name, so the network is stated in text as well as shown. Ask for the expiration date and the security code in their own text fields, with autocomplete cc-exp and cc-csc. When the payment provider hosts the input, pass its mount point with renderInput and let the field draw everything around it.
+Use for a payment card's number in a checkout or a saved-card form. The field nests FieldLabel above, the input box with the card network's tile at its trailing edge, and FieldMessage below. Set brand from the card-type detection, or from the payment provider's brand event, and `brandName` to the network's name, so the network is stated in text as well as shown. Ask for the expiration date and the security code in their own text fields, with `autocomplete` `cc-exp` and `cc-csc`. When the payment provider hosts the input, pass its mount point with `renderInput` and let the field draw everything around it.
+
+**In RTL.** The layout mirrors: the start edge is on the right. The value and card mark do not mirror.
 
 ### Do
 
 - Let the leading digits set the network, and swap the tile in place
-- State the detected network in text with brandName, not by the tile alone
+- State the detected network in text with `brandName`, not by the tile alone
 - Group the digits as the user types, and keep the value digits only
-- Use the payment provider's hosted input in production, with renderInput
+- Use the payment provider's hosted input in production, with `renderInput`
 - Warn, rather than block, when the number fails the checksum
 
 ### Don't
@@ -57,14 +59,14 @@ Use for a payment card's number in a checkout or a saved-card form. The field ne
 - Recolor, dim or redraw the tile, at any state
 - Add a card-type select: the digits tell the network
 - Put the expiration date or the security code in this box
-- Use type="number" or turn off autocomplete
+- Use `type="number"` or turn off autocomplete
 - Move focus to the next field when the number is complete
 
 ## Accessibility
 
 - **Keyboard:** Native text editing. Tab reaches the input; the tile is not a stop. Focus never moves on its own when the number is complete.
 - **Focus:** The input takes TextField's 2px focus edge, in place of its border. With a hosted input, the edge follows the provider's focus event, and clicking the label focuses the provider's input.
-- **Screen readers:** textbox (a native \<input inputmode="numeric">, or the payment provider's hosted input inside its frame)
+- **Screen readers:** textbox (a native `<input inputmode="numeric">`, or the payment provider's hosted input inside its frame)
 
   The host wires the label, aria-describedby and aria-invalid as TextField does. The tile is aria-hidden. The detected network's name is a visually hidden description on the input, added to aria-describedby and never a live region, so typing is not interrupted by speech. Reformatting is not announced. With a hosted input, the label text is also passed to the provider's own label option, because a label outside the frame cannot name the input inside it.
 
@@ -102,7 +104,7 @@ Label = "Card number", sentence case, no trailing colon. Placeholder = a format 
   - a card number in a plain text input with no card type
   - a manual card-type select
   - number, expiration and security code packed into one box
-  - type="number" on a card number
+  - `type="number"` on a card number
 
 ## Building it in code
 

@@ -29,7 +29,9 @@ import { saveBeforeBuild, saveVersion, versionOf } from './src/version-title';
 import { brandFromDesignMd } from './mcp-paste';
 
 let failures = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (!cond) failures++;
   console.log(`  ${cond ? '✓' : '✗'} ${label}`);
 };
@@ -147,4 +149,4 @@ console.log('\n4. bypass: no second caller, and each command reaches the builder
 }
 
 if (failures) { console.error(`\n${failures} version-title check(s) failed`); process.exit(1); }
-console.log('\nversion titles: all checks pass');
+console.log(`\nversion titles: all checks pass — ${executed} assertions executed`);

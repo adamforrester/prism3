@@ -70,10 +70,10 @@ export const accordionIndicator: ComponentDef = {
         children: ['chevronDownGlyph', 'chevronUpGlyph', 'plusGlyph', 'minusGlyph'],
         note: 'The glyph\'s box, one icon square at the Accordion\'s size. Exactly one glyph shows in it.',
       },
-      chevronDownGlyph: { kind: 'vector', glyph: 'chevron-down', size: 'size.{size}.icon', presentWhen: { indicator: ['chevron'], expansion: ['collapsed'] }, note: 'Closed: a chevron pointing down.' },
-      chevronUpGlyph: { kind: 'vector', glyph: 'chevron-up', size: 'size.{size}.icon', presentWhen: { indicator: ['chevron'], expansion: ['expanded'] }, note: 'Open: a chevron pointing up.' },
-      plusGlyph: { kind: 'vector', glyph: 'plus', size: 'size.{size}.icon', presentWhen: { indicator: ['plus-minus'], expansion: ['collapsed'] }, note: 'Closed, when the pair is plus and minus: a plus.' },
-      minusGlyph: { kind: 'vector', glyph: 'minus', size: 'size.{size}.icon', presentWhen: { indicator: ['plus-minus'], expansion: ['expanded'] }, note: 'Open, when the pair is plus and minus: a minus.' },
+      chevronDownGlyph: { kind: 'vector', mirror: 'never', glyph: 'chevron-down', size: 'size.{size}.icon', presentWhen: { indicator: ['chevron'], expansion: ['collapsed'] }, note: 'Closed: a chevron pointing down.' },
+      chevronUpGlyph: { kind: 'vector', mirror: 'never', glyph: 'chevron-up', size: 'size.{size}.icon', presentWhen: { indicator: ['chevron'], expansion: ['expanded'] }, note: 'Open: a chevron pointing up.' },
+      plusGlyph: { kind: 'vector', mirror: 'never', glyph: 'plus', size: 'size.{size}.icon', presentWhen: { indicator: ['plus-minus'], expansion: ['collapsed'] }, note: 'Closed, when the pair is plus and minus: a plus.' },
+      minusGlyph: { kind: 'vector', mirror: 'never', glyph: 'minus', size: 'size.{size}.icon', presentWhen: { indicator: ['plus-minus'], expansion: ['expanded'] }, note: 'Open, when the pair is plus and minus: a minus.' },
     },
     codeOnly: [
       {

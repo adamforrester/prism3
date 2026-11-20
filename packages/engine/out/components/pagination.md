@@ -48,6 +48,8 @@ Shown on the default member: type `numbered`, style `border`, size `medium`.
 
 Use Pagination below a long list, a grid of results or a table, to move between pages and show which one is open. numbered when the user benefits from seeing the count and jumping to a page; compact in a narrow container, and numbered switches to it there on its own; simple for previous and next through an article or a short sequence. Center it under a list or a grid; end-align it under a table. Give every page an address whenever the page has one.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Place it below the content it pages
@@ -68,7 +70,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 
 - **Keyboard:** Tab moves through previous, each page and next; every control is its own Tab stop. Enter opens a page, and Space also does when it is a button. Arrow keys do not move between pages.
 - **Focus:** Stays in the normal Tab order. After a page changes in place, focus moves to the top of the results. At an end, the inactive previous or next cell keeps focus.
-- **Screen readers:** navigation: a \<nav> landmark named "Pagination", holding a list of links or buttons
+- **Screen readers:** navigation: a `<nav>` landmark named "Pagination", holding a list of links or buttons
 
   aria-label="Pagination" on the \<nav>; give two on one page the same name or a name each. aria-current="page" on the current page. aria-hidden="true" on each ellipsis. aria-disabled="true" on previous at the first page and next at the last. Accessible names "Previous page", "Next page" and "Page 4". A polite live region says "Page 5 of 10" after an in-place change. Names are translated.
 
@@ -106,7 +108,7 @@ Use Pagination below a long list, a grid of results or a table, to move between 
 - **Instead, consider:** `tabs`
 - **Often used with:** `list`
 - **Replaces:**
-  - page links built from \<a href="#"> and click handlers
+  - page links built from `<a href="#">` and click handlers
   - a disabled next button that drops focus at the last page
   - infinite scroll on a page with a footer
 

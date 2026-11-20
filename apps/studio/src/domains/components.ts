@@ -203,7 +203,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
    *  on a family the file holds any set of. #3446: Kept edits (#3421 Q39 A) after Due and before Hand-edited, the order
    *  `statusesOf` gives them. #3462: the order is the key order of a `Record<SetStatus, true>`, so a status added to
    *  `SetStatus` and not placed here fails the typecheck by its name instead of losing its tag. */
-  const STATUS_KEYS: Record<SetStatus, true> = { due: true, kept: true, hand: true, unchecked: true, checking: true, queued: true, needed: true, new: true, current: true };
+  const STATUS_KEYS: Record<SetStatus, true> = { due: true, kept: true, off: true, hand: true, unchecked: true, checking: true, queued: true, needed: true, new: true, current: true };
   const STATUS_ORDER = Object.keys(STATUS_KEYS) as readonly SetStatus[];
   const statusTags = (ids: readonly string[]): HTMLElement | null => {
     // #3306 Q3306.2 A: a set not in the file that a chosen set needs reads Needed rather than Not in file.

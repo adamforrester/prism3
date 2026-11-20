@@ -13,7 +13,8 @@ S2 built the **button**; S3 adds the **text field** and the **password field**, 
   replacement rule, are read in `residual.ts`, the one file that may import the engine's defs.
 - `demo.html` — every appearance, size and state on the light and dark themes and on an inverse band. Also generated.
 - It needs the token CSS from `@prism3/tokens` (the `--pds3-…` custom properties, Q98 A). Themes come from that
-  package's `[data-theme]` blocks: set `data-theme="dark"` on any ancestor.
+  package's `[data-theme]` blocks: set `data-theme="dark"` on any ancestor. A page that sets no `data-theme` follows
+  the OS's light or dark setting (#4140), so a region that must stay light sets `data-theme="light"`.
 
 - `field-label.css`, `field-message.css`, `text-field.css`, `password-field.css` (S3) — generated the same way, by
   `fields.ts` through `generate.ts`.

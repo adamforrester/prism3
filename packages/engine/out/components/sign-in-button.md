@@ -40,6 +40,8 @@ Shown on the default member: provider `apple`, style `black`, size `medium`.
 
 Offer the sign-in providers the product supports as a stack of buttons, each the same size, above or below the email sign-in. Pick each provider's style for the ground: dark buttons on light grounds, light ones on dark grounds. Use one wording for every button in the stack.
 
+**In RTL.** The layout mirrors: the start edge is on the right. The mark does not mirror.
+
 ### Do
 
 - Give every sign-in button in a stack the same size and width

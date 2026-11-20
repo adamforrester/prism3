@@ -79,7 +79,7 @@ const OUT_FIGMA = join(import.meta.dirname, 'out', 'figma');
 /** Brands whose emitted cut binding must hold. docs/34: a gate with a scope asserts each promised
  *  surface is REPRESENTED, never merely counts — if one stops emitting text styles, this fails rather
  *  than passing over a smaller set. Discovered brands are checked too; these are the floor. */
-const MUST_COVER = ['aurora', 'nb', 'wendys'];
+const MUST_COVER = ['aurora', 'harbor', 'nb', 'wendys'];
 
 /** The documented contract, transcribed as constants — NOT read from the emitter. */
 const CUT_COLLECTION = 'core';

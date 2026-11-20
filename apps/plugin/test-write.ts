@@ -38,7 +38,9 @@ const NB_ROOT = 'nbds';
 const nbVar = (tail: string): string => `${NB_ROOT}/${tail}`;
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -896,5 +898,5 @@ ok(halfRes.orphans.find((o) => o.name === 'color')!.names.includes(nbVar('color/
     '#1109 and the unowned variables are left in place — reported, never deleted');
 }
 
-console.log(`\nplugin write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

@@ -1,0 +1,71 @@
+{
+  "$collection": "icon",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "hds/icon/size/xs",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "16px icon artboard — pairs with size/xs",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/16"
+      }
+    },
+    {
+      "name": "hds/icon/size/sm",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "20px icon artboard — pairs with size/sm",
+      "value": 20,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/20"
+      }
+    },
+    {
+      "name": "hds/icon/size/md",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "24px icon artboard — pairs with size/md",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/24"
+      }
+    },
+    {
+      "name": "hds/icon/size/lg",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "32px icon artboard — pairs with size/lg",
+      "value": 32,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/32"
+      }
+    },
+    {
+      "name": "hds/icon/size/xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "40px icon artboard — pairs with size/xl",
+      "value": 40,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/40"
+      }
+    }
+  ]
+}

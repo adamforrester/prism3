@@ -18,8 +18,10 @@
  * (`isEngineDescription`, the evidence Clean up already accepts). A client's style that happens to match a rule
  * is never renamed (`not-ours`). The grid writer's #2467 rename applies the same guard.
  *
- * NOTHING HERE IS NEW UI COPY. The outcomes are returned as data (Apply Theme's result, the paste step's
- * report) and no summary line prints them yet: wording one is a voice decision, flagged on #1040.
+ * ONE SUMMARY LINE (#1040, owner decision A, 2026-11-18). The outcomes are returned as data (Apply Theme's result,
+ * the paste step's report), and Apply Theme's summary prints the APPLIED ones as one line, `styleRenamedNote` below,
+ * worded as the variable rename line beside it is. A refused or not-ours outcome prints nothing: the decision covers a
+ * renamed style. The wording is DRAFT, for the owner.
  *
  * Compiled under `tsconfig.main.json`. The ports are the slices of `figma` the pass touches.
  */
@@ -96,4 +98,16 @@ export const renameTextStylesForPlan = async (
 ): Promise<StyleRenameOutcome[]> => {
   if (!rules.length) return [];
   return renameStyles('text-styles', 'text', await api.getLocalTextStylesAsync(), plan.map((r) => r.name), rules);
+};
+
+/**
+ * Apply Theme's summary line for the styles this apply renamed in place, or '' when it renamed none (#1040, owner
+ * decision A). Worded as the variable line beside it (`main.ts`, "renamed tokens migrated in place"), and capped at
+ * three `from→to` pairs like the other clauses. Only APPLIED outcomes count. COPY DRAFT, for the owner.
+ */
+export const styleRenamedNote = (outcomes: readonly StyleRenameOutcome[]): string => {
+  const done = outcomes.filter((o) => o.applied);
+  return done.length
+    ? `${done.length} renamed ${done.length === 1 ? 'style' : 'styles'} migrated in place (layers kept: ${done.slice(0, 3).map((o) => `${o.from}→${o.to}`).join(', ')}${done.length > 3 ? '…' : ''})`
+    : '';
 };

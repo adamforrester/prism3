@@ -23,6 +23,16 @@
  *      aliases followed to the primitive. The oracle is the emission, never the skill's wording: a role
  *      name that sounds shorter is not trusted to be shorter. A floor on direction pairs read keeps the
  *      half from passing a parse that stopped reaching the recipes.
+ *   4. DEF AGREEMENT (#3490, #3543, owner decision A, 2026-11-18) — the skill's recipes are the decision, so
+ *      each def a recipe governs says the same under reduced motion. `RECIPE_DEFS`, authored here, maps a recipe
+ *      to its defs. A def's `motion.reduceMotion` names exactly the `motion.duration-reduced.*` roles the recipe's
+ *      `**Reduced:**` form names; a code-only note that speaks of reduced motion names no other; and where the
+ *      recipe keeps a fade, neither keeps no fade or deletes the motion ("instantly", "no transition"). The two
+ *      sides are authored apart, the skill by its recipes and the defs by their owners; neither is read from the
+ *      other, and the map is neither's. A recipe renamed or a def dropped from the map's targets fails as
+ *      REPRESENTED. Its limit: it reads role names and a handful of deleting words, not the whole sentence, so a
+ *      def that names the right role for the wrong track passes; and a row or a group, which describes its
+ *      nested control's motion in passing, is not mapped.
  *
  * WHY THE LITERAL ORACLE IS A SHAPE AND NOT THE EMITTED VALUES (docs/34, sub-shape 2). The tempting
  * version reads the emitted durations and flags any number that equals one. That oracle is derived from
@@ -35,8 +45,11 @@
  * A false positive is fixed by an allowance, never by narrowing a pattern (the `NOT_EN_GB` rule). An
  * allowance no finding uses fails as stale, so the list cannot outlive its text.
  *
- * SCOPE. Every file under `skills/prism3-motion/`. The defs' `motion` prose (#2773) is the next subject,
- * and joins with its own allowances when #3487 lands.
+ * SCOPE. Every file under `skills/prism3-motion/` for halves 1-3. Half 1 also reads every registered def's
+ * `motion.enter`, `motion.exit` and `motion.reduceMotion`, and each of its code-only notes that names motion (#4174,
+ * owner decision (a), 2026-11-19): a def names the token, never its number, and the brand's generated sidecar
+ * (`<brand>.ai.json`) prints each token's resolved value. A def's allowances are keyed `def:<id>`. Half 4 reads the
+ * defs a recipe governs.
  *
  * WHAT IT CANNOT SEE, stated so it is not trusted past it: a rule that names a real token for the wrong
  * job (`motion.transition.enter` on an exit). The names are checked; the judgment is the reviewer's.
@@ -44,12 +57,16 @@
  *
  * Mutations, each failing by name (recorded in the PR): `200ms` in the skill → DURATION LITERAL;
  * `cubic-bezier(0.2, 0, 0, 1)` in a recipe → CURVE LITERAL; `motion.easing-role.enter` renamed in the
- * skill → UNRESOLVED PATH; the accordion's reduced form back to `…normal` opening and `…fast` closing →
- * REDUCED EXIT LONGER.
+ * skill → UNRESOLVED PATH; `200ms` in a def's `motion.enter` → DURATION LITERAL naming `def:<id>`; the accordion's reduced form back to `…normal` opening and `…fast` closing →
+ * REDUCED EXIT LONGER; the banner's `reduceMotion` back to "appears and goes instantly" → DEF REDUCED DELETES and
+ * DEF REDUCED ROLES naming `banner`; `tab-item` dropped from the registry's ids in `RECIPE_DEFS` → REPRESENTED.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { componentDefs } from './components';
+import type { ComponentDef } from './component-schema';
+import { codeOnlyText } from './code-only-register';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -176,6 +193,79 @@ export const scanReducedOrder = (text: string, file: string, brands: Map<string,
   return { findings, paragraphs, pairs };
 };
 
+// ---- half 4: each def's reduced prose agrees with its recipe (#3490, #3543) -------------------------
+/** Which defs each recipe governs. Authored here, never read from the skill or the defs: a recipe renamed, or a def
+ *  dropped from the registry, fails by name instead of leaving a def with no recipe to agree with. */
+export const RECIPE_DEFS: Record<string, readonly string[]> = {
+  Dialog: ['dialog'],
+  Accordion: ['accordion'],
+  'Tabs indicator': ['tab-item', 'tabs'],
+  'Toast and banner': ['toast', 'banner'],
+  Badge: ['badge'],
+  'Spinner, delayed show': ['spinner'],
+  Progress: ['progress'],
+  // The controls themselves. A row or a group carries its nested control's motion and describes it in passing, so its
+  // prose is not held here.
+  'Selection controls': ['checkbox-control', 'radio-control', 'switch-control', 'segmented-control-segment', 'segmented-control'],
+};
+const REDUCED_ROLE = /motion\.duration-reduced\.([a-z0-9-]+)/g;
+/** Words that delete the motion outright. A recipe that keeps a fade (R7: substitute, don't delete) is contradicted
+ *  by any of them. "At once" is not here: the recipes themselves change a height or an underline at once. */
+const DELETES = /\binstant(?:ly)?\b|\bno transition\b|\bwith no animation\b|\bwithout a transition\b/i;
+/** A fade named in any form: fade, fades, faded, fading. */
+const FADES = /\bfad(?:e|es|ed|ing)\b/i;
+const rolesIn = (text: string): string[] => [...new Set([...text.matchAll(REDUCED_ROLE)].map((m) => m[1]))].sort();
+
+/** The `**Reduced:**` paragraph of each `### <recipe>` section, by recipe name. */
+export const recipeReduced = (skill: string): Map<string, string> => {
+  const out = new Map<string, string>();
+  for (const sec of skill.split(/\n(?=### )/)) {
+    const name = /^### (.+)$/m.exec(sec)?.[1]?.trim();
+    const para = /\*\*Reduced:\*\*[\s\S]*?(?=\n\s*\n|$)/.exec(sec)?.[0];
+    if (name && para) out.set(name, para.replace(/\s+/g, ' ').trim());
+  }
+  return out;
+};
+
+/** Half 4 for one def against its recipe's reduced paragraph. `reduceMotion` must name exactly the recipe's reduced
+ *  roles; a code-only note that speaks of reduced motion may name only those roles; and where the recipe keeps a fade,
+ *  neither may delete the motion. Shared by the run and the self-check. */
+export const scanDefReduced = (recipe: string, para: string, def: Pick<ComponentDef, 'id' | 'motion' | 'anatomy'>): string[] => {
+  const bad: string[] = [];
+  const want = rolesIn(para);
+  const keepsFade = FADES.test(para);
+  const own = def.motion?.reduceMotion ?? '';
+  if (!own) bad.push(`DEF REDUCED MISSING: ${def.id} has no motion.reduceMotion, and the "${recipe}" recipe gives one`);
+  else {
+    const got = rolesIn(own);
+    if (got.join() !== want.join()) bad.push(`DEF REDUCED ROLES: ${def.id}'s motion.reduceMotion names [${got.join(', ')}]; the "${recipe}" recipe's reduced form names [${want.join(', ')}]`);
+    if (keepsFade && !FADES.test(own)) bad.push(`DEF REDUCED DELETES: ${def.id}'s motion.reduceMotion keeps no fade; the "${recipe}" recipe substitutes a fade (R7)`);
+    if (keepsFade && DELETES.test(own)) bad.push(`DEF REDUCED DELETES: ${def.id}'s motion.reduceMotion says "${DELETES.exec(own)![0]}"; the "${recipe}" recipe substitutes a fade (R7)`);
+  }
+  for (const note of codeOnlyText(def.anatomy?.codeOnly).filter((t) => /reduced[- ]motion/i.test(t))) {
+    const extra = rolesIn(note).filter((r) => !want.includes(r));
+    if (extra.length) bad.push(`DEF REDUCED ROLES: a code-only note on ${def.id} names [${extra.join(', ')}], which the "${recipe}" recipe's reduced form does not`);
+    if (keepsFade && DELETES.test(note)) bad.push(`DEF REDUCED DELETES: a code-only note on ${def.id} says "${DELETES.exec(note)![0]}" under reduced motion; the "${recipe}" recipe substitutes a fade (R7)`);
+  }
+  return bad;
+};
+
+// ---- half 1 over the defs (#4174) -------------------------------------------------------------------
+/** A code-only note "names motion" when it says the word, as a token (`motion.duration.fast`), a custom property
+ *  (`var(--motion-duration-spin)`) or prose (`reduced motion`). */
+const NAMES_MOTION = /motion/i;
+/** Half 1 over one def's motion prose: its three `motion` fields, and each code-only note that names motion. Each
+ *  finding's `file` is `def:<id>` and its `kind` keeps the shape's name; `text` leads with the field it was read in.
+ *  Shared by the run and the self-check. Returns the findings and how many texts it read. */
+export const scanDefLiterals = (def: Pick<ComponentDef, 'id' | 'motion' | 'anatomy'>): { findings: Finding[]; read: number } => {
+  const texts: [string, string][] = [];
+  for (const k of ['enter', 'exit', 'reduceMotion'] as const) if (def.motion?.[k]) texts.push([`motion.${k}`, def.motion[k]!]);
+  codeOnlyText(def.anatomy?.codeOnly).forEach((t, i) => { if (NAMES_MOTION.test(t)) texts.push([`code-only note ${i + 1}`, t]); });
+  const findings: Finding[] = [];
+  for (const [where, t] of texts) for (const f of scanLiterals(t, `def:${def.id}`)) findings.push({ ...f, text: f.text, line: 0, kind: `${f.kind} (${where})` });
+  return { findings, read: texts.length };
+};
+
 // ---- allowances ------------------------------------------------------------------------------------
 type Allowance = { file: string; text: string; reason: string };
 const ALLOWED: Allowance[] = [
@@ -241,6 +331,21 @@ const selfCheck = (): string[] => {
   const ms = reducedMs(doc);
   if (ms.get('normal') !== 50 || ms.get('fast') !== 100) bad.push(`reducedMs does not follow aliases to the primitive (read ${JSON.stringify([...ms])})`);
 
+  const para = '**Reduced:** fades only, on `motion.duration-reduced.normal` both ways. The height changes at once.';
+  const agree = { id: 'x', motion: { reduceMotion: 'Under prefers-reduced-motion it fades only, on motion.duration-reduced.normal both ways, and the height changes at once.' } };
+  if (scanDefReduced('R', para, agree).length) bad.push(`a def that agrees with its recipe is reported: ${scanDefReduced('R', para, agree).join('; ')}`);
+  if (!scanDefReduced('R', para, { id: 'x', motion: { reduceMotion: 'It fades on motion.duration-reduced.fast.' } }).some((b) => b.startsWith('DEF REDUCED ROLES'))) bad.push('DEF REDUCED ROLES no longer fires on a def naming another reduced role');
+  if (!scanDefReduced('R', para, { id: 'x', motion: { reduceMotion: 'It appears and goes instantly.' } }).some((b) => b.startsWith('DEF REDUCED DELETES'))) bad.push('DEF REDUCED DELETES no longer fires on a def that drops the fade');
+  if (!scanDefReduced('R', para, { id: 'x', motion: {} }).some((b) => b.startsWith('DEF REDUCED MISSING'))) bad.push('DEF REDUCED MISSING no longer fires on a def with no reduced prose');
+  const note = { id: 'x', motion: agree.motion, anatomy: { codeOnly: [{ description: 'motion — under prefers-reduced-motion both are instant.' }] } } as unknown as ComponentDef;
+  if (!scanDefReduced('R', para, note).some((b) => b.includes('code-only note'))) bad.push('a code-only note that drops the fade under reduced motion passes');
+  if (recipeReduced('### A\n\ntext\n\n**Reduced:** fades on `motion.duration-reduced.fast`.\n\n### B\n\nno reduced form').get('A') !== '**Reduced:** fades on `motion.duration-reduced.fast`.') bad.push('recipeReduced no longer reads a recipe\'s reduced paragraph');
+
+  const defFix = { id: 'x', motion: { enter: 'Fades in over `motion.duration.fast`.' }, anatomy: { codeOnly: [{ description: 'motion — the slide is 0ms under reduced motion.' }, { description: 'timing — closes after 6000ms.' }] } } as unknown as ComponentDef;
+  const defClean = scanDefLiterals(defFix);
+  if (defClean.read !== 2 || defClean.findings.length !== 1 || !defClean.findings[0].kind.startsWith('DURATION LITERAL (code-only note 1)')) bad.push(`scanDefLiterals reads ${defClean.read} texts and finds ${JSON.stringify(defClean.findings.map((f) => f.kind))}; want 2 texts (the enter field and the note that names motion) and one DURATION LITERAL in note 1`);
+  if (!scanDefLiterals({ id: 'x', motion: { enter: 'Fades in over 200ms.' } }).findings.some((f) => f.kind === 'DURATION LITERAL (motion.enter)' && f.file === 'def:x')) bad.push('DURATION LITERAL no longer fires on a number in a def\'s motion.enter');
+
   const allow: Allowance[] = [{ file: 'fixture', text: 'five seconds', reason: 'fixture' }];
   const used = new Map<Allowance, number>();
   if (admit(scanLiterals('for more than five seconds', 'fixture'), allow, used).length || used.get(allow[0]) !== 1) bad.push('an exact allowance does not admit its text');
@@ -286,6 +391,32 @@ for (const f of files) {
   reducedPairs += ord.pairs;
   for (const x of [...kept, ...res.findings, ...ord.findings]) failures.push(`${x.kind}: ${x.file}:${x.line} "${x.text}"`);
 }
+// Half 4: each def's reduced prose against its recipe.
+let defsRead = 0;
+{
+  const skillPath = join(repo, SKILL_DIR, 'SKILL.md');
+  const recipes = existsSync(skillPath) ? recipeReduced(readFileSync(skillPath, 'utf8')) : new Map<string, string>();
+  for (const [recipe, ids] of Object.entries(RECIPE_DEFS)) {
+    const para = recipes.get(recipe);
+    if (!para) { failures.push(`REPRESENTED: the skill has no "### ${recipe}" recipe with a **Reduced:** form, and RECIPE_DEFS maps defs to it`); continue; }
+    for (const id of ids) {
+      const def = componentDefs.find((d) => d.id === id);
+      if (!def) { failures.push(`REPRESENTED: no def "${id}" in the registry, and RECIPE_DEFS maps it to "${recipe}"`); continue; }
+      defsRead++;
+      failures.push(...scanDefReduced(recipe, para, def));
+    }
+  }
+}
+// Half 1 over the defs (#4174): every registered def's motion prose.
+let defTextsRead = 0;
+for (const def of componentDefs) {
+  const { findings, read } = scanDefLiterals(def);
+  defTextsRead += read;
+  for (const x of admit(findings, ALLOWED, used)) failures.push(`${x.kind}: ${x.file} "${x.text}"`);
+}
+// A floor on def texts read: 200 texts across the defs carry motion prose (2026-11-19), so a scan reading a handful has stopped reaching them.
+const MIN_DEF_TEXTS = 150;
+if (defTextsRead < MIN_DEF_TEXTS) failures.push(`REPRESENTED: read ${defTextsRead} def motion texts, under the floor of ${MIN_DEF_TEXTS}; the def scan is not reaching the registry`);
 for (const a of ALLOWED) if (!used.get(a)) failures.push(`STALE ALLOWANCE: "${a.text}" in ${a.file} matches nothing. Remove it from ALLOWED`);
 // A floor on names read: the skill binds every rule and recipe to tokens, so a scan that reads a handful
 // has stopped reaching the text (a PATH regex that rotted reads zero and finds nothing to fail).
@@ -302,4 +433,4 @@ if (failures.length) {
   for (const f of failures) console.error(`  ✗ ${f}`);
   process.exit(1);
 }
-console.log(`✅ motion literals: ${files.length} file(s) under ${SKILL_DIR}; 0 duration, curve or spring literals (${literalsAdmitted} admitted by ${ALLOWED.length} allowance(s)); ${pathsRead} motion.* names, each resolving in all ${brands.size} brands; ${reducedPairs} reduced enter/exit pair(s) in ${reducedParas} reduced form(s), no exit longer than its entrance`);
+console.log(`✅ motion literals: ${files.length} file(s) under ${SKILL_DIR}; 0 duration, curve or spring literals (${literalsAdmitted} admitted by ${ALLOWED.length} allowance(s)); ${pathsRead} motion.* names, each resolving in all ${brands.size} brands; ${reducedPairs} reduced enter/exit pair(s) in ${reducedParas} reduced form(s), no exit longer than its entrance; ${defsRead} def(s) whose reduced prose agrees with its recipe; ${defTextsRead} def motion text(s) with no literal`);

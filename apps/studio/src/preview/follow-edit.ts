@@ -206,6 +206,16 @@ export const revealGroup = (body: HTMLElement, palette: string): boolean => {
   return true;
 };
 
+/** `revealGroup` for an edit's repaint (#4235). Its read of the boxes, made in the callback that just rebuilt the
+ *  preview, forced a synchronous layout on every edit, so the eased reveal waits a frame and reads the layout the
+ *  browser has drawn by then: the glide steps a frame at a time anyway. Under reduced motion the jump stays in the edit
+ *  itself, so no frame paints before it lands. Returns a cancel, for a later edit or a teardown. */
+export const revealGroupAfterRepaint = (body: HTMLElement, palette: string): (() => void) => {
+  if (reducedMotion()) { revealGroup(body, palette); return () => {}; }
+  const id = requestAnimationFrame(() => { if (body.isConnected) revealGroup(body, palette); });
+  return () => cancelAnimationFrame(id);
+};
+
 /** The preview section a lever section pairs with, where the owner renamed the lever's heading away from the
  *  preview's (see the header). Every other lever heading is its preview section's own (Q23). */
 export const PREVIEW_HEADING: Readonly<Record<string, string>> = {

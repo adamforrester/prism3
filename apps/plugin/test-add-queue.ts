@@ -21,7 +21,9 @@
 import { QUEUE_NS, clearQueued, readQueue, setQueued, staleOf, visibleOf } from './src/add-queue';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -70,5 +72,5 @@ const queue = ['tag', 'badge', 'retired-def', 'dialog'];
 ok(same(visibleOf(queue, known, ['badge']), ['tag', 'dialog']), `visible: a set the file holds and a def the engine cannot build are left out (${JSON.stringify(visibleOf(queue, known, ['badge']))})`);
 ok(same(staleOf(queue, known, ['badge']), ['badge', 'retired-def']), `stale: exactly those are the keys a write clears (${JSON.stringify(staleOf(queue, known, ['badge']))})`);
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

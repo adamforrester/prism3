@@ -47,6 +47,9 @@ export type BarView = {
    *  "Library file" badge or "No brand", and carries no brand control: no brand switcher and no Update file, since there
    *  is no brand in the file to switch or write. Null for the studio. */
   readonly home: { readonly name: string; readonly badge: string | null } | null;
+  /** #1037: Undo load, offered after a load replaced unsaved edits, until the next edit or load. `hint` names the
+   *  brand it puts back. Null when there is nothing to undo. */
+  readonly undo: { readonly hint: string } | null;
 };
 
 /** One block of the export dialog's right column, in order. */
@@ -69,7 +72,6 @@ export type ExportView = {
   readonly none: string | null;
   readonly right: readonly ExportBlock[];
   readonly go: { readonly text: string; readonly off: string | null };
-  readonly imports: readonly { readonly label: string; readonly desc: string }[];
 };
 
 /** What the old controls ran, each ending in the store's `bar` topic. */
@@ -85,6 +87,8 @@ export type BarActions = {
   readonly importFile: (file: File) => void;
   readonly replace: () => void;
   readonly cancelReplace: () => void;
+  /** #1037: put back the brand the last load replaced. */
+  readonly undoLoad: () => void;
   readonly toggleExport: () => void;
   readonly closeExport: () => void;
   readonly artifact: (id: string) => void;
@@ -142,6 +146,13 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   const homeBadge = hook(h('span', 'p3-homename-badge'), 'home-badge');
   homeName.append(homeNameText, homeBadge);
 
+  // #1037: Undo load, beside the switcher while it is offered. A button that stays until the next edit, not a toast that
+  // times out and can vanish before it is reached. "Undo load" is APPROVED wording (owner decision Q-BK2 A).
+  const undo = hook(h('button', 'p3-btn p3-btn-page'), 'undo-load');
+  undo.type = 'button';
+  undo.textContent = 'Undo load';
+  undo.onclick = () => act.undoLoad();
+
   // ── paint ──────────────────────────────────────────────────────────────────────────────────────
   let wasOpen = false;
   /** The Export area's content as built, and what it was built from (A10). */
@@ -172,7 +183,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     // #2909 (round 4): the brand, then the Agent tile and Update file, the one global action, in the plugin. Q731
     // (2026-10-26): Agent took Minimize's place here, and Minimize Agent's at the rail's foot. #2879: a home keeps Agent,
     // which needs no brand. The shell's nodes are placed, never re-minted, so one that holds focus keeps it.
-    const order: (HTMLElement | null)[] = v.home ? [homeName, spacer, placed.agent] : [brandWrap, spacer, placed.agent, placed.update];
+    if (v.undo && undo.title !== v.undo.hint) { undo.title = v.undo.hint; undo.setAttribute('aria-label', `Undo load. ${v.undo.hint}`); }
+    const order: (HTMLElement | null)[] = v.home ? [homeName, spacer, placed.agent] : [brandWrap, v.undo ? undo : null, spacer, placed.agent, placed.update];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);
 
@@ -300,7 +312,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
 
   // ── the Export area ────────────────────────────────────────────────────────────────────────────
   /** The Export area's page (#723; the export dialog's content until #2909, without its scrim, Close, Cancel and modal
-   *  trap): the artifact, its settings, then the files and a preview, the action, the import slot. */
+   *  trap): the artifact, its settings, then the files and a preview, and the action (no import since #3910). */
   const exportPage = (x: ExportView, v: BarView): HTMLElement => {
     const dlg = hook(h('section', 'p3-bardlg p3-export-page'), 'export-page');
     dlg.setAttribute('aria-labelledby', 'p3-export-page-h');
@@ -356,17 +368,35 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       const sets = h('div', 'p3-export-sets');
       for (const s of x.settings) {
         const row = h('div', 'p3-export-set');
-        row.append(h('div', 'p3-export-lab', s.label));
+        const lab = h('div', 'p3-export-lab', s.label);
+        lab.id = `p3-export-lab-${s.key}`;
+        row.append(lab);
         const sseg = h('div', 'p3-seg p3-export-oseg');
         sseg.dataset.key = s.key;   // #3553 Q-UI7 A: the Token names options alone are set in mono (`chrome.css`)
-        for (const o of s.options) {
+        // #4221: a radio group named by its label, one Tab stop, the arrow keys between options, as the levers' choices
+        // are (`lever-kit.ts` `choice`). It was a pair of toggle buttons, so "Off" read as pressed.
+        sseg.setAttribute('role', 'radiogroup');
+        sseg.setAttribute('aria-labelledby', lab.id);
+        const opts = s.options.map((o) => {
           const b = hook(h('button', 'p3-seg-tab', o.label), 'export-setting');
           b.type = 'button';
-          b.setAttribute('aria-pressed', String(o.on));
-          b.setAttribute('aria-label', `${s.label}: ${o.label}`);
-          b.onclick = () => act.setting(s.key, o.value);
-          sseg.append(b);
-        }
+          b.setAttribute('role', 'radio');
+          b.setAttribute('aria-checked', String(o.on));
+          b.tabIndex = o.on ? 0 : -1;
+          b.onclick = () => { if (!o.on) act.setting(s.key, o.value); };
+          return b;
+        });
+        if (!s.options.some((o) => o.on) && opts[0]) opts[0].tabIndex = 0;
+        sseg.append(...opts);
+        sseg.addEventListener('keydown', (e) => {
+          const i = opts.indexOf(e.target as HTMLButtonElement);
+          const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+          if (i < 0 || !step) return;
+          e.preventDefault();
+          opts[(i + step + opts.length) % opts.length].click();
+          // The page is drawn again for the new setting; focus follows the selection, as the artifact tabs' keys do.
+          requestAnimationFrame(() => document.querySelector<HTMLElement>(`.p3-export-oseg[data-key="${CSS.escape(s.key)}"] [aria-checked="true"]`)?.focus());
+        });
         row.append(sseg, h('p', 'p3-bardlg-note', s.desc));
         sets.append(row);
       }
@@ -399,21 +429,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     go.onclick = act.download;
     foot.append(go);
     dlg.append(foot);
-    // Import, a slot: the same conversation as export (#723).
-    if (x.imports.length) {
-      const imp = h('div', 'p3-bardlg-import');
-      imp.append(h('div', 'p3-menu-cap', 'Import'));
-      for (const slot of x.imports) {
-        const b = hook(h('button', 'p3-menu-item'), 'export-import');
-        b.append(glyph('upload'), h('span', 'p3-menu-label', `${slot.label}…`));
-        b.type = 'button';
-        b.setAttribute('aria-expanded', String(v.importOpen));
-        b.onclick = () => act.toggleImport();
-        imp.append(b, h('p', 'p3-bardlg-note', slot.desc));
-      }
-      if (v.importOpen) imp.append(importBox(v));
-      dlg.append(imp);
-    }
+    // No Import here (#3910, owner direction 2026-11-17): importing a brief is the brand menu's, not Export's.
     return dlg;
   };
 

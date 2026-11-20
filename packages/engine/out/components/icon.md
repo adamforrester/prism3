@@ -32,6 +32,8 @@ Shown on the default member: name `arrow-down`, tone `inherit`.
 
 Use to reinforce meaning, speed scanning, or mark an action beside text. Few icons are universally understood, so a glyph beside a visible label helps returning users find their way; it does not replace the words. Pick a size, leave tone at inherit unless the glyph must keep its own color, and decide one question: is this glyph meaningful (give it a label) or decorative (leave label empty)? For an icon-only action, use Button or IconButton and leave the glyph inside it unnamed.
 
+**In RTL.** The glyph flips only if it points a direction, such as an arrow.
+
 ### Do
 
 - Leave label empty when the icon sits beside its own text — decorative is the default and usually the correct answer

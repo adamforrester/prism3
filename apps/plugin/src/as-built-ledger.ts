@@ -21,6 +21,8 @@
  *                   say (Q811.1 and #3101, below);
  *                   `panel` (#3205) when the set is otherwise current but its usage panel was last checked at another
  *                   panel format (`PANEL_FORMAT`, `doc-panel.ts`) than today's: the entry's `panel` against `now`'s;
+ *                   or (#2889, owner decision A) when its panel's "Last changed in" block would read differently now
+ *                   (`changed`, `lastChangedKey`): after a fold, only the lead sets whose block moved;
  *   · `unrecorded`  no entry: a set built before the ledger existed, or by hand. Only the full check can tell.
  *
  * WHY A PRINT-LESS ENTRY UNDER A MOVED ENGINE IS DUE, NOT UNRECORDED (#3090 review, finding 1). An unrecorded set the
@@ -47,7 +49,7 @@
  * empty, never a throw: every set is then `unrecorded`.
  */
 import type { AnatomyPlan, FigmaNodePlan, ComponentDef } from '@prism3/engine/components';
-import { ENGINE_VERSION } from '@prism3/engine';
+import { ENGINE_VERSION, formerDefIds } from '@prism3/engine';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { reaches } from './executor-reach';
 
@@ -70,7 +72,9 @@ export type PlanPrint = { readonly plan: string; readonly parts: Readonly<Record
  *  so the set holds its edits in place of those changes: how many members, and each change kept out, as the verdict
  *  names it. Absent when the update wrote every change, and on any build. */
 export type Held = { readonly members: number; readonly changes: readonly string[] };
-export type LedgerEntry = { readonly def: string; readonly rev: number; readonly engine: string; readonly print?: PlanPrint; readonly panel?: number; readonly held?: Held };
+/** `changed` (#2889): the "Last changed in" block's text the set's panel was last checked with, hashed
+ *  (`doc-panel.ts` `lastChangedKey`); carried with `panel`, on the same sets. */
+export type LedgerEntry = { readonly def: string; readonly rev: number; readonly engine: string; readonly print?: PlanPrint; readonly panel?: number; readonly changed?: string; readonly held?: Held };
 export type Ledger = Readonly<Record<string, LedgerEntry>>;
 
 type DataRoot = { getPluginData?(key: string): string; setPluginData?(key: string, value: string): void };
@@ -161,6 +165,7 @@ const isEntry = (v: unknown): v is LedgerEntry => !!v && typeof v === 'object'
   && typeof (v as LedgerEntry).def === 'string' && typeof (v as LedgerEntry).rev === 'number' && typeof (v as LedgerEntry).engine === 'string'
   && ((v as LedgerEntry).print === undefined || isPrint((v as LedgerEntry).print))
   && ((v as LedgerEntry).panel === undefined || typeof (v as LedgerEntry).panel === 'number')
+  && ((v as LedgerEntry).changed === undefined || typeof (v as LedgerEntry).changed === 'string')
   && ((v as LedgerEntry).held === undefined || isHeld((v as LedgerEntry).held));
 const isHeld = (v: unknown): v is Held => !!v && typeof v === 'object' && typeof (v as Held).members === 'number'
   && Array.isArray((v as Held).changes) && (v as Held).changes.every((c) => typeof c === 'string');
@@ -178,11 +183,13 @@ export const readLedger = (root: DataRoot): Ledger => {
 };
 
 /** Record `entries` in the file, over what it holds for those defs. A refused write throws, for the caller to catch.
- *  An entry with no `panel` keeps the one the file holds (#3205): a write with the panels off did not touch the panel. */
+ *  An entry with no `panel` keeps the one the file holds (#3205), and its `changed` (#2889): a write with the panels off did
+ *  not touch the panel. */
 export const recordSets = (root: DataRoot, entries: Ledger): void => {
   if (!Object.keys(entries).length) return;
   const was = readLedger(root);
-  const merged = Object.fromEntries(Object.entries(entries).map(([id, e]) => [id, e.panel === undefined && was[id]?.panel !== undefined ? { ...e, panel: was[id].panel } : e]));
+  const merged = Object.fromEntries(Object.entries(entries).map(([id, e]) => [id, e.panel === undefined && was[id]?.panel !== undefined
+    ? { ...e, panel: was[id].panel, ...(was[id].changed !== undefined ? { changed: was[id].changed } : {}) } : e]));
   root.setPluginData?.(LEDGER_KEY, JSON.stringify({ v: LEDGER_V, sets: { ...was, ...merged } }));
 };
 
@@ -214,7 +221,16 @@ export type SetDue = { readonly state: 'current' | 'unrecorded' }
    *  under Kept edits until an update overwrites them or accepts them as the baseline. */
   | { readonly state: 'kept'; readonly held: Held }
   | { readonly state: 'due'; readonly reason: 'definition' | 'executor' | 'panel' }
-  | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: Moved };
+  | { readonly state: 'due'; readonly reason: 'engine'; readonly moved?: Moved }
+  /** #2956 (owner decisions 2026-11-17): the set's updates are off (`updates-off.ts`), and who turned them off. Update
+   *  file leaves it as it is, so it is never due, and the badge never counts it, whatever its entry says. */
+  | { readonly state: 'off'; readonly by: 'auto' | 'designer' };
+
+/** #3770: the entry a set has under an id its def was renamed from, nearest first; null when it has none. */
+export const formerEntry = (ledger: Ledger, id: string): LedgerEntry | null => {
+  for (const from of formerDefIds(id)) if (ledger[from]) return ledger[from];
+  return null;
+};
 
 /** The sets whose read needs their plans printed now: the engine moved past an entry that carries a print, and the
  *  revision did not move by one that reaches the set. The caller prints only these (projecting a set is the costly part), then calls `dueOf`. */
@@ -229,11 +245,18 @@ export const needsPrint = (ledger: Ledger, present: readonly string[], now: (def
  * Each of `present`'s sets, read against the ledger. `now` is the entry a set built now would get, without its print;
  * `print` is the print of the plans it would be drawn from now, asked only for the sets `needsPrint` names.
  */
-export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: string) => LedgerEntry | null, print: (def: string) => PlanPrint | null = () => null): Record<string, SetDue> => {
+export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: string) => LedgerEntry | null, print: (def: string) => PlanPrint | null = () => null,
+  /** #2956: the present sets whose updates are off, read off each set node (`updates-off.ts`), by def id. */
+  off: Readonly<Record<string, 'auto' | 'designer'>> = {}): Record<string, SetDue> => {
   const out: Record<string, SetDue> = {};
   for (const id of present) {
     const was = ledger[id];
     const is = now(id);
+    // A SET RECORDED ONLY UNDER AN EARLIER ID (#3770): built before its def was renamed (#2759, #3148), so the file still
+    // holds it under that id, and nothing has updated it since (an update records it under the current one). Its rename
+    // is a change the update makes, so it is due whatever else moved; read as unrecorded, it was never in Update file's
+    // check, and a set nesting it read "this file doesn't have" a set the file holds.
+    if (!was && is && formerEntry(ledger, id)) { out[id] = { state: 'due', reason: 'engine', moved: { parts: [], added: [], dropped: [], set: false } }; continue; }
     if (!was || !is) { out[id] = { state: 'unrecorded' }; continue; }
     if (reaches(id, was.rev, is.rev)) { out[id] = { state: 'due', reason: 'executor' }; continue; }
     if (was.engine === is.engine) { out[id] = was.def === is.def ? { state: 'current' } : { state: 'due', reason: 'definition' }; continue; }
@@ -248,11 +271,13 @@ export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: str
   // THE FORMAT-DUE CREDIT (#3205): a set otherwise current is due when its usage panel was last checked at another
   // panel format than today's. The panel's drawing moved, not the set's, so nothing else here sees it; without this the
   // set is never in Update file's check, and its panel is never offered or redrawn. A set due for another reason is
-  // checked anyway, and the check reads the panel's own plan (`docPanelDue`).
+  // checked anyway, and the check reads the panel's own plan (`docPanelDue`). THE BLOCK'S CREDIT (#2889, owner decision
+  // A): the same when the panel's "Last changed in" block reads differently now, which a fold can do to a set it leaves
+  // current; a fold that leaves the block's text alone leaves the set current.
   for (const id of present) {
     const was = ledger[id];
     const is = now(id);
-    if (out[id].state === 'current' && is?.panel !== undefined && was?.panel !== is.panel) out[id] = { state: 'due', reason: 'panel' };
+    if (out[id].state === 'current' && is?.panel !== undefined && (was?.panel !== is.panel || (is.changed !== undefined && was?.changed !== is.changed))) out[id] = { state: 'due', reason: 'panel' };
   }
   // KEPT EDITS (#3421, Q39 A): a set its last update recorded with changes held back by kept hand edits is never read as
   // current: it is listed under Kept edits until a later update writes those changes or accepts the edits. A set due for
@@ -261,6 +286,9 @@ export const dueOf = (ledger: Ledger, present: readonly string[], now: (def: str
     const held = ledger[id]?.held;
     if (out[id].state === 'current' && held) out[id] = { state: 'kept', held };
   }
+  // UPDATES OFF (#2956): read over every other state. The update leaves such a set as it is, so neither its due reason
+  // nor its kept edits are work for this run; once updates are back on, the next read gives it its own state again.
+  for (const id of present) if (off[id]) out[id] = { state: 'off', by: off[id] };
   return out;
 };
 

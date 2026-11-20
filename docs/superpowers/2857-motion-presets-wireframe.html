@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Patterns Wireframe</title>
+<meta name="description" content="DRAFT wireframe for #2857: the starter motion patterns, their Figma animation styles and reduced-motion siblings, played on the engine's emitted motion values.">
+<style>
+/* DRAFT wireframe for #2857 (owner decisions Q-MO1 A, Q-MO2 A; #3413 Q-M3 A, Q-M5 A, Q-M7 A).
+   Self-contained: no external scripts, fonts or images. The motion values below are copied from
+   packages/engine/out/figma/prism3/motion.json at d9078034; the wireframe's own colors are neutral
+   placeholders, not brand tokens. */
+:root {
+  --bg: #f6f6f4; --surface: #ffffff; --surface-2: #efefec; --ink: #1d1d1b; --ink-2: #5a5a55;
+  --line: #d6d6d0; --accent: #3b5bdb; --accent-ink: #ffffff; --accent-2: #2f4ab8;
+  --scrim: rgba(20, 20, 18, 0.42); --draft: #8a5a00; --draft-bg: #fff3d6; --decision: #8a1f5c;
+  --decision-bg: #fbe7f1; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161615; --surface: #222220; --surface-2: #2c2c29; --ink: #ecece8; --ink-2: #a6a6a0;
+    --line: #3d3d39; --accent: #8ea6ff; --accent-ink: #10172e; --accent-2: #b3c2ff;
+    --scrim: rgba(0, 0, 0, 0.6); --draft: #ffc95c; --draft-bg: #3a2c0a; --decision: #ff9fd0;
+    --decision-bg: #3d1830; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161615; --surface: #222220; --surface-2: #2c2c29; --ink: #ecece8; --ink-2: #a6a6a0;
+  --line: #3d3d39; --accent: #8ea6ff; --accent-ink: #10172e; --accent-2: #b3c2ff;
+  --scrim: rgba(0, 0, 0, 0.6); --draft: #ffc95c; --draft-bg: #3a2c0a; --decision: #ff9fd0;
+  --decision-bg: #3d1830; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); overflow-x: hidden; }
+main { max-width: 1180px; margin: 0 auto; padding: 0 16px 64px; }
+h1 { font-size: 26px; line-height: 1.2; margin: 24px 0 8px; }
+h2 { font-size: 20px; margin: 40px 0 8px; }
+h3 { font-size: 16px; margin: 0; }
+p { margin: 8px 0; }
+code, .mono { font-family: var(--mono); font-size: 0.88em; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+.draft-flag { display: inline-block; font: 600 11px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--draft); background: var(--draft-bg); border: 1px solid currentColor; border-radius: 4px; padding: 4px 6px; }
+.banner { margin-top: 16px; padding: 12px 14px; border: 1px dashed var(--draft); background: var(--draft-bg); border-radius: 8px; }
+.od { display: inline-block; font: 600 11px/1 var(--sans); color: var(--decision); background: var(--decision-bg);
+  border: 1px solid currentColor; border-radius: 4px; padding: 3px 5px; text-decoration: none; white-space: nowrap; }
+.muted { color: var(--ink-2); }
+
+/* controls */
+.controls { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+  padding: 10px 0; margin-top: 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.controls label { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; }
+.controls select { font: inherit; font-size: 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; max-width: 100%; }
+button { font: inherit; }
+.btn { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.btn:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* pattern cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 16px; margin-top: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.names { font-size: 13px; }
+.names div { display: flex; gap: 6px; flex-wrap: wrap; }
+.names dt { color: var(--ink-2); min-width: 92px; }
+.names dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; }
+.names dd { margin: 0; min-width: 0; }
+.stage { position: relative; height: 170px; border-radius: 8px; background: var(--surface-2); overflow: hidden; border: 1px solid var(--line); }
+.stage .page-lines { position: absolute; inset: 14px; display: grid; gap: 8px; align-content: start; }
+.stage .page-lines i { display: block; height: 8px; border-radius: 4px; background: var(--line); }
+.stage .page-lines i:nth-child(2) { width: 70%; } .stage .page-lines i:nth-child(3) { width: 85%; } .stage .page-lines i:nth-child(4) { width: 55%; }
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.panel { position: absolute; background: var(--surface); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: 12px; font-size: 12px; }
+.panel.center { left: 50%; top: 50%; width: 62%; height: 96px; margin-left: -31%; margin-top: -48px; }
+.panel.end { top: 0; bottom: 0; inset-inline-end: 0; width: 46%; border-radius: 0; }
+.toast { position: absolute; left: 50%; bottom: 14px; width: 70%; margin-left: -35%; background: var(--ink); color: var(--bg); border-radius: 8px; padding: 10px 12px; font-size: 12px; }
+.anchor { position: absolute; left: 50%; top: 96px; transform: translateX(-50%); }
+.tip { position: absolute; left: 50%; top: 52px; transform: translateX(-50%); background: var(--ink); color: var(--bg); font-size: 12px; padding: 6px 8px; border-radius: 6px; white-space: nowrap; }
+.acc { position: absolute; left: 14px; right: 14px; top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.acc-h { padding: 10px 12px; font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; }
+.acc-p { overflow: hidden; font-size: 12px; color: var(--ink-2); }
+.acc-p > div { padding: 0 12px 12px; }
+.demo-btn { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 10px 18px; font-weight: 600; cursor: pointer; }
+.demo-btn.hovered { background: var(--accent-2); }
+.demo-btn.pressed { background: var(--accent-2); transform: translate(-50%, -50%) scale(0.98); }
+.fade-card { position: absolute; left: 50%; top: 50%; width: 60%; height: 90px; margin: -45px 0 0 -30%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.stage-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mode-tag { font-size: 12px; color: var(--ink-2); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; vertical-align: top; padding: 6px 6px; border-top: 1px solid var(--line); }
+th { color: var(--ink-2); font-weight: 600; }
+.table-wrap { overflow-x: auto; max-width: 100%; }
+.tracks td:first-child { white-space: nowrap; }
+.reduced-row td { background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
+.flags { font-size: 13px; margin: 0; padding-left: 18px; }
+
+/* Figma picker mock */
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+.picker { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; overflow: hidden; }
+.picker-head { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; }
+.picker-body { max-height: 440px; overflow: auto; padding: 6px 0; }
+.p-group { padding: 6px 12px 2px; font-weight: 600; color: var(--ink-2); font-size: 12px; }
+.p-sub { padding: 2px 12px 2px 28px; color: var(--ink-2); font-size: 12px; }
+.p-item { display: flex; gap: 8px; align-items: center; padding: 5px 12px 5px 22px; }
+.p-item.sub { padding-left: 38px; }
+.p-item:hover { background: var(--surface-2); }
+.p-icon { width: 16px; height: 16px; border: 1.5px solid var(--ink-2); border-radius: 4px; position: relative; flex: none; }
+.p-icon::after { content: ""; position: absolute; left: 3px; top: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-2); }
+.p-desc { color: var(--ink-2); font-size: 12px; margin-left: auto; text-align: right; }
+
+/* style guide mock */
+.sg { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.sg-row { display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.sg-row:first-of-type { border-top: 0; }
+.sg-thumb { position: relative; height: 72px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+.sg-thumb .dot { position: absolute; left: 50%; top: 50%; width: 36px; height: 24px; margin: -12px 0 0 -18px; background: var(--accent); border-radius: 5px; }
+.chip { display: inline-block; font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; margin: 2px 2px 0 0; background: var(--surface-2); }
+.curve { width: 44px; height: 44px; flex: none; }
+.curve path { fill: none; stroke: var(--accent); stroke-width: 2; }
+.curve rect { fill: none; stroke: var(--line); }
+@media (max-width: 520px) {
+  h1 { font-size: 22px; }
+  .sg-row { grid-template-columns: 1fr; }
+  .names dt { min-width: 0; }
+  .controls { position: static; }
+}
+.decisions li { margin: 10px 0; }
+.decisions .rec { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main>
+  <p style="margin-top:20px"><span class="draft-flag">Draft · for owner review</span> <span class="muted">#2857 · not built · nothing here is decided until the owner answers</span></p>
+  <h1>Motion patterns and their Figma animation styles</h1>
+  <p class="muted">The starter set proposed by #2857 (Q-MO1 A), named per #3413 Q-M7 A: a data name such as <code>dialog/enter</code>, a Figma style such as “Dialog / enter”, and a “… / reduced” sibling. Every entry binds a published <strong>role</strong> variable (<code>duration/*</code>, <code>duration-reduced/*</code>, <code>easing-role/*</code>), never a hidden primitive.</p>
+
+  <div class="banner">
+    <strong>How to read this.</strong> Each card plays its pattern on the example brand's emitted values (<code>prism3</code>, standard tempo, from <code>out/figma/prism3/motion.json</code> at <code>d9078034</code>). Tags such as <a class="od" href="#od-1">OD-1</a> mark an <strong>owner decision</strong>; each one is listed with options and a recommendation <a href="#decisions">at the end</a>. Copy, names and scale values on this page are DRAFT placeholders.
+  </div>
+
+  <div class="controls" role="group" aria-label="Preview controls">
+    <label><input type="checkbox" id="reduced"> Preview reduced motion</label>
+    <label>Reduced ramp
+      <select id="ramp" aria-describedby="ramp-help">
+        <option value="today">as emitted today</option>
+        <option value="A">G4 option A: min(full, 100ms)</option>
+        <option value="B">G4 option B: min(full, 50ms)</option>
+        <option value="C">G4 option C: 1ms floor</option>
+      </select>
+    </label>
+    <label>Speed
+      <select id="speed">
+        <option value="1">1× (real)</option>
+        <option value="4">4× slower (to watch)</option>
+      </select>
+    </label>
+    <label>Theme
+      <select id="theme">
+        <option value="auto">system</option>
+        <option value="light">light</option>
+        <option value="dark">dark</option>
+      </select>
+    </label>
+    <button class="btn" id="play-all" type="button">Replay all</button>
+  </div>
+  <p id="ramp-help" class="muted" style="font-size:13px">The reduced-ramp menu previews the #3484 / #3493 choice in the G1–G6 batch; it changes only what the reduced siblings resolve to. The checkbox starts on when your system asks for reduced motion.</p>
+
+  <h2 id="patterns">The starter set <span class="draft-flag">Draft</span></h2>
+  <div class="grid" id="grid"></div>
+
+  <h2 id="figma">In Figma's style picker <span class="draft-flag">Draft</span></h2>
+  <p class="muted">Figma groups styles by the slashes in their names. This mock lists every style the starter set would add, with the draft one-line description the picker shows on hover. <a class="od" href="#od-5">OD-5</a> <a class="od" href="#od-8">OD-8</a></p>
+  <div class="two">
+    <div class="picker" aria-label="Mock of Figma's animation style picker">
+      <div class="picker-head"><strong>Animation styles</strong><span class="muted">Prism3 library</span></div>
+      <div class="picker-body" id="picker"></div>
+    </div>
+    <div>
+      <h3>What the picker shows, and what it doesn't</h3>
+      <ul class="flags">
+        <li>A style and its reduced sibling sit together: “Dialog / enter” is a style, and “Dialog / enter / reduced” makes “enter” a folder beside it. <strong>Unverified in the app:</strong> whether Figma shows a style and a folder of the same name side by side, or merges them. Checking it is the first in-app task. <a class="od" href="#od-5">OD-5</a></li>
+        <li>Each style's entries bind role variables, so a brand's tempo change re-times every style without a re-apply. The #2857 checks verified this for a duration role and an easing role, in the owning file and, after publish and accept, in a consuming file.</li>
+        <li>The picker groups by component, not by motion kind (“Fade in · short · standard”, the issue's first example). <a class="od" href="#od-4">OD-4</a></li>
+        <li>No “Motion /” prefix: animation styles already have their own section in Figma. <a class="od" href="#od-4">OD-4</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 id="styleguide">In the style guide <span class="draft-flag">Draft</span></h2>
+  <p class="muted">A proposed motion page section beside the motion variables the style guides already draw (#2149, #2353): one row per pattern, with a looping thumbnail, its tracks, and the variables each track binds. The reduced sibling shares its row. <a class="od" href="#od-9">OD-9</a></p>
+  <div class="sg" id="sg"></div>
+
+  <h2 id="values">The values behind the roles (example brand) <span class="draft-flag">Draft</span></h2>
+  <p class="muted">Copied from the emission for this page only. The styles bind the role variables in the first column; the numbers move with the brand's tempo.</p>
+  <div class="table-wrap"><table id="values-table"></table></div>
+
+  <h2 id="decisions">Owner decisions</h2>
+  <p class="muted">Each item is phrased so it can be answered in one line, such as “OD-1 B”. Recommendations are the lane's; none of them is built.</p>
+  <ol class="decisions" id="decision-list"></ol>
+
+  <h2 id="unverified">Not verified yet</h2>
+  <ul class="flags">
+    <li>Which entry kinds a Figma custom animation style carries. The #2857 spike used <strong>position</strong> and <strong>opacity</strong>. Scale, size (height) and fill color are unverified, so the Accordion, Pressed and Hover styles may not be expressible as styles. Each card says which entries it needs.</li>
+    <li>Whether a style and a folder can share a name in the picker (OD-5).</li>
+    <li>Whether Figma's spring with a duration reads the duration as the perceptual length (2π/√stiffness). This decides G5's derivation, in the batch on #3413.</li>
+    <li>Hover and pressed live in component prototype reactions in Figma, and reactions refuse variables (#2403). A style for them exists for documentation and hand-built prototypes, not for the built components (OD-3).</li>
+  </ul>
+  <p class="muted" style="margin-top:32px;font-size:13px">DRAFT wireframe · #2857 · Refs #3413 (Q-M3 A, Q-M5 A, Q-M7 A), #3481–#3486, #3493. Generated for owner review; not a shipped surface.</p>
+</main>
+
+<script>
+// ---------------------------------------------------------------------------------------------
+// Emitted values, example brand `prism3` (standard tempo), from packages/engine/out/figma/prism3/motion.json
+// at d9078034. Durations in ms. Only role variables appear here: the styles never bind a primitive.
+// ---------------------------------------------------------------------------------------------
+const EMITTED = {
+  duration: { instant: 50, fast: 100, normal: 200, moderate: 300, slow: 500, slower: 800 },
+  durationReduced: { instant: 50, fast: 100, normal: 50, moderate: 0, slow: 0, slower: 0 },
+  easingRole: {
+    default: { curve: 'standard', b: [0.2, 0, 0, 1] },
+    enter: { curve: 'decelerate', b: [0, 0, 0.2, 1] },
+    exit: { curve: 'accelerate', b: [0.4, 0, 1, 1] },
+    emphasized: { curve: 'expressive', b: [0.4, 0.14, 0.3, 1] },
+  },
+};
+// The #3484 / #3493 options, for preview only (ramp roles; loop periods are outside every option).
+const RAMPS = {
+  today: EMITTED.durationReduced,
+  A: Object.fromEntries(Object.entries(EMITTED.duration).map(([k, v]) => [k, Math.min(v, 100)])),
+  B: Object.fromEntries(Object.entries(EMITTED.duration).map(([k, v]) => [k, Math.min(v, 50)])),
+  C: Object.fromEntries(Object.entries(EMITTED.duration).map(([k]) => [k, 1])),
+};
+
+// DRAFT placeholders with no token behind them (see OD-6): shown so the demo moves, not proposed values.
+const SCALE_IN = 0.96;      // dialog panel's start scale ("scales up a little", dialog def): no number in the def
+const PRESS_SCALE = 0.98;   // from the button def's reduceMotion prose (Q-MD4 A); no token
+const NUDGE_PX = 8;         // the toast's slide, from the toast def; gap G2 (#3482)
+
+// One entry per Figma style pair. `tracks`/`reducedTracks` say what moves; dur/ease name the role variable.
+const PATTERNS = [
+  { id: 'dialog-enter', data: 'dialog/enter', figma: 'Dialog / enter', group: 'Dialog', leaf: 'enter', src: 'dialog (center)', demo: 'dialog', dir: 'in',
+    tracks: [['Backdrop', 'opacity 0 → 1'], ['Panel', `opacity 0 → 1, scale ${SCALE_IN} → 1 (R10)`]],
+    dur: 'moderate', ease: 'enter',
+    reducedTracks: [['Backdrop', 'opacity 0 → 1'], ['Panel', 'opacity 0 → 1, no scale']], rdur: 'normal', rease: 'enter',
+    entries: 'opacity; scale (unverified)', ods: [6, 8], note: 'Reduced is a fade only on duration-reduced.normal (Q-M5 A).',
+    desc: 'Opens a centered dialog: the backdrop and panel fade in, the panel scales up a little.' },
+  { id: 'dialog-exit', data: 'dialog/exit', figma: 'Dialog / exit', group: 'Dialog', leaf: 'exit', src: 'dialog (center)', demo: 'dialog', dir: 'out',
+    tracks: [['Backdrop', 'opacity 1 → 0'], ['Panel', `opacity 1 → 0, scale 1 → ${SCALE_IN}`]],
+    dur: 'normal', ease: 'exit',
+    reducedTracks: [['Backdrop', 'opacity 1 → 0'], ['Panel', 'opacity 1 → 0, no scale']], rdur: 'normal', rease: 'exit',
+    entries: 'opacity; scale (unverified)', ods: [6, 8], note: 'One step shorter than the enter (R3), as the prism3-motion dialog recipe has it.',
+    desc: 'Closes a centered dialog: the reverse of enter, one step shorter.' },
+  { id: 'drawer-enter', data: 'drawer/enter', figma: 'Drawer / enter', group: 'Drawer', leaf: 'enter', src: 'dialog, placement end', demo: 'drawer', dir: 'in',
+    tracks: [['Backdrop', 'opacity 0 → 1'], ['Panel', 'position: from the end edge, by its own width']],
+    dur: 'moderate', ease: 'enter',
+    reducedTracks: [['Backdrop', 'opacity 0 → 1'], ['Panel', 'opacity 0 → 1, no slide']], rdur: 'normal', rease: 'enter',
+    entries: 'position; opacity (both verified in the spike)', ods: [1], note: 'Prism3 has no Drawer component: this is Dialog’s end placement (OD-1).',
+    desc: 'Opens a side panel: it slides in from the end edge as the backdrop fades in.' },
+  { id: 'drawer-exit', data: 'drawer/exit', figma: 'Drawer / exit', group: 'Drawer', leaf: 'exit', src: 'dialog, placement end', demo: 'drawer', dir: 'out',
+    tracks: [['Backdrop', 'opacity 1 → 0'], ['Panel', 'position: back out past the end edge']],
+    dur: 'normal', ease: 'exit',
+    reducedTracks: [['Backdrop', 'opacity 1 → 0'], ['Panel', 'opacity 1 → 0, no slide']], rdur: 'normal', rease: 'exit',
+    entries: 'position; opacity', ods: [1], note: 'The bottom sheet would be a third pair on the same model (OD-1).',
+    desc: 'Closes a side panel: it slides back out past the end edge.' },
+  { id: 'toast-enter', data: 'toast/enter', figma: 'Toast / enter', group: 'Toast', leaf: 'enter', src: 'toast', demo: 'toast', dir: 'in',
+    tracks: [['Card', `position: up ${NUDGE_PX}px (gap G2), opacity 0 → 1`]],
+    dur: 'normal', ease: 'enter', via: 'motion.transition.enter',
+    reducedTracks: [['Card', 'opacity 0 → 1, no slide']], rdur: 'normal', rease: 'enter',
+    entries: 'position; opacity', ods: [2], note: 'The slide distance waits on G2 (#3482).',
+    desc: 'Shows a toast: it slides up a short way and fades in.' },
+  { id: 'toast-exit', data: 'toast/exit', figma: 'Toast / exit', group: 'Toast', leaf: 'exit', src: 'toast', demo: 'toast', dir: 'out',
+    tracks: [['Card', 'opacity 1 → 0']],
+    dur: 'fast', ease: 'exit', via: 'motion.transition.exit',
+    reducedTracks: [['Card', 'opacity 1 → 0']], rdur: 'normal', rease: 'exit',
+    entries: 'opacity', ods: [7], note: 'Reduced uses duration-reduced.normal both ways while the reduced ramp is out of order (#3493).',
+    desc: 'Hides a toast: it fades out. A replacement plays exit, then enter.' },
+  { id: 'tooltip-show', data: 'tooltip/show', figma: 'Tooltip / show', group: 'Tooltip', leaf: 'show', src: 'none yet', demo: 'tooltip', dir: 'in',
+    tracks: [['Bubble', 'opacity 0 → 1']],
+    dur: 'fast', ease: 'enter',
+    reducedTracks: [['Bubble', 'opacity 0 → 1']], rdur: 'fast', rease: 'enter',
+    entries: 'opacity', ods: [2, 7], note: 'No Tooltip component and no vault grounding yet (#3413 left tooltip warm-up out). The wait before it shows is not part of the style.',
+    desc: 'Shows a tooltip: it fades in.' },
+  { id: 'accordion-expand', data: 'accordion/expand', figma: 'Accordion / expand', group: 'Accordion', leaf: 'expand', src: 'accordion', demo: 'accordion', dir: 'in',
+    tracks: [['Panel', 'height 0 → content (the R5 exception), opacity 0 → 1']],
+    dur: 'normal', ease: 'enter', via: 'motion.transition.enter',
+    reducedTracks: [['Panel', 'height at once, opacity 0 → 1']], rdur: 'normal', rease: 'enter',
+    entries: 'size (unverified); opacity', ods: [7], note: 'If a style can’t carry height, the Figma style is the fade only and height stays code-only.',
+    desc: 'Opens an accordion panel: its height grows to fit and its content fades in.' },
+  { id: 'hover', data: 'hover', figma: 'Hover', group: null, leaf: 'Hover', src: 'button (motion.state)', demo: 'hover', dir: 'in',
+    tracks: [['Fill, border', 'color, default → hover']],
+    dur: 'fast', ease: 'default',
+    reducedTracks: [['Fill, border', 'color, default → hover (kept: it isn’t movement)']], rdur: 'fast', rease: 'default',
+    entries: 'fill color (unverified)', ods: [3, 4], note: 'Bound in the button def as motion.state / motion.state-easing / motion.state-reduced.',
+    desc: 'A control’s color change on hover.' },
+  { id: 'pressed', data: 'pressed', figma: 'Pressed', group: null, leaf: 'Pressed', src: 'button (motion.press)', demo: 'pressed', dir: 'in',
+    tracks: [['Control', `scale 1 → ${PRESS_SCALE}, color default → pressed`]],
+    dur: 'fast', ease: 'default',
+    reducedTracks: [['Control', 'color only, no scale']], rdur: 'fast', rease: 'default',
+    entries: 'scale (unverified); fill color (unverified)', ods: [3, 4, 6], note: 'Bound in the button def as motion.press / motion.press-easing.',
+    desc: 'A control’s press: a slight scale down and a color change.' },
+  { id: 'fade-in', data: 'fade/in', figma: 'Fade / in', group: 'Fade', leaf: 'in', src: 'generic', demo: 'fade', dir: 'in',
+    tracks: [['Element', 'opacity 0 → 1']],
+    dur: 'normal', ease: 'enter', via: 'motion.transition.enter',
+    reducedTracks: [['Element', 'opacity 0 → 1']], rdur: 'normal', rease: 'enter',
+    entries: 'opacity', ods: [4, 7], note: 'The generic entrance for anything without its own pattern.',
+    desc: 'Fades an element in.' },
+];
+
+const DECISIONS = [
+  { n: 1, title: 'Drawer: Prism3 has no Drawer component. Its slide is Dialog’s end placement.',
+    opts: ['A. “Drawer / enter”, “Drawer / exit” (data drawer/enter), the name the starter set used.',
+           'B. “Dialog / end / enter”, “Dialog / end / exit” (data dialog/end/enter), named for the component and placement it animates; a bottom sheet joins as “Dialog / bottom / …”.',
+           'C. “Sheet / enter”, “Sheet / exit”, one name for every edge panel.'],
+    rec: 'B: one vocabulary with the component a designer places, and room for the bottom sheet without a new name. A is clearer to a designer who has never opened Dialog’s placement axis.' },
+  { n: 2, title: 'Tooltip and the starter set: Tooltip has no component and no vault grounding.',
+    opts: ['A. Keep “Tooltip / show” in the starter set as drafted (a fade on duration.fast, easing-role.enter).',
+           'B. Hold it until a Tooltip component exists, and file the vault gap (from:prism3).'],
+    rec: 'B: every other pattern animates a shipped component; a style for a component that doesn’t exist sets its motion before its design.' },
+  { n: 3, title: 'Hover and Pressed as styles: built components take these through prototype reactions, which refuse variables (#2403).',
+    opts: ['A. Ship “Hover” and “Pressed” styles anyway, for hand-built prototypes and the style guide.',
+           'B. Show them in the style guide only (bindings and a demo), with no Figma style.',
+           'C. Drop them from the starter set.'],
+    rec: 'B, if the in-app check finds a style can’t carry a fill color; A otherwise. Either way the built components keep their baked reaction numbers.' },
+  { n: 4, title: 'Grouping and naming in the picker.',
+    opts: ['A. Group by component (“Dialog / enter”), with state patterns at the top level (“Hover”, “Pressed”) and generic ones by motion (“Fade / in”), as drawn.',
+           'B. Group by motion kind (“Fade in · short · standard”, the #2857 body’s first example).',
+           'C. A, with state patterns under one group (“State / hover”, “State / pressed”).'],
+    rec: 'A or C: Q-M7 A already settled the component-first shape; C keeps the top level to groups only. No “Motion /” prefix in any option.' },
+  { n: 5, title: 'The reduced sibling’s place: “Dialog / enter / reduced” makes “enter” both a style and a folder.',
+    opts: ['A. Keep Q-M7 A as written, once the app shows a style and a same-named folder cleanly.',
+           'B. “Dialog / enter · reduced”: a sibling in the same folder, no nested folder.',
+           'C. “Dialog / reduced / enter”: the reduced set in one folder per component.'],
+    rec: 'A, conditional on the in-app check; B if Figma merges or hides the style. This is a check, not a taste call, unless the app allows both.' },
+  { n: 6, title: 'Scale values with no token: the dialog’s scale-in start and the press scale.',
+    opts: ['A. File a gap (a motion scale step, next to G2’s distance) and keep each value in its component def until it is filled.',
+           'B. Fold scale into G2 as one “motion offset” family covering distance and scale.',
+           'C. Keep them as per-pattern values in the P3 pattern file, with no token.'],
+    rec: 'A: on an A answer the gap is filed as its own issue, beside G2. The 0.96 in the dialog demo is a placeholder: the dialog def says “a little” and gives no number.' },
+  { n: 7, title: 'Pairs the starter set leaves out: fade/out, accordion/collapse, tooltip hide.',
+    opts: ['A. Add each missing half, so every pattern has its reverse.',
+           'B. Ship the set as listed in Q-MO1 A.'],
+    rec: 'A for fade/out and accordion/collapse (both are in the prism3-motion recipes); tooltip follows OD-2.' },
+  { n: 8, title: 'Style descriptions: the one line the picker shows on hover.',
+    opts: ['A. Use the drafted lines on this page (what moves, in plain words).',
+           'B. Name the bound roles instead (“duration.moderate · easing-role.enter”).',
+           'C. Owner rewrites.'],
+    rec: 'A: the binding is visible in the style itself; the description says what the designer will see. Copy is yours to approve either way.' },
+  { n: 9, title: 'Style guide layout: one row per pattern with its reduced sibling in the same row, as drawn.',
+    opts: ['A. As drawn: thumbnail, tracks, bound variables, reduced line.',
+           'B. Separate rows for each reduced sibling.',
+           'C. Another layout. Name it.'],
+    rec: 'A: the pair is one decision, so it reads as one row.' },
+];
+
+// ---------------------------------------------------------------------------------------------
+const $ = (s, el = document) => el.querySelector(s);
+const state = { reduced: false, ramp: 'today', speed: 1 };
+try { state.reduced = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+$('#reduced').checked = state.reduced;
+
+const bez = (b) => `cubic-bezier(${b.join(', ')})`;
+const durMs = (p, reduced) => reduced ? RAMPS[state.ramp][p.rdur] : EMITTED.duration[p.dur];
+const easeOf = (p, reduced) => EMITTED.easingRole[reduced ? p.rease : p.ease];
+const durName = (p, reduced) => reduced ? `duration-reduced/${p.rdur}` : `duration/${p.dur}`;
+const odTags = (ods) => ods.map((n) => `<a class="od" href="#od-${n}">OD-${n}</a>`).join(' ');
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+function curveSvg(b) {
+  const [x1, y1, x2, y2] = b, s = 36, o = 4, Y = (y) => o + s - y * s, X = (x) => o + x * s;
+  return `<svg class="curve" viewBox="0 0 44 44" aria-hidden="true"><rect x="4" y="4" width="36" height="36"/><path d="M${X(0)} ${Y(0)} C ${X(x1)} ${Y(y1)}, ${X(x2)} ${Y(y2)}, ${X(1)} ${Y(1)}"/></svg>`;
+}
+
+function stageHtml(p) {
+  const lines = '<div class="page-lines"><i></i><i></i><i></i><i></i></div>';
+  switch (p.demo) {
+    case 'dialog': return `${lines}<div class="scrim" data-r="scrim"></div><div class="panel center" data-r="panel"><strong>Dialog title</strong><p style="margin:6px 0 0">Body text sits here.</p></div>`;
+    case 'drawer': return `${lines}<div class="scrim" data-r="scrim"></div><div class="panel end" data-r="panel"><strong>Side panel</strong></div>`;
+    case 'toast': return `${lines}<div class="toast" data-r="toast">Changes saved</div>`;
+    case 'tooltip': return `${lines}<div class="tip" data-r="tip">Copy link</div><button class="btn anchor" type="button" tabindex="-1">Share</button>`;
+    case 'accordion': return `<div class="acc"><div class="acc-h"><span>Shipping details</span><span aria-hidden="true">⌄</span></div><div class="acc-p" data-r="acc"><div>Orders ship within two working days. Tracking arrives by email.</div></div></div>`;
+    case 'hover': return `${lines}<button class="demo-btn" type="button" data-r="btn">Hover me</button>`;
+    case 'pressed': return `${lines}<button class="demo-btn" type="button" data-r="btn">Press me</button>`;
+    case 'fade': return `${lines}<div class="fade-card" data-r="fade"></div>`;
+  }
+}
+
+function tracksTable(p) {
+  const row = (t, reduced) => `<tr${reduced ? ' class="reduced-row"' : ''}><td>${esc(t[0])}</td><td>${esc(t[1])}</td></tr>`;
+  return `<div class="table-wrap"><table class="tracks"><thead><tr><th>Track</th><th>What moves</th></tr></thead><tbody>${p.tracks.map((t) => row(t)).join('')}</tbody></table></div>`;
+}
+
+function card(p) {
+  const el = document.createElement('article');
+  el.className = 'card'; el.id = p.id;
+  const fe = EMITTED.easingRole[p.ease], re = EMITTED.easingRole[p.rease];
+  el.innerHTML = `
+    <div class="card-head"><h3>${esc(p.figma)}</h3><span class="draft-flag">Draft</span></div>
+    <div class="stage" data-stage aria-hidden="true">${stageHtml(p)}</div>
+    <div class="stage-bar"><button class="btn" type="button" data-play>Replay</button><span class="mode-tag" data-mode></span></div>
+    ${tracksTable(p)}
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>Duration role</th><th>Easing role</th></tr></thead>
+      <tbody>
+        <tr><td>Full</td><td><code>duration/${p.dur}</code> <span class="muted">${EMITTED.duration[p.dur]}ms</span>${p.via ? `<br><span class="muted">= <code>${p.via}</code></span>` : ''}</td><td><code>easing-role/${p.ease}</code> <span class="muted">${fe.curve}</span></td></tr>
+        <tr class="reduced-row"><td>Reduced</td><td><code>duration-reduced/${p.rdur}</code> <span class="muted" data-rval></span></td><td><code>easing-role/${p.rease}</code> <span class="muted">${re.curve}</span></td></tr>
+      </tbody></table></div>
+    <p style="font-size:13px;margin:0"><strong>Reduced sibling:</strong> ${p.reducedTracks.map((t) => `${esc(t[0])}: ${esc(t[1])}`).join('; ')}.</p>
+    <div class="names"><dl>
+      <dt>Data name</dt><dd><code>${esc(p.data)}</code> · <code>${esc(p.data)}/reduced</code></dd>
+      <dt>Figma styles</dt><dd>“${esc(p.figma)}” · “${esc(p.figma)} / reduced”</dd>
+      <dt>Animates</dt><dd>${esc(p.src)}</dd>
+      <dt>Style entries</dt><dd>${esc(p.entries)}</dd>
+    </dl></div>
+    <p class="muted" style="font-size:13px;margin:0">${esc(p.note)} ${odTags(p.ods)}</p>`;
+  return el;
+}
+
+const grid = $('#grid');
+PATTERNS.forEach((p) => grid.appendChild(card(p)));
+
+// --- playback ------------------------------------------------------------------------------
+const timers = new WeakMap();
+function setT(el, props, ms, ease) { el.style.transition = props.map((pr) => `${pr} ${ms}ms ${ease}`).join(', '); }
+function noT(el) { el.style.transition = 'none'; }
+
+function play(p, root) {
+  const reduced = state.reduced;
+  const ms = durMs(p, reduced) * state.speed;
+  const ease = bez(easeOf(p, reduced).b);
+  const r = (k) => $(`[data-r="${k}"]`, root);
+  const tag = $('[data-mode]', root.closest('.card'));
+  tag.textContent = `${reduced ? 'Reduced' : 'Full'} · ${durName(p, reduced)} = ${durMs(p, reduced)}ms${state.speed > 1 ? ' (shown 4× slower)' : ''}`;
+  clearTimeout(timers.get(root));
+  const out = p.dir === 'out';
+  const all = root.querySelectorAll('[data-r]');
+  all.forEach(noT);
+
+  // start state, then reflow, then end state
+  const from = {}, to = {}, props = {};
+  const scaleFrom = reduced ? 1 : SCALE_IN;
+  switch (p.demo) {
+    case 'dialog':
+      from.scrim = { opacity: out ? 1 : 0 }; to.scrim = { opacity: out ? 0 : 1 };
+      from.panel = { opacity: out ? 1 : 0, transform: `scale(${out ? 1 : scaleFrom})` };
+      to.panel = { opacity: out ? 0 : 1, transform: `scale(${out ? scaleFrom : 1})` };
+      props.scrim = ['opacity']; props.panel = ['opacity', 'transform']; break;
+    case 'drawer': {
+      const off = reduced ? 'translateX(0)' : 'translateX(100%)';
+      const dirSign = getComputedStyle(root).direction === 'rtl' ? off.replace('100%', '-100%') : off;
+      from.scrim = { opacity: out ? 1 : 0 }; to.scrim = { opacity: out ? 0 : 1 };
+      from.panel = { opacity: reduced ? (out ? 1 : 0) : 1, transform: out ? 'translateX(0)' : dirSign };
+      to.panel = { opacity: reduced ? (out ? 0 : 1) : 1, transform: out ? dirSign : 'translateX(0)' };
+      props.scrim = ['opacity']; props.panel = ['opacity', 'transform']; break; }
+    case 'toast': {
+      const off = reduced || out ? 'translateY(0)' : `translateY(${NUDGE_PX}px)`;
+      from.toast = { opacity: out ? 1 : 0, transform: out ? 'translateY(0)' : off };
+      to.toast = { opacity: out ? 0 : 1, transform: 'translateY(0)' };
+      props.toast = ['opacity', 'transform']; break; }
+    case 'tooltip':
+      from.tip = { opacity: 0 }; to.tip = { opacity: 1 }; props.tip = ['opacity']; break;
+    case 'accordion': {
+      const acc = r('acc'); const h = acc.scrollHeight;
+      from.acc = { height: '0px', opacity: 0 }; to.acc = { height: h + 'px', opacity: 1 };
+      props.acc = reduced ? ['opacity'] : ['height', 'opacity']; break; }
+    case 'hover':
+      from.btn = { cls: '' }; to.btn = { cls: 'hovered' }; props.btn = ['background-color']; break;
+    case 'pressed':
+      from.btn = { cls: '' }; to.btn = { cls: reduced ? 'hovered' : 'pressed' }; props.btn = reduced ? ['background-color'] : ['background-color', 'transform']; break;
+    case 'fade':
+      from.fade = { opacity: 0 }; to.fade = { opacity: 1 }; props.fade = ['opacity']; break;
+  }
+  const apply = (k, s) => { const el = r(k); if (!el) return; if ('cls' in s) { el.classList.remove('hovered', 'pressed'); if (s.cls) el.classList.add(s.cls); } else Object.assign(el.style, s); };
+  Object.keys(from).forEach((k) => apply(k, from[k]));
+  void root.offsetWidth;
+  Object.keys(to).forEach((k) => { setT(r(k), props[k], ms, ease); apply(k, to[k]); });
+  // state patterns release after a beat, on the same timing, so the demo loops back
+  if (p.demo === 'hover' || p.demo === 'pressed') {
+    timers.set(root, setTimeout(() => apply('btn', { cls: '' }), Math.max(ms, 50) + 600 * state.speed));
+  }
+}
+
+function playAll() { PATTERNS.forEach((p) => play(p, $(`#${p.id} [data-stage]`))); }
+function refreshReducedValues() {
+  PATTERNS.forEach((p) => { $(`#${p.id} [data-rval]`).textContent = `${RAMPS[state.ramp][p.rdur]}ms`; });
+}
+grid.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-play]'); if (!b) return;
+  const c = b.closest('.card'); play(PATTERNS.find((p) => p.id === c.id), $('[data-stage]', c));
+});
+$('#play-all').addEventListener('click', playAll);
+$('#reduced').addEventListener('change', (e) => { state.reduced = e.target.checked; playAll(); });
+$('#ramp').addEventListener('change', (e) => { state.ramp = e.target.value; refreshReducedValues(); if (state.reduced) playAll(); });
+$('#speed').addEventListener('change', (e) => { state.speed = Number(e.target.value); playAll(); });
+$('#theme').addEventListener('change', (e) => {
+  const v = e.target.value;
+  if (v === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', v);
+});
+
+// --- Figma picker mock -------------------------------------------------------------------------
+(function picker() {
+  const body = $('#picker'); let html = ''; let last = null;
+  const item = (name, desc, sub) => `<div class="p-item${sub ? ' sub' : ''}"><span class="p-icon" aria-hidden="true"></span><span>${esc(name)}</span><span class="p-desc">${esc(desc)}</span></div>`;
+  PATTERNS.forEach((p) => {
+    if (p.group !== last) { if (p.group) html += `<div class="p-group">${esc(p.group)}</div>`; last = p.group; }
+    if (p.group) {
+      html += item(p.leaf, p.desc, false);
+      html += `<div class="p-sub">${esc(p.leaf)} ›</div>` + item('reduced', 'Fade only, on the reduced duration.', true);
+    } else {
+      html += `<div class="p-group" style="padding-top:10px">(top level)</div>` + item(p.leaf, p.desc, false);
+      html += `<div class="p-sub">${esc(p.leaf)} ›</div>` + item('reduced', p.id === 'hover' ? 'The color change, on the reduced duration.' : 'Color only, on the reduced duration.', true);
+    }
+  });
+  body.innerHTML = html;
+})();
+
+// --- style guide mock -------------------------------------------------------------------------
+(function styleGuide() {
+  const sg = $('#sg');
+  sg.innerHTML = `<p class="muted" style="margin:0 0 4px;font-size:13px">Motion · patterns <span class="draft-flag">Draft</span></p>` + PATTERNS.map((p) => {
+    const fe = EMITTED.easingRole[p.ease];
+    return `<div class="sg-row">
+      <div class="sg-thumb" data-thumb="${p.id}" aria-hidden="true"><div class="dot"></div></div>
+      <div style="min-width:0">
+        <strong>${esc(p.figma)}</strong> <span class="muted mono">${esc(p.data)}</span>
+        <div style="font-size:13px;margin-top:2px">${p.tracks.map((t) => `${esc(t[0])}: ${esc(t[1])}`).join(' · ')}</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:4px">${curveSvg(fe.b)}<div>
+          <span class="chip">duration/${p.dur}</span><span class="chip">easing-role/${p.ease}</span>
+          <div class="muted" style="font-size:12px;margin-top:2px">Reduced: ${p.reducedTracks.map((t) => esc(t[1])).join('; ')} · <span class="chip">duration-reduced/${p.rdur}</span></div>
+        </div></div>
+      </div></div>`;
+  }).join('');
+  // looping thumbnails: a simple stand-in per kind (opacity, slide, scale), on the full timing
+  const kinds = { dialog: 'scale', drawer: 'slide', toast: 'up', tooltip: 'fade', accordion: 'grow', hover: 'color', pressed: 'scale-press', fade: 'fade' };
+  function loop() {
+    PATTERNS.forEach((p) => {
+      const dot = $(`[data-thumb="${p.id}"] .dot`); if (!dot) return;
+      const reduced = state.reduced, ms = durMs(p, reduced) * state.speed, ease = bez(easeOf(p, reduced).b);
+      const k = kinds[p.demo], out = p.dir === 'out';
+      const hidden = { opacity: '0', transform: 'none', background: '' };
+      if (!reduced) {
+        if (k === 'scale') hidden.transform = `scale(${SCALE_IN})`;
+        if (k === 'slide') hidden.transform = 'translateX(60px)';
+        if (k === 'up') hidden.transform = `translateY(${NUDGE_PX}px)`;
+        if (k === 'grow') hidden.transform = 'scaleY(0.2)';
+      }
+      const shown = { opacity: '1', transform: 'none', background: '' };
+      let a = out ? shown : hidden, b = out ? hidden : shown;
+      if (k === 'color' || k === 'scale-press') {
+        a = { opacity: '1', transform: 'none', background: '' };
+        b = { opacity: '1', transform: k === 'scale-press' && !reduced ? `scale(${PRESS_SCALE})` : 'none', background: 'var(--accent-2)' };
+      }
+      dot.style.transition = 'none'; Object.assign(dot.style, a); void dot.offsetWidth;
+      dot.style.transition = `opacity ${ms}ms ${ease}, transform ${ms}ms ${ease}, background-color ${ms}ms ${ease}`;
+      Object.assign(dot.style, b);
+    });
+  }
+  loop(); setInterval(loop, 1600);
+})();
+
+// --- values table ------------------------------------------------------------------------------
+(function values() {
+  const t = $('#values-table');
+  const rows = Object.keys(EMITTED.duration).map((k) => `<tr><td><code>duration/${k}</code></td><td>${EMITTED.duration[k]}ms</td><td><code>duration-reduced/${k}</code></td><td>${EMITTED.durationReduced[k]}ms</td></tr>`).join('');
+  const er = Object.entries(EMITTED.easingRole).map(([k, v]) => `<tr><td><code>easing-role/${k}</code></td><td colspan="3"><span style="display:inline-flex;gap:8px;align-items:center">${curveSvg(v.b)} ${v.curve} · <code>${bez(v.b)}</code></span></td></tr>`).join('');
+  t.innerHTML = `<thead><tr><th>Duration role</th><th>Value</th><th>Reduced twin</th><th>Value today</th></tr></thead><tbody>${rows}${er}</tbody>`;
+})();
+
+// --- decisions --------------------------------------------------------------------------------
+$('#decision-list').innerHTML = DECISIONS.map((d) => `<li id="od-${d.n}"><span class="od">OD-${d.n}</span> <strong>${esc(d.title)}</strong>
+  <ul style="margin:4px 0;padding-left:18px">${d.opts.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>
+  <div class="rec"><strong>Recommendation:</strong> ${esc(d.rec)}</div></li>`).join('');
+
+refreshReducedValues();
+playAll();
+</script>
+</body>
+</html>

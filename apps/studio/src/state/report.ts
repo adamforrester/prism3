@@ -1,7 +1,8 @@
 /**
  * Report a problem (#2069, owner decision Q116 A): a diagnostic bundle the person can copy, and a link that opens a
- * prefilled GitHub issue in their browser. No backend: the plugin declares no network, so nothing is sent from here;
- * the person reads the bundle, and files it or not.
+ * GitHub issue in their browser. No backend: the plugin declares no network, so nothing is sent from here; the person
+ * reads the bundle, and files it or not. The owner (2026-11-17): the issue opens with the title filled in and a body
+ * that only says to paste the report, which the panel has put on the clipboard; the link carries none of the report.
  *
  * WHAT THE BUNDLE HOLDS: the app's build, `ENGINE_VERSION`, the host, and each operation's latest result from the
  * Activity drawer (its verdict and its lines). **The brand input only when the person opts in** (`includeBrand`, off by
@@ -32,6 +33,11 @@ export type ReportInput = {
   /** The brand input the panel holds, or null. Read for its words even when it is not included, so `scrub` can take them out. */
   readonly brand: Readonly<Record<string, unknown>> | null;
   readonly includeBrand: boolean;
+  /** The words of every brand the session has held (#3883), not only `brand`: an Activity line is an operation's
+   *  latest result, and it stays across brand loads, renames and a failed restore. Scrubbed whether or not `brand` is
+   *  included, except the included brand's own words, which the report then carries anyway. Required, so a caller
+   *  cannot leave the earlier brands out by forgetting it. */
+  readonly seen: readonly BrandWord[];
 };
 
 const REDACTED = '[removed]';
@@ -99,6 +105,18 @@ export const brandWords = (brand: Readonly<Record<string, unknown>> | null): Bra
   return [...new Set(words), ...whole].sort((a, b) => wordText(b).length - wordText(a).length);
 };
 
+/** Several word lists as one (#3883): one entry per word, ignoring case. A plain string wins over `{ whole }` for the
+ *  same text (it matches more, so it scrubs at least as much), and the longest words come first, as `brandWords` sorts. */
+export const mergeWords = (...lists: ReadonlyArray<readonly BrandWord[]>): BrandWord[] => {
+  const by = new Map<string, BrandWord>();
+  for (const w of lists.flat()) {
+    const k = wordText(w).toLowerCase();
+    const had = by.get(k);
+    if (!had || (typeof had !== 'string' && typeof w === 'string')) by.set(k, w);
+  }
+  return [...by.values()].sort((a, b) => wordText(b).length - wordText(a).length);
+};
+
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** What bounds a brand word as a whole segment: the start or end, or any character that is not a letter or a digit, in
@@ -145,20 +163,30 @@ const FAILED = /^((?:write|prune) failed): (?:([A-Za-z][A-Za-z0-9]*)(?=[:.]|$))?
 const reduceWriteFailure = (line: string): string => line.replace(FAILED, (_, head: string, cls?: string) => `${head}: ${cls ?? 'Error'}`);
 
 /** Every other line that carries a host's message (#3702) carries it as `failureDetail` does, `<Class>: <message>`,
- *  where the class is an error's name (`Error`, `TypeError`, `DependencyBuildError`), at the start of the line, after
+ *  where the class is an error's name (`Error`, `TypeError`, `DependencyBuildError`) or a host's exception
+ *  (`DOMException`: Update file's catches post the detail bare, with no head, #4257 review), at the start of the line, after
  *  `: ` (`file setup failed: Error: …`) or after `(` (`Figma refused the write (Error: …)`). The message runs to the end
  *  of its line, so the report keeps the class and cuts the rest; a detail that opened a parenthesis gets it closed. The
  *  cut is `[\s\S]*`, not `.*`: JS's `.` stops at CR, U+2028 and U+2029, and a line holding one went through whole. */
-const DETAIL = /(^|: |\()((?:[A-Z][A-Za-z0-9]*)?Error): [\s\S]*$/;
+const DETAIL = /(^|: |\()((?:[A-Z][A-Za-z0-9]*)?(?:Error|Exception)): [\s\S]*$/;
 /** The class grammar `errorClass` emits (`plugin/src/apply-summary.ts`): one word, a letter first. `DETAIL` above finds a
- *  detail anywhere by its `…Error` name; after a head a #3702 site is known to post, any class that grammar admits is
+ *  detail anywhere by its `…Error` or `…Exception` name; after a head a #3702 site is known to post, any class that grammar admits is
  *  one (`DOMException`, a lowercase `invariant`), so the two halves of the contract agree (#3702 review). */
 const CLASS = '[A-Za-z][A-Za-z0-9]*';
-/** The text each #3702 site posts right before its `failureDetail` (`main.ts`, `prune-figma.ts`'s version note).
+/** The text each #3702 site posts right before its `failureDetail` (`main.ts`, `prune-figma.ts`'s version note, and since
+ *  #4205 Update file's lines in `update-apply.ts` and `canvas-furniture.ts`).
  *  `test-report-redaction.ts` holds this list against every `failureDetail(` site in the plugin's source. */
 export const DETAIL_HEADS: readonly string[] = [
   'component build failed: ', 'file setup failed: ', 'style guide failed: ', 'read-back failed: ', 'Cleanup failed: ',
   'Figma refused the write (', 'the engine could not plan it (', 'the named version could not be saved (',
+  // #4205: Update file's stopped set (`<set>: stopped (…)`) and its run that threw (`The update failed: …`).
+  ': stopped (', 'The update failed: ',
+  // #4253: the component build's and Update file's misses, the slot carry, and the style guide's contrast note. Each
+  // miss names a layer Prism3 drew, then the host's refusal in `failureDetail` form after one of these words.
+  'REFUSED (', 'REFUSED by the slot (', 'NOT MADE (', 'NOT RECORDED (', 'NOT DELETED (', 'could not be cleared (',
+  'not cleared (', 'could not be neutralized (', "after the foot pin's resize (", 'after the #865 defaults (',
+  'on the combine-time handle (', 'on a freshly-resolved one (', 'marking the leftovers also failed (',
+  "slot content on the set (", 'The saved brand did not resolve (', 'Saved brand not restored — ',
 ];
 const HEAD_DETAIL = new RegExp(`(${DETAIL_HEADS.map((h) => escapeRe(h)).join('|')})(${CLASS}): [\\s\\S]*$`);
 /** The apply's variable-write note names the variable, then the host's reason as `write-figma.ts` records it, with no
@@ -187,7 +215,9 @@ export const reduceFailure = (line: string): string => reduceWriteFailure(line).
 
 /** The bundle, as Markdown, ready to paste into an issue. */
 export const buildReport = (r: ReportInput): string => {
-  const words = r.includeBrand ? [] : brandWords(r.brand);
+  // #3883: every brand the session held, not only the one on screen now. With the brand included, its own words stay.
+  const own = new Set((r.includeBrand ? brandWords(r.brand) : []).map((w) => wordText(w).toLowerCase()));
+  const words = mergeWords(r.includeBrand ? [] : brandWords(r.brand), r.seen).filter((w) => !own.has(wordText(w).toLowerCase()));
   const s = (x: string): string => scrub(reduceFailure(x), words);
   const out: string[] = [
     REPORT_COPY.bodyAsk, '', REPORT_COPY.bodyWhat, '', '', REPORT_COPY.bodyDiag,
@@ -206,23 +236,15 @@ export const buildReport = (r: ReportInput): string => {
   return out.join('\n');
 };
 
-/** The longest issue URL this builds, under the roughly 8 KB at which GitHub refuses a prefilled issue URL, so a longer
- *  body is cut and says where the rest is. `test-report.ts` holds it to a literal ceiling. */
+/** The longest issue URL the plugin's main thread opens (`isIssueUrl`), under the roughly 8 KB at which GitHub refuses a
+ *  prefilled issue URL. `test-report.ts` holds it to a literal ceiling. */
 export const URL_LIMIT = 7000;
 
-/** The prefilled issue's URL: the title, and the body cut to fit `URL_LIMIT` with a line saying the full bundle is on
- *  the clipboard (the panel copies it before it opens the link). */
-export const issueUrl = (body: string): string => {
-  const at = (b: string): string => `${ISSUE_BASE}?title=${encodeURIComponent(REPORT_COPY.issueTitle)}&body=${encodeURIComponent(b)}`;
-  if (at(body).length <= URL_LIMIT) return at(body);
-  const note = `\n\n${REPORT_COPY.cut}`;
-  // A cut never splits a surrogate pair (an emoji in a page name): `encodeURIComponent` throws on half of one.
-  const head = (n: number): string => { const c = body.charCodeAt(n - 1); return body.slice(0, n > 0 && c >= 0xd800 && c <= 0xdbff ? n - 1 : n); };
-  let lo = 0;
-  let hi = body.length;
-  while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (at(head(mid) + note).length <= URL_LIMIT) lo = mid; else hi = mid - 1; }
-  return at(head(lo) + note);
-};
+/** The issue's URL (the owner, 2026-11-17): the title, and a body that holds only the line asking for the report to be
+ *  pasted. The report itself travels on the clipboard (the panel copies it before it opens the link), so the link is the
+ *  same for every report and carries nothing from the session. */
+export const issueUrl = (): string =>
+  `${ISSUE_BASE}?title=${encodeURIComponent(REPORT_COPY.issueTitle)}&body=${encodeURIComponent(REPORT_COPY.issueBody)}`;
 
 /** The one kind of URL the plugin opens for a report: the issue form on this repo, nothing else. */
 export const isIssueUrl = (u: unknown): u is string => typeof u === 'string' && u.length <= URL_LIMIT && u.startsWith(`${ISSUE_BASE}?`);
@@ -254,5 +276,6 @@ export const REPORT_COPY = {
   noActivity: '- Nothing has run in this session.',
   byAgent: 'agent',
   bodyBrand: '### Brand settings (included by the reporter)',
-  cut: '(The report was cut to fit the link. The full report is on your clipboard: paste it here.)',
+  // Owner decision Q-RC1 A copy, verbatim (APPROVED 2026-11-17): the title prefilled, the body only asks for the report.
+  issueBody: 'Paste the report here — Prism3 copies it to your clipboard as it opens this page. Copy in the Report a problem dialog copies it again.',
 } as const;

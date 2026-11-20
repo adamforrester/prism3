@@ -5,7 +5,7 @@
  * WHAT IT COUNTS (v4 review Q2): every role with a floor, in every mode the brand ships. A role "has a
  * floor" when the engine resolved it against something other than itself with a minimum above zero, the
  * way concept v6 counts it (`statsOf` in `concept-v6.src.html`). A role fails when its ratio is below
- * that minimum. For the default theme that is 239 roles in each of 4 modes, 956 in all (221 and 884 until #3346 added the 18 selection-mark roles).
+ * that minimum. For the default theme that is 241 roles in each of 4 modes, 964 in all (239 and 956 until #2750 rated the two disabled borders; 221 and 884 until #3346 added the 18 selection-mark roles).
  *
  * WHICH MODES ARE DERIVED: the engine's own mode registry (`BUILTIN_MODES`) says. A built-in mode whose
  * kind is not `standard` (high contrast and wireframe) is generated from light or dark and never edited
@@ -32,11 +32,17 @@ export type Verdict = {
 let cache: { theme: Theme; modes: string; v: Verdict } | null = null;
 let resolved: { theme: Theme; all: ReturnType<typeof resolveAllModes> } | null = null;
 
-/** Every mode's resolved roles for `theme`, cached by the theme's identity. The verdict reads it, and so
- *  does any preview that needs a role's resolved color (S2: the Palettes preview reads the page color it
- *  draws its specimens on), so one edit costs one resolve however many readers there are. */
+let runs = 0;
+/** How many times `resolvedModes` has resolved a theme (a cache miss). `test-store.ts` reads it to hold one resolve per
+ *  edit (#4234). */
+export const resolveRuns = (): number => runs;
+/** Every mode's resolved roles for `theme`, cached by the theme's identity. The store's resolve fills it (it hands these
+ *  to `resolvePreview`, #4234), the verdict reads it, and so does any preview that needs a role's resolved color (S2: the
+ *  Palettes preview reads the page color it draws its specimens on), so one edit costs one resolve however many readers
+ *  there are. */
 export const resolvedModes = (theme: Theme): ReturnType<typeof resolveAllModes> => {
   if (resolved && resolved.theme === theme) return resolved.all;
+  runs++;
   resolved = { theme, all: resolveAllModes(theme) };
   return resolved.all;
 };
@@ -89,7 +95,7 @@ export const FLOOR_POINTER = {
   link: 'Change the contrast floor',
 } as const;
 
-/** Health's breadth note: "239 per mode × 4 modes" when every mode gates the same count (v5 Q2). */
+/** Health's breadth note: "241 per mode × 4 modes" when every mode gates the same count (v5 Q2). */
 export const breadthLine = (v: Verdict, label: (m: string) => string): string => {
   const counts = [...new Set(v.per.map((m) => m.n))];
   return counts.length === 1 ? `${counts[0]} per mode × ${plural(v.per.length, 'mode')}` : v.per.map((m) => `${label(m.mode)} ${m.n}`).join(' · ');

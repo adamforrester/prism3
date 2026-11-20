@@ -63,7 +63,15 @@
  * EXPECTED is `FLOOR_PX = 44`, the WCAG number transcribed HERE as a literal — deliberately NOT imported
  * from `scale.ts`'s `AAA_TARGET_PX`. The emitter computes `select`'s `min-height` AS `max(md,
  * AAA_TARGET_PX)`, so asserting that emitted value `>= AAA_TARGET_PX` would be `x >= x` (docs/34 shape
- * 2). Written independently, lowering `AAA_TARGET_PX` to 40 fails THIS gate at 44.
+ * 2). The literal keeps the gate honest about the number it compares to.
+ *
+ * WHAT THAT INDEPENDENCE DOES NOT BUY (#4239). Lowering `AAA_TARGET_PX` to 40 passes THIS gate. The floor
+ * is measured on comfortable and spacious only, where `md` is already 44 and 56, so `max(md, 40)` returns
+ * `md` and the constant never decides a value this gate reads. The one density where it does decide one is
+ * compact, and compact is exempt. `AAA_TARGET_PX` is held elsewhere: `test.ts` #1437 ("the floor DOES
+ * work") fails by name on the compact fixture, and `regen --check` reports the emitted trees drifting. The
+ * mutation this gate does catch is the one in the next paragraph: point a control's default hit target at
+ * a smaller rung (`button`'s `size.medium.height` bound to `size.sm.height`) and it fails here by name.
  *
  * ACTUAL is the emitted px of the token a control ACTUALLY binds as its hit target, at its DEFAULT size,
  * read THROUGH the def's own `tokens` map (`def.tokens[bindKey]`) and resolved from a freshly built tree
@@ -287,6 +295,7 @@ const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [s
   counter: { parts: ['decrement', 'increment'], pair: ['decrement', 'increment'], why: "the Counter's minus and plus, either side of the value" },
   // #2808 (Q385 A): the Dialog's close is one code-side target, so there is no second hit area to space it from.
   dialog: { parts: ['close'], why: "the Dialog's close, the one code-side target in its header" },
+  popover: { parts: ['close'], why: "the Popover's close, the one code-side target in its header" },
   // Owner QA 2026-10-19: the Banner's dismiss is a flush FlushIconButton.Neutral, the one code-side target in the row.
   banner: { parts: ['close'], why: "the Banner's close button, the one code-side target in its row" },
   // #2666: the overflow step's flush icon button is the one code-side target in a breadcrumb item, so there is no second hit area to space it from.
@@ -336,6 +345,7 @@ const EXCLUDED: Record<string, string> = {
   'banner': 'a message in the page flow, never itself a pointer target: its one text action is a Button (Button.Neutral when the file has it) and its dismiss a FlushIconButton.Neutral, each measured under its own name (#2579, Q533.1)',
   'button-group': 'a layout of one to three Buttons, never itself a pointer target: each Button is measured under its own name (#2661)',
   'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#2609, Q385 A)',
+  'popover': 'a non-modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#4008)',
   'toast': 'a status message over the page, never itself a pointer target: its action and close button are a Button and a FlushIconButton.Neutral, each measured under its own name; the small close button\'s 44×44 hit area is extended in code, as IconButton records (#2668)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
   'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
@@ -349,6 +359,7 @@ const EXCLUDED: Record<string, string> = {
   'switch-control': 'a nested-only atom — the tap target is the labeled row (switch-row), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
+  'tag-group': 'a group container — its tap targets are the nested tags, each measured under its own name (#1739)',
   'pagination': 'a navigation row — its tap targets are the nested page cells, gated as pagination-item, and the previous and next IconButton.Neutral and Button.Neutral, each measured under its own name (#2665)',
   'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab-item',
   'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception; each size\'s line box is held to 24px below, as drawn or code-side (#3179)',

@@ -165,8 +165,11 @@ type Deps = {
    *  Activity drawer shows an agent's command running the way it shows a button's; the forwarded verdict
    *  alone cannot say when it began, or that a command which threw has ended. Reports only: neither
    *  writes to the file, and a throw from either never fails the command. */
-  /** `apply` marks a confirmed `update-components` (#2265 PR 2), so the panel can tell an update from a check. */
-  onStart?(id: string, cmd: AgentCmd, apply?: boolean): void;
+  /** `apply` marks a confirmed `update-components` (#2265 PR 2), so the panel can tell an update from a check. `def` is
+   *  a `build-components`' def id as sent, `undefined` when it sent none (#2087: the panel records the verdict against it). */
+  /** `confirm` (#2368) is whether the command's args carry `confirm: true`, so a preview that writes nothing is told
+   *  from its write. */
+  onStart?(id: string, cmd: AgentCmd, apply?: boolean, def?: string, confirm?: boolean): void;
   onFinish?(id: string, cmd: AgentCmd): void;
   /** A valid command the plugin declines before it runs (#1957): a write whose operation is already
    *  running. Asked before `onStart`, so a declined command is never shown as running; what it returns is
@@ -320,7 +323,10 @@ export const createDispatcher = (deps: Deps) => {
       if (logs.length < LOG_CAP) logs.push(line); else logsDropped++;
       deps.onLog?.(c.id, line);
     };
-    try { deps.onStart?.(c.id, c.cmd, c.cmd === 'update-components' && c.args.confirm === true); } catch { /* a reader; see `forward` */ }
+    try {
+      deps.onStart?.(c.id, c.cmd, c.cmd === 'update-components' && c.args.confirm === true, c.cmd === 'build-components' ? c.args.def : undefined,
+        (c.args as { confirm?: unknown } | undefined)?.confirm === true);
+    } catch { /* a reader; see `forward` */ }
     try {
       // #2530: the dev command is a dev build's only; in a release the branch is folded away with `dev-commands.ts`.
       await teeConsole(onLine, () => (PRISM3_DEV && c.cmd === RUN_CODE

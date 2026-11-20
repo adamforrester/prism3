@@ -17,6 +17,13 @@ import { buildShadow, type ShadowAxis, type ShadowStep, type ShadowLayer } from 
 import { buildLayout, gridGapNotes } from './theme-layout';
 import { buildGradient } from './theme-gradient';
 
+/** A value the caller has established is present (an in-range index, a key just written); a named throw, not a
+ *  silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`theme-brand: ${what} is missing`);
+  return x;
+};
+
 /** Per-mode NO-DIFF suppression, shared by the JSON-comparable lever axes (radius / families /
  *  weight-roles / line-heights / letter-spacings): assign `cand` to `map[mode]` ONLY when it differs
  *  from the global baseline, so a mode re-declaring the global value stays byte-identical. Returns
@@ -38,6 +45,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const resolved = resolveVocabulary(brandInput);
   const input = resolved.input as BrandInput;
   notes.push(...resolved.notes);
+  // #3875: the id names every file the CLI writes (`<id>.tokens.json` and the rest, `emit-dtcg.ts`), so a separator in
+  // it wrote outside --out ('../escaped') or failed mid-write ('a/b'), and an empty id wrote hidden dotfiles. Refused
+  // here, the choke point every entry path passes through. Only what makes an id unsafe as a file name is refused:
+  // a full slug rule could refuse ids hosts already store, and is held for the owner on #3875. DRAFT wording.
+  const id: unknown = input.id;
+  if (typeof id !== 'string' || id.trim() === '' || /[/\\\0]/.test(id) || id === '.' || id === '..')
+    throw new Error(`id: ${JSON.stringify(id)} can't name the brand's files. Use a name with no slash or backslash, such as 'aurora'.`);
   const root = input.root ?? 'prism';
   // Single lowercase segment — enforce the "no two-segment namespaces" contract here
   // too (not only in the schema), since brandTheme is also called with in-memory
@@ -152,11 +166,12 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     const lev = input.modeLevers![m]!;
     if (lev.radius !== undefined && (!Number.isFinite(lev.radius) || lev.radius < 0 || lev.radius > 2))
       throw new Error(`modeLevers: mode '${m}' radius ${lev.radius} is out of range — must be a finite number in [0, 2]`);
-    // Per-mode weight values must be a valid font-weight (finite, [100, 900]). Role ordering is NOT
+    // Per-mode weight values must be a valid font-weight (a whole number in [100, 900]; whole because the value keys
+    // a primitive, #3871). Role ordering is NOT
     // enforced here (the UI owns that) — the engine accepts any valid weight per role.
     for (const [role, w] of Object.entries(lev.weights ?? {})) {
-      if (w !== undefined && (!Number.isFinite(w) || w < 100 || w > 900))
-        throw new Error(`modeLevers: mode '${m}' weight '${role}' ${w} is out of range — must be a finite number in [100, 900]`);
+      if (w !== undefined && (!Number.isInteger(w) || w < 100 || w > 900))
+        throw new Error(`modeLevers: mode '${m}' weight '${role}' ${w} is out of range — must be a whole number in [100, 900]`);
     }
     // #296 — per-mode leading/tracking name a RUNG on both sides (source key → target key). Both must
     // be real rungs; a NUMBER here is the old pre-#296 shape and is rejected with a pointer, because
@@ -255,6 +270,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'buttonContentSize', value: input.buttonContentSize, options: ['match', 'smaller'] },
     { path: 'buttonLabelWeight', value: input.buttonLabelWeight, options: ['default', 'emphasis'] },
     { path: 'buttonTextHover', value: input.buttonTextHover, options: ['text', 'fill'] },
+    { path: 'buttonBorderWeight', value: input.buttonBorderWeight, options: ['hairline', 'thick'] },
     { path: 'typography.typeScale', value: input.typography?.typeScale, options: ['compact', 'default', 'expressive'] },
     { path: 'typography.displayCeiling', value: input.typography?.displayCeiling, options: DISPLAY_VARIANTS },
     { path: 'typography.titleFloor', value: input.typography?.titleFloor, options: [16, 18] },
@@ -280,6 +296,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'baseMd', value: input.baseMd, min: 2, max: 12 },
     { path: 'buttonMinWidthMultiplier', value: input.buttonMinWidthMultiplier, min: 1, max: 4 },
     { path: 'shadow.softness', value: input.shadow?.softness, min: 0, max: 2 },
+    // #3874: the tint's lightness and chroma both scale with the amount (`theme-shadow.ts`), so past about 5 every
+    // shadow turned white, and past 1 its chroma left the gamut. 1 is the bound the per-mode tint, its schema and
+    // the studio's slider already hold; the global lever had only a minimum.
+    { path: 'shadow.tint.amount', value: input.shadow?.tint?.amount, min: 0, max: 1 },
     { path: 'layout.columns', value: input.layout?.columns, min: 4, max: 24 },
     { path: 'layout.containerMax', value: input.layout?.containerMax, min: 960, max: 1920 },
     { path: 'layout.containerNarrow', value: input.layout?.containerNarrow, min: 480, max: 960 },
@@ -289,6 +309,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (value === undefined) continue;
     if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)
       throw new Error(`${path}: ${JSON.stringify(value)} is out of range — must be a finite number in [${min}, ${max}]`);
+  }
+  // #3871 — a weight role keys a primitive (`core.font.weight.<value>`), and a DTCG alias reads a `.` as a path
+  // separator, so a fractional weight (450.5) emits an alias that resolves nowhere. DTCG also limits fontWeight to
+  // [1, 1000], so a weight outside it ships a value the spec rejects. Same reject-not-clamp policy as rangeLevers.
+  for (const [role, w] of Object.entries(input.typography?.weightRoles ?? {})) {
+    if (w !== undefined && (typeof w !== 'number' || !Number.isInteger(w) || w < 1 || w > 1000))
+      throw new Error(`typography.weightRoles: '${role}' ${JSON.stringify(w)} is not a font weight — must be a whole number in [1, 1000]`);
   }
 
   if (root !== 'prism') notes.push(`namespace: tokens emit under '${root}.*' instead of the default 'prism.*'.`);
@@ -385,9 +412,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   if (!palettes.some((p) => p.palette === actionPalette)) {
     throw new Error(`actionPalette '${actionPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
   }
-  notes.push(actionPalette === 'primary'
+  // Worded from the palette action RESOLVES to, `roleColors.action` before the lever (#3845, owner-decided
+  // Q-BK1 A, option A): the two are schema aliases, so a brand that sets either reads the same line. Said here,
+  // before the roleColors pass, so a corpus brand's notes keep their order; that pass validates the name.
+  const notedAction = input.roleColors?.action ?? actionPalette;
+  notes.push(notedAction === 'primary'
     ? `action: the primary palette, by default — actionPalette is not set.`
-    : `action: uses the '${actionPalette}' palette instead of primary, as the brand sets.`);
+    : `action: uses the '${notedAction}' palette instead of primary, as the brand sets.`);
 
   // ---- danger carve ----
   const roleToPalette: Record<Role, string> = {
@@ -477,7 +508,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       // Back-compat: a bare accentPalette is exactly one 'accent' interactive column (docs/20 §3),
       // preserving the accent≠action guard so it never ships two identical-looking columns. No
       // anchorStep → `interactiveStepFor` computes it, reproducing the legacy accent placement.
-      if (input.accentPalette === actionPalette)
+      // Compared against the RESOLVED action palette (`roleToPalette.action`, final after the roleColors
+      // pass above), not the `actionPalette` lever: the schema calls `roleColors.action` and `actionPalette`
+      // aliases, so both spellings refuse the same identical column (#3845, the #1895 shape).
+      if (input.accentPalette === roleToPalette.action)
         throw new Error(`accentPalette '${input.accentPalette}' must differ from the action palette (docs/20 §3 — never ship two identical interactive columns)`);
       entries = [{ name: 'accent', palette: input.accentPalette }];
     } else {
@@ -511,7 +545,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // whenever anything still points at it (e.g. actionPalette/an interactive column aimed at a status).
   const usedPalettes = new Set<string>([...Object.values(roleToPalette), ...interactivePalettes.map((p) => p.palette)]);
   for (let i = palettes.length - 1; i >= 0; i--) {
-    const p = palettes[i];
+    const p = must(palettes[i], `palette ${i}`);
     if ((p.palette === 'success' || p.palette === 'warning' || p.palette === 'info') && !usedPalettes.has(p.palette)) {
       notes.push(`${p.palette}: rebased by roleColors, so the ${p.palette} ramp is dropped — no role uses it.`);
       palettes.splice(i, 1);
@@ -631,9 +665,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   }
   if (Object.keys(shadowByMode).length) shadow.shadowByMode = shadowByMode;
   const gradient = buildGradient(input.gradients, palettes, root);
-  if (gradient.gradients.length) {
+  const [firstGradient] = gradient.gradients;
+  if (firstGradient) {
     // Kind, angle and interpolation sit in $extensions because DTCG has no field for them (#101).
-    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) — ${gradient.gradients.map((g) => `${g.name} (${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops)`).join(', ')}. Stops alias the color ramps and blend in ${gradient.gradients[0].interpolation}; a tool that blends only in sRGB gets a ${gradient.gradients[0].sampled.length}-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.`);
+    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) — ${gradient.gradients.map((g) => `${g.name} (${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops)`).join(', ')}. Stops alias the color ramps and blend in ${firstGradient.interpolation}; a tool that blends only in sRGB gets a ${firstGradient.sampled.length}-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.`);
   } else {
     notes.push('gradient: none — the brand declares no gradients, and none are added by default.');
   }
@@ -738,10 +773,14 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // No snapping and no nearest-match, so a request can never be quantised away — it either names a
   // different rung (and applies) or is a self-map (dropped above).
   for (const c of typography.composites) {
-    for (const [m, map] of Object.entries(lineHeightRepointByMode))
-      if (map[c.lineHeight]) (c.lineHeightByMode ??= {})[m] = map[c.lineHeight];
-    for (const [m, map] of Object.entries(letterSpacingRepointByMode))
-      if (map[c.tracking]) (c.trackingByMode ??= {})[m] = map[c.tracking];
+    for (const [m, map] of Object.entries(lineHeightRepointByMode)) {
+      const to = map[c.lineHeight];
+      if (to) (c.lineHeightByMode ??= {})[m] = to;
+    }
+    for (const [m, map] of Object.entries(letterSpacingRepointByMode)) {
+      const to = map[c.tracking];
+      if (to) (c.trackingByMode ??= {})[m] = to;
+    }
   }
   // #328 — per-mode rung SIZES. Same re-point SHAPE as leading/tracking above, with one difference
   // that is easy to miss and silently wrong: a re-sized rung must recompute its OWN mobile endpoint.
@@ -775,9 +814,11 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       // Checked on the MERGED ramp, not the overrides alone — re-sizing one rung is exactly how you
       // collide with an untouched neighbour, and that is the case a per-override check would miss.
       const merged = known.map((v) => ({ v, px: (rungs as Record<string, number>)[v] ?? baseSize.get(v)! }));
-      for (let i = 1; i < merged.length; i++)
-        if (merged[i].px <= merged[i - 1].px)
-          throw new Error(`modeLevers.${m}.typeSizes.${g}: ${merged[i].v} resolves to ${merged[i].px}px, which is not larger than ${merged[i - 1].v} (${merged[i - 1].px}px) — a mode's ramp must be strictly increasing, same as the brand's. Merged ramp: ${merged.map((x) => `${x.v}=${x.px}`).join(' ')}.`);
+      for (const [i, cur] of merged.entries()) {
+        const prev = merged[i - 1];
+        if (prev && cur.px <= prev.px)
+          throw new Error(`modeLevers.${m}.typeSizes.${g}: ${cur.v} resolves to ${cur.px}px, which is not larger than ${prev.v} (${prev.px}px) — a mode's ramp must be strictly increasing, same as the brand's. Merged ramp: ${merged.map((x) => `${x.v}=${x.px}`).join(' ')}.`);
+      }
       // Drop self-sizes: an override equal to the brand size is inert, the same suppression the other
       // axes use, so a no-diff declaration can't create a mode entry or a spurious composite variant.
       const diff = Object.entries(rungs ?? {}).filter(([v, px]) => baseSize.get(v) !== px);
@@ -808,7 +849,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // The mobile shrink follows the fluid-display curve researched for the type ladder (docs record the
   // source); the line-height ratio and its Figma px materialization are format facts, not decisions,
   // so the note leaves them out.
-  notes.push(`typography: ${typography.sizesPx.length}-step size ladder (${n2(typography.sizesPx[0])}–${n2(typography.sizesPx[typography.sizesPx.length - 1])}px), a fixed set rather than a ratio; weights ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group} ${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; '${typography.typeScale}' type scale. ${typography.composites.length} text styles: title and display sizes follow the type scale, display tops out at '${reqCeiling}' (${n2(effCap)}px), title.2xs is ${(input.typography?.titleFloor ?? 18) === 16 ? 'included' : 'left out'}${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `, caption adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' and ')}` : ''}${capNote}. ${typography.fluid ? `${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from ${n2(typography.minViewport)} to ${n2(typography.maxViewport)}px and in desktop and mobile modes.` : 'Sizes are fixed at every viewport.'}`);
+  notes.push(`typography: ${typography.sizesPx.length}-step size ladder (${n2(must(typography.sizesPx[0], 'the first type size'))}–${n2(must(typography.sizesPx[typography.sizesPx.length - 1], 'the last type size'))}px), a fixed set rather than a ratio; weights ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group} ${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; '${typography.typeScale}' type scale. ${typography.composites.length} text styles: title and display sizes follow the type scale, display tops out at '${reqCeiling}' (${n2(effCap)}px), title.2xs is ${(input.typography?.titleFloor ?? 18) === 16 ? 'included' : 'left out'}${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `, caption adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' and ')}` : ''}${capNote}. ${typography.fluid ? `${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from ${n2(typography.minViewport)} to ${n2(typography.maxViewport)}px and in desktop and mobile modes.` : 'Sizes are fixed at every viewport.'}`);
   // #3077 — the two opt-in levers say what they set, so a reader of the notes knows the caption and tracking
   // values are the brand's choice rather than the derived ones.
   const capSizes = Object.entries(input.typography?.sizes?.caption ?? {});
@@ -851,7 +892,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (STATUS_ROLE_SET.has(pb.role)) throw new Error(`surfaces.${where}: palette '${spec.palette}' is a STATUS palette (role '${pb.role}') — a page band in a semantic status color would use it decoratively, which #898 excludes. Use neutral, the brand, or a custom palette.`);
   };
   // A value that must name a step on `pal`'s ramp, refused by name otherwise. A finite number off the ramp
-  // names the nearest real step; anything else is not a `noun`. `alts` is what else the key accepts.
+  // names the nearest real step; anything else is not a `noun`. `alts` is what else the key accepts. `where` is
+  // the input path the message opens with (the surfaces below, and the interactive anchors after them, #3873).
   const neutralPal = palettes.find((p) => p.role === 'neutral');
   const requireStep = (where: string, value: unknown, num: unknown, pal: typeof neutralPal, noun: string, alts: string): void => {
     const steps = (pal?.steps ?? []).map((st) => st.num);
@@ -859,9 +901,9 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     const ramp = `a step on the ${pal?.palette ?? 'neutral'} ramp (${steps.join(', ')})`;
     if (typeof num === 'number' && Number.isFinite(num) && steps.length) {
       const nearest = steps.reduce((a, b) => (Math.abs(b - num) < Math.abs(a - num) ? b : a));
-      throw new Error(`surfaces.${where}: ${JSON.stringify(value)} is not on the ${pal!.palette} ramp; the nearest step is ${nearest}. Use ${alts}${ramp}.`);
+      throw new Error(`${where}: ${JSON.stringify(value)} is not on the ${pal!.palette} ramp; the nearest step is ${nearest}. Use ${alts}${ramp}.`);
     }
-    throw new Error(`surfaces.${where}: ${JSON.stringify(value)} is not ${noun}. Use ${alts}${ramp}.`);
+    throw new Error(`${where}: ${JSON.stringify(value)} is not ${noun}. Use ${alts}${ramp}.`);
   };
   for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
     for (const key of ['base', 'secondary', 'tertiary'] as const) {
@@ -880,13 +922,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       if (spec == null || spec === 'white' || spec === 'black') continue;
       const pal = typeof spec === 'object' ? palettes.find((p) => p.palette === (spec as SurfaceStep).palette) : neutralPal;
       const num = typeof spec === 'object' ? (spec as SurfaceStep).step : spec;
-      requireStep(`${mode}.${key}`, spec, num, pal, 'a surface', "'white', 'black', or ");
+      requireStep(`surfaces.${mode}.${key}`, spec, num, pal, 'a surface', "'white', 'black', or ");
     }
     // `floorStep` is held to the same rule (#2033, owner go-ahead 2026-10-04): it decides what every
     // floor-gated role is measured against, and `modeConfigs` resolves it with `n()`, which snaps, so `333`
     // used to become neutral.350 with no error. It always indexes the NEUTRAL ramp, whatever the page or the
     // inverse band is on, and it has no white/black form.
-    if (sf?.floorStep != null) requireStep(`${mode}.floorStep`, sf.floorStep, sf.floorStep, neutralPal, 'a step number', '');
+    if (sf?.floorStep != null) requireStep(`surfaces.${mode}.floorStep`, sf.floorStep, sf.floorStep, neutralPal, 'a step number', '');
     if (sf?.secondary !== undefined) {
       notes.push(`surfaces: the ${mode} second tier is ${surfaceLabel(sf.secondary)}, not the default — ${sf.floorStep !== undefined ? `the contrast floor stays at neutral.${sf.floorStep}` : 'the contrast floor moves with it'}.`);
     }
@@ -899,6 +941,30 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // surface it so the author sees the band and its knock-on contrast, same as `base` above.
     if (typeof sf?.inverseBase === 'object') {
       notes.push(`surfaces: the ${mode} inverse band is a brand color (${surfaceLabel(sf.inverseBase)}) — every role on it is re-derived, and any that miss its contrast floor are flagged.`);
+    }
+  }
+
+  // #3873: an AUTHORED interactive anchor names a step on its column's ramp, the rule the surfaces above already
+  // hold. Each is applied exactly (`modes.ts` `pickBrand`, `exact`, #331), and `pickBrand` used to swap an off-ramp
+  // step for 500 without a word, so a typo became a different, uncorrected color, and the build failed contrast on a
+  // step nobody chose. A `modeAnchors` column must be one the engine reads: primary, destructive, or a declared
+  // interactive column; any other key was ignored. Wording: DRAFT for the owner.
+  const paletteOf = (name: string) => palettes.find((p) => p.palette === name);
+  if (input.actionAnchorStep !== undefined)
+    requireStep('actionAnchorStep', input.actionAnchorStep, input.actionAnchorStep, paletteOf(roleToPalette.action), 'a step number', '');
+  if (input.destructiveAnchorStep !== undefined)
+    requireStep('destructiveAnchorStep', input.destructiveAnchorStep, input.destructiveAnchorStep, paletteOf(roleToPalette.danger), 'a step number', '');
+  for (const [i, e] of (input.interactivePalettes ?? []).entries()) {
+    if (e.anchorStep !== undefined)
+      requireStep(`interactivePalettes[${i}].anchorStep`, e.anchorStep, e.anchorStep, paletteOf(e.palette), 'a step number', '');
+  }
+  const anchorColumns = new Map<string, string>([['primary', roleToPalette.action], ['destructive', roleToPalette.danger], ...interactivePalettes.map((e) => [e.name, e.palette] as [string, string])]);
+  for (const [mode, cols] of Object.entries(input.modeAnchors ?? {})) {
+    for (const [col, step] of Object.entries(cols ?? {})) {
+      const palette = anchorColumns.get(col);
+      if (palette === undefined)
+        throw new Error(`modeAnchors.${mode}: '${col}' is not an interactive column. Use ${[...anchorColumns.keys()].join(', ')}.`);
+      requireStep(`modeAnchors.${mode}.${col}`, step, step, paletteOf(palette), 'a step number', '');
     }
   }
 
@@ -956,7 +1022,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // `typography.links` underlined-link roles lever. No corpus brand trips this (every one's action palette
   // is chromatic, ΔE ≥ ~17 vs neutral), so an unset `linkPalette` adds no note and moves no artifact.
   const rampSteps = (name: string) => palettes.find((p) => p.palette === name)!.steps;
-  const midStep = (steps: Step[]) => (steps.find((s) => s.num === 500) ?? steps[Math.floor(steps.length / 2)]).rgb;
+  const midStep = (steps: Step[]) => (steps.find((s) => s.num === 500) ?? must(steps[Math.floor(steps.length / 2)], 'a middle step')).rgb;
   const linkColorDistinct = deltaE2000(midStep(rampSteps(linkPalette)), midStep(rampSteps(roleToPalette.neutral))) >= 7;
   if (!linkColorDistinct)
     // The studio's link advisory reads this note by its `WCAG 1.4.1` (apps/studio/src/main.ts), so the

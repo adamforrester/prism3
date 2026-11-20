@@ -114,7 +114,9 @@ import { ACTIVITY_KEEP } from './src/activity-log';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
-import { agentLinkShortStatus, agentLinkStatusText, agentLinkWord, agentStripText, agentAge } from './src/agent-link-ui';
+import { agentLinkShortStatus, agentLinkStatusText, agentLinkWord, agentStripText, agentAge, AGENT_CMD_WORDS } from './src/agent-link-ui';
+import { AGENT_RUN_WORDS, nextAgentBusy } from './src/agent-run-notice';
+import type { AgentBusy } from './src/agent-run-notice';
 import { createRunGuard, TITLE } from './src/run-guard';
 import { restorePlacement, stripPlacement } from './src/window-place';
 import { createDispatcher, ROUTES } from './src/agent-dispatch';
@@ -350,6 +352,22 @@ for (const c of CASES) {
   const at = (type: string): number => posted.findIndex((m) => m.type === type && (type === c.verdictType || (m.id === id && m.cmd === c.cmd)));
   ok(at('agent-started') >= 0 && at('agent-started') < at(c.verdictType) && at(c.verdictType) < at('agent-finished'),
     `brackets/${c.cmd}: the panel gets agent-started, then the verdict, then agent-finished, naming the command`);
+}
+// #2087: an agent's build names its set on agent-started, so the Components page can record the verdict against it. No
+// def builds Button (the protocol's own default), so the start names `button`. EXPECTED typed here as literals.
+for (const [args, want] of [[{ def: 'tag' }, 'tag'], [{}, 'button']] as const) {
+  posted.length = 0;
+  const { id } = await send('build-components', args);
+  await tick();
+  const st = posted.find((m) => m.type === 'agent-started' && m.id === id) as { def?: unknown } | undefined;
+  ok(st?.def === want, `#2087 agent-started names the set: build-components ${JSON.stringify(args)} → def ${JSON.stringify(st?.def)}`);
+}
+{
+  posted.length = 0;
+  const { id } = await send('file-setup', {});
+  await tick();
+  const st = posted.find((m) => m.type === 'agent-started' && m.id === id) as Record<string, unknown> | undefined;
+  ok(!!st && !('def' in st), '#2087 agent-started names a set only for build-components');
 }
 // The readback also carries the component census; on a file with no component pages every page is absent.
 {
@@ -1226,7 +1244,70 @@ section('run-notice — a run that ends while minimized shows one short host not
   delete host.notify;
 }
 
-/* ── strip-place (#3327) ─────────────────────────────────────────────────────────────────────────────── */
+/* ── agent-run (#2368, owner decision A) ─────────────────────────────────────────────────────────────── */
+section('agent-run — a command that writes the file is announced: busy on the bar and a host notice until its result is written (#2368)');
+{
+  // Expected words typed here (DRAFT, the owner's to change), never read from `agent-run-notice.ts`.
+  type Notice = { message: string; timeout?: number; cancelled: boolean; resultStored: boolean };
+  const notices: Notice[] = [];
+  let watching: string | null = null;
+  const stored = (id: string | null): boolean => !!id && !!root.getSharedPluginData(MAILBOX.ns, resultKey(id));
+  host.notify = (message: string, o: { timeout?: number } = {}) => {
+    const n: Notice = { message, timeout: o.timeout, cancelled: false, resultStored: stored(watching) };
+    notices.push(n);
+    return { cancel: () => { n.cancelled = true; } };
+  };
+  // The busy mark's state, through the panel's own reducer, over every message the main thread posts.
+  const busyAt: { type: string; busy: boolean }[] = [];
+  let busy: AgentBusy = null;
+  const replay = (): void => { busy = null; busyAt.length = 0; for (const m of posted) { busy = nextAgentBusy(busy, m); busyAt.push({ type: String(m.type), busy: !!busy }); } };
+  let during: { notices: string[]; timeouts: (number | undefined)[]; busy: boolean } | null = null;
+
+  // A WRITE: Set up file. While its handler runs, the start notice is up and the bar reads busy.
+  posted.length = 0;
+  const go = await send('file-setup', {}, 'run-2368-a');
+  watching = go.id;
+  duringCall = () => { replay(); during = { notices: notices.map((n) => n.message), timeouts: notices.map((n) => n.timeout), busy: !!busy }; };
+  await tick();
+  duringCall = null;
+  const r = (await read(go.id)) as AgentResult;
+  const started = posted.find((m) => m.type === 'agent-started' && m.id === go.id) as { busy?: unknown } | undefined;
+  ok(started?.busy === true, `#2368 busy/started: agent-started for a write carries busy (${JSON.stringify(started)})`);
+  ok(JSON.stringify(during?.notices) === JSON.stringify(['Agent running Set up file — closing Prism3 now stops it partway.']) && during?.timeouts[0] === Infinity,
+    `#2368 notice/start: while the write runs, one host notice says it is running and that closing stops it, and it stays up (${JSON.stringify(during)})`);
+  ok(during?.busy === true, `#2368 busy/during: the bar reads busy while the handler runs (${JSON.stringify(during)})`);
+  // BUSY UNTIL THE RESULT IS WRITTEN: still busy at agent-finished, idle at the link state that publishes the result.
+  replay();
+  const fin = busyAt.findIndex((x) => x.type === 'agent-finished');
+  const idle = busyAt.findIndex((x, i) => i > fin && !x.busy);
+  ok(fin >= 0 && busyAt[fin].busy === true && idle > fin && busyAt[idle].type === 'agent-link-state' && !busy,
+    `#2368 busy/until-result: the bar is still busy at agent-finished and goes idle at the link state that publishes the result (${JSON.stringify(busyAt.slice(Math.max(0, fin - 1), idle + 1))})`);
+  const head = String(r.result?.verdict && (r.result.verdict as { headline?: unknown }).headline || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
+  const done = notices[1];
+  ok(notices.length === 2 && notices[0].cancelled && done?.message === `${r.ok ? 'Agent finished Set up file' : "Agent's Set up file did not finish"}${head ? ` — ${head}` : '.'}` && done.timeout === 6000,
+    `#2368 notice/finish: at the finish the start notice is cancelled and one 6000 ms notice gives the headline (${JSON.stringify(notices)})`);
+  ok(!notices[0].resultStored && done?.resultStored === true,
+    `#2368 notice/after-result: the finish notice is shown only once the result is in the mailbox (${JSON.stringify(notices.map((n) => n.resultStored))})`);
+
+  // READS AND PREVIEWS: status, a read-back and a prune preview are not announced and leave the bar idle.
+  notices.length = 0; posted.length = 0;
+  for (const [cmd, args] of [['status', {}], ['readback', {}], ['prune', { input: brand, confirm: false }]] as const) {
+    const s = await send(cmd, args);
+    await tick();
+    await read(s.id);
+  }
+  replay();
+  ok(notices.length === 0 && busyAt.every((x) => !x.busy) && !posted.some((m) => m.type === 'agent-started' && m.busy === true),
+    `#2368 quiet/reads: status, a read-back and a prune preview show no notice and no busy (${JSON.stringify(notices.map((n) => n.message))})`);
+
+  // WORDS: the main thread's copy of the operation words matches the panel's, where the panel has one.
+  const differ = Object.entries(AGENT_RUN_WORDS).filter(([k, v]) => k in AGENT_CMD_WORDS && AGENT_CMD_WORDS[k] !== v).map(([k]) => k);
+  ok(differ.length === 0, `#2368 words: each announced command's words match the panel's (${differ.join(', ') || 'all match'})`);
+  watching = null;
+  delete host.notify;
+}
+
+/* ── strip-place (#3327)─────────────────────────────────────────────────────────────────────────────── */
 section('strip-place — where Minimize and Restore put the window, against literals (#3327, #3416)');
 {
   // One visible canvas, read at zoom 1 and at zoom 2 (the same screen: the bounds halve). Expected canvas positions
@@ -1526,8 +1607,8 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   ok(JSON.stringify(pvd.changes?.[0]?.before) === JSON.stringify({ override: { palette: 'neutral', step: '600' }, resolved: { palette: 'neutral', step: '600' }, hex: '#5c5c61', ratio: 6.64, min: 3, against: 'background.primary' })
     && JSON.stringify(pvd.changes?.[0]?.after) === JSON.stringify({ override: { palette: 'neutral', step: '400' }, resolved: { palette: 'neutral', step: '400' }, hex: '#8e8e92', ratio: 3.26, min: 3, against: 'background.primary' }),
     `set-override/before-names-real-palette: before is the stored neutral 600, never the row's accent (${JSON.stringify(pvd.changes?.[0]?.before?.override)})`);
-  ok(typeof pvd.previewHash === 'string' && /^[0-9a-f]{8}$/.test(pvd.previewHash) && Array.isArray(pvd.newMisses) && pvd.newMisses.length === 0,
-    `set-override/preview-hash: an 8-digit previewHash, no new misses (${pvd.previewHash})`);
+  ok(typeof pvd.previewHash === 'string' && /^[0-9a-f]{16}$/.test(pvd.previewHash) && Array.isArray(pvd.newMisses) && pvd.newMisses.length === 0,
+    `set-override/preview-hash: a 16-digit previewHash (the brand's 8, then the changes' 8: #3693), no new misses (${pvd.previewHash})`);
   ok(!(await activityRuns()).some((x: any) => x.op === 'override'), 'set-override/preview-not-logged: Activity records no run for a preview');
 
   // The contrast refusal: the pair, its ratio and its minimum, and nothing stored.
@@ -1611,8 +1692,42 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   const bm = await run({ changes: [one], confirm: true, previewHash: hash });
   ok(bm.ok === false && verdictOf(bm)?.headline === "Not saved — the file's brand changed after the preview. Preview again." && !calls.includes('applyTheme'),
     `set-override/brand-moved: "${verdictOf(bm)?.headline}"`);
+  ok(dataOf(bm).refusals?.[0]?.reason === 'brand-moved', `#3693 set-override/brand-moved: only the brand moved, so the reason is brand-moved (${dataOf(bm).refusals?.[0]?.reason})`);
+  // #3693 (owner decision 2026-11-18, A): the brand moved AND other changes are sent. The changes are named first: previewing
+  // them is the remedy either way.
+  calls.length = 0; prismWrites = 0;
+  const both = await run({ changes: [{ ...one, step: '500' }], confirm: true, previewHash: hash });
+  ok(both.ok === false && dataOf(both).refusals?.[0]?.reason === 'changes-moved' && !calls.includes('applyTheme') && prismWrites === 0,
+    `#3693 set-override/changes-moved-and-brand-moved: other changes against a moved brand read changes-moved, nothing written (${dataOf(both).refusals?.[0]?.reason}, ${calls.join(', ')}, ${prismWrites} writes)`);
   putBrand(stored);
   await toUi({ type: 'due-request', input: stored, seq: 3 });
+
+  // #3693: a confirm whose changes differ from the ones previewed is refused as its own case, changes-moved, not as the file's
+  // brand moving: the file is as it was, and the fault is in the request. Nothing is written.
+  calls.length = 0; prismWrites = 0;
+  const cm = await run({ changes: [{ ...one, step: '500' }], confirm: true, previewHash: hash });
+  ok(cm.ok === false && dataOf(cm).refusals?.[0]?.reason === 'changes-moved' && dataOf(cm).refusals?.length === 1,
+    `#3693 set-override/changes-moved: other changes than the preview's are refused as changes-moved, the only refusal (${JSON.stringify(dataOf(cm).refusals?.map((x: any) => x.reason))})`);
+  ok(verdictOf(cm)?.headline === "Not saved — these changes aren't the ones previewed. Preview them first."
+    && dataOf(cm).refusals?.[0]?.line === verdictOf(cm)?.headline,
+    `#3693 set-override/changes-moved-copy: "${verdictOf(cm)?.headline}"`);
+  ok(!calls.includes('applyTheme') && prismWrites === 0 && JSON.stringify(storedOverrides()) === JSON.stringify(stored.overrides),
+    `#3693 set-override/changes-moved-writes-nothing: no Theme write, 0 brand writes, the overrides as they were (${calls.join(', ')}, ${prismWrites})`);
+  // The refusal hands back the hash these changes WOULD need, and it differs from the echoed one only in its changes half.
+  const cmHash = dataOf(cm).previewHash as string;
+  ok(typeof cmHash === 'string' && cmHash.length === 16 && hash.length === 16 && cmHash.slice(0, 8) === hash.slice(0, 8) && cmHash.slice(8) !== hash.slice(8),
+    `#3693 set-override/hash-halves: the preview hash is the brand's 8 digits then the changes' 8, and only the changes half moved (${hash} → ${cmHash})`);
+  // A list reordered is a different list: the changes are applied in order, so their hash is too.
+  const two = [one, { mode: 'dark', role: BORDER, palette: 'neutral', step: '400' }];
+  const pvTwo = await run({ changes: two, confirm: false });
+  calls.length = 0;
+  const ro = await run({ changes: [two[1], two[0]], confirm: true, previewHash: dataOf(pvTwo).previewHash });
+  ok(ro.ok === false && dataOf(ro).refusals?.[0]?.reason === 'changes-moved' && !calls.includes('applyTheme'),
+    `#3693 set-override/changes-moved-order: the previewed changes in another order read changes-moved (${dataOf(ro).refusals?.[0]?.reason})`);
+  // An echo that is not this command's hash at all (another command's 8 digits) cannot be these changes' preview.
+  const junk = await run({ changes: [one], confirm: true, previewHash: hash.slice(0, 8) });
+  ok(junk.ok === false && dataOf(junk).refusals?.[0]?.reason === 'changes-moved' && !calls.includes('applyTheme'),
+    `#3693 set-override/changes-moved-foreign-hash: an 8-digit echo reads changes-moved (${dataOf(junk).refusals?.[0]?.reason})`);
 
   // THE WRITE, against a file model that can take the Theme write: through ACTIONS.applyTheme (the spy is the table's
   // own entry, so a copy of the handler fails here), the stored overrides, the variable alias, the panel's restore.
@@ -1643,7 +1758,7 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   const target = vars.find((x: any) => x.id === v?.valuesByMode?.[light?.modeId]?.id);
   ok(target?.name === 'ads/core/palette/neutral/400', `set-override/variable: light's border aliases ads/core/palette/neutral/400 (${target?.name})`);
   ok(versions.length === 1, `set-override/version: the Theme write saved one version first (${versions.join(' | ')})`);
-  ok(verdictOf(go)?.applied === true && verdictOf(go)?.headline === 'Saved 1 color override — 972 of 972 pairs at or above their minimum.',
+  ok(verdictOf(go)?.applied === true && verdictOf(go)?.headline === 'Saved 1 color override — 980 of 980 pairs at or above their minimum.',
     `set-override/saved: "${verdictOf(go)?.headline}"`);
   const restore = posted.filter((m) => m.type === 'restore-input').pop();
   ok(JSON.stringify(restore?.input?.overrides) === JSON.stringify({ light: LIGHT }), 'set-override/restore: the panel is sent the brand the file now holds');
@@ -1852,6 +1967,64 @@ section('strip-relaunch — a new launch puts the first Minimize on the spot thi
   // The window at canvas (250,250), window (300,100); the kept spot window (1200,800): 250+(1200-300)/2, 250+(800-100)/2.
   ok(JSON.stringify(places) === '[[700,600]]', `strip-relaunch/return: the first Minimize after a relaunch puts the strip on the spot this file kept (${JSON.stringify(places)})`);
   g.figma = host;
+}
+
+// #2956 (owner decisions 2026-11-17): UPDATES OFF, through the panel's own message and the file's own read. The set's
+// mark is read off the fake node by the namespace and key TYPED HERE. Mutations: the `updates-off` case dropped from the
+// switch → `updates-off/turn off`, `/back on`; `offOf` not read into the due read → `updates-off/read`; the
+// single-component refusal dropped → `updates-off/single`; the set found by any of its ids rather than by `locateSets`
+// (the current id first) → `updates-off/current id`.
+{
+  g.figma = host;
+  const marks = new Map<string, string>();
+  const set = { name: 'tag', type: 'COMPONENT_SET', id: 'S:tag', children: [] as unknown[],
+    getSharedPluginData: (ns: string, key: string) => marks.get(`${ns}|${key}`) ?? '',
+    setSharedPluginData: (ns: string, key: string, v: string) => { marks.set(`${ns}|${key}`, v); } };
+  const find = (c?: { types?: readonly string[] }) => ((c?.types ?? []).includes('COMPONENT_SET') ? [set] : []);
+  const r0 = root as Record<string, unknown>;
+  const saved = { find: r0.findAllWithCriteria, kids: root.children };
+  r0.findAllWithCriteria = find;
+  root.children = [{ type: 'PAGE', name: 'Tag', children: [set], findAllWithCriteria: find }];
+  const answer = () => posted.find((m) => m.type === 'updates-off');
+  // The answer to this request, not a host read after open (`atOpen`, which an earlier arm's relaunch can still post).
+  const mine = (m: any): boolean => m.type === 'file-sets' && !m.atOpen;
+  const read = async () => { posted.length = 0; await toUi({ type: 'file-sets-request' }); for (let i = 0; i < 5000 && !posted.some(mine); i++) { if (i % 50 === 49) for (const fn of [...timers.values()]) fn(); await settle(); } return posted.find(mine); };
+  posted.length = 0;
+  await toUi({ type: 'updates-off', def: 'tag', off: true });
+  const a1 = answer();
+  ok(marks.get('prism3|updatesOff') === 'designer' && a1?.ok === true && a1.def === 'tag' && a1.off === true,
+    `updates-off/turn off: "Turn off updates" writes the designer's mark on the set and answers ok (${JSON.stringify(marks.get('prism3|updatesOff'))}; ${JSON.stringify(a1)})`);
+  const f1 = await read();
+  ok(f1?.due?.tag?.state === 'off' && f1.due.tag.by === 'designer',
+    `updates-off/read: the file's read says the set's updates are off, and who turned them off (${JSON.stringify(f1?.due?.tag)}; ${JSON.stringify(f1 ?? null).slice(0, 200)})`);
+  posted.length = 0;
+  await toUi({ type: 'updates-off', def: 'tag', off: false });
+  const a2 = answer();
+  const f2 = await read();
+  ok(marks.get('prism3|updatesOff') === '' && a2?.ok === true && a2.off === false && f2?.due?.tag?.state !== 'off',
+    `updates-off/back on: "Turn updates back on" clears the mark, and the next read gives the set its own state again (${JSON.stringify(marks.get('prism3|updatesOff'))}; ${JSON.stringify(f2?.due?.tag)})`);
+  posted.length = 0;
+  await toUi({ type: 'updates-off', def: 'icon', off: true });
+  const a3 = answer();
+  ok(a3?.ok === false && /icon has no component set/.test(String(a3?.error)),
+    `updates-off/single: a single-component def has no set to carry the mark, and says so (${JSON.stringify(a3)})`);
+  // A FILE HOLDING A SET UNDER THE CURRENT ID AND ONE UNDER A FORMER ID (#3948 review nit): the mark goes on the set
+  // the update check reads, the current id's (`locateSets`: the current id first, a former one only when it is absent),
+  // even when the host lists the former set first. `tab` became `tab-item` in #2759; both ids are typed here.
+  const marksOf = (m: Map<string, string>) => ({ get: (ns: string, key: string) => m.get(`${ns}|${key}`) ?? '', set: (ns: string, key: string, v: string) => { m.set(`${ns}|${key}`, v); } });
+  const oldMarks = new Map<string, string>(); const newMarks = new Map<string, string>();
+  const oldSet = { name: 'tab', type: 'COMPONENT_SET', id: 'S:tab', children: [] as unknown[], getSharedPluginData: marksOf(oldMarks).get, setSharedPluginData: marksOf(oldMarks).set };
+  const newSet = { name: 'tab-item', type: 'COMPONENT_SET', id: 'S:tab-item', children: [] as unknown[], getSharedPluginData: marksOf(newMarks).get, setSharedPluginData: marksOf(newMarks).set };
+  const both = (c?: { types?: readonly string[] }) => ((c?.types ?? []).includes('COMPONENT_SET') ? [oldSet, newSet] : []);
+  r0.findAllWithCriteria = both;
+  root.children = [{ type: 'PAGE', name: 'Tabs', children: [oldSet, newSet], findAllWithCriteria: both }];
+  posted.length = 0;
+  await toUi({ type: 'updates-off', def: 'tab-item', off: true });
+  const a4 = answer();
+  ok(a4?.ok === true && newMarks.get('prism3|updatesOff') === 'designer' && (oldMarks.get('prism3|updatesOff') ?? '') === '',
+    `updates-off/current id: with sets under both the current and a former id, the mark goes on the current id's set, the one the update reads (current ${JSON.stringify(newMarks.get('prism3|updatesOff') ?? '')}; former ${JSON.stringify(oldMarks.get('prism3|updatesOff') ?? '')}; ${JSON.stringify(a4)})`);
+  r0.findAllWithCriteria = saved.find;
+  root.children = saved.kids;
 }
 
 console.log(`\n${failed === 0 ? '✅ ALL PASS' : `❌ ${failed} FAILED`} — ${executed} assertions executed`);

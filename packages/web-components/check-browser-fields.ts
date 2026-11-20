@@ -194,6 +194,18 @@ export const run = async (browser: any, src: Sources): Promise<{ failures: strin
     await page.waitForFunction(`document.querySelector('[data-p3-announcer]')?.textContent === 'Your password is hidden'`, null, { timeout: 2000 }).then(() => ok(true, ''), () => ok(false, 'toggle Enter: the live region did not say "Your password is hidden"'));
     await page.keyboard.press('Space');
     ok(await page.evaluate(`document.getElementById('pw').type`) === 'text', 'toggle Space: the input is not shown');
+    // #3947: the delayed caret restore only undoes Chromium's reset. A value or caret written after the press, in the
+    // same task and so before that restore runs, is kept; the same test as @prism3/css's (#3945), so both forms agree.
+    const later = (sel: number[], value: string | null) => page.evaluate(`(() => { const i = document.getElementById('pw'); document.querySelector('p3-password-field:has(#pw) .p3-password-field__toggle').click(); ${value === null ? '' : `i.value = ${JSON.stringify(value)};`} i.setSelectionRange(${sel[0]}, ${sel[1]}); })()`);
+    const read = () => page.evaluate(`(() => { const i = document.getElementById('pw'); return { type: i.type, caret: [i.selectionStart, i.selectionEnd].join() }; })()`);
+    await later([1, 4], 'typed early');
+    await page.waitForTimeout(50);
+    let late = await read();
+    ok(late.type === 'password' && late.caret === '1,4', `toggle: a value and caret 1,4 set after pressing Hide were overwritten (type ${late.type}, caret ${late.caret}) (#3947)`);
+    await later([3, 6], null);
+    await page.waitForTimeout(50);
+    late = await read();
+    ok(late.type === 'text' && late.caret === '3,6', `toggle: a caret 3,6 set after pressing Show was overwritten (type ${late.type}, caret ${late.caret}) (#3947)`);
     ok(await page.evaluate(`document.querySelectorAll('[data-p3-announcer]').length`) === 1, 'announcer: more than one live region');
     await page.click('#go');
     ok(await page.evaluate(`window.__typeAtSubmit`) === 'password', `submit: the input was ${await page.evaluate(`window.__typeAtSubmit`)} when the form submitted, not password (Q301.7 A)`);
@@ -215,10 +227,15 @@ export const run = async (browser: any, src: Sources): Promise<{ failures: strin
     await page.addScriptTag({ content: src.cssScript });
     await page.locator('.p3-password-field__toggle').click();
     ok(await page.evaluate(`document.getElementById('pre').type`) === 'text', 'with @prism3/css\'s script only: the Show/Hide button did not show the value');
-    await page.locator('.p3-password-field__toggle').click();
-    await page.fill('#pre', 'typed early');
-    await page.evaluate(`document.getElementById('pre').setSelectionRange(1, 4)`);
+    // #3946: the second press, the typing and the caret are written in ONE task, so the script's delayed caret restore
+    // (captured at the press, on the empty input: 0,0) always runs after them, as it did on a slow CI runner. Written as
+    // separate Playwright steps, the timer almost always ran first and the check passed by timing. The evaluate then
+    // waits on a zero-delay timer of its own, queued after the script's, so that restore has run before the upgrade
+    // (run after it, it would touch the replaced input and the check would pass by timing again). The read waits 50 ms
+    // so a restore or reset that lands a task after the upgrade shows too.
+    await page.evaluate(`(() => { const i = document.getElementById('pre'); i.focus(); document.querySelector('.p3-password-field__toggle').click(); i.value = 'typed early'; i.setSelectionRange(1, 4); return new Promise((done) => setTimeout(done, 0)); })()`);
     await load(page);
+    await page.waitForTimeout(50);
     const up = await page.evaluate(`(() => { const host = document.querySelector('p3-password-field'); const i = host.querySelector('.p3-password-field__entry'); return { id: i.id, value: i.value, focus: document.activeElement === i, sel: [i.selectionStart, i.selectionEnd], label: host.label, size: host.size, required: i.required, message: host.helpText, one: host.querySelectorAll('.p3-password-field').length }; })()`);
     ok(up.id === 'pre' && up.label === 'Password' && up.size === 'large' && up.required && up.message === COPY['password-field'].message.default && up.one === 1, `upgrade: the element did not adopt the markup's props: ${JSON.stringify(up)}`);
     ok(up.value === 'typed early', `upgrade: the value typed before the upgrade is ${JSON.stringify(up.value)}`);
@@ -360,10 +377,12 @@ const PF = SOURCE['password-field'];
 // Each mutant's source is built when it runs, after the real run, so a hand mutation that moves an anchor still gets
 // the real run's failures by name, and the moved anchor fails its own self-test.
 const MUTANTS: { name: string; src: () => Sources; mustName: RegExp }[] = [
+  { name: '@prism3/css\'s delayed caret restore unguarded (#3946)', src: () => ({ ...REAL, cssScript: swap(CSS_SCRIPT, 'if (input.selectionStart === 0 && input.selectionEnd === 0) input.setSelectionRange(start, end);', 'input.setSelectionRange(start, end);', 'css guard') }), mustName: /^upgrade: focus and the caret did not carry over/ },
+  { name: 'the delayed caret restore unguarded (#3947)', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, 'if (input.selectionStart === 0 && input.selectionEnd === 0) input.setSelectionRange(start, end);', 'input.setSelectionRange(start, end);', 'guard') }}), mustName: /^toggle: a value and caret 1,4 set after pressing Hide were overwritten/ },
   { name: 'the submit handler removed', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, "document.addEventListener('submit', this.#onSubmit, true);", '', 'submit') }}), mustName: /^submit: the input was text when the form submitted/ },
   { name: 'adoption dropping a typed value', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, 'if (input.value !== (input.getAttribute(\'value\') ?? \'\')) this.value = input.value;', '', 'adopt value') }}), mustName: /^upgrade: the value typed before the upgrade is ""/ },
   { name: 'the toggle moving focus to the input', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, 'this.requestUpdate();\n    announce(', 'input.focus();\n    this.requestUpdate();\n    announce(', 'focus') }}), mustName: /^toggle click: focus went to "p3-password-field__entry"/ },
-  { name: 'the caret put back once only, not after Chromium\'s reset', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, '      setTimeout(() => input.setSelectionRange(start, end), 0);\n', '', 'caret') }}), mustName: /^toggle click: the caret moved to 0,0, not 2,5/ },
+  { name: 'the caret put back once only, not after Chromium\'s reset', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, '      setTimeout(() => {\n        if (input.selectionStart === 0 && input.selectionEnd === 0) input.setSelectionRange(start, end);\n      }, 0);\n', '', 'caret') }}), mustName: /^toggle click: the caret moved to 0,0, not 2,5/ },
   { name: 'the message written only when showMessage is on (Q-POC2 A)', src: () => ({ ...REAL, elements: { ...SOURCE, 'text-field': swap(SOURCE['text-field'], "const writeMessage = this.showMessage || status !== 'default';", 'const writeMessage = this.showMessage;', 'writeMessage') }}), mustName: /^Q-POC2: <p3-text-field> at error with showMessage off renders no linked, shown message/ },
   { name: 'the empty-status console warning removed (OWNER DECISION 1 B)', src: () => ({ ...REAL, elements: { ...SOURCE, 'text-field': swap(SOURCE['text-field'], /\n\s*if \(empty && this\.#warnedStatus !== status\) console\.warn\([^\n]*/, '', 'empty-status warning') }}), mustName: /^OWNER DECISION 1 B: <p3-text-field> at error with neither validationMessage nor helpText logs 0 console warnings/ },
   { name: '@prism3/css\'s script no longer standing aside', src: () => ({ ...REAL, cssScript: swap(CSS_SCRIPT, "const owned = (button) => !!button.closest('p3-password-field:defined');", 'const owned = () => false;', 'owned')}), mustName: /^upgrade: with both scripts, one click did not show the value once/ },

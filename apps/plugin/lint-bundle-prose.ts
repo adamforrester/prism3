@@ -25,7 +25,13 @@
  * Bundle strings are JS-escaped (`—` is `—`), so each bundle is decoded before any comparison, and a
  * self-check proves both detectors fire on a planted case before the real scan runs.
  *
+ * THE WEB STUDIO'S SPECS CHUNK (#3429). The web Studio builds the same definitions into
+ * `apps/studio/dist/component-specs.js` through the same strip (`apps/studio/component-specs-build.mjs`), and
+ * the same three arms hold there. `--web` reads that one bundle instead of the plugin's two, so the CI step
+ * sits in the job that builds the web, after its build.
+ *
  * Runs AFTER the plugin build: `npm run -w @prism3/plugin build`, then `npx tsx apps/plugin/lint-bundle-prose.ts`.
+ * With `--web`, AFTER the web build: `npm run -w @prism3/studio build`, then `npx tsx apps/plugin/lint-bundle-prose.ts --web`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -35,7 +41,12 @@ import { componentDefs } from '@prism3/engine/components';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
-const BUNDLES = ['main.js', 'ui.html'].map((f) => ({ name: f, path: resolve(HERE, 'dist', f) }));
+const WEB = process.argv.includes('--web');
+const BUNDLES = WEB
+  ? [{ name: 'component-specs.js', path: resolve(REPO, 'apps/studio/dist/component-specs.js') }]
+  : ['main.js', 'ui.html'].map((f) => ({ name: f, path: resolve(HERE, 'dist', f) }));
+const DIST = WEB ? 'apps/studio/dist' : 'apps/plugin/dist';
+const BUILD = WEB ? 'npm run -w @prism3/studio build' : 'npm run -w @prism3/plugin build';
 const PRISM = /prism\s*2/i;
 const TAG = 'lint-bundle-prose';
 
@@ -121,7 +132,7 @@ const main = (): void => {
     problems.push(`representation: the registry yielded ${notes.length} notes string(s) and ${codeOnly.length} codeOnly entr(ies) — arm A would scan nothing`);
 
   for (const b of BUNDLES) {
-    if (!existsSync(b.path)) { console.error(`✗ ${TAG} — apps/plugin/dist/${b.name} is missing. Run the plugin build first (npm run -w @prism3/plugin build).`); process.exit(1); }
+    if (!existsSync(b.path)) { console.error(`✗ ${TAG} — ${DIST}/${b.name} is missing. Run the build first (${BUILD}).`); process.exit(1); }
     const text = decode(readFileSync(b.path, 'utf8'));
 
     // A — maintainer prose absent.
@@ -139,17 +150,17 @@ const main = (): void => {
     }
 
     // C — every summary present.
-    for (const d of componentDefs) if (!d.summary || !text.includes(d.summary)) problems.push(`C ${b.name}: ${d.id}'s summary is not in the bundle, so the plugin cannot write it as the Figma description`);
+    for (const d of componentDefs) if (!d.summary || !text.includes(d.summary)) problems.push(`C ${b.name}: ${d.id}'s summary is not in the bundle, so ${WEB ? 'the specs export cannot carry it' : 'the plugin cannot write it as the Figma description'}`);
   }
 
   if (problems.length) {
-    console.error(`✗ ${TAG} — ${problems.length} problem(s) in apps/plugin/dist:`);
+    console.error(`✗ ${TAG} — ${problems.length} problem(s) in ${DIST}:`);
     problems.slice(0, 40).forEach((p) => console.error(`    ${p}`));
     if (problems.length > 40) console.error(`    … and ${problems.length - 40} more`);
     console.error('  Maintainer-only `notes` / `codeOnly` prose is stripped by apps/plugin/strip-maintainer-prose.mjs; shipped component text states behavior and names no Prism 2 (#1623 sign-off).');
     process.exit(1);
   }
-  console.log(`✓ ${TAG} — ${notes.length} notes strings and ${codeOnly.length} codeOnly entries absent (${shared} wholly shared with a shipped field, not probed), 0 "Prism 2" in ${defFiles.length} component regions, ${componentDefs.length} summaries present — in both main.js and ui.html (self-check ok).`);
+  console.log(`✓ ${TAG} — ${notes.length} notes strings and ${codeOnly.length} codeOnly entries absent (${shared} wholly shared with a shipped field, not probed), 0 "Prism 2" in ${defFiles.length} component regions, ${componentDefs.length} summaries present — in ${BUNDLES.map((b) => b.name).join(' and ')} (self-check ok).`);
 };
 
 main();

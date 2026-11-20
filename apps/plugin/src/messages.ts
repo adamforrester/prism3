@@ -174,6 +174,9 @@ export type UiToMain =
    *  never refused by the run guard. It also clears the keys of sets the file holds and of sets the engine no longer
    *  builds, so an Update file run ends with one carrying no ids. Answered with one `add-queue`. */
   | { type: 'add-queue'; ids: string[]; on: boolean }
+  /** #2956 (owner decisions 2026-11-17): Update file's "Turn off updates" (`off` true) and "Turn updates back on" (`off`
+   *  false) on the set for `def`. Writes the set's mark only (`updates-off.ts`). Guarded; answered with one `updates-off`. */
+  | { type: 'updates-off'; def: string; off: boolean }
   /** #3309: the panel's own summary of a run of several writes, which only the panel computes: a build of several sets
    *  (`components`) or Update file's run (`update`), as the Activity drawer and the status strip show it. Kept in the
    *  main thread's activity log for the agent link's `activity` command. Writes nothing; never refused. */
@@ -658,6 +661,8 @@ export type MainToUi =
   /** #3129 Q833 A: the answer to `add-queue`: the queue after the write, read as `file-sets`' `queued` is. `error` when the
    *  write was refused; `queued` is then the queue as the file holds it. */
   | { type: 'add-queue'; queued: string[]; error?: string }
+  /** #2956: the answer to `updates-off`: the set and what was asked; `error` when it could not be written. */
+  | { type: 'updates-off'; def: string; off: boolean; ok: boolean; error?: string }
   /** #2909 Q2909.8 A: one set's hand edits from the background pass (`handEditsOf`), or the pass's end (`done`). */
   | { type: 'hand-edits'; def: string; members: number; edited: number }
   | { type: 'hand-edits'; done: true }
@@ -677,8 +682,10 @@ export type MainToUi =
   /** An agent command has started, and has finished (UI redesign S11): what lets the panel's Activity
    *  drawer show it running and mark its result as the agent's. Sent for every valid command, `status`
    *  included; the panel decides which have an operation to show. `finished` follows the command's
-   *  terminal verdict, and is sent even when its handler threw and posted none. */
-  | { type: 'agent-started'; id: string; cmd: AgentCmd; apply?: true }
+   *  terminal verdict, and is sent even when its handler threw and posted none. `def` names the set a
+   *  `build-components` builds (#2087), so the panel can record its verdict against that set. */
+  // #2368: `busy` marks a command that writes the file, so the bar shows it running until its result is written.
+  | { type: 'agent-started'; id: string; cmd: AgentCmd; apply?: true; def?: string; busy?: true }
   | { type: 'agent-finished'; id: string; cmd: AgentCmd };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */

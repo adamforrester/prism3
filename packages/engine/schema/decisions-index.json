@@ -390,6 +390,27 @@
       "title": "text, effect and gradient styles carry a rename record, and the plugin renames the existing style in place",
       "doc": "docs/44-materialization-renames.md",
       "section": "10.1"
+    },
+    {
+      "date": "2026-11-18",
+      "issue": 2454,
+      "title": "plain HTML/CSS ships a behavior contract, web components carry their own",
+      "doc": "docs/41-internal-and-ejected.md",
+      "section": "7.2"
+    },
+    {
+      "date": "2026-11-18",
+      "issue": 1043,
+      "title": "the scrim's steps are declared taste, not a derivation",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "8.3"
+    },
+    {
+      "date": "2026-11-19",
+      "issue": 2425,
+      "title": "the export package — no Style Dictionary preset, no value-shape options, a ZIP, CSS from the Style Dictionary build",
+      "doc": "docs/12-token-press-monorepo-eval.md",
+      "section": "12."
     }
   ]
 }

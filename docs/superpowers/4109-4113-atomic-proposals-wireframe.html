@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atomic Proposals Wireframe</title>
+<style>
+/* Wireframe for the Skeleton, Avatar, Toggle button and Image proposals (#4109, #4110, #4112, #4113).
+   Gray boxes, not a design. Where a proposal names a token, the value beside it is the example brand's
+   emitted value (packages/engine/out/prism3.tokens.json, light and dark), copied, not read live.
+   Anything marked "stand-in" has no named token in the proposal. Nothing here is decided. */
+:root{
+  /* wireframe chrome (stand-ins) */
+  --page:#f4f4f5; --raised:#ffffff; --ink:#18181b; --ink-2:#52525b; --ink-3:#a1a1aa;
+  --line:#d4d4d8; --note:#7c3aed; --decide:#b45309; --hover:rgba(24,24,27,.06);
+  /* real token values, light mode */
+  --bg-primary:#ffffff;          /* color.background.primary */
+  --bg-secondary:#e9e9e9;        /* color.background.secondary */
+  --bg-tertiary:#dbdbdc;         /* color.background.tertiary */
+  --text-primary:#0d0d0e;        /* color.text.primary */
+  --icon-secondary:#67696b;      /* color.icon.secondary */
+  --icon-tertiary:#808284;       /* color.icon.tertiary */
+  --focus:#1e1eff;               /* color.border.focus */
+  --ind-rest:#1e1eff;            /* color.interactive.primary.indicator.rest */
+  --ind-hover:#1408c6;           /* color.interactive.primary.indicator.hover */
+  --ind-pressed:#0b008c;         /* color.interactive.primary.indicator.pressed */
+  --sel-tint:#1e1eff4d;          /* color.interactive.primary.subtle-fill.selected */
+  --n-text:#0d0d0e;              /* color.interactive.neutral.text.rest */
+  --n-text-hover:#212123;        /* color.interactive.neutral.text.hover */
+  --n-border:#0d0d0e;            /* color.interactive.neutral.border.rest */
+  --n-border-hover:#212123;      /* color.interactive.neutral.border.hover */
+  --n-border-pressed:#37383a;    /* color.interactive.neutral.border.pressed */
+  --n-ov-hover:#0000001a;        /* color.interactive.neutral.overlay.hover */
+  --n-ov-pressed:#00000033;      /* color.interactive.neutral.overlay.pressed */
+  --dis-text:#808284;            /* color.disabled.text */
+  --dis-border:#c0c1c2;          /* color.disabled.border */
+  /* mode-independent token values */
+  --radius-none:0px; --radius-sm:2px; --radius-md:4px; --radius-round:128px;   /* radius.* */
+  --bw-thick:2px;                /* border-width.thick */
+  --lb-md:24px; --lb-sm:21px;    /* type.body.md.line-box, type.body.sm.line-box */
+  --sweep:1600ms;                /* motion.duration.sweep */
+  --fast:100ms;                  /* motion.duration.fast */
+  --ease-enter:cubic-bezier(0,0,.2,1);   /* motion.easing-role.enter */
+  --ease-default:cubic-bezier(.2,0,0,1); /* motion.easing-role.default */
+  --presence:#16a34a;            /* stand-in: Badge's dot tone, owned by Badge */
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#0a0a0b; --raised:#18181b; --ink:#f4f4f5; --ink-2:#a1a1aa; --ink-3:#71717a;
+  --line:#3f3f46; --note:#a78bfa; --decide:#fbbf24; --hover:rgba(255,255,255,.07);
+  --bg-primary:#0d0d0e; --bg-secondary:#171718; --bg-tertiary:#212123; --text-primary:#f7f7f7;
+  --icon-secondary:#808284; --icon-tertiary:#67696b; --focus:#4f79fa;
+  --ind-rest:#4f79fa; --ind-hover:#7398f8; --ind-pressed:#99b4f7; --sel-tint:#3d68fc4d;
+  --n-text:#f7f7f7; --n-text-hover:#dbdbdc; --n-border:#f7f7f7; --n-border-hover:#dbdbdc; --n-border-pressed:#c0c1c2;
+  --n-ov-hover:#ffffff1a; --n-ov-pressed:#ffffff33; --dis-text:#67696b; --dis-border:#37383a;
+  --presence:#4ade80; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --page:#0a0a0b; --raised:#18181b; --ink:#f4f4f5; --ink-2:#a1a1aa; --ink-3:#71717a;
+  --line:#3f3f46; --note:#a78bfa; --decide:#fbbf24; --hover:rgba(255,255,255,.07);
+  --bg-primary:#0d0d0e; --bg-secondary:#171718; --bg-tertiary:#212123; --text-primary:#f7f7f7;
+  --icon-secondary:#808284; --icon-tertiary:#67696b; --focus:#4f79fa;
+  --ind-rest:#4f79fa; --ind-hover:#7398f8; --ind-pressed:#99b4f7; --sel-tint:#3d68fc4d;
+  --n-text:#f7f7f7; --n-text-hover:#dbdbdc; --n-border:#f7f7f7; --n-border-hover:#dbdbdc; --n-border-pressed:#c0c1c2;
+  --n-ov-hover:#ffffff1a; --n-ov-pressed:#ffffff33; --dis-text:#67696b; --dis-border:#37383a;
+  --presence:#4ade80; color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:22px;margin:0 0 4px} h2{font-size:17px;margin:40px 0 4px} h3{font-size:14px;margin:16px 0 8px}
+p{margin:4px 0 8px;max-width:72ch} .sub{color:var(--ink-2)}
+a{color:inherit}
+code{font:12px ui-monospace,Menlo,monospace;background:var(--hover);padding:1px 4px;border-radius:4px}
+pre{font:12px/1.5 ui-monospace,Menlo,monospace;background:var(--hover);padding:8px 10px;border-radius:6px;overflow:auto;margin:6px 0}
+.row{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.card{border:1px dashed var(--line);border-radius:10px;padding:16px;min-width:0;flex:1 1 300px}
+.cap{font-size:12px;color:var(--ink-2);margin-top:8px}
+.od{color:var(--decide);font-weight:600;white-space:nowrap}
+.tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:99px;padding:0 6px;color:var(--ink-2);margin-left:4px}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+button.trig{font:inherit;border:1px solid var(--line);background:var(--raised);color:var(--ink);border-radius:8px;height:32px;padding:0 12px;cursor:pointer}
+button.trig:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.lab{font-size:11px;color:var(--ink-2);text-align:center;margin-top:4px}
+.part{font-size:11px;color:var(--note)}
+.outline-part{outline:1.5px dashed var(--note);outline-offset:2px}
+.surface-page{background:var(--bg-primary);border:1px solid var(--line);border-radius:8px;padding:16px}
+.surface-card{background:var(--bg-secondary);border-radius:8px;padding:16px}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px}
+.dl dt{font-weight:600} .dl dd{margin:0;color:var(--ink-2)}
+.rel{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.rel .card{font-size:13px}
+.layer{border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin:6px 0;background:var(--raised);font-size:12px}
+.layer.shared{border-color:var(--note);color:var(--note)}
+.status{font:12px ui-monospace,Menlo,monospace;color:var(--ink-2);min-height:1.5em}
+@media (max-width:760px){.rel{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.rel{grid-template-columns:1fr}}
+
+/* ---------- Skeleton ---------- */
+.sk{position:relative;overflow:hidden;background:transparent}
+.sk .bar,.sk .block{background:var(--sk-fill,var(--bg-tertiary));position:relative;overflow:hidden}
+.sk-text .line{height:var(--lb-md);display:flex;align-items:center}               /* line row = line box */
+.sk-text.small .line{height:var(--lb-sm)}
+.sk-text .bar{height:calc(var(--lb-md) * 2 / 3);border-radius:var(--radius-sm)}   /* OD-S5: two thirds, centered */
+.sk-text.small .bar{height:calc(var(--lb-sm) * 2 / 3)}
+.sk-text .line:nth-child(1) .bar{width:100%} .sk-text .line:nth-child(2) .bar{width:80%} .sk-text .line:nth-child(3) .bar{width:40%}
+.sk-circle{aspect-ratio:1/1} .sk-circle .block{width:100%;height:100%;border-radius:var(--radius-round)}
+.sk-rect .block{width:100%;height:100%;border-radius:var(--radius-md)}
+/* pulse: whole shape fades between two opacities, one cycle = motion.duration.sweep */
+.anim-pulse .bar,.anim-pulse .block{animation:sk-pulse var(--sweep) ease-in-out infinite}
+@keyframes sk-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+/* shimmer: a highlight moved with transform (not background-position), in the reading direction */
+.anim-shimmer .bar::after,.anim-shimmer .block::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,var(--bg-secondary),transparent);
+  transform:translateX(-100%);animation:sk-shimmer var(--sweep) linear infinite}
+[dir=rtl] .anim-shimmer .bar::after,[dir=rtl] .anim-shimmer .block::after{animation-name:sk-shimmer-rtl}
+@keyframes sk-shimmer{to{transform:translateX(100%)}}
+@keyframes sk-shimmer-rtl{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
+/* reduced motion: the animation stops; the still shape stays (no substitute) */
+@media (prefers-reduced-motion:reduce){.sk .bar,.sk .block,.sk .bar::after,.sk .block::after{animation:none!important}
+  .sk .bar::after,.sk .block::after{display:none}}
+:root[data-rm="on"] .sk .bar,:root[data-rm="on"] .sk .block{animation:none!important}
+:root[data-rm="on"] .sk .bar::after,:root[data-rm="on"] .sk .block::after{display:none}
+
+/* ---------- Avatar ---------- */
+.av{position:relative;display:inline-block;flex:none}                                /* host: never clips */
+.av .mask{position:absolute;inset:0;overflow:hidden;background:var(--bg-tertiary);   /* mask: clips, carries fill */
+  border-radius:var(--radius-round);display:grid;place-items:center;color:var(--text-primary)}
+.av.square .mask{border-radius:var(--radius-md)} .av.square.sm-rad .mask{border-radius:var(--radius-sm)}
+.av .ini{font-weight:600;letter-spacing:.02em;line-height:1}
+.av .glyph{color:var(--icon-secondary);width:60%;height:60%}
+.av .photo{position:absolute;inset:0;background:var(--photo)}
+.av .dot{position:absolute;right:0;bottom:0;width:8px;height:8px;border-radius:50%;background:var(--presence);
+  box-shadow:0 0 0 2px var(--bg-primary);transform:translate(15%,15%)}
+[dir=rtl] .av .dot{right:auto;left:0;transform:translate(-15%,15%)}
+.av-grid{display:grid;grid-template-columns:72px repeat(5,minmax(0,1fr));gap:8px;align-items:center;justify-items:center;font-size:11px}
+.av-grid .h{color:var(--ink-2)}
+@media (max-width:560px){.av-grid{grid-template-columns:56px repeat(5,minmax(0,1fr))}}
+
+/* ---------- Toggle button ---------- */
+.tb{font:inherit;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px;position:relative;
+  height:40px;padding:0 16px;border-radius:var(--radius-md);cursor:pointer;color:var(--n-text);background:transparent;
+  border:1px solid var(--n-border);transition:background-color var(--fast) var(--ease-default),box-shadow var(--fast) var(--ease-default),transform var(--fast) var(--ease-default)}
+.tb.icon{width:40px;padding:0;justify-content:center}
+.tb.text{border-color:transparent}
+.tb::before{content:"";position:absolute;inset:0;border-radius:inherit;background:transparent;pointer-events:none}
+.tb:hover::before,.tb.s-hover::before{background:var(--n-ov-hover)}
+.tb:hover,.tb.s-hover{color:var(--n-text-hover)} .tb:not(.text):hover,.tb:not(.text).s-hover{border-color:var(--n-border-hover)}
+.tb:active::before,.tb.s-pressed::before{background:var(--n-ov-pressed)}
+.tb:active,.tb.s-pressed{transform:scale(.98)} .tb:not(.text):active,.tb:not(.text).s-pressed{border-color:var(--n-border-pressed)}
+.tb:focus-visible,.tb.s-focus{outline:2px solid var(--focus);outline-offset:2px}
+.tb[aria-pressed="true"]{background:var(--sel-tint);box-shadow:inset 0 0 0 var(--bw-thick) var(--ind-rest)}  /* tint + 2px outline inside the box */
+.tb.text[aria-pressed="true"]{border-color:transparent}
+.tb[aria-pressed="true"]:hover,.tb[aria-pressed="true"].s-hover{box-shadow:inset 0 0 0 var(--bw-thick) var(--ind-hover)}
+.tb[aria-pressed="true"]:active,.tb[aria-pressed="true"].s-pressed{box-shadow:inset 0 0 0 var(--bw-thick) var(--ind-pressed)}
+.tb:disabled,.tb.s-disabled{color:var(--dis-text);border-color:var(--dis-border);cursor:not-allowed;transform:none}
+.tb.text:disabled,.tb.text.s-disabled{border-color:transparent}
+.tb:disabled::before,.tb.s-disabled::before{background:transparent}
+.tb[aria-pressed="true"].s-disabled{box-shadow:inset 0 0 0 var(--bw-thick) var(--dis-border);background:transparent}
+.tb svg{width:20px;height:20px}
+@media (prefers-reduced-motion:reduce){.tb{transition:none}.tb:active,.tb.s-pressed{transform:none}}
+:root[data-rm="on"] .tb{transition:none} :root[data-rm="on"] .tb:active,:root[data-rm="on"] .tb.s-pressed{transform:none}
+.tb-grid{display:grid;grid-template-columns:96px repeat(5,minmax(0,1fr));gap:8px;align-items:center;justify-items:center;font-size:11px}
+.tb-grid .h{color:var(--ink-2)} .tb-grid .tb{pointer-events:none}
+@media (max-width:640px){.tb-grid{grid-template-columns:72px repeat(5,minmax(0,1fr))}.tb-grid .tb:not(.icon){padding:0 8px;font-size:12px}}
+
+/* ---------- Image ---------- */
+.img{position:relative;overflow:hidden;background:var(--bg-secondary);border-radius:var(--radius-none);width:100%}
+.img .marker,.img .err{position:absolute;inset:0;margin:auto;width:28%;height:28%;color:var(--icon-tertiary)}
+.img .photo{position:absolute;inset:0;background:var(--photo);opacity:0;transition:opacity var(--fast) var(--ease-enter)}
+.img .loadlayer{position:absolute;inset:0}
+.img .loadlayer .sk{width:100%;height:100%}
+.img[data-status="loaded"] .photo{opacity:1}
+.img:not([data-status="empty"]) .marker,.img:not([data-status="error"]) .err,.img:not([data-status="loading"]) .loadlayer{display:none}
+.img.contain .photo{background-size:contain;background-repeat:no-repeat;background-position:center}
+:root{--photo:radial-gradient(circle at 72% 30%,#f5c76a 0 9%,transparent 10%),linear-gradient(160deg,transparent 55%,#4b6b4f 56%),linear-gradient(200deg,transparent 48%,#6d8f6a 49%),linear-gradient(#9cc3e6,#d9ecf7)}
+.ratios{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end}
+.st-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.ratios{grid-template-columns:repeat(4,minmax(0,1fr))}.st-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;border:1px solid var(--line)}
+.index{columns:2 300px;column-gap:24px;font-size:12px} .index div{break-inside:avoid;margin:0 0 4px}
+</style>
+</head>
+<body>
+<main>
+<h1>Skeleton, Avatar, Toggle button and Image: wireframe</h1>
+<p class="sub">For the four atomic proposals from #4001 (Q-AT2): Skeleton <a href="https://github.com/adamforrester/prism3/issues/4109">#4109</a>, Avatar <a href="https://github.com/adamforrester/prism3/issues/4110">#4110</a>, Toggle button <a href="https://github.com/adamforrester/prism3/issues/4112">#4112</a>, Image <a href="https://github.com/adamforrester/prism3/issues/4113">#4113</a>. Gray boxes to show parts, axes and members, not a visual design. Where a proposal names a token, the box uses the example brand's emitted value for it, in light and dark. Each <span class="od">OD-xx</span> tag points at an owner decision in that proposal. The page draws the <em>recommended</em> option for each one, and nothing here is decided.</p>
+<div class="toolbar">
+  <button class="trig" id="themeBtn" type="button">Toggle theme</button>
+  <button class="trig" id="rmBtn" type="button" aria-pressed="false">Reduced motion: off</button>
+  <button class="trig" id="dirBtn" type="button">Toggle RTL</button>
+  <span class="cap">Reduced motion also follows your system setting.</span>
+</div>
+
+<h2>0 · How the four relate</h2>
+<div class="rel">
+  <div class="card"><b>Skeleton</b> <span class="tag">tier 1</span>
+    <div class="layer shared">shape: text · circle · rect</div>
+    <div class="layer">nests nothing</div>
+    <div class="layer">hidden from screen readers; the region announces</div></div>
+  <div class="card"><b>Image</b> <span class="tag">tier 1</span>
+    <div class="layer">rename of Image placeholder <span class="od">OD-I1</span></div>
+    <div class="layer shared">loading layer = Skeleton rect <span class="od">OD-I4</span></div>
+    <div class="layer">status: empty · loading · loaded · error</div></div>
+  <div class="card"><b>Avatar</b> <span class="tag">tier 1</span>
+    <div class="layer">image → initials → glyph</div>
+    <div class="layer shared">loading = Skeleton circle (code only)</div>
+    <div class="layer">presence = nested Badge dot</div></div>
+  <div class="card"><b>Toggle button</b> <span class="tag">tier 1</span>
+    <div class="layer">Button's anatomy, sizes, focus ring <span class="od">OD-T1</span></div>
+    <div class="layer">Tag's selected paint <span class="od">OD-T2</span></div>
+    <div class="layer"><code>aria-pressed</code>, as Tag</div></div>
+</div>
+
+<!-- ======================= SKELETON ======================= -->
+<h2>1 · Skeleton <a class="tag" href="https://github.com/adamforrester/prism3/issues/4109">#4109</a></h2>
+<p>One primitive with a <code>shape</code> axis, composed by the consumer inside the real layout (<span class="od" id="OD-S2">OD-S2</span>). No page-sized skeleton. Aliases: <code>placeholder</code>, <code>loading-placeholder</code>, <code>shimmer</code>, <code>skeleton-text</code>, <code>skeleton-avatar</code>, <code>skeleton-image</code>; <code>ghost</code> left off, so it still reaches nothing (<span class="od" id="OD-S1">OD-S1</span>).</p>
+<div class="row">
+  <div class="card">
+    <h3>Parts</h3>
+    <div class="row" style="gap:20px">
+      <div style="flex:1 1 200px">
+        <div class="sk sk-text outline-part" style="width:100%">
+          <div class="line outline-part"><div class="bar"></div></div>
+          <div class="line outline-part"><div class="bar"></div></div>
+          <div class="line outline-part"><div class="bar"></div></div>
+        </div>
+        <div class="part" style="margin-top:6px"><code>container</code> › <code>line1–3</code> (24px row, <code>type.body.md.line-box</code>) › <code>bar1–3</code> (paint <code>fill</code>)</div>
+      </div>
+      <div style="width:64px"><div class="sk sk-circle outline-part" style="width:56px"><div class="block"></div></div><div class="part" style="margin-top:6px"><code>block</code></div></div>
+    </div>
+    <p class="cap">Only the bars and the block carry paint. The container and the line rows are geometry. The bar is two thirds of its line box, centered, so stacked lines keep the text's rhythm (<span class="od" id="OD-S5">OD-S5</span>): 16px in a 24px row at medium, 14px in a 21px row at small. Widths 100 / 80 / 40%. Bar radius <code>radius.sm</code> (2px).</p>
+  </div>
+  <div class="card">
+    <h3>Set (recommended, <span class="od" id="OD-S6">OD-S6</span>): 4 members</h3>
+    <div class="row" style="gap:16px;align-items:flex-end">
+      <div style="width:140px"><div class="sk sk-text"><div class="line"><div class="bar"></div></div><div class="line"><div class="bar"></div></div><div class="line"><div class="bar"></div></div></div><div class="lab">text · medium</div></div>
+      <div style="width:140px"><div class="sk sk-text small"><div class="line"><div class="bar"></div></div><div class="line"><div class="bar"></div></div><div class="line"><div class="bar"></div></div></div><div class="lab">text · small</div></div>
+      <div style="width:48px"><div class="sk sk-circle" style="width:48px"><div class="block"></div></div><div class="lab">circle</div></div>
+      <div style="width:120px"><div class="sk sk-rect" style="height:72px"><div class="block"></div></div><div class="lab">rect</div></div>
+    </div>
+    <p class="cap"><code>shape</code> [text, circle, rect], with <code>size</code> [medium, small] on text only (<code>excludeCoordinates</code>). Circle has a 1:1 aspect lock; rect resizes freely, radius <code>radius.md</code> (4px). <code>lines</code> is a code prop; a designer stacks a second instance for more. No booleans, texts, swaps or state axis.</p>
+  </div>
+</div>
+
+<h3>Live: animation and reduced motion (<span class="od" id="OD-S3">OD-S3</span>)</h3>
+<div class="row">
+  <div class="card">
+    <div class="toolbar" role="radiogroup" aria-label="Animation">
+      <label class="cap"><input type="radio" name="skAnim" value="pulse" checked> pulse (default)</label>
+      <label class="cap"><input type="radio" name="skAnim" value="shimmer"> shimmer (opt-in)</label>
+      <label class="cap"><input type="radio" name="skAnim" value="none"> none</label>
+    </div>
+    <div id="skDemo" class="anim-pulse">
+      <div class="surface-page">
+        <div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap">
+          <div class="sk sk-circle" style="width:40px"><div class="block"></div></div>
+          <div class="sk sk-text" style="flex:1"><div class="line"><div class="bar"></div></div><div class="line"><div class="bar" style="width:55%"></div></div></div>
+        </div>
+        <div class="sk sk-rect" style="height:96px;margin-top:12px"><div class="block"></div></div>
+      </div>
+    </div>
+    <p class="cap">One cycle is <code>motion.duration.sweep</code> (1600ms), so no token is minted. Pulse fades the whole shape; shimmer moves a highlight (<code>color.background.secondary</code>) with <code>transform</code>, in the reading direction, so it reverses under RTL. Turn on reduced motion: the animation stops and the still shape stays, with no substitute. Figma draws the still frame only.</p>
+  </div>
+  <div class="card">
+    <h3>Fill on every ground (<span class="od" id="OD-S4">OD-S4</span>)</h3>
+    <div class="row" style="gap:12px">
+      <div class="surface-page" style="flex:1 1 140px"><div class="sk sk-text"><div class="line"><div class="bar"></div></div><div class="line"><div class="bar"></div></div><div class="line"><div class="bar"></div></div></div><div class="lab">on <code>background.primary</code></div></div>
+      <div class="surface-card" style="flex:1 1 140px"><div class="sk sk-text"><div class="line"><div class="bar"></div></div><div class="line"><div class="bar"></div></div><div class="line"><div class="bar"></div></div></div><div class="lab">on <code>background.secondary</code> card</div></div>
+    </div>
+    <p class="cap">Fill <code>color.background.tertiary</code> <span class="swatch" style="background:var(--bg-tertiary)"></span> (#dbdbdc light, #212123 dark), so it still reads on a secondary card. Option B, <code>background.secondary</code>, would vanish on the right-hand card.</p>
+  </div>
+</div>
+
+<h3>Who announces (<span class="od" id="OD-S7">OD-S7</span>)</h3>
+<div class="row">
+  <div class="card">
+    <div class="toolbar"><button class="trig" id="regionBtn" type="button">Reload order history</button></div>
+    <section id="region" aria-busy="false" aria-labelledby="regionH" class="surface-page">
+      <b id="regionH">Order history</b>
+      <div id="regionBody" style="margin-top:8px">
+        <div style="padding:4px 0">Order 1042 · shipped</div><div style="padding:4px 0">Order 1041 · delivered</div><div style="padding:4px 0">Order 1040 · delivered</div>
+      </div>
+    </section>
+    <div role="status" id="regionStatus" class="status"></div>
+    <p class="cap">Skeleton never speaks: every shape is <code>aria-hidden="true"</code>. The region holding the skeletons sets <code>aria-busy</code> and writes one descriptive message into a polite status region that was already on the page, so three rows announce once. Focus does not move when the content arrives.</p>
+  </div>
+  <div class="card">
+    <dl class="dl">
+      <dt>region</dt><dd id="busyOut"><code>aria-busy="false"</code></dd>
+      <dt>status</dt><dd>one <code>role="status"</code>, present and empty before the skeleton shows</dd>
+      <dt>shapes</dt><dd><code>aria-hidden="true"</code>, nothing focusable</dd>
+      <dt>anti-flash</dt><dd>show delay and minimum show time are code-only timing, waiting on #3486</dd>
+      <dt>swap</dt><dd>immediate, or a crossfade on <code>motion.duration.fast</code> (100ms) with <code>motion.easing-role.enter</code></dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ======================= IMAGE (with Skeleton) ======================= -->
+<h2>2 · Image, with its Skeleton loading state <a class="tag" href="https://github.com/adamforrester/prism3/issues/4113">#4113</a></h2>
+<p>Image placeholder is renamed to Image through the rename register, so the Figma set and its instances update in place (<span class="od" id="OD-I1">OD-I1</span>). Its ratio lock, clipping, nominal width (<code>container.narrow</code>) and marker carry over unchanged as the <code>empty</code> state. The loading state nests Skeleton at <code>shape=rect</code>, filling the frame (<span class="od" id="OD-I4">OD-I4</span>), so it pulses, shimmers or stops exactly as section 1 does.</p>
+<div class="row">
+  <div class="card">
+    <h3>Live: loading → loaded, or loading → error</h3>
+    <div class="toolbar">
+      <button class="trig" id="imgLoad" type="button">Load</button>
+      <button class="trig" id="imgFail" type="button">Load and fail</button>
+      <button class="trig" id="imgReset" type="button">Clear src</button>
+      <label class="cap"><input type="checkbox" id="imgContain"> <code>fit=contain</code></label>
+    </div>
+    <div style="max-width:360px">
+      <div class="img" id="demoImg" data-status="empty" style="aspect-ratio:4/3">
+        <div class="photo" aria-hidden="true"></div>
+        <div class="loadlayer" aria-hidden="true"><div class="sk sk-rect anim-pulse" id="imgSk"><div class="block" style="border-radius:var(--radius-none)"></div></div></div>
+        <svg class="marker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><circle cx="9" cy="10" r="1.6"/><path d="M3 17l5-5 4 4 3-3 6 6"/></svg>
+        <svg class="err" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><circle cx="9" cy="10" r="1.6"/><path d="M3 17l5-5 4 4 3-3 6 6"/><path d="M3 3l18 18"/></svg>
+      </div>
+    </div>
+    <div class="status" id="imgOut">status=empty · no src</div>
+    <p class="cap">The photo is a stand-in gradient. It fades in over the skeleton on <code>motion.duration.fast</code> (100ms) with <code>motion.easing-role.enter</code>; under reduced motion the fade stays (it is not vestibular) and the skeleton's pulse stops. On error the informative image keeps its name (<code>role="img"</code>, <code>aria-label</code> = its <code>alt</code>) and draws no alt text as visible text.</p>
+  </div>
+  <div class="card">
+    <h3>Parts</h3>
+    <div class="row" style="gap:16px">
+      <div style="width:160px"><div class="img outline-part" data-status="empty" style="aspect-ratio:4/3"><svg class="marker outline-part" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><circle cx="9" cy="10" r="1.6"/><path d="M3 17l5-5 4 4 3-3 6 6"/></svg></div>
+        <div class="part" style="margin-top:6px"><code>frame</code> (root, lock, clip, <code>fill</code>, radius) › <code>markerGlyph</code></div></div>
+      <div style="width:160px"><div class="img" data-status="loading" style="aspect-ratio:4/3"><div class="loadlayer outline-part"><div class="sk sk-rect"><div class="block" style="border-radius:0"></div></div></div></div>
+        <div class="part" style="margin-top:6px"><code>loadingLayer</code> (absolute) › nested Skeleton rect</div></div>
+    </div>
+    <dl class="dl" style="margin-top:12px">
+      <dt>fill</dt><dd><code>color.background.secondary</code> <span class="swatch" style="background:var(--bg-secondary)"></span> (carried over)</dd>
+      <dt>glyph ink</dt><dd><code>color.icon.tertiary</code> <span class="swatch" style="background:var(--icon-tertiary)"></span>, decorative</dd>
+      <dt>radius</dt><dd><code>radius.none</code> (0px): looks as today, now rebindable (<span class="od" id="OD-I9">OD-I9</span>)</dd>
+    </dl>
+    <p class="cap">With <span class="od">OD-S4</span> A the skeleton (<code>background.tertiary</code>) sits a step darker than the empty frame (<code>background.secondary</code>), so loading and empty read apart. No caption part.</p>
+  </div>
+</div>
+
+<div class="row" style="margin-top:24px">
+  <div class="card">
+    <h3>Set: <code>ratio</code> (7) × <code>status</code> (4) = 28 members (<span class="od" id="OD-I2">OD-I2</span>)</h3>
+    <div class="st-grid">
+      <div><div class="img" data-status="empty" style="aspect-ratio:4/3"><svg class="marker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><circle cx="9" cy="10" r="1.6"/><path d="M3 17l5-5 4 4 3-3 6 6"/></svg></div><div class="lab">empty (leads)</div></div>
+      <div><div class="img" data-status="loading" style="aspect-ratio:4/3"><div class="loadlayer"><div class="sk sk-rect"><div class="block" style="border-radius:0"></div></div></div></div><div class="lab">loading</div></div>
+      <div><div class="img" data-status="loaded" style="aspect-ratio:4/3"><div class="photo"></div></div><div class="lab">loaded</div></div>
+      <div><div class="img" data-status="error" style="aspect-ratio:4/3"><svg class="err" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1"/><circle cx="9" cy="10" r="1.6"/><path d="M3 17l5-5 4 4 3-3 6 6"/><path d="M3 3l18 18"/></svg></div><div class="lab">error</div></div>
+    </div>
+    <p class="cap"><code>status</code> replaces the Figma-only <code>marker</code> boolean; a designer who drops a photo picks <code>loaded</code>. <code>empty</code> leads, so every existing instance looks unchanged after the rename. <code>status</code> is runtime and holds one footprint. Error: the same fill and a new "image unavailable" glyph (an image with a slash), no text in the frame (<span class="od" id="OD-I3">OD-I3</span>).</p>
+    <div class="ratios" style="margin-top:12px">
+      <div><div class="img" data-status="empty" style="aspect-ratio:2/3"></div><div class="lab">2:3</div></div>
+      <div><div class="img" data-status="empty" style="aspect-ratio:3/4"></div><div class="lab">3:4</div></div>
+      <div><div class="img" data-status="empty" style="aspect-ratio:4/5"></div><div class="lab">4:5</div></div>
+      <div><div class="img" data-status="empty" style="aspect-ratio:1/1"></div><div class="lab">1:1</div></div>
+      <div><div class="img" data-status="empty" style="aspect-ratio:4/3"></div><div class="lab">4:3 (default)</div></div>
+      <div><div class="img" data-status="empty" style="aspect-ratio:3/2"></div><div class="lab">3:2</div></div>
+      <div><div class="img" data-status="empty" style="aspect-ratio:16/9"></div><div class="lab">16:9</div></div>
+    </div>
+    <p class="cap">The seven ratios of <code>image-placeholder.ts</code>, carried over; <code>ratio</code> stays <code>authoring</code> with <code>footprintVaries</code>.</p>
+  </div>
+  <div class="card">
+    <h3>Code contract</h3>
+    <pre>&lt;Image src={url} alt="Trail shoe, side view" /&gt;   // informative
+&lt;Image src={url} alt="" /&gt;                       // decorative
+&lt;Image src={url} /&gt;                              // type error</pre>
+    <dl class="dl">
+      <dt>alt</dt><dd>required string, may be empty; leaving it out fails the type check (<span class="od" id="OD-I5">OD-I5</span>)</dd>
+      <dt>fit</dt><dd><code>cover</code> (default) or <code>contain</code>; a code prop, no axis (<span class="od" id="OD-I6">OD-I6</span>). Tick <code>fit=contain</code> in the demo.</dd>
+      <dt>loading</dt><dd>no lazy default; <code>loading</code> and <code>fetchPriority</code> exposed, docs say when (<span class="od" id="OD-I7">OD-I7</span>)</dd>
+      <dt>scope</dt><dd>Image owns frame, fit, focal point, radius, alt and states; <code>srcSet</code>, <code>sizes</code> and delivery pass through to the framework's image component (<span class="od" id="OD-I8">OD-I8</span>)</dd>
+      <dt>RTL</dt><dd><code>mirror: false</code>: a photo never mirrors</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ======================= AVATAR ======================= -->
+<h2>3 · Avatar <a class="tag" href="https://github.com/adamforrester/prism3/issues/4110">#4110</a></h2>
+<p>Avatar only; the face-pile (AvatarGroup) is a later tier-2 proposal (<span class="od" id="OD-A1">OD-A1</span>). Fallback chain: image, then initials, then a generic glyph.</p>
+<div class="row">
+  <div class="card">
+    <h3>Parts: an unclipped host, a clipping mask</h3>
+    <div class="row" style="gap:24px;align-items:center">
+      <span class="av outline-part" style="width:64px;height:64px"><span class="mask outline-part"><span class="ini" style="font-size:22px">JD</span></span><span class="dot" aria-hidden="true"></span></span>
+      <div class="part"><code>host</code> (root, size, not clipping)<br><code>mask</code> (shape, clips, paint <code>fill</code>)<br><code>initials</code> / <code>glyph</code><br><code>presence</code> (absolute, outside the mask)</div>
+    </div>
+    <p class="cap">The presence dot overhangs the edge because only the mask clips. It is a nested Badge at <code>type=dot</code>, 8px, anchored bottom end, with a ring in the page color; its tone is Badge's (stand-in green here) (<span class="od" id="OD-A7">OD-A7</span>). Under RTL it moves to the bottom left.</p>
+    <dl class="dl">
+      <dt>fill</dt><dd><code>color.background.tertiary</code> <span class="swatch" style="background:var(--bg-tertiary)"></span>, one neutral backdrop for everyone (<span class="od" id="OD-A5">OD-A5</span>)</dd>
+      <dt>initials</dt><dd><code>color.text.primary</code> <span class="swatch" style="background:var(--text-primary)"></span> on that fill: 14.0:1 light, 15.0:1 dark (computed from the values above)</dd>
+      <dt>glyph</dt><dd><code>color.icon.secondary</code> <span class="swatch" style="background:var(--icon-secondary)"></span>, decorative</dd>
+    </dl>
+  </div>
+  <div class="card">
+    <h3>Fallback chain and loading</h3>
+    <div class="row" style="gap:16px;align-items:flex-end">
+      <div><span class="av" style="width:40px;height:40px"><span class="mask"><span class="photo" style="--photo:radial-gradient(circle at 50% 38%,#c99a7a 0 22%,transparent 23%),radial-gradient(ellipse at 50% 100%,#3f5f8a 0 45%,transparent 46%),linear-gradient(#cfd8e3,#e8edf3)"></span></span></span><div class="lab">image</div></div>
+      <div><span class="av" style="width:40px;height:40px"><span class="mask"><span class="ini" style="font-size:14px">JD</span></span></span><div class="lab">initials</div></div>
+      <div><span class="av" style="width:40px;height:40px"><span class="mask"><svg class="glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></svg></span></span><div class="lab">person glyph</div></div>
+      <div><span class="av square" style="width:40px;height:40px"><span class="mask"><svg class="glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 21V5l7-2v18zM13 21V9l6 2v10z"/><rect x="2" y="20" width="20" height="1.5"/></svg></span></span><div class="lab">org glyph</div></div>
+      <div><div class="sk sk-circle anim-pulse" style="width:40px"><div class="block"></div></div><div class="lab">loading (code)</div></div>
+    </div>
+    <p class="cap">Two new glyphs, person and organization, so the default fallback follows the shape (<span class="od" id="OD-A6">OD-A6</span>). Loading is a Skeleton circle at the avatar's size, code only, then the photo fades in on <code>motion.duration.fast</code>; reduced motion swaps it at once.</p>
+    <h3>Naming (<span class="od" id="OD-A8">OD-A8</span>)</h3>
+    <pre>&lt;Avatar name="Jane Doe" src={url} /&gt;              // name = "Jane Doe"
+&lt;Avatar name="Jane Doe" decorative /&gt;             // beside a visible name: alt="", aria-hidden
+&lt;Avatar name="Jane Doe" presence="online" /&gt;      // name = "Jane Doe, online"</pre>
+    <p class="cap"><code>name</code> is required and drives both the initials and the accessible name, never "Avatar of…" and never "JD".</p>
+  </div>
+</div>
+
+<div class="row" style="margin-top:24px">
+  <div class="card">
+    <h3>Set: <code>size</code> (5) × <code>shape</code> (2) × <code>type</code> (3) = 30 members</h3>
+    <div class="av-grid" id="avGrid">
+      <div></div><div class="h">x-small 20</div><div class="h">small 24</div><div class="h">medium 32</div><div class="h">large 40</div><div class="h">x-large 64</div>
+    </div>
+    <p class="cap">Sizes (<span class="od" id="OD-A3">OD-A3</span>): the first four bind the icon ladder, <code>icon.size.sm</code> 20 · <code>.md</code> 24 · <code>.lg</code> 32 · <code>.xl</code> 40, so an avatar fits any icon slot; x-large (64) mints one token, an additive CONTRACT bump. Shapes (<span class="od" id="OD-A2">OD-A2</span>): circle (a person, <code>radius.round</code>) and square (a team, org or app; <code>radius.md</code> 4px from medium up, <code>radius.sm</code> 2px below). Initials (<span class="od" id="OD-A4">OD-A4</span>): one letter at x-small and small, two from medium up, on the nearest existing label rung (font sizes here are stand-ins). At <code>type=image</code> the mask is empty and a designer drops a photo on. One boolean, <code>presence</code>; one text, <code>initials</code> ("JD").</p>
+  </div>
+</div>
+
+<!-- ======================= TOGGLE BUTTON ======================= -->
+<h2>4 · Toggle button <a class="tag" href="https://github.com/adamforrester/prism3/issues/4112">#4112</a></h2>
+<p>A new def built on Button through the same factory pattern as <code>makeButton</code>: Button's anatomy, sizes, spacing, focus ring, density and <code>controlShape</code>, plus a <code>selection</code> axis. Button's own sets do not change (<span class="od" id="OD-T1">OD-T1</span>). Two defs, ToggleButton and ToggleIconButton, so the icon-only one requires its accessible name at the type level (<span class="od" id="OD-T4">OD-T4</span>).</p>
+<div class="row">
+  <div class="card">
+    <h3>Live: pressed state by keyboard</h3>
+    <div role="group" aria-labelledby="fmtLbl" class="toolbar" id="fmtGroup">
+      <span id="fmtLbl" class="cap" style="margin:0 4px 0 0">Text format</span>
+      <button class="tb icon text" type="button" aria-pressed="false" aria-label="Bold"><b>B</b></button>
+      <button class="tb icon text" type="button" aria-pressed="true" aria-label="Italic"><i style="font-family:Georgia,serif">I</i></button>
+      <button class="tb icon text" type="button" aria-pressed="false" aria-label="Underline"><u>U</u></button>
+    </div>
+    <div class="toolbar">
+      <button class="tb" type="button" aria-pressed="false" id="pinTb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4h6l-1 6 4 4H6l4-4z"/><path d="M12 14v6"/></svg>Pin</button>
+      <button class="tb" type="button" aria-pressed="true">Show archived</button>
+      <button class="tb" type="button" aria-pressed="false" disabled>Mute</button>
+    </div>
+    <div class="status" id="tbOut" aria-live="polite">Tab to a button, then press Space or Enter.</div>
+    <p class="cap">A native <code>&lt;button&gt;</code> with <code>aria-pressed</code>. Space and Enter both toggle; each button is its own tab stop. The label never changes ("Pin", not "Unpin"). Hold the key or pointer to see the transient press (Button's overlay step and 0.98 scale) next to the persistent selected look. The format row sits in a labeled <code>role="group"</code> in code; no group def now (<span class="od" id="OD-T5">OD-T5</span>).</p>
+  </div>
+  <div class="card">
+    <h3>Selected look (<span class="od" id="OD-T2">OD-T2</span>)</h3>
+    <div class="toolbar"><button class="tb" type="button" aria-pressed="false" tabindex="-1">Unselected</button><button class="tb" type="button" aria-pressed="true" tabindex="-1">Selected</button></div>
+    <dl class="dl">
+      <dt>tint</dt><dd><code>color.interactive.primary.subtle-fill.selected</code> <span class="swatch" style="background:var(--sel-tint)"></span> (Tag's)</dd>
+      <dt>outline</dt><dd><code>color.interactive.primary.indicator.{rest,hover,pressed}</code> <span class="swatch" style="background:var(--ind-rest)"></span> at <code>border-width.thick</code> (2px), drawn inside the box so the footprint does not change</dd>
+      <dt>label</dt><dd><code>color.interactive.neutral.text.*</code>, weight constant, no check glyph</dd>
+      <dt>focus</dt><dd><code>color.border.focus</code> <span class="swatch" style="background:var(--focus)"></span></dd>
+    </dl>
+    <p class="cap">Appearances: <code>outline</code> and <code>text</code>, no <code>filled</code>, so selected stays the strongest look (<span class="od" id="OD-T3">OD-T3</span>). On a brand whose outline interaction is <code>none</code>, the tint is not emitted and the outline carries selected alone.</p>
+  </div>
+</div>
+
+<div class="row" style="margin-top:24px">
+  <div class="card">
+    <h3>Set: ToggleButton <code>selection</code> (2) × <code>appearance</code> (2) × <code>size</code> (3) × <code>state</code> (5) × leading icon (2) = 120; ToggleIconButton 60</h3>
+    <div class="tb-grid" id="tbGrid">
+      <div></div><div class="h">rest</div><div class="h">hover</div><div class="h">pressed</div><div class="h">focus-visible</div><div class="h">disabled</div>
+    </div>
+    <p class="cap">Drawn at medium only (40px is a stand-in for Button's medium height). <code>selection</code> leads with <code>unselected</code>, the code default and the Figma default member. Selected and unselected share one footprint. <code>inactive</code> stays code only, as Button has it. One text, <code>label</code> ("Toggle"); the leading slot is Button's, with its swap.</p>
+  </div>
+</div>
+
+<h2>Decision index</h2>
+<p class="sub">Every owner decision in the four proposals, with the option this page draws. The proposal issue holds the alternatives.</p>
+<div class="index">
+  <div><a href="#OD-S1" class="od">OD-S1</a> <code>ghost</code> alias: A, left off</div>
+  <div><a href="#OD-S2" class="od">OD-S2</a> one primitive with a <code>shape</code> axis: A</div>
+  <div><a href="#OD-S3" class="od">OD-S3</a> pulse by default, shimmer opt-in, period <code>motion.duration.sweep</code>: A</div>
+  <div><a href="#OD-S4" class="od">OD-S4</a> fill <code>color.background.tertiary</code>: A</div>
+  <div><a href="#OD-S5" class="od">OD-S5</a> bar two thirds of the line box, centered: A</div>
+  <div><a href="#OD-S6" class="od">OD-S6</a> 4 members, size on text only: A</div>
+  <div><a href="#OD-S7" class="od">OD-S7</a> Skeleton never speaks; the region announces: A</div>
+  <div><a href="#OD-A1" class="od">OD-A1</a> Avatar only, AvatarGroup later: A</div>
+  <div><a href="#OD-A2" class="od">OD-A2</a> circle and square: A</div>
+  <div><a href="#OD-A3" class="od">OD-A3</a> icon ladder for four sizes, one new token for 64: A</div>
+  <div><a href="#OD-A4" class="od">OD-A4</a> one initial at 20 and 24, two from 32: A</div>
+  <div><a href="#OD-A5" class="od">OD-A5</a> one neutral backdrop: A</div>
+  <div><a href="#OD-A6" class="od">OD-A6</a> person and organization glyphs: A</div>
+  <div><a href="#OD-A7" class="od">OD-A7</a> <code>presence</code> boolean nests Badge's dot: A</div>
+  <div><a href="#OD-A8" class="od">OD-A8</a> required <code>name</code>, <code>decorative</code> boolean: A</div>
+  <div><a href="#OD-T1" class="od">OD-T1</a> new def on Button's factory: A</div>
+  <div><a href="#OD-T2" class="od">OD-T2</a> Tag's selected look: A</div>
+  <div><a href="#OD-T3" class="od">OD-T3</a> outline and text: A</div>
+  <div><a href="#OD-T4" class="od">OD-T4</a> two defs: A</div>
+  <div><a href="#OD-T5" class="od">OD-T5</a> no group def now: A</div>
+  <div><a href="#OD-I1" class="od">OD-I1</a> rename Image placeholder to Image: A</div>
+  <div><a href="#OD-I2" class="od">OD-I2</a> <code>status</code> axis replaces <code>marker</code>: A</div>
+  <div><a href="#OD-I3" class="od">OD-I3</a> distinct error glyph, no text: A</div>
+  <div><a href="#OD-I4" class="od">OD-I4</a> nested Skeleton rect: A</div>
+  <div><a href="#OD-I5" class="od">OD-I5</a> required <code>alt</code>, may be empty: A</div>
+  <div><a href="#OD-I6" class="od">OD-I6</a> <code>cover</code> and <code>contain</code>: A</div>
+  <div><a href="#OD-I7" class="od">OD-I7</a> no lazy default: A</div>
+  <div><a href="#OD-I8" class="od">OD-I8</a> delivery passed through: A</div>
+  <div><a href="#OD-I9" class="od">OD-I9</a> frame radius <code>radius.none</code>: A</div>
+</div>
+</main>
+<script>
+(function(){
+  var root=document.documentElement;
+  document.getElementById('themeBtn').onclick=function(){
+    var dark=root.dataset.theme? root.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme=dark?'light':'dark';};
+  document.getElementById('dirBtn').onclick=function(){root.dir=root.dir==='rtl'?'ltr':'rtl';};
+  var rmBtn=document.getElementById('rmBtn');
+  rmBtn.onclick=function(){var on=root.dataset.rm!=='on'; root.dataset.rm=on?'on':'off';
+    rmBtn.setAttribute('aria-pressed',String(on)); rmBtn.textContent='Reduced motion: '+(on?'on':'off');};
+
+  // Skeleton animation picker
+  var skDemo=document.getElementById('skDemo'), imgSk=document.getElementById('imgSk');
+  document.querySelectorAll('input[name=skAnim]').forEach(function(r){r.addEventListener('change',function(){
+    var c='anim-'+r.value; skDemo.className=c; imgSk.className='sk sk-rect '+c;});});
+
+  // Region announcement (OD-S7)
+  var region=document.getElementById('region'), body=document.getElementById('regionBody'),
+      st=document.getElementById('regionStatus'), busy=document.getElementById('busyOut'), saved=body.innerHTML;
+  function skRow(){return '<div class="sk sk-text" aria-hidden="true" style="padding:4px 0"><div class="line"><div class="bar" style="width:60%"></div></div></div>';}
+  document.getElementById('regionBtn').onclick=function(){
+    region.setAttribute('aria-busy','true'); busy.innerHTML='<code>aria-busy="true"</code>';
+    body.className=skDemo.className; body.innerHTML=skRow()+skRow()+skRow();
+    st.textContent='Loading order history';
+    setTimeout(function(){body.innerHTML=saved; body.className=''; region.setAttribute('aria-busy','false');
+      busy.innerHTML='<code>aria-busy="false"</code>'; st.textContent='Order history loaded';},2400);};
+
+  // Image status machine (stand-in for the native load and error events)
+  var img=document.getElementById('demoImg'), out=document.getElementById('imgOut'), t=null;
+  var ALT='Trail shoe, side view';
+  function set(s,msg){img.dataset.status=s; out.textContent='status='+s+' · '+msg;
+    // Only a loaded or failed image is an image with a name; empty and loading carry no role (#4113, Keyboard and ARIA).
+    if(s==='loaded'||s==='error'){img.setAttribute('role','img'); img.setAttribute('aria-label',ALT);}
+    else{img.removeAttribute('role'); img.removeAttribute('aria-label');}}
+  function start(fail){clearTimeout(t); set('loading','src set, waiting');
+    t=setTimeout(function(){fail? set('error','load failed; name kept: "'+ALT+'"') : set('loaded','alt="'+ALT+'"');},1800);}
+  document.getElementById('imgLoad').onclick=function(){start(false);};
+  document.getElementById('imgFail').onclick=function(){start(true);};
+  document.getElementById('imgReset').onclick=function(){clearTimeout(t); set('empty','no src');};
+  document.getElementById('imgContain').onchange=function(e){img.classList.toggle('contain',e.target.checked);};
+
+  // Avatar set grid
+  var sizes=[20,24,32,40,64], fonts=[10,11,12,14,22], types=['initials','icon','image'];
+  var person='<svg class="glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></svg>';
+  var org='<svg class="glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 21V5l7-2v18zM13 21V9l6 2v10z"/><rect x="2" y="20" width="20" height="1.5"/></svg>';
+  var g=document.getElementById('avGrid'), html='';
+  ['circle','square'].forEach(function(shape){types.forEach(function(type){
+    html+='<div class="h">'+shape+' · '+type+'</div>';
+    sizes.forEach(function(s,i){
+      var inner = type==='initials' ? '<span class="ini" style="font-size:'+fonts[i]+'px">'+(i<2?'J':'JD')+'</span>'
+                : type==='icon' ? (shape==='circle'?person:org) : '';
+      html+='<span class="av '+(shape==='square'?'square'+(i<2?' sm-rad':''):'')+'" style="width:'+s+'px;height:'+s+'px"><span class="mask">'+inner+'</span></span>';});});});
+  g.insertAdjacentHTML('beforeend',html);
+
+  // Toggle button set grid (medium)
+  var states=['','s-hover','s-pressed','s-focus','s-disabled'], tg=document.getElementById('tbGrid'), th='';
+  [['unselected','false'],['selected','true']].forEach(function(sel){['outline','text'].forEach(function(ap){
+    th+='<div class="h">'+sel[0]+' · '+ap+'</div>';
+    states.forEach(function(s){th+='<span class="tb '+(ap==='text'?'text ':'')+s+'" aria-pressed="'+sel[1]+'" aria-hidden="true">Toggle</span>';});});});
+  tg.insertAdjacentHTML('beforeend',th);
+
+  // Toggle buttons: native buttons already fire click on Space and Enter.
+  var outEl=document.getElementById('tbOut');
+  document.querySelectorAll('button.tb:not([tabindex="-1"])').forEach(function(b){
+    b.addEventListener('click',function(){ if(b.disabled) return;
+      var on=b.getAttribute('aria-pressed')!=='true'; b.setAttribute('aria-pressed',String(on));
+      var name=b.getAttribute('aria-label')||b.textContent.trim();
+      outEl.textContent=name+': aria-pressed="'+on+'"';});});
+  document.querySelectorAll('button.tb[tabindex="-1"]').forEach(function(b){
+    b.addEventListener('click',function(){b.setAttribute('aria-pressed',String(b.getAttribute('aria-pressed')!=='true'));});});
+})();
+</script>
+</body>
+</html>

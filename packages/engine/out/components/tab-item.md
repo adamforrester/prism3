@@ -45,6 +45,8 @@ Shown on the default member: selection `unselected`, size `medium`.
 
 Use inside Tabs only. A tab names one panel of related content; selecting it shows that panel in place.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Keep labels short, parallel nouns
@@ -77,7 +79,7 @@ Use inside Tabs only. A tab names one panel of related content; selecting it sho
 
 - **Enter:** None. On selection the underline slides from the previous tab to this one, on motion.transition.default.
 - **Exit:** None.
-- **Reduced motion:** The underline snaps to the selected tab; the panel swaps with no transition.
+- **Reduced motion:** Under prefers-reduced-motion the underline snaps to the selected tab, and the incoming panel fades in on motion.duration-reduced.fast.
 
 ## Content guidelines
 

@@ -26,7 +26,7 @@ import { currentMode, lastGoodInput, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
 import { STATUS_ROLES, anchorStepFor, neutralBoardText, rolesByPalette } from '../state/palette-input';
 import { h, hook } from '../shell/dom';
-import { revealGroup, takeEdit } from './follow-edit';
+import { revealGroupAfterRepaint, takeEdit } from './follow-edit';
 
 /** Why the mode control is held on Palettes (PM1 B, #2321). DRAFT copy, for the owner. */
 export const PALETTES_LIGHT_NOTE = 'Palettes always show Light. Ramps are the same in every mode.';
@@ -334,8 +334,16 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
   });
   ro.observe(host);
   cleanups.push(() => ro.disconnect());
-  // Q4 trial: after an edit's repaint, reveal the palette the edit changed (`follow-edit.ts`).
-  cleanups.push(subscribe('brand', () => { render(); const p = takeEdit(); if (p) revealGroup(host, p); }), subscribe('mode', render));
+  // Q4 trial: after an edit's repaint, reveal the palette the edit changed (`follow-edit.ts`; a frame later, #4235).
+  let cancelReveal = (): void => {};
+  cleanups.push(() => cancelReveal());
+  cleanups.push(subscribe('brand', () => {
+    render();
+    const p = takeEdit();
+    if (!p) return;
+    cancelReveal();
+    cancelReveal = revealGroupAfterRepaint(host, p);
+  }), subscribe('mode', render));
   const w0 = host.getBoundingClientRect().width;
   per = w0 > 0 && w0 < SLIM_MAX ? 5 : 10;
   alphaPer = w0 > 0 && w0 < ALPHA_SLIM_MAX ? 5 : per;

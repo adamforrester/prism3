@@ -44,7 +44,7 @@ import { contrast, hexToRgb } from '../color';
 
 /** The marks drawn on the tile artboard, read from the vocabulary by kind, so a payment provider added to the set is a
  *  tile the day it lands: the tile edge below names these members and no other. */
-const TILE_MARKS = PROVIDER_LOGO_NAMES.filter((n) => PROVIDER_LOGO_KINDS[n.split('/')[0]] === 'tile');
+const TILE_MARKS = PROVIDER_LOGO_NAMES.filter((n) => { const [family = ''] = n.split('/'); return PROVIDER_LOGO_KINDS[family] === 'tile'; });
 
 /** The page a tile is judged against (#3134): the light page ground, white, where a white tile needs its edge to read
  *  as a card at all. */

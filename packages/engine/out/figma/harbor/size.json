@@ -1,0 +1,84 @@
+{
+  "$collection": "size",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "hds/size/xs/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Control row height — 28px",
+      "value": 28,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/28"
+      }
+    },
+    {
+      "name": "hds/size/sm/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Control row height — 36px",
+      "value": 36,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/36"
+      }
+    },
+    {
+      "name": "hds/size/md/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Control row height — 44px",
+      "value": 44,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/44"
+      }
+    },
+    {
+      "name": "hds/size/md/min-height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Minimum target size — 44px (WCAG 2.2 SC 2.5.5)",
+      "value": 44,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/44"
+      }
+    },
+    {
+      "name": "hds/size/lg/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Control row height — 56px",
+      "value": 56,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/56"
+      }
+    },
+    {
+      "name": "hds/size/xl/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Control row height — 68px",
+      "value": 68,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/core/dimension/68"
+      }
+    }
+  ]
+}

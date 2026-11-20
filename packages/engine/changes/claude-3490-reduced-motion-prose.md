@@ -1,0 +1,4 @@
+---
+engine: minor
+---
+Accordion, Tab, Tabs and Banner describe reduced motion as the `prism3-motion` recipes do (#3490, #3543, owner decision A): under `prefers-reduced-motion` the movement becomes a fade instead of being removed. Accordion: the height changes at once and the panel fades on `motion.duration-reduced.normal`, opening and closing; the indicator swaps without turning. Tab and Tabs: the underline snaps and the incoming panel fades in on `motion.duration-reduced.fast`. Banner: it fades only, on `motion.duration-reduced.normal`, appearing and going, and its height changes at once. The emitted component catalog and the accordion and banner code-only motion notes move with them. `lint-motion-literals.ts` gains a half that holds each def a recipe governs to that recipe's reduced roles and its fade.

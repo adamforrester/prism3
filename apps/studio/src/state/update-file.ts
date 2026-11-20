@@ -115,6 +115,11 @@ export const dueSetsOf = (catalog: Catalog, f: FileSets): string[] => catalog.fi
 /** #3421 (Q39 A): the sets whose last update kept hand edits over changes the plan makes, in catalog order. Listed under
  *  Kept edits until an update overwrites those edits or accepts them as the baseline. */
 export const keptSetsOf = (catalog: Catalog, f: Pick<FileSets, 'present' | 'due'>): string[] => catalog.filter((e) => f.present.includes(e.id) && f.due[e.id]?.state === 'kept').map((e) => e.id);
+/** #2956 (owner decisions 2026-11-17): the sets whose updates are off, in catalog order. Update file leaves them as they
+ *  are, so they are never due and never counted; each is listed under Updates off with "Turn updates back on". */
+export const offSetsOf = (catalog: Catalog, f: Pick<FileSets, 'present' | 'due'>): string[] => catalog.filter((e) => f.present.includes(e.id) && f.due[e.id]?.state === 'off').map((e) => e.id);
+/** #2956: the quiet reason line under an Updates off set: only when it turned off by itself (`auto`), else null. */
+export const offReasonOf = (d: SetDueView | undefined): string | null => (d?.state === 'off' && d.by === 'auto' ? UPDATE_COPY.offReason : null);
 /** #3421: the Kept edits sets a choice other than Keep sends to the update step, in catalog order of `kept`. */
 export const keptRunOf = (t: Pick<Ticks, 'kept'>, kept: readonly string[]): string[] => kept.filter((id) => (t.kept.get(id) ?? 'keep') !== 'keep');
 /** #3421: the per-set choices the update step carries (`UpdateChoices.sets`): one for each Kept edits set it runs. */
@@ -239,7 +244,7 @@ export const checkScopeOf = (due: readonly string[], t: Pick<Ticks, 'panels'> & 
  *  `neededOf`, this function never returns it); or Due; Hand-edited (first class, beside Due when both); Not checked yet; Checking
  *  while the background pass has not reached it, or, for a set the ledger does not name, while the file is still being
  *  read (#3110); else Up to date. Empty before the host has said anything. */
-export type SetStatus = 'queued' | 'needed' | 'new' | 'due' | 'kept' | 'hand' | 'unchecked' | 'checking' | 'current';
+export type SetStatus = 'queued' | 'needed' | 'new' | 'due' | 'kept' | 'off' | 'hand' | 'unchecked' | 'checking' | 'current';
 export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<string, { readonly edited: number }>, pass: 'idle' | 'running' | 'done', queue: readonly string[] | null = null): SetStatus[] => {
   if (!f || f.error) return [];
   if (!f.present.includes(id)) return f.partial ? ['checking'] : queue?.includes(id) ? ['queued'] : ['new'];
@@ -249,6 +254,8 @@ export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<str
   if (due === 'due') out.push('due');
   // #3421 (Q39 A): kept edits over changes the plan makes, listed until resolved.
   if (due === 'kept') out.push('kept');
+  // #2956: Updates off, beside Hand-edited when both: the update leaves it as it is.
+  if (due === 'off') out.push('off');
   if (h && h.edited > 0) out.push('hand');
   if (due === 'unrecorded') out.push('unchecked');
   if (!h && pass === 'running' && due !== 'unrecorded') out.push('checking');
@@ -379,16 +386,27 @@ export const UPDATE_COPY = {
     accept: 'Accept as baseline: each edit stays and becomes the record, so it is no longer listed.',
   } as Record<HandEditChoice, string>,
   kept: 'Kept edits',
-  keptSub: (n: number): string => `${plural(n)} hold hand edits over changes the plan makes. Each stays here until Overwrite or Accept as baseline is chosen for it.`,
+  keptSub: (n: number): string => `${plural(n)} ${n === 1 ? 'holds' : 'hold'} hand edits over changes the plan makes. Each stays here until Overwrite or Accept as baseline is chosen for it.`,
   keptLine: (h: { readonly members: number; readonly changes: readonly string[] }): string =>
     `${h.members} member${h.members === 1 ? ' keeps' : 's keep'} out ${h.changes.length} of the plan’s values${h.changes.length ? `: ${h.changes.slice(0, 3).join(', ')}${h.changes.length > 3 ? `, ${h.changes.length - 3} more` : ''}` : ''}`,
   keptChoice: (name: string): string => `Hand edits on ${name}`,
+  /** #2956 (owner decisions 2026-11-17, approved): the state, its two actions and the quiet reason line, shown only when
+   *  the update turned it off by itself. The group's line and the actions' accessible names are DRAFT. */
+  off: 'Updates off',
+  offReason: 'Turned off when an update couldn’t apply around your edits.',
+  turnOff: 'Turn off updates',
+  turnOn: 'Turn updates back on',
+  /** DRAFT: the line under the Updates off group's title. */
+  offSub: (n: number): string => `${plural(n)} Update file leaves as ${n === 1 ? 'it is' : 'they are'}. Hand edits on ${n === 1 ? 'it' : 'them'} stay.`,
+  /** DRAFT: each action's accessible name, naming the set. */
+  turnOffName: (name: string): string => `Turn off updates for ${name}`,
+  turnOnName: (name: string): string => `Turn updates back on for ${name}`,
   // #3083 (the owner's Q3083.4 A, 2026-10-28; DRAFT): the short forms, for the compact select in the foot.
   handChoice: { keep: 'Keep', overwrite: 'Overwrite', accept: 'Accept as baseline' } as Record<HandEditChoice, string>,
   unrecorded: (n: number): string => `${n} set${n === 1 ? '' : 's'} not checked yet: built before Prism3 kept a record.`,
   checkUnrecorded: (n: number): string => `Check ${n} set${n === 1 ? '' : 's'}`,
   saves: 'Saves a version first. If Figma refuses the save, nothing is written.',
-  status: { queued: 'To add', needed: 'Needed', new: 'Not in file', due: 'Due', kept: 'Kept edits', hand: 'Hand-edited', unchecked: 'Not checked yet', checking: 'Checking…', current: 'Up to date' } as Record<SetStatus, string>,
+  status: { queued: 'To add', needed: 'Needed', new: 'Not in file', due: 'Due', kept: 'Kept edits', off: 'Updates off', hand: 'Hand-edited', unchecked: 'Not checked yet', checking: 'Checking…', current: 'Up to date' } as Record<SetStatus, string>,
   /** Q3129.11 A: the badge's name, split: "Update file, 7 to add, 3 due", with ", theme" when the Theme item counts, and
    *  (#3137 Q3137.4 A) ", usage panels" when the Usage panels group does. */
   badgeName: (p: BadgeParts): string => ['Update file', p.add ? `${p.add} to add` : '', p.due ? `${p.due} due` : '', p.theme ? 'theme' : '', p.panels ? 'usage panels' : ''].filter(Boolean).join(', '),
@@ -428,8 +446,10 @@ export const UPDATE_COPY = {
   librarySub: (n: number): string => `${n} change${n === 1 ? '' : 's'} in this update ${n === 1 ? 'reaches' : 'reach'} them at the next library publish:`,
   /** #3712 (Q-UD2, direction C; DRAFT for the owner's sign-off): Components' status chip, what its card holds, said on its
    *  head row so a folded card still says it. Each part only when it counts. */
-  compsChip: (n: { readonly add: number; readonly due: number; readonly blocked: number; readonly kept: number; readonly panels: number }): string =>
+  compsChip: (n: { readonly add: number; readonly due: number; readonly blocked: number; readonly kept: number; readonly panels: number; readonly off?: number }): string =>
     [n.add ? `${n.add} to add` : '', n.due ? `${n.due} due` : '', n.blocked ? `${n.blocked} can’t update yet` : '', n.kept ? `${n.kept} with kept edits` : '',
+      // #2956 (DRAFT): the sets whose updates are off, in the state's own words.
+      n.off ? `${n.off} with updates off` : '',
       n.panels ? `${n.panels} usage panel${n.panels === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · '),
 } as const;
 

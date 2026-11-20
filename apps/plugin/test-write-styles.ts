@@ -22,7 +22,9 @@ import { applyStylesPlan } from './src/write-styles';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -204,5 +206,5 @@ const noBlurFx = (noBlurShim.effectStyles.find((s) => s.name === 'glass')?.effec
 ok(noBlur.effects.bound === 0 && noBlur.misses.join() === 'ads/blur/glass' && noBlurFx[0]?.radius === 32 && !noBlurFx[0]?.boundVariables,
   `missing blur variable: the glass radius is a reported miss and keeps its literal 32px (${noBlur.misses.join(', ')})`);
 
-console.log(`\nplugin STYLES write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin STYLES write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

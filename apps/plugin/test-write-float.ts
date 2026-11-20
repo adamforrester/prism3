@@ -29,7 +29,9 @@ import { applyFloatPlan, ownedModeIds, stampOwnedModes } from './src/write-figma
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -322,5 +324,5 @@ ok(['old-sm', 'old-dup', 'old-lg'].every((id) => afterSeed.includes(id)),
   '#1581 …and the seeded ids survive that second stamp — append-only applies to them too');
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-console.log(`\nplugin FLOAT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin FLOAT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

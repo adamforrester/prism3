@@ -1308,6 +1308,29 @@
       ]
     },
     {
+      "from": "popover",
+      "to": "flush-icon-button-neutral",
+      "part": "close",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "shape": "flush",
+        "size": "small",
+        "surface": "default",
+        "state": "rest"
+      }
+    },
+    {
+      "from": "popover",
+      "to": "button-group",
+      "part": "footer",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "layout": "inline"
+      }
+    },
+    {
       "from": "progress",
       "to": "field-message",
       "part": "messageComplete",
@@ -1801,6 +1824,54 @@
       }
     },
     {
+      "from": "tag-group",
+      "to": "tag",
+      "part": "tag1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "select",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "tag-group",
+      "to": "tag",
+      "part": "tag2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "select",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "tag-group",
+      "to": "tag",
+      "part": "tag3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "select",
+        "selection": "unselected",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
       "from": "text-field",
       "to": "field-label",
       "part": "label",
@@ -2055,6 +2126,7 @@
         "button-group",
         "dialog",
         "password-field",
+        "popover",
         "toast"
       ],
       "inheritedBy": [
@@ -2086,10 +2158,12 @@
         "spinner"
       ],
       "nestedBy": [
-        "dialog"
+        "dialog",
+        "popover"
       ],
       "affectedByChange": [
-        "dialog"
+        "dialog",
+        "popover"
       ],
       "inheritedBy": []
     },
@@ -2350,6 +2424,7 @@
         "breadcrumb-item",
         "counter",
         "dialog",
+        "popover",
         "toast"
       ],
       "affectedByChange": [
@@ -2358,6 +2433,7 @@
         "breadcrumbs",
         "counter",
         "dialog",
+        "popover",
         "toast"
       ],
       "inherits": "icon-button-neutral",
@@ -2417,6 +2493,7 @@
         "pagination",
         "pagination-item",
         "password-field",
+        "popover",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -2429,6 +2506,7 @@
         "tab-item",
         "tabs",
         "tag",
+        "tag-group",
         "toast",
         "wallet-button"
       ],
@@ -2606,6 +2684,22 @@
         "button",
         "field-label",
         "field-message",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "popover": {
+      "nests": [
+        "button-group",
+        "flush-icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button",
+        "button-group",
+        "flush-icon-button-neutral",
         "focus-ring",
         "spinner"
       ],
@@ -2795,6 +2889,7 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "password-field",
+        "popover",
         "toast"
       ],
       "inheritedBy": []
@@ -2863,6 +2958,22 @@
       ],
       "nestsTransitively": [
         "focus-ring"
+      ],
+      "nestedBy": [
+        "tag-group"
+      ],
+      "affectedByChange": [
+        "tag-group"
+      ],
+      "inheritedBy": []
+    },
+    "tag-group": {
+      "nests": [
+        "tag"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "tag"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -2979,6 +3090,7 @@
     "pagination": 2,
     "pagination-item": 1,
     "password-field": 2,
+    "popover": 3,
     "progress": 1,
     "provider-logo": 0,
     "radio-control": 1,
@@ -2996,6 +3108,7 @@
     "tab-item": 1,
     "tabs": 2,
     "tag": 1,
+    "tag-group": 2,
     "text-field": 1,
     "textarea": 1,
     "toast": 2,

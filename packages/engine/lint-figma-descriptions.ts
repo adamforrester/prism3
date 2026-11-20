@@ -41,12 +41,13 @@
  * ── WHAT IS READ ────────────────────────────────────────────────────────────────────────────────
  *
  *   COMMITTED — every `out/figma/<brand>/*.json` row: variables (`variables[]`) and styles (`styles[]`).
- *   BUILT     — every example brand WITHOUT a committed Figma emission (harbor, #1119) is built in memory
- *               through the same `figmaArtifacts` shell the committed files come from, because the
- *               plugin can still apply it and a designer would read its descriptions.
+ *   BUILT     — every example brand WITHOUT a committed Figma emission is built in memory through the
+ *               same `figmaArtifacts` shell the committed files come from, because the plugin can still
+ *               apply it and a designer would read its descriptions. None since #1119 committed harbor's.
  *   DTCG      — every `out/<brand>.tokens.json`, `.base.tokens.json` and `.<mode>.overlay.tokens.json`.
  *
- * REPRESENTATION: the run fails unless it read ≥3 committed brands, ≥1 built brand, and every collection
+ * REPRESENTATION: the run fails unless it read ≥5 committed brands, every example brand (committed or
+ * built: `schema/example-brands.json` is the list, not the out/ directory), and every collection
  * KIND below in every committed brand, so a directory that silently stopped emitting a kind is a failure
  * rather than a smaller clean sweep.
  */
@@ -156,8 +157,11 @@ const walk = (node: any, path: string[], file: string): void => {
 for (const f of dtcgFiles) walk(JSON.parse(readFileSync(join(OUT, f), 'utf8')), [], f);
 
 // ── representation ───────────────────────────────────────────────────────────────────────────────
-if (represented.length < 3) failures.push(`REPRESENTATION  expected ≥3 committed Figma brands, read ${represented.join(', ') || 'none'}`);
-if (built.length < 1) failures.push('REPRESENTATION  expected ≥1 example brand built in memory (harbor has no committed Figma emission), built none');
+if (represented.length < 5) failures.push(`REPRESENTATION  expected ≥5 committed Figma brands, read ${represented.join(', ') || 'none'}`);
+// #1119: every brand the plugin can apply is read, committed or built. Once harbor's emission was committed the built
+// set went empty, so a floor on it would fail on the fix; the list of example brands is the independent side.
+const unread = Object.keys(examples).filter((id) => !represented.includes(id) && !built.includes(id));
+if (unread.length) failures.push(`REPRESENTATION  example brand(s) read neither committed nor built: ${unread.join(', ')}`);
 if (dtcgFiles.length < 16 || dtcgChecked < 5000) failures.push(`REPRESENTATION  expected ≥16 DTCG files and ≥5000 descriptions, read ${dtcgFiles.length} files / ${dtcgChecked} descriptions`);
 
 if (failures.length) {

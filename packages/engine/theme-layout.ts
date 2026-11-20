@@ -4,6 +4,13 @@
  */
 import { type Dims, n2, type BrandInput } from './theme-types';
 
+/** A value the caller has established is present (an in-range index, a key just written); a named throw, not a
+ *  silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`theme-layout: ${what} is missing`);
+  return x;
+};
+
 // ---------------------------------------------------------------------------
 // Layout axis (breakpoints + responsive grid + containers). Grounded in a
 // 10-system survey. Decisions:
@@ -34,6 +41,13 @@ export type LayoutAxis = {
  *  every brand. Banner binds it as its width floor, and code clamps it to the host (`min-inline-size: min(var(--container-min), 100%)`),
  *  so a host narrower than the floor (a 320 phone's 288 column) never scrolls the page sideways. */
 export const CONTAINER_MIN_PX = 320;
+/** #2935 (owner decision 2026-11-18, A): the `type-sets` mode a breakpoint's frames use by default. A breakpoint whose
+ *  floor is below 1024px uses mobile type, and one from 1024px up uses desktop. Figma never switches a mode when a
+ *  frame is resized, so each breakpoint frame sets its type mode explicitly; this is the default a designer starts
+ *  from and can override. Only the floor decides it, so the rule holds for any breakpoint count. */
+export const DESKTOP_TYPE_FROM_PX = 1024;
+export type TypeMode = 'mobile' | 'desktop';
+export const defaultTypeMode = (floorPx: number): TypeMode => (floorPx < DESKTOP_TYPE_FROM_PX ? 'mobile' : 'desktop');
 // Count-aware names: ≤5 tiers anchor at sm (sm/md/lg/xl/2xl — Tailwind); 6+ prepend
 // xs (xs/sm/md/lg/xl/2xl — Bootstrap), so a small-phone tier is labeled correctly.
 const bpNames = (n: number): string[] =>
@@ -119,6 +133,15 @@ export const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   // awaiting the owner). The studio's input already stops at seven (`MAX_BREAKPOINTS`).
   if (floors.length > 7)
     throw new Error(`The brand can have at most seven breakpoints. This brand has ${floors.length}.`);
+  // #3872: the floors are mobile-first min-widths, so each must be above the one before. Out of order, a consumer's
+  // `lg` query fired before `md`'s and the grid ladder landed on the wrong widths; a repeat named one floor twice; a
+  // negative floor is below the first. The schema's description already says "ascending" but cannot enforce it. A
+  // fractional floor is a real width and stays allowed. DRAFT wording, awaiting the owner, with the values as entered.
+  for (let i = 1; i < floors.length; i++) {
+    const at = floors[i]!, before = floors[i - 1]!;
+    if (!Number.isFinite(at) || at <= before)
+      throw new Error(`Breakpoints must rise: ${at}px follows ${before}px.`);
+  }
   const base = input.columns ?? 12;
   const n = floors.length;
   const names = bpNames(n);
@@ -130,8 +153,8 @@ export const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   const marginOverrides = input.marginOverrides ?? {};
   const grid: GridStep[] = breakpoints.map((b, i) => ({
     bp: b.name, columns: resolveColumns(overrides[b.name], cols(i)),
-    gutterPx: resolveGap(gutterOverrides[b.name], GUTTER_PX[Math.min(i, GUTTER_PX.length - 1)], 'gutterOverrides', b.name),
-    marginPx: resolveGap(marginOverrides[b.name], MARGIN_PX[Math.min(i, MARGIN_PX.length - 1)], 'marginOverrides', b.name),
+    gutterPx: resolveGap(gutterOverrides[b.name], must(GUTTER_PX[Math.min(i, GUTTER_PX.length - 1)], 'a gutter'), 'gutterOverrides', b.name),
+    marginPx: resolveGap(marginOverrides[b.name], must(MARGIN_PX[Math.min(i, MARGIN_PX.length - 1)], 'a margin'), 'marginOverrides', b.name),
   }));
   return { breakpoints, grid, baseColumns: base, containerMax: input.containerMax ?? 1440, containerNarrow: input.containerNarrow ?? 720, containerMin: CONTAINER_MIN_PX };
 };

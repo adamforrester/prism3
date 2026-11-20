@@ -32,6 +32,7 @@
  */
 import { build } from 'esbuild';
 import { chromeCss } from './chrome/esbuild-plugin.mjs';
+import { webEntryPoints, specsChunkExternal, maintainerProsePlugin, SPECS_CHUNK_FILE } from './component-specs-build.mjs';
 import { SOURCE_ROOTS as GLYPH_SOURCE_ROOTS } from './chrome/glyphs.mjs';
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, copyFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -73,7 +74,9 @@ const recordReads = (plugin) => ({
 // configured, and `write: false` gives this build none. Kept in step with `build.mjs`
 // so the metafile below describes the bundle that actually ships.
 const res = await build({
-  entryPoints: [resolve(root, 'src/entry.ts')],   // the bundle's entry since #896 — same one `build` names
+  // The two outputs the real builds write (#3429): `main` from `src/web-entry.ts`, and the component specs chunk.
+  entryPoints: webEntryPoints(root),
+  outdir: 'dist',   // two outputs need a directory; with `write: false` nothing lands there
   bundle: true,
   format: 'esm',
   loader: { '.css': 'text' },
@@ -81,7 +84,7 @@ const res = await build({
   // stops at `Could not resolve "p3:chrome-css"`. The plugin reads `packages/engine/out/*.tokens.json`
   // from disk, so those files never appear in the metafile; they are not on the skip list either, and
   // `vercel-ignore.sh` triggers on all of `packages/engine` apart from that list.
-  plugins: [recordReads(chromeCss())],
+  plugins: [recordReads(chromeCss()), specsChunkExternal(), recordReads(maintainerProsePlugin)],
   absWorkingDir: root,   // metafile paths are relative to this; the scope check below resolves them against it
   write: false,
   metafile: true,
@@ -159,14 +162,36 @@ if (!plantedDefs.some(([p]) => p === 'packages/engine/components/button.ts')) {
   console.error(`\n✗ the definition detector does not find packages/engine/components/button.ts in a planted bundle that imports componentDefs (found ${plantedDefs.length} definition module(s)) — it would report the web bundle clean while watching nothing.`);
   process.exit(1);
 }
-const webDefs = defBytes(res.metafile);
+// #3429 (owner decision C): the build writes two outputs, and the component specs chunk is the ONE allowed carrier.
+// Each output is read on its own: `main.js` carries no definition, the chunk carries them (represented, not assumed),
+// no third output exists, and `main.js` reaches the chunk only as a run-time `import()` of the sibling file.
+const outputs = Object.keys(res.metafile.outputs).map((o) => o.split('\\').join('/')).filter((o) => o.endsWith('.js'));
+const MAIN_OUT = 'dist/main.js', CHUNK_OUT = `dist/${SPECS_CHUNK_FILE}`;
+const extra = outputs.filter((o) => o !== MAIN_OUT && o !== CHUNK_OUT);
+if (!outputs.includes(MAIN_OUT) || !outputs.includes(CHUNK_OUT) || extra.length) {
+  console.error(`\n✗ the web build writes exactly ${MAIN_OUT} and ${CHUNK_OUT} — it wrote ${outputs.join(', ') || 'nothing'}.`);
+  process.exit(1);
+}
+const outputOf = (name) => ({ outputs: { [name]: res.metafile.outputs[Object.keys(res.metafile.outputs).find((o) => o.split('\\').join('/') === name)] } });
+const webDefs = defBytes(outputOf(MAIN_OUT));
 if (webDefs.length) {
   console.error(`\n✗ web bundle carries no component definition module — found ${webDefs.map(([p, n]) => `${p} (${n} bytes)`).join(', ')}.`);
   console.error('  The web reads the generated catalog (apps/studio/gen-component-catalog.ts); a definition belongs in the plugin\'s');
-  console.error('  own entry (apps/plugin/src/ui/), never in apps/studio/src, gated or not.');
+  console.error(`  own entry (apps/plugin/src/ui/), or in the component specs chunk (${CHUNK_OUT}, #3429), never in main.`);
+  process.exit(1);
+}
+const chunkDefs = defBytes(outputOf(CHUNK_OUT));
+if (!chunkDefs.some(([p]) => p === 'packages/engine/components/button.ts')) {
+  console.error(`\n✗ the component specs chunk carries the definitions — ${CHUNK_OUT} holds ${chunkDefs.length} definition module(s) and not Button (#3429). The web's Download component specs would have nothing to export.`);
+  process.exit(1);
+}
+const mainText = res.outputFiles.find((f) => f.path.split('\\').join('/').endsWith(`/${MAIN_OUT}`))?.text ?? '';
+if (!mainText.includes(`import("./${SPECS_CHUNK_FILE}")`)) {
+  console.error(`\n✗ ${MAIN_OUT} loads the chunk at run time — it holds no \`import("./${SPECS_CHUNK_FILE}")\` (#3429).`);
   process.exit(1);
 }
 console.log(`  ✓ web bundle carries no component definition module (the detector finds ${plantedDefs.length} in a planted bundle that imports them).`);
+console.log(`  ✓ the component specs chunk is the one carrier: ${chunkDefs.length} definition module(s) in ${CHUNK_OUT}, loaded by main.js at run time (#3429).`);
 
 // ---- EVERY BUNDLE INPUT SITS UNDER A TRIGGER PATH (#3407) --------------------------------------------------------------
 // The skip-list check above asks one question of ENGINE files only. This one asks it of every input: the script skips
@@ -304,6 +329,7 @@ try {
   expect('a studio change BUILDS', decide(step('apps/studio/src/main.ts', 'studio')), 1);
   expect('a plugin-only change is SKIPPED', decide(step('apps/plugin/src/x.ts', 'plugin')), 0);
   expect('a change to apps/plugin/src/causes.ts, which the web bundle reads, BUILDS (#3407)', decide(step('apps/plugin/src/causes.ts', 'causes')), 1);
+  expect('a change to apps/plugin/strip-maintainer-prose.mjs, which builds the web specs chunk, BUILDS (#3429)', decide(step('apps/plugin/strip-maintainer-prose.mjs', 'strip')), 1);
   expect('a vercel.json change BUILDS', decide(step('vercel.json', 'vercel')), 1);
   expect('a docs/public change BUILDS — the site serves it at /docs (#2637)', decide(step('docs/public/llms.txt', 'served docs')), 1);
   // #1953: the branch's newest commit is docs-only, but a commit since the last deployment changed the app.

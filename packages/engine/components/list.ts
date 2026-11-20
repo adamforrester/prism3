@@ -148,7 +148,7 @@ export const list: ComponentDef = {
   },
 
   accessibility: {
-    role: 'list (a native <ul> or <ol> with role="list" set explicitly), its items listitem',
+    role: 'list (a native `<ul>` or `<ol>` with `role="list"` set explicitly), its items listitem',
     wcag: [
       '1.3.1 Info and Relationships (the list and its items are marked up as a list, so the count and each position are announced)',
       '1.4.1 Use of Color (an icon marker never carries meaning alone)',
@@ -191,7 +191,7 @@ export const list: ComponentDef = {
   composition: {
     composesWith: ['list-item'],
     alternativeTo: [],
-    replacesPatterns: ['a <ul> with list-style: none and no role="list"', 'a column of text boxes with typed bullet characters'],
+    replacesPatterns: ['a `<ul>` with `list-style: none` and no `role="list"`', 'a column of text boxes with typed bullet characters'],
     supersededBy: [],
     planned: ['data-list', 'checklist', 'table', 'menu', 'navigation'],
   },

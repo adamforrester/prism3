@@ -1,7 +1,8 @@
 /**
  * Report a problem (#2069, owner decision Q116 A): the dialog that shows the diagnostic bundle (`state/report.ts`), with
- * one opt-in box for the brand's settings (off by default), Copy, and "Open a prefilled issue", which opens GitHub's
- * new-issue form in the browser with the bundle filled in. Nothing is sent from the panel.
+ * one opt-in box for the brand's settings (off by default), Copy, and "Open a prefilled issue", which copies the bundle
+ * and opens GitHub's new-issue form in the browser with the title filled in and a body asking for the bundle to be
+ * pasted (the owner, 2026-11-17). Nothing is sent from the panel.
  *
  * The person sees the exact text before it leaves: the box below is the bundle, rebuilt as the opt-in changes, and
  * both actions take it from there.
@@ -86,8 +87,12 @@ export const mountReport = (lend: ReportLend, cleanups: (() => void)[]): { reado
     const go = hook(h('button', 'p3-btn p3-btn-primary'), 'report-open-issue');
     go.type = 'button';
     go.textContent = REPORT_COPY.openIssue;
-    // The full bundle goes to the clipboard first, so a report cut to fit the link is still whole where it says.
-    go.onclick = () => { void copyText(text).finally(() => { go.focus({ preventScroll: true }); lend.openUrl(issueUrl(text)); }); };
+    // The owner (2026-11-17): the bundle goes to the clipboard, and the issue opens with the title alone and a body that
+    // asks for it to be pasted. Copy says "Copied" once it is there, as its own click does.
+    go.onclick = () => {
+      void copyText(text).then((done) => { if (done) copy.textContent = REPORT_COPY.copied; })
+        .finally(() => { go.focus({ preventScroll: true }); lend.openUrl(issueUrl()); });
+    };
     foot.append(copy, go);
 
     dlg.append(head, body, foot);

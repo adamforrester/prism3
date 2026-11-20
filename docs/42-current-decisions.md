@@ -113,11 +113,14 @@ decision recorded there is correct prose forever and is not this file's subject 
 | the class and custom-element prefix is `p3-` (Q97 A); the CSS custom-property prefix (Q98) is still open | 2026-11-07 | `docs/35-naming-and-packaging.md` §9.2 | #3408 |
 | `packages/tokens` also builds a shippable token output, beside its consumability gate (Q99 A) | 2026-11-07 | `docs/35-naming-and-packaging.md` §9.3 | #3408 |
 | CSS custom properties keep stock Style Dictionary's `--pds3-` prefix (Q98 A) | 2026-11-07 | `docs/35-naming-and-packaging.md` §9.4 | #3408 |
-| the code POC's behavior is native HTML plus a small script (Q86 A); tranche 4's behavior question stays open | 2026-11-07 | `docs/41-internal-and-ejected.md` §7.1 | #3408 |
+| the code POC's behavior is native HTML plus a small script (Q86 A); tranche 4's behavior question is decided in §7.2 | 2026-11-07 | `docs/41-internal-and-ejected.md` §7.1 | #3408 |
 | arm 1's packages are generated from the defs export, and a parity gate checks them (Q96 A) | 2026-11-07 | `docs/19-code-library-and-dx.md` §10.1 | #3408 |
 | `password-field` is in the POC as a third top-level component (Q100 A) | 2026-11-07 | `docs/19-code-library-and-dx.md` §10.2 | #3408 |
 | Prism3 never renames a mode in a built file, custom modes included (Q172 A) | 2026-11-11 | `docs/44-materialization-renames.md` §9.1 | #1040 |
 | text, effect and gradient styles carry a rename record; the plugin renames the existing style in place (Q173 A) | 2026-11-11 | `docs/44-materialization-renames.md` §10.1 | #1040 |
+| plain HTML/CSS ships a written behavior contract per interactive component, and web components carry their own behavior (Q-BH1 A) | 2026-11-18 | `docs/41-internal-and-ejected.md` §7.2 | #2454 |
+| the scrim's steps are declared taste, not a derivation | 2026-11-18 | `docs/20-interactive-color-system.md` §8.3 | #1043 |
+| the export package — no Style Dictionary preset, no value-shape options, a ZIP, CSS from the Style Dictionary build | 2026-11-19 | `docs/12-token-press-monorepo-eval.md` §12 | #2425 |
 
 ## Known gaps, named rather than silent
 

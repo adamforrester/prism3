@@ -53,6 +53,8 @@ Shown on the default member: type `page`, selection `unselected`, style `border`
 
 Use inside Pagination only. Pagination works out which pages to show, marks the current one, places the ellipses, and sets previous and next inactive at an end.
 
+**In RTL.** The layout mirrors: the start edge is on the right. The previous and next glyphs flip to point the other way. The gap glyph does not mirror.
+
 ### Do
 
 - Let Pagination set the current page and the ellipses

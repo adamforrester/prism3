@@ -19,13 +19,15 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer, request } from 'node:http';
 import { chromeCss } from './chrome/esbuild-plugin.mjs';
+import { webEntryPoints, specsChunkExternal, maintainerProsePlugin } from './component-specs-build.mjs';
 import { serveDocs } from './docs-route.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const dev = process.argv.includes('--dev');
 
 const options = {
-  entryPoints: [{ in: resolve(root, 'src/entry.ts'), out: 'main' }],
+  // `main` from the web entry, and the component specs chunk beside it, loaded only on Download (#3429).
+  entryPoints: webEntryPoints(root),
   outdir: resolve(root, 'dist'),
   bundle: true,
   format: 'esm',
@@ -33,7 +35,7 @@ const options = {
   // PRISM3_TEST_HOOKS (#2098): `true` only here, the local `dist/` the smoke suite drives. `build-site.mjs`, the
   // deployed bundle, says `false`, so `?p3-test-hooks` cannot turn the hook on in production (`test-prod-bundle.ts`).
   define: { PRISM3_HOST: "'web'", PRISM3_BUILD: "'local'", PRISM3_TEST_HOOKS: 'true', PRISM3_NETWORK: 'true' },   // PRISM3_NETWORK: the web may load web fonts (#3138)
-  plugins: [chromeCss()],
+  plugins: [chromeCss(), specsChunkExternal(), maintainerProsePlugin],
   logLevel: 'info',
 };
 

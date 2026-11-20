@@ -52,6 +52,8 @@ Shown on the default member: shape `linear`, type `determinate`, status `active`
 
 Use Progress for system work that takes more than a few seconds: a determinate bar when the work can be measured (bytes, items, a known length), an indeterminate bar when it cannot. Use a ring when the space is small, such as a row in a list: determinate when the amount is known, indeterminate when it is not. Choose a ring over a Spinner when the work is a task with an outcome: the ring is named by its label, ends in complete or error with a message, and turns determinate once the amount is known. Use a Spinner for a short wait inside a control, such as a button's pending state, where there is no outcome to report. For a first load of content, use a placeholder in the layout's shape. Use the bar for work the user waits on; for long background work, show a status line, or let the user hide the bar.
 
+**In RTL.** The layout mirrors: the start edge is on the right. The arc glyph flips to point the other way.
+
 ### Do
 
 - Name the work in the label with an active verb
@@ -88,9 +90,9 @@ Use Progress for system work that takes more than a few seconds: a determinate b
 
 ### Motion
 
-- **Enter:** Appears after a short delay (400ms), so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep` (1600ms), on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.
-- **Exit:** Stays at least 500ms once shown, then leaves with its host.
-- **Reduced motion:** The fill snaps to each value (`motion.duration-reduced.moderate`, 0ms). The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep` (2600ms). It is never removed, because a still bar reads as stuck.
+- **Enter:** Appears after a short delay, `delay`, so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep`, on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.
+- **Exit:** Stays at least `minDisplay` once shown, then leaves with its host.
+- **Reduced motion:** The fill snaps to each value, on `motion.duration-reduced.moderate`. The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep`. It is never removed, because a still bar reads as stuck.
 
 ## Content guidelines
 

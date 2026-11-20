@@ -64,7 +64,9 @@ import {
 } from './mcp-paste';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -627,5 +629,5 @@ await section('size/one member', async () => {
     `size/one member: a member that will not fit alone throws, naming the def and the member (${thrown ? `"${thrown.slice(0, 220)}"` : 'no throw'})`);
 });
 
-console.log(failed ? `\n${failed} FAILED` : '\nmcp-paste: all assertions pass');
+console.log(`${failed ? `\n${failed} FAILED` : '\nmcp-paste: all assertions pass'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

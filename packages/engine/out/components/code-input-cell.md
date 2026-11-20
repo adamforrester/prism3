@@ -22,7 +22,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 1. **Container** — The cell: one box per character, as wide and tall as its size sets. Set to fill, it shares the row with the other cells and stops at 32px wide.
 2. **Content** — Centers the character, or the caret on the active empty cell.
 3. **Caret** — The insertion point on the active empty cell, in the character ink, as tall as the character.
-4. **Digit** — The character, in its size's text style, centered in the cell. Tabular figures in code, so every digit is one width.
+4. **Digit** — The character, in its size's text style, centered in the cell. Tabular lining figures in code, so every digit is one width and stands at cap height.
 
 ## Styles
 
