@@ -604,6 +604,9 @@ const SELF_CHECK: { sample: string; expectRule: string | null }[] = [
   { sample: 'It moves the ramp. Note that it moves.', expectRule: 'filler' },
   { sample: 'the ramp\nnote that it moves', expectRule: 'filler' },
   { sample: 'Read the guide Note that it moves.', expectRule: 'filler' },   // a capital `Note` opens a run-in sentence
+  // #4174's note: one modifier between the determiner and a lower-case `note` is still the noun.
+  { sample: 'each code-only note that names motion', expectRule: null },
+  { sample: 'each code-only\nnote that names motion', expectRule: 'filler' }, // the modifier never crosses a line
   { sample: 'Oops, something went wrong.', expectRule: 'apology' },
   { sample: 'Sorry, we could not complete this.', expectRule: 'apology' },
   { sample: 'Applied — 88 variables written!', expectRule: 'exclamation' },
