@@ -34,3 +34,10 @@ directory and compiles any class-like word it finds there.
 - dropping `--color-ring` from `@theme` fails `outline-ring utility unresolved`, on all five brands;
 - mapping `spacing` to `space.100` fails `p-2 computes calc(8px * 2), not space.100 (8px)`;
 - leaving the shadow variables out of `.dark` fails `--pds3-shadow-md is not set in .dark`.
+
+**Fix after merging main.** #4155 added `<brand>.web.base.tokens.json` beside each base. `handoffBrands` matched on the
+`.base.tokens.json` suffix, so it read `aurora.web` as a brand, and `check:shadcn` and `lint-shadcn-contrast.ts` threw
+`aurora.web: no aurora.web.dark.overlay.tokens.json in the handoff`. It now skips the web base. A `test.ts` arm holds
+the brand list to the committed handoff's own canonical files. Putting `handoffBrands`' old suffix rule back fails
+`#2997: handoffBrands lists each brand once, no web base among them`. The projectors still read the single-family base,
+not the web base's fallback stacks. Whether `--font-sans` should carry the stack is an open question, not part of this fix.
