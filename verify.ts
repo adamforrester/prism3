@@ -1334,6 +1334,19 @@ export const GATES: Gate[] = [
     cmd: engine('lint-test-arms.ts'),
   },
   {
+    // #2997 gate 3 — reads the role map and the pinned shadcn variable set; needs no build and no `after`.
+    id: 'shadcn-vars',
+    ciStep: 'The shadcn map covers the pinned shadcn variable set (#2997)',
+    cmd: engine('shadcn-vars.ts', '--check'),
+  },
+  {
+    // #2997 gate 4 — renders the uncommitted component-contract export itself and reads the token contract; needs
+    // no build and no `after`.
+    id: 'lint-shadcn-contract',
+    ciStep: 'The shadcn map follows the component contract (#2997)',
+    cmd: engine('lint-shadcn-contract.ts'),
+  },
+  {
     // #2996 — reads the committed supplement, its Spectacular fixture and the token contract; needs no build and no
     // `after`. `drift` holds the committed supplement to the emitter, so this reads what ships.
     id: 'lint-spec-supplement',

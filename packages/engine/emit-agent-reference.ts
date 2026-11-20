@@ -311,6 +311,8 @@ export const CLI_EXCLUDED: Record<string, string> = {
   'packages/engine/emit-spec-supplement.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-analysis-reports.ts': 'a regen step; run regen.ts',
   'packages/engine/file-facts-cli.ts': 'the file facts scan over a plain-data snapshot (#2075 part 1), a working tool for the #2075 part 2 comparison harness; its snapshot format is not a published contract yet, so it is not offered to agents',
+  'packages/engine/emit-shadcn.ts': 'the shadcn/ui theme projector (#2997); not yet a regen step, its gates render it with --out until #2997 PR 4 delivers it through regen.ts',
+  'packages/engine/shadcn-vars.ts': 'a gate (#2997 gate 3); the gates are listed by `npx tsx verify.ts --list`, and its --accept is a maintainer move after a raised SHADCN_MAP_VERSION',
   'packages/engine/kb-briefs-refresh.ts': 'a maintainer refresh of schema/kb-briefs.json that reads a knowledge-base checkout outside this repository (#2488); nothing an agent can run here',
 };
 /** Gates are excluded by name pattern: there are dozens, and `verify.ts --list` is their reference. */
