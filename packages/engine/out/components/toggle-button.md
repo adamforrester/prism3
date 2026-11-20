@@ -139,92 +139,89 @@ Keyed by `size`, `leading`, `selection`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.height` | — | — | radius `radius.md`; stroke `border-width.hairline` |
+| `container` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.height` | — | 104px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.hairline` |
 
 **size=medium, leading=true, selection=unselected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.200` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | — | radius `radius.md`; stroke `border-width.hairline` |
+| `container` | `space.100` / `space.200` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | 104px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=small, leading=false, selection=unselected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.sm.height` | — | — | radius `radius.md`; stroke `border-width.hairline` |
+| `container` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.sm.height` | — | 88px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.hairline` |
 
 **size=small, leading=true, selection=unselected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.075` / `space.200` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | — | radius `radius.md`; stroke `border-width.hairline` |
+| `container` | `space.075` / `space.200` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | 88px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 **size=large, leading=false, selection=unselected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.300` / `space.100` / `space.300` | `space.150` | `size.lg.height` | — | — | radius `radius.md`; stroke `border-width.hairline` |
+| `container` | `space.100` / `space.300` / `space.100` / `space.300` | `space.150` | `size.lg.height` | — | 128px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.hairline` |
 
 **size=large, leading=true, selection=unselected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.300` / `space.100` / `space.200` | `space.150` | `size.lg.height` | — | — | radius `radius.md`; stroke `border-width.hairline` |
+| `container` | `space.100` / `space.300` / `space.100` / `space.200` | `space.150` | `size.lg.height` | — | 128px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.hairline` |
 | `container/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
 **size=medium, leading=false, selection=selected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.height` | — | — | radius `radius.md`; stroke `border-width.thick` |
+| `container` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.height` | — | 104px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.thick` |
 
 **size=medium, leading=true, selection=selected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.200` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | — | radius `radius.md`; stroke `border-width.thick` |
+| `container` | `space.100` / `space.200` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | 104px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.thick` |
 | `container/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=small, leading=false, selection=selected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.sm.height` | — | — | radius `radius.md`; stroke `border-width.thick` |
+| `container` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.sm.height` | — | 88px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.thick` |
 
 **size=small, leading=true, selection=selected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.075` / `space.200` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | — | radius `radius.md`; stroke `border-width.thick` |
+| `container` | `space.075` / `space.200` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | 88px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.thick` |
 | `container/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 **size=large, leading=false, selection=selected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.300` / `space.100` / `space.300` | `space.150` | `size.lg.height` | — | — | radius `radius.md`; stroke `border-width.thick` |
+| `container` | `space.100` / `space.300` / `space.100` / `space.300` | `space.150` | `size.lg.height` | — | 128px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.thick` |
 
 **size=large, leading=true, selection=selected**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `container` | `space.100` / `space.300` / `space.100` / `space.200` | `space.150` | `size.lg.height` | — | — | radius `radius.md`; stroke `border-width.thick` |
+| `container` | `space.100` / `space.300` / `space.100` / `space.200` | `space.150` | `size.lg.height` | — | 128px (derived: height × multiplier, rounded up to 8px) | radius `radius.md`; stroke `border-width.thick` |
 | `container/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
 ### Type
 
-Keyed by `size`, `appearance`.
+Keyed by `size`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| size=medium, appearance=outline | `container/label` | `type.label.md.emphasis` |
-| size=small, appearance=outline | `container/label` | `type.label.sm.emphasis` |
-| size=large, appearance=outline | `container/label` | `type.label.lg.emphasis` |
-| size=medium, appearance=text | `container/label` | `type.label.md.emphasis-link` |
-| size=small, appearance=text | `container/label` | `type.label.sm.emphasis-link` |
-| size=large, appearance=text | `container/label` | `type.label.lg.emphasis-link` |
+| size=medium | `container/label` | `type.label.md.emphasis` |
+| size=small | `container/label` | `type.label.sm.emphasis` |
+| size=large | `container/label` | `type.label.lg.emphasis` |
 
 ### Color
 

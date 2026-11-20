@@ -8298,10 +8298,10 @@
         },
         "toggle-icon-button": {
           "keys": [
+            "selected.ghost.icon.hover",
             "selected.outline.icon.hover",
-            "selected.text.icon.hover",
-            "unselected.outline.icon.hover",
-            "unselected.text.icon.hover"
+            "unselected.ghost.icon.hover",
+            "unselected.outline.icon.hover"
           ],
           "parts": {
             "icon": {
@@ -8550,10 +8550,10 @@
         },
         "toggle-icon-button": {
           "keys": [
+            "selected.ghost.icon.pressed",
             "selected.outline.icon.pressed",
-            "selected.text.icon.pressed",
-            "unselected.outline.icon.pressed",
-            "unselected.text.icon.pressed"
+            "unselected.ghost.icon.pressed",
+            "unselected.outline.icon.pressed"
           ],
           "parts": {
             "icon": {
@@ -8896,10 +8896,10 @@
         },
         "toggle-icon-button": {
           "keys": [
+            "selected.ghost.icon",
             "selected.outline.icon",
-            "selected.text.icon",
-            "unselected.outline.icon",
-            "unselected.text.icon"
+            "unselected.ghost.icon",
+            "unselected.outline.icon"
           ],
           "parts": {
             "icon": {
@@ -9323,8 +9323,8 @@
         },
         "toggle-icon-button": {
           "keys": [
-            "unselected.outline.overlay.hover",
-            "unselected.text.overlay.hover"
+            "unselected.ghost.overlay.hover",
+            "unselected.outline.overlay.hover"
           ],
           "parts": {
             "container": {
@@ -9503,8 +9503,8 @@
         },
         "toggle-icon-button": {
           "keys": [
-            "unselected.outline.overlay.pressed",
-            "unselected.text.overlay.pressed"
+            "unselected.ghost.overlay.pressed",
+            "unselected.outline.overlay.pressed"
           ],
           "parts": {
             "container": {
@@ -11093,8 +11093,8 @@
         },
         "toggle-icon-button": {
           "keys": [
-            "selected.outline.border.hover",
-            "selected.text.border.hover"
+            "selected.ghost.border.hover",
+            "selected.outline.border.hover"
           ],
           "parts": {
             "container": {
@@ -11196,8 +11196,8 @@
         },
         "toggle-icon-button": {
           "keys": [
-            "selected.outline.border.pressed",
-            "selected.text.border.pressed"
+            "selected.ghost.border.pressed",
+            "selected.outline.border.pressed"
           ],
           "parts": {
             "container": {
@@ -11303,8 +11303,8 @@
         },
         "toggle-icon-button": {
           "keys": [
-            "selected.outline.border",
-            "selected.text.border"
+            "selected.ghost.border",
+            "selected.outline.border"
           ],
           "parts": {
             "container": {
@@ -11700,8 +11700,8 @@
         },
         "toggle-icon-button": {
           "keys": [
-            "selected.outline.overlay",
-            "selected.text.overlay"
+            "selected.ghost.overlay",
+            "selected.outline.overlay"
           ],
           "parts": {
             "container": {
@@ -30270,15 +30270,13 @@
         },
         "toggle-button": {
           "keys": [
-            "size.large.outline.type"
+            "size.large.outline.type",
+            "size.large.text.type"
           ],
           "parts": {
             "label": {
-              "members": 20,
+              "members": 40,
               "where": {
-                "appearance": [
-                  "outline"
-                ],
                 "size": [
                   "large"
                 ]
@@ -30334,24 +30332,6 @@
           "parts": {
             "label": {
               "members": 96,
-              "where": {
-                "appearance": [
-                  "text"
-                ],
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "toggle-button": {
-          "keys": [
-            "size.large.text.type"
-          ],
-          "parts": {
-            "label": {
-              "members": 20,
               "where": {
                 "appearance": [
                   "text"
@@ -30800,15 +30780,13 @@
         },
         "toggle-button": {
           "keys": [
-            "size.medium.outline.type"
+            "size.medium.outline.type",
+            "size.medium.text.type"
           ],
           "parts": {
             "label": {
-              "members": 20,
+              "members": 40,
               "where": {
-                "appearance": [
-                  "outline"
-                ],
                 "size": [
                   "medium"
                 ]
@@ -30864,24 +30842,6 @@
           "parts": {
             "label": {
               "members": 96,
-              "where": {
-                "appearance": [
-                  "text"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
-        "toggle-button": {
-          "keys": [
-            "size.medium.text.type"
-          ],
-          "parts": {
-            "label": {
-              "members": 20,
               "where": {
                 "appearance": [
                   "text"
@@ -31375,15 +31335,13 @@
         },
         "toggle-button": {
           "keys": [
-            "size.small.outline.type"
+            "size.small.outline.type",
+            "size.small.text.type"
           ],
           "parts": {
             "label": {
-              "members": 20,
+              "members": 40,
               "where": {
-                "appearance": [
-                  "outline"
-                ],
                 "size": [
                   "small"
                 ]
@@ -31439,24 +31397,6 @@
           "parts": {
             "label": {
               "members": 96,
-              "where": {
-                "appearance": [
-                  "text"
-                ],
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
-        "toggle-button": {
-          "keys": [
-            "size.small.text.type"
-          ],
-          "parts": {
-            "label": {
-              "members": 20,
               "where": {
                 "appearance": [
                   "text"
@@ -34760,11 +34700,8 @@
         "space.300",
         "space.550",
         "type.label.lg.emphasis",
-        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
-        "type.label.md.emphasis-link",
-        "type.label.sm.emphasis",
-        "type.label.sm.emphasis-link"
+        "type.label.sm.emphasis"
       ],
       "declaredNotDrawn": [
         "color.border.focus",
@@ -34779,8 +34716,8 @@
       "members": 60,
       "axes": {
         "appearance": [
-          "outline",
-          "text"
+          "ghost",
+          "outline"
         ],
         "selection": [
           "selected",

@@ -1679,8 +1679,8 @@
   "toggle-icon-button": {
     "axes": {
       "appearance": [
-        "outline",
-        "text"
+        "ghost",
+        "outline"
       ],
       "selection": [
         "selected",

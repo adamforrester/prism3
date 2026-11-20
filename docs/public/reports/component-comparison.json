@@ -5447,7 +5447,7 @@
         ],
         "appearance": [
           "outline",
-          "text"
+          "ghost"
         ],
         "size": [
           "medium",
@@ -5478,7 +5478,7 @@
           "default": "outline",
           "values": [
             "outline",
-            "text"
+            "ghost"
           ]
         },
         {
@@ -6065,21 +6065,21 @@
       },
       {
         "values": [
-          "outline",
-          "text"
+          "ghost",
+          "outline"
         ],
         "components": [
-          "toggle-button",
+          "counter",
           "toggle-icon-button"
         ]
       },
       {
         "values": [
-          "ghost",
-          "outline"
+          "outline",
+          "text"
         ],
         "components": [
-          "counter"
+          "toggle-button"
         ]
       }
     ],
@@ -6963,7 +6963,7 @@
         "default": "outline",
         "values": [
           "outline",
-          "text"
+          "ghost"
         ]
       }
     ],
@@ -10579,7 +10579,7 @@
         "toggle-button",
         "toggle-icon-button"
       ],
-      "detail": "the appearance axis takes 4 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [outline, text] in toggle-button, toggle-icon-button; [ghost, outline] in counter"
+      "detail": "the appearance axis takes 4 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [ghost, outline] in counter, toggle-icon-button; [outline, text] in toggle-button"
     },
     {
       "kind": "axis values",

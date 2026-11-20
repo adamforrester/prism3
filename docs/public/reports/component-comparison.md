@@ -14,7 +14,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### axis values
 
-- **axis appearance** — the appearance axis takes 4 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [outline, text] in toggle-button, toggle-icon-button; [ghost, outline] in counter
+- **axis appearance** — the appearance axis takes 4 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [ghost, outline] in counter, toggle-icon-button; [outline, text] in toggle-button
 - **axis emphasis** — the emphasis axis takes 3 value sets — [bold, subtle] in divider; [bold, subtle, surface] in badge; [primary, secondary] in field-label
 - **axis inset** — the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider
 - **axis provider** — the provider axis takes 2 value sets — [apple, facebook, google] in sign-in-button; [apple-pay, google-pay, paypal, shop-pay] in wallet-button
@@ -278,8 +278,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 | alignment | center, start | tabs |
 | appearance | filled, ghost, outline | icon-button, icon-button-destructive, icon-button-neutral |
 |  | filled, outline, text | button, button-destructive, button-neutral |
-|  | outline, text | toggle-button, toggle-icon-button |
-|  | ghost, outline | counter |
+|  | ghost, outline | counter, toggle-icon-button |
+|  | outline, text | toggle-button |
 | direction | from-bottom, from-left, from-right, from-top, full | veil |
 | edge | contained, full-bleed | banner |
 | emphasis | bold, subtle | divider |
@@ -417,7 +417,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-destructive | ghost | filled, outline, ghost |
 |  | icon-button-neutral | ghost | filled, outline, ghost |
 |  | toggle-button | outline | outline, text |
-|  | toggle-icon-button | outline | outline, text |
+|  | toggle-icon-button | outline | outline, ghost |
 | aria-label | _slider-thumb | — | — |
 |  | button | — | — |
 |  | button-destructive | — | — |

@@ -328,38 +328,87 @@
     },
     "toggle-button": {
       "members": 120,
-      "sha256": "405e20a18347595eb3b6abeea74fa9e22128fde8505021c3ac4f50ebb4245ad3",
+      "sha256": "d17b1d8cd066b0bffcfea509b63addba33b2714530a3639c302db91a5ee1e658",
       "properties": [
         "label:TEXT"
       ]
     },
     "toggle-button@outline-solid-tint": {
       "members": 120,
-      "sha256": "4d985ae3d121124f83878434d06b7c34efd232869443eec0d0a2de556d6039d3",
+      "sha256": "045ec86cbf79aa5a3592a71895a66cf0aea9f8e24abb79296c17ff955e5b60dc",
       "properties": [
         "label:TEXT"
       ]
     },
     "toggle-button@outline-none": {
       "members": 120,
-      "sha256": "bf6cb7f6c44a7f918fd318e10bd295a7c7f70f5631500fe1c04fbdaa488072b4",
+      "sha256": "58f727e1593820fc316a2ef360f510e9a96279e145a5bd138b1693e310b601c4",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-default": {
+      "members": 120,
+      "sha256": "c4a1d3d34639ab338114b244f042da979440004c79fb7798b8595fc07d4620fd",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-edges": {
+      "members": 120,
+      "sha256": "35728b3d73cb51411d78c36635446f7a0c1400a19072db294ef1d43eb770fa65",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-smaller": {
+      "members": 120,
+      "sha256": "6b3fba5224bc98fa1829004bed56e8a750bb338ad9ec0a43a056511c7df2e420",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-label-default": {
+      "members": 120,
+      "sha256": "75917d4ebfca16da6d449031a9cf1cce8a57cd93daf64d24a54b4353e4698f10",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-smaller-label-default": {
+      "members": 120,
+      "sha256": "dfdc5b913617e755c6b6285c51cba4c5f198959d46184e94d9fed04658ce9a02",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-text-fill": {
+      "members": 120,
+      "sha256": "2a18d32693a03e1bac2d447a205d82308c95778592836d98e383f1a77deb5eed",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-text-fill-label-default": {
+      "members": 120,
+      "sha256": "55016835a68041986ac5af7ad5cb45196f9fd12e5e559a09c0c259bbce8a026a",
       "properties": [
         "label:TEXT"
       ]
     },
     "toggle-icon-button": {
       "members": 60,
-      "sha256": "f98a699435a2278a4907099a5f49a016013382b51e046466a640d99b5b260664",
+      "sha256": "ac1b2704bb2c8983d9e71859e6c81919fa1d8074b0ff9dfc45509a5128a7c44b",
       "properties": []
     },
     "toggle-icon-button@outline-solid-tint": {
       "members": 60,
-      "sha256": "f12b8d7f73c6f872785b2c5ac9b1eedc187339691c0cd68d446a7ce09a6f1266",
+      "sha256": "c451138f2dc74daf81b5975d609c48ed962237d7a31e8f995ac4aabf3ecd61b7",
       "properties": []
     },
     "toggle-icon-button@outline-none": {
       "members": 60,
-      "sha256": "d55536d4d77cf15d43e6f56fef2ee56072ddffbbedb1c2640174e88662aa513c",
+      "sha256": "276b08c6c0607aed92f53ac6b27f4d7983188009dbd95bdb19860bcdb40222ce",
       "properties": []
     },
     "field-label": {

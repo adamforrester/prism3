@@ -18136,8 +18136,9 @@ arm: {
       figmaAnatomyPlan(def, size, { leading, trailing, swapTarget: 'FPO-default-icon', appearance: 'filled', state: 'rest' });
 
     // THE SET: exactly the three text buttons; icon-button is outside it and every lever is its identity.
-    ok(componentDefs.filter(isButtonFamily).map((d) => d.id).sort().join(',') === 'button,button-destructive,button-neutral',
-      `#1667 button levers: the set is button + button-destructive + button-neutral (${componentDefs.filter(isButtonFamily).map((d) => d.id).join(', ')})`);
+    // ToggleButton joins it (#4353, owner decision 3 A): a toggle is a Button that stays pressed.
+    ok(componentDefs.filter(isButtonFamily).map((d) => d.id).sort().join(',') === 'button,button-destructive,button-neutral,toggle-button',
+      `#1667 button levers: the set is button + button-destructive + button-neutral + toggle-button (${componentDefs.filter(isButtonFamily).map((d) => d.id).join(', ')})`);
     // Every setting but "Outline button border", which reaches the icon buttons by their own opt-in since #576 Q6 (held
     // in the #576 block); at its default it is the identity here too.
     ok([iconButton, iconButtonDestructive, iconButtonNeutral].every((d) =>
@@ -18426,8 +18427,9 @@ arm: {
       ];
       const moved = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' }, () => 44))
         !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort().join(',');
-      ok(moved === 'button,button-destructive,button-neutral,tag',
-        `#1752 scope (#2945): across all ${componentDefs.length} defs, Default moves exactly button, button-destructive, button-neutral and tag (got ${moved})`);
+      // ToggleButton joins with the button family (#4353, owner decision 3 A).
+      ok(moved === 'button,button-destructive,button-neutral,tag,toggle-button',
+        `#1752 scope (#2945): across all ${componentDefs.length} defs, Default moves exactly button, button-destructive, button-neutral, tag and toggle-button (got ${moved})`);
       // (#3786, Q-SD2) THE TAG'S REACH IS ITS OWN ENTRY, `levers.buttonLabelWeight`, not `levers.tagStyle`'s presence. ORACLE =
       // the three label refs spelled out above (TAG_DEFAULT), never read off the def. Each half drops one entry from Tag.
       const tagLevers = tag.levers!;
@@ -23070,7 +23072,9 @@ arm: {
       const STATES_LIVE = ['rest', 'hover', 'pressed', 'focus-visible'];
       const IND: Record<string, string> = { rest: 'rest', hover: 'hover', pressed: 'pressed', 'focus-visible': 'rest' };
       const tintBad: string[] = [], lineBad: string[] = [], inkBad: string[] = [];
-      for (const ap of ['outline', 'text']) for (const st of STATES_LIVE) for (const m of at('selected', ap, st)) {
+      // Each def's quiet value as its own factory spells it: `text` on ToggleButton, `ghost` on ToggleIconButton (#4353 1 B).
+      const APS = id === 'toggle-button' ? ['outline', 'text'] : ['outline', 'ghost'];
+      for (const ap of APS) for (const st of STATES_LIVE) for (const m of at('selected', ap, st)) {
         if (m.root.paints?.fills !== 'color/interactive/primary/subtle-fill/selected') tintBad.push(`${ap}/${st}: ${m.root.paints?.fills}`);
         if (m.root.paints?.strokes !== `color/interactive/primary/indicator/${IND[st]}` || m.root.bound?.strokeWeight !== 'border-width/thick')
           lineBad.push(`${ap}/${st}: ${m.root.paints?.strokes} @ ${m.root.bound?.strokeWeight}`);
@@ -23085,9 +23089,9 @@ arm: {
       const WANT_PARTS = id === 'toggle-button' ? ['container', 'focusRing', 'label', 'leadingVisual'] : ['container', 'focusRing', 'icon'];
       ok(JSON.stringify(parts) === JSON.stringify(WANT_PARTS) && !Object.values(d.anatomy?.parts ?? {}).some((p) => p.presentWhen),
         `#4112 OD-T2 no check ${id}: the parts are exactly [${WANT_PARTS.join(', ')}], none gated on selection (got [${parts.join(', ')}])`);
-      // OD-T3: outline and text only, outline first (the code default).
-      ok(JSON.stringify(d.variants?.appearance) === JSON.stringify(['outline', 'text']) && JSON.stringify(d.variants?.selection) === JSON.stringify(['unselected', 'selected']),
-        `#4112 OD-T3 ${id}: appearance is [outline, text] and selection [unselected, selected] (got [${d.variants?.appearance?.join(', ')}] and [${d.variants?.selection?.join(', ')}])`);
+      // OD-T3: two appearances, no filled, outline first (the code default).
+      ok(JSON.stringify(d.variants?.appearance) === JSON.stringify(APS) && JSON.stringify(d.variants?.selection) === JSON.stringify(['unselected', 'selected']),
+        `#4112 OD-T3 ${id}: appearance is [${APS.join(', ')}] and selection [unselected, selected] (got [${d.variants?.appearance?.join(', ')}] and [${d.variants?.selection?.join(', ')}])`);
       // OD-T1: the unselected outline member is Button.Neutral's outline paint, and its edge Button's 1px hairline.
       const un = at('unselected', 'outline', 'rest')[0];
       ok(un?.root.paints?.strokes === 'color/interactive/neutral/border/rest' && un?.root.bound?.strokeWeight === 'border-width/hairline' && un?.root.paints?.fills === undefined,
@@ -23095,6 +23099,64 @@ arm: {
       // The member counts the proposal states: 120 and 60.
       const WANT_COUNT = id === 'toggle-button' ? 120 : 60;
       ok(set.length === WANT_COUNT, `#4112 ${id}: projects ${WANT_COUNT} members (got ${set.length})`);
+    }
+
+    // #4353 — THE OWNER'S THREE DECISIONS ON THE TOGGLE PR (2026-11-19: 1 B, 2 B, 3 A), each held against a literal
+    // typed from the decision and read off the projected plan, never off the def.
+    // Mutations: spell the icon toggle's quiet value `text` → `#4353 decision 1`; bind a text label to `emphasis-link`
+    // → `#4353 decision 2`; drop ToggleButton's `min-width` derivation → `#4353 decision 3 min width` (and the other
+    // decision 3 arms); drop ToggleIconButton's `buttonBorderWeight` → `#4353 decision 3 border toggle-icon-button`.
+    {
+      const tb = componentDefs.find((x) => x.id === 'toggle-button')!;
+      const tib = componentDefs.find((x) => x.id === 'toggle-icon-button')!;
+      const nb = nbTheme();
+      const px = sizeRefPx(nb.dims.sizes);
+      const names = (set: AnatomyPlan[]) => set.map(planComponentName);
+      const sizeOf = (n: string) => /(?:^|, )size=([a-z]+)/.exec(n)?.[1] ?? '';
+      const labelOf = (m: AnatomyPlan) => (m.root.children ?? []).find((c) => c.name === 'label');
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+
+      // (1) B: ToggleIconButton's quiet value is `ghost`, IconButton's word; ToggleButton keeps Button's `text`.
+      const tibNames = names(figmaAnatomySet(tib));
+      ok(tibNames.filter((n) => n.includes('appearance=ghost')).length === 30 && !tibNames.some((n) => n.includes('appearance=text')),
+        `#4353 decision 1 toggle-icon-button: the quiet appearance is ghost on 30 members and text on none (ghost ${tibNames.filter((n) => n.includes('appearance=ghost')).length}, text ${tibNames.filter((n) => n.includes('appearance=text')).length})`);
+
+      // (2) B: every text member's label is plain `label/<rung>/emphasis`, never the underlined `-link` twin.
+      const textBad = figmaAnatomySet(tb).filter((m) => planComponentName(m).includes('appearance=text'))
+        .filter((m) => labelOf(m)?.textStyle !== `label/${RUNG[sizeOf(planComponentName(m))]}/emphasis`)
+        .map((m) => `${planComponentName(m)}: ${labelOf(m)?.textStyle}`);
+      ok(textBad.length === 0, `#4353 decision 2 toggle-button: every text member's label is label/<rung>/emphasis, with no link underline (${textBad.slice(0, 2).join(' | ') || 'all 60'})`);
+
+      // (3) A: Button's six settings reach ToggleButton as they reach Button.
+      const at = (layout: Partial<typeof DEFAULT_BUTTON_LAYOUT>) => figmaAnatomySet(applyButtonLayout(tb, { ...DEFAULT_BUTTON_LAYOUT, ...layout }, px));
+      const FLOOR: Record<string, number> = { small: 88, medium: 104, large: 128 };
+      const floorBad = at({}).filter((m) => m.root.minWidth !== FLOOR[sizeOf(planComponentName(m))]).map((m) => `${planComponentName(m)}: ${m.root.minWidth}`);
+      ok(floorBad.length === 0, `#4353 decision 3 min width toggle-button: on nb at the default multiplier every member floors at Button's 88/104/128, the 104px medium floor (${floorBad.slice(0, 2).join(' | ') || 'all 120'})`);
+      const lead = at({ icons: 'edges' }).filter((m) => planComponentName(m).includes('leading icon=true'));
+      ok(lead.length === 60 && lead.every((m) => m.root.children.some((c) => c.name === 'leadingVisual' && (c as { pin?: { edge?: string } }).pin?.edge === 'MIN')),
+        `#4353 decision 3 icon placement toggle-button: Locked to edges pins the leading icon to the start edge (MIN) on all 60 leading members (${lead.length})`);
+      const smaller = at({ content: 'smaller' }).filter((m) => sizeOf(planComponentName(m)) === 'medium').map((m) => labelOf(m)?.textStyle);
+      ok(smaller.length === 40 && smaller.every((t) => t === 'label/sm/emphasis'),
+        `#4353 decision 3 content size toggle-button: One step smaller sets every medium label in label/sm/emphasis (${[...new Set(smaller)].join(', ')})`);
+      const weight = at({ labelWeight: 'default' }).map((m) => `${RUNG[sizeOf(planComponentName(m))]}:${labelOf(m)?.textStyle}`);
+      ok(weight.every((w) => w === `${w.split(':')[0]}:label/${w.split(':')[0]}/default`),
+        `#4353 decision 3 label weight toggle-button: Control label weight: Default sets every label in label/<rung>/default (${[...new Set(weight)].slice(0, 3).join(', ')})`);
+      const fill = at({ textHover: 'fill' });
+      const box = (set: AnatomyPlan[], sel: string, ap: string, st: string) => set.find((m) => { const n = planComponentName(m); return n.includes(`selection=${sel},`) && n.includes(`appearance=${ap},`) && n.includes(`state=${st}`) && n.includes('size=medium'); })?.root.paints?.fills;
+      ok(box(fill, 'unselected', 'text', 'hover') !== undefined && box(fill, 'unselected', 'text', 'hover') === box(fill, 'unselected', 'outline', 'hover')
+        && box(at({}), 'unselected', 'text', 'hover') === undefined && box(fill, 'selected', 'text', 'hover') === 'color/interactive/primary/subtle-fill/selected',
+        `#4353 decision 3 text hover toggle-button: Fill gives an unselected text member the outline hover wash (${box(fill, 'unselected', 'text', 'hover')}), none without it, and a selected one keeps the tint (${box(fill, 'selected', 'text', 'hover')})`);
+      // Outline button border: Thick thickens the unselected edge to Button's; the selected edge is already thick.
+      for (const [d, ap] of [[tb, 'outline'], [tib, 'outline']] as const) {
+        const thick = figmaAnatomySet(applyButtonLayout(d, { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'thick' }, px));
+        const un = thick.filter((m) => planComponentName(m).includes('selection=unselected,') && planComponentName(m).includes(`appearance=${ap},`));
+        const w = [...new Set(thick.map((m) => (m.root as unknown as { bound?: Record<string, string> }).bound?.strokeWeight))];
+        ok(un.length > 0 && JSON.stringify(w) === JSON.stringify(['border-width/thick']),
+          `#4353 decision 3 border ${d.id}: Outline button border: Thick binds border-width/thick on every member, the unselected outline included (${w.join(', ')})`);
+      }
+      // ToggleIconButton takes the settings as far as IconButton does: every other setting is the identity on it.
+      ok(applyButtonLayout(tib, { icons: 'edges', content: 'smaller', minWidthMultiplier: 4, labelWeight: 'default', textHover: 'fill', borderWeight: 'hairline' }, px) === tib,
+        '#4353 decision 3 toggle-icon-button: every setting but Outline button border leaves it untouched, as on IconButton — the same object back');
     }
     }
     const keptWash = ['tag', 'segmented-control-segment', 'pagination-item'].map((id) => componentDefs.find((d) => d.id === id)!)
@@ -23481,8 +23543,10 @@ arm: {
       { def: button, part: 'label', axes: { size: 3, appearance: 2 } },
       { def: buttonDestructive, part: 'label', axes: { size: 3, appearance: 2 } },
       { def: buttonNeutral, part: 'label', axes: { size: 3, appearance: 2 } },
-      // #4112 — ToggleButton binds Button's label keys for its two appearances, so outline and text are two styles.
-      { def: componentDefs.find((d) => d.id === 'toggle-button')!, part: 'label', axes: { size: 3, appearance: 2 } },
+      // #4112 — ToggleButton binds Button's label keys for its two appearances, and since #4353 (owner decision 2 B) its
+      // text label is plain `emphasis`, not Button's underlined twin: the key still crosses appearance (Button's settings
+      // move it per appearance), and both appearances bind ONE style. Restoring the underline makes it two and fails BY NAME.
+      { def: componentDefs.find((d) => d.id === 'toggle-button')!, part: 'label', axes: { size: 3, appearance: 1 } },
       { def: checkboxRow, part: 'label', axes: { size: 3 } },
       { def: radioRow, part: 'label', axes: { size: 3 } },
       // #3153 (Q853 A, Q3153.1 A): the description is one rung under the label, floored at body.xs, so small and
@@ -31003,11 +31067,12 @@ arm: {
   //     icon-button sets. Q6 is asserted on its own, so dropping the icon buttons fails by their names.
   const moved576 = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, thick, () => 44))
     !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort();
+  // The toggle pair joins (#4353, owner decision 3 A); its selection-led edge is held in the #4353 block.
   const WANT_576 = ['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive',
-    'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'];
+    'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'toggle-button', 'toggle-icon-button'];
   ok(moved576.join(',') === WANT_576.join(','),
-    `#576 scope: across all ${componentDefs.length} defs, Outline button border: Thick moves exactly the ${WANT_576.length} button and icon-button sets (got ${moved576.join(',') || 'none'})`);
-  const ICON_576 = WANT_576.filter((id) => id.includes('icon-button'));
+    `#576 scope: across all ${componentDefs.length} defs, Outline button border: Thick moves exactly the ${WANT_576.length} button, icon-button and toggle sets (got ${moved576.join(',') || 'none'})`);
+  const ICON_576 = WANT_576.filter((id) => id.includes('icon-button') && !id.startsWith('toggle-'));
   const iconMissed = ICON_576.filter((id) => !moved576.includes(id));
   ok(iconMissed.length === 0,
     `#576 Q6: Outline button border: Thick reaches every icon-button and flush-icon-button set (missed: ${iconMissed.join(', ') || 'none'})`);

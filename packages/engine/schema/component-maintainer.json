@@ -1519,14 +1519,14 @@
       ],
       "notes": {
         "contested": [
-          "constant name and aria-pressed (practice) against a label that flips with the state (brief §6, §15) — this component takes the constant name and has no selectedLabel prop.",
-          "Button's brand settings (min width, icon placement, content size, label weight, text hover, border weight) do not reach a toggle: the approval names controlShape only. A toggle beside a Button on a brand with a non-default label weight reads in a different weight. OWNER DECISION on the PR."
+          "constant name and aria-pressed (practice) against a label that flips with the state (brief §6, §15) — this component takes the constant name and has no selectedLabel prop."
         ],
         "unverified": [
           "The neutral label on the tint is measured on Tag (10.19:1 on one corpus brand); this component reuses the same pair, and its own contrast is held by the paint census and the contrast arms, not by a separate measurement."
         ],
         "evolution": [
           "2026-11-19 (#4112, owner OD-T1 to OD-T5 A): built on Button as two defs, with Tag's selected look, outline and text appearances only, and no group def. Button's own sets are unchanged.",
+          "2026-11-19 (#4353, owner decisions 1 B, 2 B, 3 A): the icon toggle's quiet appearance is ghost, IconButton's word; a text toggle's label is plain emphasis, with no link underline; and Button's six brand settings reach ToggleButton through Button's min-width derivation, and ToggleIconButton as far as they reach IconButton (Outline button border).",
           "The brief lists a solid appearance and an icon-only versus icon-and-label shape axis (§15 variants). This component omits solid (OD-T3) and splits the icon-only shape into ToggleIconButton (OD-T4), as Button and IconButton split.",
           "The brief's `toggle` alias is not taken: switch-row holds it, and one alias names one component."
         ],
@@ -1620,14 +1620,14 @@
       ],
       "notes": {
         "contested": [
-          "constant name and aria-pressed (practice) against a label that flips with the state (brief §6, §15) — this component takes the constant name and has no selectedLabel prop.",
-          "Button's brand settings (min width, icon placement, content size, label weight, text hover, border weight) do not reach a toggle: the approval names controlShape only. A toggle beside a Button on a brand with a non-default label weight reads in a different weight. OWNER DECISION on the PR."
+          "constant name and aria-pressed (practice) against a label that flips with the state (brief §6, §15) — this component takes the constant name and has no selectedLabel prop."
         ],
         "unverified": [
           "The neutral label on the tint is measured on Tag (10.19:1 on one corpus brand); this component reuses the same pair, and its own contrast is held by the paint census and the contrast arms, not by a separate measurement."
         ],
         "evolution": [
           "2026-11-19 (#4112, owner OD-T1 to OD-T5 A): built on Button as two defs, with Tag's selected look, outline and text appearances only, and no group def. Button's own sets are unchanged.",
+          "2026-11-19 (#4353, owner decisions 1 B, 2 B, 3 A): the icon toggle's quiet appearance is ghost, IconButton's word; a text toggle's label is plain emphasis, with no link underline; and Button's six brand settings reach ToggleButton through Button's min-width derivation, and ToggleIconButton as far as they reach IconButton (Outline button border).",
           "The brief lists a solid appearance and an icon-only versus icon-and-label shape axis (§15 variants). This component omits solid (OD-T3) and splits the icon-only shape into ToggleIconButton (OD-T4), as Button and IconButton split.",
           "The brief's `toggle` alias is not taken: switch-row holds it, and one alias names one component."
         ],

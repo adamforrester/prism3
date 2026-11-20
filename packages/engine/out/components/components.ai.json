@@ -3933,14 +3933,14 @@
         },
         {
           "name": "appearance",
-          "type": "enum: 'outline' | 'text'",
+          "type": "enum: 'outline' | 'ghost'",
           "default": "outline",
           "required": false,
           "values": [
             "outline",
-            "text"
+            "ghost"
           ],
-          "description": "outline = a neutral border, for a toggle on its own; text = no border at rest, for a row of toggles in a toolbar. There is no filled appearance, so selected stays the strongest look."
+          "description": "outline = a neutral border, for a toggle on its own; ghost = no border at rest, for a row of toggles in a toolbar. There is no filled appearance, so selected stays the strongest look."
         },
         {
           "name": "size",
@@ -3988,7 +3988,7 @@
         "appearance": {
           "values": [
             "outline",
-            "text"
+            "ghost"
           ],
           "kind": "runtime"
         },
@@ -4024,7 +4024,7 @@
         "usage": "Use for an icon-only action or mode that stays on until pressed again, usually in a toolbar: Bold, Italic, Underline, Mute, Pin. Always give it an accessible name; a tooltip can show it on hover and focus. With room for a label, use ToggleButton.",
         "do": [
           "Always give it an accessible name, and keep it the same in both states",
-          "Use appearance=text for a row of toggles in a toolbar, and appearance=outline for one on its own",
+          "Use appearance=ghost for a row of toggles in a toolbar, and appearance=outline for one on its own",
           "Group a row of independent toggles in a container with `role=\"group\"` and an accessible label, each toggle its own tab stop",
           "Use a recognizable icon; pair a novel one with a visible label instead (ToggleButton)"
         ],

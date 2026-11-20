@@ -937,7 +937,7 @@ Type: color. Bound by 9 component(s).
 |  |  | closeGlyph | selection: unselected · state: hover · type: dismissible (3 of 45) |
 |  |  | leadingVisual | state: hover (9 of 45) |
 | toggle-button | `selected.outline.icon.hover`, `selected.text.icon.hover`, `unselected.outline.icon.hover`, `unselected.text.icon.hover` | leadingVisual | leading: true · state: hover (12 of 120) |
-| toggle-icon-button | `selected.outline.icon.hover`, `selected.text.icon.hover`, `unselected.outline.icon.hover`, `unselected.text.icon.hover` | icon | state: hover (12 of 60) |
+| toggle-icon-button | `selected.ghost.icon.hover`, `selected.outline.icon.hover`, `unselected.ghost.icon.hover`, `unselected.outline.icon.hover` | icon | state: hover (12 of 60) |
 
 ### `color.interactive.neutral.icon.pressed`
 
@@ -957,7 +957,7 @@ Type: color. Bound by 9 component(s).
 |  |  | closeGlyph | selection: unselected · state: pressed · type: dismissible (3 of 45) |
 |  |  | leadingVisual | state: pressed (9 of 45) |
 | toggle-button | `selected.outline.icon.pressed`, `selected.text.icon.pressed`, `unselected.outline.icon.pressed`, `unselected.text.icon.pressed` | leadingVisual | leading: true · state: pressed (12 of 120) |
-| toggle-icon-button | `selected.outline.icon.pressed`, `selected.text.icon.pressed`, `unselected.outline.icon.pressed`, `unselected.text.icon.pressed` | icon | state: pressed (12 of 60) |
+| toggle-icon-button | `selected.ghost.icon.pressed`, `selected.outline.icon.pressed`, `unselected.ghost.icon.pressed`, `unselected.outline.icon.pressed` | icon | state: pressed (12 of 60) |
 
 ### `color.interactive.neutral.icon.rest`
 
@@ -983,7 +983,7 @@ Type: color. Bound by 10 component(s).
 |  |  | closeGlyph | selection: unselected · state: focus-visible, rest · type: dismissible (6 of 45) |
 |  |  | leadingVisual | state: focus-visible, rest (18 of 45) |
 | toggle-button | `selected.outline.icon`, `selected.text.icon`, `unselected.outline.icon`, `unselected.text.icon` | leadingVisual | leading: true · state: focus-visible, rest (24 of 120) |
-| toggle-icon-button | `selected.outline.icon`, `selected.text.icon`, `unselected.outline.icon`, `unselected.text.icon` | icon | state: focus-visible, rest (24 of 60) |
+| toggle-icon-button | `selected.ghost.icon`, `selected.outline.icon`, `unselected.ghost.icon`, `unselected.outline.icon` | icon | state: focus-visible, rest (24 of 60) |
 
 ### `color.interactive.neutral.indicator.hover`
 
@@ -1037,7 +1037,7 @@ Type: color. Bound by 8 component(s).
 | segmented-control-segment | `unselected.overlay.hover` | indicator | selection: unselected · state: hover (3 of 30) |
 | tag | `unselected.overlay.hover` | container | selection: unselected · state: hover (6 of 45) |
 | toggle-button | `unselected.outline.overlay.hover` | container | appearance: outline · selection: unselected · state: hover (6 of 120) |
-| toggle-icon-button | `unselected.outline.overlay.hover`, `unselected.text.overlay.hover` | container | selection: unselected · state: hover (6 of 60) |
+| toggle-icon-button | `unselected.ghost.overlay.hover`, `unselected.outline.overlay.hover` | container | selection: unselected · state: hover (6 of 60) |
 
 ### `color.interactive.neutral.overlay.pressed`
 
@@ -1052,7 +1052,7 @@ Type: color. Bound by 8 component(s).
 | segmented-control-segment | `unselected.overlay.pressed` | indicator | selection: unselected · state: pressed (3 of 30) |
 | tag | `unselected.overlay.pressed` | container | selection: unselected · state: pressed (6 of 45) |
 | toggle-button | `unselected.outline.overlay.pressed` | container | appearance: outline · selection: unselected · state: pressed (6 of 120) |
-| toggle-icon-button | `unselected.outline.overlay.pressed`, `unselected.text.overlay.pressed` | container | selection: unselected · state: pressed (6 of 60) |
+| toggle-icon-button | `unselected.ghost.overlay.pressed`, `unselected.outline.overlay.pressed` | container | selection: unselected · state: pressed (6 of 60) |
 
 ### `color.interactive.neutral.text.hover`
 
@@ -1227,7 +1227,7 @@ Type: color. Bound by 5 component(s).
 | tab-item | `selected.fill.hover` | indicator | selection: selected · state: hover (3 of 30) |
 | tag | `selected.border.hover` | container | selection: selected · state: hover · type: select (3 of 45) |
 | toggle-button | `selected.outline.border.hover`, `selected.text.border.hover` | container | selection: selected · state: hover (12 of 120) |
-| toggle-icon-button | `selected.outline.border.hover`, `selected.text.border.hover` | container | selection: selected · state: hover (6 of 60) |
+| toggle-icon-button | `selected.ghost.border.hover`, `selected.outline.border.hover` | container | selection: selected · state: hover (6 of 60) |
 
 ### `color.interactive.primary.indicator.pressed`
 
@@ -1239,7 +1239,7 @@ Type: color. Bound by 5 component(s).
 | tab-item | `selected.fill.pressed` | indicator | selection: selected · state: pressed (3 of 30) |
 | tag | `selected.border.pressed` | container | selection: selected · state: pressed · type: select (3 of 45) |
 | toggle-button | `selected.outline.border.pressed`, `selected.text.border.pressed` | container | selection: selected · state: pressed (12 of 120) |
-| toggle-icon-button | `selected.outline.border.pressed`, `selected.text.border.pressed` | container | selection: selected · state: pressed (6 of 60) |
+| toggle-icon-button | `selected.ghost.border.pressed`, `selected.outline.border.pressed` | container | selection: selected · state: pressed (6 of 60) |
 
 ### `color.interactive.primary.indicator.rest`
 
@@ -1251,7 +1251,7 @@ Type: color. Bound by 5 component(s).
 | tab-item | `selected.fill` | indicator | selection: selected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.border` | container | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
 | toggle-button | `selected.outline.border`, `selected.text.border` | container | selection: selected · state: focus-visible, rest (24 of 120) |
-| toggle-icon-button | `selected.outline.border`, `selected.text.border` | container | selection: selected · state: focus-visible, rest (12 of 60) |
+| toggle-icon-button | `selected.ghost.border`, `selected.outline.border` | container | selection: selected · state: focus-visible, rest (12 of 60) |
 
 ### `color.interactive.primary.on-fill`
 
@@ -1296,7 +1296,7 @@ Type: color. Bound by 3 component(s).
 |---|---|---|---|
 | tag | `selected.overlay` | container | selection: selected · state: focus-visible, hover, pressed, rest · type: select (12 of 45) |
 | toggle-button | `selected.outline.overlay`, `selected.text.overlay` | container | selection: selected · state: focus-visible, hover, pressed, rest (48 of 120) |
-| toggle-icon-button | `selected.outline.overlay`, `selected.text.overlay` | container | selection: selected · state: focus-visible, hover, pressed, rest (24 of 60) |
+| toggle-icon-button | `selected.ghost.overlay`, `selected.outline.overlay` | container | selection: selected · state: focus-visible, hover, pressed, rest (24 of 60) |
 
 ### `color.interactive.primary.text.hover`
 
@@ -3698,18 +3698,17 @@ Type: typography. Bound by 10 component(s).
 | tab-item | `size.large.type.selected` | label | selection: selected · size: large (5 of 30) |
 |  |  | labelReserve | size: large (10 of 30) |
 | tag | `size.large.type` | label | size: large (15 of 45) |
-| toggle-button | `size.large.outline.type` | label | appearance: outline · size: large (20 of 120) |
+| toggle-button | `size.large.outline.type`, `size.large.text.type` | label | size: large (40 of 120) |
 
 ### `type.label.lg.emphasis-link`
 
-Type: typography. Bound by 4 component(s).
+Type: typography. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `size.large.text.type` | label | appearance: text · size: large (96 of 576) |
 | button-destructive | `size.large.text.type` | label | appearance: text · size: large (96 of 576) |
 | button-neutral | `size.large.text.type` | label | appearance: text · size: large (96 of 576) |
-| toggle-button | `size.large.text.type` | label | appearance: text · size: large (20 of 120) |
 
 ### `type.label.md.default`
 
@@ -3746,18 +3745,17 @@ Type: typography. Bound by 11 component(s).
 | tab-item | `size.medium.type.selected` | label | selection: selected · size: medium (5 of 30) |
 |  |  | labelReserve | size: medium (10 of 30) |
 | tag | `size.medium.type` | label | size: medium (15 of 45) |
-| toggle-button | `size.medium.outline.type` | label | appearance: outline · size: medium (20 of 120) |
+| toggle-button | `size.medium.outline.type`, `size.medium.text.type` | label | size: medium (40 of 120) |
 
 ### `type.label.md.emphasis-link`
 
-Type: typography. Bound by 4 component(s).
+Type: typography. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `size.medium.text.type` | label | appearance: text · size: medium (96 of 576) |
 | button-destructive | `size.medium.text.type` | label | appearance: text · size: medium (96 of 576) |
 | button-neutral | `size.medium.text.type` | label | appearance: text · size: medium (96 of 576) |
-| toggle-button | `size.medium.text.type` | label | appearance: text · size: medium (20 of 120) |
 
 ### `type.label.md.line-box`
 
@@ -3802,18 +3800,17 @@ Type: typography. Bound by 10 component(s).
 | tab-item | `size.small.type.selected` | label | selection: selected · size: small (5 of 30) |
 |  |  | labelReserve | size: small (10 of 30) |
 | tag | `size.small.type` | label | size: small (15 of 45) |
-| toggle-button | `size.small.outline.type` | label | appearance: outline · size: small (20 of 120) |
+| toggle-button | `size.small.outline.type`, `size.small.text.type` | label | size: small (40 of 120) |
 
 ### `type.label.sm.emphasis-link`
 
-Type: typography. Bound by 4 component(s).
+Type: typography. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `size.small.text.type` | label | appearance: text · size: small (96 of 576) |
 | button-destructive | `size.small.text.type` | label | appearance: text · size: small (96 of 576) |
 | button-neutral | `size.small.text.type` | label | appearance: text · size: small (96 of 576) |
-| toggle-button | `size.small.text.type` | label | appearance: text · size: small (20 of 120) |
 
 ### `type.label.sm.line-box`
 
@@ -4287,9 +4284,9 @@ Declared, not drawn: `color.border.focus`
 
 ### toggle-button
 
-45 token(s); 120 design-file member(s).
+42 token(s); 120 design-file member(s).
 
-`border-width.hairline`, `border-width.thick`, `color.border.focus`, `color.disabled.border`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.indicator.hover`, `color.interactive.primary.indicator.pressed`, `color.interactive.primary.indicator.rest`, `color.interactive.primary.subtle-fill.selected`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `motion.duration-reduced.fast`, `motion.duration.fast`, `motion.easing-role.default`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `space.550`, `type.label.lg.emphasis`, `type.label.lg.emphasis-link`, `type.label.md.emphasis`, `type.label.md.emphasis-link`, `type.label.sm.emphasis`, `type.label.sm.emphasis-link`
+`border-width.hairline`, `border-width.thick`, `color.border.focus`, `color.disabled.border`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.indicator.hover`, `color.interactive.primary.indicator.pressed`, `color.interactive.primary.indicator.rest`, `color.interactive.primary.subtle-fill.selected`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `motion.duration-reduced.fast`, `motion.duration.fast`, `motion.easing-role.default`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `space.550`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
 
 Declared, not drawn: `color.border.focus`, `motion.duration-reduced.fast`, `motion.duration.fast`, `motion.easing-role.default`, `space.550`
 

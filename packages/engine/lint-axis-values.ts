@@ -212,20 +212,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'appearance',
     values: ['outline', 'text'],
-    defs: ['toggle-button', 'toggle-icon-button'],
+    defs: ['toggle-button'],
     relation: 'subset',
     reason:
-      'The toggle pair\'s two treatments (#4112, owner OD-T3 A): Button\'s ladder without `filled`, because a filled '
+      'ToggleButton\'s two treatments (#4112, owner OD-T3 A): Button\'s ladder without `filled`, because a filled '
       + 'resting toggle leaves no clearly stronger look for selected (a tint and a 2px outline). SUBSET of the canonical '
       + 'button ladder, each value meaning what it means there: `outline` an edged control, `text` no edge at rest. '
-      + '`outline` LEADS because it is the code default, so Figma inserts it (#2752). The icon toggle takes `text` too, '
-      + 'as the approval names it, where IconButton says `ghost` (#1432); which word the icon toggle uses is an open '
-      + 'owner call on the PR.',
+      + '`outline` LEADS because it is the code default, so Figma inserts it (#2752). The icon toggle spells its quiet '
+      + 'value `ghost`, IconButton\'s word (owner decision 1 B on #4353), in its own entry below.',
   },
   {
     axis: 'appearance',
     values: ['outline', 'ghost'],
-    defs: ['counter'],
+    defs: ['counter', 'toggle-icon-button'],
     relation: 'overlapping',
     reason:
       'The Counter\'s two treatments (#2427; owner Q283.4 A, `outline | ghost`, and the wireframe decision keeping '
@@ -233,7 +232,10 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'edged control), and `ghost` is IconButton\'s word for a control with no box, here the row with no edge and '
       + 'round buttons at its ends. No `filled` rung: the wireframe\'s filled square buttons (C) are not built now, '
       + 'and adding them is a third value here. `outline` LEADS as Q283.4 A spells it, so the Figma default is '
-      + 'outline, while ghost is the MVP the wireframe named; which one leads is an open owner call on the PR.',
+      + 'outline, while ghost is the MVP the wireframe named; which one leads is an open owner call on the PR. '
+      + 'ToggleIconButton joins it (#4112 OD-T3 A; the word, owner decision 1 B on #4353): IconButton\'s ladder without '
+      + '`filled`, its quiet value spelled `ghost` as IconButton spells it (#1432), so a designer swapping between '
+      + 'IconButton.Neutral and ToggleIconButton meets one word for one look. `outline` LEADS, the code default.',
   },
   {
     axis: 'emphasis',

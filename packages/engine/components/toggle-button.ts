@@ -30,17 +30,28 @@
  * carry, so a disabled selected member is the 2px outline in `color.disabled.border` with no tint; a disabled
  * unselected text member has no edge, as Button's text appearance has none.
  *
- * WHAT IS NOT JOINED. Of Button's brand settings, only `controlShape` reaches these defs, as the approval names it.
- * The six button-family settings (min width, icon placement, content size, label weight, text hover, border weight)
- * are opted into by Button's `min-width` derivation, which these defs do not declare; `outlineInteraction: opaque-fill`
- * is not joined either, on Tag's reasoning (an opaque fill on an unselected toggle reads as selected). Whether the
- * button settings should reach a toggle is held as an OWNER DECISION on the PR.
+ * BUTTON'S BRAND SETTINGS (owner decision 3 A on the PR, 2026-11-19). ToggleButton declares Button's `min-width`
+ * derivation, so it is in the button family and all six settings reach it as they reach Button: min width (the
+ * 104px medium floor at the default multiplier), icon placement, content size, label weight, text hover and border
+ * weight. ToggleIconButton takes them as far as they reach IconButton, its own factory: "Outline button border",
+ * through `levers.buttonBorderWeight`. The other five act on a label, an icon beside it or a width above the height,
+ * none of which an icon-only square has, which is why IconButton is outside the family by construction. Under
+ * "Outline button border: Thick" the unselected edge thickens to match a Button's; the selected edge is already
+ * thick, so selected keeps its tint and indicator color as its difference. `outlineInteraction: opaque-fill` is not
+ * joined, on Tag's reasoning (an opaque fill on an unselected toggle reads as selected).
+ *
+ * THE OTHER TWO OWNER DECISIONS ON THE PR (2026-11-19). 1 B: the icon toggle's quiet appearance is `ghost`, IconButton's
+ * word (#1432), so the pair reads `outline`/`text` on ToggleButton and `outline`/`ghost` on ToggleIconButton, each as
+ * its own factory spells it. 2 B: a text toggle's label is plain `emphasis`, not Button's underlined `emphasis-link`
+ * (#2324): an underlined "Bold" in a toolbar reads as a link, and the toggle's states carry the affordance.
  */
 import { ComponentDef } from '../component-schema';
 import { intentTokens, BUTTON_SPACING_AT } from './button';
 import { iconButtonIntentTokens } from './icon-button';
 
-const APPEARANCES = ['outline', 'text'] as const;
+/** Each def's two appearances: Button's spelling on ToggleButton, IconButton's on ToggleIconButton (owner decision 1 B). */
+const TEXT_APPEARANCES = ['outline', 'text'];
+const ICON_APPEARANCES = ['outline', 'ghost'];
 
 /**
  * The paint of both selection values, from one appearance-keyed source (Button.Neutral's, or IconButton.Neutral's).
@@ -50,11 +61,11 @@ const APPEARANCES = ['outline', 'text'] as const;
  * hover and pressed, and the indicator outline stepping per state. The label and icon ink stay the unselected
  * neutral ink, because the primary ink misses 4.5:1 on the tint.
  */
-const selectionPaint = (source: Record<string, string>): Record<string, string> => {
-  const own = Object.entries(source).filter(([k]) => APPEARANCES.some((ap) => k.startsWith(`${ap}.`)));
+const selectionPaint = (source: Record<string, string>, appearances: string[]): Record<string, string> => {
+  const own = Object.entries(source).filter(([k]) => appearances.some((ap) => k.startsWith(`${ap}.`)));
   const unselected = own.map(([k, v]) => [`unselected.${k}`, v]);
   const selectedInk = own.filter(([k]) => /^[a-z]+\.(label|icon)(\.|$)/.test(k)).map(([k, v]) => [`selected.${k}`, v]);
-  const selectedLook = APPEARANCES.flatMap((ap) => [
+  const selectedLook = appearances.flatMap((ap) => [
     [`selected.${ap}.overlay`, 'color.interactive.primary.subtle-fill.selected'],
     [`selected.${ap}.border`, 'color.interactive.primary.indicator.rest'],
     [`selected.${ap}.border.hover`, 'color.interactive.primary.indicator.hover'],
@@ -63,17 +74,11 @@ const selectionPaint = (source: Record<string, string>): Record<string, string> 
   return Object.fromEntries([...unselected, ...selectedInk, ...selectedLook]);
 };
 
-/**
- * IconButton.Neutral's paint, re-keyed to the two appearances a toggle has. IconButton calls its third appearance
- * `ghost`; the approval names `text` for both toggles (OD-T3), so the ghost keys land under `text.*`. The ink and
- * wash bindings are unchanged (whether the icon toggle's value should read `ghost` is an OWNER DECISION on the PR).
- */
-const ICON_SOURCE = Object.fromEntries(Object.entries(iconButtonIntentTokens('neutral'))
-  .map(([k, v]) => [k.replace(/^ghost\./, 'text.'), v]));
 
 /** Shared by both defs: the edge weight per selection, the ring, the motion, and the cross-cutting disabled. */
 const SHARED_TOKENS: Record<string, string> = {
   // 1px unselected (Button's hairline), 2px selected (Tag's `border-width.thick`); both drawn inside the box.
+  // "Outline button border: Thick" rebinds the unselected key, the one at the hairline (`applyButtonLayout` step 6).
   'unselected.border-width': 'border-width.hairline',
   'selected.border-width': 'border-width.thick',
   'focus-ring': 'color.border.focus',
@@ -127,10 +132,10 @@ const SHARED_MOTION = {
 const SHARED_NOTES = {
   contested: [
     'constant name and aria-pressed (practice) against a label that flips with the state (brief §6, §15) — this component takes the constant name and has no selectedLabel prop.',
-    'Button\'s brand settings (min width, icon placement, content size, label weight, text hover, border weight) do not reach a toggle: the approval names controlShape only. A toggle beside a Button on a brand with a non-default label weight reads in a different weight. OWNER DECISION on the PR.',
   ],
   evolution: [
     '2026-11-19 (#4112, owner OD-T1 to OD-T5 A): built on Button as two defs, with Tag\'s selected look, outline and text appearances only, and no group def. Button\'s own sets are unchanged.',
+    '2026-11-19 (#4353, owner decisions 1 B, 2 B, 3 A): the icon toggle\'s quiet appearance is ghost, IconButton\'s word; a text toggle\'s label is plain emphasis, with no link underline; and Button\'s six brand settings reach ToggleButton through Button\'s min-width derivation, and ToggleIconButton as far as they reach IconButton (Outline button border).',
     'The brief lists a solid appearance and an icon-only versus icon-and-label shape axis (§15 variants). This component omits solid (OD-T3) and splits the icon-only shape into ToggleIconButton (OD-T4), as Button and IconButton split.',
     'The brief\'s `toggle` alias is not taken: switch-row holds it, and one alias names one component.',
   ],
@@ -180,27 +185,27 @@ export const toggleButton: ComponentDef = {
     'radius': 'radius.md',
     ...SHARED_TOKENS,
     'disabled.label': 'color.disabled.text',
-    // Button's per-size geometry and label type, unchanged, for the two appearances a toggle has. The text
-    // appearance's label is Button's underlined style (#2324); whether a toggle keeps it is an OWNER DECISION.
+    // Button's per-size geometry and label type for the two appearances a toggle has. The text appearance's label is
+    // plain `emphasis`, not Button's underlined `emphasis-link` (#2324): owner decision 2 B on the PR.
     ...(BUTTON_SPACING_AT['small']),
     'size.small.height': 'size.sm.height',
     'size.small.hit-target': 'space.300',
     'size.small.icon': 'icon.size.xs',
     'size.small.outline.type': 'type.label.sm.emphasis',
-    'size.small.text.type': 'type.label.sm.emphasis-link',
+    'size.small.text.type': 'type.label.sm.emphasis',
     ...(BUTTON_SPACING_AT['medium']),
     'size.medium.height': 'size.md.height',
     'size.medium.hit-target': 'space.550',
     'size.medium.icon': 'icon.size.sm',
     'size.medium.outline.type': 'type.label.md.emphasis',
-    'size.medium.text.type': 'type.label.md.emphasis-link',
+    'size.medium.text.type': 'type.label.md.emphasis',
     ...(BUTTON_SPACING_AT['large']),
     'size.large.height': 'size.lg.height',
     'size.large.hit-target': 'space.550',
     'size.large.icon': 'icon.size.md',
     'size.large.outline.type': 'type.label.lg.emphasis',
-    'size.large.text.type': 'type.label.lg.emphasis-link',
-    ...selectionPaint(intentTokens('neutral')),
+    'size.large.text.type': 'type.label.lg.emphasis',
+    ...selectionPaint(intentTokens('neutral'), TEXT_APPEARANCES),
   },
 
   anatomy: {
@@ -229,8 +234,11 @@ export const toggleButton: ComponentDef = {
       focusRing: FOCUS_RING,
     },
     derived: {
-      // Description only: `levers.controlShape.capsules` decides the reach, as on Button. Deliberately no `min-width`
-      // key, which would opt this def into Button's six brand settings (`isButtonFamily`): held for the owner.
+      // Button's derivation, word for word: its PRESENCE opts this def into Button's six brand settings
+      // (`isButtonFamily`, owner decision 3 A), so a toggle beside a Button takes the same floor, icons, content,
+      // weight, text hover and edge. At the default multiplier the medium floor is 104px, as on Button.
+      'min-width': 'height × minWidthMultiplier — Spectrum computes it rather than authoring it, so a short label ("OK") cannot produce a stubby button',
+      // Description only: `levers.controlShape.capsules` decides the reach, as on Button.
       'pill-radius': 'height ÷ 2 — only when the brand\'s control shape is pill; a literal radius token would be wrong at more than one height',
     },
     codeOnly: [
@@ -379,7 +387,7 @@ export const toggleIconButton: ComponentDef = {
     { name: 'icon', type: 'slot', required: true, description: 'The single icon. Rendered aria-hidden: the button carries the name.' },
     { name: 'aria-label', type: 'string', required: true, description: 'Required accessible name, a verb or noun naming the action or mode ("Bold", "Mute"). It stays the same in both states: the selected state is carried by the pressed state.' },
     ...SELECTION_PROPS,
-    { name: 'appearance', type: "enum: 'outline' | 'text'", values: ['outline', 'text'], default: 'outline', required: false, description: 'outline = a neutral border, for a toggle on its own; text = no border at rest, for a row of toggles in a toolbar. There is no filled appearance, so selected stays the strongest look.' },
+    { name: 'appearance', type: "enum: 'outline' | 'ghost'", values: ['outline', 'ghost'], default: 'outline', required: false, description: 'outline = a neutral border, for a toggle on its own; ghost = no border at rest, for a row of toggles in a toolbar. There is no filled appearance, so selected stays the strongest look.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Square control, as on IconButton: the height drives both dimensions.' },
     ...STATE_PROPS,
   ],
@@ -387,13 +395,16 @@ export const toggleIconButton: ComponentDef = {
   states: STATES,
   variants: {
     selection: ['unselected', 'selected'],
-    appearance: ['outline', 'text'],
+    // `outline` LEADS, the code default; `ghost` is IconButton's word for the quiet treatment (owner decision 1 B).
+    appearance: ['outline', 'ghost'],
     size: ['medium', 'small', 'large'],
   },
   axisKinds: { selection: 'runtime', appearance: 'runtime', size: 'authoring' },
 
   paintKeys: PAINT_KEYS,
-  levers: { controlShape: { capsules: ['radius.md'] } },
+  // `buttonBorderWeight`, as on IconButton (#576 Q6): of Button's six settings, the one an icon-only square can take
+  // (owner decision 3 A). The other five need a label or a width above the height.
+  levers: { controlShape: { capsules: ['radius.md'] }, buttonBorderWeight: { edge: true } },
 
   tokens: {
     'radius': 'radius.md',
@@ -405,7 +416,7 @@ export const toggleIconButton: ComponentDef = {
     'size.small.icon': 'icon.size.sm',
     'size.medium.icon': 'icon.size.md',
     'size.large.icon': 'icon.size.lg',
-    ...selectionPaint(ICON_SOURCE),
+    ...selectionPaint(iconButtonIntentTokens('neutral'), ICON_APPEARANCES),
   },
 
   anatomy: {
@@ -527,7 +538,7 @@ export const toggleIconButton: ComponentDef = {
     usage: 'Use for an icon-only action or mode that stays on until pressed again, usually in a toolbar: Bold, Italic, Underline, Mute, Pin. Always give it an accessible name; a tooltip can show it on hover and focus. With room for a label, use ToggleButton.',
     do: [
       'Always give it an accessible name, and keep it the same in both states',
-      'Use appearance=text for a row of toggles in a toolbar, and appearance=outline for one on its own',
+      'Use appearance=ghost for a row of toggles in a toolbar, and appearance=outline for one on its own',
       'Group a row of independent toggles in a container with `role="group"` and an accessible label, each toggle its own tab stop',
       'Use a recognizable icon; pair a novel one with a visible label instead (ToggleButton)',
     ],

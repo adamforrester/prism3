@@ -1305,7 +1305,7 @@
             "name": "appearance",
             "values": [
               "outline",
-              "text"
+              "ghost"
             ]
           },
           {

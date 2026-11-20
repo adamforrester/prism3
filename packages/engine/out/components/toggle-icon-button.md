@@ -29,7 +29,7 @@ Shown on the default member: selection `unselected`, appearance `outline`, size 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `selection` | `unselected`, `selected` | at runtime | — |
-| `appearance` | `outline`, `text` | at runtime | outline = a neutral border, for a toggle on its own; text = no border at rest, for a row of toggles in a toolbar. There is no filled appearance, so selected stays the strongest look. |
+| `appearance` | `outline`, `ghost` | at runtime | outline = a neutral border, for a toggle on its own; ghost = no border at rest, for a row of toggles in a toolbar. There is no filled appearance, so selected stays the strongest look. |
 | `size` | `medium`, `small`, `large` | once, when authored | Square control, as on IconButton: the height drives both dimensions. |
 
 ### States
@@ -45,7 +45,7 @@ Use for an icon-only action or mode that stays on until pressed again, usually i
 ### Do
 
 - Always give it an accessible name, and keep it the same in both states
-- Use appearance=text for a row of toggles in a toolbar, and appearance=outline for one on its own
+- Use appearance=ghost for a row of toggles in a toolbar, and appearance=outline for one on its own
 - Group a row of independent toggles in a container with `role="group"` and an accessible label, each toggle its own tab stop
 - Use a recognizable icon; pair a novel one with a visible label instead (ToggleButton)
 
@@ -107,7 +107,7 @@ The accessible name is a short verb or noun naming the action or mode, constant 
 | `selected` | boolean | `false` | no | Whether the toggle is on, in a controlled toggle. Rendered as aria-pressed. While selected it takes a tint and a 2px outline, so the state never rests on color alone. |
 | `defaultSelected` | boolean | `false` | no | Whether an uncontrolled toggle starts on. |
 | `onSelectedChange` | function | — | no | Called with the new value when the toggle is pressed. A controlled toggle without it never changes. |
-| `appearance` | enum: 'outline' \| 'text' | `outline` | no | outline = a neutral border, for a toggle on its own; text = no border at rest, for a row of toggles in a toolbar. There is no filled appearance, so selected stays the strongest look. |
+| `appearance` | enum: 'outline' \| 'ghost' | `outline` | no | outline = a neutral border, for a toggle on its own; ghost = no border at rest, for a row of toggles in a toolbar. There is no filled appearance, so selected stays the strongest look. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Square control, as on IconButton: the height drives both dimensions. |
 | `isInactive` | boolean | `false` | no | Focusable disabled, as on Button: visually muted, keeps its place in the tab order, and surfaces the reason on focus. |
 | `disabled` | boolean | `false` | no | Native disabled, as on Button: reserved for a toggle that has no meaning in the current view. Removes it from the tab order. |
@@ -213,33 +213,33 @@ Keyed by `selection`, `appearance`, `state`.
 | `container` | — | `color.disabled.border` | — | — |
 | `container/icon` | — | — | — | `color.disabled.icon` |
 
-**selection=unselected, appearance=text, state=rest**
+**selection=unselected, appearance=ghost, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/icon` | — | — | — | `color.interactive.neutral.icon.rest` |
 
-**selection=unselected, appearance=text, state=hover**
+**selection=unselected, appearance=ghost, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.interactive.neutral.overlay.hover` | — | — | — |
 | `container/icon` | — | — | — | `color.interactive.neutral.icon.hover` |
 
-**selection=unselected, appearance=text, state=pressed**
+**selection=unselected, appearance=ghost, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.interactive.neutral.overlay.pressed` | — | — | — |
 | `container/icon` | — | — | — | `color.interactive.neutral.icon.pressed` |
 
-**selection=unselected, appearance=text, state=focus-visible**
+**selection=unselected, appearance=ghost, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/icon` | — | — | — | `color.interactive.neutral.icon.rest` |
 
-**selection=unselected, appearance=text, state=disabled**
+**selection=unselected, appearance=ghost, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -280,35 +280,35 @@ Keyed by `selection`, `appearance`, `state`.
 | `container` | — | `color.disabled.border` | — | — |
 | `container/icon` | — | — | — | `color.disabled.icon` |
 
-**selection=selected, appearance=text, state=rest**
+**selection=selected, appearance=ghost, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.indicator.rest` | — | — |
 | `container/icon` | — | — | — | `color.interactive.neutral.icon.rest` |
 
-**selection=selected, appearance=text, state=hover**
+**selection=selected, appearance=ghost, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.indicator.hover` | — | — |
 | `container/icon` | — | — | — | `color.interactive.neutral.icon.hover` |
 
-**selection=selected, appearance=text, state=pressed**
+**selection=selected, appearance=ghost, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.indicator.pressed` | — | — |
 | `container/icon` | — | — | — | `color.interactive.neutral.icon.pressed` |
 
-**selection=selected, appearance=text, state=focus-visible**
+**selection=selected, appearance=ghost, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.indicator.rest` | — | — |
 | `container/icon` | — | — | — | `color.interactive.neutral.icon.rest` |
 
-**selection=selected, appearance=text, state=disabled**
+**selection=selected, appearance=ghost, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
