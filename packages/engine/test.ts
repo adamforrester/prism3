@@ -44292,6 +44292,36 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
 }
 
+// #3284 (owner decision A, 2026-11-18) — the action note told an unset lever from an explicit `primary` by the
+// RESOLVED name only, so a brand that wrote `actionPalette: 'primary'` read "actionPalette is not set". The explicit
+// case now reads "the primary palette, as the brand sets" (APPROVED wording), under either spelling. And a pin on
+// `actionAnchorStep` is applied on any action palette, so the pin sentence is said for any pin, not only under a
+// brand color.
+{
+  const b3284 = { id: 'a3284', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  const actionLines = (extra: object): string[] => brandTheme({ ...b3284, ...extra } as unknown as BrandInput).notes.filter((n) => n.startsWith('action: '));
+  const unset = actionLines({});
+  ok(JSON.stringify(unset) === JSON.stringify(['action: the primary palette, by default — actionPalette is not set.']),
+    `#3284 an unset action palette still reads "by default — actionPalette is not set" (got ${JSON.stringify(unset)})`);
+  for (const [label, extra] of [['actionPalette', { actionPalette: 'primary' }], ['roleColors.action', { roleColors: { action: 'primary' } }]] as const) {
+    const set = actionLines(extra);
+    ok(JSON.stringify(set) === JSON.stringify(['action: the primary palette, as the brand sets.']),
+      `#3284 an explicit ${label} 'primary' reads "the primary palette, as the brand sets", never "not set" (got ${JSON.stringify(set)})`);
+  }
+  const pin = "by actionAnchorStep — applied exactly, never moved; a miss of 3:1 (7:1 in high contrast) is reported, not corrected.";
+  for (const [label, extra, line] of [
+    ['an explicit primary', { actionPalette: 'primary', actionAnchorStep: 300 }, 'action: the primary palette, as the brand sets.'],
+    ['an unset', { actionAnchorStep: 300 }, 'action: the primary palette, by default — actionPalette is not set.'],
+  ] as const) {
+    const got = actionLines(extra);
+    ok(JSON.stringify(got) === JSON.stringify([line, `action: pinned at 'primary' step 300 ${pin}`]),
+      `#3284 a pin on ${label} action palette gets the pin sentence, naming primary step 300 (got ${JSON.stringify(got)})`);
+  }
+  const neutralPin = actionLines({ actionPalette: 'neutral', actionAnchorStep: 900 });
+  ok(neutralPin.includes(`action: pinned at 'neutral' step 900 ${pin}`),
+    `#3284 a pin on a palette with no brand color (neutral) gets the pin sentence too (got ${JSON.stringify(neutralPin)})`);
+}
+
 // #3375 — List.Item's icon marker stays on `icon.size.sm/md/lg` (owner decision A, 2026-11-18), and the comment that
 // states its sizes must say what those bindings draw. It said 16/20/24 while the code drew 20/24/32. The comment is
 // authored prose and the px come from the def's bindings through the icon ladder, so the two halves are independent.
