@@ -157,7 +157,10 @@ export const badge: ComponentDef = {
   id: 'badge',
   name: 'Badge',
   aliases: ['status-badge', 'counter-badge', 'notification-badge', 'notification-dot', 'presence-badge', 'label', 'counter', 'state-label'],
-  category: 'foundations',
+  // Not the brief's `foundations`: the owner moved Badge out of it to match the Figma file, which places it under
+  // Components (#2092 A, 2026-11-18). `feedback` is the DRAFT value, held for the owner in the PR; `test.ts` admits
+  // the departure from the brief by name (`OWNER_CATEGORY`).
+  category: 'feedback',
   status: 'draft',
   summary: 'A static status label, count or dot. Nothing to click; color is not meant to be the only signal.',
   description:

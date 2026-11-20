@@ -148,6 +148,7 @@ const ADMITS: Readonly<Record<string, readonly Kind[]>> = {
   corner: ['vector', 'box'],
   foot: ['box'],
   footShare: ['box'],
+  hiddenWhenAbsent: ['box'],
   scaleWithParent: ['vector'],
   stackCentered: ['vector'],
   note: ALL,

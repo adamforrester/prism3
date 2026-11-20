@@ -537,14 +537,9 @@
         "center",
         "end",
         "full"
-      ],
-      "size": [
-        "large",
-        "medium",
-        "small"
       ]
     },
-    "members": 24,
+    "members": 16,
     "properties": {
       "body": "SLOT",
       "close": "BOOLEAN",

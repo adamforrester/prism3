@@ -112,8 +112,8 @@ const emitAndGate = (theme: Theme, resolvedOut: string, designPath: string, sour
   console.log(`  palettes: ${theme.palettes.map((p) => p.palette).join(', ')} (danger ← ${theme.roleToPalette.danger})`);
   console.log(`  aliases: ${stats.resolved}/${stats.aliases} resolve | mode contracts: ${stats.modePass}/${stats.modeChecks} pass`);
   // #4153: every file `emitTheme` writes, not two of them: the full tree, the sidecar, and the base + per-mode overlay
-  // set that a multi-mode build reads (skills/prism3-build-ui rule 3).
-  for (const name of [`${theme.id}.tokens.json`, `${theme.id}.ai.json`, `${theme.id}.base.tokens.json`,
+  // set that a multi-mode build reads (skills/prism3-build-ui rule 3), and the web base beside it (#4155).
+  for (const name of [`${theme.id}.tokens.json`, `${theme.id}.ai.json`, `${theme.id}.base.tokens.json`, `${theme.id}.web.base.tokens.json`,
     ...overlayModes(emitted.tree).map((m) => `${theme.id}.${m}.overlay.tokens.json`)]) console.log(`  [written] ${resolve(resolvedOut, name)}`);
   const broken = stats.broken.length > 0;
   const contractsFail = stats.modePass < stats.modeChecks;
@@ -182,7 +182,8 @@ const main = () => {
     catch (e) { return fail(`could not classify '${std.name}' (standard dialect): ${(e as Error).message}`); }
     const { input, classification, xApplied, xWarnings } = classified;
     console.log(`[standard] '${std.name}' → id '${input.id}' — ${Object.keys(std.colors).length} colours, ${Object.keys(std.typography).length} type tokens; x-prism3: ${xApplied.length ? xApplied.join(', ') : 'none (defaults)'}`);
-    // #2678 (Q-XP1 A): an x-prism3 key the dialect does not read is named here, and the file keeps compiling.
+    // #2678 (Q-XP1 A): an x-prism3 key the dialect does not read is named here, and so is a typography face no category
+    // reads (#4137); the file keeps compiling.
     for (const w of xWarnings) console.log(`  ⚠ ${w}`);
     validateOrExit(input, designPath!);
     let theme: Theme;

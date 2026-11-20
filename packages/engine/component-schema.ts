@@ -1099,6 +1099,14 @@ export type PartFields = {
    *  reads `rest`: unlike a variant axis a state has a resting value, and the paint grammar already treats
    *  an unsupplied state as rest. */
   presentWhen?: Record<string, readonly string[]>;
+  /** #3058 (owner decision 2026-11-18 A): where `presentWhen`'s VARIANT gate leaves a member out, the part is BUILT
+   *  HIDDEN there (`visible: false`) instead of left out of the tree. Figma carries an instance's override on a node
+   *  across a variant switch by the node's name, so a node that is absent from one member drops whatever a designer put
+   *  in it on the way through: Accordion's panel slot came back as its placeholder after collapsed and expanded again.
+   *  Hidden, it lays out as absent (auto layout skips it, so the member's footprint is unchanged) and keeps its content.
+   *  A box's only: the case is a slot's content, and a box is what becomes a slot. Needs a `presentWhen` to soften; a
+   *  STATE gate stays a presence gate, since a state is never an instance's authored content. */
+  hiddenWhenAbsent?: true;
   /** VARIANT-GATED POSITION (#990): axis → value → where along its PARENT's main axis this part sits.
    *  A switch's thumb says `{ selection: { off: 'start', on: 'end' } }` — ONE part, in two places.
    *
@@ -1501,7 +1509,7 @@ export type BoxKey =
   | 'contentSlot' | 'slotSettings' | 'preferred' | 'preferredWhenBuilt' | 'paintSlots' | 'paintGroup' | 'gradient'
   | 'clipsContent' | 'scroll' | 'minWidth' | 'placementWidth' | 'placementHeight' | 'directionWhen' | 'sizingWhen'
   | 'builtSize' | 'elevation' | 'radiusEdges' | 'minHeight' | 'minWidthKey' | 'minWidthRatio' | 'flush' | 'center'
-  | 'aspectRatio' | 'foot' | 'footShare' | 'corner' | 'inset';
+  | 'aspectRatio' | 'foot' | 'footShare' | 'hiddenWhenAbsent' | 'corner' | 'inset';
 export type TextKey =
   | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot' | 'type'
   | 'verticalAlign' | 'wrap' | 'lines' | 'characters';
@@ -4913,13 +4921,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // which only a TEXT node takes, so only a `text` part carries one (Q-PU2 A; since #3783 `figmaAnatomyPlan` reads it on
   // no other kind either). The union under `PartFields` says the same at the type layer, and `lint-part-union` proves
   // it does.
-  const KIND_ONLY: readonly { field: 'radius' | 'replaces' | 'overlaysWhenAbsent' | 'when' | 'children' | 'type'; kinds: readonly PartKind[]; asked?: readonly PartKind[]; why: string }[] = [
+  const KIND_ONLY: readonly { field: 'radius' | 'replaces' | 'overlaysWhenAbsent' | 'when' | 'children' | 'type' | 'hiddenWhenAbsent'; kinds: readonly PartKind[]; asked?: readonly PartKind[]; why: string }[] = [
     { field: 'radius', kinds: ['box'], why: "the corners are bound only on a box's frame" },
     { field: 'replaces', kinds: ['overlay'], why: 'only an overlay takes another part\'s cell' },
     { field: 'overlaysWhenAbsent', kinds: ['overlay'], why: "it is an overlay's fallback when none of its 'replaces' is present" },
     { field: 'when', kinds: ['overlay', 'absolute'], why: "only those two kinds are gated by state; an in-flow part gates on it through 'presentWhen'" },
     { field: 'children', kinds: ['box'], asked: ['text', 'slot', 'overlay'], why: 'only a box builds a frame that holds children — a text node holds none, and a slot or overlay is an instance, which takes no appends' },
     { field: 'type', kinds: ['text'], why: 'it names a text style, and only a text node takes one — a frame or an instance has no text style to set' },
+    { field: 'hiddenWhenAbsent', kinds: ['box'], why: "it keeps a slot's content across a variant switch, and only a box becomes a slot (#3058)" },
   ];
   for (const [n, p] of Object.entries(parts)) {
     for (const k of KIND_ONLY)
@@ -4929,6 +4938,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
 
   // Only a box lays out children; a text/slot/overlay/absolute carrying layout means the tree is
   // mis-shaped and the materializer would emit an auto-layout frame where a leaf belongs.
+  // #3058: `hiddenWhenAbsent` softens a VARIANT gate, so a part without one has nothing to soften, and a gate on the
+  // state alone is a presence rule it does not reach.
+  for (const [n, p] of Object.entries(parts))
+    if (p.hiddenWhenAbsent !== undefined && (p.hiddenWhenAbsent !== true || !Object.keys(p.presentWhen ?? {}).some((a) => a !== STATE_GATE)))
+      e.push(`anatomy part '${n}' declares 'hiddenWhenAbsent' without a variant gate in 'presentWhen' to soften — it takes \`true\` alone, on a part that a variant axis gates`);
   for (const [n, p] of Object.entries(parts)) {
     // ---- VARIANT-GATED PRESENCE (#910) ----
     // Six rules, and each one is a way the field can be authored so that it validates and then makes the
