@@ -915,7 +915,7 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
   const ground = (sec: HTMLElement): HTMLElement => sharedGround(c, sec, surf);
 
   const bar = el('div', 'sg-surfbar');
-  const sel = hook(selectEl('cap'), 'style-guide-ground');
+  const sel = hook(selectEl('cap'), 'style-guide-ground'); sel.className = 'p3-select p3-sg-ground';   // #4188: the chrome's select, the levers' size
   for (const o of SG_SURFACES) sel.append(optionEl(o.key, o.label, o.key === surf.key));
   // The repaint is the caller's (Brand's preview, UI redesign S3), so the select redraws the Style guide in
   // place, never through a legacy tier.

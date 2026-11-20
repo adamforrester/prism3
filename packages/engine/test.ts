@@ -14664,14 +14664,16 @@ arm: {
   const shadows = { ...allEffects, styles: allEffects.styles.filter((s) => s.name !== 'glass') };
   ok(allEffects.styles.length === shadows.styles.length + 1, `figma shadow: the effect list is the shadow sets plus exactly one glass style`);
 
-  // (a) One style per shadow step, TWO SETS (light + dark). NB ships 7 steps
-  // (xs..2xl + inset) × 2 modes = 14 styles.
-  ok(shadows.styles.length === nbShadowKeys.length * 2, `figma shadow: emits N×2 styles for N shadow steps (light + dark mode sets) — expected ${nbShadowKeys.length * 2}, got ${shadows.styles.length}`);
+  // (a) One style per shadow step, THREE SETS (light + dark + hc-dark, #4131). NB ships 7 steps
+  // (xs..2xl + inset) × 3 modes = 21 styles.
+  ok(shadows.styles.length === nbShadowKeys.length * 3, `figma shadow: emits N×3 styles for N shadow steps (light + dark + hc-dark mode sets) — expected ${nbShadowKeys.length * 3}, got ${shadows.styles.length}`);
 
   // (b) Names split cleanly by prefix.
   const lightNames = shadows.styles.filter((s) => s.name.startsWith('shadow/')).map((s) => s.name);
   const darkNames = shadows.styles.filter((s) => s.name.startsWith('shadow-dark/')).map((s) => s.name);
-  ok(lightNames.length === nbShadowKeys.length && darkNames.length === nbShadowKeys.length, `figma shadow: N light styles ('shadow/*') + N dark styles ('shadow-dark/*') — got ${lightNames.length}L / ${darkNames.length}D`);
+  const hcDarkNames = shadows.styles.filter((s) => s.name.startsWith('shadow-hc-dark/')).map((s) => s.name);
+  ok(lightNames.length === nbShadowKeys.length && darkNames.length === nbShadowKeys.length && hcDarkNames.length === nbShadowKeys.length,
+    `figma shadow: N light styles ('shadow/*') + N dark styles ('shadow-dark/*') + N hc-dark styles ('shadow-hc-dark/*') — got ${lightNames.length}L / ${darkNames.length}D / ${hcDarkNames.length}HC`);
 
   // (c) Every effect layer has color + offset + radius + spread + type +
   // blendMode. Colours have {r,g,b,a} in [0,1].
@@ -44030,6 +44032,32 @@ arm: {
     const offText = nodes.filter((n) => n.textStyle !== undefined && n.type !== 'TEXT').map((n) => `${n.name}:${n.type}`);
     ok(parts[h.part]?.kind === h.kind && !!typeKey && !threw && host !== undefined && host.textStyle === undefined && offText.length === 0,
       `#3783 a '${h.kind}' part carrying 'type' (${h.def}.${h.part}, synthetic) plans NO text style — only a TEXT node takes one (${threw ? `threw: ${threw}` : !host ? 'the part was not built at this coordinate' : `text style on ${offText.join(', ') || 'none'}`})`);
+  }
+}
+
+// ------------------------------------------------------------------- #4131: hc-dark takes the reduced dark shadow
+// Owner decision A: every dark-appearance mode follows the shadow model, full in light and reduced in dark. Read through
+// the overlay a consumer installs (base + hc-dark), not the theme, so a seed that never reaches the projection fails too.
+// The regression brand nb is built by nbThemeFrom, not brandTheme, so it is read here too.
+// Mutation: drop the hc-dark seeding in theme-brand.ts → every example brand's row fails by name; drop it in
+// theme-nb.ts → `#4131 nb` fails by name.
+{
+  const themes: Array<[string, Theme | undefined]> = [
+    ...Object.entries(exampleBrands()).map(([id, input]): [string, Theme | undefined] => [id, exampleTheme(`${id} (#4131)`, () => brandTheme(input as BrandInput))]),
+    ['nb', nbTheme()],
+  ];
+  for (const [id, t] of themes) {
+    if (!t || !t.modes.includes('hc-dark')) { ok(false, `#4131 ${id}: the brand loads and generates hc-dark`); continue; }
+    const tree = (buildTree(t) as any).tree;
+    const ov = buildOverlay(tree, 'hc-dark') as any;
+    const rows = [...t.shadow.steps.map((s) => s.name), 'inset'].map((step) => {
+      const light = JSON.stringify(tree[t.root].shadow[step].$value);
+      const dark = JSON.stringify(tree[t.root].shadow[step].$extensions.prism3.modes.dark?.$value);
+      const hc = JSON.stringify(ov?.[t.root]?.shadow?.[step]?.$value);
+      return { step, ok: hc !== undefined && hc === dark && hc !== light };
+    });
+    const bad = rows.filter((r) => !r.ok).map((r) => r.step);
+    ok(bad.length === 0, `#4131 ${id}: the hc-dark overlay carries the reduced dark shadow on every step, not the light one (wrong: ${bad.join(', ') || 'none'})`);
   }
 }
 
