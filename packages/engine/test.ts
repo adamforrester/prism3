@@ -4445,6 +4445,8 @@ for (const b of brands) {
       banner: { prefix: 'bare', lt: [['gap', 'pad']] },
       // Toast (#2668): no size axis, so the keys are bare. Both content gaps sit under the inline-start padding.
       toast: { prefix: 'bare', lt: [['gap', 'pad-x'], ['glyph-gap', 'pad-x']] },
+      // #4008: the header, body and footer gap is tighter than the panel padding around them.
+      popover: { prefix: 'bare', lt: [['gap', 'pad']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     // `pad` (#2579): Banner's one padding, block and inline alike.
@@ -18867,6 +18869,61 @@ arm: {
     ok(validateComponentDef(minWidthNoLayout as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /binds no 'layout'/.test(e)),
       "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
 
+    // ---- #4008 Popover: each decision held against a literal from the proposal and Q-FL2, never read off the def ----
+    {
+      const pop = componentDefs.find((x) => x.id === 'popover')!;
+      // OD-P3 A, the raised surface (OD-X1 A: Menu's panel is held equal to these five once it lands).
+      const POPOVER_SURFACE: Record<string, string> = {
+        fill: 'color.foreground.raised', border: 'color.border.secondary', 'border-width': 'border-width.hairline', shadow: 'shadow.lg', radius: 'radius.lg',
+      };
+      const surfaceOff = Object.entries(POPOVER_SURFACE).filter(([k, v]) => pop.tokens[k] !== v).map(([k]) => `${k}=${pop.tokens[k]}`);
+      ok(surfaceOff.length === 0, `#4008 popover surface: fill, border, border-width, shadow and radius are the proposal's raised roles${surfaceOff.length ? ` — off: ${surfaceOff.join(', ')}` : ''}`);
+      const panel = pop.anatomy.parts.panel;
+      ok(panel.kind === 'box' && panel.paintSlots?.join() === 'fill,border' && panel.strokeWidth === 'border-width' && panel.elevation === 'shadow' && panel.radius === 'radius',
+        '#4008 popover panel: the root paints the fill and the hairline edge, casts the shadow and takes the radius');
+      // K4 B: the brief's aliases, overlay and flyout included.
+      const K4 = ['popup', 'overlay', 'anchored-overlay', 'floating-panel', 'flyout'];
+      ok(K4.every((a) => pop.aliases?.includes(a)), `#4008 popover aliases (K4 B): ${K4.join(', ')} — missing: ${K4.filter((a) => !pop.aliases?.includes(a)).join(', ') || 'none'}`);
+      // OD-P2 A: no arrow, so one member.
+      const members = figmaAnatomySet(pop, { swapTarget: 'FPO-default-icon' });
+      ok(members.length === 1, `#4008 popover set (OD-P2 A): one member (${members.length})`);
+      // The close button: FlushIconButton.Neutral, flush, small, the close glyph; the footer a Button group, off by default.
+      const close = pop.anatomy.parts.close;
+      ok(close.kind === 'nest' && close.nests === 'flush-icon-button-neutral' && close.nesting?.kind === 'nest-fixed'
+        && (close.nesting as { variant?: Record<string, string> }).variant?.size === 'small' && (close.nesting as { variant?: Record<string, string> }).variant?.shape === 'flush'
+        && close.overrides?.swaps?.icon === 'close', '#4008 popover close: FlushIconButton.Neutral, flush, small, always the close glyph');
+      const footer = pop.anatomy.parts.footer;
+      ok(footer.kind === 'nest' && footer.nests === 'button-group' && pop.figmaProperties?.booleans?.footer?.default === false,
+        '#4008 popover footer: a nested Button group behind the footer toggle, off by default');
+      // K5 B: a read-only popover leaves focus on its trigger.
+      // Held on BOTH fields that state it: the focus contract and the keyboard-and-focus code note for focus on opening.
+      const popCode = (pop.anatomy.codeOnly ?? []) as { class: string; description: string }[];
+      const focusOnOpen = popCode.find((e) => e.class === 'keyboard-and-focus' && /^focus on opening/.test(e.description))?.description ?? '';
+      ok(/leaves focus on its trigger/.test(pop.accessibility?.focus ?? '') && /read-only popover[^.]*leaves focus on its trigger/.test(focusOnOpen),
+        '#4008 popover focus (K5 B): the focus contract and the focus-on-opening code note both say a read-only popover leaves focus on its trigger');
+      // S1 A (owner, 2026-11-19): a read-only popover announces its content through a polite live region and sits right
+      // after its trigger in the DOM; aria-controls is not the guarantee. Held on the code note, and on the focus note not
+      // claiming aria-controls as the way in.
+      const announce = popCode.find((e) => e.class === 'semantics' && /^read-only announcement/.test(e.description))?.description ?? '';
+      // Every code note and the aria contract are scanned for an aria-controls claim, not the focus note alone (delta
+      // review nit): a "through `aria-controls`" sentence put back anywhere fails here by name.
+      const leansOnControls = [...popCode.map((e) => e.description), pop.accessibility?.aria ?? ''].filter((t) => /through `?aria-controls`?/.test(t));
+      ok(/polite live region \(`role="status"`\)/.test(announce) && /right after its trigger in the DOM/.test(announce) && leansOnControls.length === 0,
+        `#4008 popover read-only announcement (S1 A): a code note says a read-only popover announces through a polite live region (role="status") and sits right after its trigger in the DOM, and no note relies on aria-controls (${leansOnControls.length} do)`);
+      // #3986 on Popover's own parts (delta review S1): its right-to-left prose says the close button moves to the start
+      // edge, so the header row itself reverses, as Dialog's does. EXPECTED (typed here): the header part declares
+      // 'reverses'. The #3986 arm passes through the nested Button group alone, so it cannot see this part.
+      ok((pop.anatomy.parts as any)?.header?.mirror === 'reverses',
+        `#4008 popover right-to-left: the header part declares mirror 'reverses', as its prose and Dialog's header do (got ${JSON.stringify((pop.anatomy.parts as any)?.header?.mirror)})`);
+      // OD-P5 A: no automatic switch to a sheet on a small screen.
+      ok(popCode.some((e) => e.class === 'responsive-layout' && /^no automatic switch — on a small screen it stays a popover/.test(e.description)),
+        '#4008 popover small screen (OD-P5 A): a code note says it stays a popover, with no automatic sheet');
+      // OD-P6 A: focus leaving the popover closes it, in the keyboard contract and the code note.
+      ok(/leaving closes it/.test(pop.accessibility?.keyboard ?? '') && popCode.some((e) => e.class === 'keyboard-and-focus' && /Focus leaving by Tab or a press outside closes it/.test(e.description)),
+        '#4008 popover focus leaving (OD-P6 A): the keyboard contract and the focus-not-held code note both say focus leaving closes it');
+      // OD-P1 A: the role is a non-modal dialog.
+      ok(/role="dialog"/.test(pop.accessibility?.role ?? '') && /no `aria-modal`/.test(pop.accessibility?.role ?? ''), '#4008 popover role (OD-P1 A): role="dialog" with no aria-modal');
+    }
     // ---- #3163: `PartDef.scroll`, the scroll region, and its two refusal arms, each pinned BY NAME (docs/34) ----
     // SUBJECT: Dialog's body as committed, then mutated. EXPECTED: the projection Q3130.8 A asks for (the body clips and
     // scrolls vertically on every member) and the authored refusal shapes. Delete either refusal from `anatomyErrors`
@@ -18878,9 +18935,17 @@ arm: {
       const bodies = dPlans.map((pl) => pl.root.children.find((c) => c.name === 'body'));
       ok(dPlans.length === 24 && bodies.every((b) => b?.type === 'CONTENT_SLOT' && b.clipsContent === true && b.overflowDirection === 'VERTICAL'),
         `#3163 dialog body: every member's body slot plans clipsContent and overflowDirection VERTICAL (${bodies.filter((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL').length}/${dPlans.length})`);
-      const others = componentDefs.filter((d) => d.figmaProperties && d.id !== 'dialog').flatMap((d) => figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }));
+      // #4008: Popover's body is the second scroll region, the same shape as Dialog's (the body scrolls when the screen
+      // is shorter than the popover; header and footer stay put).
+      const pop = componentDefs.find((x) => x.id === 'popover')!;
+      const pPlans = figmaAnatomySet(pop, { swapTarget: 'FPO-default-icon' });
+      const pBodies = pPlans.map((pl) => pl.root.children.find((c) => c.name === 'body'));
+      ok(pPlans.length > 0 && pBodies.every((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL'),
+        `#4008 popover body: every member's body slot plans clipsContent and overflowDirection VERTICAL (${pBodies.filter((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL').length}/${pPlans.length})`);
+      const SCROLL_REGIONS = ['dialog', 'popover'];
+      const others = componentDefs.filter((d) => d.figmaProperties && !SCROLL_REGIONS.includes(d.id)).flatMap((d) => figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }));
       const walk = (n: { overflowDirection?: string; children: unknown[] }): number => (n.overflowDirection ? 1 : 0) + (n.children as (typeof n)[]).reduce((a, c) => a + walk(c), 0);
-      ok(others.length > 0 && others.every((pl) => walk(pl.root) === 0), '#3163 scope: no other def plans an overflowDirection, so every other plan is byte-identical');
+      ok(others.length > 0 && others.every((pl) => walk(pl.root) === 0), '#3163 scope: no def but Dialog and Popover plans an overflowDirection, so every other plan is byte-identical');
       const body = dlg.anatomy.parts.body;
       const scrollOnText = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, placeholder: { ...dlg.anatomy.parts.placeholder, scroll: 'vertical' } } } };
       ok(validateComponentDef(scrollOnText as ComponentDef).errors.some((e) => /declares 'scroll'/.test(e) && /kind 'text'/.test(e) && /only a 'box'/.test(e)),
@@ -20869,7 +20934,7 @@ arm: {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'sign-in-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2, 'tag-group': 2,
-      'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
+      'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, popover: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
@@ -44148,7 +44213,7 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
 // defs is written out here by hand, not read from the defs, so a def that drops the note fails by its id (docs/34 shape 1).
 {
   const DECIDED = 'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.';
-  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs'];
+  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'popover', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs'];
   const all = componentDefs;
   for (const id of INTERACTIVE) {
     const d = all.find((x) => x.id === id);
