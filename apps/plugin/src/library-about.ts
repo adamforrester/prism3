@@ -166,7 +166,8 @@ export const lastChangedLines = (l: LastChanged): string[] =>
  * (the About frame's own record, when there was one) and the token contract. Then, for each set the Update changed,
  * the Figma items of every release it crossed that name the set: after the oldest engine its members were stamped by
  * before the Update (#2882, owner decision A), else after `from`, up to the engine. With neither, the engine's own
- * release. The head still names the file's one `from`. Then whether any of it is breaking. The library-consumer breaks the Update listed (#2831) and a
+ * release. The head names the oldest version any set's range starts at, so it never understates the list (#4381, owner
+ * decision 2026-11-20). Then whether any of it is breaking. The library-consumer breaks the Update listed (#2831) and a
  * breaking release item for the same set are one change seen from two sides (a removed value is a release item and a
  * member drop per member), so the two are never added: the Update's own count when it listed any, else a line saying
  * the release items above include breaking changes.
@@ -186,7 +187,11 @@ export const publishDescription = (o: {
   const rs = upTo(engine, ix);
   const crossedFrom = (from: string | null | undefined): ReleaseEntry[] => rs.filter((r) => (from ? cmp(r.version, from) > 0 : r === releaseFor(engine, ix)));
   const own = (set: string): string | undefined => (o.stampedBy?.[set] ?? []).filter((v) => /^\d+\.\d+\.\d+$/.test(v)).sort(cmp)[0];
-  const head = `${o.sets.length ? `Prism3 updated ${o.sets.join(', ')}` : o.title}. Engine ${engine}${o.from && o.from !== engine ? `, from ${o.from}` : ''}. Token contract ${o.contract ?? CONTRACT_VERSION}.`;
+  // #4381 (owner decision, 2026-11-20): the head's "from" is the oldest version any set's range starts at, so it never
+  // understates what the list covers. With no set changed, or every set starting at the file's `from`, that is `from`.
+  const starts = (o.sets.length ? o.sets.map((s) => own(s) ?? o.from) : [o.from]).filter((v): v is string => !!v);
+  const from = starts.slice().sort(cmp)[0];
+  const head = `${o.sets.length ? `Prism3 updated ${o.sets.join(', ')}` : o.title}. Engine ${engine}${from && from !== engine ? `, from ${from}` : ''}. Token contract ${o.contract ?? CONTRACT_VERSION}.`;
   const lines: string[] = [];
   let released = false;
   for (const set of o.sets) {

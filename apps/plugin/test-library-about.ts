@@ -155,13 +155,15 @@ section('publish — the description offered after an Update');
   //   - the issue's case: `button` starts at 0.235.0, `tag` at the file's 0.237.0 → "from 0.235.0";
   //   - a set stamped newer than the file's `from` leaves the head at `from`, the older start;
   //   - no file `from` (a first About record) and one stamped set → that set's start;
+  //   - every set stamped newer than `from` → the oldest of the sets' stamps, since no range starts at `from`;
   //   - control: no stamps, every set starts at `from` → the head is unchanged.
   const headOf = (o: Partial<Parameters<typeof publishDescription>[0]>): string =>
     publishDescription({ title: 'T', sets: ['button', 'tag'], from: '0.237.0', engine: '0.238.0', contract: '1.0.0', ix: rix, ...o }).split('\n')[0];
   const heads2 = [headOf({ stampedBy: { button: ['0.237.0', '0.235.0'], tag: ['unknown'] } }), headOf({ from: '0.236.0', stampedBy: { button: ['0.237.0'] } }),
-    headOf({ from: null, stampedBy: { button: ['0.236.0'] } }), headOf({})];
+    headOf({ from: null, stampedBy: { button: ['0.236.0'] } }), headOf({ from: '0.235.0', stampedBy: { button: ['0.237.0'], tag: ['0.236.0'] } }), headOf({})];
   ok(eq(heads2, ['Prism3 updated button, tag. Engine 0.238.0, from 0.235.0. Token contract 1.0.0.', 'Prism3 updated button, tag. Engine 0.238.0, from 0.236.0. Token contract 1.0.0.',
-    'Prism3 updated button, tag. Engine 0.238.0, from 0.236.0. Token contract 1.0.0.', 'Prism3 updated button, tag. Engine 0.238.0, from 0.237.0. Token contract 1.0.0.']),
+    'Prism3 updated button, tag. Engine 0.238.0, from 0.236.0. Token contract 1.0.0.', 'Prism3 updated button, tag. Engine 0.238.0, from 0.236.0. Token contract 1.0.0.',
+    'Prism3 updated button, tag. Engine 0.238.0, from 0.237.0. Token contract 1.0.0.']),
     `publish/head names the oldest start: the first line's "from" is the oldest version any set's range starts at (${JSON.stringify(heads2)})`);
 }
 
