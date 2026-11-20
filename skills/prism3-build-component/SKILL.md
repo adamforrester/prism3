@@ -240,6 +240,18 @@ per-component spacing token. Two orderings hold at every density, and `packages/
 def as literal rules, so add yours there: a gap is tighter than the padding beside it (#325),
 and an icon-side inset sits between them (#326: gap < icon-side padding < label-side padding).
 
+**A fixed label weight: `typeWeight`.** When a def binds `type.<group>.*` refs at one weight with no axis to
+carry it, set `typeWeight: { group, intent }` (`intent` is `regular` or `bold`). The materializer repoints each such
+ref to the weight the brand ships for that intent, so the binding holds on a brand whose weights differ (Code input,
+Badge). `keys` narrows it to named token keys when the def binds one group at two weights (Badge). A weight that
+varies by variant is `weightIntent` instead, and one group can't take both.
+
+**A provider's own paint: `literal`.** Everywhere else a def binds token names, never values. A third-party
+button whose colors, font and wording the provider fixes (`wallet-button`) carries them as values instead, in one
+`literal` record keyed per projected coordinate, and each part that uses it opts in with its own `literal`. Every
+projected member must resolve an entry, and a def that carries one is listed by name in `packages/engine/test.ts`,
+so the record never spreads by accident.
+
 Spell a binding key the way the nearest sibling spells the same job (`size.{size}.padding-x`, not a
 new abbreviation). The corpus has a few jobs under two spellings (`pad-x` and `padding-x`, `height` and
 `min-height`), and #2710 is folding them into one; do not add a third.
@@ -258,6 +270,9 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 | `absolute` | takes no cell in the flow — an absolutely-positioned sibling (a focus ring) |
 | `nest` | an in-flow instance of another component — takes a cell like a box, content resolved from `nests` |
 | `vector` | a filled outline whose content is geometry — names a `glyph` from the icon vocabulary |
+
+A new kind is a schema change: add it to `KINDS` in `packages/engine/lint-part-union.ts` and to that gate's `ADMITS`, and raise `EXECUTOR_REVISION` in `apps/plugin/src/executor-revision.ts` if the
+executor draws it (§7).
 
 **Some fields belong to certain kinds** (#3698), and both `tsc` and the validator refuse them on any other kind:
 `radius` and `children` go on a `box` only (a glyph's corners are `tileEdge.radius`), `replaces` and
@@ -797,6 +812,9 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 | `packages/engine/test.ts` | nothing for the brief: `KB_BRIEF_CATEGORY` is derived from `schema/kb-briefs.json` (refresh it if the brief is new). A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
 | `lint-control-shape-reach` | a def that binds a corner: a button, field or checkbox in `FAMILIES` (it then follows Control shape, so give it `levers.controlShape`), a def a claimed noun could be read to cover but the owner ruled out in `NOT_CLAIMED` with the decision (Counter, Q-CS4 B), anything else in `OUTSIDE_REASON` with the reason. Google Pay's wallet corner is held to half the height under every shape (a CLAMP failure names it). A def in none fails by name (#3765). |
 | `apps/plugin/src/file-taxonomy.ts` | the def on a page in `TAXONOMY` (§3). |
+| `lint-part-union` | a new part kind (§2) in `KINDS`, and in `ADMITS` under every field that kind may carry. A kind missing from either fails by name. |
+| `lint-motion-literals` | a def a `prism3-motion` recipe governs in `RECIPE_DEFS`, under that recipe, so its `motion.reduceMotion` is checked against the recipe's reduced form. |
+| `lint-executor-revision`, `lint-executor-reach` (plugin) | when a new part kind or projection changes the component executor's code, raise `EXECUTOR_REVISION` in `apps/plugin/src/executor-revision.ts` and name every set it redraws in `apps/plugin/src/executor-reach.json`. |
 
 `lint-naming` needs no entry either: its rules (§6) apply to every registered def, so a new def that
 breaks one fails by name.
@@ -915,7 +933,7 @@ one until that arc builds it.
    passes the variant rule in §6; a show/hide, a text, a nested choice or a width is not an axis.
 7. No border binds an icon or text role; an invalid state is the `status` axis, not an `error` state; a
    state a consumer sets has its own prop; repeated children sit in an `items` slot.
-8. The def is in every gate list in §7, its docs page and JSON entry are regenerated, both baselines
+8. The def is in every gate list in §7, its docs page and JSON entry are regenerated, all three baselines
    are accepted after the change note is added, and `npm run verify` is all-PASS with no SKIP.
 9. A mutation of the def fails a surface gate by name, and each brief decision's own arm fails by name.
 10. A progress entry, `docs/progress/pending/<slug>.md`, carries the diagnosis, the decisions held for
