@@ -215,7 +215,7 @@ export const tagGroup: ComponentDef = {
     primaryPurpose: 'Lay out a set of Tags in a wrapping row, with the group owning which select tags are pressed, the one Tab stop with arrow keys, and removal with focus kept in the group.',
     whenToUse: 'A set of filters the user toggles in place, any number at once (above a list or search results), or a set of applied filters, recipients or keywords the user removes.',
     avoidWhen: 'One tag on its own (Tag), a structured choice submitted with a form (Checkbox.Group), exactly one choice (SegmentedControl or Radio.Group), or a row of actions (Button.Group).',
-    commonPartners: ['tag', 'search-field', 'list'],
+    commonPartners: ['tag', 'search-field', 'list', 'popover'],
     triggerKeywords: ['tag group', 'chip group', 'chip set', 'filter chips', 'filter bar', 'tag list', 'token list', 'applied filters', 'multi-select tags'],
     generationPriority: 2,
   },
@@ -230,7 +230,7 @@ export const tagGroup: ComponentDef = {
       'tags that scroll sideways out of view instead of wrapping',
     ],
     supersededBy: [],
-    planned: ['combobox', 'popover'],
+    planned: ['combobox'],
   },
 
   motion: {
