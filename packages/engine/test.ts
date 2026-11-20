@@ -1242,6 +1242,27 @@ ok(autoPlaceStep(0.9) < autoPlaceStep(0.3), 'autoPlaceStep: lighter < darker');
   ok(mkTheme(oog).notes.includes("anchor 'x' (oklch 0.55 0.32 145) is outside the sRGB gamut — sRGB shows at most 0.173 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.173 ships exactly."), 'M-03: brandTheme surfaces an out-of-gamut anchor in the decisions log (not silent)');
   ok(!mkTheme({ l: 0.5, c: 0.04, h: 200 }).notes.some((n) => n.includes('outside the sRGB gamut')), 'M-03: an all-in-gamut brand produces no gamut warning');
 }
+{
+  // #4211: the ratio floor must not lose a step to float error. `4.6 * 100` is 459.99999999999994, so a bare
+  // `Math.floor(r * 100) / 100` printed an exact 4.6 as 4.59 (141 of the two-decimal values 1.00–21.00 did). The
+  // expected strings are built from the integer step, not from `floorRatio`, so the arm cannot agree with itself.
+  for (const [r, want] of [[4.6, '4.60:1'], [4.35, '4.35:1'], [4.5, '4.50:1'], [7, '7.00:1']] as const)
+    ok(formatRatio(r) === want, `#4211 formatRatio(${r}) prints as itself, ${want} (got ${formatRatio(r)})`);
+  const lost: string[] = [];
+  for (let k = 100; k <= 2100; k++) {
+    const r = k / 100, want = `${Math.floor(k / 100)}.${String(k % 100).padStart(2, '0')}`;
+    if (formatRatio(r, { bare: true }) !== want || floorRatio(floorRatio(r)) !== floorRatio(r)) lost.push(`${want}→${formatRatio(r, { bare: true })}`);
+  }
+  ok(lost.length === 0, `#4211 every two-decimal ratio from 1.00 to 21.00 floors to itself, and re-flooring is a no-op (${lost.length} lose a step: ${lost.slice(0, 6).join(', ')})`);
+  // The tolerance absorbs float error only: a pair that genuinely misses a step still floors down (CR-01's concern).
+  for (const [r, want] of [[4.5 - 1e-8, '4.49:1'], [7 - 1e-8, '6.99:1'], [3 - 1e-6, '2.99:1']] as const)
+    ok(formatRatio(r) === want, `#4211 a ratio just under a step still floors below it: ${r} → ${want} (got ${formatRatio(r)})`);
+  // #4214 item 4: the sidecar schema says the stored ratio is floored (#3759), not just "to two decimals". A literal: the
+  // description is the published contract's prose.
+  const ratioDesc = JSON.parse(readFileSync(resolve(HERE, 'schema/ai-metadata.schema.json'), 'utf8')).$defs?.contrast?.properties?.ratio?.description;
+  ok(ratioDesc === 'The measured ratio in light mode, floored to two decimals, so it never reads at or above a floor it misses.',
+    `#4214 the sidecar schema says contrast_with[].ratio is floored, as floorRatio stores it (got ${JSON.stringify(ratioDesc)})`);
+}
 
 // ------------------------------------------------ extreme white-label brands
 const brands: BrandInput[] = [
