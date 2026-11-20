@@ -16,14 +16,19 @@ Built from the #4109 proposal with all seven owner decisions at A (OD-S1 to OD-S
 - **The stepped widths.** Auto layout has no percentage width. The first bar grows; the second and third are literal
   `minWidth` floors at 80% and 40% of the 320 build width (256, 128). A resized instance keeps those two at pixel width.
 
-### Held for the owner (in the PR)
+### Owner decisions on the PR (2026-11-19, all A)
 
-- **The circle is not aspect-locked** (OD-S6 A asked for the Image placeholder's lock). `aspectRatio` reads its ratio off a
-  `W:H` axis, and `shape` is not one. A lock on an inner box that binds its width does not help either: resizing the
-  instance resizes the root around a circle that stays bound. Tried and reverted: a literal `aspectRatio: '1:1'` on a
-  bound inner box. A root lock at one member is a schema change.
-- **The Figma page:** provisionally Subcomponents, beside Spinner and Image placeholder.
-- **Control shape:** recorded as outside (`OUTSIDE_REASON`), since a host passes the content's radius.
+- **The circle ships unlocked** (OD-S6 A asked for a lock). `aspectRatio` reads its ratio off a `W:H` axis, and `shape` is
+  not one; a literal `aspectRatio: '1:1'` on a bound inner box was tried and reverted, since resizing the instance resizes
+  the root around a circle that stays bound. The per-member root lock is filed as #4392.
+- **The Figma page:** Subcomponents, beside Spinner and Image placeholder.
+- **Control shape:** outside (`OUTSIDE_REASON`), since a host passes the content's radius.
+- **The small text bar** stays 13 of 21.
+
+### Executor revision
+
+- `'skeleton'` in `CANVAS_FURNITURE` counts as executor code since #4238, so `EXECUTOR_REVISION` rose to 67, and
+  `executor-reach.json` names `skeleton` for it (the other 64 sets measured unmoved).
 
 ### Traps
 
