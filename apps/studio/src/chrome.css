@@ -351,6 +351,10 @@
 .p3-errstrip[hidden] { display: none; }
 .p3-errstrip > .p3-ico { color: var(--p3-bad-icon); margin-top: var(--p3-space-025); }
 .p3-errstrip-text { min-width: 0; overflow-wrap: anywhere; }
+/* #4222: the line, and under it the refusal's own words behind a closed Details. */
+.p3-errstrip-msg { min-width: 0; display: grid; gap: var(--p3-space-050); }
+.p3-errstrip-detail > summary { cursor: pointer; width: fit-content; }
+.p3-errstrip-detail-text { margin: var(--p3-space-050) 0 0; overflow-wrap: anywhere; }
 
 /* ── the dialogs (S13.1): Export and the prune review, on a scrim ─────────────────────────── */
 /* Their own `p3-bardlg-*` names, not `p3-dialog-*` or `p3-scrim` (the start window and its guard's, S12): no rule here

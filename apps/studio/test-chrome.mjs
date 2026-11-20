@@ -11520,7 +11520,7 @@ const STRIP_PROBE = () => {
   const ink = parse(getComputedStyle(text).color), glyphInk = parse(getComputedStyle(e.querySelector('svg')).color);
   const r = e.getBoundingClientRect(), bar = document.querySelector('[data-p3="top-bar"]').getBoundingClientRect();
   const frame = document.querySelector('[data-p3="frame"]').getBoundingClientRect();
-  return { mounted: true, shown: !e.hidden && getComputedStyle(e).display !== 'none', text: text.textContent, groundLum: Math.round(lum(g) * 1000) / 1000,
+  return { mounted: true, shown: !e.hidden && getComputedStyle(e).display !== 'none', text: text.textContent, detail: e.querySelector('.p3-errstrip-detail-text')?.textContent ?? null, groundLum: Math.round(lum(g) * 1000) / 1000,
     textR: ink ? ratio(over(ink, g), g) : 0, glyphR: glyphInk ? ratio(over(glyphInk, g), g) : 0,
     fullWidth: Math.abs(r.left - frame.left) <= 1 && Math.abs(r.right - frame.right) <= 1, underBar: Math.abs(r.top - bar.bottom) <= 1,
     rect: [Math.round(r.left), Math.round(r.top), Math.round(r.right)], barBottom: Math.round(bar.bottom) };
@@ -11795,7 +11795,7 @@ for (const { w, h } of WIDTHS) {
         else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), S131_REFUSED);
         await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && !e.hidden; }, null, { timeout: 5000 }).catch(() => {});
         const st = await page.evaluate(STRIP_PROBE);
-        ok(st.mounted && st.shown && /background\.secondary/.test(st.text ?? ''), `${where}: the error strip shows the refusal, naming the field ("${String(st.text).slice(0, 70)}")`);
+        ok(st.mounted && st.shown && /background\.secondary/.test((host === 'web' ? st.text : st.detail) ?? ''), `${where}: the error strip shows the refusal, naming the field (#4222: a refused restore's under Details) ("${String(host === 'web' ? st.text : st.detail).slice(0, 70)}")`);
         ok(theme === 'dark' ? st.groundLum < DARK_GROUND_MAX : st.groundLum > LIGHT_GROUND_MIN,
           `${where}: the error strip's ground follows the ${theme} theme (luminance ${st.groundLum}, ${theme === 'dark' ? `below ${DARK_GROUND_MAX}` : `above ${LIGHT_GROUND_MIN}`})`);
         ok(st.textR >= TEXT_MIN && st.glyphR >= NONTEXT_MIN, `${where}: the error strip's line clears ${TEXT_MIN}:1 (${st.textR}:1) and its glyph ${NONTEXT_MIN}:1 (${st.glyphR}:1)`);
@@ -11826,6 +11826,34 @@ for (const { w, h } of WIDTHS) {
             `${where} / error strip: the chrome around the plugin's strip draws no dim strip text, no shadow and no inline value (${dim.map((t) => `${t.el} ${t.r}:1`).join(' | ') || 'clean'})`);
         }
         if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-strip.png`) });
+        // #4222 (owner A): a refused restore's strip says its own frame; the engine's sentence sits under it, behind a
+        // closed Details the alert does not read. The words checked absent are the issue's: the sentence is the author's.
+        if (host === 'figma') {
+          const rd = await page.evaluate(() => {
+            const e = document.querySelector('[data-p3="error-bar"]'), d = e?.querySelector('[data-p3="error-detail"]');
+            return { line: e?.querySelector('.p3-errstrip-text')?.textContent ?? '', summary: d?.querySelector('summary')?.textContent ?? null, open: d?.open ?? null,
+              detail: d?.querySelector('[data-p3="error-detail-text"]')?.textContent ?? '', role: e?.getAttribute('role') };
+          });
+          ok(rd.line === "This file's saved brand didn't resolve. Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.",
+            `${where}: #4222 the refused restore's line is the strip's own frame, with none of the engine's words ("${rd.line.slice(0, 90)}")`);
+          ok(rd.summary === 'Details' && rd.open === false && /GROUND/.test(rd.detail) && /background\.secondary/.test(rd.detail) && rd.role === 'alert',
+            `${where}: #4222 the engine's sentence is under a closed Details in the alert (${JSON.stringify({ ...rd, line: undefined, detail: rd.detail.slice(0, 50) })})`);
+          // #4206 (owner A): a brand stored before #3707 (an empty link list) loads, migrated, and the strip says what changed.
+          const LEGACY = { ...S131_REFUSED, id: 'legacy-brand', overrides: undefined, typography: { links: [] } };
+          await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LEGACY);
+          await page.waitForFunction(() => /updated to load/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+          const lg = await page.evaluate(() => {
+            const e = document.querySelector('[data-p3="error-bar"]');
+            return { shown: !!e && !e.hidden, line: e?.querySelector('.p3-errstrip-text')?.textContent ?? '', close: e?.querySelector('[data-p3="restore-migrated-close"]')?.textContent ?? null,
+              detail: !!e?.querySelector('[data-p3="error-detail"]'), brand: document.querySelector('[data-p3="brand-switcher"]')?.textContent ?? '' };
+          });
+          ok(lg.shown && lg.line.startsWith("This file's saved brand was updated to load") && /Link styles use the default text types/.test(lg.line) && lg.close === 'Close' && !lg.detail && lg.brand.includes('legacy-brand'),
+            `${where}: #4206 a stored brand with an empty link list loads, and the strip names the change with a Close (${JSON.stringify({ ...lg, line: lg.line.slice(0, 90) })})`);
+          await hooks.click(page.locator('[data-p3="restore-migrated-close"]'));
+          await page.waitForFunction(() => document.querySelector('[data-p3="error-bar"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+          const gone = await page.evaluate(() => document.querySelector('[data-p3="error-bar"]')?.hidden ?? null);
+          ok(gone === true, `${where}: #4206 Close takes the migration note down (hidden ${gone})`);
+        }
 
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
@@ -16462,6 +16490,9 @@ for (const [theme, H] of [['light', 420], ['dark', 420], ['light', 300]]) {
   try {
     await page.evaluate((input) => window.postMessage({ pluginMessage: { type: 'restore-input', input } }, '*'), REFUSED_2105);
     await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    // #4222: the line is the strip's short frame now, and the refusal's own words are under Details. Opened, they are the
+    // long text #2105 measured, so the cap below is held against them.
+    await page.evaluate(() => { const d = document.querySelector('[data-p3="error-detail"]'); if (d) d.open = true; return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
     const g = await page.evaluate(() => {
       const r = (s) => { const n = document.querySelector(s); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: b.height }; };
       const err = document.querySelector('[data-p3="error-bar"]');
@@ -19118,11 +19149,11 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await p3.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(m.seq); }); });
       await postMsg(p3, FILE);
       await postMsg(p3, { type: 'restore-input', input: REFUSED_3081 });
-      await p3.waitForFunction(() => /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+      await p3.waitForFunction(() => /didn't resolve\. Update file and Clean up are off until a brand loads/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
       await goPlace(p3, 'components');
       await p3.evaluate(() => { const n = document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]'); if (n) HTMLElement.prototype.click.call(n); });
       await p3.waitForTimeout(600);
-      const failedAt = await p3.evaluate(() => ({ asked: window.__due.length, unresolved: /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''),
+      const failedAt = await p3.evaluate(() => ({ asked: window.__due.length, unresolved: /didn't resolve\. Update file and Clean up are off until a brand loads/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''),
         changed: document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]')?.getAttribute('aria-checked') ?? null }));
       await postMsg(p3, { type: 'file-due', seq: 1, present: FILE.present, theme: true, due: { ...DUE, tag: { state: 'due', reason: 'definition' } } });
       await p3.waitForTimeout(300);

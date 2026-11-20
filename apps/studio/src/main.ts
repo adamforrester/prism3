@@ -34,6 +34,7 @@ import type { UpdateFileLend } from './shell/update-file';
 import type { ReportLend } from './shell/report';
 import type { CollisionsLend } from './shell/collisions';
 import { withEarlier } from './state/collisions';
+import { migratedLine, migrateStoredInput } from './state/legacy-input';
 import type { StatusLend } from './shell/status-strip';
 import { agentHeard, heard, startStripRun, stepEnded, stripVerdict, stripView, withReading, rowState, STRIP_COPY, type StripAgent, type StripRead, type StripRun, type StripVerdict } from './state/status-strip';
 import type { DocumentationLend } from './shell/documentation';
@@ -122,7 +123,9 @@ const syncErrorBar = (): void => {
   // The strip hides with `hidden`, not an inline `display`: the chrome carries no runtime inline values (`test:chrome`).
   // A refused RESTORE is not a change that didn't apply, and what is on screen is not the designer's last
   // theme but the boot demo (#1989). So it says whose brand failed, and why the two writes are off.
-  if (restoreFailure) globalErr.show(RESTORE_BAR[restoreFailure.kind](restoreFailure.reason));
+  // #4222 (owner A): an engine refusal is written for whoever edits the design.md, so the line is the strip's own frame
+  // and the refusal sits behind Details; the host's own words for an unreadable blob stay on the line.
+  if (restoreFailure) globalErr.show(RESTORE_BAR[restoreFailure.kind](restoreFailure.reason), null, restoreFailure.kind === 'unreadable' ? null : restoreFailure.reason);
   // Owner Q189 A (#2146): a brand that arrives starting above 0px gets a one-click fix beside the line.
   else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`,
     firstBreakpointFix(lastError));
@@ -134,6 +137,8 @@ const syncErrorBar = (): void => {
   ]);
   // #3697 R9: the file's brand, held because it arrived after the designer acted, with the action that loads it.
   else if (heldRestore) globalErr.show(LATE_RESTORE.line, { label: LATE_RESTORE.action, run: takeHeldRestore });
+  // #4206: a stored brand migrated at load says what changed, until it is closed, a brand loads, or a Theme write lands.
+  else if (migratedNote) globalErr.show(migratedNote, { label: 'Close', run: closeMigratedNote, hook: 'restore-migrated-close' });
   else globalErr.show(null);
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
@@ -378,7 +383,12 @@ const setHost = (patch: Partial<HostSession>): void => { host = { ...host, ...pa
 // lose a case silently, and `apps/plugin/test-build-verdict.mjs` now reads every topic's surface back.
 /** The host's fonts, for a renderer whose own `host` names its element (#3138: the Style guide's type sample). */
 const hostFonts = (): HostFonts => host;
-export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m) => {
+export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (raw) => {
+  // #4206 (owner A): a brand stored before a validation tightened is migrated to the shape the engine takes now, before
+  // `reduce` checks it, and the strip says what changed once it loads. A current brand comes through untouched.
+  const mg = raw.kind === 'restore-input' ? migrateStoredInput(raw.input) : null;
+  const migrated = mg?.notes.length ? migratedLine(mg.notes) : null;
+  const m: typeof raw = mg && migrated && raw.kind === 'restore-input' ? { ...raw, input: mg.input } : raw;
   const prev = host;
   host = reduce(prev, m);
   // #2879: any answer to the restore ends "Reading this file"; the library answer opens its home below.
@@ -398,6 +408,8 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   if (m.kind === 'updates-off') commit.requestFileSets(panelBrand(updatesOffTheme));
   const effect = brandEffectFor(m, prev, host);
   // #3697 R9: a Theme write that landed stores the panel's brand in the file, so the held one is no longer the file's.
+  // #4206: once a Theme write lands, the file holds the migrated brand, so the note has nothing left to ask.
+  if (migratedNote && m.kind === 'apply-result' && m.ok) { migratedNote = null; syncErrorBar(); }
   if (heldRestore && m.kind === 'apply-result' && m.ok) {
     heldRestore = null;
     if (pendingLoad?.origin.kind === 'file') pendingLoad = null;   // its confirm goes with the offer it stood for
@@ -415,11 +427,12 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   // (#3394's override sync, which it sends only while the panel's brand is the one it wrote) still loads.
   const late = effect === 'loadBrand' && m.kind === 'restore-input' && !bootRestoreSeen && userActed();
   if (m.kind === 'restore-input' || m.kind === 'restore-input-empty' || m.kind === 'restore-input-error' || m.kind === 'restore-input-library') bootRestoreSeen = true;
-  if (late) { heldRestore = structuredClone(m.input as BrandInput); syncErrorBar(); }
+  if (late) { heldRestore = structuredClone(m.input as BrandInput); heldMigrated = migrated; syncErrorBar(); }
   else if (effect === 'loadBrand' && m.kind === 'restore-input') {
-    heldRestore = null;
+    heldRestore = null; heldMigrated = null;
     loadBrand(m.input as BrandInput, { kind: 'file' });
     if (lastError) { restoreFailure = { kind: 'unresolved', reason: lastError, brand: failedBrandOf(brandState) }; build(); }
+    else if (migrated) { migratedNote = migrated; syncErrorBar(); }
   }
   // #1994: the two restores that load nothing. `reduce` dropped a blob `brandTheme` refuses with no effect,
   // so its reason is read again here; an unreadable one arrives as the host's own message. Only while
@@ -1326,6 +1339,7 @@ const replaceWorking = (put: () => void): void => {
   undoLoad = null;
   // #1994: a brand loading is what ends a `rejected` or `unreadable` restore failure (see `restoreFailure`).
   if (restoreFailure && restoreFailure.kind !== 'unresolved') restoreFailure = null;
+  migratedNote = null;   // #4206: the note is about the brand this load replaces
   try { put(); } finally { loading = false; }
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
   startReopened = false;   // a load is a choice: the start window closes with it (S12)
@@ -1886,6 +1900,10 @@ let restoreFailure: RestoreFailure | null = null;
 let bootRestoreSeen = false;
 /** #3697 R9: the file's brand, held because the boot read arrived after the designer had acted; null when none is held. */
 let heldRestore: BrandInput | null = null;
+/** #4206: the migration note for the held brand, shown once it loads; and the note for the brand on screen. */
+let heldMigrated: string | null = null;
+let migratedNote: string | null = null;
+const closeMigratedNote = (): void => { migratedNote = null; syncErrorBar(); };
 /** #3697 R9: the designer has acted — chosen a brand (the sibling guards' identity test) or edited the placeholder. */
 const userActed = (): boolean => provenance !== bootProvenance || isDirty(brandState, bootProvenance);
 /** #3697 R9: the strip's offer while a late restore is held. OWNER DECISION: copy — a DRAFT to `docs/voice-standard.md`,
@@ -1909,6 +1927,8 @@ const takeHeldRestore = (): void => {
 const heldRestoreLoaded = (): void => {
   heldRestore = null;
   if (lastError) { restoreFailure = { kind: 'unresolved', reason: lastError, brand: failedBrandOf(brandState) }; build(); }
+  else if (heldMigrated) migratedNote = heldMigrated;
+  heldMigrated = null;
   syncErrorBar();
 };
 /** The file's failed brand as a design.md, or null when it cannot be written as one. */
@@ -1922,11 +1942,11 @@ const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo 
 const SPECS_NONE = "Off after a failed restore: these component contracts would be the demo brand's, not this file's.";
 const SPECS_NO_SETTINGS = "Nothing to set — the component contracts follow this brand's component settings.";
 const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built from the component definitions, which the web Studio leaves out.';   // a fallback no host reaches since #3429: the plugin provides the exporter, the web a loader
-/** The error bar after a failed restore, by kind (owner, 2026-10-02). `unresolved` says "resolves" because a
- *  rebuild that resolves also ends it; the other two end only when a brand loads. */
+/** The error bar after a failed restore, by kind (owner, 2026-10-02). Every kind says "until a brand loads": the
+ *  owner's words (#4222, 2026-11-19), though a rebuild that resolves also ends `unresolved`. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {
-  unresolved: (r) => `This file's saved brand didn't resolve: ${r} Update file and Clean up are off until a brand resolves. Load an example or import a design.md to continue.`,
-  rejected: (r) => `This file's saved brand didn't resolve: ${r} Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.`,
+  unresolved: () => "This file's saved brand didn't resolve. Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.",
+  rejected: () => "This file's saved brand didn't resolve. Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.",
   unreadable: (r) => `This file's saved brand couldn't be read: ${r} Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.`,
 };
 /** The tooltip on every write that is off after a failed restore: one wording for every kind (owner). */
