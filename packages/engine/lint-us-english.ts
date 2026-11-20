@@ -240,9 +240,19 @@ const walk = (dir: string): string[] => {
  */
 const walkRequired = (dir: string, why: string): string[] => {
   const found = walk(dir);
-  if (!found.length) blind.push(`${relative(repo, dir)} — ${why}`);
+  if (!found.length) { blind.push(`${relative(repo, dir)} — ${why}`); unbuilt.push({ dir: relative(repo, dir), why }); }
   return found;
 };
+// #949: the required directories that came back empty, kept by path so the SCOPE report can name the remedy. That
+// report runs first and exits, so the `blind[]` line saying "not built — run …" never printed, and a contributor who
+// forgot a build was told the gate's scope shrank and invited to edit REQUIRED_SURFACES.
+const unbuilt: { dir: string; why: string }[] = [];
+/** Each missing surface's line, with the remedy of the empty required directory its path lies under. */
+const scopeLines = (missing: string[], empty: { dir: string; why: string }[]): string[] =>
+  missing.map((m) => {
+    const u = empty.find((x) => m.includes(`${x.dir}/`) || m.includes(`${x.dir})`));
+    return u ? `${m} — ${u.dir} is empty: ${u.why}` : m;
+  });
 
 // ---- GATED: visible UI text + emitted artifact prose. A hit here fails the build. ----
 // Scope is IMPORTED from regen.ts rather than restated, so adding an emitted artifact there brings it
@@ -504,10 +514,25 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   // …and the EIGHTH (#2637), added with the surface: the designer guides, anchored at the repo root like skills.
   { label: 'the designer guides (docs/public/guides/*.md)', test: (f) => f.startsWith(`${repo}/docs/public/guides/`) },
 ];
+// #949 SELF-CHECK: an unbuilt bundle's missing surfaces carry its build command, and a surface under no empty
+// directory is printed unchanged.
+{
+  const probe = scopeLines(['the built plugin controller (apps/plugin/dist/main.js)', 'emitted artifacts (packages/engine/out)', 'the engine README'],
+    [{ dir: 'apps/plugin/dist', why: 'not built — run `npm run -w @prism3/plugin build`' }, { dir: 'packages/engine/out', why: 'run regen' }]);
+  if (!probe[0].includes('npm run -w @prism3/plugin build') || !probe[1].endsWith('run regen') || probe[2] !== 'the engine README') {
+    console.error(`❌ self-check (#949): the SCOPE report no longer names an empty directory's remedy: ${JSON.stringify(probe)}`);
+    process.exit(1);
+  }
+}
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {
   console.error(`\n❌ the gate's SCOPE shrank — ${missingSurfaces.length} promised surface(s) are absent from the compared set:\n`);
-  for (const m of missingSurfaces) console.error(`    ${m}`);
+  const scoped = scopeLines(missingSurfaces, unbuilt);
+  for (const m of scoped) console.error(`    ${m}`);
+  if (scoped.some((m, i) => m !== missingSurfaces[i])) {
+    console.error(`\n    A surface marked "is empty" above is NOT BUILT, not dropped: run the command it names and rerun.`);
+    console.error(`    Do not edit REQUIRED_SURFACES for it.`);
+  }
   console.error(`\n    Each is a surface this gate claims to cover. Unrepresented, a clean result is silence,`);
   console.error(`    not evidence. If one is deliberately dropped, remove it from REQUIRED_SURFACES in the`);
   console.error(`    same PR so the decision is visible.\n`);
