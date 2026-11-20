@@ -49,6 +49,21 @@
       "why": "Per-brand agent metadata. Travels because an ejected repo has no Prism3 MCP to query (#668)."
     },
     {
+      "kind": "shadcn-theme-css",
+      "pattern": "out/shadcn/{brand}.css",
+      "why": "The brand as a shadcn/ui theme (#2997, Q2997.5 B): shadcn's variables in `:root` and `.dark`, for a project's globals.css. A convenience export (Q-SC1 A), delivered to the consumer."
+    },
+    {
+      "kind": "shadcn-registry-item",
+      "pattern": "out/shadcn/{brand}.registry-item.json",
+      "why": "The same theme as a shadcn `registry:theme` item, what `npx shadcn add <url>` installs (#2997, Q2997.5 B). Delivered to the consumer."
+    },
+    {
+      "kind": "tailwind-theme",
+      "pattern": "out/tailwind/{brand}.theme.css",
+      "why": "The brand as a Tailwind v4 `@theme` file (#2997, Q2997.7 A): the shadcn variables per mode and an `@theme inline` block. Delivered to the consumer."
+    },
+    {
       "kind": "icon-glyphs",
       "pattern": "icon-glyphs.ts",
       "why": "The glyph vocabulary and its path data, generated from `icons/*.svg` through `icon-set.ts` (#833). PAYLOAD because any component projection that renders an icon carries this data with it — a client's ejected button needs the caret. It is a generated MODULE rather than an `out/` tree because `components/icon.ts` imports it and the plugin bundles that import into a sandbox with no filesystem, so it could not be read from disk at runtime. The SVGs beside it are authoring input and are outside this manifest, the same way a brand's design brief is. License and provenance: `icons/NOTICE.md` — the set is Remix Icon under its own v1.0 license, held as a swappable placeholder core, which is what keeps our use inside the license's `design systems where Icons are a minor component` clause."

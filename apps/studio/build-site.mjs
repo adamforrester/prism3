@@ -5,8 +5,9 @@
  * *containing* dist/ — index.html loads `/dist/main.js` by absolute path. Publishing web/
  * itself would expose DESIGN-REVIEW.md at the site root (the sourcemap ships source deliberately),
  * so this assembles a clean apps/studio/public/ holding only the three files the site actually needs,
- * plus the repo's `docs/public/` at `public/docs/`, served at `/docs` (#2637), and a page drawn from each guide's
- * markdown at `public/docs/guides/<name>.html` (#3176).
+ * plus the repo's `docs/public/` at `public/docs/`, served at `/docs` (#2637), a page drawn from each guide's
+ * markdown at `public/docs/guides/<name>.html` (#3176), and each hosted brand's shadcn registry item at `public/r/<brand>.json`,
+ * served at `/r/<brand>.json` so `npx shadcn add https://<site>/r/<brand>.json` installs it (#2997, Q2997.19 A, #4373).
  *
  * index.html is copied VERBATIM: its absolute `/dist/main.js` resolves identically under
  * esbuild's `--servedir=.` locally and under Vercel's output root. One file, two hosts, no
@@ -19,6 +20,7 @@ import { build } from 'esbuild';
 import { chromeCss } from './chrome/esbuild-plugin.mjs';
 import { webEntryPoints, specsChunkExternal, maintainerProsePlugin, SPECS_CHUNK_FILE } from './component-specs-build.mjs';
 import { DOCS_DIR, REQUIRED_DOCS, docsFiles, guidePages } from './docs-route.mjs';
+import { existsSync } from 'node:fs';
 import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -78,6 +80,30 @@ await cp(DOCS_DIR, resolve(pub, 'docs'), { recursive: true, filter: (src) => !sr
 const GUIDES = guidePages();
 for (const g of GUIDES) await writeFile(resolve(pub, 'docs', g.path), g.html);
 
+// `/r/<brand>.json` (#2997, Q2997.19 A): each HOSTED brand's shadcn registry item, the committed regen artifact
+// `packages/engine/out/shadcn/<brand>.registry-item.json`, copied as is, so the site serves the exact bytes `regen --check`
+// holds and `npx shadcn add https://<site>/r/<brand>.json` installs that brand's theme. Copied, never re-emitted: the
+// engine owns the file and this build only places it. Vercel's ignored build step already rebuilds on any
+// `packages/engine/**` change (`vercel-ignore.sh`), so a regenerated item redeploys. `test-shadcn-registry.ts` holds
+// the built copies to `out/`, byte for byte.
+//
+// HOSTED is an allow-list, never "every item in out/shadcn/" (owner decision on #4373, 2026-11-20): the house brand and
+// the engine's made-up example brands only. The reference brand and any other real-brand fixture keep their registry
+// items in the repo as test fixtures and get no public install address. A brand added to the engine is therefore not
+// hosted until it is named here, and `test-shadcn-registry.ts` fails if any brand outside its own copy of this list
+// reaches `public/r/`.
+const HOSTED = ['aurora', 'harbor', 'prism3'];
+const REGISTRY_SRC = resolve(root, '../../packages/engine/out/shadcn');
+const REGISTRY_SUFFIX = '.registry-item.json';
+const REGISTRY = HOSTED.map((b) => ({ from: resolve(REGISTRY_SRC, `${b}${REGISTRY_SUFFIX}`), path: `r/${b}.json` }));
+const unemitted = HOSTED.filter((b) => !existsSync(resolve(REGISTRY_SRC, `${b}${REGISTRY_SUFFIX}`)));
+if (unemitted.length) {
+  console.error(`site build FAILED — ${relative(root, REGISTRY_SRC)} has no *${REGISTRY_SUFFIX} for ${unemitted.join(', ')}, which /r/ promises.`);
+  process.exit(1);
+}
+await mkdir(resolve(pub, 'r'), { recursive: true });
+for (const item of REGISTRY) await cp(item.from, resolve(pub, item.path));
+
 // Enforce the manifest rather than assume it. index.html is copied verbatim and references
 // only /dist/main.js, so an emitted-but-unreferenced asset would deploy a broken site on a green
 // build. THE EXAMPLE THIS COMMENT USED TO GIVE IS NOW LIVE: `src/entry.ts` does import a CSS file
@@ -86,7 +112,7 @@ for (const g of GUIDES) await writeFile(resolve(pub, 'docs', g.path), g.html);
 // all. `build:site` is NOT in ci.yml (it runs on Vercel's preview deploy), so run it by hand.
 // The docs are listed from `docs/public/` itself, so this checks the copy landed whole, not which docs exist.
 // The component specs chunk (#3429) is the one other script: `main.js` loads it on Download, never index.html.
-const EXPECTED = ['dist/main.js', 'dist/main.js.map', `dist/${SPECS_CHUNK_FILE}`, `dist/${SPECS_CHUNK_FILE}.map`, 'index.html', ...DOCS.map((f) => `docs/${f}`), ...GUIDES.map((g) => `docs/${g.path}`)];
+const EXPECTED = ['dist/main.js', 'dist/main.js.map', `dist/${SPECS_CHUNK_FILE}`, `dist/${SPECS_CHUNK_FILE}.map`, 'index.html', ...DOCS.map((f) => `docs/${f}`), ...GUIDES.map((g) => `docs/${g.path}`), ...REGISTRY.map((item) => item.path)];
 const found = (await readdir(pub, { recursive: true, withFileTypes: true }))
   .filter((e) => e.isFile())
   .map((e) => relative(pub, resolve(e.parentPath, e.name)).split('\\').join('/'))

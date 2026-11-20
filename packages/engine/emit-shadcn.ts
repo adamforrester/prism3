@@ -18,8 +18,8 @@
  * #2997 PR 2) proves that through Chromium's own parser, which shares no code with this file. A value with alpha
  * keeps it in the `oklch(L C H / NN%)` form shadcn uses for its dark `border`.
  *
- * NOT YET A REGEN STEP. #2997 §10 lands the delivery (regen artifacts, Q2997.5 B) in its own PR; until then the gates
- * render a fresh copy with `--out`.
+ * A REGEN STEP (Q2997.5 B, #2997 PR 4): `out/shadcn/**` is committed and drift-checked like every artifact. The gates
+ * still render a fresh copy with `--out`, so they never read a stale one.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -40,9 +40,10 @@ export type ShadcnMode = keyof typeof SHADCN_MODES;
 type Tree = Record<string, unknown>;
 type Token = { $type?: string; $value?: unknown };
 
-/** The brands the handoff carries: every `<brand>.base.tokens.json` in `dir`, sorted by code point. */
+/** The brands the handoff carries: every `<brand>.base.tokens.json` in `dir`, sorted by code point. The web-only base
+ * `<brand>.web.base.tokens.json` (#4155) shares the suffix but is not a brand, so it is skipped. */
 export const handoffBrands = (dir = OUT_DIR): string[] =>
-  readdirSync(dir).filter((f) => f.endsWith('.base.tokens.json')).map((f) => f.slice(0, -'.base.tokens.json'.length))
+  readdirSync(dir).filter((f) => f.endsWith('.base.tokens.json') && !f.endsWith('.web.base.tokens.json')).map((f) => f.slice(0, -'.base.tokens.json'.length))
     .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
 export type Handoff = { brand: string; root: string; base: Tree; overlays: Partial<Record<string, Tree>> };
@@ -122,13 +123,13 @@ const colorValue = (h: Handoff, role: string, mode: ShadcnMode): string => {
   return toOklchCss(value);
 };
 
-const dimensionValue = (h: Handoff, role: string): string => {
+export const dimensionValue = (h: Handoff, role: string): string => {
   const { type, value } = resolveRole(h, role, 'light');
   if (type !== 'dimension' || typeof value !== 'string') throw new Error(`${h.brand}: ${role} is not a dimension (${type})`);
   return value;
 };
 
-const fontValue = (h: Handoff, key: string, role: string): string => {
+export const fontValue = (h: Handoff, key: string, role: string): string => {
   const { type, value } = resolveRole(h, role, 'light');
   const families = (Array.isArray(value) ? value : [value]).map(String);
   if (type !== 'fontFamily' || !families.length) throw new Error(`${h.brand}: ${role} is not a font family (${type})`);

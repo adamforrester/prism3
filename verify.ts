@@ -915,6 +915,21 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
+    // #2997 gate 1 — renders the shadcn projection itself and measures it in Chromium (hence the precondition and
+    // the studio job, where CI installs the browser). Reads no bundle, so no `after`.
+    id: 'lint-shadcn-contrast',
+    ciStep: 'The shadcn theme clears its contrast floors in Chromium (#2997)',
+    cmd: engine('lint-shadcn-contrast.ts'),
+    precondition: chromiumPrecondition,
+  },
+  {
+    // #2997 gate 2 — the same render, each oklch() parsed by Chromium back to the emitted color.
+    id: 'lint-shadcn-roundtrip',
+    ciStep: 'Every shadcn oklch() is the emitted color, through Chromium (#2997)',
+    cmd: engine('lint-shadcn-roundtrip.ts'),
+    precondition: chromiumPrecondition,
+  },
+  {
     // The FOURTH component-tier suite, and the only one whose ACTUAL comes from the HOST rather than
     // from the plan. `plugin-test` drives the executor and asserts what the executor reports;
     // this reads the built tree back and diffs it against the plan, which is the direction that
@@ -962,6 +977,13 @@ export const GATES: Gate[] = [
     id: 'token-package',
     ciStep: "Token package gate (the packed @prism3/tokens installs and defines the contract's names)",
     cmd: ws('@prism3/tokens', 'check:package'),
+  },
+  {
+    // #2997 gate 5 — generates the Tailwind theme with the engine's emitter into a temp dir and compiles a fixture
+    // against it with the stock Tailwind CLI pinned in packages/tokens. Needs no build and no browser.
+    id: 'tailwind-theme',
+    ciStep: 'The Tailwind v4 theme compiles in a stock Tailwind (#2997)',
+    cmd: ws('@prism3/tokens', 'check:shadcn'),
   },
   {
     id: 'lint-skills',
