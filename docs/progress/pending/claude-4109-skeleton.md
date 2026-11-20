@@ -24,6 +24,9 @@ Built from the #4109 proposal with all seven owner decisions at A (OD-S1 to OD-S
 - **The Figma page:** Subcomponents, beside Spinner and Image placeholder.
 - **Control shape:** outside (`OUTSIDE_REASON`), since a host passes the content's radius.
 - **The small text bar** stays 13 of 21.
+- **High contrast (Q-R1 A, 2026-11-20):** the shapes draw nothing in hc-light and hc-dark, where `background.tertiary` is
+  the page color (1.00:1). Accepted, since the shapes are decoration and the reserved box still holds the layout; recorded
+  in the def's `notes.evolution`.
 
 ### Executor revision
 

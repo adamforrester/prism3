@@ -327,6 +327,7 @@ export const skeleton: ComponentDef = {
     ],
     evolution: [
       'BUILT 2026-11-19 from the #4109 proposal, all seven owner decisions at A: no `ghost` alias, one primitive with a shape axis, pulse by default on `motion.duration.sweep`, the `background.tertiary` fill, a two-thirds bar, a four-member set, and a Skeleton that never speaks.',
+      'ACCEPTED 2026-11-20 (Q-R1 A): in both high-contrast modes the shapes draw nothing. `background.tertiary` resolves to the page color there (1.00:1). The shapes are decoration, and the reserved box still holds the layout, so nothing shifts when the content arrives.',
     ],
   },
 };
