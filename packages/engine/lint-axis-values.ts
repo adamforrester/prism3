@@ -701,15 +701,15 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'shape',
-    values: ['circle', 'square'],
+    values: ['circular', 'square'],
     defs: ['avatar'],
-    relation: 'overlapping',
+    relation: 'reordered',
     reason:
       'Avatar\'s entity type carried by its outline (#4110, owner OD-A2 A): a circle for a person, a square for a team, '
-      + 'an organization or an app, and the glyph follows it. OVERLAPPING with Icon button\'s canonical set: `square` '
-      + 'means the same rounded rectangle on both, and `circle` is the noun for what Icon button calls `circular`. The '
-      + 'words are the approved proposal\'s; whether to align them is held for the owner on the PR. `circle` LEADS because '
-      + 'it is the code default, a person.',
+      + 'an organization or an app, and the glyph follows it. Icon button\'s canonical words, one convention across the '
+      + 'library (owner decision on the PR, 2026-11-20): `square` is a rounded rectangle and `circular` a full-round disc '
+      + 'on both. REORDERED, not the same set: `circular` LEADS because it is the code default, a person, so the member '
+      + 'Figma inserts is a person\'s avatar (#2752, Q1 B).',
   },
   {
     axis: 'shape',

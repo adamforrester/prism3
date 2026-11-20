@@ -59,7 +59,7 @@ export const avatar: ComponentDef = {
     { name: 'src', type: 'string', required: false, description: 'The photo. When it is missing or fails to load, the avatar shows the initials, or the glyph when there is no name to take them from.' },
     { name: 'srcSet', type: 'string', required: false, description: 'Higher-density versions of the photo, for sharp rendering on high-density screens.' },
     { name: 'decorative', type: 'boolean', default: false, required: false, description: 'Set it when the name is already visible beside the avatar, as in a list row or a comment header. The avatar is then hidden from assistive technology, so the name is not read twice.' },
-    { name: 'shape', type: "enum: 'circle' | 'square'", values: ['circle', 'square'], default: 'circle', required: false, description: 'circle = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name.' },
+    { name: 'shape', type: "enum: 'circular' | 'square'", values: ['circular', 'square'], default: 'circular', required: false, description: 'circular = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name.' },
     { name: 'size', type: "enum: 'x-small' | 'small' | 'medium' | 'large' | 'x-large'", values: ['x-small', 'small', 'medium', 'large', 'x-large'], default: 'medium', required: false, description: 'x-small = 20px, for dense lists and inline mentions. small = 24px, the size of a medium icon. medium = 32px, the default. large = 40px. x-large = 64px, for a profile header. Below medium the initials are one letter.' },
     { name: 'presence', type: "enum: 'online' | 'away' | 'busy' | 'offline'", values: ['online', 'away', 'busy', 'offline'], required: false, description: 'Shows a status dot on the bottom corner. Absent, there is no dot. The status is also added to the accessible name, so color is never the only signal.' },
     { name: 'getInitials', type: 'function', required: false, description: 'Replaces the default initials rule, for names it does not fit. The default takes the first letters of the first and last words, uppercased, one letter for a one-word name, the part before the at sign of an email address, and one character for a Chinese, Japanese or Korean name.' },
@@ -72,7 +72,7 @@ export const avatar: ComponentDef = {
 
   variants: {
     size: [...SIZES],
-    shape: ['circle', 'square'],
+    shape: ['circular', 'square'],
     // The fallback chain as it reads in Figma. Initials lead: the member Figma inserts shows a name, the common case
     // when no photo is at hand. No code prop drives it: in code the chain follows `src` and `name` at run time.
     type: ['initials', 'icon', 'image'],
@@ -105,11 +105,11 @@ export const avatar: ComponentDef = {
 
     // ── THE CORNER: round for a person; for a square, the small radius below medium, so a 20px square does not read
     // as a circle, and the medium radius from medium up (OD-A2 A).
-    'circle.x-small.radius': 'radius.round',
-    'circle.small.radius': 'radius.round',
-    'circle.medium.radius': 'radius.round',
-    'circle.large.radius': 'radius.round',
-    'circle.x-large.radius': 'radius.round',
+    'circular.x-small.radius': 'radius.round',
+    'circular.small.radius': 'radius.round',
+    'circular.medium.radius': 'radius.round',
+    'circular.large.radius': 'radius.round',
+    'circular.x-large.radius': 'radius.round',
     'square.x-small.radius': 'radius.sm',
     'square.small.radius': 'radius.sm',
     'square.medium.radius': 'radius.md',
@@ -177,7 +177,7 @@ export const avatar: ComponentDef = {
         mirror: 'never',
         size: 'glyph.{size}',
         paintSlot: 'icon',
-        presentWhen: { type: ['icon'], shape: ['circle'] },
+        presentWhen: { type: ['icon'], shape: ['circular'] },
         note: 'A generic person, shown in a circle when there is no photo and no name. Decorative.',
       },
       organizationGlyph: {
@@ -335,11 +335,6 @@ export const avatar: ComponentDef = {
 
   notes: {
     contested: [
-      'OWNER DECISION OD-A3.1, the x-large token name. Built as `icon.size.2xl` (64px), one step past the icon ladder the other four sizes bind, so it reuses every icon emitter. Alternatives: `avatar.size.xl`, a new component token family (a new Figma collection), or `size.avatar` beside the control ladder. Recommend `icon.size.2xl`.',
-      'OWNER DECISION, the shape words. Built as approved, `circle | square`; Icon button\'s `shape` axis says `square | circular`, so the two sets differ in one word. Recommend keeping `circle` (a noun beside `square`), and recording the pair in `lint-axis-values.ts` as overlapping.',
-      'OWNER DECISION, the presence tones. The dot\'s tone is exposed on the instance and starts at success. Recommended mapping in code: online = success, away = warning, busy = danger, offline = neutral.',
-      'OWNER DECISION, the x-large initials. Built on `type.label.lg` (18px), the largest label rung, which is 28% of the 64px box against the brief\'s 40%. Alternative: `type.title.md` (24px). Recommend the label rung, as OD-A4 A says.',
-      'OWNER DECISION, the glyph sizes. Built at `icon.size.xs` (16px) at x-small and small, `.sm` at medium, `.md` at large and `.xl` at x-large, about two thirds of the box. The proposal did not set them.',
       'OWNER DECISION, the initials at x-small and small. The Figma text is one default, "JD", at every size, since a set-level text property holds one default. The one-letter rule is applied in code. Alternative: a second, Figma-only text part showing "J" at the two small sizes.',
       'OWNER DECISION, the page. Built on its own "Avatar" page under Components, beside Badge.',
     ],
@@ -350,6 +345,7 @@ export const avatar: ComponentDef = {
     ],
     evolution: [
       'Built from the proposal (#4110) with every owner decision at its recommendation (OD-A1 to OD-A8, all A, 2026-11-19): Avatar only, circle and square, five sizes on the icon ladder plus one minted 64px step, one initial below medium, one neutral backdrop, person and organization glyphs, a nested Badge dot for presence, and a required name with a decorative flag.',
+      'Owner decisions on the PR (2026-11-20): the x-large token is `icon.size.2xl` (OD-A3.1 A); the shape values align on Icon button\'s words, `circular | square`, one convention across the library; presence maps online = success, away = warning, busy = danger, offline = neutral; the x-large initials stay on `type.label.lg`; the glyph sizes stay as built (`icon.size.xs`, `xs`, `sm`, `md`, `xl`).',
       'The corner pin (`PartDef.corner`), first a glyph-only placement for the textarea grip, takes a box too, for the presence ring. Both executors already placed the pinned node by name, whatever its type.',
     ],
   },

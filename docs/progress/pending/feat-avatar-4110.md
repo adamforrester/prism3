@@ -6,7 +6,7 @@ the wireframe in #4148. Engine {{ENGINE_VERSION}}; `CONTRACT_VERSION` 15.1.0 →
 ### What landed
 
 - **`avatar`**, category `foundations`, priority 3, `states: []`. A 30-member Figma set: `size` (5) × `shape`
-  (circle, square) × `type` (initials, icon, image). `type` is runtime and has no prop behind it: in code the chain
+  (circular, square) × `type` (initials, icon, image). `type` is runtime and has no prop behind it: in code the chain
   follows `src` and `name`, so `test.ts` bridges it through `src` (`#2752 avatar.type`).
 - **An unclipped container and a clipping mask.** The root (`container`, not the proposal's `host`, since the root
   list is closed by Q365) sets the size and clips nothing; `mask` carries the corner, `clipsContent` and the backdrop.
@@ -33,10 +33,12 @@ the wireframe in #4148. Engine {{ENGINE_VERSION}}; `CONTRACT_VERSION` 15.1.0 →
   in code only; every member's text is "JD".
 - The KB brief itself was not reachable from this lane; its positions come from the proposal's paraphrase.
 
-### Held for the owner
+### Owner decisions on the PR (2026-11-20)
 
-The x-large token's name (`icon.size.2xl`), the shape words against Icon button's `circular`, the presence tone mapping
-and the dot's starting tone, the x-large initials rung, the glyph sizes, one initial in Figma at the small sizes, the
-page, and the glyph artwork. Each is in the PR body as an OWNER DECISION with options and a recommendation.
+The x-large token is `icon.size.2xl` (OD-A3.1 A). The `shape` values align on Icon button's words, `circular | square`
+(was `circle`), so `lint-axis-values.ts` registers Avatar's set as `reordered` (it leads with `circular`, the code
+default) rather than overlapping. Presence maps online = success, away = warning, busy = danger, offline = neutral.
+The x-large initials stay on `type.label.lg`, and the glyph sizes stay as built. The DRAFT copy is approved. Still
+open: one initial in Figma at the small sizes, the page, and the glyph artwork.
 
 After review: the initials-contrast arm in `test.ts` reads the ink and the backdrop off the projected plans (what the def binds), not as typed role names, and measures them in all five emitted brands (wendys added), 20 cells. Rebinding the initials to `color.text.tertiary` now fails `#4110 avatar: the initials' ink clears 4.5:1 on the backdrop the def binds` by name (2.79:1 in prism3 light); before, every `#4110` arm passed and only the paint census, which `--accept` rewrites, moved.

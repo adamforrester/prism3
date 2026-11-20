@@ -20882,7 +20882,7 @@ arm: {
     const offPx = pxRows.filter(([, r]) => Object.entries(BOX).some(([z, [, px]]) => r[z] !== px));
     ok(pxRows.length === 3 && offPx.length === 0, `#4110 avatar OD-A3 A: the five sizes resolve to 20/24/32/40/64px in every example brand${offPx.length ? ` — ${offPx.map(([b, r]) => `${b} ${JSON.stringify(r)}`).join('; ')}` : ''}`);
     // OD-A2 A: a circle is round at every size; a square takes radius.sm below medium and radius.md from medium up.
-    const CORNER = (shape: string, size: string) => shape === 'circle' ? 'radius/round' : ['x-small', 'small'].includes(size) ? 'radius/sm' : 'radius/md';
+    const CORNER = (shape: string, size: string) => shape === 'circular' ? 'radius/round' : ['x-small', 'small'].includes(size) ? 'radius/sm' : 'radius/md';
     const wrongCorner = plans.filter((p) => ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].some((c) => kid(p.root, 'mask')?.bound?.[c] !== CORNER(p.coord.shape, p.size)));
     ok(wrongCorner.length === 0, `#4110 avatar OD-A2 A: the mask's corner is round on a circle, radius.sm on a square below medium and radius.md from medium up${wrongCorner.length ? ` — ${wrongCorner.slice(0, 3).map((p) => `${p.size}/${p.coord.shape} ${kid(p.root, 'mask')?.bound?.topLeftRadius}`).join(', ')}` : ''}`);
     // The structural decision: only the mask clips, and the presence ring sits outside it, pinned to the container's corner.
@@ -20896,9 +20896,9 @@ arm: {
     // OD-A6 A: the glyph follows the shape, at the icon member only; the initials show at the initials member only.
     const wrongContent = plans.filter((p) => {
       const m = kid(p.root, 'mask'); const names = (m?.children ?? []).map((c: any) => c.name).join(',');
-      const want = p.coord.type === 'initials' ? 'initials' : p.coord.type === 'icon' ? (p.coord.shape === 'circle' ? 'personGlyph' : 'organizationGlyph') : '';
+      const want = p.coord.type === 'initials' ? 'initials' : p.coord.type === 'icon' ? (p.coord.shape === 'circular' ? 'personGlyph' : 'organizationGlyph') : '';
       const glyph = find(p.root, want);
-      return names !== want || (p.coord.type === 'icon' && glyph?.nestTarget !== (p.coord.shape === 'circle' ? 'icon/person' : 'icon/organization'));
+      return names !== want || (p.coord.type === 'icon' && glyph?.nestTarget !== (p.coord.shape === 'circular' ? 'icon/person' : 'icon/organization'));
     });
     ok(wrongContent.length === 0, `#4110 avatar OD-A6 A: the mask holds the initials at type=initials, the person glyph in a circle and the organization glyph in a square at type=icon, and nothing at type=image${wrongContent.length ? ` — ${wrongContent.slice(0, 3).map((p) => `${p.size}/${JSON.stringify(p.coord)}`).join(', ')}` : ''}`);
     // OD-A5 A: one neutral backdrop, and the initials clear 4.5:1 on it in every brand and mode.

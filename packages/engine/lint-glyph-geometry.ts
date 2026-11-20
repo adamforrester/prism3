@@ -308,8 +308,8 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   'pagination-item.previousGlyph': { glyph: 'chevron-left', at: { type: ['previous'] }, why: 'the previous cell\'s chevron, pointing back' },
   'pagination-item.nextGlyph': { glyph: 'chevron-right', at: { type: ['next'] }, why: 'the next cell\'s chevron, pointing forward' },
   // #4110 (owner OD-A6 A) — Avatar's last fallback, with no photo and no name: the glyph follows the shape, so each is
-  // fixed and gated on its own shape at the icon member. `glyph: '{shape}'` would look for glyphs named circle and square.
-  'avatar.personGlyph': { glyph: 'person', at: { type: ['icon'], shape: ['circle'] }, why: 'a generic person, in the circle a person takes' },
+  // fixed and gated on its own shape at the icon member. `glyph: '{shape}'` would look for glyphs named circular and square.
+  'avatar.personGlyph': { glyph: 'person', at: { type: ['icon'], shape: ['circular'] }, why: 'a generic person, in the circle a person takes' },
   'avatar.organizationGlyph': { glyph: 'organization', at: { type: ['icon'], shape: ['square'] }, why: 'a generic building, in the square a team, an organization or an app takes' },
   'image-placeholder.markerGlyph': {
     glyph: 'image',
