@@ -46,8 +46,9 @@ decision on #3408. Never name the file or its key in a public issue, PR or comme
 
 The Desktop Bridge's `figma_execute` wraps the code in an async function body and returns only what the code
 explicitly `return`s. The first live run got `undefined` back from a bare `(async () => { ... })();`, so the script
-now starts `return (async () => {`. `compare-figma-geometry.ts --self-test` (in `check:build`) fails by name if the
-`return` goes.
+now starts `return (async () => {`. `compare-figma-geometry.ts --self-test` (in `check:build`) runs the script's
+source the same way, in an async function body with a stub `figma` (one set, one member, one text layer), and fails by
+name unless the record comes back. So dropping either `return`, the outer one or the IIFE's own, fails.
 
 ## Not yet verified live
 

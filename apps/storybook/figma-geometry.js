@@ -13,7 +13,7 @@
  * It returns the record as a JSON string. Save it UNEDITED as `apps/storybook/figma-geometry.json`. The IIFE is
  * RETURNED: `figma_execute` wraps the code in an async function body and hands back only an explicit `return`, so a
  * bare `(async () => { ... })();` comes back `undefined` (the first live run). `compare-figma-geometry.ts --self-test`
- * holds the `return` in place.
+ * runs this source the same way, against a stub file, and fails unless the record comes back.
  * `compare-figma-geometry.ts` holds it against the code's record.
  */
 return (async () => {
