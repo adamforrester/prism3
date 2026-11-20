@@ -31,7 +31,7 @@
 import { NS } from './persist-figma';
 import { utf8Bytes } from './agent-protocol';
 import type { SlotMigration } from './slot-migration';
-import type { SlotTextMigration } from './slot-text-migration';
+import type { SlotTextMigration } from './slot-text-migration'; import { failureDetail } from './host-detail';   // #4253
 
 /** The plugin-data keys, one per carry kind. */
 export const CARRY_KEY = { rows: 'slotCarry', text: 'slotTextCarry' } as const;
@@ -98,7 +98,7 @@ export const keepCarry = <K extends CarryKind>(set: unknown, kind: K, capture: C
   if (bytes > CARRY_MAX_BYTES) { clear(); return { kind, bytes }; }
   try { node.setSharedPluginData?.(NS, CARRY_KEY[kind], json); } catch (err) {
     clear();
-    return { kind, bytes, refused: (err as Error)?.message ?? String(err) };
+    return { kind, bytes, refused: failureDetail(err) };
   }
   return null;
 };

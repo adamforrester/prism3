@@ -26,7 +26,7 @@
  * MEASURED ON THE SHIM, NOT ON A REAL HOST: `setProperties` on a placed instance after its set changed. The first run on
  * the master file is that probe, as it was for `slot-migration.ts`.
  */
-import type { ComponentRename } from '@prism3/engine';
+import type { ComponentRename } from '@prism3/engine'; import { failureDetail } from './host-detail';   // #4253
 
 type SlotTextEntry = Extract<ComponentRename, { kind: 'slot-text' }>;
 type Val = string | boolean;
@@ -178,11 +178,11 @@ export const fillSlotText = async (setName: string, entry: SlotTextEntry, slotNo
     else need(entry.hide, false);
     if (lacking) out.pending.push(c.id);
     if (!Object.keys(want).length) continue;
-    try { inst.setProperties?.(want); } catch (err) { out.misses.push(`${where}: values -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+    try { inst.setProperties?.(want); } catch (err) { out.misses.push(`${where}: values -> REFUSED (${failureDetail(err)})`); continue; }
     // A moved body's old text, if the update left it in the (now hidden) slot, goes: the property holds it now.
     if (c.case.kind === 'move') {
       const slot = slotOf(inst, slotNow);
-      for (const x of [...(slot?.children ?? [])]) { try { x.remove?.(); } catch (err) { out.misses.push(`${where}: the old text in the slot could not be cleared (${(err as Error)?.message ?? String(err)})`); } }
+      for (const x of [...(slot?.children ?? [])]) { try { x.remove?.(); } catch (err) { out.misses.push(`${where}: the old text in the slot could not be cleared (${failureDetail(err)})`); } }
     }
     // READ BACK every value written.
     for (const [key, v] of Object.entries(want)) {
