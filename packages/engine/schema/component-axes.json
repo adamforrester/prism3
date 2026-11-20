@@ -80,7 +80,7 @@
   "avatar": {
     "axes": {
       "shape": [
-        "circle",
+        "circular",
         "square"
       ],
       "size": [

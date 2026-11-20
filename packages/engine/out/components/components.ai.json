@@ -7533,14 +7533,14 @@
         },
         {
           "name": "shape",
-          "type": "enum: 'circle' | 'square'",
-          "default": "circle",
+          "type": "enum: 'circular' | 'square'",
+          "default": "circular",
           "required": false,
           "values": [
-            "circle",
+            "circular",
             "square"
           ],
-          "description": "circle = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name."
+          "description": "circular = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name."
         },
         {
           "name": "size",
@@ -7595,7 +7595,7 @@
         },
         "shape": {
           "values": [
-            "circle",
+            "circular",
             "square"
           ],
           "kind": "authoring"

@@ -2026,7 +2026,7 @@
           {
             "name": "shape",
             "values": [
-              "circle",
+              "circular",
               "square"
             ]
           },

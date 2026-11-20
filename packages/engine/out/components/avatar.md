@@ -17,7 +17,7 @@ The picture of a specific person or organization. It shows a photo when there is
 
 ## Anatomy
 
-Shown on the default member: size `medium`, shape `circle`, type `initials`.
+Shown on the default member: size `medium`, shape `circular`, type `initials`.
 
 1. **Container** — The bounding square. It sets the size and clips nothing, so the presence dot can sit on its corner and overhang the picture.
 2. **Mask** — The shape: a circle or a rounded square that clips what it holds. Its neutral fill sits behind the initials, the glyph or a photo. Drop a photo onto it as an image fill.
@@ -32,7 +32,7 @@ Shown on the default member: size `medium`, shape `circle`, type `initials`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `size` | `medium`, `x-small`, `small`, `large`, `x-large` | once, when authored | x-small = 20px, for dense lists and inline mentions. small = 24px, the size of a medium icon. medium = 32px, the default. large = 40px. x-large = 64px, for a profile header. Below medium the initials are one letter. |
-| `shape` | `circle`, `square` | once, when authored | circle = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name. |
+| `shape` | `circular`, `square` | once, when authored | circular = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name. |
 | `type` | `initials`, `icon`, `image` | at runtime | — |
 
 ## Usage guidelines
@@ -104,7 +104,7 @@ Write the name the way the interface writes it next to the avatar, with the same
 | `src` | string | — | no | The photo. When it is missing or fails to load, the avatar shows the initials, or the glyph when there is no name to take them from. |
 | `srcSet` | string | — | no | Higher-density versions of the photo, for sharp rendering on high-density screens. |
 | `decorative` | boolean | `false` | no | Set it when the name is already visible beside the avatar, as in a list row or a comment header. The avatar is then hidden from assistive technology, so the name is not read twice. |
-| `shape` | enum: 'circle' \| 'square' | `circle` | no | circle = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name. |
+| `shape` | enum: 'circular' \| 'square' | `circular` | no | circular = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name. |
 | `size` | enum: 'x-small' \| 'small' \| 'medium' \| 'large' \| 'x-large' | `medium` | no | x-small = 20px, for dense lists and inline mentions. small = 24px, the size of a medium icon. medium = 32px, the default. large = 40px. x-large = 64px, for a profile header. Below medium the initials are one letter. |
 | `presence` | enum: 'online' \| 'away' \| 'busy' \| 'offline' | — | no | Shows a status dot on the bottom corner. Absent, there is no dot. The status is also added to the accessible name, so color is never the only signal. |
 | `getInitials` | function | — | no | Replaces the default initials rule, for names it does not fit. The default takes the first letters of the first and last words, uppercased, one letter for a one-word name, the part before the at sign of an email address, and one character for a Chinese, Japanese or Korean name. |
@@ -132,7 +132,7 @@ Padding reads top / right / bottom / left when its sides differ.
 
 Keyed by `size`, `shape`.
 
-**size=medium, shape=circle**
+**size=medium, shape=circular**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -141,7 +141,7 @@ Keyed by `size`, `shape`.
 | `container/presenceRing` | `space.025` | — | — | — | — | radius `radius.round` |
 | `container/mask/personGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
-**size=x-small, shape=circle**
+**size=x-small, shape=circular**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -150,7 +150,7 @@ Keyed by `size`, `shape`.
 | `container/presenceRing` | `space.025` | — | — | — | — | radius `radius.round` |
 | `container/mask/personGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
-**size=small, shape=circle**
+**size=small, shape=circular**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -159,7 +159,7 @@ Keyed by `size`, `shape`.
 | `container/presenceRing` | `space.025` | — | — | — | — | radius `radius.round` |
 | `container/mask/personGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
-**size=large, shape=circle**
+**size=large, shape=circular**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -168,7 +168,7 @@ Keyed by `size`, `shape`.
 | `container/presenceRing` | `space.025` | — | — | — | — | radius `radius.round` |
 | `container/mask/personGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
-**size=x-large, shape=circle**
+**size=x-large, shape=circular**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -238,7 +238,7 @@ Keyed by `size`.
 
 Keyed by `shape`, `type`.
 
-**shape=circle, type=initials**
+**shape=circular, type=initials**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -246,7 +246,7 @@ Keyed by `shape`, `type`.
 | `container/mask/initials` | — | — | `color.text.primary` | — |
 | `container/presenceRing` | `color.background.primary` | — | — | — |
 
-**shape=circle, type=icon**
+**shape=circular, type=icon**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -254,7 +254,7 @@ Keyed by `shape`, `type`.
 | `container/mask/personGlyph` | — | — | — | `color.icon.secondary` |
 | `container/presenceRing` | `color.background.primary` | — | — | — |
 
-**shape=circle, type=image**
+**shape=circular, type=image**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |

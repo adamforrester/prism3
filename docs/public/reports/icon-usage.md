@@ -15,7 +15,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | _breadcrumb-separator | chevronGlyph | `chevron-right` | icon set | drawn | type: chevron |
 |  | slashGlyph | `slash` | icon set | drawn | type: slash |
 | avatar | organizationGlyph | `organization` | icon set | drawn | type: icon; shape: square |
-|  | personGlyph | `person` | icon set | drawn | type: icon; shape: circle |
+|  | personGlyph | `person` | icon set | drawn | type: icon; shape: circular |
 | banner | dangerGlyph | `warning-triangle` | icon set | drawn | tone: danger |
 |  | infoGlyph | `info-circle` | icon set | drawn | tone: info |
 |  | successGlyph | `check-circle` | icon set | drawn | tone: success |

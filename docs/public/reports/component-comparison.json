@@ -245,7 +245,7 @@
           "x-large"
         ],
         "shape": [
-          "circle",
+          "circular",
           "square"
         ],
         "type": [
@@ -270,9 +270,9 @@
         },
         {
           "name": "shape",
-          "default": "circle",
+          "default": "circular",
           "values": [
-            "circle",
+            "circular",
             "square"
           ]
         },
@@ -6305,6 +6305,7 @@
           "square"
         ],
         "components": [
+          "avatar",
           "icon-button",
           "icon-button-destructive",
           "icon-button-neutral"
@@ -6319,15 +6320,6 @@
           "flush-icon-button",
           "flush-icon-button-destructive",
           "flush-icon-button-neutral"
-        ]
-      },
-      {
-        "values": [
-          "circle",
-          "square"
-        ],
-        "components": [
-          "avatar"
         ]
       },
       {
@@ -8766,9 +8758,9 @@
     "shape": [
       {
         "id": "avatar",
-        "default": "circle",
+        "default": "circular",
         "values": [
-          "circle",
+          "circular",
           "square"
         ]
       },
@@ -10498,7 +10490,7 @@
         "icon-button-neutral",
         "progress"
       ],
-      "detail": "the shape axis takes 4 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circle, square] in avatar; [circular, linear] in progress"
+      "detail": "the shape axis takes 3 value sets — [circular, square] in avatar, icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress"
     },
     {
       "kind": "axis values",

@@ -6133,7 +6133,7 @@
               "members": 5,
               "where": {
                 "shape": [
-                  "circle"
+                  "circular"
                 ],
                 "type": [
                   "icon"
@@ -19305,7 +19305,7 @@
               "members": 1,
               "where": {
                 "shape": [
-                  "circle"
+                  "circular"
                 ],
                 "size": [
                   "large"
@@ -20122,7 +20122,7 @@
               "members": 1,
               "where": {
                 "shape": [
-                  "circle"
+                  "circular"
                 ],
                 "size": [
                   "medium"
@@ -20868,7 +20868,7 @@
               "members": 1,
               "where": {
                 "shape": [
-                  "circle"
+                  "circular"
                 ],
                 "size": [
                   "x-large"
@@ -21087,7 +21087,7 @@
               "members": 2,
               "where": {
                 "shape": [
-                  "circle"
+                  "circular"
                 ],
                 "size": [
                   "small",
@@ -22051,11 +22051,11 @@
         },
         "avatar": {
           "keys": [
-            "circle.large.radius",
-            "circle.medium.radius",
-            "circle.small.radius",
-            "circle.x-large.radius",
-            "circle.x-small.radius",
+            "circular.large.radius",
+            "circular.medium.radius",
+            "circular.small.radius",
+            "circular.x-large.radius",
+            "circular.x-small.radius",
             "presence-ring.radius"
           ],
           "parts": {
@@ -22063,7 +22063,7 @@
               "members": 15,
               "where": {
                 "shape": [
-                  "circle"
+                  "circular"
                 ]
               }
             },
@@ -30968,7 +30968,7 @@
       "members": 30,
       "axes": {
         "shape": [
-          "circle",
+          "circular",
           "square"
         ],
         "size": [

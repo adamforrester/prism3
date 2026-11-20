@@ -3210,11 +3210,6 @@
       ],
       "notes": {
         "contested": [
-          "OWNER DECISION OD-A3.1, the x-large token name. Built as `icon.size.2xl` (64px), one step past the icon ladder the other four sizes bind, so it reuses every icon emitter. Alternatives: `avatar.size.xl`, a new component token family (a new Figma collection), or `size.avatar` beside the control ladder. Recommend `icon.size.2xl`.",
-          "OWNER DECISION, the shape words. Built as approved, `circle | square`; Icon button's `shape` axis says `square | circular`, so the two sets differ in one word. Recommend keeping `circle` (a noun beside `square`), and recording the pair in `lint-axis-values.ts` as overlapping.",
-          "OWNER DECISION, the presence tones. The dot's tone is exposed on the instance and starts at success. Recommended mapping in code: online = success, away = warning, busy = danger, offline = neutral.",
-          "OWNER DECISION, the x-large initials. Built on `type.label.lg` (18px), the largest label rung, which is 28% of the 64px box against the brief's 40%. Alternative: `type.title.md` (24px). Recommend the label rung, as OD-A4 A says.",
-          "OWNER DECISION, the glyph sizes. Built at `icon.size.xs` (16px) at x-small and small, `.sm` at medium, `.md` at large and `.xl` at x-large, about two thirds of the box. The proposal did not set them.",
           "OWNER DECISION, the initials at x-small and small. The Figma text is one default, \"JD\", at every size, since a set-level text property holds one default. The one-letter rule is applied in code. Alternative: a second, Figma-only text part showing \"J\" at the two small sizes.",
           "OWNER DECISION, the page. Built on its own \"Avatar\" page under Components, beside Badge."
         ],
@@ -3225,6 +3220,7 @@
         ],
         "evolution": [
           "Built from the proposal (#4110) with every owner decision at its recommendation (OD-A1 to OD-A8, all A, 2026-11-19): Avatar only, circle and square, five sizes on the icon ladder plus one minted 64px step, one initial below medium, one neutral backdrop, person and organization glyphs, a nested Badge dot for presence, and a required name with a decorative flag.",
+          "Owner decisions on the PR (2026-11-20): the x-large token is `icon.size.2xl` (OD-A3.1 A); the shape values align on Icon button's words, `circular | square`, one convention across the library; presence maps online = success, away = warning, busy = danger, offline = neutral; the x-large initials stay on `type.label.lg`; the glyph sizes stay as built (`icon.size.xs`, `xs`, `sm`, `md`, `xl`).",
           "The corner pin (`PartDef.corner`), first a glyph-only placement for the textarea grip, takes a box too, for the presence ring. Both executors already placed the pinned node by name, whatever its type."
         ],
         "projection": []

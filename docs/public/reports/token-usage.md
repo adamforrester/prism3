@@ -659,7 +659,7 @@ Type: color. Bound by 6 component(s).
 | _breadcrumb-separator | `icon` | chevronGlyph | type: chevron (1 of 2) |
 |  |  | slashGlyph | type: slash (1 of 2) |
 | avatar | `icon` | organizationGlyph | shape: square · type: icon (5 of 30) |
-|  |  | personGlyph | shape: circle · type: icon (5 of 30) |
+|  |  | personGlyph | shape: circular · type: icon (5 of 30) |
 | badge | `neutral.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: neutral · type: status (2 of 50) |
 | field-message | `default.icon` | (not drawn) | — |
 | icon | `tone.secondary` | (not drawn) | — |
@@ -2561,7 +2561,7 @@ Type: dimension. Bound by 25 component(s).
 | avatar | `glyph.large`, `size.small.box` | container | size: small (6 of 30) |
 |  |  | mask | size: small (6 of 30) |
 |  |  | organizationGlyph | shape: square · size: large · type: icon (1 of 30) |
-|  |  | personGlyph | shape: circle · size: large · type: icon (1 of 30) |
+|  |  | personGlyph | shape: circular · size: large · type: icon (1 of 30) |
 | banner | `glyph-size` | dangerGlyph | tone: danger (2 of 10) |
 |  |  | infoGlyph | tone: info (2 of 10) |
 |  |  | successGlyph | tone: success (2 of 10) |
@@ -2624,7 +2624,7 @@ Type: dimension. Bound by 29 component(s).
 | avatar | `glyph.medium`, `size.x-small.box` | container | size: x-small (6 of 30) |
 |  |  | mask | size: x-small (6 of 30) |
 |  |  | organizationGlyph | shape: square · size: medium · type: icon (1 of 30) |
-|  |  | personGlyph | shape: circle · size: medium · type: icon (1 of 30) |
+|  |  | personGlyph | shape: circular · size: medium · type: icon (1 of 30) |
 | button | `size.medium.icon` | leadingVisual | leading: true · size: medium · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: medium · state: pending (32 of 576) |
 |  |  | trailingVisual | size: medium · trailing: true (88 of 576) |
@@ -2683,7 +2683,7 @@ Type: dimension. Bound by 3 component(s).
 | avatar | `glyph.x-large`, `size.large.box` | container | size: large (6 of 30) |
 |  |  | mask | size: large (6 of 30) |
 |  |  | organizationGlyph | shape: square · size: x-large · type: icon (1 of 30) |
-|  |  | personGlyph | shape: circle · size: x-large · type: icon (1 of 30) |
+|  |  | personGlyph | shape: circular · size: x-large · type: icon (1 of 30) |
 | code-input-cell | `size.x-large.caret-height` | caret | size: x-large · state: focus-visible (2 of 48) |
 | progress | `size.medium` | arcGlyph | shape: circular · size: medium · status: active, error (3 of 12) |
 |  |  | fullRingGlyph | shape: circular · size: medium · status: complete · type: determinate (1 of 12) |
@@ -2705,7 +2705,7 @@ Type: dimension. Bound by 19 component(s).
 |  |  | frame | every member (2 of 2) |
 |  |  | slashGlyph | type: slash (1 of 2) |
 | avatar | `glyph.small`, `glyph.x-small` | organizationGlyph | shape: square · size: small, x-small · type: icon (2 of 30) |
-|  |  | personGlyph | shape: circle · size: small, x-small · type: icon (2 of 30) |
+|  |  | personGlyph | shape: circular · size: small, x-small · type: icon (2 of 30) |
 | breadcrumbs | `back-icon` | backGlyph | path: parent · separator: chevron (2 of 6) |
 | button | `size.small.icon` | leadingVisual | leading: true · size: small · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: small · state: pending (32 of 576) |
@@ -2860,7 +2860,7 @@ Type: dimension. Bound by 14 component(s).
 |  |  | frame | every member (15 of 15) |
 |  |  | hoverHalo | every member (15 of 15) |
 |  |  | pressHalo | every member (15 of 15) |
-| avatar | `circle.large.radius`, `circle.medium.radius`, `circle.small.radius`, `circle.x-large.radius`, `circle.x-small.radius`, `presence-ring.radius` | mask | shape: circle (15 of 30) |
+| avatar | `circular.large.radius`, `circular.medium.radius`, `circular.small.radius`, `circular.x-large.radius`, `circular.x-small.radius`, `presence-ring.radius` | mask | shape: circular (15 of 30) |
 |  |  | presenceRing | every member (30 of 30) |
 | badge | `contained.count.radius`, `contained.dot.radius`, `status-dot.radius` | statusDot | emphasis: subtle · style: inline · type: status (10 of 50) |
 |  |  | surface | emphasis: bold · size: medium · style: contained · type: count, dot (10 of 50) |
