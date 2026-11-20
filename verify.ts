@@ -988,9 +988,9 @@ export const GATES: Gate[] = [
     ciStep: 'Voice lint gate (shipped text)',
     cmd: engine('lint-voice.ts'),
     after: ['build-web', 'build-plugin'],
-    // `build-plugin` since #1824: the CLIENT NAMES arm reads apps/plugin/dist (main.js + ui.html) raw.
-    // The voice RULES still do not (#948 is open), so this ordering serves that one arm today.
-    why: 'the voice rules scan apps/studio/dist/*.js, and the client-name arm (#1824) scans both built bundles — run before either build it reads a stale one, or none',
+    // `build-plugin` since #1824: the CLIENT NAMES arm reads apps/plugin/dist (main.js + ui.html) raw, and since
+    // #948 the voice RULES read both files too.
+    why: 'the voice rules and the client-name arm (#1824) scan both built bundles, apps/studio/dist and apps/plugin/dist — run before either build it reads a stale one, or none',
   },
   {
     id: 'lint-doc-gates',
@@ -1347,6 +1347,13 @@ export const GATES: Gate[] = [
     id: 'lint-shadcn-contract',
     ciStep: 'The shadcn map follows the component contract (#2997)',
     cmd: engine('lint-shadcn-contract.ts'),
+  },
+  {
+    // #2996 — reads the committed supplement, its Spectacular fixture and the token contract; needs no build and no
+    // `after`. `drift` holds the committed supplement to the emitter, so this reads what ships.
+    id: 'lint-spec-supplement',
+    ciStep: "The spec supplement lines up with Spectacular's output (#2996)",
+    cmd: engine('lint-spec-supplement.ts'),
   },
   {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
