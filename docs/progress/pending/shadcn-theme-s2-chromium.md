@@ -22,6 +22,12 @@ the page does not have. The page code is therefore a string.
 The `test.ts` import of the gate moves every line below it by one, so the public guide's cite of `test.ts`
 (`docs/public/guides/index.md`) moves with it; `lint-guide-claims` names the stale range (delta review on #4289).
 
+**Fix carried here (#4428).** On a tree with `main` merged in, both gates crashed: `aurora.web: no
+aurora.web.dark.overlay.tokens.json in the handoff`. Since #4282 `out/` commits a web-only `<brand>.web.base.tokens.json`,
+and `handoffBrands` (#4286) read every `*.base.tokens.json` as a brand. It now keeps a name only when the full tree
+`<brand>.tokens.json` sits beside it. A `test.ts` arm plants a web base, so the regression fails by name (`#4428 a
+web-only base is not read as a brand`) rather than as a thrown error. #4315 carries the same `handoffBrands`.
+
 **Where it runs.** CI's studio job, after the Chromium install step, because the engine job has no browser. Playwright
 loads at run time from the workspace, as `tools/block-capture` loads it. `packages/engine/package.json` still declares
 no dependency.
