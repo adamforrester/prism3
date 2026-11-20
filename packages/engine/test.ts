@@ -25,7 +25,7 @@ import { isInverseRole } from './inverse-roles';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd, xPrism3Warnings } from './standard-design-md';
 import { classifyColors } from './classify-colors';
-import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
+import { SLIDER_STOPS, TRAITS, TRAIT_OPPOSITES, resolveVocabulary } from './vocabulary';
 import { leverManifest, leverGroups, buildLeverManifest, identityFields } from './levers';
 import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
@@ -1118,6 +1118,16 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
   for (const n of ['eval.ts', 'ai-metadata.ts'])
     ok(engineSrc.includes(n) && /\bfloorRatio\b/.test(readFileSync(resolve(HERE, n), 'utf8')), `#3759 packages/engine/${n} is in the ratio scan and stores its ratios through floorRatio`);
   ok(/\bfloorRatio\b/.test(readFileSync(resolve(APPS, 'plugin/src/set-override.ts'), 'utf8')), '#3759 apps/plugin/src/set-override.ts stores its data ratios through floorRatio');
+  // #3693: a confirm is refused as changes-moved or brand-moved (`confirmMoved`). The committed agent reference names
+  // both, so an agent reading it learns a confirm with other changes is refused on its own, not only a moved brand.
+  {
+    const ref = JSON.parse(readFileSync(resolve(HERE, '../../docs/public/reference/commands.json'), 'utf8')) as { agentLink: { commands: Array<{ name: string; writes?: string }> } };
+    const writes = ref.agentLink.commands.find((c) => c.name === 'set-override')?.writes ?? '';
+    const reasons = [...readFileSync(resolve(APPS, 'plugin/src/set-override.ts'), 'utf8').matchAll(/export const confirmMoved = [^:]*: ([^=]*)=>/g)].flatMap((m) => m[1].match(/'[a-z-]+'/g) ?? []);
+    const named: Record<string, string> = { "'changes-moved'": 'the changes sent are not the ones previewed', "'brand-moved'": "the file's brand moved after the preview" };
+    ok(reasons.length === 2 && reasons.every((r) => named[r]), `#3693 confirmMoved's reasons are changes-moved and brand-moved (got ${reasons.join(', ')})`);
+    for (const r of reasons) ok(writes.includes(named[r] ?? r), `#3693 the agent reference's set-override names the ${r} refusal ("${named[r]}"; got "${writes}")`);
+  }
   // The values, driven at the review's case. Studio's contracts table: the preview stores the RAW ratio, so its floored
   // print is 4.49 beside the failing dot. An eval failure and a stored floor never round up onto the 4.5 they miss.
   ok(floorRatio(4.496) === 4.49 && floorRatio(4.4999) === 4.49 && floorRatio(4.5) === 4.5 && formatRatio(4.496, { bare: true }) === '4.49',
@@ -1231,6 +1241,27 @@ ok(autoPlaceStep(0.9) < autoPlaceStep(0.3), 'autoPlaceStep: lighter < darker');
   // A literal, not a fragment: the note is approved copy (#1883), so a change to it shows up here as a diff.
   ok(mkTheme(oog).notes.includes("anchor 'x' (oklch 0.55 0.32 145) is outside the sRGB gamut — sRGB shows at most 0.173 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.173 ships exactly."), 'M-03: brandTheme surfaces an out-of-gamut anchor in the decisions log (not silent)');
   ok(!mkTheme({ l: 0.5, c: 0.04, h: 200 }).notes.some((n) => n.includes('outside the sRGB gamut')), 'M-03: an all-in-gamut brand produces no gamut warning');
+}
+{
+  // #4211: the ratio floor must not lose a step to float error. `4.6 * 100` is 459.99999999999994, so a bare
+  // `Math.floor(r * 100) / 100` printed an exact 4.6 as 4.59 (141 of the two-decimal values 1.00–21.00 did). The
+  // expected strings are built from the integer step, not from `floorRatio`, so the arm cannot agree with itself.
+  for (const [r, want] of [[4.6, '4.60:1'], [4.35, '4.35:1'], [4.5, '4.50:1'], [7, '7.00:1']] as const)
+    ok(formatRatio(r) === want, `#4211 formatRatio(${r}) prints as itself, ${want} (got ${formatRatio(r)})`);
+  const lost: string[] = [];
+  for (let k = 100; k <= 2100; k++) {
+    const r = k / 100, want = `${Math.floor(k / 100)}.${String(k % 100).padStart(2, '0')}`;
+    if (formatRatio(r, { bare: true }) !== want || floorRatio(floorRatio(r)) !== floorRatio(r)) lost.push(`${want}→${formatRatio(r, { bare: true })}`);
+  }
+  ok(lost.length === 0, `#4211 every two-decimal ratio from 1.00 to 21.00 floors to itself, and re-flooring is a no-op (${lost.length} lose a step: ${lost.slice(0, 6).join(', ')})`);
+  // The tolerance absorbs float error only: a pair that genuinely misses a step still floors down (CR-01's concern).
+  for (const [r, want] of [[4.5 - 1e-8, '4.49:1'], [7 - 1e-8, '6.99:1'], [3 - 1e-6, '2.99:1']] as const)
+    ok(formatRatio(r) === want, `#4211 a ratio just under a step still floors below it: ${r} → ${want} (got ${formatRatio(r)})`);
+  // #4214 item 4: the sidecar schema says the stored ratio is floored (#3759), not just "to two decimals". A literal: the
+  // description is the published contract's prose.
+  const ratioDesc = JSON.parse(readFileSync(resolve(HERE, 'schema/ai-metadata.schema.json'), 'utf8')).$defs?.contrast?.properties?.ratio?.description;
+  ok(ratioDesc === 'The measured ratio in light mode, floored to two decimals, so it never reads at or above a floor it misses.',
+    `#4214 the sidecar schema says contrast_with[].ratio is floored, as floorRatio stores it (got ${JSON.stringify(ratioDesc)})`);
 }
 
 // ------------------------------------------------ extreme white-label brands
@@ -4445,6 +4476,8 @@ for (const b of brands) {
       banner: { prefix: 'bare', lt: [['gap', 'pad']] },
       // Toast (#2668): no size axis, so the keys are bare. Both content gaps sit under the inline-start padding.
       toast: { prefix: 'bare', lt: [['gap', 'pad-x'], ['glyph-gap', 'pad-x']] },
+      // #4008: the header, body and footer gap is tighter than the panel padding around them.
+      popover: { prefix: 'bare', lt: [['gap', 'pad']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     // `pad` (#2579): Banner's one padding, block and inline alike.
@@ -8365,8 +8398,8 @@ arm: {
   // THE CODE-SIDE RULE, as the def states it to whoever builds it: linear and infinite, the reduced-motion
   // substitute a slower turn under `prefers-reduced-motion`, and both tokens named where the motion is.
   const codeOnly = codeOnlyText(spinner.anatomy!.codeOnly).join('\n');
-  ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && /\b800ms\b/.test(spinner.motion?.reduceMotion ?? '') && /\b2600ms\b/.test(spinner.motion?.reduceMotion ?? ''),
-    '#1670 spinner: the motion field names both turn tokens and their values');
+  ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && !/\d\s?ms\b/.test(spinner.motion?.reduceMotion ?? ''),
+    '#1670 spinner: the motion field names both turn tokens and no millisecond value (#4174 a: the token, never its number)');
   ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly),
     '#1670 spinner: the code rule spins linear and infinite and slows under prefers-reduced-motion');
 
@@ -18867,6 +18900,61 @@ arm: {
     ok(validateComponentDef(minWidthNoLayout as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /binds no 'layout'/.test(e)),
       "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
 
+    // ---- #4008 Popover: each decision held against a literal from the proposal and Q-FL2, never read off the def ----
+    {
+      const pop = componentDefs.find((x) => x.id === 'popover')!;
+      // OD-P3 A, the raised surface (OD-X1 A: Menu's panel is held equal to these five once it lands).
+      const POPOVER_SURFACE: Record<string, string> = {
+        fill: 'color.foreground.raised', border: 'color.border.secondary', 'border-width': 'border-width.hairline', shadow: 'shadow.lg', radius: 'radius.lg',
+      };
+      const surfaceOff = Object.entries(POPOVER_SURFACE).filter(([k, v]) => pop.tokens[k] !== v).map(([k]) => `${k}=${pop.tokens[k]}`);
+      ok(surfaceOff.length === 0, `#4008 popover surface: fill, border, border-width, shadow and radius are the proposal's raised roles${surfaceOff.length ? ` — off: ${surfaceOff.join(', ')}` : ''}`);
+      const panel = pop.anatomy.parts.panel;
+      ok(panel.kind === 'box' && panel.paintSlots?.join() === 'fill,border' && panel.strokeWidth === 'border-width' && panel.elevation === 'shadow' && panel.radius === 'radius',
+        '#4008 popover panel: the root paints the fill and the hairline edge, casts the shadow and takes the radius');
+      // K4 B: the brief's aliases, overlay and flyout included.
+      const K4 = ['popup', 'overlay', 'anchored-overlay', 'floating-panel', 'flyout'];
+      ok(K4.every((a) => pop.aliases?.includes(a)), `#4008 popover aliases (K4 B): ${K4.join(', ')} — missing: ${K4.filter((a) => !pop.aliases?.includes(a)).join(', ') || 'none'}`);
+      // OD-P2 A: no arrow, so one member.
+      const members = figmaAnatomySet(pop, { swapTarget: 'FPO-default-icon' });
+      ok(members.length === 1, `#4008 popover set (OD-P2 A): one member (${members.length})`);
+      // The close button: FlushIconButton.Neutral, flush, small, the close glyph; the footer a Button group, off by default.
+      const close = pop.anatomy.parts.close;
+      ok(close.kind === 'nest' && close.nests === 'flush-icon-button-neutral' && close.nesting?.kind === 'nest-fixed'
+        && (close.nesting as { variant?: Record<string, string> }).variant?.size === 'small' && (close.nesting as { variant?: Record<string, string> }).variant?.shape === 'flush'
+        && close.overrides?.swaps?.icon === 'close', '#4008 popover close: FlushIconButton.Neutral, flush, small, always the close glyph');
+      const footer = pop.anatomy.parts.footer;
+      ok(footer.kind === 'nest' && footer.nests === 'button-group' && pop.figmaProperties?.booleans?.footer?.default === false,
+        '#4008 popover footer: a nested Button group behind the footer toggle, off by default');
+      // K5 B: a read-only popover leaves focus on its trigger.
+      // Held on BOTH fields that state it: the focus contract and the keyboard-and-focus code note for focus on opening.
+      const popCode = (pop.anatomy.codeOnly ?? []) as { class: string; description: string }[];
+      const focusOnOpen = popCode.find((e) => e.class === 'keyboard-and-focus' && /^focus on opening/.test(e.description))?.description ?? '';
+      ok(/leaves focus on its trigger/.test(pop.accessibility?.focus ?? '') && /read-only popover[^.]*leaves focus on its trigger/.test(focusOnOpen),
+        '#4008 popover focus (K5 B): the focus contract and the focus-on-opening code note both say a read-only popover leaves focus on its trigger');
+      // S1 A (owner, 2026-11-19): a read-only popover announces its content through a polite live region and sits right
+      // after its trigger in the DOM; aria-controls is not the guarantee. Held on the code note, and on the focus note not
+      // claiming aria-controls as the way in.
+      const announce = popCode.find((e) => e.class === 'semantics' && /^read-only announcement/.test(e.description))?.description ?? '';
+      // Every code note and the aria contract are scanned for an aria-controls claim, not the focus note alone (delta
+      // review nit): a "through `aria-controls`" sentence put back anywhere fails here by name.
+      const leansOnControls = [...popCode.map((e) => e.description), pop.accessibility?.aria ?? ''].filter((t) => /through `?aria-controls`?/.test(t));
+      ok(/polite live region \(`role="status"`\)/.test(announce) && /right after its trigger in the DOM/.test(announce) && leansOnControls.length === 0,
+        `#4008 popover read-only announcement (S1 A): a code note says a read-only popover announces through a polite live region (role="status") and sits right after its trigger in the DOM, and no note relies on aria-controls (${leansOnControls.length} do)`);
+      // #3986 on Popover's own parts (delta review S1): its right-to-left prose says the close button moves to the start
+      // edge, so the header row itself reverses, as Dialog's does. EXPECTED (typed here): the header part declares
+      // 'reverses'. The #3986 arm passes through the nested Button group alone, so it cannot see this part.
+      ok((pop.anatomy.parts as any)?.header?.mirror === 'reverses',
+        `#4008 popover right-to-left: the header part declares mirror 'reverses', as its prose and Dialog's header do (got ${JSON.stringify((pop.anatomy.parts as any)?.header?.mirror)})`);
+      // OD-P5 A: no automatic switch to a sheet on a small screen.
+      ok(popCode.some((e) => e.class === 'responsive-layout' && /^no automatic switch — on a small screen it stays a popover/.test(e.description)),
+        '#4008 popover small screen (OD-P5 A): a code note says it stays a popover, with no automatic sheet');
+      // OD-P6 A: focus leaving the popover closes it, in the keyboard contract and the code note.
+      ok(/leaving closes it/.test(pop.accessibility?.keyboard ?? '') && popCode.some((e) => e.class === 'keyboard-and-focus' && /Focus leaving by Tab or a press outside closes it/.test(e.description)),
+        '#4008 popover focus leaving (OD-P6 A): the keyboard contract and the focus-not-held code note both say focus leaving closes it');
+      // OD-P1 A: the role is a non-modal dialog.
+      ok(/role="dialog"/.test(pop.accessibility?.role ?? '') && /no `aria-modal`/.test(pop.accessibility?.role ?? ''), '#4008 popover role (OD-P1 A): role="dialog" with no aria-modal');
+    }
     // ---- #3163: `PartDef.scroll`, the scroll region, and its two refusal arms, each pinned BY NAME (docs/34) ----
     // SUBJECT: Dialog's body as committed, then mutated. EXPECTED: the projection Q3130.8 A asks for (the body clips and
     // scrolls vertically on every member) and the authored refusal shapes. Delete either refusal from `anatomyErrors`
@@ -18878,9 +18966,17 @@ arm: {
       const bodies = dPlans.map((pl) => pl.root.children.find((c) => c.name === 'body'));
       ok(dPlans.length === 24 && bodies.every((b) => b?.type === 'CONTENT_SLOT' && b.clipsContent === true && b.overflowDirection === 'VERTICAL'),
         `#3163 dialog body: every member's body slot plans clipsContent and overflowDirection VERTICAL (${bodies.filter((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL').length}/${dPlans.length})`);
-      const others = componentDefs.filter((d) => d.figmaProperties && d.id !== 'dialog').flatMap((d) => figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }));
+      // #4008: Popover's body is the second scroll region, the same shape as Dialog's (the body scrolls when the screen
+      // is shorter than the popover; header and footer stay put).
+      const pop = componentDefs.find((x) => x.id === 'popover')!;
+      const pPlans = figmaAnatomySet(pop, { swapTarget: 'FPO-default-icon' });
+      const pBodies = pPlans.map((pl) => pl.root.children.find((c) => c.name === 'body'));
+      ok(pPlans.length > 0 && pBodies.every((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL'),
+        `#4008 popover body: every member's body slot plans clipsContent and overflowDirection VERTICAL (${pBodies.filter((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL').length}/${pPlans.length})`);
+      const SCROLL_REGIONS = ['dialog', 'popover'];
+      const others = componentDefs.filter((d) => d.figmaProperties && !SCROLL_REGIONS.includes(d.id)).flatMap((d) => figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }));
       const walk = (n: { overflowDirection?: string; children: unknown[] }): number => (n.overflowDirection ? 1 : 0) + (n.children as (typeof n)[]).reduce((a, c) => a + walk(c), 0);
-      ok(others.length > 0 && others.every((pl) => walk(pl.root) === 0), '#3163 scope: no other def plans an overflowDirection, so every other plan is byte-identical');
+      ok(others.length > 0 && others.every((pl) => walk(pl.root) === 0), '#3163 scope: no def but Dialog and Popover plans an overflowDirection, so every other plan is byte-identical');
       const body = dlg.anatomy.parts.body;
       const scrollOnText = { ...dlg, anatomy: { ...dlg.anatomy, parts: { ...dlg.anatomy.parts, placeholder: { ...dlg.anatomy.parts.placeholder, scroll: 'vertical' } } } };
       ok(validateComponentDef(scrollOnText as ComponentDef).errors.some((e) => /declares 'scroll'/.test(e) && /kind 'text'/.test(e) && /only a 'box'/.test(e)),
@@ -20869,7 +20965,7 @@ arm: {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'sign-in-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2, 'tag-group': 2,
-      'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
+      'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, popover: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
@@ -31805,6 +31901,23 @@ arm: {
     ok(lever.stops === stops, `vocabulary: the '${key}' manifest entry carries the SAME stops object the engine resolves against (joined, not restated)`);
   }
 
+  // ---- #3976: the direct opposites a host turns off on a pick ----
+  // The pairs are the owner's (Q-PW1 A), typed here, not read from TRAIT_OPPOSITES: a pair dropped or added there fails
+  // by name. Each pair must share a lever the two set to different values, or "only one of them can take effect" is
+  // not a fact about the engine.
+  {
+    const OWNER_PAIRS = ['bold|restrained', 'calm|energetic', 'dense|generous', 'sharp|soft'];
+    const held = TRAIT_OPPOSITES.map(([a, b]) => [a, b].sort().join('|')).sort();
+    ok(JSON.stringify(held) === JSON.stringify(OWNER_PAIRS), `#3976 vocabulary: the opposite pairs are the owner's four (${OWNER_PAIRS.join(', ')}) — holds ${held.join(', ')}`);
+    const words = TRAIT_OPPOSITES.flat();
+    ok(new Set(words).size === words.length, `#3976 vocabulary: no trait is in two opposite pairs — ${words.join(', ')}`);
+    for (const [a, b] of TRAIT_OPPOSITES) {
+      ok(!!TRAITS[a] && !!TRAITS[b], `#3976 vocabulary: opposite pair ${a}/${b} names two traits the engine knows`);
+      const clash = Object.keys(TRAITS[a]?.levers ?? {}).filter((k) => k in (TRAITS[b]?.levers ?? {}) && TRAITS[a].levers[k] !== TRAITS[b].levers[k]);
+      ok(clash.length > 0, `#3976 vocabulary: opposite pair ${a}/${b} sets at least one shared lever differently — clashes on ${clash.join(', ') || 'nothing'}`);
+    }
+  }
+
   // ---- traits target real levers, with values those levers accept ----
   const leverKeys = new Set(leverManifest.map((l) => l.key));
   for (const [name, trait] of Object.entries(TRAITS)) {
@@ -38808,6 +38921,17 @@ arm: {
     const r = spawnSync(process.execPath, [...process.execArgv, join(clone, file)], { cwd: clone, encoding: 'utf8', env: { ...env, ...extra }, maxBuffer: 64 * 1024 * 1024 });
     return { status: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
   };
+  // #4236: the same run as `tsx`, without blocking, so independent gate runs share the wall clock. `dir` is a worktree of
+  // the clone when the run needs a tree the clone's own checkout does not hold.
+  const tsxAsync = async (file: string, extra: Record<string, string>, dir = clone): Promise<{ status: number | null; out: string }> => {
+    const { spawn } = await import('node:child_process');
+    return new Promise((done) => {
+      const c = spawn(process.execPath, [...process.execArgv, join(dir, file)], { cwd: dir, env: { ...env, ...extra } });
+      let out = '';
+      c.stdout.on('data', (d) => { out += d; }); c.stderr.on('data', (d) => { out += d; });
+      c.on('close', (status) => done({ status, out }));
+    });
+  };
   const said = (r: { out: string }, re: RegExp) => r.out.split('\n').filter((l) => re.test(l)).join(' | ').slice(0, 400);
   const PR = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'poc' };
   const EMITTED = 'packages/engine/out/figma/prism3/focus.json';
@@ -38921,6 +39045,25 @@ arm: {
     // executor-reach imports `@prism3/engine`; the clone has no install, so point the name at its own engine.
     mkdirSync(join(clone, 'node_modules', '@prism3'), { recursive: true });
     symlinkSync(join(clone, 'packages', 'engine'), join(clone, 'node_modules', '@prism3', 'engine'), 'dir');
+    // #4236 — THE FOLD'S REGEN, NARROWED IN THE CLONE ONLY. fold.ts runs the whole of regen.ts to move every stamp, and
+    // that was about half this replay's time. The gates replayed here read the fold's version, changelog, notes and
+    // release files, and the moved artifacts' DIFF (emission-version), never the whole emitted corpus: a half-restamped
+    // corpus is regen --check's to catch (lint-emission-version.ts' header, limit 1). So the clone's regen.ts keeps the
+    // two emitters whose stamps the token and Figma trees carry, and the fold still moves committed artifacts. The edit
+    // goes into W, so no commit after it diffs it, and it is only in this clone: a real fold runs the whole of regen.
+    // `component-surface`, `component-axes`, `token-contract` and `components.ai.json`, the records the release notes
+    // compare, take no stamp, so their content at the fold is W's either way. MUTATION VERIFIED (#4236): the narrowing
+    // removed fails `#4236 the replay's fold …` by name, and the replay's own mutations still fail theirs.
+    const KEPT_STEPS = ['emit-dtcg', 'emit-figma'];
+    {
+      const regenPath = join(clone, 'packages/engine/regen.ts');
+      const regenSrc = readFileSync(regenPath, 'utf8');
+      const narrowed = regenSrc.replace(/^const STEPS: [^\n]*= \[\n[\s\S]*?\n\];\n/m,
+        (decl) => `${decl}STEPS.splice(0, STEPS.length, ...STEPS.filter((s) => ${JSON.stringify(KEPT_STEPS)}.includes(s.label.split(' ')[0])));\n`);
+      if (narrowed === regenSrc) throw new Error('#4236 replay: no `const STEPS` declaration in the clone\'s regen.ts to narrow');
+      writeFileSync(regenPath, narrowed);
+      git(['add', '-A']); git(['commit', '-q', '--amend', '--no-edit']);
+    }
 
     note('replay-main-minor', 'minor'); fragment('replay-main-minor'); const m0 = commit('m0: a pending minor note');
     git(['checkout', '-q', '-b', 'poc', m0]); fragment('replay-poc-own'); const p0 = commit('p0: the branch\'s own entry');
@@ -38928,6 +39071,9 @@ arm: {
     git(['checkout', '-q', 'main']); git(['update-ref', 'refs/remotes/origin/main', m0]);
     const fold = tsx('fold.ts', {});
     if (fold.status !== 0) throw new Error(`#3833 replay: fold.ts failed in the clone: ${fold.out.slice(-1500)}`);
+    const regenRan = [...fold.out.matchAll(/^ {2}(\S+) .* … (ok \(\d+ written\)|WROTE NOTHING)$/gm)].map((m) => `${m[1]} ${m[2]}`);
+    ok(regenRan.length === KEPT_STEPS.length && regenRan.every((r, i) => r.startsWith(`${KEPT_STEPS[i]} ok (`)),
+      `#4236 the replay's fold runs regen over the stamped token and Figma trees only, and each step writes (ran: ${JSON.stringify(regenRan)})`);
     commit('m1: the fold');
     note('replay-main-patch', 'patch'); fragment('replay-main-patch'); const m2 = commit('m2: a patch note');
     git(['update-ref', 'refs/remotes/origin/main', m2]);
@@ -38980,17 +39126,16 @@ arm: {
       git(['checkout', '-q', '-b', 'remerge', sq]); git(['merge', '-q', '--no-ff', '-m', 'merge main for real', m2]);
       fragment('replay-remerge'); const rm = commit('the real merge\'s entry');
       git(['update-ref', 'refs/remotes/origin/poc2', sq]);
-      const ref = tsx(RN, POC2);
+      // #4236: the five release-notes runs are independent reads, so they run side by side, in two groups because two
+      // need `origin/poc2` at the squash and three at the real merge. The trees the clone's checkout does not hold are
+      // read from worktrees of the clone (lint-release-notes reads the repository its own file is in).
+      const [ref, head] = await Promise.all([tsxAsync(RN, POC2), tsxAsync(RN, {})]);
       ok(ref.status === 0 && ref.out.includes(`..${m1.slice(0, 8)} — `) && ref.out.includes('folds read from origin/main at'),
         `#3863 release-notes: a real merge of main into a squash-refreshed branch reads ${v}'s fold from the main it carries (${m1.slice(0, 8)}), not the squash (exit ${ref.status}: ${said(ref, /folds read|\.\.|NOTES|❌/)})`);
-      const head = tsx(RN, {});
       ok(head.status === 1 && head.out.includes(NOT_FOLDED) && head.out.includes(`..${sq.slice(0, 8)} — `),
         `#3863 release-notes: the same tree walked from HEAD (no GITHUB_BASE_REF, as before the fix) reads the squash as the fold and fails NOTES by name (exit ${head.status}: ${said(head, /NOTES|\.\./)})`);
       git(['checkout', '-q', '-b', 'poc2-ordinary', rm]); fragment('replay-poc2-ordinary'); commit('an ordinary PR into the refreshed branch');
       git(['update-ref', 'refs/remotes/origin/poc2', rm]);
-      const later = tsx(RN, POC2);
-      ok(later.status === 0 && later.out.includes(`..${m1.slice(0, 8)} — `),
-        `#3863 release-notes: an ordinary PR into the branch after the refresh, which brings no new main, still reads the fold from main, not the squash on the branch's chain (exit ${later.status}: ${said(later, /folds read|\.\.|NOTES|❌/)})`);
       // Teeth: a release that drops a note its fold folded fails on main and on the integration branch alike.
       const dropNote = () => {
         const p = join(clone, `docs/public/releases/${v}.json`);
@@ -38999,11 +39144,17 @@ arm: {
         writeFileSync(p, `${JSON.stringify(rel, null, 2)}\n`);
       };
       git(['checkout', '-q', '-b', 'main-drop', m2]); dropNote(); commit('main: the release drops a folded note');
-      const onMain = tsx(RN, { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' });
+      git(['checkout', '-q', '-b', 'poc2-drop', rm]); dropNote(); commit('poc2: the release drops a folded note');
+      const worktree = (branch: string): string => { const d = join(work, `wt-${branch}`); git(['worktree', 'add', '-q', d, branch]); return d; };
+      const [later, onMain, onPoc] = await Promise.all([
+        tsxAsync(RN, POC2, worktree('poc2-ordinary')),
+        tsxAsync(RN, { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' }, worktree('main-drop')),
+        tsxAsync(RN, POC2),
+      ]);
+      ok(later.status === 0 && later.out.includes(`..${m1.slice(0, 8)} — `),
+        `#3863 release-notes: an ordinary PR into the branch after the refresh, which brings no new main, still reads the fold from main, not the squash on the branch's chain (exit ${later.status}: ${said(later, /folds read|\.\.|NOTES|❌/)})`);
       ok(onMain.status === 1 && onMain.out.includes(DROPPED) && onMain.out.includes('folds read from HEAD\'s own history'),
         `#3863 release-notes: on a PR into main the walk is HEAD's, and a release missing a note its fold folded fails NOTES by name (exit ${onMain.status}: ${said(onMain, /NOTES|folds read/)})`);
-      git(['checkout', '-q', '-b', 'poc2-drop', rm]); dropNote(); commit('poc2: the release drops a folded note');
-      const onPoc = tsx(RN, POC2);
       ok(onPoc.status === 1 && onPoc.out.includes(DROPPED),
         `#3863 release-notes: on a PR into the integration branch, a release missing a note main's fold folded still fails NOTES by name (exit ${onPoc.status}: ${said(onPoc, /NOTES|folds read/)})`);
     }
@@ -39717,8 +39868,8 @@ arm: {
   ok(committedBrands.length >= 5 && sweepMissing.length === 0,
     `#2670 call 6 motion: every committed brand emits motion.duration.sweep and motion.duration-reduced.sweep (${committedBrands.length} brands${sweepMissing.length ? `; missing in ${sweepMissing.join(', ')}` : ''})`);
   const motionProse = `${progress.motion?.reduceMotion ?? ''}\n${codeOnlyText(progress.anatomy!.codeOnly).join('\n')}`;
-  ok(/motion\.duration-reduced\.sweep/.test(motionProse) && /2600ms/.test(motionProse) && /--motion-duration-sweep/.test(motionProse) && /prefers-reduced-motion: reduce/.test(motionProse) && /never (stopped|removed)/.test(motionProse),
-    '#2670 call 7 progress: the shipped motion and the code rules name the reduced sweep (2600ms), under prefers-reduced-motion, kept and never removed');
+  ok(/motion\.duration-reduced\.sweep/.test(motionProse) && !/\d\s?ms\b/.test(progress.motion?.reduceMotion ?? '') && /--motion-duration-sweep/.test(motionProse) && /prefers-reduced-motion: reduce/.test(motionProse) && /never (stopped|removed)/.test(motionProse),
+    '#2670 call 7 progress: the shipped motion and the code rules name the reduced sweep by its token and no millisecond value (#4174), under prefers-reduced-motion, kept and never removed');
 
   // Call 8: announced at 25, 50 and 75%, and at the end; never from aria-valuenow.
   const aria = `${progress.accessibility.aria}\n${codeOnlyText(progress.anatomy!.codeOnly).join('\n')}`;
@@ -44148,7 +44299,7 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
 // defs is written out here by hand, not read from the defs, so a def that drops the note fails by its id (docs/34 shape 1).
 {
   const DECIDED = 'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.';
-  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs'];
+  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'popover', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs'];
   const all = componentDefs;
   for (const id of INTERACTIVE) {
     const d = all.find((x) => x.id === id);
@@ -44177,6 +44328,36 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   // The accept side: rising floors, a fractional one among them, still build.
   const rising = refusal(() => brandTheme(withBps([0, 768.5, 1024])));
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
+}
+
+// #3284 (owner decision A, 2026-11-18) — the action note told an unset lever from an explicit `primary` by the
+// RESOLVED name only, so a brand that wrote `actionPalette: 'primary'` read "actionPalette is not set". The explicit
+// case now reads "the primary palette, as the brand sets" (APPROVED wording), under either spelling. And a pin on
+// `actionAnchorStep` is applied on any action palette, so the pin sentence is said for any pin, not only under a
+// brand color.
+{
+  const b3284 = { id: 'a3284', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  const actionLines = (extra: object): string[] => brandTheme({ ...b3284, ...extra } as unknown as BrandInput).notes.filter((n) => n.startsWith('action: '));
+  const unset = actionLines({});
+  ok(JSON.stringify(unset) === JSON.stringify(['action: the primary palette, by default — actionPalette is not set.']),
+    `#3284 an unset action palette still reads "by default — actionPalette is not set" (got ${JSON.stringify(unset)})`);
+  for (const [label, extra] of [['actionPalette', { actionPalette: 'primary' }], ['roleColors.action', { roleColors: { action: 'primary' } }]] as const) {
+    const set = actionLines(extra);
+    ok(JSON.stringify(set) === JSON.stringify(['action: the primary palette, as the brand sets.']),
+      `#3284 an explicit ${label} 'primary' reads "the primary palette, as the brand sets", never "not set" (got ${JSON.stringify(set)})`);
+  }
+  const pin = "by actionAnchorStep — applied exactly, never moved; a miss of 3:1 (7:1 in high contrast) is reported, not corrected.";
+  for (const [label, extra, line] of [
+    ['an explicit primary', { actionPalette: 'primary', actionAnchorStep: 300 }, 'action: the primary palette, as the brand sets.'],
+    ['an unset', { actionAnchorStep: 300 }, 'action: the primary palette, by default — actionPalette is not set.'],
+  ] as const) {
+    const got = actionLines(extra);
+    ok(JSON.stringify(got) === JSON.stringify([line, `action: pinned at 'primary' step 300 ${pin}`]),
+      `#3284 a pin on ${label} action palette gets the pin sentence, naming primary step 300 (got ${JSON.stringify(got)})`);
+  }
+  const neutralPin = actionLines({ actionPalette: 'neutral', actionAnchorStep: 900 });
+  ok(neutralPin.includes(`action: pinned at 'neutral' step 900 ${pin}`),
+    `#3284 a pin on a palette with no brand color (neutral) gets the pin sentence too (got ${JSON.stringify(neutralPin)})`);
 }
 
 // #3375 — List.Item's icon marker stays on `icon.size.sm/md/lg` (owner decision A, 2026-11-18), and the comment that

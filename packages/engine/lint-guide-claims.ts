@@ -665,10 +665,26 @@ for (const g of guideFiles) {
   });
 }
 for (const l of lits) for (const a of retired) if (l.chunks.some((c) => a.re.test(c))) fail('AREA', `${l.file}:${l.line}: a string says "${a.word}", the ${a.id} area, which the rail draws as "${a.name}". Write "${a.name}".`);
+// #4138: the READMEs and llms.txt send a reader to the rail too, and the studio README still listed "Documentation"
+// after the guides stopped. The same prose rule, over the docs a reader opens before a guide. Each must exist and be
+// read (docs/34 shape 9): a moved README fails here, not silently. TokenPress is left out: it is a guest with its
+// own rail-free README (its "## Documentation" heading is a section of that README, not this area).
+const READER_DOCS = ['README.md', 'apps/studio/README.md', 'apps/plugin/README.md', 'packages/engine/README.md', 'docs/public/llms.txt'];
+for (const doc of READER_DOCS) {
+  let body: string;
+  try { body = readFileSync(join(ROOT, doc), 'utf8'); } catch { fail('AREA', `#4138: ${doc} is not there to read, so its area names went unchecked. Fix the list in lint-guide-claims.ts.`); continue; }
+  let fence = false;
+  body.split('\n').forEach((raw, k) => {
+    if (raw.startsWith('```')) fence = !fence;
+    if (fence) return;
+    const prose = raw.replace(/<!--[\s\S]*?-->/g, ' ').replace(/`[^`]*`/g, ' ').replace(/\]\([^)]*\)/g, '] ');
+    for (const a of retired) if (a.re.test(prose)) fail('AREA', `#4138: ${doc}:${k + 1}: "${a.word}" names the ${a.id} area, which the rail draws as "${a.name}". Write "${a.name}".`);
+  });
+}
 if (!areaMentions) fail('AREA', 'no guide names a rail area as the rail draws it, so the guides were not read for this arm');
 
 if (fails.length) {
   console.error(`❌ ${TAG}: ${fails.length} failure${fails.length === 1 ? '' : 's'}\n${fails.map((f) => `  ✗ ${f}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}); ${commands.length} agent-link commands, each a row in the agent-link guide; ${areas.length} rail areas, named as the rail draws them in ${areaMentions} guide line(s) and no retired name (${retired.map((a) => `"${a.word}"`).join(', ')}) in a guide or an app string.`);
+console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}); ${commands.length} agent-link commands, each a row in the agent-link guide; ${areas.length} rail areas, named as the rail draws them in ${areaMentions} guide line(s) and no retired name (${retired.map((a) => `"${a.word}"`).join(', ')}) in a guide, an app string or the ${READER_DOCS.length} reader docs (READMEs and llms.txt, #4138).`);

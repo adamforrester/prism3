@@ -1018,10 +1018,15 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // THE SWITCH COVERS EVERY SET. The oracle is the def registry, never the engine's list: every def with Figma
   // properties builds a set, except the three that build single components (`emitAsComponents`), which have no grid:
   // Icon, Provider logo (#2343) and Spinner.
-  const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
+  // A SET OF ONE MEMBER HAS NO GRID (#4008): Popover builds one member, so there is no row or column to label and it
+  // takes no furniture. Named here, never derived, so a second one-member set fails the count by name.
+  const ONE_MEMBER = ['popover'];
+  const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents && !ONE_MEMBER.includes(d.id)).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
   ok(withSet.length === 60 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'provider-logo', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 60 defs that build a set have furniture; Icon, Provider logo and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+    `rollout/switch: all 60 defs that build a set of more than one member have furniture; Icon, Provider logo and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(ONE_MEMBER.every((id) => componentDefs.some((d) => d.id === id) && !hasFurniture(id)),
+    `rollout/one member: ${ONE_MEMBER.join(', ')} builds a set of one member and has no furniture (${JSON.stringify(ONE_MEMBER.filter(hasFurniture))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
