@@ -10848,6 +10848,22 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(threwOn('id: a\nid: b'), 'L-08: a duplicate top-level key throws (no silent last-win)');
   ok(threwOn('neutral:\n  hue: 200\n  hue: 300'), 'L-08: a duplicate nested key throws');
   ok(!threwOn('id: a\nneutral:\n  hue: 200'), 'L-08: distinct keys at the same level still parse clean');
+  // #4119: a `__proto__` key ran the prototype setter, so its values were hidden from the schema and dropped without a
+  // word. Block and flow form, nested and top level, and the two sibling names. Each must throw, naming the key.
+  const msgOf = (src: string) => { try { parseYamlSubset(src); return ''; } catch (e) { return (e as Error).message; } };
+  for (const [label, src] of [
+    ['block top level', 'id: x\n__proto__:\n  density: not-a-density'],
+    ['block nested', 'overrides:\n  __proto__:\n    y: 2'],
+    ['flow map', 'f: { __proto__: { y: 2 }, z: 1 }'],
+    ['flow nested', 'f: { a: { constructor: 1 } }'],
+    ['block constructor', 'constructor:\n  prototype: 1'],
+    ['block prototype', 'prototype: 1'],
+  ] as const) {
+    const m = msgOf(src);
+    ok(/key '(__proto__|constructor|prototype)'/.test(m), `#4119 parser refuses a prototype key (${label}) by name (got ${JSON.stringify(m.slice(0, 160))})`);
+  }
+  ok(/line 2/.test(msgOf('id: x\n__proto__:\n  density: 1')), '#4119 the refusal names the source line');
+  ok(!threwOn('id: x\nproto: 1\nconstructors: { a: 1 }'), '#4119 a key that only resembles a prototype name still parses');
 }
 // (2) parseDesignMd — frontmatter/prose split; a missing fence is an error.
 {
@@ -11598,6 +11614,26 @@ arm: {
   ok(validateBrandInput({ id: 't', primary: { l: 0.5, c: 0.05, h: 200 }, neutral: { hue: 200, chroma: 0.01 }, radiusScale: NaN } as any).length > 0, 'M-14: the validator rejects a NaN number (backstop)');
   const nativeStd = parseStandardDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8'));
   ok(Object.keys(nativeStd.colors).length === 0, 'dialect detection: an engine-native brief has no top-level colors map (routes native)');
+  // #4137: a heading face named `headline` (or `heading`, `h1`–`h6`) was not read, so display, title, label and eyebrow
+  // fell back to the body face without a word. EXPECTED is typed from the issue's list of names.
+  for (const name of ['headline', 'heading', 'h1', 'h3', 'h6', 'Headline-Large']) {
+    const std4137 = parseStandardDesignMd(`---\nname: H\ncolors:\n  primary: "#6B3E26"\n  neutral-900: "#2A2522"\ntypography:\n  ${name}: { fontFamily: Fraunces, fontSize: 40px, fontWeight: 700 }\n  body: { fontFamily: Inter, fontSize: 16px }\n---\n`);
+    const fam = standardToBrandInput(std4137).input.typography?.families as Record<string, string> | undefined;
+    ok(fam?.display === 'Fraunces' && fam?.title === 'Fraunces' && fam?.body === 'Inter',
+      `#4137 a '${name}' typography token sets the heading face (got ${JSON.stringify(fam)})`);
+  }
+  // A face no category reads is named, never dropped silently (#2678's rule). A face that IS read is not named.
+  const conv4137 = standardToBrandInput(parseStandardDesignMd('---\nname: H\ncolors:\n  primary: "#6B3E26"\n  neutral-900: "#2A2522"\ntypography:\n  display: { fontFamily: Fraunces }\n  body: { fontFamily: Inter }\n  code: { fontFamily: JetBrains Mono }\n  caption: { fontFamily: Inter }\n---\n'));
+  ok(conv4137.xWarnings.some((w) => w.includes("'code'") && w.includes('JetBrains Mono')) && !conv4137.xWarnings.some((w) => /'(display|body|caption)'/.test(w)),
+    `#4137 a typography token whose face no category reads is named in the warnings, and the faces it reads are not (got ${JSON.stringify(conv4137.xWarnings)})`);
+  // A second heading face is skipped too, and the warning's reason must say why: only the FIRST heading face is read,
+  // not "only heading and body faces", which a heading face contradicts. EXPECTED (typed here): the 'headline' token is
+  // named, and its reason names the first heading face. Mutation that fails here BY NAME: the reason back to "only
+  // heading and body faces are read".
+  const second4137 = standardToBrandInput(parseStandardDesignMd('---\nname: H\ncolors:\n  primary: "#6B3E26"\n  neutral-900: "#2A2522"\ntypography:\n  display: { fontFamily: Playfair }\n  headline: { fontFamily: Fraunces }\n  body: { fontFamily: Inter }\n---\n'));
+  const w4137 = second4137.xWarnings.find((w) => w.includes("'headline'") && w.includes('Fraunces')) ?? '';
+  ok(/\bfirst heading face\b/.test(w4137) && !/only heading and body faces/.test(w4137),
+    `#4137 a second heading face is named, and the reason says only the first heading face is read (got ${JSON.stringify(second4137.xWarnings)})`);
 }
 // (7) LEVER MANIFEST — the shared-control contract (docs/08 §4). The presentation
 // half must NOT drift from theme-schema.json (the validation half): every key
@@ -17931,13 +17967,13 @@ arm: {
         && lever.description === 'The title of every dialog and sheet: the large, medium or small label style, at Emphasis weight. One dialog can still be changed by hand in Figma.'
         && order.indexOf('dialogTitleSize') === order.indexOf('tagStyle') + 1,
         `#2958 lever (DRAFT copy, Q1 on #2958): "Dialog title size", Large / Medium / Small, default Large, not advanced, in Form after Tag style (form order: ${order.join(', ')})`);
-      // THE PROJECTION: every one of the 24 members' title, read off the plan as Figma will bind it.
+      // THE PROJECTION: every one of the 16 members' title (24 before #3392 A took `size` off the variants), read off the plan as Figma will bind it.
       for (const [size, style] of [['large', 'label/lg/emphasis'], ['medium', 'label/md/emphasis'], ['small', 'label/sm/emphasis']] as const) {
         const plans = figmaAnatomySet(applyDialogTitleSize(dialog, size));
         const find = (n: any): any => (n.name === 'title' ? n : (n.children ?? []).map(find).find(Boolean));
         const styles = [...new Set(plans.map((p) => find(p.root)?.textStyle))];
-        ok(plans.length === 24 && JSON.stringify(styles) === JSON.stringify([style]),
-          `#2958 projection: at ${size}, every one of Dialog's 24 members binds its title to ${style} (${plans.length} members, ${styles.join(', ')})`);
+        ok(plans.length === 16 && JSON.stringify(styles) === JSON.stringify([style]),
+          `#2958 projection: at ${size}, every one of Dialog's 16 members binds its title to ${style} (${plans.length} members, ${styles.join(', ')})`);
       }
     }
 
@@ -19111,7 +19147,7 @@ arm: {
       const dlg = componentDefs.find((x) => x.id === 'dialog')!;
       const dPlans = figmaAnatomySet(dlg, { swapTarget: 'FPO-default-icon' });
       const bodies = dPlans.map((pl) => pl.root.children.find((c) => c.name === 'body'));
-      ok(dPlans.length === 24 && bodies.every((b) => b?.type === 'CONTENT_SLOT' && b.clipsContent === true && b.overflowDirection === 'VERTICAL'),
+      ok(dPlans.length === 16 && bodies.every((b) => b?.type === 'CONTENT_SLOT' && b.clipsContent === true && b.overflowDirection === 'VERTICAL'),
         `#3163 dialog body: every member's body slot plans clipsContent and overflowDirection VERTICAL (${bodies.filter((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL').length}/${dPlans.length})`);
       // #4008: Popover's body is the second scroll region, the same shape as Dialog's (the body scrolls when the screen
       // is shorter than the popover; header and footer stay put).
@@ -26149,7 +26185,7 @@ arm: {
         const bodyMisses = run.misses.filter((x) => /(^|\/)body\./.test(x));
         if (facts !== WANT_BODY || bodyMisses.length) got.push(`${planComponentName(m)}: ${facts}${bodyMisses.length ? ` misses ${JSON.stringify(bodyMisses.slice(0, 2))}` : ''}`);
       }
-      ok(members.length === 24 && got.length === 0,
+      ok(members.length === 16 && got.length === 0,
         `#3163 paste leg: every pasted Dialog member's body is ${WANT_BODY} (${members.length - got.length}/${members.length})${got.length ? ` — ${got.slice(0, 3).join('; ')}` : ''}`);
     }
 
@@ -27325,7 +27361,7 @@ arm: {
             return undefined;
           };
           const bad = dg.filter((pl) => JSON.stringify(findPart(pl.root, 'close')?.nestOverrides) !== '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/close"}]');
-          ok(dg.length === 24 && bad.length === 0, `#2609 dialog: every member's close swaps FlushIconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
+          ok(dg.length === 16 && bad.length === 0, `#2609 dialog: every member's close swaps FlushIconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
           ok(Object.keys(dDef.figmaProperties?.swaps ?? {}).length === 0, `#2609 dialog: no swap property on Dialog's Figma surface (${JSON.stringify(dDef.figmaProperties?.swaps)})`);
           ok(dDef.anatomy!.parts.close?.nesting?.kind === 'nest-fixed', `#2609 dialog: the close is not exposed, so the nested button's swap does not surface on Dialog (${dDef.anatomy!.parts.close?.nesting?.kind})`);
           // Q385 A (settling Q377 A): Dialog nests FlushIconButton.Neutral and depends on IconButton.Neutral nowhere, so a
@@ -40586,7 +40622,8 @@ arm: {
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row',
     'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab-item', 'tabs',
     '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
-    'text-field', 'textarea', 'select', 'password-field', 'dialog', 'search-field', 'pagination-item', 'pagination',
+    'text-field', 'textarea', 'select', 'password-field', 'search-field', 'pagination-item', 'pagination',
+    // Not `dialog`: its `size` is a code prop only since #3392 A, so Figma has no size member to insert.
   ];
   // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
   const NO_SET = ['icon', 'provider-logo', 'spinner'];
@@ -41009,9 +41046,9 @@ arm: {
       }
     }
   }
-  // 48 accordion members, one rule each; 24 dialog members, a header rule each and a footer rule on the 18 with a footer.
-  ok(nested3476 === 90 && notSubtle.length === 0,
-    `#3476 nested divider: Accordion and Dialog nest every divider at ${JSON.stringify(NESTED_3476)}, so their separators draw color/border/primary (owner Q72 B) (${nested3476} nested, want 90${notSubtle.length ? `; NOT SUBTLE: ${notSubtle.slice(0, 3).join(' | ')}` : ''})`);
+  // 48 accordion members, one rule each; 16 dialog members (#3392 A), a header rule each and a footer rule on the 12 with a footer.
+  ok(nested3476 === 76 && notSubtle.length === 0,
+    `#3476 nested divider: Accordion and Dialog nest every divider at ${JSON.stringify(NESTED_3476)}, so their separators draw color/border/primary (owner Q72 B) (${nested3476} nested, want 76${notSubtle.length ? `; NOT SUBTLE: ${notSubtle.slice(0, 3).join(' | ')}` : ''})`);
 }
 
 // ------------------------------------------------------------------- #2417: the accordion and its indicator
@@ -41430,23 +41467,25 @@ arm: {
   const all = (n: DN): DN[] => [n, ...n.children.flatMap(all)];
   const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
 
-  // THE SHAPE (Q303.1, Q303.5, Q303.6; Q483 A, Q488 A, Q489 A; Q492 B): placement center, bottom, full and end; size on
-  // center only; footer inline, stacked, fill, none (fill third, Q?2 A on #2880); 24 members, the end members after the
-  // full ones.
+  // THE SHAPE (Q303.1, Q303.6; Q483 A, Q488 A; Q492 B; #3392 A): placement center, bottom, full and end; footer inline,
+  // stacked, fill, none (fill third, on #2880); 16 members, the end members after the full ones. No size axis: #3392 A
+  // (owner, 2026-11-18) made the width-only `size` a code prop, superseding Q303.5/Q489 for the axis.
   const MEMBERS = [
-    'placement=center, footer=inline, size=medium', 'placement=center, footer=inline, size=small', 'placement=center, footer=inline, size=large',
-    'placement=center, footer=stacked, size=medium', 'placement=center, footer=stacked, size=small', 'placement=center, footer=stacked, size=large',
-    'placement=center, footer=fill, size=medium', 'placement=center, footer=fill, size=small', 'placement=center, footer=fill, size=large',
-    'placement=center, footer=none, size=medium', 'placement=center, footer=none, size=small', 'placement=center, footer=none, size=large',
-    'placement=bottom, footer=inline, size=medium', 'placement=bottom, footer=stacked, size=medium', 'placement=bottom, footer=fill, size=medium', 'placement=bottom, footer=none, size=medium',
-    'placement=full, footer=inline, size=medium', 'placement=full, footer=stacked, size=medium', 'placement=full, footer=fill, size=medium', 'placement=full, footer=none, size=medium',
-    'placement=end, footer=inline, size=medium', 'placement=end, footer=stacked, size=medium', 'placement=end, footer=fill, size=medium', 'placement=end, footer=none, size=medium',
+    'placement=center, footer=inline', 'placement=center, footer=stacked', 'placement=center, footer=fill', 'placement=center, footer=none',
+    'placement=bottom, footer=inline', 'placement=bottom, footer=stacked', 'placement=bottom, footer=fill', 'placement=bottom, footer=none',
+    'placement=full, footer=inline', 'placement=full, footer=stacked', 'placement=full, footer=fill', 'placement=full, footer=none',
+    'placement=end, footer=inline', 'placement=end, footer=stacked', 'placement=end, footer=fill', 'placement=end, footer=none',
   ];
-  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(MEMBERS) && figmaVariantCount(dg) === 24,
-    `#2609 #2877 #2880 dialog: 24 members, center at three sizes and bottom, full and end at the default size only, each with the four footers, in this order (got ${plans.length}: ${plans.map(planComponentName).slice(12).join(' | ')})`);
-  ok(JSON.stringify(dg.variants) === JSON.stringify({ placement: ['center', 'bottom', 'full', 'end'], size: ['medium', 'small', 'large'], footer: ['inline', 'stacked', 'fill', 'none'] })
-    && JSON.stringify(dg.figmaProperties?.variantAxes) === JSON.stringify(['placement', 'size', 'footer']),
-    `#2609 #2877 dialog axes: placement [center, bottom, full, end] (Q303.1, Q488 A), size [medium, small, large], footer [inline, stacked, fill, none] (Q492 B) (got ${JSON.stringify(dg.variants)})`);
+  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(MEMBERS) && figmaVariantCount(dg) === 16,
+    `#2609 #2877 #2880 #3392 dialog: 16 members, each placement with the four footers and no size, in this order (got ${plans.length}: ${plans.map(planComponentName).slice(0, 4).join(' | ')})`);
+  ok(JSON.stringify(dg.variants) === JSON.stringify({ placement: ['center', 'bottom', 'full', 'end'], footer: ['inline', 'stacked', 'fill', 'none'] })
+    && JSON.stringify(dg.figmaProperties?.variantAxes) === JSON.stringify(['placement', 'footer']) && !dg.figmaProperties?.excludeCoordinates,
+    `#2609 #2877 #3392 dialog axes: placement [center, bottom, full, end] (Q303.1, Q488 A) and footer [inline, stacked, fill, none] (Q492 B), no size axis and no excluded coordinates (got ${JSON.stringify(dg.variants)})`);
+  // #3392 A: the code prop stays, its three widths documented as the recommended sizes, never as members.
+  const sizeProp = dg.props.find((x) => x.name === 'size');
+  ok(JSON.stringify(sizeProp?.values) === JSON.stringify(['small', 'medium', 'large']) && sizeProp?.default === 'medium'
+    && /recommended widths are 400px \(small\), 560px \(medium, the default\) and 720px \(large\)/.test(sizeProp?.description ?? '') && /designer sets the width/.test(sizeProp?.description ?? ''),
+    `#3392 dialog: the code prop size stays (small, medium, large; medium the default) and documents 400, 560 and 720px as recommended widths the designer sets (got ${JSON.stringify(sizeProp?.values)}; "${String(sizeProp?.description ?? '').slice(0, 120)}")`);
   // The side placement is `end`, never `side`, `right`, `left` or `start` (Q488 A), in the code enum, the axis and the
   // built sizes alike.
   const placeProp = dg.props.find((x) => x.name === 'placement');
@@ -41461,9 +41500,9 @@ arm: {
   // THE SIZE AND THE CORNERS PER PLACEMENT (Q303.5 A, Q303.11 A as adjusted): [width, height or null, top corners,
   // bottom corners, padding]. Center rounds all four, bottom its top two, full and end none (Q490 A). End is one width,
   // 480 (Q489 A), built 800 tall with the body taking the height, and padded as center is.
-  const WIDTH: Record<string, number> = { small: 400, medium: 560, large: 720 };
   const SHAPE: Record<string, [number | null, number | null, string, string, string]> = {
-    center: [null, null, 'radius/2xl', 'radius/2xl', 'space/300'],
+    // #3392 A: a centered member is built at 560, the recommended medium width; the designer sets it from there.
+    center: [560, null, 'radius/2xl', 'radius/2xl', 'space/300'],
     bottom: [360, null, 'radius/2xl', 'radius/none', 'space/200'],
     full: [360, 640, 'radius/none', 'radius/none', 'space/200'],
     end: [480, 800, 'radius/none', 'radius/none', 'space/300'],
@@ -41474,7 +41513,7 @@ arm: {
     // A placement outside the four has no expected shape and fails here, not throws.
     if (!sh) { shapeBad.push(`${planComponentName(p)}: placement '${c.placement}' is not center, bottom, full or end`); continue; }
     const [w, h, top, bottom, pad] = sh;
-    const wantW = w ?? WIDTH[c.size];
+    const wantW = w;
     const body = find(r, 'body')!;
     const okSize = r.placementWidth === wantW && r.counterAxisSizingMode === 'FIXED'
       && (h === null ? r.placementHeight === undefined && r.primaryAxisSizingMode === 'AUTO' && body.layoutGrow === undefined
@@ -41484,7 +41523,7 @@ arm: {
     if (!okSize || !okCorners || !okPad) shapeBad.push(`${planComponentName(p)}: ${r.placementWidth}×${r.placementHeight ?? 'hug'} corners ${r.bound?.topLeftRadius}/${r.bound?.bottomLeftRadius} pad ${r.bound?.paddingTop}`);
   }
   ok(shapeBad.length === 0,
-    `#2609 dialog size, corners and padding: center 400/560/720 wide hugging its content, every corner radius/2xl, padding space/300; bottom 360 wide, its top corners radius/2xl and bottom none, padding space/200; full 360×640 with the body taking the height, every corner square, padding space/200; end 480×800 with the body taking the height, every corner square, padding space/300${shapeBad.length ? ` — WRONG: ${shapeBad.slice(0, 3).join('; ')}` : ''}`);
+    `#2609 #3392 dialog size, corners and padding: center 560 wide hugging its content, every corner radius/2xl, padding space/300; bottom 360 wide, its top corners radius/2xl and bottom none, padding space/200; full 360×640 with the body taking the height, every corner square, padding space/200; end 480×800 with the body taking the height, every corner square, padding space/300${shapeBad.length ? ` — WRONG: ${shapeBad.slice(0, 3).join('; ')}` : ''}`);
 
   // THE PANEL, AND NO BACKDROP IN THE SET (Q303.2 A, Q303.3 A): the panel is the raised surface (#3049, Q721 A,
   // Q3049.1 C: `foreground.raised`, its own role, no longer the card's `foreground.primary`) with the shadow.xl
@@ -41546,8 +41585,8 @@ arm: {
       const t = find(p.root as DN, 'title') as (DN & { visibleProp?: string; visible?: boolean; textStyle?: string; propertyRef?: { prop: string } }) | undefined;
       return !(t && t.visibleProp === 'show title' && t.visible !== false && t.propertyRef?.prop === 'title' && /^label\/(lg|md|sm)\/emphasis$/.test(t.textStyle ?? ''));
     });
-    ok(plans.length === 24 && titleBad.length === 0,
-      `#2895 dialog show title: every one of the 24 members binds the title's visibility to "show title", shown by default, keeping its title text property and its label emphasis style (${titleBad.length ? `WRONG: ${titleBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    ok(plans.length === 16 && titleBad.length === 0,
+      `#2895 dialog show title: every one of the 16 members (24 until #3392 A) binds the title's visibility to "show title", shown by default, keeping its title text property and its label emphasis style (${titleBad.length ? `WRONG: ${titleBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 16'})`);
     const desc = plans.every((p) => (find(p.root as DN, 'description') as { visibleProp?: string } | undefined)?.visibleProp === 'description');
     ok(desc, '#2895 dialog show title Q2 A: the description keeps its own toggle, independent of the title');
     // Q3 A: the header collapses to its content, so a hidden title takes its gap with it. That holds only while the header
@@ -41560,8 +41599,8 @@ arm: {
       return !(h && tb && h.layoutMode === 'HORIZONTAL' && h.counterAxisSizingMode === 'AUTO' && noMin(h)
         && tb.layoutMode === 'VERTICAL' && tb.primaryAxisSizingMode === 'AUTO' && noMin(tb));
     });
-    ok(plans.length === 24 && q3Bad.length === 0,
-      `#2895 dialog show title Q3 A: on every member the header and the titleBox hug their height with no minimum, so a hidden title collapses the header (${q3Bad.length ? `WRONG: ${q3Bad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    ok(plans.length === 16 && q3Bad.length === 0,
+      `#2895 dialog show title Q3 A: on every member the header and the titleBox hug their height with no minimum, so a hidden title collapses the header (${q3Bad.length ? `WRONG: ${q3Bad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 16'})`);
     const co =codeOnlyText(dg.anatomy!.codeOnly);
     ok(co.some((e) => /^labeling — /.test(e) && /`hideTitle` the `<h2>` stays in the DOM, visually hidden/.test(e) && /`aria-labelledby` still points at it/.test(e) && /never `display: none`/.test(e)),
       '#2895 dialog show title Q7 A: a hidden title is a visually hidden <h2> that aria-labelledby still points at, never display: none');
@@ -44642,6 +44681,15 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(commented.name === '5" screen', `#3876 a trailing comment after an escaped quote is stripped (got ${JSON.stringify(commented.name)})`);
   const keyed = parseYamlSubset('meta:\n  "a\\": b": 1\n') as any;
   ok(keyed?.meta?.['a": b'] === 1, `#3876 a block key holding an escaped quote and a colon splits at its own colon (got ${JSON.stringify(keyed)})`);
+  // #4213: a control character (a newline above all) was written raw, so the next line broke the frontmatter.
+  for (const name of ['A\nB', 'tab\there', 'cr\r\nlf', 'bell\u0007', 'trail\n', 'literal \\n stays']) {
+    let x: any = { ...base, name, typography: { families: { body: name } }, meta: { [name]: name } };
+    let err = '';
+    try { for (let i = 0; i < 3; i++) x = parseDesignMd(toDesignMd(x)).input; } catch (e) { err = (e as Error).message; }
+    ok(!err && x.name === name && x.typography?.families?.body === name && x.meta?.[name] === name,
+      `#4213 three design.md round trips keep ${JSON.stringify(name)} as a name, a value and a key (${err ? `threw: ${err.slice(0, 120)}` : `got ${JSON.stringify(x.name)}`})`);
+  }
+  ok((parseYamlSubset('name: "a\\nb"') as any).name === 'a\nb', '#4213 a hand-written double-quoted \\n reads as a newline, as YAML reads it');
 }
 
 // #2454 — the behavior layer is decided (Q-BH1 A, 2026-11-18, docs/41 §7.2): plain HTML/CSS ships a written behavior
@@ -44799,6 +44847,24 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const cell = componentDefs.find((d) => d.id === 'code-input-cell');
   const ladder = ['small', 'medium', 'large', 'x-large'].map((s) => (cell?.tokens as Record<string, string> | undefined)?.[`size.${s}.radius`]);
   ok(JSON.stringify(ladder) === JSON.stringify(['radius.sm', 'radius.sm', 'radius.sm', 'radius.lg']), `#3551 the code input cell's corner ladder is sm, sm, sm, lg, as decided (got ${JSON.stringify(ladder)})`);
+}
+
+// #4207 (owner decision A, 2026-11-19) — `actionPalette` and `roleColors.action` are schema aliases. Two that name
+// different palettes are refused, naming both; before, `roleColors.action` won silently and the action note said
+// "actionPalette is not set" about a brand that set it. Neither, one or the other, or both equal still build.
+{
+  const b4207 = { id: 'a4207', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 },
+    brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }] };
+  const refusal = (extra: object): string => { try { brandTheme({ ...b4207, ...extra } as unknown as BrandInput); return ''; } catch (e) { return (e as Error).message; } };
+  for (const [label, extra] of [
+    ['neither', {}], ['actionPalette only', { actionPalette: 'accent' }], ['roleColors.action only', { roleColors: { action: 'accent' } }],
+    ['both the same', { actionPalette: 'accent', roleColors: { action: 'accent' } }],
+  ] as const) ok(refusal(extra) === '', `#4207 ${label} builds (got ${JSON.stringify(refusal(extra))})`);
+  for (const [lever, role] of [['accent', 'primary'], ['primary', 'accent']] as const) {
+    const msg = refusal({ actionPalette: lever, roleColors: { action: role } });
+    ok(msg.includes(`actionPalette is '${lever}'`) && msg.includes(`roleColors.action is '${role}'`),
+      `#4207 actionPalette '${lever}' with roleColors.action '${role}' is refused, naming both (got ${JSON.stringify(msg)})`);
+  }
 }
 
 // #4120 (owner decision A, 2026-11-19) — every brand-taking MCP tool takes `{ brand }`. validate_brand took the
