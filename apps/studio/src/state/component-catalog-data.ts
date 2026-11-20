@@ -1857,54 +1857,21 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
-    "id": "step-item",
-    "name": "StepItem",
-    "category": "navigation",
-    "summary": "One step of a step indicator: a numbered disc, the step name and a line to the next step.",
+    "id": "popover",
+    "name": "Popover",
+    "category": "overlay",
+    "summary": "A panel beside the control that opened it, for detail or a short task. The page stays usable.",
     "unit": "variants",
-    "spacing": [
-      {
-        "key": "size.medium.gap",
-        "ref": "space.100"
-      },
-      {
-        "key": "size.small.gap",
-        "ref": "space.075"
-      }
-    ],
-    "page": "Steps",
+    "spacing": [],
+    "page": "Popover",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 16,
+    "members": 1,
     "nests": [
+      "flush-icon-button-neutral",
       "icon",
-      "link"
-    ]
-  },
-  {
-    "id": "steps",
-    "name": "Steps",
-    "category": "navigation",
-    "summary": "A person's place in a fixed sequence of steps. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
-    "unit": "variants",
-    "spacing": [
-      {
-        "key": "size.medium.gap",
-        "ref": "space.100"
-      },
-      {
-        "key": "size.small.gap",
-        "ref": "space.075"
-      }
-    ],
-    "page": "Steps",
-    "section": "Components",
-    "buildable": true,
-    "reason": null,
-    "members": 4,
-    "nests": [
-      "step-item"
+      "button-group"
     ]
   }
 ];

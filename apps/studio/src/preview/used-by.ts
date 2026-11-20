@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 65,
+  defs: 64,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -16,7 +16,8 @@ export const USED_BY = {
         "Progress"
       ],
       "radius.lg": [
-        "CodeInput"
+        "CodeInput",
+        "Popover"
       ],
       "radius.md": [
         "Button",
@@ -41,8 +42,7 @@ export const USED_BY = {
         "Badge",
         "Tag",
         "List",
-        "Slider",
-        "StepItem"
+        "Slider"
       ],
       "radius.sm": [
         "ProviderLogo",
@@ -73,7 +73,8 @@ export const USED_BY = {
         "Progress"
       ],
       "radius.lg": [
-        "CodeInput"
+        "CodeInput",
+        "Popover"
       ],
       "radius.md": [
         "SegmentedControl",
@@ -94,8 +95,7 @@ export const USED_BY = {
         "Badge",
         "Tag",
         "List",
-        "Slider",
-        "StepItem"
+        "Slider"
       ],
       "radius.sm": [
         "ProviderLogo",
@@ -120,6 +120,9 @@ export const USED_BY = {
       ],
       "radius.capsule": [
         "Progress"
+      ],
+      "radius.lg": [
+        "Popover"
       ],
       "radius.md": [
         "SegmentedControl",
@@ -152,8 +155,7 @@ export const USED_BY = {
         "Badge",
         "Tag",
         "List",
-        "Slider",
-        "StepItem"
+        "Slider"
       ],
       "radius.sm": [
         "ProviderLogo",
@@ -186,6 +188,9 @@ export const USED_BY = {
         "CardNumberField",
         "CodeInput"
       ],
+      "radius.lg": [
+        "Popover"
+      ],
       "radius.md": [
         "SegmentedControl",
         "Pagination",
@@ -205,8 +210,7 @@ export const USED_BY = {
         "Badge",
         "Tag",
         "List",
-        "Slider",
-        "StepItem"
+        "Slider"
       ],
       "radius.sm": [
         "ProviderLogo",

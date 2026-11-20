@@ -238,6 +238,7 @@ const MUST_PROJECT = [
   'step-item', 'steps',
   '_slider-thumb', 'slider',
   'code-input', 'code-input-cell',
+  'popover',
 ];
 
 /** Whether the def declares the floor. Read here, ONCE, off the def — the EXPECTED half. */
