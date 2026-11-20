@@ -23218,8 +23218,8 @@ if (runs('3553-q1')) {
     let step = 'open';
     try {
       // Q-UI1 was decided on the four-mode default theme. Brand B (#1729) makes it five, and at 1280 four of these pages
-      // then fall back to the select: an OWNER DECISION held on #1729's PR. Until it is answered, the rule is held on
-      // the four modes it was decided for, Brand B removed first.
+      // then fall back to the select. The owner accepted that for now (#4269 decision 2, B); the header's room for five
+      // is #4422. Until it lands, the rule is held on the four modes it was decided for, Brand B removed first.
       step = 'remove Brand B';
       await goPlace(page, 'brand');
       await hooks.click(page.locator('[data-p3="custom-mode-remove"]'));

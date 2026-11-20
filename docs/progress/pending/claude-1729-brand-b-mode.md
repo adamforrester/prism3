@@ -35,7 +35,7 @@ and worst-case contrast). Every gated pair passes in brand-b: 241 per mode, the 
 **Shown as "Brand B".** A custom mode's slug is its name everywhere but the Studio's mode control and Health, which now
 read it as words (`customModeLabel`: `brand-b` → "Brand B").
 
-**Artifacts.** +3, to 263 (the floor moved to the set's size): the brand-b overlay, the brand-b Figma color mode, and `core.font.json` split into
+**Artifacts.** +3 (263 when cut; 270 once merged with #4155's web bases, and the floor moved to that size): the brand-b overlay, the brand-b Figma color mode, and `core.font.json` split into
 `core.font.Default.json` and `core.font.brand-b.json`. `ARTIFACT_FLOOR` moved with them. The guaranteed token contract
 is unchanged (`token-contract.ts --check`); the new names are prism3's own palette primitives (`core.palette.brand-b-*`).
 The shipped token CSS gains a `[data-theme="brand-b"]` block.
@@ -47,8 +47,9 @@ palette's one-letter word as a letter's name: "Brand B primary", "Brand B accent
 **Owner decisions (2026-11-19, on the PR):** decision 7 is A, so Brand B's controls stay on `brand-b-primary` (violet)
 with no per-mode `actionPalette`. Decisions 1–6 and the new strings are approved as recommended: the "Brand B" label
 rule; the glow gradient ending on Brand B's violet rather than Aurora's azure; the gamut note Aurora's accent brings to
-the default theme; Brand B's ramps showing in every palette picker; and the five-mode header falling back to the select
-at 1280 on four pages, against Q-UI1 (#3553), which the chrome test holds on four modes.
+the default theme; Brand B's ramps showing in every palette picker; and, for decision 2, (B): the five-mode header falling back to
+the select at 1280 on four pages, against Q-UI1 (#3553), is accepted for now, with the chrome test holding Q-UI1 on
+four modes; the header's room for five is filed as #4422.
 
 **Measured.** On main's Prism3 input the new arms fail by name (plugin read-back: "brand B (#1729): the saved default
 theme declares brand-b"; Studio: "the default theme ships brand-b"; verdict: "prism3 gates 1205 roles"). Mutation:
