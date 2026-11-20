@@ -13,7 +13,10 @@
  *   - a row with no record reads "not measured", never 0, and names why when the arm says;
  *   - a failed measurement reads FAIL with its first failing line, never its count;
  *   - a passing run whose summary matches none of the row's patterns reads "unparsed", never 0;
- *   - each measured cell names the commit and the time it was recorded at.
+ *   - each measured cell names the commit and the time it was recorded at;
+ *   - a row's unit carries no number: every number on the card comes from a record, never from a literal.
+ * A tree is dirty when anything not ignored differs from the commit, untracked files included (a dropped-in input such
+ * as `apps/storybook/figma-geometry.json` before it is committed).
  *
  * Records land in `tools/poc-scorecard/records/<arm>/<id>.json`, uncommitted (the folder's `.gitignore`): a record is a
  * measurement of one tree, and the card cites the commit each came from.
@@ -57,7 +60,7 @@ export const record = (arm: string, m: Measure): Record_ => {
     : lines.filter((l) => /^OK (?!self-test)/.test(l)).join(' / ').slice(0, 600);
   return {
     id: m.id, arm, cmds: m.cmds.map((c) => c.join(' ')), exit, value: exit ? null : parse(m, out), unit: m.unit, summary,
-    commit: git('rev-parse', 'HEAD'), dirty: git('status', '--porcelain', '--untracked-files=no') !== '', at: new Date().toISOString(),
+    commit: git('rev-parse', 'HEAD'), dirty: git('status', '--porcelain') !== '', at: new Date().toISOString(),
     seconds: Math.round((Date.now() - t0) / 1000),
   };
 };
@@ -128,6 +131,9 @@ export const SELF: { name: string; check: () => string | null }[] = [
     const out = 'OK element parity: <p3-button> has the 12 props of the button def\nOK element parity (text-field): <p3-text-field> has the 10 props\nOK element parity (password-field): <p3-password-field> has the 9 props\nOK self-test: "x"';
     const [a, b] = [parse(m, out), parse(m, 'OK something else')];
     return a === 31 && b === null ? null : `parse gave ${a} and ${b}, expected 31 and null`; } },
+  { name: 'no row\'s unit carries a number, so every number on the card traces to a record', check: () => {
+    const literal = Object.entries(ARMS).flatMap(([a, x]) => x.measures.filter((m) => /\d/.test(m.unit)).map((m) => `${a} ${m.id}: "${m.unit}"`));
+    return literal.length ? `a number written into the unit, not measured: ${literal.join('; ')}` : null; } },
   { name: 'every arm 1 row is measured or names why not', check: () => {
     const arm = ARMS['arm-1'];
     const gaps = ROWS.filter((x) => !arm.measures.some((m) => m.id === x.id) && !arm.pending[x.id]);

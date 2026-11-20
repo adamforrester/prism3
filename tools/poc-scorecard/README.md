@@ -12,6 +12,8 @@ npx tsx tools/poc-scorecard/scorecard.ts --self-test                            
 - **Cells.** A measured cell shows the value, the commit and the time. A row with no record reads "not measured", with
   the arm's reason where it gives one. A failed run reads FAIL, with its first failing line. A passing run whose summary
   matches none of the row's patterns reads "unparsed". None of the three ever reads 0.
+- **Units carry no number.** A count written into a row's unit would print on every card whatever the run measured,
+  and `--self-test` fails on one. A record's `dirty` counts untracked files that aren't ignored.
 - **Arm 2.** It gets its rows in `ARMS` once its repo is readable, measured through the input contract in
   `apps/storybook/ARM-CONTRACT.md`.
 

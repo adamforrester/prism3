@@ -2330,8 +2330,8 @@ both arms. This builds it from records, so the day arm 2's records exist, the ca
 
 ### What was built
 
-- **`tools/poc-scorecard/measures.ts`** lists the brief's 15 KPI rows by hand: KPI 1 (3), KPI 2 (4), KPI 3 (6) and
-  ejection (2). For arm 1 it gives the command that measures each row it can (9), and why the other 6 aren't measured
+- **`tools/poc-scorecard/measures.ts`** lists the brief's 16 KPI rows by hand: KPI 1 (3), KPI 2 (5), KPI 3 (6) and
+  ejection (2). For arm 1 it gives the command that measures each row it can (9), and why the other 7 aren't measured
   yet.
 - **`scorecard.ts record`** runs an arm's commands and stores each run's record, uncommitted. A record holds the exit
   code, the summary line, the parsed value, the commit, whether the tree was dirty, the time and the duration.
@@ -2341,6 +2341,7 @@ both arms. This builds it from records, so the day arm 2's records exist, the ca
   - an unparsed pass reads "unparsed";
   - a dirty tree is marked;
   - the parse sums every pattern;
+  - no row's unit carries a number, so every number on the card comes from a record;
   - every arm 1 row is measured or says why not.
 - A tool, not a gate (`tools/CLAUDE.md`): each row's command is already a check in the POC packages.
 
@@ -2352,7 +2353,8 @@ The tree was `poc/arm-1` at `40d7fc01` plus this tool, which no measurement read
 |---|---|---|
 | KPI 2 | Token parity, HTML/CSS form | 1,770 bindings |
 | KPI 2 | Token parity, component form | 1,666 bindings |
-| KPI 2 | API parity | 57 props matched (button 15, text field 24, password field 18), 0 mismatches |
+| KPI 2 | API parity against the defs | 57 props matched (button 15, text field 24, password field 18) |
+| KPI 2 | API parity against Figma: mismatches | not measured: how S6-2 A's mismatches count waits on an owner decision |
 | KPI 2 | Geometry against Figma | FAIL: `figma-geometry.json` is missing (the Mac job, B3) |
 | KPI 3 | Geometry, the two forms against each other | 300 checks |
 | KPI 3 | axe, light and dark | 800 checks |
@@ -2363,7 +2365,7 @@ The tree was `poc/arm-1` at `40d7fc01` plus this tool, which no measurement read
 
 ### What was checked, and how
 
-- `--self-test`: 8 cases, all OK.
+- `--self-test`: 9 cases, all OK.
 - **Hand mutation on disk**, after a commit, restored with `git show HEAD:<path> > <path>`: making a missing record
   render `0` fails 3 self-test cases by name, starting with "an arm with no records still shows every row, as not
   measured".
@@ -2384,3 +2386,10 @@ The tree was `poc/arm-1` at `40d7fc01` plus this tool, which no measurement read
   `.gitignore`, a `tools/CLAUDE.md` section, this entry and the progress entry.
 - **Errors hit:** 1, mine. The first `measures.ts` recorded only the last command, which would have dropped the
   button's API parity. It now records every command.
+
+**Review fixes, same PR.** The independent review found that the API parity cell's `0 mismatches` was written into the
+row's unit, not measured, and that it contradicts owner decision S6-2 A, which records the fields' nested-label
+`emphasis` and `weight` as a KPI 2 mismatch. The unit now reads `props matched` only. A self-test case fails by name if
+any row's unit carries a number. The brief's own KPI 2 measure, mismatches against Figma, is a new row,
+`kpi2-api-mismatches`, pending on an owner decision about how the mismatches count. A record's `dirty` now counts
+untracked files too, so a dropped-in input before it's committed marks the cell.
