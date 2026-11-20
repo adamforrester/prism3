@@ -408,6 +408,11 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   palettes.push(status('success'), status('warning'), status('info'));
 
   // ---- action role (decoupled from brand) ----
+  // #4207 (owner decision A, 2026-11-19): `actionPalette` and `roleColors.action` are schema aliases, so two that
+  // name DIFFERENT palettes are refused, naming both. Before, `roleColors.action` won silently, and the action note
+  // below described a lever the brand never authored. Equal values are the same instruction twice, and pass. DRAFT.
+  if (input.actionPalette !== undefined && input.roleColors?.action !== undefined && input.actionPalette !== input.roleColors.action)
+    throw new Error(`actionPalette is '${input.actionPalette}' and roleColors.action is '${input.roleColors.action}'; both set the action palette, so set one of them, or give both the same palette.`);
   const actionPalette = input.actionPalette ?? 'primary';
   if (!palettes.some((p) => p.palette === actionPalette)) {
     throw new Error(`actionPalette '${actionPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);

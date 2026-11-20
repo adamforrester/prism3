@@ -199,7 +199,7 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
       + 'than colliding with whatever else a shared file holds, and the point of the tier is that after it '
       + 'a variable\'s name IS its DTCG path — `prism.core.palette.red.550` (#1102) with slashes for dots. '
       + 'Figma STYLES keep the transform they already had and drop both segments; that exception is stated '
-      + 'in `docs/10` because "names track their DTCG path" is now true-with-one-exception rather than just true.',
+      + 'in `docs/10` because "names track their DTCG path" is now true with one exception, where it was true without one.',
     // POSITIONAL, and the two halves read in opposite directions on purpose.
     //
     // The domain asks whether the name is ALREADY rooted, which is the idempotence question and the only
