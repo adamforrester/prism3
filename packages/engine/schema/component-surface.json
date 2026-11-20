@@ -706,7 +706,7 @@
     },
     "breadcrumbs": {
       "members": 6,
-      "sha256": "6999b34bff7f950110a9b56a17b5deafb9ce7f0ff65a361808749070a3894df5",
+      "sha256": "bdb37811e8a2f9778bdbbbe3e30c38de8c8bdd6a47f7eda462893874f7eb75b3",
       "properties": [
         "items:SLOT"
       ]
@@ -855,6 +855,17 @@
       "sha256": "d8a5d12737425abaf5b2cbc8e2645d4d575ed561da5559242c9b7576cff6091e",
       "properties": [
         "items:SLOT"
+      ]
+    },
+    "popover": {
+      "members": 1,
+      "sha256": "f52139a7c315b16de3bd467183303b65e6c32f9aae441da4b4395e105ef9a4b5",
+      "properties": [
+        "body:SLOT",
+        "close:BOOLEAN",
+        "footer:BOOLEAN",
+        "title text:TEXT",
+        "title:BOOLEAN"
       ]
     }
   }

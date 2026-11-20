@@ -33,11 +33,11 @@ export type OverrideChange =
   | { readonly mode: string; readonly role: string; readonly palette: string; readonly step: string }
   | { readonly mode: string; readonly role: string; readonly clear: true };
 
-/** Why one change, or the whole list, is refused. The first group is per change; the last four refuse the whole run. */
+/** Why one change, or the whole list, is refused. The first group is per change; the last five refuse the whole run. */
 export type OverrideRefusalReason =
   | 'below-minimum' | 'clamped' | 'unknown-role' | 'unknown-palette' | 'unknown-step' | 'ground' | 'follows-source' | 'locked'
   | 'nothing-to-clear' | 'unknown-mode' | 'not-customizable'
-  | 'theme-unsaved' | 'no-brand' | 'unreadable-brand' | 'brand-moved';
+  | 'theme-unsaved' | 'no-brand' | 'unreadable-brand' | 'brand-moved' | 'changes-moved';
 
 /** A refusal. `index` is the change it is about, or null when no one change owns it (a whole-run refusal, or a pair that
  *  went below its minimum on a role no change named). A `below-minimum` refusal carries the pair. */
@@ -56,7 +56,8 @@ export type OverrideMove = OverridePair & { readonly before: number };
 
 export type OverridePlan = {
   readonly ok: boolean;
-  /** What a confirm must echo: the stored brand and the changes, hashed. */
+  /** What a confirm must echo: the stored brand and the changes, each hashed, brand first (#3693), so a confirm that does
+   *  not match can be told apart: its changes moved, or the file's brand did. */
   readonly previewHash: string;
   /** The brand after the changes. Only written when `ok`. */
   readonly input: BrandInput;
@@ -108,6 +109,8 @@ export const OVERRIDE_COPY = {
   notCustomizable: (mode: string): string => `${modeLabel(mode)} is generated, not edited — override Light or Dark instead.`,
   themeUnsaved: "Not saved — Theme has changes that aren't in the file yet. Run Update file or discard them, then send this again.",
   brandMoved: "Not saved — the file's brand changed after the preview. Preview again.",
+  /** DRAFT (OWNER DECISION on #3693): a confirm whose changes are not the ones its preview hashed. */
+  changesMoved: "Not saved — these changes aren't the ones previewed. Preview them first.",
   noBrand: 'Not saved — this file holds no Prism3 brand. Write a theme first.',
   /** DRAFT (OWNER DECISION on #3394's PR): a stored brand this build can't read (`restoreInput` throws). */
   unreadableBrand: "Not saved — this file's brand was saved by a build this plugin can't read.",
@@ -129,7 +132,16 @@ const fnv1a = (s: string): string => {
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
   return h.toString(16).padStart(8, '0');
 };
-export const overrideHash = (stored: BrandInput, changes: readonly OverrideChange[]): string => fnv1a(`${canon(stored)}\n${canon(changes)}`);
+/** The preview's hash: the stored brand's 8 digits, then the changes' 8 (#3693, owner decision 2026-11-18 A). One hash over
+ *  both could only say that something moved, and its one refusal named the file's brand even when the agent had sent
+ *  other changes. */
+export const overrideHash = (stored: BrandInput, changes: readonly OverrideChange[]): string => `${fnv1a(canon(stored))}${fnv1a(canon(changes))}`;
+/** Why a confirm's echoed hash is not the plan's, or null when it is. Its changes are checked first: a confirm that sends
+ *  other changes is refused for that whether or not the brand moved too, since previewing those changes is the remedy
+ *  either way. An echo that is not two halves at all (a hash from another command, or a typo) cannot be the preview of
+ *  these changes, so it reads as `changes-moved` too. */
+export const confirmMoved = (planHash: string, echoed: string): 'changes-moved' | 'brand-moved' | null =>
+  echoed === planHash ? null : echoed.length !== planHash.length || echoed.slice(8) !== planHash.slice(8) ? 'changes-moved' : 'brand-moved';
 
 // A ratio carried in `data` is floored, never rounded (#3759): a refused 4.496 pair reads 4.49, not 4.5 on its 4.5 floor.
 const floored = floorRatio;
@@ -295,9 +307,9 @@ export const overrideVerdict = (plan: OverridePlan, applied: boolean): { ok: boo
 };
 
 /** A whole-run refusal: one reason, no change owns it. */
-export const wholeRunRefusal = (reason: 'theme-unsaved' | 'no-brand' | 'unreadable-brand' | 'brand-moved'): OverrideRefusal => ({
+export const wholeRunRefusal = (reason: 'theme-unsaved' | 'no-brand' | 'unreadable-brand' | 'brand-moved' | 'changes-moved'): OverrideRefusal => ({
   index: null, mode: null, role: null, reason,
-  line: reason === 'theme-unsaved' ? OVERRIDE_COPY.themeUnsaved : reason === 'brand-moved' ? OVERRIDE_COPY.brandMoved : reason === 'no-brand' ? OVERRIDE_COPY.noBrand : OVERRIDE_COPY.unreadableBrand,
+  line: reason === 'theme-unsaved' ? OVERRIDE_COPY.themeUnsaved : reason === 'brand-moved' ? OVERRIDE_COPY.brandMoved : reason === 'changes-moved' ? OVERRIDE_COPY.changesMoved : reason === 'no-brand' ? OVERRIDE_COPY.noBrand : OVERRIDE_COPY.unreadableBrand,
 });
 
 /** The structured facts an agent reads beside the verdict (`data`). The brand itself is not repeated. */
