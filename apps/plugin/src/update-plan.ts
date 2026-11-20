@@ -43,7 +43,7 @@
  * of the set DANGLES, which, like a drawn fault, makes the member "to update" whatever its record says. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
  * moved and that shows no field difference is listed as re-applied rather than left out.
  */
-import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetLayout, planSetProperties, planTextStyles, type AnatomyPlan, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef } from '@prism3/engine/components';
+import { iconArtDuplicates, planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetLayout, planSetProperties, planTextStyles, type AnatomyPlan, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef } from '@prism3/engine/components';
 import { tailOf } from '@prism3/engine/figma';
 import { planTargets } from './build-deps';
 import { captureSlotMigration, keptLive, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
@@ -1362,6 +1362,10 @@ export type UpdatePreview = {
    *  file's order. A report: the Plugin API has no way to move a variable, so nothing applies it and it is not in the
    *  hash. Absent when none. */
   variables?: string[];
+  /** #3076, owner decision 2026-11-20 A — the groups of icons in the icon set this update plans that draw one shape, where
+   *  the brand's art is one of them (`iconArtDuplicates`). A REPORT, never a blocker: a brand may mean a duplicate, so
+   *  nothing refuses the set for it, nothing applies it and it is not in the hash. Absent when none. */
+  iconDuplicates?: string[][];
 };
 
 /** How many sets a dry run moves on their pages (#2542). */
@@ -1668,8 +1672,14 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
   // THE VARIABLE ORDER (#2860): read once for the file. Nothing here can move a variable, so this only names them.
   const variables = colorVariablesOutOfOrder((await host.variables.getLocalVariablesAsync()).map((v) => v.name));
   if (variables.length) out.variables = variables;
+  // THE BRAND'S DUPLICATE ICON ART (#3076): read off the icon set's plans, whether or not the file holds the set yet.
+  const iconDuplicates = targets.filter((t) => t.def === ICON_SET_DEF).flatMap((t) => iconArtDuplicates(t.plans));
+  if (iconDuplicates.length) out.iconDuplicates = iconDuplicates;
   return out;
 };
+
+/** The def whose single components are the icon set (`ICON_DEF_ID` in `anatomy-figma.ts`). */
+const ICON_SET_DEF = 'icon';
 
 /**
  * #2649 — the placed instances a set's update carries into its slot, read with `captureSlotMigration`, or `null` when
@@ -2071,6 +2081,18 @@ export const variablesLine = (variables: readonly string[] | undefined): string 
   return `Color variables: ${variables.length} out of order (${shown.join(', ')}${more}). Figma lets a plugin add variables but not move them, so drag these into place in the variables panel.`;
 };
 
+/** The icons that draw one shape (#3076, owner decision 2026-11-20 A): a report, never a blocker, so the line says what
+ *  is built and asks for nothing. Empty when none. DRAFT wording, not owner-approved. */
+const ICON_GROUPS_NAMED = 5;
+export const iconDuplicatesLine = (groups: readonly (readonly string[])[] | undefined): string => {
+  if (!groups?.length) return '';
+  const list = (g: readonly string[]): string => (g.length === 2 ? `${g[0]} and ${g[1]}` : `${g.slice(0, -1).join(', ')} and ${g[g.length - 1]}`);
+  const shown = groups.slice(0, ICON_GROUPS_NAMED).map(list);
+  const more = groups.length > ICON_GROUPS_NAMED ? `; and ${groups.length - ICON_GROUPS_NAMED} more` : '';
+  const what = groups.length === 1 ? `${shown[0]} draw the same shape` : `${groups.length} groups draw the same shape (${shown.join('; ')}${more})`;
+  return `Icons: ${what}. Each is built as its own icon.`;
+};
+
 /** Whether the Cover page's furniture, the About frame (#2858) and the library cover (#2859), is the check's only work
  *  (owner decision Q498 B), read as the apply reads it: no set a confirm would write (a stamp-only set is a write), no
  *  set to move and no page to reorder. A set that can't be checked is refused by the confirm, so it adds no work. The
@@ -2123,6 +2145,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     aboutDueLine(r.about),
     aboutOnly(r) ? coverPageOnlyLine({ about: aboutIsWork(r.about), cover: coverIsWork(r.cover) }, false) : '',
     variablesLine(r.variables),
+    iconDuplicatesLine(r.iconDuplicates),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
     // Wording approved, Q246 A (#2542, Q245.2 A).

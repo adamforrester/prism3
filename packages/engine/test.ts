@@ -23,7 +23,7 @@ import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { isInverseRole } from './inverse-roles';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
-import { applyIconMap } from './icon-map';
+import { applyIconMap, iconArtDuplicates } from './icon-map';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd, xPrism3Warnings } from './standard-design-md';
 import { classifyColors } from './classify-colors';
 import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
@@ -44397,6 +44397,18 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(aiErrs.length === 0, `#3076 a mapped brand's .ai.json is valid against ai-metadata.schema.json (${aiErrs.slice(0, 3).join('; ')})`);
   const xErrs = validateJsonSchema(JSON.parse(readFileSync(resolve(HERE, 'schema', 'component-defs.schema.json'), 'utf8')), JSON.parse(JSON.stringify(xdoc)));
   ok(xErrs.length === 0, `#3076 a mapped brand's component export is valid against component-defs.schema.json (${xErrs.slice(0, 3).join('; ')})`);
+  // DUPLICATE ART IS REPORTED, NEVER REFUSED (owner decision 2026-11-20 A). Each brand glyph below is typed by hand as a
+  // respelling of a core icon the map leaves in place (core `minus` reversed in relative commands, core `slash` in
+  // relative commands), plus `checkmark` drawn as core `check`, which the map takes out of the set. EXPECTED is the
+  // groups named here; ACTUAL is `iconArtDuplicates` over the projected icon set.
+  const DUP = { map: { plus: 'add', check: 'checkmark' }, glyphs: { add: { path: ADD }, checkmark: { path: 'M10.0007 15.1709L19.1931 5.97852L20.6073 7.39273L10.0007 17.9993L3.63672 11.6354L5.05093 10.2212L10.0007 15.1709Z' }, dash: { path: 'M19 13h-14v-2h14z' }, oblique: { path: 'M14.03 4h2.14l-6.2 16H7.83z' } } };
+  ok(refusal(DUP) === '', `#3076 a brand whose art duplicates an icon in its set still builds (got ${JSON.stringify(refusal(DUP))})`);
+  const iconDef = componentDefs.find((d) => d.id === 'icon')!;
+  const dups = iconArtDuplicates(figmaAnatomySet(applyIconMap(iconDef, DUP), {}));
+  ok(JSON.stringify(dups) === JSON.stringify([['dash', 'minus', 'minus-filled'], ['oblique', 'slash']]),
+    `#3076 duplicate art: the brand glyphs that draw a core icon's shape are named with it, relative spellings included, and a mapped-away icon is not (got ${JSON.stringify(dups)})`);
+  ok(iconArtDuplicates(figmaAnatomySet(iconDef, {})).length === 0, `#3076 duplicate art: Prism3's own duplicates are not the brand's to report (got ${JSON.stringify(iconArtDuplicates(figmaAnatomySet(iconDef, {})))})`);
+  ok(iconArtDuplicates(iconPlans).length === 0, `#3076 duplicate art: a brand whose art draws no icon's shape reports nothing (got ${JSON.stringify(iconArtDuplicates(iconPlans))})`);
 }
 
 // #3375 — List.Item's icon marker stays on `icon.size.sm/md/lg` (owner decision A, 2026-11-18), and the comment that

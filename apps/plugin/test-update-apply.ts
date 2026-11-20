@@ -281,7 +281,7 @@
  *
  * Run: `npx tsx apps/plugin/test-update-apply.ts`
  */
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName, type AnatomyPlan, componentDefs, type ComponentDef } from '@prism3/engine/components';
+import { applyIconMap, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName, type AnatomyPlan, componentDefs, type ComponentDef } from '@prism3/engine/components';
 import { ENGINE_VERSION, parseDesignMd, type BrandInput } from '@prism3/engine';
 import { adoptions, applyComponentPlan, memberStamp, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
@@ -2438,6 +2438,34 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { 
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
   ok(applyVerdict(res).ok && dump() === before && res.outcomes[0]?.skipped.some((x) => x.member === 'name=my-logo' && x.reason === 'not built by Prism3'),
     `single/owner: the owner's hand-made icon is left exactly as it is, and named (${JSON.stringify(res.outcomes[0]?.skipped)})`);
+}
+// #3076, owner decision 2026-11-20 A: BRAND ART THAT DUPLICATES AN ICON IS REPORTED, NEVER BLOCKED. The brand's set is
+// built, then updated to a new ink. Its `dash` is core `minus` (and so `minus-filled`) drawn the other way round, its
+// `oblique` is core `slash` from another start vertex; its `checkmark` is core `check`'s art, and `check` is mapped away,
+// so no duplicate. Absolute `L` only: the shim reads a path's numbers as x,y pairs (see the provider logos below), and
+// `test.ts` holds the relative spellings.
+// EXPECTED is typed here, never read from `icon-map.ts`. The dry run names the two groups, refuses nothing, and the apply
+// it hashes goes through.
+{
+  const DUP = { map: { plus: 'add', check: 'checkmark' }, glyphs: { add: { path: 'M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z' }, checkmark: { path: 'M10.0007 15.1709L19.1931 5.97852L20.6073 7.39273L10.0007 17.9993L3.63672 11.6354L5.05093 10.2212L10.0007 15.1709Z' }, dash: { path: 'M19 13L5 13L5 11L19 11Z' }, oblique: { path: 'M16.17 4L9.97 20L7.83 20L14.03 4Z' } } };
+  const plans = figmaAnatomySet(applyIconMap(componentDefs.find((d) => d.id === 'icon')!, DUP), { swapTarget: SWAP_TARGET });
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const next = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
+  const t = { def: 'icon', plans: next, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  ok(JSON.stringify(pre.iconDuplicates) === JSON.stringify([['dash', 'minus', 'minus-filled'], ['oblique', 'slash']]),
+    `#3076 duplicate art/reported: the dry run names each brand glyph that draws an icon's shape, with it (got ${JSON.stringify(pre.iconDuplicates)})`);
+  const v = previewVerdict(pre);
+  ok(v.lines.includes('Icons: 2 groups draw the same shape (dash, minus and minus-filled; oblique and slash). Each is built as its own icon.'),
+    `#3076 duplicate art/summary: the dry run summary carries the line (${JSON.stringify(v.lines.filter((l) => l.startsWith('Icons')))})`);
+  ok(v.ok && !pre.refused.length && !pre.missing.length && pre.sets.length === 1 && !pre.sets[0].blockers.length && pre.sets[0].counts.update === 48,
+    `#3076 duplicate art/not blocked: the set is checked with no blocker and all 48 icons to update (${v.headline}; ${JSON.stringify(pre.sets[0]?.blockers)}; ${JSON.stringify(pre.sets[0]?.counts)})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const av = applyVerdictOf(res);
+  ok(av.ok && av.headline === '✓ updated 48 in place', `#3076 duplicate art/applied: the apply the dry run hashed goes through (${av.headline}; ${av.lines.slice(0, 2).join(" | ")})`);
+  const plain = await previewUpdate((await singleWorld(plansOf('icon'))).host, [{ def: 'icon', plans: plansOf('icon'), single: true }]);
+  ok(plain.iconDuplicates === undefined && !previewVerdict(plain).lines.some((l) => l.startsWith('Icons:')),
+    `#3076 duplicate art/none: Prism3's own set reports no duplicate art (got ${JSON.stringify(plain.iconDuplicates)})`);
 }
 // THE PROVIDER LOGOS (#2343): single components too, and each value carries its kind, `provider-logo/payment/visa`, so a
 // value with a `/` is still a member when it is one of the def's own coordinates. The icon set cannot catch a reader

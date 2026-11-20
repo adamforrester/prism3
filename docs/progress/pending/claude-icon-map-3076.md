@@ -44,6 +44,17 @@ counter (the proposal's finding 2), never read from `icon-map.ts`.
   - the `.ai.json` block;
   - the plugin's chain step → the round trip's parity arm.
 
+**Duplicate art is reported, never blocked (owner decision 2026-11-20 A).** Before, a real brand's glyph that drew the
+same shape as another icon in its set was neither refused nor named anywhere: only `lint-glyph-geometry`'s fixture was
+checked. Update file's dry run now names it. `iconArtDuplicates` (`icon-map.ts`) reads the icon set's plans, so it names
+what the update would build. It groups the members that draw one shape, keeping only groups where the brand's art is
+one of them. The art is rewritten to absolute commands through `glyphInkBox`'s own walker and then compared with
+`canonicalShape`, fill rule included. `previewUpdate` sets `iconDuplicates` and `previewVerdict` adds one line: a
+report, outside the hash, with no blocker. Tests: `test-update-apply.ts` builds a brand set holding two duplicates.
+It asserts that the dry run names both groups, carries the line, refuses nothing, and that the apply it hashed goes
+through. `test.ts` holds relative spellings, a mapped-away look-alike, and Prism3's own duplicates left out. Each of
+these mutations fails by name: a blocker on duplicates, a dropped report, and a dropped brand filter.
+
 **A harness trap, recorded.** The round trip renames each variant row's id (`tag@icon-map`). Renaming the icon set made
 the projector treat it as a consumer of itself (86 divergences), so that row builds under its real id. It also prebuilt
 nested sets unmaterialized, where the plugin's own `project` materializes them, so it now takes the brand's map for
