@@ -612,8 +612,9 @@ export const environmentProblems = async (): Promise<string[]> => {
  *  collides. Raise the floor when the set grows, if you like; lower it only on purpose, in the PR that shrinks the set,
  *  and say why. What a floor cannot see: a shrink and a growth of the same size in one PR.
  *
- *  259 since #1119, raised to the set's size when harbor's 29-file Figma emission joined it, so losing it fails here. */
-export const ARTIFACT_FLOOR = 259;
+ *  259 since #1119, raised to the set's size when harbor's 29-file Figma emission joined it, so losing it fails here.
+ *  265 since #4155, the set's size once each brand's web base (`<brand>.web.base.tokens.json`) joined it. */
+export const ARTIFACT_FLOOR = 265;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -684,9 +685,10 @@ export const GATES: Gate[] = [
   },
   {
     // The four git-history gates above, replayed on main's push run in a `$TMPDIR` clone (#2556): a
-    // squash that breaks a gate's rule must fail by that gate's own assertion. Runs the gates itself.
+    // squash that breaks a gate's rule must fail by that gate's own assertion. Runs the gates itself. Also
+    // replays a merge-group run (#4106): each gate reads the group's parent, and fails closed without it.
     id: 'lint-push-base',
-    ciStep: "On main's push run each git-history gate compares a squash with its parent (#2556)",
+    ciStep: "On main's push run and a merge-group run each git-history gate reads the right base (#2556, #4106)",
     cmd: engine('lint-push-base.ts'),
   },
   {

@@ -968,8 +968,10 @@ export const MOVED = 'it moved or is gone since it was read';
 /** The live child a member was read from, by its node id, or `null` when that node is gone or renamed since. */
 const liveNode = (set: LiveSet, m: HostMember): { name?: unknown; setSharedPluginData?: (ns: string, k: string, v: string) => void } | null => {
   if (!m.id) return null;
-  const node = (set.children ?? []).find((c) => String((c as { id?: unknown }).id ?? '') === m.id) as { name?: unknown } | undefined;
-  return node && String(node.name ?? '') === (m.nodeName ?? m.name) ? node : null;
+  // `child`, not `node`: the release build's whitespace minifier would print `?node:null`, which the main thread's
+  // `node:` builtin scan (build.mjs) reads as a builtin (#4232).
+  const child = (set.children ?? []).find((c) => String((c as { id?: unknown }).id ?? '') === m.id) as { name?: unknown } | undefined;
+  return child && String(child.name ?? '') === (m.nodeName ?? m.name) ? child : null;
 };
 
 /** What `capture-baseline` decides for one member, pure. It records a baseline only where the member is

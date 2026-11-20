@@ -20,7 +20,7 @@
  *  the manifest's shape labels and the section's copy. Nothing here reads the session. */
 import type { Theme, ControlShape } from '@prism3/engine';
 import { USED_BY } from '../used-by';
-import { el, hook, palSection, specimen, subHead, tokenPillSpan, type SgCtx } from './kit';
+import { el, hook, palSection, scrollBox, specimen, subHead, tokenPillSpan, type SgCtx } from './kit';
 
 /** The fallback where no definition binds a size (APPROVED copy, owner, 2026-10-04). */
 export const USED_BY_NONE = 'No component uses this yet.';
@@ -60,10 +60,10 @@ export const shapeSample = (c: SgCtx, cls: string, pre = '', fill = 'foreground.
 };
 
 /** A table of rows: the label first with its token under it (QA-B2), what uses it (unless `withWho` is false), and a
- *  sample. */
-export const shapeTable = (heads: readonly string[], rows: readonly { hook: string; key: string; label: string; token: string; who: string; sample: HTMLElement }[], withWho = true): HTMLElement => {
+ *  sample. `name` names its scroll region (#4223): the section or subsection title above it. */
+export const shapeTable = (name: string, heads: readonly string[], rows: readonly { hook: string; key: string; label: string; token: string; who: string; sample: HTMLElement }[], withWho = true): HTMLElement => {
   const box = el('div', 'mtbl');
-  const scroll = el('div', 'mtbl-scroll');
+  const scroll = scrollBox(name);
   const t = el('table', 'mtbl-tbl');
   const head = el('thead'), htr = el('tr');
   heads.forEach((x, i) => htr.append(el('th', i === 0 ? 'mtbl-stick' : i === heads.length - 1 ? 'mtbl-fill mtbl-spec' : 'mtbl-mode shp-who', x)));
@@ -94,7 +94,7 @@ export const radiusSection = (c: SgCtx, o: {
   const sec = palSection(o.copy.title, o.copy.desc);
   sec.dataset.sgSection = 'radius';   // the shared-section marker (`kit.ts`'s header)
   const rows = radiusIn(o.dims, o.modes, o.mode);
-  sec.append(shapeTable(['Size', 'Used by', 'Sample'], rows.map((r) => {
+  sec.append(shapeTable(o.copy.title, ['Size', 'Used by', 'Sample'], rows.map((r) => {
     const users = radiusUsers(o.shape, `radius.${r.name}`);
     const sw = shapeSample(c, 'shp-sw');
     sw.style.borderRadius = `${r.px}px`;

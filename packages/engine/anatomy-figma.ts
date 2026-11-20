@@ -3005,6 +3005,15 @@ export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content:
  *  at `hairline`, the default. The setting rebinds that one key to `border-width.<weight>`; no token is added. */
 export const BORDER_WEIGHT_KEY = 'border-width';
 const BORDER_WEIGHT_DEFAULT_REF = 'border-width.hairline';
+/** Step 6 of `applyButtonLayout` (#576), shared by the button family and the defs that opt in (`levers.buttonBorderWeight`,
+ *  Q6). `hairline` is the identity. THROWS when the def's edge is not bound to the default rung: a def that moved its
+ *  border onto another key or rung would otherwise keep it while this reported the weight applied. */
+const withBorderWeight = (def: ComponentDef, tokens: Record<string, string>, weight: ButtonBorderWeight): Record<string, string> => {
+  if (weight === 'hairline') return tokens;
+  if (tokens[BORDER_WEIGHT_KEY] !== BORDER_WEIGHT_DEFAULT_REF)
+    throw new Error(`${def.id}: "Outline button border" rebinds ${BORDER_WEIGHT_KEY} from ${BORDER_WEIGHT_DEFAULT_REF} to border-width.${weight}, and the def binds ${tokens[BORDER_WEIGHT_KEY] ?? 'nothing'} there`);
+  return { ...tokens, [BORDER_WEIGHT_KEY]: `border-width.${weight}` };
+};
 
 /** "One step smaller" (#1667): the ONE size whose content moves, and the size it borrows from. Medium only,
  *  and deliberately: New Balance's 44px button (our `size.md.height`) carries a 12px label and a 16px icon,
@@ -3074,7 +3083,9 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  *      `border-width.thick` instead of `border-width.hairline`, in every button set at once: one brand-wide weight
  *      (owner decision 2026-11-18, A). The key sits on the shared container, so filled and text members carry it too
  *      and paint no stroke, exactly as they carry the hairline today. The border's COLOR is untouched: it stays the
- *      set's own `outline.border.*`. `hairline`, the default, is the identity. Icon buttons are outside the family.
+ *      set's own `outline.border.*`. `hairline`, the default, is the identity. The one other setting that reaches
+ *      past the family: a def opting in with `levers.buttonBorderWeight` (IconButton and FlushIconButton, owner decision
+ *      2026-11-19 Q6) moves the same key the same way, so a Thick brand's outline icon buttons match its text buttons.
  *
  * THROWS when a size's number does not resolve: a button with no floor, or a pinned icon with no reserve,
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
@@ -3083,8 +3094,13 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   // "Control label weight" reaches a def outside the family that opts in with `levers.buttonLabelWeight` (Tag: #2945,
   // Q591 A; its own entry since #3786); the other button settings do not. Badge and every other def that binds a label
   // style keep their own.
-  if (!isButtonFamily(def))
-    return layout.labelWeight === 'default' && def.levers?.buttonLabelWeight ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
+  // "Outline button border" likewise reaches a def that opts in with `levers.buttonBorderWeight` (#576 Q6).
+  if (!isButtonFamily(def)) {
+    let tokens = def.tokens;
+    if (layout.labelWeight === 'default' && def.levers?.buttonLabelWeight) tokens = withDefaultLabels(def, tokens);
+    if (def.levers?.buttonBorderWeight) tokens = withBorderWeight(def, tokens, layout.borderWeight);
+    return tokens === def.tokens ? def : { ...def, tokens };
+  }
   const a = def.anatomy!;
   const root = must(a.parts[a.root], `${def.id}: root part '${a.root}'`);
   if (!root.layout || !root.height)
@@ -3118,13 +3134,8 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
       if (wash) tokens[`text.overlay.${st}`] = wash;
     }
   }
-  // 6. "Outline button border" (#576). THROWS when the def's edge is not bound to the default rung: a def that moved
-  //    its border onto another key or rung would otherwise keep it while this reported the weight applied.
-  if (layout.borderWeight !== 'hairline') {
-    if (tokens[BORDER_WEIGHT_KEY] !== BORDER_WEIGHT_DEFAULT_REF)
-      throw new Error(`${def.id}: "Outline button border" rebinds ${BORDER_WEIGHT_KEY} from ${BORDER_WEIGHT_DEFAULT_REF} to border-width.${layout.borderWeight}, and the def binds ${tokens[BORDER_WEIGHT_KEY] ?? 'nothing'} there`);
-    tokens = { ...tokens, [BORDER_WEIGHT_KEY]: `border-width.${layout.borderWeight}` };
-  }
+  // 6. "Outline button border" (#576).
+  tokens = withBorderWeight(def, tokens, layout.borderWeight);
   // A def key (`size.{size}.gap`) at one size → px, through the (possibly rebound) token map.
   const at = (key: string, v: string, what: string): number => {
     const ref = tokens[key.replace('{size}', v)];

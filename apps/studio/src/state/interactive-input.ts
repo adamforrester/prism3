@@ -220,8 +220,8 @@ export const interactiveRowsFor = (col: string, paletteKey: string): Interactive
   withStates(`${inv}.text`, 'Text · inverse', paletteKey, 'override', 'override');
   withStates(`${p}.border`, 'Border', paletteKey, 'override', 'override');
   withStates(`${inv}.border`, 'Border · inverse', paletteKey, 'override', 'override');
-  // The hover group follows the method (Q3335.7 A, and the owner's amendment): a wash has no rest row, so its Hover and
-  // Pressed sit side by side under the group's title. Under Solid fill the page draws the set's own pickers in its place.
+  // The washes' rows. Since #3116 (Q3116.3 A) the page draws them, or under Solid fill the set's own picks, as the Hover
+  // and Pressed of its "Outline & text hover" group under Fill (`color-interactive.ts`), so these group names are not drawn.
   row(`${p}.overlay.hover`, 'Overlay wash', 'Hover', 'neutral', 'readout');
   row(`${p}.overlay.pressed`, 'Overlay wash', 'Pressed', 'neutral', 'readout');
   row(`${p}.subtle-fill.hover`, 'Tinted wash', 'Hover', paletteKey, 'readout');

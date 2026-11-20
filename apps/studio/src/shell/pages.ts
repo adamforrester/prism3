@@ -243,8 +243,8 @@ export const DOMAINS = [
           {
             // #3335 (Q3335.1 A): one card per button set, drawn by the page itself, each titled "‹Set› Interactive Colors";
             // this section's title is not drawn. Primary's card opens on the action palette (Q3335.1, "Primary Action
-            // Palette"), Neutral's on its emphasis; under Solid fill each card carries its set's own hover fill
-            // (`outlineHoverFill`, #3071; per set since #3335, Q3335.5 A).
+            // Palette"), Neutral's on its emphasis; under Solid fill each card's Outline & text hover group, under Fill
+            // since #3116, carries its set's own hover fill (`outlineHoverFill`, #3071; per set since #3335, Q3335.5 A).
             title: 'Interactive Colors', cards: true, rows: [
               { ctl: 'palette', keys: ['actionPalette'], drive: 'action' },
               { ctl: 'outlineHoverFill', keys: ['outlineHoverFill'], drive: 'action' },

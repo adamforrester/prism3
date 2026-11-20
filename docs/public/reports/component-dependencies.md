@@ -15,16 +15,16 @@ Generated from the component definitions and the emission by `packages/engine/em
 | _slider-thumb | slider | slider |
 | badge | tab-item | tab-item, tabs |
 | breadcrumb-item | breadcrumbs | breadcrumbs |
-| button | banner, button-group, password-field, toast | banner, button-group, dialog, password-field, toast |
-| button-group | dialog | dialog |
+| button | banner, button-group, password-field, toast | banner, button-group, dialog, password-field, popover, toast |
+| button-group | dialog, popover | dialog, popover |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
 | code-input-cell | code-input | code-input |
 | divider | accordion, dialog | accordion, dialog |
 | field-label | card-number-field, checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea | card-number-field, checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, slider, text-field, textarea |
 | field-message | card-number-field, checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea | card-number-field, checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, slider, text-field, textarea |
-| flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, toast |
-| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, radio-control, segmented-control-segment, sign-in-button, switch-control, tab-item, tag, wallet-button | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, page-nav, page-nav-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, sign-in-button, slider, switch-control, switch-row, tab-item, tabs, tag, tag-group, toast, wallet-button |
+| flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, popover, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, popover, toast |
+| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, radio-control, segmented-control-segment, sign-in-button, switch-control, tab-item, tag, wallet-button | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, page-nav, page-nav-item, pagination, pagination-item, password-field, popover, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, sign-in-button, slider, switch-control, switch-row, tab-item, tabs, tag, tag-group, toast, wallet-button |
 | link | banner, breadcrumb-item, breadcrumbs, page-nav-item | banner, breadcrumb-item, breadcrumbs, page-nav, page-nav-item |
 | list-item | list | list |
 | page-nav-item | page-nav | page-nav |
@@ -33,7 +33,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
 | segmented-control-segment | segmented-control | segmented-control |
-| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | banner, button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field, toast |
+| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | banner, button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field, popover, toast |
 | switch-control | switch-row | switch-row |
 | tab-item | tabs | tabs |
 | tag | tag-group | tag-group |
@@ -85,6 +85,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | pagination | 2 | pagination-item | focus-ring, pagination-item |
 | pagination-item | 1 | focus-ring | focus-ring |
 | password-field | 2 | button, field-label, field-message | button, field-label, field-message, focus-ring, spinner |
+| popover | 3 | button-group, flush-icon-button-neutral | button, button-group, flush-icon-button-neutral, focus-ring, spinner |
 | progress | 1 | field-message | field-message |
 | provider-logo | 0 | — | — |
 | radio-control | 1 | focus-ring | focus-ring |
@@ -203,6 +204,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | password-field | label | nest | field-label | nest-exposed | size=medium, emphasis=primary, weight=regular, state=rest | size | emphasis, weight |
 | password-field | message | nest | field-message | nest-fixed | status=default | status | — |
 | password-field | toggle | nest | button | nest-exposed | appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false | — | label |
+| popover | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=default, state=rest | — | — |
+| popover | footer | nest | button-group | nest-fixed | layout=inline | — | — |
 | progress | messageComplete | nest | field-message | nest-fixed | status=success | — | — |
 | progress | messageError | nest | field-message | nest-fixed | status=error | — | — |
 | radio-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |

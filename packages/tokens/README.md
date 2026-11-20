@@ -47,7 +47,20 @@ npm install ./prism3-tokens-<version>.tgz       # in the client project
 |---|---|
 | `@prism3/tokens` (also `@prism3/tokens/prism3.css`) | every block, `:root` first |
 | `@prism3/tokens/prism3/base.css` | the light defaults, on `:root` and `[data-theme="light"]` |
-| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `dark`, `hc-dark`, `hc-light` |
+| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `dark`, `hc-dark`, `hc-light`. `dark.css` also holds the system-preference block below |
+
+**Following the OS (#4140).** A page that sets no `data-theme` follows the system setting: the dark values also apply
+under `@media (prefers-color-scheme: dark)` on `:root:not([data-theme])`, with no script and no flash of light. A page
+or subtree that sets `data-theme` keeps the theme it asked for. The high-contrast modes are opt-in only, by attribute.
+
+The CSS defines custom properties only, so it can't set `color-scheme`, which native form controls and scrollbars read.
+Add it beside the import:
+
+```css
+:root:not([data-theme]) { color-scheme: light dark; }
+[data-theme$="dark"] { color-scheme: dark; }
+[data-theme$="light"] { color-scheme: light; }
+```
 
 Names are stock Style Dictionary's, with the token root as prefix: `--pds3-…` (`docs/35` §9.4). Every
 mode block defines every name, so a theme switch never falls back to a light value. References stay
@@ -62,6 +75,13 @@ That check ignores spelling (`#0000001a` or `rgba(0, 0, 0, 0.1)`, quoted or not)
 reversed `cubic-bezier( )` or reordered shadow layers fail it. Each per-mode file
 (`prism3/<mode>.css`) gets the same checks on its own, not only the joined file (#3877). A non-DTCG type (today the three `spring` tokens) isn't in the
 projection, so it isn't in the CSS (#642).
+
+Each typeface ships with its fallback stack, ending in a generic family:
+`--pds3-core-font-typeface-inter: Inter, system-ui, …, sans-serif` (#4155). If a face doesn't load, text
+falls back to the same kind of face rather than the browser default. The build reads the web base,
+`prism3.web.base.tokens.json`, which is the conforming base with each stack as its DTCG array value. The
+platform-neutral `prism3.base.tokens.json` keeps one family per typeface, because a comma list isn't a font
+name on Android. `check-package.mjs`'s [FALLBACK] arm checks the generic family in every block.
 
 ### What a typography style's `font` shorthand leaves out (#3507)
 

@@ -369,17 +369,35 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       const sets = h('div', 'p3-export-sets');
       for (const s of x.settings) {
         const row = h('div', 'p3-export-set');
-        row.append(h('div', 'p3-export-lab', s.label));
+        const lab = h('div', 'p3-export-lab', s.label);
+        lab.id = `p3-export-lab-${s.key}`;
+        row.append(lab);
         const sseg = h('div', 'p3-seg p3-export-oseg');
         sseg.dataset.key = s.key;   // #3553 Q-UI7 A: the Token names options alone are set in mono (`chrome.css`)
-        for (const o of s.options) {
+        // #4221: a radio group named by its label, one Tab stop, the arrow keys between options, as the levers' choices
+        // are (`lever-kit.ts` `choice`). It was a pair of toggle buttons, so "Off" read as pressed.
+        sseg.setAttribute('role', 'radiogroup');
+        sseg.setAttribute('aria-labelledby', lab.id);
+        const opts = s.options.map((o) => {
           const b = hook(h('button', 'p3-seg-tab', o.label), 'export-setting');
           b.type = 'button';
-          b.setAttribute('aria-pressed', String(o.on));
-          b.setAttribute('aria-label', `${s.label}: ${o.label}`);
-          b.onclick = () => act.setting(s.key, o.value);
-          sseg.append(b);
-        }
+          b.setAttribute('role', 'radio');
+          b.setAttribute('aria-checked', String(o.on));
+          b.tabIndex = o.on ? 0 : -1;
+          b.onclick = () => { if (!o.on) act.setting(s.key, o.value); };
+          return b;
+        });
+        if (!s.options.some((o) => o.on) && opts[0]) opts[0].tabIndex = 0;
+        sseg.append(...opts);
+        sseg.addEventListener('keydown', (e) => {
+          const i = opts.indexOf(e.target as HTMLButtonElement);
+          const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+          if (i < 0 || !step) return;
+          e.preventDefault();
+          opts[(i + step + opts.length) % opts.length].click();
+          // The page is drawn again for the new setting; focus follows the selection, as the artifact tabs' keys do.
+          requestAnimationFrame(() => document.querySelector<HTMLElement>(`.p3-export-oseg[data-key="${CSS.escape(s.key)}"] [aria-checked="true"]`)?.focus());
+        });
         row.append(sseg, h('p', 'p3-bardlg-note', s.desc));
         sets.append(row);
       }
