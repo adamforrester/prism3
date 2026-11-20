@@ -19372,8 +19372,9 @@ const S_IN_FILE = [
   ['row=subcomponents|Field Label', 'Field label'], ['row=subcomponents|Field Message', 'Field message'], ['row=subcomponents|Focus Ring', 'Focus ring'], ['setbox=icon', 'Icon'], ['row=subcomponents|Spinner', 'Spinner'],
 ];
 // #3306 Q3306.1 A, typed from the proposal's table: the sets of the families with two or more roots that the sample file
-// lacks, each with a box of its own (Icon is in the file, and Buttons is whole in it, so neither has one).
-const S_SPLIT_SETS = ['icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'provider-logo'];
+// lacks, each with a box of its own (Icon is in the file, and Buttons is whole in it, so neither has one). Menu (#4007)
+// has two roots, Menu and Menu.Group, both nesting Menu.Item, so its three sets each have one.
+const S_SPLIT_SETS = ['icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'provider-logo', 'menu', 'menu-group', 'menu-item'];
 // #3306 Q3306.2–4 A: the needed sets, worked out by hand from the catalog's nests: Dialog and Banner (queued) both nest
 // Flush icon button Neutral, and Banner nests Link; the file lacks both.
 const S_NEEDED = { 'flush-icon-button-neutral': 'FlushIconButton.Neutral, needed by 2 sets', link: 'Link, needed by Banner' };
