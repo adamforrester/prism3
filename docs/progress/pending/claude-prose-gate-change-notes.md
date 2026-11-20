@@ -17,7 +17,10 @@ decision Q181 A: move the check upstream, and read the release pages' carried no
   sampled the carve function directly, and removing the carve from `scan()` then failed only on real notes, not by
   name. The split fixed that.
 - False positives found on the notes, fixed by widening allow-sets: `devising` and `pairwise` in `NOT_EN_GB`. The
-  four real hits were corrected in their notes by #3618, under the same decision.
+  hits the first CI run listed (8, three of them the real `colour` hits #3574 named) were corrected in their notes by
+  #3618, under the same decision.
+- Each gate's self-check also samples a second carried note, so a carve that stopped after the first note fails by
+  name.
 
 ### How it sits beside the 0.238.0 fold (#3798)
 
