@@ -189,9 +189,12 @@ const exportFrom = async (host, id, metadataOn = false) => {
     const box = 'export-page';
     await hooks.click(page.locator('[data-p3="rail-export"]'));
     await hooks.need(page, `[data-p3="${box}"]`);
-    const off = page.locator(`[data-p3="export-setting"][aria-label="${METADATA_LABEL}: Off"]`);
-    const metadataDefault = (await off.count()) === 1 ? await off.getAttribute('aria-pressed') : 'absent';
-    if (metadataOn) await hooks.click(page.locator(`[data-p3="export-setting"][aria-label="${METADATA_LABEL}: On"]`));
+    // #4221: each setting is a radio group named by its label, so an option is found by its row and its own word.
+    const metaOpt = (word) => page.locator('.p3-export-set').filter({ has: page.locator('.p3-export-lab', { hasText: METADATA_LABEL }) })
+      .locator('[data-p3="export-setting"]').filter({ hasText: new RegExp(`^${word}$`) });
+    const off = metaOpt('Off');
+    const metadataDefault = (await off.count()) === 1 ? await off.getAttribute('aria-checked') : 'absent';
+    if (metadataOn) await hooks.click(metaOpt('On'));
     const want = consumerSet(id).length;
     const got = new Map();
     // The listener stays attached through the beat below: detaching it at `want` files left the beat listening to
@@ -240,7 +243,7 @@ for (const id of GATED) {
   ok(web.errors.length === 0, `${id}: web raised no page error${web.errors.length ? ` — ${web.errors[0]}` : ''}`);
   ok(figma.errors.length === 0, `${id}: plugin raised no page error${figma.errors.length ? ` — ${figma.errors[0]}` : ''}`);
   for (const [host, x] of [['web', web], ['plugin', figma]]) {
-    ok(x.metadataDefault === 'true', `${id}: ${host} — "${METADATA_LABEL}" defaults to Off (aria-pressed ${x.metadataDefault})`);
+    ok(x.metadataDefault === 'true', `${id}: ${host} — "${METADATA_LABEL}" defaults to Off (aria-checked ${x.metadataDefault})`);
     ok(!x.files.has(`${id}.tokens.json`), `${id}: ${host} — the single-file ${id}.tokens.json is not downloaded`);
     ok(JSON.stringify(names(x.files)) === JSON.stringify(expected),
       `${id}: ${host} — the download is the consumer set (${names(x.files).join(', ') || 'nothing'})`);
