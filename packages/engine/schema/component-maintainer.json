@@ -2942,12 +2942,12 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite` (800ms per turn), a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here."
+          "description": "rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite`, one turn per `motion.duration.spin`, a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here."
         },
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "reduced motion — under `@media (prefers-reduced-motion: reduce)` the turn SLOWS to `var(--motion-duration-reduced-spin)` (2600ms per turn), still linear and infinite. Not a pulse and not a static ring: the turn is what tells a sighted user work is continuing, so reduced motion keeps it and takes the speed out of it."
+          "description": "reduced motion — under `@media (prefers-reduced-motion: reduce)` the turn SLOWS to `var(--motion-duration-reduced-spin)` per turn, still linear and infinite. Not a pulse and not a static ring: the turn is what tells a sighted user work is continuing, so reduced motion keeps it and takes the speed out of it."
         },
         {
           "class": "visual-treatment",
@@ -5726,12 +5726,12 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)` (1600ms), on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it."
+          "description": "the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)`, on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)`: slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it."
         },
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, which is 0ms, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`."
+          "description": "the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`."
         },
         {
           "class": "implementation",
@@ -5741,7 +5741,7 @@
         {
           "class": "runtime-behavior",
           "disposition": "LOWERED",
-          "description": "the indeterminate ring — the same `<svg>` with the arc's `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) linear infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (1600ms per turn, Progress's own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o'clock. In right-to-left the arc turns counterclockwise."
+          "description": "the indeterminate ring — the same `<svg>` with the arc's `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) linear infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (one turn per `motion.duration.sweep`, Progress's own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)`: slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o'clock. In right-to-left the arc turns counterclockwise."
         },
         {
           "class": "right-to-left",
@@ -6373,7 +6373,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the slide is 0ms; motion.duration-reduced.fast keeps 100ms, so the slider sets 0 itself."
+          "description": "Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the thumb moves at once; motion.duration-reduced.fast still slides, so the slider turns the transition off itself."
         },
         {
           "class": "composition",
@@ -6838,6 +6838,135 @@
           "2026-11-03 (#3345, owner decisions Q1 A, Q2 A, Q3 A amended, Q4 A): built as a navigation of links (PageNav.Item, nesting Link) in a native items slot, with the current page's bar width a brand setting, Full by default.",
           "2026-11-03 (#3345, owner decisions Q7 B, Q10 B): the other pages are plain at rest and underlined at hover, and the bar is Partial by default.",
           "2026-11-03 (#3345, owner decision Q8 A): the sizes (medium and small), the item gap (24px medium, 16px small at comfortable density) and the slot limits (two to six) as drafted."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
+    "popover": {
+      "codeOnly": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "role — `role=\"dialog\"` with no `aria-modal`: the page stays usable. Named by `aria-labelledby` on the title, or by `aria-label` when there is no title. The trigger, a Button or IconButton, carries `aria-haspopup=\"dialog\"`, `aria-expanded` and `aria-controls`."
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED",
+          "description": "focus on opening — a popover that holds controls moves focus to `initialFocus`, or to its first control. A read-only popover (text, an explanation) leaves focus on its trigger; the next entry is how a screen reader reaches its content. The `popover` attribute moves no focus, so code does."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "read-only announcement — a read-only popover (the toggletip case: an explanation behind an info button) announces its content through a polite live region (`role=\"status\"`) when it opens, and sits right after its trigger in the DOM, so it is also the next thing in reading order. The trigger's `aria-controls` stays, but most screen readers do not announce it, so it is not how the content is reached."
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED",
+          "description": "focus not held — Tab is not trapped. Tabbing past the last control closes the popover and goes on from the element after the trigger; Shift+Tab from the first returns to the trigger. Focus leaving by Tab or a press outside closes it."
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED",
+          "description": "Escape — closes the popover and returns focus to the trigger. A press outside closes it and leaves focus where the press put it. Focus returns to the trigger by default (`restoreFocus`), and never to the page body."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "collision — the design file builds one member, at the default side, bottom: with no arrow the panel draws the same on every side. In code it opens on `placement` and `align` (logical sides, so start and end swap under right-to-left), offset `space.100` from the trigger. With no room on that side it flips to the opposite one, then shifts along its side to stay `space.200` inside the viewport. The arrow, when on, follows the flip."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "the width — it hugs its content between 240px and 360px, and never wider than the viewport less its margins (SC 1.4.10). Figma builds it at 320px with the 240px floor."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "only the body scrolls — when the viewport is shorter than the popover, the body scrolls and the header and footer stay put (`flex: 1 1 auto; min-height: 0; overflow-y: auto` on the body), so a focused control is never hidden (SC 2.4.11)."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "no automatic switch — on a small screen it stays a popover. A product that wants a sheet on a phone opens a Dialog at `placement=\"bottom\"` there instead."
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED",
+          "description": "the floating layer — the `popover` attribute gives the top layer, light dismiss and Escape; CSS anchor positioning with `position-try-fallbacks` gives the flip, with a small owned shift fallback where anchor positioning is missing. No positioning library. Anchor positioning fails silently inside some positioned ancestors (a containing block that clips it), so test it inside scrolling and transformed containers. Menu and Tooltip use the same layer."
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "REFUSED",
+          "description": "the arrow — not drawn in the design file: it is off by default, and a member per side would add four members for an option most popovers leave off. In code it is a small square in the panel's fill and border, rotated, on the trigger's side, centered on the trigger where the shift allows."
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED",
+          "description": "motion — the Popover / open and Popover / close pattern, shared with Menu: opening fades in and scales up from a little under full size, with the transform origin on the trigger's side (following a flip), on `motion.duration.fast` and `motion.easing-role.enter`; closing fades out on `motion.duration.instant` and `motion.easing-role.exit`. Under `prefers-reduced-motion` it fades only, with no scale, on `motion.duration-reduced.fast` to open and to close. Figma shows the panel at rest."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED",
+          "description": "right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors; start and end placements swap sides."
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED",
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it. In plain HTML/CSS that covers initial focus, Tab-out dismissal and focus return."
+        }
+      ],
+      "notes": {
+        "contested": [],
+        "unverified": [
+          "That the header row collapses when both the title and close toggles are off (no gap left above the body). The plan hides both nodes; no live file has read the header's height back.",
+          "The Popover / open and Popover / close motion preset is described here but not built: the #2857 starter set exists only as a wireframe, so there is no preset to bind yet."
+        ],
+        "evolution": [
+          "Owner decisions (2026-11-19, on #4252), all as recommended: (1) the set is one member on a one-value axis, placement=bottom, the default side, because the engine projects no set without an axis; (2) the member is built 320px wide, between the proposal's 240px floor and 360px cap; (3) the brief's trapFocus and modal are not props, because a trapped or modal popover is a Dialog (OD-P1 A), and restoreFocus is always on; (4) the motion keeps motion.duration.fast, 100ms on the reference brand, which the tempo lever moves per brand; (5) Popover has its own page under Components; (6) the copy is approved.",
+          "Owner decision S1 A (2026-11-19, on #4252): a read-only popover announces its content through a polite live region (role=\"status\") and sits right after its trigger in the DOM. aria-controls is not relied on, because most screen readers do not announce it.",
+          "Owner decision Q-FL2 (2026-11-19, on #4007 and #4008): the proposal's recommendations OD-P1 to OD-P6 and OD-X1 to OD-X5, read with the KB brief check; K4 B (the aliases overlay and flyout, as the brief lists them); K5 B (a read-only popover leaves focus on its trigger); K8 A for the POC (an owned, dependency-free positioning layer, the library question going to the developers)."
         ],
         "projection": []
       },

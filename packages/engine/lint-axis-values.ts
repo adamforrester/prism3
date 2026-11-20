@@ -1008,13 +1008,24 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'placement',
     values: ['center', 'bottom', 'full', 'end'],
     defs: ['dialog'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'Where a layer sits over the page (#2609, owner decision Q303.1): centered, attached to the bottom edge as a bottom '
       + 'sheet, filling a small screen, or attached to the end edge as a side sheet (#2877, Q483 A, named `end` by Q488 A: '
       + 'the writing direction\'s end, so it mirrors in right-to-left text and a `start` can join it with no rename). `center` LEADS because it is the code '
-      + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
-      + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+      + 'default on every screen and Figma\'s default member. Canonical since Popover joined the axis with its one '
+      + 'side (#4008), described against this set. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'placement',
+    values: ['bottom'],
+    defs: ['popover'],
+    relation: 'subset',
+    reason:
+      'The side of its trigger a popover opens on (#4008, owner decision Q-FL2 on OD-P2 A and OD-X2 A): Dialog\'s word for '
+      + 'where a layer sits, and its `bottom` means the same edge. Code takes top, bottom, start or end; with no arrow the '
+      + 'panel draws the same on every side, so the set is one member at the default side, and a one-value axis is how '
+      + 'the engine projects one member (owner decision 1 on #4252, 2026-11-19). Same vocabulary, shorter.',
   },
   {
     axis: 'kind',

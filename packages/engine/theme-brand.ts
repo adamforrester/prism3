@@ -13,7 +13,7 @@ import { PALETTE_NAME_RE, RESERVED_PALETTES, STATUS_DEFAULTS, statusRamp, inRedT
 import { buildDims } from './theme-dims';
 import { buildMotion, type MotionAxis } from './theme-motion';
 import { LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, DISPLAY_VARIANTS, buildTypography, withLabelDefault, WEIGHT_ROLE_DEFAULT, type FontFamilyBinding, type WeightRole, deriveFamilies, WEIGHT_ROLE_ORDER, type TypeGroup, deriveTypefaces, PER_MODE_SIZE_GROUPS, type PerModeSizeGroup, HEADING_SIZE_FLOOR, mobileEndpoint, TYPE_GROUPS } from './theme-type';
-import { buildShadow, type ShadowAxis, type ShadowStep, type ShadowLayer } from './theme-shadow';
+import { buildShadow, darkShadowSeed, type ShadowAxis, type ShadowStep, type ShadowLayer } from './theme-shadow';
 import { buildLayout, gridGapNotes } from './theme-layout';
 import { buildGradient } from './theme-gradient';
 
@@ -415,10 +415,15 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // Worded from the palette action RESOLVES to, `roleColors.action` before the lever (#3845, owner-decided
   // Q-BK1 A, option A): the two are schema aliases, so a brand that sets either reads the same line. Said here,
   // before the roleColors pass, so a corpus brand's notes keep their order; that pass validates the name.
+  // #3284 (owner decision A, 2026-11-18): "not set" only when neither spelling is set. A brand that names `primary`
+  // itself gets its own line, approved wording: "the primary palette, as the brand sets".
   const notedAction = input.roleColors?.action ?? actionPalette;
-  notes.push(notedAction === 'primary'
-    ? `action: the primary palette, by default — actionPalette is not set.`
-    : `action: uses the '${notedAction}' palette instead of primary, as the brand sets.`);
+  const actionUnset = input.roleColors?.action === undefined && input.actionPalette === undefined;
+  notes.push(notedAction !== 'primary'
+    ? `action: uses the '${notedAction}' palette instead of primary, as the brand sets.`
+    : actionUnset
+      ? `action: the primary palette, by default — actionPalette is not set.`
+      : `action: the primary palette, as the brand sets.`);
 
   // ---- danger carve ----
   const roleToPalette: Record<Role, string> = {
@@ -663,6 +668,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     for (const s of shadow.steps) layers[s.name] = s.dark;
     shadowByMode[cm.name] = { appearance: 'dark', colorRgb: shadow.colorRgb, softness: shadow.softness, tint: shadow.tint, layers };
   }
+  // The built-in `hc-dark` is a dark-appearance mode too (#4131, owner decision A): it takes the same
+  // global reduced dark layers, so the shadow model holds in every dark mode. It is generate-only, so it
+  // never carries an override of its own.
+  if (modes.includes('hc-dark') && !shadowByMode['hc-dark']) shadowByMode['hc-dark'] = darkShadowSeed(shadow);
   if (Object.keys(shadowByMode).length) shadow.shadowByMode = shadowByMode;
   const gradient = buildGradient(input.gradients, palettes, root);
   const [firstGradient] = gradient.gradients;
@@ -979,15 +988,16 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // the fill at the same step, and the note below fires for either (owner decision pending on #1896).
   const resolvedAction = roleToPalette.action;
   const actionBrandColor = (input.brandColors ?? []).find((b) => b.name === resolvedAction);
-  const actionAnchorStep = resolvedAction === 'primary' ? anchorStep
-    : actionBrandColor ? autoPlaceStep(actionBrandColor.oklch.l)
-    : 500;
+  const actionAnchorStep = interactiveStepFor(resolvedAction);   // #4214: the helper's three cases, never a copy
   // A pinned `actionAnchorStep` is applied exactly (`modes.ts` `restFill`, `exact`, #331) and never moved, so
   // the note reports the pin, not the auto-placed step, and drops the auto-move clause (#1894). Its floor miss
-  // is reported as the role's own ratio. Wording: DRAFT for the owner (#1894 Q-block).
-  if (actionBrandColor) notes.push(input.actionAnchorStep !== undefined
-    ? `action: pinned at '${resolvedAction}' step ${input.actionAnchorStep} by actionAnchorStep — applied exactly, never moved; a miss of 3:1 (7:1 in high contrast) is reported, not corrected.`
-    : `action: anchored at '${resolvedAction}' step ${actionAnchorStep}, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.`);
+  // is reported as the role's own ratio. Wording: DRAFT for the owner (#1894 Q-block). The pin applies on ANY
+  // action palette (`modes.ts` reads `theme.actionAnchorStep` whatever the palette), so the pin sentence is said for
+  // any pin, primary included, not only under a brand color (#3284, owner decision A: widened to match).
+  if (input.actionAnchorStep !== undefined)
+    notes.push(`action: pinned at '${resolvedAction}' step ${input.actionAnchorStep} by actionAnchorStep — applied exactly, never moved; a miss of 3:1 (7:1 in high contrast) is reported, not corrected.`);
+  else if (actionBrandColor)
+    notes.push(`action: anchored at '${resolvedAction}' step ${actionAnchorStep}, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.`);
 
   // ---- link palette (#1496) ----
   // Links DEFAULT to following the action colour: an unset `linkPalette` resolves to the palette the action
@@ -1001,10 +1011,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const linkPalette = input.linkPalette ?? roleToPalette.action;
   if (!palettes.some((p) => p.palette === linkPalette))
     throw new Error(`linkPalette '${linkPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
-  const linkBrandColor = (input.brandColors ?? []).find((b) => b.name === linkPalette);
-  const linkAnchorStep = linkPalette === 'primary' ? anchorStep
-    : linkBrandColor ? autoPlaceStep(linkBrandColor.oklch.l)
-    : 500;
+  const linkAnchorStep = interactiveStepFor(linkPalette);   // #4214: the helper's three cases, never a copy
   // Compared against the RESOLVED action palette, not the `actionPalette` lever (#1895, owner 2026-10-01):
   // with `roleColors.action` set the two differ, and the note must say whether links match the color the
   // action fill actually uses.

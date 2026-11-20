@@ -134,7 +134,8 @@ export const WRITES: Record<string, string> = {
   activity: 'Nothing. Reads the Activity drawer\'s runs this session from the plugin\'s memory; nothing is kept in the file.',
   'panels-clean': 'With confirm: false (or none), nothing: a count of the live usage panels and how many still hold what was drawn. With confirm: true, removes each of those, re-read now; a panel edited by hand is never removed.',
   context: 'Nothing. Reads the stored brand, the variable collections, the as-built ledger and every page for its protected nodes; pages are loaded, never switched to.',
-  'set-override': 'With confirm: false, nothing: a preview whose result carries a previewHash, each change before and after, and every pair that moved. With confirm: true and that previewHash, the Theme write: the variables, the stored brand and a saved version, through the same handler as apply-theme; refused when a pair would drop below its minimum, the file\'s brand moved after the preview, or Theme has unapplied edits.',
+  // DRAFT (OWNER DECISION on #4038): "the changes sent are not the ones previewed", the changes-moved refusal (#3693).
+  'set-override': 'With confirm: false, nothing: a preview whose result carries a previewHash, each change before and after, and every pair that moved. With confirm: true and that previewHash, the Theme write: the variables, the stored brand and a saved version, through the same handler as apply-theme; refused when a pair would drop below its minimum, the changes sent are not the ones previewed, the file\'s brand moved after the preview, or Theme has unapplied edits.',
   'run-code': 'Whatever the code writes. Dev builds only; a release build answers unknown-command.',
 };
 
@@ -309,6 +310,8 @@ export const CLI_EXCLUDED: Record<string, string> = {
   'packages/engine/emit-component-docs.ts': 'a regen step; run regen.ts',
   'packages/engine/emit-analysis-reports.ts': 'a regen step; run regen.ts',
   'packages/engine/file-facts-cli.ts': 'the file facts scan over a plain-data snapshot (#2075 part 1), a working tool for the #2075 part 2 comparison harness; its snapshot format is not a published contract yet, so it is not offered to agents',
+  'packages/engine/emit-shadcn.ts': 'the shadcn/ui theme projector (#2997); not yet a regen step, its gates render it with --out until #2997 PR 4 delivers it through regen.ts',
+  'packages/engine/shadcn-vars.ts': 'a gate (#2997 gate 3); the gates are listed by `npx tsx verify.ts --list`, and its --accept is a maintainer move after a raised SHADCN_MAP_VERSION',
   'packages/engine/kb-briefs-refresh.ts': 'a maintainer refresh of schema/kb-briefs.json that reads a knowledge-base checkout outside this repository (#2488); nothing an agent can run here',
 };
 /** Gates are excluded by name pattern: there are dozens, and `verify.ts --list` is their reference. */
