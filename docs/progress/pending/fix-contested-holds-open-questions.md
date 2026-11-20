@@ -10,4 +10,6 @@
 
 **A known limit.** "Resolved as X is argued…" is still refused. Reading "is argued" as a reprieve is exactly the vocabulary guessing this check gave up on, so an entry worded that way gets reworded.
 
+**A trade-off.** Because a colon is no longer a break, a verdict after a colon now passes where #1700's check refused it: "Ring placement (Q22.1): Settled as the offset sibling." reads as open. That is the price of not refusing "Brief §4: Settled in the brief". An en dash (`A or B – chosen: B.`) and `--` are not breaks either; no entry uses them today.
+
 **Not touched, filed as #4390:** entries that record an owner decision in the middle of a sentence ("The focus edge … (#3399, owner decision Q22.1 A)", shared by eight field defs; Field label's and Switch.Control's "owner-decided") never open a sentence with a verdict, so this check can't see them.
