@@ -34,7 +34,8 @@
  * feature fits better") ──────────────────────────────────────────────────────────────────────────────────────
  *
  * It does fit better, measured: a native slot takes whatever a designer drops into it on an instance, in place,
- * and keeps it across an expansion switch (to the collapsed member, which has no panel, and back). An
+ * and keeps it across an expansion switch, to the collapsed member and back. #3058 (owner decision 2026-11-18 A)
+ * found the collapsed member had to HOLD the slot for that, so it carries the same slot built hidden (`hiddenWhenAbsent`). An
  * instance-swap slot would swap a whole component the designer must make first. So `content` declares
  * `contentSlot`; its default content is a placeholder paragraph in page ink (`body`, Q182's engine fix), and its
  * padding pads the top and the bottom differently (`blockEnd`, Q182's other engine fix).
@@ -232,6 +233,8 @@ export const accordion: ComponentDef = {
         kind: 'box',
         role: 'presentation',
         presentWhen: { expansion: ['expanded'] },
+        // #3058 (owner decision 2026-11-18 A): hidden, not absent, while collapsed, so the slot keeps its content.
+        hiddenWhenAbsent: true,
         contentSlot: true,
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         crossAxisFill: true,

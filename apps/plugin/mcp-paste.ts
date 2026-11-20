@@ -46,6 +46,7 @@ import { emissionOf } from './src/theme-emission';
 import { preflightPlanOf, bindingCollectionsOf } from './src/preflight';
 import type { PreflightPlan } from './src/preflight';
 import { pack, packNames } from './src/mcp-steps';
+import { cutPairsOf } from './src/preload-fonts';
 import { reactionMap } from './src/reactions';
 import type { Ledger, StepReport } from './src/mcp-steps';
 import { orphansOf, strandedCollections } from './src/write-figma';
@@ -289,7 +290,8 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
   });
 
   // FONT — one script, by construction (see the header).
-  const fontData = { ...common('font variables'), fonts, plans: p.fontPlan };
+  // #3861: the text plan's cut → family pairing rides along, so the step writes each cut in its family's own spelling.
+  const fontData = { ...common('font variables'), fonts, plans: p.fontPlan, cutPairs: cutPairsOf(p.textPlan) };
   const fontJs = assemble('runFont', fontData);
   if (fontJs.length + NUMBER_SLACK > SCRIPT_CEILING) throw new Error(`font variables: the one font script is ${fontJs.length} characters, over the ${SCRIPT_CEILING} ceiling, and it cannot be split (its aliases cross its two collections)`);
   out.push({ phase: 'theme', kind: 'font', label: 'font variables', purpose: 'Writes the font family/size/weight variables (`core` font group) and the fluid type sets.', expect: '{ ok: true, misses: [], refused: [] }', js: fontJs });

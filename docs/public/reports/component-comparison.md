@@ -186,7 +186,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | _breadcrumb-separator | navigation | — | — |
 | _slider-thumb | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | accordion | navigation | rest, focus-visible | rest, focus-visible |
-| badge | foundations | — | — |
+| badge | feedback | — | — |
 | banner | feedback | — | — |
 | breadcrumb-item | navigation | — | — |
 | breadcrumbs | navigation | — | — |
@@ -239,7 +239,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | switch-row | form | rest, hover, pressed, pending, focus-visible, disabled, read-only | — |
 | tab-item | navigation | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | tabs | navigation | — | — |
-| tag | foundations | rest, hover, pressed, focus-visible, disabled, read-only | rest, hover, pressed, focus-visible, disabled |
+| tag | form | rest, hover, pressed, focus-visible, disabled, read-only | rest, hover, pressed, focus-visible, disabled |
 | tag-group | foundations | — | — |
 | text-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | textarea | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
