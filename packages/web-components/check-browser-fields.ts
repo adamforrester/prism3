@@ -227,10 +227,13 @@ export const run = async (browser: any, src: Sources): Promise<{ failures: strin
     await page.addScriptTag({ content: src.cssScript });
     await page.locator('.p3-password-field__toggle').click();
     ok(await page.evaluate(`document.getElementById('pre').type`) === 'text', 'with @prism3/css\'s script only: the Show/Hide button did not show the value');
-    await page.locator('.p3-password-field__toggle').click();
-    await page.fill('#pre', 'typed early');
-    await page.evaluate(`document.getElementById('pre').setSelectionRange(1, 4)`);
+    // #3946: the second press, the typing and the caret are written in ONE task, so the script's delayed caret restore
+    // (captured at the press, on the empty input: 0,0) always runs after them, as it did on a slow CI runner. Written as
+    // separate Playwright steps, the timer almost always ran first and the check passed by timing. The read waits 50 ms
+    // so a restore or reset that lands a task after the upgrade shows too.
+    await page.evaluate(`(() => { const i = document.getElementById('pre'); i.focus(); document.querySelector('.p3-password-field__toggle').click(); i.value = 'typed early'; i.setSelectionRange(1, 4); })()`);
     await load(page);
+    await page.waitForTimeout(50);
     const up = await page.evaluate(`(() => { const host = document.querySelector('p3-password-field'); const i = host.querySelector('.p3-password-field__entry'); return { id: i.id, value: i.value, focus: document.activeElement === i, sel: [i.selectionStart, i.selectionEnd], label: host.label, size: host.size, required: i.required, message: host.helpText, one: host.querySelectorAll('.p3-password-field').length }; })()`);
     ok(up.id === 'pre' && up.label === 'Password' && up.size === 'large' && up.required && up.message === COPY['password-field'].message.default && up.one === 1, `upgrade: the element did not adopt the markup's props: ${JSON.stringify(up)}`);
     ok(up.value === 'typed early', `upgrade: the value typed before the upgrade is ${JSON.stringify(up.value)}`);
@@ -372,6 +375,7 @@ const PF = SOURCE['password-field'];
 // Each mutant's source is built when it runs, after the real run, so a hand mutation that moves an anchor still gets
 // the real run's failures by name, and the moved anchor fails its own self-test.
 const MUTANTS: { name: string; src: () => Sources; mustName: RegExp }[] = [
+  { name: '@prism3/css\'s delayed caret restore unguarded (#3946)', src: () => ({ ...REAL, cssScript: swap(CSS_SCRIPT, 'if (input.selectionStart === 0 && input.selectionEnd === 0) input.setSelectionRange(start, end);', 'input.setSelectionRange(start, end);', 'css guard') }), mustName: /^upgrade: focus and the caret did not carry over/ },
   { name: 'the delayed caret restore unguarded (#3947)', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, 'if (input.selectionStart === 0 && input.selectionEnd === 0) input.setSelectionRange(start, end);', 'input.setSelectionRange(start, end);', 'guard') }}), mustName: /^toggle: a value and caret 1,4 set after pressing Hide were overwritten/ },
   { name: 'the submit handler removed', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, "document.addEventListener('submit', this.#onSubmit, true);", '', 'submit') }}), mustName: /^submit: the input was text when the form submitted/ },
   { name: 'adoption dropping a typed value', src: () => ({ ...REAL, elements: { ...SOURCE, 'password-field': swap(PF, 'if (input.value !== (input.getAttribute(\'value\') ?? \'\')) this.value = input.value;', '', 'adopt value') }}), mustName: /^upgrade: the value typed before the upgrade is ""/ },
