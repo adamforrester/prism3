@@ -22,10 +22,10 @@ Shown on the default member: appearance `outline`, size `medium`.
 1. **Container** — The stack: an optional label above the row and an optional message below it. It hugs the row.
 2. **Label** (optional) — What is counted, such as "Quantity". Its label text, required marker, emphasis and weight surface on the Counter. Hidden by default: the label is always the value's accessible name, and shown only where nothing around the counter says what it counts.
 3. **Control** — The row: the minus button, the value and the plus button. Outline draws the field's fill and edge with the glyphs 12px inside it (16px at large); ghost draws nothing, and the round buttons are its ends.
-4. **Decrement** — The minus button, at the leading edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: inactive at the minimum.
+4. **Decrement** — The minus button, at the leading edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: disabled at the minimum.
 5. **Entry** — The value, centered between the buttons and at least 32px wide, so the buttons hold still as the count reaches two digits.
 6. **Value** — The number, in the field's body type.
-7. **Increment** — The plus button, at the trailing edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: inactive at the maximum.
+7. **Increment** — The plus button, at the trailing edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: disabled at the maximum.
 8. **Focus ring** — The shared focus ring on ghost, 2px outside the round buttons, while the value has keyboard focus. Outline draws no ring: its edge becomes the 2px focus edge.
 9. **Message** (optional) — An optional line below the row, such as the reason for a limit. Off by default.
 

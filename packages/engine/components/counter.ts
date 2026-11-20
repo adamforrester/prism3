@@ -217,7 +217,7 @@ export const counter: ComponentDef = {
       decrement: {
         ...stepper,
         overrides: { swaps: { icon: 'minus' } },
-        note: 'The minus button, at the leading edge. Flush glyph on outline, a light circle on ghost. Its state is the designer\'s to set: inactive at the minimum.',
+        note: 'The minus button, at the leading edge. Flush glyph on outline, a light circle on ghost. Its state is the designer\'s to set: disabled at the minimum.',
       },
       entry: {
         kind: 'box',
@@ -238,7 +238,7 @@ export const counter: ComponentDef = {
       increment: {
         ...stepper,
         overrides: { swaps: { icon: 'plus' } },
-        note: 'The plus button, at the trailing edge. Flush glyph on outline, a light circle on ghost. Its state is the designer\'s to set: inactive at the maximum.',
+        note: 'The plus button, at the trailing edge. Flush glyph on outline, a light circle on ghost. Its state is the designer\'s to set: disabled at the maximum.',
       },
       focusRing: {
         kind: 'absolute',

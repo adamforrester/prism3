@@ -44451,6 +44451,22 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const defined = strings(three[0]?.docs).some((t) => t.startsWith('Use isInactive for a control the user can still unblock'));
   ok(three.every(Boolean) && said.length === 0 && defined,
     `#4204 Button defines inactive and disabled, and Counter and Pagination.Item say "inactive", never "unavailable" (${said.join(' | ') || 'none'}; defined ${defined})`);
+  // Review of #4363: "inactive" is the code-side word. A Counter anatomy note that tells the designer which state to set
+  // names the Figma state, so it must be a value on the nested button's exposed state axis, read from the nested def
+  // itself (not a list typed here). Both stepper notes are required to be represented. Mutation: "inactive" put back
+  // in one note → this arm, by name.
+  const nestedStates = Object.entries(counter.anatomy.parts).flatMap(([id, p]) => {
+    const m = /designer's to set: ([\w-]+)/.exec((p as { note?: string }).note ?? '');
+    if (!m) return [];
+    const nest = (p as { nests?: string }).nests;
+    const exposed = (p as { nesting?: { expose?: string[] } }).nesting?.expose ?? [];
+    const axis = componentDefs.find((d) => d.id === nest)?.figmaProperties?.stateAxis;
+    const onAxis = exposed.includes('state') && axis?.name === 'state' && axis.values.includes(m[1]);
+    return [{ id, word: m[1], onAxis, values: axis?.values.join(' | ') ?? `no state axis on ${nest}` }];
+  });
+  const offAxis = nestedStates.filter((n) => !n.onAxis);
+  ok(['decrement', 'increment'].every((id) => nestedStates.some((n) => n.id === id)) && offAxis.length === 0,
+    `#4204 Counter's designer-set button state names a value on the nested button's state axis (${offAxis.map((n) => `${n.id}: "${n.word}" not in ${n.values}`).join('; ') || `${nestedStates.length} hold`})`);
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
