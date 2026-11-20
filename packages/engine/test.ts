@@ -15,7 +15,6 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
-import { handoffBrands, readHandoff } from './emit-shadcn';
 import { at, deref, pxOf, buildTree, familyOf, aliasFaults, type AliasFault } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, defaultTypeMode, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -33030,8 +33029,10 @@ arm: {
 // ---- #2997: the shadcn/Tailwind projectors enumerate brands, not each brand's web base --------------------------
 // #4155 added `<brand>.web.base.tokens.json` beside `<brand>.base.tokens.json`. Both end `.base.tokens.json`, so a
 // suffix match read `aurora.web` as a brand and the projectors threw for its missing dark overlay. The expected list is
-// the committed handoff's own `.tokens.json` canonicals, never `handoffBrands`' rule.
+// the committed handoff's own `.tokens.json` canonicals, never `handoffBrands`' rule. A dynamic import, so no line above
+// the public guide's cited test.ts blocks moves (lint-guide-claims).
 {
+  const { handoffBrands, readHandoff } = await import('./emit-shadcn');
   const OUT = resolve(HERE, 'out');
   const want = readdirSync(OUT).filter((f) => /^[^.]+\.tokens\.json$/.test(f) && existsSync(resolve(OUT, f.replace(/\.tokens\.json$/, '.base.tokens.json'))))
     .map((f) => f.split('.')[0]!).sort();
