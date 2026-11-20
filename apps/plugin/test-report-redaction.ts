@@ -448,7 +448,7 @@ const RAW_READS: [file: string, needle: string, cls: 'data' | 'engine' | 'helper
   ['prune-figma.ts', 'counts.failed.push', 'data', "prune's failed list: the summary prints its count; the names go to sink.data"],
   ['update-plan.ts', 'partRenames(defId, ledger)', 'engine', "the engine's rename refusal"],
   ['update-plan.ts', 'String((err as Error).message)', 'engine', "the engine's coordinate refusal"],
-  ['update-plan.ts', "the plan's properties contradict each other", 'engine', "the engine's property-plan refusal"],
+  ['update-plan.ts', "Prism3's properties for this set contradict each other", 'engine', "the engine's property-plan refusal"],
   ['write-components.ts', 'm !== undefined && m !== null ? String(m) : String(err)', 'helper', '`refusalOf`, posted after `errorClass(err)` in the font misses'],
   ['write-figma.ts', "'setValueForMode refused the write'", 'data', 'cut by its own rule: `variable writes refused by Figma (` (#3702)'],
   ['write-text-styles.ts', "'setValueForMode refused the write'", 'data', '`cutRefused`, read only by mcp-steps.ts'],
