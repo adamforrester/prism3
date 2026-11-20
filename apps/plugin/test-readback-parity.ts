@@ -243,6 +243,9 @@ const report = (where: string, diffs: Diff[], kinds: Diff['kind'][]): void => {
 // ── motion: the round trip to the engine's DTCG (#2394) ─────────────────────────────────────────────
 /** The DTCG motion types with a Figma form (#2412). `transition` has none (Q291 4). */
 const MOTION_TYPES = new Set(['duration', 'cubicBezier', 'spring']);
+/** Motion families typed `duration` that have no Figma form yet. `spring-duration` is each spring's CSS settle time
+ *  (#3510); the TIMING a Figma spring pairs with is G5 (#3485), named by the owner, and lands with its own arm here. */
+const NO_FIGMA_FORM_YET = new Set(['spring-duration']);
 /** Every DTCG motion leaf with a Figma form under `<root>.motion`, by dotted path, from the engine's own token tree. */
 const dtcgMotion = (brand: string): Map<string, any> => {
   const tree = JSON.parse(readFileSync(join(REPO, 'packages/engine/out', `${brand}.tokens.json`), 'utf8'));
@@ -251,7 +254,7 @@ const dtcgMotion = (brand: string): Map<string, any> => {
   const walk = (node: any, path: string[]): void => {
     if (!node || typeof node !== 'object') return;
     if ('$value' in node) { if (MOTION_TYPES.has(node.$type)) out.set(path.join('.'), node); return; }
-    for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) walk(v, [...path, k]);
+    for (const [k, v] of Object.entries(node)) if (!k.startsWith('$') && !NO_FIGMA_FORM_YET.has(k)) walk(v, [...path, k]);
   };
   walk(tree[root]?.motion, [root, 'motion']);
   return out;

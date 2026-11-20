@@ -39,6 +39,11 @@
       "why": "One overlay per theme mode. Base + overlay is the projection a conforming consumer resolves, and (#2552) it carries no `$extensions`."
     },
     {
+      "kind": "css-only-source",
+      "pattern": "out/{brand}.css-only.json",
+      "why": "The custom-typed leaves whose value is already CSS, today each spring's `linear()` curve (#3510). DTCG has no type for them, so the conforming projection omits them; the shippable token CSS build reads this file as a third source beside the base and an overlay, so it travels with that build. No `$extensions`."
+    },
+    {
       "kind": "web-base",
       "pattern": "out/{brand}.web.base.tokens.json",
       "why": "The web flavor of the conforming base (#4155, owner decision B): identical to `{brand}.base.tokens.json` except that each typeface's `$value` is its curated fallback stack as the DTCG array, primary first and ending in a CSS generic family. PAYLOAD because the web build reads it in place of the base: `@prism3/tokens` (`sd.ship.mjs`) builds the shipped CSS from it with each `{brand}.{mode}.overlay.tokens.json`. A separate file so the platform-neutral base stays single-family for every other platform, where a stack is not a font name. No `$extensions`, like the base."

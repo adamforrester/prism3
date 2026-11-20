@@ -3408,6 +3408,23 @@
           "$description": "easing role 'emphasized' → expressive — the intent a transition names, so a mode can substitute a curve without redefining one"
         }
       },
+      "spring-duration": {
+        "snappy": {
+          "$type": "duration",
+          "$value": "317ms",
+          "$description": "spring snappy settle time — 317ms, the time the snappy spring takes to settle on its target; play spring-easing snappy over it"
+        },
+        "gentle": {
+          "$type": "duration",
+          "$value": "435ms",
+          "$description": "spring gentle settle time — 435ms, the time the gentle spring takes to settle on its target; play spring-easing gentle over it"
+        },
+        "bouncy": {
+          "$type": "duration",
+          "$value": "360ms",
+          "$description": "spring bouncy settle time — 360ms, the time the bouncy spring takes to settle on its target; play spring-easing bouncy over it"
+        }
+      },
       "transition": {
         "default": {
           "$type": "transition",

@@ -12512,6 +12512,42 @@
       "tier": "primitive",
       "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
     },
+    "motion.spring-duration.snappy": {
+      "$description": "spring snappy settle time — 317ms, the time the snappy spring takes to settle on its target; play spring-easing snappy over it",
+      "meaning": "Spring settle time — the duration its CSS curve plays over",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-duration.gentle": {
+      "$description": "spring gentle settle time — 435ms, the time the gentle spring takes to settle on its target; play spring-easing gentle over it",
+      "meaning": "Spring settle time — the duration its CSS curve plays over",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-duration.bouncy": {
+      "$description": "spring bouncy settle time — 360ms, the time the bouncy spring takes to settle on its target; play spring-easing bouncy over it",
+      "meaning": "Spring settle time — the duration its CSS curve plays over",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-easing.snappy": {
+      "$description": "spring snappy as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration snappy (317ms); the damping and stiffness stay in spring snappy",
+      "meaning": "Spring as a CSS linear() curve, for code that cannot run a spring",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-easing.gentle": {
+      "$description": "spring gentle as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration gentle (435ms); the damping and stiffness stay in spring gentle",
+      "meaning": "Spring as a CSS linear() curve, for code that cannot run a spring",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-easing.bouncy": {
+      "$description": "spring bouncy as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration bouncy (360ms); the damping and stiffness stay in spring bouncy",
+      "meaning": "Spring as a CSS linear() curve, for code that cannot run a spring",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
     "shadow.xs": {
       "$description": "shadow xs — elevation 1 of 6, 2-layer (key+ambient)",
       "meaning": "Shadow / elevation composite — xs (2-layer, mode-aware)",
