@@ -215,9 +215,8 @@ export type UpdateStepReading = { readonly title: string; readonly op: OpKey; re
 /** `n` counts the runs this session, so a new run is a change. `kind` and `verdict` are the run's once `done`: the status
  *  strip's tone and words for it (#3170), the same verdict the strip shows. */
 export type UpdateReading = { readonly n: number; readonly steps: readonly UpdateStepReading[]; readonly done: boolean; readonly kind: Kind | null; readonly verdict: string | null };
-/** A write the main thread declined while a run of the same operation was going (#1957). `n` counts
- *  them, so each is a change. */
-/** `op`: the operation asked for; `held`: the one holding the file, when the host named it (#3760). */
+/** A write the main thread declined while another write held the file (#1957). `op`: the one asked for; `held`: the one
+ *  holding it, when the host named it (#3760). `n` counts them, so each is a change. */
 export type Refusal = { readonly op: OpKey; readonly held?: OpKey; readonly message: string; readonly agent: boolean; readonly n: number };
 /** What `main.ts` lends: every operation by key, the result a page asked to show (a page's verdict
  *  pill clicked, or a bad verdict landing), `null` when none is, and the last refusal. Pure; no DOM. */
