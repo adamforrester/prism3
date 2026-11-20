@@ -23468,7 +23468,8 @@ if (runs('4235')) {
 //   · in the start window, the line describes the chip (`aria-describedby`), so a screen reader hears it too.
 // The approved strings are typed here, never read from `example-registry.ts`: a line deleted or reworded there fails
 // here by its example's name (docs/34). A mutation that drops the line → `#3977 … aurora has its line`.
-const EXAMPLE_LINES = { prism3: 'The default. Saturated violet, balanced.', aurora: 'Soft purple, rounder, quick.', harbor: 'Muted teal, calm, square.' };
+const EXAMPLE_LINE_GAP = 20;   // px, the least gap between two examples' lines on one row (owner decision 2026-11-20)
+const EXAMPLE_LINES = { prism3: 'The default. Saturated blue, balanced.', aurora: 'Soft purple, rounder, quick.', harbor: 'Muted teal, calm, square.' };
 if (runs('3977')) {
   console.log(`\nA few words under each example brand (#3977)\n${'='.repeat(78)}`);
   /** Each listed example: its name, its line, where the line sits and how it is set. `at` is the list read: the brand
@@ -23520,6 +23521,24 @@ if (runs('3977')) {
       await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
       await hooks.need(page, '[data-p3="start-example-desc"]');
       hold(where, 'start window', await readLines(page, 'start window'), { describes: true });
+      // Owner decision 2026-11-20 (A): the examples' lines must not run together across a row into one sentence (they
+      // did at 8px). Read from the rendered boxes: every pair of lines side by side on one row is at least
+      // EXAMPLE_LINE_GAP apart. 20px is over 1.5em of the 12px line, well past a sentence's space (a few px), so the
+      // eye reads a new column, not the next clause; it sits under the chrome's 24px step so sub-pixel layout can't flake.
+      const pairs = await page.evaluate(() => {
+        const rs = [...document.querySelectorAll('[data-p3="start-example-desc"]')].filter((n) => n.getClientRects().length > 0)
+          .map((n) => { const b = n.getBoundingClientRect(); return { text: n.textContent, left: b.left, right: b.right, top: b.top }; });
+        const out = [];
+        for (const a of rs) for (const b of rs) {
+          if (a === b || Math.abs(a.top - b.top) > 2 || b.left < a.right - 0.5) continue;
+          if (rs.some((c) => c !== a && c !== b && Math.abs(c.top - a.top) <= 2 && c.left >= a.right - 0.5 && c.right <= b.left + 0.5)) continue;
+          out.push({ from: a.text, to: b.text, gap: Math.round((b.left - a.right) * 10) / 10 });
+        }
+        return out;
+      });
+      const tightest = pairs.reduce((m, p) => (!m || p.gap < m.gap ? p : m), null);
+      ok(!!tightest && tightest.gap >= EXAMPLE_LINE_GAP,
+        `#3977 ${where} / start window: adjacent example lines on one row are at least ${EXAMPLE_LINE_GAP}px apart, so they don't read as one sentence — ${tightest ? `tightest ${tightest.gap}px, "${tightest.from}" → "${tightest.to}"` : 'NOT MEASURED: no two lines shared a row'}`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);

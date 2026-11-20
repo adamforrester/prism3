@@ -1675,7 +1675,9 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-start-row > .p3-colorfield { flex: 0 1 auto; }
 .p3-colorfield[data-refused="true"] { border-color: var(--p3-bad-icon); }
 .p3-frame[data-w="narrow"] .p3-start-row > .p3-start-go { margin-left: 0; }
-.p3-start-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); margin-top: var(--p3-space-150); }
+/* Owner decision 2026-11-20: a wider column gap than row gap, so the examples' lines, side by side on one row, read as
+   three lines and not one sentence (they ran together at 8px). */
+.p3-start-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-300); margin-top: var(--p3-space-150); }
 /* #3977: each example is its chip with its few muted words beneath (`.p3-start-desc`, the cards' own secondary text). */
 .p3-start-ex { display: grid; justify-items: start; align-content: start; gap: var(--p3-space-050); min-width: 0; }
 .p3-btn.p3-start-chip { border-radius: var(--p3-radius-pill); padding: 0 var(--p3-space-150) 0 var(--p3-space-100); font-weight: var(--p3-fw-default); }

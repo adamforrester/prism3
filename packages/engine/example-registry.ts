@@ -15,7 +15,7 @@
  */
 export const EXAMPLES = [
   // The canonical default theme (#1296), first because it is the one the hosts boot.
-  { id: 'prism3', description: 'The default. Saturated violet, balanced.' },
+  { id: 'prism3', description: 'The default. Saturated blue, balanced.' },
   { id: 'aurora', description: 'Soft purple, rounder, quick.' },
   { id: 'harbor', description: 'Muted teal, calm, square.' },
 ] as const satisfies readonly { id: string; description: string }[];
