@@ -70,5 +70,6 @@ each needs changing on the day arm 2's repo is readable:
 - It reads each case's variant from arm 1's `data-prop-*` attributes on the root.
 - It measures the focus ring as an outline on the button's root, and the button's text from `.p3-button__label`. No
   check reads `focusRing`.
-- Token parity (`check-token-parity.ts`) writes arm 1's probes and doesn't read `tokens`.
+- Token parity (`packages/css/check-parity.ts`, `packages/web-components/check-token-parity.ts`) writes arm 1's probes
+  and doesn't read `tokens`.
 
