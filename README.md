@@ -50,7 +50,7 @@ The surfaces around that core — [`apps/studio/`](apps/studio/), [`apps/plugin/
 [`packages/*`](packages/) — are npm workspaces that bundle it, so they **do** need an install:
 
 ```bash
-npm install                              # from the repo root — resolves every workspace
+npm ci                                   # from the repo root — resolves every workspace
 npm run dev -w @prism3/studio            # esbuild dev server on http://127.0.0.1:5173
 npm run build -w @prism3/studio          # bundle to apps/studio/dist/
 ```

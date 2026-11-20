@@ -21,6 +21,12 @@ import { contrast } from './color';
 import { interactiveStateRungs } from './modes';
 import { figmaColorDescription, figmaPaletteDescription, figmaAlphaDescription, figmaGlassAlphaDescription, FIGMA_EXTREME } from './figma-description';
 
+/** A value the caller has established is present; a named throw, not a silent `undefined` (#1182). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`emit-figma-color: ${what} is missing`);
+  return x;
+};
+
 export type FigmaColor = { r: number; g: number; b: number; a: number };
 /** An EASING variable's value (#2412), in the shape Figma's `MotionEasing` takes it: a cubic bezier, or a spring
  *  normalized to `bounce` alone. Figma refuses a spring carrying mass, stiffness or damping (spike #2403). */
@@ -175,10 +181,11 @@ const colorScopes = (dotted: string): string[] => {
   // failure the note above warns about, sitting in the family the note does not mention. Fixed by the
   // restructure rather than by adding a fourth skip, which is the argument for the restructure.
   const seg = stripNs(dotted).split('.').filter((s, i) => !(i === 1 && s === 'inverse'));
-  if (seg[1] === 'interactive') return INTERACTIVE_SLOT_SCOPES[seg[3]] ?? INTERACTIVE_SLOT_SCOPES.fill;
-  if (seg[1] === 'disabled') return DISABLED_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
-  if (seg[1] === 'field') return FIELD_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
-  return COLOR_SCOPES[seg[1]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
+  // A missing segment looks up `''`, which no table holds, so it falls back exactly as an `undefined` key did.
+  if (seg[1] === 'interactive') return INTERACTIVE_SLOT_SCOPES[seg[3] ?? ''] ?? must(INTERACTIVE_SLOT_SCOPES.fill, 'the fill slot scopes');
+  if (seg[1] === 'disabled') return DISABLED_SLOT_SCOPES[seg[2] ?? ''] ?? ['FRAME_FILL', 'SHAPE_FILL'];
+  if (seg[1] === 'field') return FIELD_SLOT_SCOPES[seg[2] ?? ''] ?? ['FRAME_FILL', 'SHAPE_FILL'];
+  return COLOR_SCOPES[seg[1] ?? ''] ?? ['FRAME_FILL', 'SHAPE_FILL'];
 };
 
 /**
@@ -248,9 +255,10 @@ export const coreName = (root: string, name: string): string => nsName(root, `${
 export const parseColor = (v: unknown): FigmaColor => {
   const s = String(v);
   const m = s.match(/rgba?\(([^)]+)\)/i);
-  if (m) {
+  if (m?.[1] !== undefined) {
     const p = m[1].split(',').map((x) => parseFloat(x.trim()));
-    return { r: Math.fround(p[0] / 255), g: Math.fround(p[1] / 255), b: Math.fround(p[2] / 255), a: Math.fround(p[3] ?? 1) };
+    // A missing channel is NaN, as `undefined / 255` always made it.
+    return { r: Math.fround((p[0] ?? NaN) / 255), g: Math.fround((p[1] ?? NaN) / 255), b: Math.fround((p[2] ?? NaN) / 255), a: Math.fround(p[3] ?? 1) };
   }
   let h = s.replace(/^#/, '').toLowerCase();
   if (/^[0-9a-f]{3}$/.test(h)) h = h.split('').map((c) => c + c).join('');   // #f00 → ff0000 (M-08)
@@ -310,14 +318,15 @@ export const leaves = (
 /** A palette step's Figma line (`figma-description.ts`): the ramp's name from its ROLE and key, the band
  *  and its real step range from the ramp itself, and the generated hue from `PaletteBuild.generated`. */
 const paletteDescription = (theme: Theme, [palette, key]: string[], leaf: any): string => {
+  if (palette === undefined || key === undefined) throw new Error(`emit-figma-color: a palette leaf path needs a palette and a step (got '${palette}.${key}')`);
   const ext = leaf.$extensions?.prism3 ?? {};
   if (palette === 'palette') return FIGMA_EXTREME[key] ?? (() => { throw new Error(`emit-figma-color: no Figma line for the palette literal '${key}'`); })();
   const alpha = /^(black|white)-alpha$/.exec(palette);
-  if (alpha) return figmaAlphaDescription(alpha[1], Number(key));
+  if (alpha?.[1] !== undefined) return figmaAlphaDescription(alpha[1], Number(key));
   const p = theme.palettes.find((x) => x.palette === palette);
   // #3073: a palette color's alpha step, minted for a brand glass role (`neutral-050-alpha`), a family no ramp builds.
   const glassAlpha = /^(.+)-alpha$/.exec(palette);
-  if (!p && glassAlpha) return figmaGlassAlphaDescription(glassAlpha[1], Number(key));
+  if (!p && glassAlpha?.[1] !== undefined) return figmaGlassAlphaDescription(glassAlpha[1], Number(key));
   if (!p) throw new Error(`emit-figma-color: palette '${palette}' has no PaletteBuild to describe it from`);
   const step = p.steps.find((s) => s.key === key)!;
   return figmaPaletteDescription({
@@ -350,7 +359,7 @@ const colorRoleDescription = (tree: any, root: string, dotted: string, leaf: any
     if (!l) return undefined;
     const v = m === 'light' ? l.$value : l.$extensions?.prism3?.modes?.[m]?.$value ?? l.$value;
     const target = /^\{(.+)\}$/.exec(String(v));
-    return parseColor(target ? at(tree, target[1])?.$value : v);
+    return parseColor(target?.[1] !== undefined ? at(tree, target[1])?.$value : v);
   };
   const against = String(ext.against ?? '');
   let ground: string | undefined;
@@ -389,7 +398,7 @@ const colorRoleDescription = (tree: any, root: string, dotted: string, leaf: any
 
 export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; color: FigmaCollectionFile[] } => {
   const { tree } = buildTree(theme);
-  const root = Object.keys(tree)[0];
+  const root = must(Object.keys(tree)[0], 'the tree root');
 
   const palette: FigmaCollectionFile = {
     $collection: CORE_COLLECTION,

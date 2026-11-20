@@ -93,7 +93,7 @@ import { componentDefs, figmaAnatomySet, planComponentName } from '@prism3/engin
 import { materializerFor } from './src/brand-def';
 import { SWAP_TARGET } from './src/build-deps';
 import { entryFor, LEDGER_KEY, LEDGER_V } from './src/as-built-ledger';
-import { leadsPanel, PANEL_FORMAT } from './src/doc-panel';
+import { lastChangedKey, leadsPanel, PANEL_FORMAT } from './src/doc-panel';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { NS, persistInput } from './src/persist-figma';
 import { STAMP_KEY } from './src/write-components';
@@ -101,7 +101,9 @@ import { writeBaseline } from './src/member-baseline';
 import { nestedFirst, type UpdateTarget } from './src/update-plan';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -198,8 +200,8 @@ const pluginData = new Map<string, string>();
 const sharedData = new Map<string, string>();
 const mat = materializerFor(null);
 // Each entry as today's plugin writes it with the usage panels on (the default): a family's lead set carries the panel
-// format it was checked at (#3205), so only the sets this fixture moves read due.
-const panelOf = (id: string) => (leadsPanel(id) ? { panel: PANEL_FORMAT } : {});
+// format it was checked at (#3205) and its "Last changed in" block (#2889), so only the sets this fixture moves read due.
+const panelOf = (id: string) => (leadsPanel(id) ? { panel: PANEL_FORMAT, changed: lastChangedKey(id) } : {});
 const ledger = Object.fromEntries(setIds.slice(0, RECORDED).map((id, i) => {
   const m = mat(componentDefs.find((d) => d.id === id)!);
   if (i >= DUE && i < DUE + PRINTED) return [id, { ...entryFor(m, figmaAnatomySet(m, { swapTarget: SWAP_TARGET })), engine: OLD_ENGINE, ...panelOf(id) }];
@@ -1068,5 +1070,5 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   standVars.length = 0;
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

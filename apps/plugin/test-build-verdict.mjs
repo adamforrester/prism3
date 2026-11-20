@@ -1950,7 +1950,7 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
   const toExport = async (page, artifact) => {
     await hooks.click(page.locator('[data-p3="rail-export"]'), { timeout: 4000 }).catch(() => {});
     await hooks.need(page, '[data-p3="export-page"]', { timeout: 4000 }).catch(() => {});
-    // Anchored: the import slot reads "↑ Brand brief…" too, and a loose match is refused as ambiguous.
+    // Anchored (callers pass `/^…$/`), so the match is the artifact's own button and no other that merely contains its name.
     await hooks.click(page.locator('[data-p3="export-page"] button', { hasText: artifact }), { timeout: 4000 }).catch(() => {});
     return page.evaluate(() => ({
       off: document.querySelector('[data-p3="export-page"] [data-p3="dialog-confirm"]')?.disabled ?? null,
@@ -2536,5 +2536,12 @@ console.log(`\n${failed === 0 ? '✅' : '❌'} ${executed - failed} of ${execute
 if (failed) {
   console.error(`\n${failed} failing:`);
   for (const f of failures) console.error(`  · ${f}`);
+}
+// #1066 M23: the count above was printed and read by nothing, so a neutered `ok()` read "0 of 0 assertions pass" at exit
+// 0. An authored floor, the suite's count when it was written: lower it only in the PR that shrinks the suite, saying why.
+const MIN_ASSERTIONS = 425;
+if (executed < MIN_ASSERTIONS) {
+  console.error(`\n❌ only ${executed} assertions ran, below this suite's floor of ${MIN_ASSERTIONS} — the suite shrank or collapsed (#1066)`);
+  process.exit(1);
 }
 process.exit(failed === 0 ? 0 : 1);

@@ -7,6 +7,13 @@ import { oklchToRgb, type RGB, contrast, hex as rgbHex } from './color';
 import { type OKLCH, type BrandInput, type PaletteBuild, CORE_TIER } from './theme-types';
 import { PALETTE_NAME_RE } from './theme-color';
 
+/** A value the caller has established is present (an in-range index, a key just written); a named throw, not a
+ *  silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`theme-gradient: ${what} is missing`);
+  return x;
+};
+
 // ---------------------------------------------------------------------------
 // Gradient axis (brand-opt-in). Grounded in a 10-system survey + the DTCG
 // gradient spec (2025.10) + the Figma round-trip research. Decisions:
@@ -100,16 +107,18 @@ export const buildGradient = (spec: BrandInput['gradients'], palettes: PaletteBu
     // Pre-sample the curve at N evenly-spaced positions (the chosen interpolation
     // space), output sRGB — the baked stops Figma needs (it can't interpolate OKLCH).
     const sampleRgb = (p: number): RGB => {
-      if (p <= stops[0].position) return stops[0].rgb;
-      if (p >= stops[stops.length - 1].position) return stops[stops.length - 1].rgb;
-      for (let i = 0; i < stops.length - 1; i++) {
-        const a = stops[i], b = stops[i + 1];
+      const first = must(stops[0], 'a first stop'), last = must(stops[stops.length - 1], 'a last stop');
+      if (p <= first.position) return first.rgb;
+      if (p >= last.position) return last.rgb;
+      for (const [i, a] of stops.entries()) {
+        const b = stops[i + 1];
+        if (!b) break; // `a` is the last stop: no segment starts here
         if (p >= a.position && p <= b.position) {
           const t = (p - a.position) / (b.position - a.position || 1);
           return interpolation === 'oklch' ? oklchToRgb(lerpOklch(a.oklch, b.oklch, t)) : lerpRgb(a.rgb, b.rgb, t);
         }
       }
-      return stops[stops.length - 1].rgb;
+      return last.rgb;
     };
     const sampledRgb = Array.from({ length: samples }, (_, i) => sampleRgb(i / (samples - 1)));
     const sampled = sampledRgb.map((rgb, i) => ({ hex: rgbHex(rgb), position: Math.round((i / (samples - 1)) * 1000) / 1000 }));

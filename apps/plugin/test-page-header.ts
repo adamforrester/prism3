@@ -47,7 +47,9 @@ import { componentDefs } from '@prism3/engine/components';
 import { placeNewSet, SET_GAP, PAGE_HEADER_NAME, PAGE_HEADER_GAP } from './src/write-components';
 
 let failures = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (!cond) { failures++; console.error(`  ✗ ${label}`); }
   else console.log(`  ✓ ${label}`);
 };
@@ -353,5 +355,5 @@ console.log('6. a file whose header set is named _section-header');
     `6: a header from a \`_section-header\` duplicate counts as present; none added (got ${again.status}, ${instances} instances)`);
 }
 
-console.log(failures === 0 ? '\npage-header: all assertions pass' : `\npage-header: ${failures} FAILED`);
+console.log(`${failures === 0 ? '\npage-header: all assertions pass' : `\npage-header: ${failures} FAILED`} — ${executed} assertions executed`);
 if (failures > 0) process.exit(1);

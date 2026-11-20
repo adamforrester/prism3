@@ -20,7 +20,9 @@
  *   checkPageToPage → `drift/3 component` and `drift/3 spacing`; checkBindings → `drift/4 raw fill`,
  *   `drift/4 legacy variable`, `drift/4 legacy style inside an instance` and `drift/4 raw run`. Also: the heading
  *   allowlist dropped → `consistent/1`; the copy-number rule widened to any number → `consistent/3`; a frame renamed by
- *   the audit → `the audit wrote nothing to the file`; the page load dropped → `the page is loaded before it is read`.
+ *   the audit → `the audit wrote nothing to the file`; the page load dropped → `the page is loaded before it is read`;
+ *   the findings sorted with `localeCompare` again → `#3701 findings are ordered by code unit`; the case fold dropped
+ *   from the audit's comparator (plain code-unit order) → the same arm.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -152,6 +154,20 @@ const build = (drift: boolean): { pageId: string; frames: any[] } => {
 };
 const consistent = build(false);
 const drifted = build(true);
+/** Three desktop pages whose names order differently by an English collation, by code unit, and by code unit after a
+ *  case fold (#3701): `É` sorts with `E` in English, before `F`, and after every ASCII letter by code unit; `apple`
+ *  sorts before `Fig` once case is folded, and after it by raw code unit (`F` is 70, `a` is 97). Listed in the English
+ *  order, so a sort that follows the host's locale leaves them as they are, and a sort that drops the fold puts `Fig`
+ *  first. Only the engine's `localeFreeCompare` gives `apple`, `Fig`, `Ébène`. */
+const accented = ((): string => {
+  const page = node({ type: 'PAGE', name: 'Accented set', children: [
+    frame('apple / Desktop', 1440, 'desktop', 'apple', { divider: 'raw' }),
+    frame('Ébène / Desktop', 1440, 'desktop', 'Ébène', { divider: 'raw' }),
+    frame('Fig / Desktop', 1440, 'desktop', 'Fig', { divider: 'raw' }),
+  ] });
+  page.loadAsync = async () => {};
+  return page.id;
+})();
 
 (globalThis as any).figma = {
   currentPage: byId.get(consistent.pageId),
@@ -246,6 +262,14 @@ section('drifted set — each seeded drift is reported, by the check that owns i
   ok(c4.length === 4, `drift/4: nothing else is reported by the binding check (${show(c4)})`);
   ok(r.findings.length === 1 + 1 + 8 + 4 && /\| 14 \(1: 1, 2: 1, 3: 8, 4: 4\) \|/.test(r.runsRow),
     `the Runs row counts the fourteen findings by check (${r.runsRow})`);
+}
+
+section('#3701 — the findings order does not move with the host locale');
+{
+  const r = await audit({ pageId: accented });
+  const order = of(r, 4).filter((f: any) => f.role === 'divider').map((f: any) => f.frame);
+  ok(JSON.stringify(order) === JSON.stringify(['apple / Desktop', 'Fig / Desktop', 'Ébène / Desktop']),
+    `#3701 findings are ordered by code unit after a case fold, as the engine's localeFreeCompare orders, not by the host's collation (${JSON.stringify(order)})`);
 }
 
 section('read-only');

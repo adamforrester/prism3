@@ -1020,6 +1020,31 @@ export const renameVariables = (
 };
 
 /**
+ * The `core` group a variable belongs to for SLICE membership (#1109, #3857): its own group when it has one,
+ * else the group of the name the MATERIALIZATION rules carry it to. A pre-#1097 `palette/x` is in no group as
+ * spelled, and the #1097 rule takes it to `<root>/core/palette/x`, so it belongs to the palette slice. With no
+ * root or no rules (a refused map's are emptied by `openMigration`), a variable with no group of its own stays
+ * in none, and an "unowned `core`" report names it.
+ *
+ * ONE definition, two callers: the plugin executor (`write-figma.ts`, its `byName` and `unownedCore`) and the
+ * paste payload (`materialise-to-figma.ts`, the `migrate` pass's `byName` and `verify`'s orphan report), which
+ * ships it through `plannerSources`. `groupOf` is a parameter, not an import, for the reason the APPLY header
+ * gives: a shipped function may call only what it ships, and the payload defines `coreGroupOf` itself.
+ */
+export const sliceGroupOf = (
+  collection: string,
+  name: string,
+  root: string,
+  rules: readonly MaterializationStep[],
+  groupOf: (name: string) => string | null,
+): string | null => {
+  const own = groupOf(name);
+  if (own !== null || !root || !rules.length) return own;
+  const [row] = composeVariableRenames(collection, [name], [], rules, root);
+  return row ? groupOf(row.to) : null;
+};
+
+/**
  * Every function the rename pass runs, AS SOURCE, by the name its callers use (#1024).
  *
  * `rename-runtime.ts` ships these into the paste payload. Each closes over nothing but the others listed
@@ -1037,4 +1062,5 @@ export const plannerSources = (): string => ([
   ['openMigration', openMigration],
   ['renameCollections', renameCollections],
   ['renameVariables', renameVariables],
+  ['sliceGroupOf', sliceGroupOf],
 ] as const).map(([name, fn]) => 'const ' + name + '=' + fn.toString() + ';').join('\n');

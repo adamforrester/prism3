@@ -117,6 +117,8 @@
 .p3-textarea::placeholder { color: var(--p3-text-2); opacity: 1; }
 .p3-textarea:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-field-edge-hover); }
 .p3-textarea:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
+/* #4223: a preview table's scroll wrapper (`.mtbl-scroll`, `preview/sections/kit.ts` `scrollBox`) is a Tab stop, so it draws the chrome's ring. */
+.mtbl-scroll:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-field-err { margin: 0; color: var(--p3-bad-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
 .p3-import-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
 .p3-upload { cursor: pointer; }
@@ -160,13 +162,15 @@
 .p3-dot-ok { background: var(--p3-ok-icon); }
 .p3-dot-bad { background: var(--p3-bad-icon); }
 
-/* Status pills: an operation's verdict, in its Activity row (S11), so on the page ground with the page's
-   edge (B1). */
+/* Status pills: an operation's verdict, on the page ground with the page's edge (B1). Since #3113 (Q3113.2 A) Activity's
+   rows say their verdict in words; the pill is left on Style guides' run bar (`sg-verdict`). One step down the chrome's
+   type scale, 12 to 10, with tighter sides, space-150 to space-100 (#2561, owner decision A). Its height stays the
+   24px target: the pill is a button, it opens the run's result. */
 .p3-pill {
   display: inline-flex; align-items: center; gap: var(--p3-space-050); flex: 0 1 auto; min-width: 0;
-  min-height: var(--p3-hit-min); padding: 0 var(--p3-space-150); border-radius: var(--p3-radius-pill);
+  min-height: var(--p3-hit-min); padding: 0 var(--p3-space-100); border-radius: var(--p3-radius-pill);
   border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page); color: var(--p3-text);
-  font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-10); font-weight: var(--p3-fw-emphasis);
   line-height: var(--p3-lh-compact); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .p3-pill-bad { color: var(--p3-bad-text); }
@@ -305,6 +309,12 @@
 .p3-search-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-search-status { flex: none; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
 .p3-search-status:empty { display: none; }
+/* #3620 (owner decision 2026-11-18, A): at the narrow tier the status takes its own line under the field, so the field keeps
+   the row's width and the status is never cut off. In the row, "No setting on this page matches" (nowrap, `flex: none`)
+   left the plugin's 380 field about 17px of text. The magnifier is placed on the field's line, which is the first. */
+.p3-frame[data-w="narrow"] .p3-search[data-open="true"] .p3-search-box { flex-wrap: wrap; row-gap: var(--p3-space-050); }
+.p3-frame[data-w="narrow"] .p3-search-status { order: 1; flex: 1 0 100%; white-space: normal; }
+.p3-frame[data-w="narrow"] .p3-search-box > .p3-ico { top: calc(var(--p3-ctl-h-sm) / 2); transform: translateY(-50%); }
 
 /* Color's sub-pages, and the Depth & motion switch: a segmented tablist. Its track is the top bar's step,
    so it reads on the gray tab row in both themes, and the selected segment's edge is measured against
@@ -391,13 +401,9 @@
   display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--p3-space-100); padding: var(--p3-space-150) var(--p3-space-300);
   border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
-.p3-bardlg-import { display: grid; gap: var(--p3-space-075); padding: var(--p3-space-150) var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
-.p3-bardlg-import > .p3-menu-item { justify-self: start; }
-/* #3553 M9: Export draws its captions and its Import action with the menu's classes, so they kept the menu's inner
-   padding and sat a space-150 right of the files, the code and the notes they label. Here a caption starts at the
-   column's edge, and the action's label does too: the button keeps its own padding and hover fill, moved out by it. */
-:is(.p3-export-out, .p3-bardlg-import) > .p3-menu-cap { padding-inline: 0; }
-.p3-bardlg-import > .p3-menu-item { margin-inline-start: calc(-1 * var(--p3-space-150)); }
+/* #3553 M9: Export draws its captions with the menu's class, so they kept the menu's inner padding and sat a
+   space-150 right of the files, the code and the notes they label. Here a caption starts at the column's edge. */
+.p3-export-out > .p3-menu-cap { padding-inline: 0; }
 
 /* ── the two panes (shown from the first moved page, S2) ─────────────────────────────────── */
 /* The tab row and the preview's title row share ONE grid row (Q2), so the two dividers sit at one y
@@ -572,7 +578,7 @@
    strip is the window's own content, in a body that scrolls, so the cap would only scroll its two buttons out of sight. */
 .p3-frame[data-w="narrow"] .p3-start .p3-errstrip { max-height: none; overflow-y: visible; }
 .p3-frame[data-w="narrow"] .p3-bardlg-scrim { padding: var(--p3-space-150); }
-.p3-frame[data-w="narrow"] :is(.p3-bardlg-head, .p3-bardlg-col, .p3-bardlg-foot, .p3-bardlg-import) { padding-left: var(--p3-space-150); padding-right: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] :is(.p3-bardlg-head, .p3-bardlg-col, .p3-bardlg-foot) { padding-left: var(--p3-space-150); padding-right: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-bardlg-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
 .p3-frame[data-w="narrow"] .p3-bardlg-col { overflow: visible; }
 .p3-frame[data-w="narrow"] .p3-export-out { border-left: 0; border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
@@ -696,6 +702,8 @@
 }
 .p3-drawer-body[hidden] { display: none; }
 .p3-drawer-note { margin: 0; }
+/* The owner (2026-11-17): Report a problem, a ghost icon button at the end of the open drawer's last line. */
+.p3-btn.p3-drawer-report { justify-self: end; }
 .p3-drawer-note[hidden] { display: none; }
 /* Q3113.8 A: the sheet's header row at 380 (a 24 × 24 close icon, "Activity", the counts, the agent dot), which takes the
    bar row's place there. Wider, the bar row closes the drawer and no header is drawn. */
@@ -889,6 +897,14 @@
 .p3-frame[data-w="wide"][data-bar-fit] .p3-agent-switch-label { display: none; }
 .p3-frame[data-w="narrow"] .p3-agent-switch-label > .p3-ico { display: block; }
 .p3-frame[data-w="narrow"] .p3-agent-switch-word { display: none; }
+/* #2368 (owner decision A): the busy mark beside the Agent switch while an agent's command that writes the file runs.
+   The chrome's spinner, in the bar's secondary ink, and "Running", which drops at the narrow tier with the switch's word.
+   Look approved as built by the owner, 2026-11-18. */
+.p3-agent-busy { display: inline-flex; align-items: center; gap: var(--p3-space-075); color: var(--p3-text-2);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); white-space: nowrap; }
+.p3-agent-busy[hidden] { display: none; }
+.p3-agent-busy .p3-spin::before { border-top-color: var(--p3-text-2); }
+.p3-frame[data-w="narrow"] .p3-agent-busy-word { display: none; }
 .p3-frame[data-w="narrow"] .p3-switch.p3-agent-switch { min-height: var(--p3-ctl-h-xs); }
 /* Minimize (#2949, the owner's Q600 A): a tile at the rail's foot (Q731; on the top bar under #2909), drawn whether the
    agent link is on or off. */
@@ -1102,6 +1118,8 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14);
 }
 .p3-text-input.p3-value { font-family: var(--p3-font-mono); }
+/* #4220: the field's hint in the chrome's secondary ink, as the other fields' are, not the browser's default gray. */
+.p3-text-input::placeholder { color: var(--p3-text-2); opacity: 1; }
 /* No hover on a disabled field: it cannot be edited, so nothing answers the pointer (owner, 2026-10-05; Q28 a). */
 .p3-text-input:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-field-edge-hover); }
 .p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
@@ -1112,8 +1130,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
 .p3-text-input:disabled {
   background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); color: var(--p3-disabled-ink); cursor: not-allowed;
 }
-/* Personality: the engine's words as chips; a chosen one takes the selected edge and shows its check. A single-select
-   `chipChoice` chip draws no check (#3117, Q3117.1 B): its edge alone shows it is pressed, so a pick keeps its width. */
+/* Personality: the engine's words as chips; a chosen one takes the selected edge. No chip draws a check, single-select
+   `chipChoice` (#3117, Q3117.1 B) or Personality's `toggleChip` (#3263): the edge shows it is pressed, so a press keeps
+   the chip's width and the row's wrap. */
 .p3-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
 /* #3553 Q-UI2 A: a single choice whose options do not fit one row is a list, one option to a row, the width of the
    column (`stackWhenWrapped` in `lever-kit.ts` sets `data-stack`), never a wrap with an orphan on its last row. */
@@ -1121,9 +1140,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
 .p3-choice[data-stack="true"] > .p3-seg-tab { flex: none; }
 .p3-chips-one[data-stack="true"] > .p3-btn.p3-chip { justify-content: flex-start; }
 .p3-btn.p3-chip { min-height: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-150); gap: var(--p3-space-050); font-weight: var(--p3-fw-default); }
-.p3-btn.p3-chip > .p3-ico { display: none; }
 .p3-btn.p3-chip[aria-pressed="true"] { border-color: var(--p3-ctl-edge); }
-.p3-btn.p3-chip[aria-pressed="true"] > .p3-ico { display: inline-block; color: var(--p3-text); }
 /* Modes: a check per mode, its name and its note on one line (concept v6). The row is the control and its
    target; the box is the drawn edge (field-edge on the page, B1), so the row itself shows an edge only on hover.
    Light is a fixed row, not a control: its box is dashed, as v6 draws a check that cannot change. */
@@ -1392,6 +1409,9 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 /* QA-B5, QA-B18: every select and step-picker button in the levers pane is one control: the field's height (40),
    12px text set from the left, and the caret at the far right (the select's sits where the button's does). */
 .p3-levers :is(.p3-select, .p3-btn.p3-pick) { min-height: var(--p3-ctl-h); font-size: var(--p3-fs-12); text-align: left; }
+/* #3938 (owner decision A, 2026-11-18): the token list's dropdowns take the height of the Alias path segmented control
+   beside them, the convention the levers above use, so `.tok-ctrls`' bottom-aligned captions sit on one line. */
+.tok-ctrls .p3-select { min-height: var(--p3-ctl-h); }
 /* A read-only row's value in place of the picker: the scrim's primitive and opacity (S4c). */
 .p3-fill-read { color: var(--p3-text-2); font-size: var(--p3-fs-14); white-space: nowrap; }
 .p3-pick-ratio { display: inline-flex; align-items: center; gap: var(--p3-space-025); color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
@@ -1478,8 +1498,9 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-irow-states { display: grid; gap: var(--p3-rhythm-row); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) dashed var(--p3-line-1); }
 /* #3335 (the owner's Q3335.1 A and Q3335.7 A, with the amendment): each button set is a card of its own, its title on one
    line with its palette and, for an accent, Remove; its state groups below on the group rhythm, the first without the
-   hairline the card's own edge already draws. A group with no rest row (a wash, or Solid fill's pickers) is `.p3-irow-flat`:
-   its Hover and Pressed are its own rows, side by side at its level, with no states column to indent them. */
+   hairline the card's own edge already draws. A group with no rest row (On-fill text) is `.p3-irow-flat`:
+   its rows sit at its level, with no states column to indent them. Since #3116 the washes and Solid fill's picks are the
+   Outline & text hover group, which has a Rest row, so they nest as Fill's states do. */
 .p3-icard:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-icard-line { display: flex; align-items: center; gap: var(--p3-space-100); }
 .p3-icard-pal { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); letter-spacing: normal; }
@@ -1906,13 +1927,16 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
    last so they win over a state rule of the same weight (a chosen chip, a set picker). Contrast-exempt as an inactive
    component (WCAG 2.2 SC 1.4.3 and 1.4.11), and the audits hold each one to these roles while it is really disabled.
    The preview's mode control, held on Palettes (PM1 B, #2321), takes the same rules by what each segment draws at
-   rest: the selected one has an edge, so it is the outline skin; the others have none, so they are the text skin. */
-:is(.p3-btn, .p3-vpick, .p3-mode):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
+   rest: the selected one has an edge, so it is the outline skin; the others have none, so they are the text skin.
+   Every other segmented choice takes the same mapping (#2366, owner decision A): the levers' choices a derived mode
+   holds (Type's scale, Shape's density, Depth & motion's tempo, …) drew exactly like live ones. `.p3-mode` is a
+   `.p3-seg-tab`, so one rule covers both. */
+:is(.p3-btn, .p3-vpick, .p3-seg-tab):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
   cursor: not-allowed; background-color: transparent; border-style: solid; border-color: var(--p3-disabled-icon); color: var(--p3-disabled-text);
 }
-:is(.p3-btn, .p3-vpick, .p3-mode):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) * { color: inherit; }
-:is(.p3-btn, .p3-vpick, .p3-mode):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-ico { color: var(--p3-disabled-icon); }
-:is(.p3-btn:is(.p3-btn-ghost, .p3-check), .p3-mode:not([aria-checked="true"])):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) { border-color: transparent; }
+:is(.p3-btn, .p3-vpick, .p3-seg-tab):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) * { color: inherit; }
+:is(.p3-btn, .p3-vpick, .p3-seg-tab):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-ico { color: var(--p3-disabled-icon); }
+:is(.p3-btn:is(.p3-btn-ghost, .p3-check), .p3-seg-tab:not([aria-checked="true"], [aria-selected="true"], [aria-pressed="true"])):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) { border-color: transparent; }
 .p3-btn:is(.p3-btn-primary, .p3-next, .p3-btn-danger):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
   background-color: var(--p3-disabled-fill); border-color: transparent; color: var(--p3-disabled-ink);
 }
@@ -2139,6 +2163,8 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-upd-locked > .p3-upd-setname { display: inline-flex; align-items: center; gap: var(--p3-space-075); }
 .p3-upd-locked > .p3-upd-setname > .p3-ico { flex: none; color: var(--p3-icon-2); }
 .p3-upd-locked + .p3-upd-setline, .p3-upd-krow .p3-upd-setline { padding-left: 0; }
+/* #2956: a Due row's "Turn off updates", a quiet ghost action under its line, set in from the box as the line is. */
+.p3-upd-setrow > .p3-upd-turnoff { justify-self: start; margin-left: calc(var(--p3-bw-hairline) + var(--p3-space-200) + var(--p3-space-150) - var(--p3-space-100)); min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-upd-krow { display: flex; align-items: center; gap: var(--p3-space-150); }
 .p3-upd-kname { display: grid; gap: var(--p3-space-025); flex: 1 1 auto; min-width: 0; }
 .p3-upd-kname > .p3-upd-setname { font-weight: var(--p3-fw-emphasis); }
@@ -2251,7 +2277,8 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
    theme (`spec.mjs`): a panel enters on `motion-panel`, a small surface on `motion-fast`, and every exit leaves on
    `motion-fast`, on the enter and exit curves only. Transform and opacity move; layout never does.
    · Slide up: the Activity drawer at every width, its chevron turning with it.
-   · Shift: a menu (Theme, Inspect, the brand menu) and the 380 strip, a fade and a short offset toward the anchor.
+   · Shift: a menu (Theme, Inspect, the brand menu, the agent link's pairing prompt) and the 380 strip, a fade and a short
+     offset toward the anchor.
    · Pop: the status dot on the drawer's bar row.
    · Fade: a tooltip, the error strip, and the Update file rows that land after the file is read.
    · Scale in: a dialog (Update file, the start window and its guard), its scrim fading with it.
@@ -2299,6 +2326,11 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 }
 @starting-style { .p3-menu { opacity: 0; translate: 0 calc(-1 * var(--p3-space-050)); } }
 .p3-menu[data-leaving="true"] { opacity: 0; transition-timing-function: var(--p3-ease-exit); }
+/* #3245 (owner decision 2026-11-18, A): the agent link's pairing prompt is a menu's surface that is hidden, not removed, so
+   `data-leaving` never reaches it. It takes the menu's exit fade the way the error strip does: drawn through the fade
+   (`display` with `allow-discrete`), its opacity on the exit curve. */
+.p3-menu.p3-agent-pair { transition-property: opacity, translate, display; transition-behavior: allow-discrete; }
+.p3-menu.p3-agent-pair[hidden] { opacity: 0; transition-timing-function: var(--p3-ease-exit); }
 
 /* Fade. A tooltip fades in and goes at once. */
 .p3-tile-tip { transition: opacity var(--p3-motion-fast) var(--p3-ease-enter); }
@@ -2357,4 +2389,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
     :is(.p3-advbody, .p3-op-body, .p3-op-history > ul, .p3-op-entry > :not(summary), .p3-sg-titles-body)) {
     transition-property: opacity; transition-duration: var(--p3-motion-reduced);
   }
+  /* The pairing prompt keeps its exit as a fade (#3245): the menus' line above drops `display`, which would end its fade at
+     once. Placed after it, at the specificity it needs to win. */
+  .p3-popwrap > .p3-menu.p3-agent-pair { transition-property: opacity, display; transition-duration: var(--p3-motion-reduced); transition-behavior: allow-discrete; }
 }

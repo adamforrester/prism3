@@ -139,6 +139,17 @@ Gate note, because the cheap-looking gate here does not hold: `lint-overlay-comp
 
 It is a contract rename (`CONTRACT_VERSION` MAJOR 9.4.0 → 10.0.0, the class `token-contract.ts --check` demanded), recorded in `DEPRECATIONS` so a consumer or codemod can follow it; the Figma variable rename derives from those entries and needs no `MATERIALIZATION_RENAMES` rule, because a rung rename moves the *role* and so projects to a real variable rename (a materialization rule would double-claim it). `ENGINE_VERSION` bumps to 0.59.0 for the name/emission change. `modes.ts`'s veil design note carries the same reasoning beside the code.
 
+### 8.3 Decided (2026-11-18, #1043): the scrim's steps are declared taste, not a derivation
+
+`scrim.default` aliases `black-alpha.<step>` at **40 / 60 / 60 / 70** (light, dark, hc-light, hc-dark) under the default `scrimStrength: standard` (#3050). The owner chose option B: **keep the steps, and put their provenance on the record.**
+
+- **Chosen, not derived.** A modal backdrop has no contrast pair (`ratio: 1`, `against: 'self'`, `min: 0`). Its job is separation and inertness, which has no floor, so no gate can move a step. A suppression derivation was tried and refused: a residual floor of 4.5:1 gives 60/60/60/60, one of 7:1 gives 50/40, so each floor yields a different "derivation" and the floor is the taste value moved one level up.
+- **Light 40, dark 60: after Spectrum 2 and Radix Themes** (`docs/03` Item 2). Heavier in dark is the majority choice among systems that vary by mode, and none goes lighter. The reason is that the bright content behind a dark UI competes less. **It is not equal suppression:** measured, the same alpha suppresses the page about equally in both families.
+- **The high-contrast step-up (+20) is a deliberate choice of this system.** No reference system escalates its backdrop in high contrast, and no contrast floor asks for it.
+- **The names stay.** `scrim` and `veil` are not renamed, and no value changes.
+
+The declaration lives at `SCRIM_STEPS` in `packages/engine/modes.ts`, and `test.ts` (#1043) pins the steps to it. The veil (§8.1) is derived because its contrast target is real; the scrim is declared because its target is not. That difference is the reason not to unify them.
+
 ## 9. Inverse — a generated surface-context, not a hand-mirrored set
 
 The real need: a **light CTA on a dark hero / dark section**, which a light-only brand still requires (so it is *not* a dark-mode concern). Prism2 modelled this by hand-mirroring every token with an `-inverse` twin — **60 of its 122 action tokens** — which was a top complexity driver and a top neutral-miss contributor.

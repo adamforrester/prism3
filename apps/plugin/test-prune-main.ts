@@ -35,7 +35,9 @@ import { themePlans } from './src/apply-theme';
 import { brandFromDesignMd } from './mcp-paste';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -348,5 +350,5 @@ ok(ended >= 0 && after.some((m) => m.done === true),
 
 console.log = log;
 if (failed) { console.error(`\n${failed} check(s) failed`); process.exit(1); }
-console.log('\nprune through main.ts: all checks pass');
+console.log(`\nprune through main.ts: all checks pass — ${executed} assertions executed`);
 process.exit(0);

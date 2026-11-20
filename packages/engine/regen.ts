@@ -18,9 +18,9 @@
 // exactly "does the committed `out/` match the committed sources".
 
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -32,7 +32,8 @@ const repoRoot = resolve(here, '..', '..');
 // is a STANDARD-dialect brief, not an engine-native one — that split is precisely why it kept getting missed.
 // `visualize.ts` (`out/tokens.html`) is NOT a step: the page is built on demand and never committed (Q319.6,
 // #2583). See `ON_DEMAND_OUT` below.
-const STEPS: Array<{ label: string; args: string[] }> = [
+export type Step = { label: string; args: string[] };
+const STEPS: Step[] = [
   { label: 'emit-dtcg      (nb · prism3 · aurora · harbor)', args: ['packages/engine/emit-dtcg.ts'] },
   { label: 'nb-regression  (regression report)', args: ['packages/engine/nb-regression.ts'] },
   { label: 'cli            (wendys + fidelity)', args: ['packages/engine/cli.ts', 'packages/engine/examples/wendys.design.md', '--out', 'packages/engine/out', '--fidelity', '--committed'] },
@@ -83,7 +84,9 @@ export const renderOnDemand = (): { files: string[] } | { error: string } => {
 // `emit-component-docs.ts --uncommitted --out`. Like `ON_DEMAND_OUT`, both `out/` walks here skip the names, so a
 // local copy never changes the count; unlike it, regen must still WRITE each one, and `check()` fails by name when
 // it stops, or when git tracks one. They are in `.gitignore`.
-export const UNCOMMITTED_OUT = ['components/component-defs.json', 'components/component-defs.specs.json', 'components/specs.json'];
+// `component-contracts.json` is the export's contract-named twin (#1325, Q-CC1 A) and `component-defs.json` its compatibility
+// copy for one release. Appended LAST: `renderUncommitted`'s readers take files by position.
+export const UNCOMMITTED_OUT = ['components/component-defs.json', 'components/component-defs.specs.json', 'components/specs.json', 'components/component-contracts.json'];
 
 /** A fresh copy of every `UNCOMMITTED_OUT` file, written into a temp dir for a reader that must not depend on what a
  *  local `out/` holds (CI holds none). Returns the files in `UNCOMMITTED_OUT` order, or an error the caller reports as
@@ -190,47 +193,125 @@ const mtimes = (): Map<string, number> => new Map(artifactPaths().map((p) => [p,
 // emits. So each step is held to having written at least one artifact, and `check()` holds every committed artifact
 // to having been written by some step. The oracle is the committed file set and the filesystem's record of writes —
 // neither is derived from the emitter's code, which is the independence docs/34 asks for.
-const runStep = (args: string[], label: string): Set<string> => {
-  process.stdout.write(`  ${label} … `);
+// The command a developer types to rerun one step by hand; what every message names.
+const commandOf = (args: readonly string[]): string => `npx tsx ${args.join(' ')}`;
+
+// HOW A STEP STARTS (#4240). `npx tsx` paid npx's package resolution on every step, about 290 ms each and about 3.5 s
+// a regen. Under tsx, which is how regen always runs, `process.execArgv` carries tsx's loader flags, so the step runs
+// in a fresh node with the same loader, the way `lint-push-base.ts` and `mcp-served.ts` start theirs. Still one
+// process per step: the step isolation and the per-step write record below depend on it. An `--eval`/`--print` of
+// the parent's is not passed on. Outside tsx it falls back to `npx tsx`.
+const loaderArgs = (): string[] | null => {
+  const out: string[] = [];
+  const argv = process.execArgv;
+  for (let i = 0; i < argv.length; i++) {
+    if (['--eval', '-e', '--print', '-p'].includes(argv[i])) { i++; continue; }
+    if (/^--(eval|print)=/.test(argv[i])) continue;
+    out.push(argv[i]);
+  }
+  return out.some((a) => /[\\/]tsx[\\/]/.test(a)) ? out : null;
+};
+
+/** A step that exited non-zero (#4199). Thrown, never `process.exit`: `check()` must still restore the tree. */
+class StepFailed extends Error {}
+
+type Say = { out: (s: string) => void; err: (s: string) => void };
+const LOUD: Say = { out: (s) => process.stdout.write(s), err: (s) => process.stderr.write(s) };
+const QUIET: Say = { out: () => {}, err: () => {} };
+
+const runStep = (args: string[], label: string, say: Say): Set<string> => {
+  say.out(`  ${label} … `);
   const before = mtimes();
   // Shells out per step rather than importing: `visualize.ts` / `cli.ts` execute at module load, so
-  // importing them would run them as a side effect and couple their exit behaviour to ours. Each step
-  // resolves `npx tsx` the same way a developer would, so a plain regen and `--check` agree.
-  const r = spawnSync('npx', ['tsx', ...args], { cwd: repoRoot, encoding: 'utf8' });
+  // importing them would run them as a side effect and couple their exit behaviour to ours.
+  const loader = loaderArgs();
+  const r = loader
+    ? spawnSync(process.execPath, [...loader, ...args], { cwd: repoRoot, encoding: 'utf8' })
+    : spawnSync('npx', ['tsx', ...args], { cwd: repoRoot, encoding: 'utf8' });
   if (r.status !== 0) {
-    console.log('FAILED');
-    console.error(r.stdout ?? '');
-    console.error(r.stderr ?? '');
-    console.error(`\n✗ regen step failed: npx tsx ${args.join(' ')}`);
-    process.exit(1);
+    say.out('FAILED\n');
+    say.err(`${r.stdout ?? ''}\n${r.stderr ?? ''}\n`);
+    say.err(`\n✗ regen step failed: ${commandOf(args)}\n`);
+    throw new StepFailed(commandOf(args));
   }
   const written = new Set([...mtimes()].filter(([p, t]) => before.get(p) !== t).map(([p]) => p));
   // The step's old `… ok` was a statement about its exit code; this makes it one about its output.
-  console.log(written.size ? `ok (${written.size} written)` : 'WROTE NOTHING');
+  say.out(written.size ? `ok (${written.size} written)\n` : 'WROTE NOTHING\n');
   return written;
 };
 
 /** Runs every step. `silent` names each step that exited 0 having written no artifact — the caller fails on it
- *  (`check()` only after restoring the tree, which is why this does not exit itself). */
-const regenerate = (): { written: Set<string>; silent: string[] } => {
+ *  (`check()` only after restoring the tree, which is why this does not exit itself). A failed step throws
+ *  `StepFailed`. */
+const regenerate = (steps: readonly Step[] = STEPS, say: Say = LOUD): { written: Set<string>; silent: string[] } => {
   const written = new Set<string>();
   const silent: string[] = [];
-  for (const { label, args } of STEPS) {
-    const w = runStep(args, label);
-    if (!w.size) silent.push(`npx tsx ${args.join(' ')}`);
+  for (const { label, args } of steps) {
+    const w = runStep(args, label, say);
+    if (!w.size) silent.push(commandOf(args));
     for (const p of w) written.add(p);
   }
   return { written, silent };
 };
 
-const silentLines = (silent: readonly string[]): void => {
-  for (const c of silent) console.error(`    silent   ${c}  (exited 0 and wrote no artifact — #1059)`);
+const silentLines = (silent: readonly string[], say: Say = LOUD): void => {
+  for (const c of silent) say.err(`    silent   ${c}  (exited 0 and wrote no artifact — #1059)\n`);
 };
-const silentFix = (silent: readonly string[]): void => {
-  if (silent.length) console.error('\n  Fix: the step must write what it emits; a step that emits nothing any more leaves STEPS.');
+const silentFix = (silent: readonly string[], say: Say = LOUD): void => {
+  if (silent.length) say.err('\n  Fix: the step must write what it emits; a step that emits nothing any more leaves STEPS.\n');
 };
 
-const check = (): void => {
+/** Every file and every directory under `dir`, relative to it, with NOTHING skipped — the restore's universe. Not
+ *  `walk`: that one leaves out the on-demand and uncommitted files, which the comparison ignores and the restore
+ *  must still put back exactly as they were. */
+const treeOf = (dir: string, rel = ''): { files: string[]; dirs: string[] } => {
+  const files: string[] = [], dirs: string[] = [];
+  for (const name of readdirSync(join(dir, rel))) {
+    const r = rel ? join(rel, name) : name;
+    if (statSync(join(dir, r)).isDirectory()) { dirs.push(r); const sub = treeOf(dir, r); files.push(...sub.files); dirs.push(...sub.dirs); }
+    else files.push(r);
+  }
+  return { files, dirs };
+};
+
+/**
+ * Put `live` back to `snap`, IN PLACE (#2029): `live` itself is never deleted, and no file is ever missing or half
+ * written while it runs. The restore used to `rmSync(out)` and copy the snapshot back, and a Studio or plugin build
+ * reading `out/` inside that window failed with "cannot load the default theme", a message about the theme, not the
+ * race. Now a file whose bytes differ is written to a sibling and RENAMED over the old one (atomic on one file
+ * system); a file whose bytes match stays where it is. Every file gets its snapshot timestamps back (#2067), what
+ * regen added is removed, and so are the directories it made.
+ */
+export const restoreTree = (snap: string, live: string): void => {
+  const want = treeOf(snap);
+  const keepFiles = new Set(want.files), keepDirs = new Set(want.dirs);
+  const have = treeOf(live);
+  for (const f of have.files) if (!keepFiles.has(f)) rmSync(join(live, f), { force: true });
+  for (const d of [...have.dirs].sort((a, b) => b.length - a.length)) if (!keepDirs.has(d)) rmSync(join(live, d), { recursive: true, force: true });
+  for (const d of want.dirs) mkdirSync(join(live, d), { recursive: true });
+  for (const f of want.files) {
+    const src = join(snap, f), dst = join(live, f);
+    if (!existsSync(dst) || !readFileSync(dst).equals(readFileSync(src))) {
+      const tmp = join(dirname(dst), `.${basename(dst)}.restore-${process.pid}`);
+      cpSync(src, tmp, { preserveTimestamps: true });
+      renameSync(tmp, dst);
+    }
+    const st = statSync(src);
+    utimesSync(dst, st.atime, st.mtime);
+  }
+};
+
+/** What one `--check` found. `inSync` is the verdict; the lists are what the drift lines name. */
+export type CheckReport = { inSync: boolean; failed: string | null; silent: string[]; unwritten: string[]; checked: number };
+
+/**
+ * The drift gate. It REPORTS and never rewrites, on every path (#4199): the snapshot is restored in `finally`, after a
+ * step that failed as much as after a clean run, and the temp directory goes with it. It returns rather than exits,
+ * so the CLI sets the exit code once the tree is back, and `test.ts` can drive it with stub `steps` (#4198).
+ */
+export const check = (steps: readonly Step[] = STEPS, { quiet = false }: { quiet?: boolean } = {}): CheckReport => {
+  const say = quiet ? QUIET : LOUD;
+  const line = (s: string) => say.err(`${s}\n`);
   const tmp = mkdtempSync(join(tmpdir(), 'prism3-regen-'));
   const outSnap = join(tmp, 'out');
   const schemaSnap = join(tmp, 'schema');
@@ -239,23 +320,17 @@ const check = (): void => {
   const reportDir = join(repoRoot, REPORTS_DIR);
   const referenceSnap = join(tmp, 'reference');
   const referenceDir = join(repoRoot, REFERENCE_DIR);
+  const report: CheckReport = { inSync: false, failed: null, silent: [], unwritten: [], checked: 0 };
+  // Set once every snapshot is complete. The restore runs only then: a restore from a half-taken snapshot would delete
+  // what it never copied. Nothing is aged or regenerated before it is set.
+  let snapped = false;
+  let reportsBefore: string[] = [], referenceBefore: string[] = [];
+  const drifted: string[] = [];
+  const added: string[] = [];
+  const removed: string[] = [];
+  let namedUnwritten: string[] = [], onDemandWritten: string[] = [], onDemandTracked: string[] = [];
+  let uncommittedMissing: string[] = [], uncommittedTracked: string[] = [];
   try {
-    cpSync(outDir, outSnap, { recursive: true, preserveTimestamps: true });
-    mkdirSync(schemaSnap, { recursive: true });
-    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaDir, f), join(schemaSnap, f), { preserveTimestamps: true });
-    mkdirSync(engineSnap, { recursive: true });
-    for (const f of ENGINE_ARTIFACTS) cpSync(join(here, f), join(engineSnap, f), { preserveTimestamps: true });
-    // A report that is not committed yet is a `missing` artifact, not a crash: snapshot only what exists.
-    mkdirSync(reportSnap, { recursive: true });
-    const reportsBefore = REPORT_ARTIFACTS.filter((f) => existsSync(join(reportDir, f)));
-    for (const f of reportsBefore) cpSync(join(reportDir, f), join(reportSnap, f), { preserveTimestamps: true });
-    mkdirSync(referenceSnap, { recursive: true });
-    const referenceBefore = REFERENCE_ARTIFACTS.filter((f) => existsSync(join(referenceDir, f)));
-    for (const f of referenceBefore) cpSync(join(referenceDir, f), join(referenceSnap, f), { preserveTimestamps: true });
-    // An on-demand file's mtime, or null when there is none — compared after regenerate() to catch a step that writes it.
-    const onDemandStamp = (f: string): number | null => (existsSync(join(outDir, f)) ? statSync(join(outDir, f)).mtimeMs : null);
-    const onDemandBefore = ON_DEMAND_OUT.map(onDemandStamp);
-
     // An on-demand file must not be tracked by git either (review on #2685). Both walks skip the name, so a copy
     // committed by `git add -f`, a lost .gitignore line or a conflict resolved toward an older branch would otherwise
     // go stale unseen. Read from the index, not the disk: a local, ignored copy is expected. A git that cannot answer
@@ -264,29 +339,42 @@ const check = (): void => {
     // The same question for the uncommitted exports (#3698 R3): regen writes them, git must not track them.
     const lsUncommitted = spawnSync('git', ['ls-files', '--', ...UNCOMMITTED_OUT.map((f) => `packages/engine/out/${f}`)], { cwd: repoRoot, encoding: 'utf8' });
     if (lsUncommitted.status !== 0) {
-      console.error(`\n✗ cannot tell whether an uncommitted export is committed — git ls-files exited ${lsUncommitted.status}: ${(lsUncommitted.stderr || '').trim()}`);
-      rmSync(tmp, { recursive: true, force: true });
-      process.exit(1);
+      line(`\n✗ cannot tell whether an uncommitted export is committed — git ls-files exited ${lsUncommitted.status}: ${(lsUncommitted.stderr || '').trim()}`);
+      return report;
     }
-    const uncommittedTracked = lsUncommitted.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
+    uncommittedTracked = lsUncommitted.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
     if (lsFiles.status !== 0) {
-      console.error(`\n✗ cannot tell whether an on-demand file is committed — git ls-files exited ${lsFiles.status}: ${(lsFiles.stderr || '').trim()}`);
-      rmSync(tmp, { recursive: true, force: true });
-      process.exit(1);
+      line(`\n✗ cannot tell whether an on-demand file is committed — git ls-files exited ${lsFiles.status}: ${(lsFiles.stderr || '').trim()}`);
+      return report;
     }
-    const onDemandTracked = lsFiles.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
+    onDemandTracked = lsFiles.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
+
+    cpSync(outDir, outSnap, { recursive: true, preserveTimestamps: true });
+    mkdirSync(schemaSnap, { recursive: true });
+    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaDir, f), join(schemaSnap, f), { preserveTimestamps: true });
+    mkdirSync(engineSnap, { recursive: true });
+    for (const f of ENGINE_ARTIFACTS) cpSync(join(here, f), join(engineSnap, f), { preserveTimestamps: true });
+    // A report that is not committed yet is a `missing` artifact, not a crash: snapshot only what exists.
+    mkdirSync(reportSnap, { recursive: true });
+    reportsBefore = REPORT_ARTIFACTS.filter((f) => existsSync(join(reportDir, f)));
+    for (const f of reportsBefore) cpSync(join(reportDir, f), join(reportSnap, f), { preserveTimestamps: true });
+    mkdirSync(referenceSnap, { recursive: true });
+    referenceBefore = REFERENCE_ARTIFACTS.filter((f) => existsSync(join(referenceDir, f)));
+    for (const f of referenceBefore) cpSync(join(referenceDir, f), join(referenceSnap, f), { preserveTimestamps: true });
+    snapped = true;
+    // An on-demand file's mtime, or null when there is none — compared after regenerate() to catch a step that writes it.
+    const onDemandStamp = (f: string): number | null => (existsSync(join(outDir, f)) ? statSync(join(outDir, f)).mtimeMs : null);
+    const onDemandBefore = ON_DEMAND_OUT.map(onDemandStamp);
 
     // Age every committed artifact to the epoch first (#1059), so "a step wrote it" is a changed mtime that no clock
     // granularity can hide. The snapshot above kept the real timestamps, and the restore below puts them back.
     const committed = artifactPaths();
     for (const p of committed) utimesSync(p, 0, 0);
-    const { written, silent } = regenerate();
+    const { written, silent } = regenerate(steps, say);
+    report.silent = silent;
     // Committed, still on disk, and written by no step: the copy is a corpse the byte comparison would read as in sync.
     const unwritten = committed.filter((p) => existsSync(p) && !written.has(p)).map((p) => relative(repoRoot, p));
-
-    const drifted: string[] = [];
-    const added: string[] = [];
-    const removed: string[] = [];
+    report.unwritten = unwritten;
 
     // out/ — generated wholesale, so the whole tree is the comparison universe.
     const before = new Map(walk(outSnap).map((p) => [relative(outSnap, p), p]));
@@ -302,12 +390,12 @@ const check = (): void => {
     for (const f of unwritten) if (f.startsWith('packages/engine/out/') && !UNCOMMITTED_OUT.includes(f.slice('packages/engine/out/'.length))) removed.push(f);
     // The named lists (schema/, engine root, reports, reference): fixed paths, compared pairwise, so before #1059 they
     // had no removal concept at all. A named artifact no step wrote is stale exactly as an `out/` one is.
-    const namedUnwritten = unwritten.filter((f) => !f.startsWith('packages/engine/out/'));
+    namedUnwritten = unwritten.filter((f) => !f.startsWith('packages/engine/out/'));
     // out/ — the on-demand files: regen must not write them at all (Q319.6).
-    const onDemandWritten = ON_DEMAND_OUT.filter((f, i) => onDemandStamp(f) !== onDemandBefore[i]).map((f) => `packages/engine/out/${f}`);
+    onDemandWritten = ON_DEMAND_OUT.filter((f, i) => onDemandStamp(f) !== onDemandBefore[i]).map((f) => `packages/engine/out/${f}`);
     // out/ — the uncommitted exports: regen must still write every one (#3698 R3). Read before the restore below.
     // An old copy on disk is not evidence of emission (#1059): the export must have been WRITTEN by this run.
-    const uncommittedMissing = UNCOMMITTED_OUT.map((f) => `packages/engine/out/${f}`).filter((f) => !written.has(join(repoRoot, f)));
+    uncommittedMissing = UNCOMMITTED_OUT.map((f) => `packages/engine/out/${f}`).filter((f) => !written.has(join(repoRoot, f)));
 
     // schema/ — only the named emitted files; the hand-authored contracts alongside them are not ours.
     for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) {
@@ -327,52 +415,66 @@ const check = (): void => {
       if (!referenceBefore.includes(f)) { added.push(`${REFERENCE_DIR}/${f}`); continue; }
       if (!readFileSync(join(referenceSnap, f)).equals(readFileSync(join(referenceDir, f)))) drifted.push(`${REFERENCE_DIR}/${f}`);
     }
-
-    // Restore the committed state either way — the gate reports, it never rewrites. Every copy, the
-    // snapshot and the restore, keeps its timestamps (#2067): without that, a clean `--check` left each
-    // artifact newer than a bundle built just before it, and `assertBundleFresh` refused that bundle as
-    // stale. `icon-glyphs.ts` compiles into both bundles, and a `--check` run after a build must not leave it stale.
-    rmSync(outDir, { recursive: true, force: true });
-    cpSync(outSnap, outDir, { recursive: true, preserveTimestamps: true });
-    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaSnap, f), join(schemaDir, f), { preserveTimestamps: true });
-    for (const f of ENGINE_ARTIFACTS) cpSync(join(engineSnap, f), join(here, f), { preserveTimestamps: true });
-    for (const f of REPORT_ARTIFACTS) {
-      if (reportsBefore.includes(f)) cpSync(join(reportSnap, f), join(reportDir, f), { preserveTimestamps: true });
-      else rmSync(join(reportDir, f), { force: true });
-    }
-    for (const f of REFERENCE_ARTIFACTS) {
-      if (referenceBefore.includes(f)) cpSync(join(referenceSnap, f), join(referenceDir, f), { preserveTimestamps: true });
-      else rmSync(join(referenceDir, f), { force: true });
-    }
-
-    const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length + REPORT_ARTIFACTS.length + REFERENCE_ARTIFACTS.length;
-    if (!silent.length && !drifted.length && !added.length && !removed.length && !namedUnwritten.length && !onDemandWritten.length && !onDemandTracked.length && !uncommittedMissing.length && !uncommittedTracked.length) {
-      console.log(`\n✓ in sync — ${checked} committed artifacts byte-match what the engine emits.`);
-      // #3698 R4: CI's coverage step reads this count instead of running `--check` a second time. Written only
-      // in sync, so a drifted or failed run leaves no file and the coverage step fails on reading nothing.
-      if (process.env.REGEN_CHECK_REPORT) writeFileSync(process.env.REGEN_CHECK_REPORT, `${checked} committed artifacts\n`);
-      return;
-    }
-    console.error('\n✗ committed artifacts have DRIFTED from what the engine emits:');
-    for (const f of drifted) console.error(`    changed  ${f}`);
-    for (const f of added) console.error(`    missing  ${f}  (engine emits it; not committed)`);
-    for (const f of removed) console.error(`    stale    ${f}  (committed; engine no longer emits it)`);
-    for (const f of namedUnwritten) console.error(`    stale    ${f}  (committed; no regen step wrote it — #1059)`);
-    silentLines(silent);
-    for (const f of onDemandWritten) console.error(`    on-demand ${f}  (regen wrote it; it is built on demand and never committed — ON_DEMAND_OUT, Q319.6)`);
-    for (const f of onDemandTracked) console.error(`    on-demand ${f}  (git tracks it; it is built on demand and never committed — ON_DEMAND_OUT, Q319.6)`);
-    for (const f of uncommittedMissing) console.error(`    unwritten ${f}  (regen no longer emits it; it is generated and never committed — UNCOMMITTED_OUT, #3698 R3)`);
-    for (const f of uncommittedTracked) console.error(`    uncommitted ${f}  (git tracks it; it is generated and never committed — UNCOMMITTED_OUT, #3698 R3)`);
-    if (drifted.length || added.length || removed.length) console.error('\n  Fix: npx tsx packages/engine/regen.ts   then commit the result (git rm a stale file).');
-    silentFix(silent);
-    if (namedUnwritten.length) console.error('\n  Fix: the step that emits it must still write it, or take it out of its artifact list and every reader.');
-    if (onDemandWritten.length) console.error('\n  Fix: take the step that writes it out of STEPS; an on-demand file is built by its own command, never by regen.');
-    if (onDemandTracked.length || uncommittedTracked.length) console.error('\n  Fix: git rm --cached <file>, and keep its line in .gitignore.');
-    if (uncommittedMissing.length) console.error('\n  Fix: emit-component-docs.ts must still write it, or take it out of UNCOMMITTED_OUT and every reader.');
-    process.exit(1);
+    report.checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length + REPORT_ARTIFACTS.length + REFERENCE_ARTIFACTS.length;
+  } catch (e) {
+    if (!(e instanceof StepFailed)) throw e;
+    report.failed = e.message;
   } finally {
-    rmSync(tmp, { recursive: true, force: true });
+    // Restore the committed state either way — the gate reports, it never rewrites, and a step that FAILED is "either
+    // way" too (#4199): a restore after the try block was skipped by the old `process.exit` inside it. Every copy, the
+    // snapshot and the restore, keeps its timestamps (#2067): without that, a clean `--check` left each artifact newer
+    // than a bundle built just before it, and `assertBundleFresh` refused that bundle as stale. `icon-glyphs.ts`
+    // compiles into both bundles, and a `--check` run after a build must not leave it stale. `out/` is put back IN
+    // PLACE, never deleted and recopied (#2029): a build reading it meanwhile must find it.
+    try {
+      if (snapped) {
+        restoreTree(outSnap, outDir);
+        for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaSnap, f), join(schemaDir, f), { preserveTimestamps: true });
+        for (const f of ENGINE_ARTIFACTS) cpSync(join(engineSnap, f), join(here, f), { preserveTimestamps: true });
+        for (const f of REPORT_ARTIFACTS) {
+          if (reportsBefore.includes(f)) cpSync(join(reportSnap, f), join(reportDir, f), { preserveTimestamps: true });
+          else rmSync(join(reportDir, f), { force: true });
+        }
+        for (const f of REFERENCE_ARTIFACTS) {
+          if (referenceBefore.includes(f)) cpSync(join(referenceSnap, f), join(referenceDir, f), { preserveTimestamps: true });
+          else rmSync(join(referenceDir, f), { force: true });
+        }
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   }
+
+  if (report.failed) {
+    line(`\n✗ regen --check could not finish: a step failed (${report.failed}). The committed artifacts are back as they were.`);
+    return report;
+  }
+  const { silent, checked } = report;
+  if (!silent.length && !drifted.length && !added.length && !removed.length && !namedUnwritten.length && !onDemandWritten.length && !onDemandTracked.length && !uncommittedMissing.length && !uncommittedTracked.length) {
+    say.out(`\n✓ in sync — ${checked} committed artifacts byte-match what the engine emits.\n`);
+    // #3698 R4: CI's coverage step reads this count instead of running `--check` a second time. Written only
+    // in sync, so a drifted or failed run leaves no file and the coverage step fails on reading nothing.
+    if (process.env.REGEN_CHECK_REPORT && !quiet) writeFileSync(process.env.REGEN_CHECK_REPORT, `${checked} committed artifacts\n`);
+    report.inSync = true;
+    return report;
+  }
+  line('\n✗ committed artifacts have DRIFTED from what the engine emits:');
+  for (const f of drifted) line(`    changed  ${f}`);
+  for (const f of added) line(`    missing  ${f}  (engine emits it; not committed)`);
+  for (const f of removed) line(`    stale    ${f}  (committed; engine no longer emits it)`);
+  for (const f of namedUnwritten) line(`    stale    ${f}  (committed; no regen step wrote it — #1059)`);
+  silentLines(silent, say);
+  for (const f of onDemandWritten) line(`    on-demand ${f}  (regen wrote it; it is built on demand and never committed — ON_DEMAND_OUT, Q319.6)`);
+  for (const f of onDemandTracked) line(`    on-demand ${f}  (git tracks it; it is built on demand and never committed — ON_DEMAND_OUT, Q319.6)`);
+  for (const f of uncommittedMissing) line(`    unwritten ${f}  (regen no longer emits it; it is generated and never committed — UNCOMMITTED_OUT, #3698 R3)`);
+  for (const f of uncommittedTracked) line(`    uncommitted ${f}  (git tracks it; it is generated and never committed — UNCOMMITTED_OUT, #3698 R3)`);
+  if (drifted.length || added.length || removed.length) line('\n  Fix: npx tsx packages/engine/regen.ts   then commit the result (git rm a stale file).');
+  silentFix(silent, say);
+  if (namedUnwritten.length) line('\n  Fix: the step that emits it must still write it, or take it out of its artifact list and every reader.');
+  if (onDemandWritten.length) line('\n  Fix: take the step that writes it out of STEPS; an on-demand file is built by its own command, never by regen.');
+  if (onDemandTracked.length || uncommittedTracked.length) line('\n  Fix: git rm --cached <file>, and keep its line in .gitignore.');
+  if (uncommittedMissing.length) line('\n  Fix: emit-component-docs.ts must still write it, or take it out of UNCOMMITTED_OUT and every reader.');
+  return report;
 };
 
 // Run the CLI only when invoked directly — not when another module imports the ARTIFACTS constants.
@@ -383,11 +485,16 @@ const check = (): void => {
 // Same guard, and the same reason, as `materialise-to-figma.ts` — which already carries it precisely
 // so `test.ts` can import `aliasRows` without running a CLI.
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv.includes('--check')) { console.log('Checking committed artifacts for drift…'); check(); }
+  if (process.argv.includes('--check')) { console.log('Checking committed artifacts for drift…'); process.exitCode = check().inSync ? 0 : 1; }
   else {
     console.log('Regenerating committed artifacts…');
-    const { silent } = regenerate();
-    if (silent.length) { console.error('\n✗ a regen step wrote nothing:'); silentLines(silent); silentFix(silent); process.exit(1); }
-    console.log('\n✓ regenerated.');
+    try {
+      const { silent } = regenerate();
+      if (silent.length) { console.error('\n✗ a regen step wrote nothing:'); silentLines(silent); silentFix(silent); process.exitCode = 1; }
+      else console.log('\n✓ regenerated.');
+    } catch (e) {
+      if (!(e instanceof StepFailed)) throw e;
+      process.exitCode = 1;
+    }
   }
 }

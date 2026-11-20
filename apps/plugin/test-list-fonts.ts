@@ -14,7 +14,9 @@ import { listFamilies, listFamilyStyleCounts, listFamilyStyleNames } from './src
 import type { FontsApi } from './src/list-fonts';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -97,5 +99,5 @@ const agree = await Promise.all([listFamilyStyleCounts(shim(pairs)), listFamilyS
 ok(agree[0].map((c) => `${c.family}:${c.styles}`).join('|') === agree[1].map((c) => `${c.family}:${c.styles.length}`).join('|'),
   `each family's name count is its style count (${agree[1].map((c) => `${c.family}:${c.styles.length}`).join('|')})`);
 
-console.log(failed === 0 ? '\nplugin FONT-LIST reader: ALL PASS' : `\nplugin FONT-LIST reader: ${failed} FAILED`);
+console.log(`${failed === 0 ? '\nplugin FONT-LIST reader: ALL PASS' : `\nplugin FONT-LIST reader: ${failed} FAILED`} — ${executed} assertions executed`);
 if (failed > 0) process.exit(1);

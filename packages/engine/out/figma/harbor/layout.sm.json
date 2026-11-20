@@ -1,0 +1,120 @@
+{
+  "$collection": "layout",
+  "$mode": "sm",
+  "variables": [
+    {
+      "name": "hds/breakpoint/sm",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Min-width 0px (mobile-first). A frame at this breakpoint uses mobile type by default",
+      "value": 0,
+      "alias": null
+    },
+    {
+      "name": "hds/breakpoint/md",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Min-width 768px (mobile-first). A frame at this breakpoint uses mobile type by default",
+      "value": 768,
+      "alias": null
+    },
+    {
+      "name": "hds/breakpoint/lg",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Min-width 1024px (mobile-first). A frame at this breakpoint uses desktop type by default",
+      "value": 1024,
+      "alias": null
+    },
+    {
+      "name": "hds/breakpoint/xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Min-width 1440px (mobile-first). A frame at this breakpoint uses desktop type by default",
+      "value": 1440,
+      "alias": null
+    },
+    {
+      "name": "hds/breakpoint/2xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Min-width 1920px (mobile-first). A frame at this breakpoint uses desktop type by default",
+      "value": 1920,
+      "alias": null
+    },
+    {
+      "name": "hds/grid/columns",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "Grid columns by breakpoint: sm 4 · md 8 · lg–2xl 12",
+      "value": 4,
+      "alias": null
+    },
+    {
+      "name": "hds/grid/gutter",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Grid gutter by breakpoint: sm–md 16px · lg–xl 24px · 2xl 32px",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/space/200"
+      }
+    },
+    {
+      "name": "hds/grid/margin",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Grid margin by breakpoint: sm 16px · md–lg 24px · xl 32px · 2xl 48px",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "hds/space/200"
+      }
+    },
+    {
+      "name": "hds/container/max",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Content width cap — 1440px (fluid below it)",
+      "value": 1440,
+      "alias": null
+    },
+    {
+      "name": "hds/container/narrow",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Reading measure — 720px",
+      "value": 720,
+      "alias": null
+    },
+    {
+      "name": "hds/container/min",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Narrowest column — 320px, the reflow width",
+      "value": 320,
+      "alias": null
+    }
+  ]
+}

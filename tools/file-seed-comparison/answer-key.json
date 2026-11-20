@@ -1,0 +1,47 @@
+{
+  "$comment": "The expected seed for each test-set row, written by hand (#2075 part 2). Never generated: each value cites the source it was read from, and neither path's output is a source. A null color means the right seed declares none. `pending` rows have no snapshot yet: the read-only procedure in README.md produces them.",
+  "rows": {
+    "reference-brand": {
+      "kind": "repo: the reference brand's legacy Figma variable export (variables, no layers)",
+      "primary": { "l": 0.5418, "c": 0.2151, "h": 22.96, "source": "#CF0A2C, the hero red the reference brand's own brief pins (packages/engine/examples/nb-redesign.design.md `primary`); the file holds it as `color/red/550`" },
+      "accent": { "value": null, "source": "the brief declares no accent. The file names an amber `text/accent` role; a reader could defensibly propose it, so a pick here is scored `extra`, not `wrong`, and the findings discuss it" },
+      "families": { "display": "ITC Garamond Std", "body": "Proxima Nova", "source": "the file's `font/family/display` and `font/family/body` roles. The redesign brief moved body to another face; the key is what the FILE says" },
+      "density": { "value": "comfortable", "source": "`size/component/height-md` = 40px, nearest the comfortable 44px medium control" },
+      "radiusScale": { "bucket": "standard", "source": "`radius/md` = 4px = the engine's base md (scale 1). The redesign brief sets 0; the key is what the FILE says" },
+      "actionPalette": { "value": "neutral", "source": "the reference brand's own brief pins `actionPalette: neutral` (packages/engine/examples/nb-redesign.design.md, \"actions are black, not red\"); the file's `button/foreground/primary/default` and `interactive/text/default` alias `color/neutral/950`" }
+    },
+    "prism2": {
+      "kind": "repo: Prism 2's Figma variable export (variables, no layers, three modes)",
+      "primary": { "l": 0.4709, "c": 0.3001, "h": 266.75, "source": "#1E1EFF, `color/brand/primary/650`, which every `action/primary/*/rest` role and `text/brand/primary` point at (packages/engine/examples/prism3.design.md measures the same value)" },
+      "accent": { "l": 0.4763, "c": 0.2705, "h": 288.88, "source": "#6502E6, `color/brand/secondary/650`, which `text/brand/secondary` and `surface/brand/secondary` point at. `action/accent/*/rest` points two rungs darker (`/750`), so any rung of this ramp is a family match" },
+      "families": { "display": "Poppins", "body": "Inter", "source": "`font/family/display` → Poppins, `font/family/body` → Inter" },
+      "density": { "value": "comfortable", "source": "`size/component/height-md` = 44px" },
+      "radiusScale": { "bucket": "standard", "source": "`border/radius/button` = 4px; the default ramp reproduces Prism 2's container ramp 2/4/6/8/12/16 (packages/engine/scale.ts RADIUS_LADDER)" },
+      "actionPalette": { "value": "primary", "source": "every `action/primary/*/rest` role points at `color/brand/primary/650`, the primary" }
+    },
+    "emission-prism3": {
+      "kind": "repo: the engine's own Figma emission for the default theme (variables + text styles)",
+      "primary": { "l": 0.4709, "c": 0.3001, "h": 266.75, "source": "packages/engine/examples/prism3.design.md `primary`" },
+      "accent": { "l": 0.5573, "c": 0.2634, "h": 289.32, "source": "packages/engine/examples/prism3.design.md `brandColors.accent`" },
+      "families": { "display": "Playfair Display", "body": "Inter", "source": "packages/engine/examples/prism3.design.md `typography.families`" },
+      "density": { "value": "comfortable", "source": "packages/engine/examples/prism3.design.md `density`" },
+      "radiusScale": { "bucket": "standard", "source": "packages/engine/examples/prism3.design.md `radiusScale: 1`" },
+      "actionPalette": { "value": "primary", "source": "packages/engine/examples/prism3.design.md sets no `actionPalette` (action = primary, the default)" }
+    },
+    "emission-aurora": {
+      "kind": "repo: the engine's own Figma emission for the maximal example brand (variables + text styles)",
+      "primary": { "l": 0.5, "c": 0.18, "h": 285, "source": "packages/engine/examples/aurora.design.md `primary`" },
+      "accent": { "l": 0.55, "c": 0.15, "h": 235, "source": "packages/engine/examples/aurora.design.md `brandColors.accent` (the action palette)" },
+      "families": { "display": "Clash Display", "body": "Inter", "source": "packages/engine/examples/aurora.design.md `typography.families`" },
+      "density": { "value": "comfortable", "source": "packages/engine/examples/aurora.design.md `density`" },
+      "radiusScale": { "bucket": "round", "source": "packages/engine/examples/aurora.design.md `radiusScale: 2` (the `round` stop)" },
+      "actionPalette": { "value": "accent", "source": "packages/engine/examples/aurora.design.md `actionPalette: accent`" }
+    },
+    "external-variables-1": { "kind": "pending: a non-Prism3 Figma file WITH variables", "pending": true },
+    "external-variables-2": { "kind": "pending: a non-Prism3 Figma file WITH variables", "pending": true },
+    "external-variables-3": { "kind": "pending: a non-Prism3 Figma file WITH variables", "pending": true },
+    "external-raw-1": { "kind": "pending: a non-Prism3 Figma file WITHOUT variables", "pending": true },
+    "external-raw-2": { "kind": "pending: a non-Prism3 Figma file WITHOUT variables", "pending": true },
+    "external-raw-3": { "kind": "pending: a non-Prism3 Figma file WITHOUT variables", "pending": true }
+  }
+}

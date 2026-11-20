@@ -14,7 +14,7 @@
  * built from them. The provider-rule arms stay independent of these helpers and of each def's numbers (docs/34):
  * they type each provider's limits again from its guidelines.
  */
-import type { NestingRelation, PartDef } from './component-schema';
+import type { Mirror, NestingRelation, PartDef } from './component-schema';
 
 /** The size axis every branded button carries, medium first (the code default, #2752). */
 export const BRANDED_SIZES = ['medium', 'small', 'large'] as const;
@@ -62,6 +62,8 @@ export const markPart = (o: {
   note: string;
   /** Reads the def's literal record for a glyph tint (Q846 A, SignInButton only). */
   literal?: 'mark';
+  /** In right-to-left text (#3986). */
+  mirror?: Mirror;
 }): PartDef => ({
   kind: 'nest',
   nests: 'provider-logo',
@@ -70,6 +72,7 @@ export const markPart = (o: {
   aspectLock: true,
   fixedPaint: true,
   ...(o.literal ? { literal: o.literal } : {}),
+  ...(o.mirror ? { mirror: o.mirror } : {}),
   note: o.note,
 });
 

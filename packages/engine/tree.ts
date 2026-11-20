@@ -21,6 +21,13 @@ import { resolveAllModes, ModeResult, OPACITY_STEPS } from './modes';
 import { orderedRoleKeys } from './color-order';
 import { ENGINE_VERSION } from './version';
 
+/** A value the caller has established is present (a key just walked, a list known non-empty); a named throw,
+ *  not a silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`tree: ${what} is missing`);
+  return x;
+};
+
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
 const BLACK: RGB = { r: 0, g: 0, b: 0 };
 const round = (n: number, d = 4) => Math.round(n * 10 ** d) / 10 ** d;
@@ -229,7 +236,7 @@ const dimAlias = (path: string, description: string, extra: Record<string, unkno
 // starter; the engine applies the same reassembly in `familyOf` for its own preview,
 // and in the Figma emit for the variable description).
 const fontFamilyLeaf = (stack: string[], variable: boolean, description: string): Token => ({
-  $type: 'fontFamily', $value: stack[0], $description: description,
+  $type: 'fontFamily', $value: must(stack[0], 'a font stack\'s first family'), $description: description,
   $extensions: { prism3: { generated: true, variable, fallbackStack: stack.slice(1), figma: { kind: 'style-part', field: 'fontFamily', scope: 'FONT_FAMILY' } } },
 });
 // `font.family.<category>` is a semantic alias onto a typeface primitive — the same shape as
@@ -464,19 +471,19 @@ export const aliasFaults = (tree: any): { aliases: { path: string; ref: string; 
         const v = node.$value;
         if (typeof v === 'string') {
           const m = v.match(/^\{(.+)\}$/);
-          if (m) aliases.push({ path: path.join('.'), ref: m[1] });
+          if (m?.[1] !== undefined) aliases.push({ path: path.join('.'), ref: m[1] });
         } else if (v && typeof v === 'object' && !Array.isArray(v)) {
           // composite token (e.g. transition): validate aliases in sub-values
           for (const sv of Object.values(v)) if (typeof sv === 'string') {
             const m = sv.match(/^\{(.+)\}$/);
-            if (m) aliases.push({ path: path.join('.'), ref: m[1] });
+            if (m?.[1] !== undefined) aliases.push({ path: path.join('.'), ref: m[1] });
           }
         } else if (Array.isArray(v)) {
           // composite-array token (gradient stops): validate aliases in each entry's
           // sub-values (shadow layer arrays carry raw colours → no brace matches).
           for (const item of v) if (item && typeof item === 'object') for (const sv of Object.values(item)) if (typeof sv === 'string') {
             const m = sv.match(/^\{(.+)\}$/);
-            if (m) aliases.push({ path: path.join('.'), ref: m[1] });
+            if (m?.[1] !== undefined) aliases.push({ path: path.join('.'), ref: m[1] });
           }
         }
         // Per-mode value overrides: each $extensions.prism3.modes.<m> carries this mode's value —
@@ -493,7 +500,7 @@ export const aliasFaults = (tree: any): { aliases: { path: string; ref: string; 
         const pushRef = (v: unknown, mode?: string): void => {
           if (typeof v !== 'string') return;
           const m = v.match(/^\{(.+)\}$/);
-          if (m) aliases.push({ path: path.join('.'), ref: m[1], ...(mode ? { mode } : {}) });
+          if (m?.[1] !== undefined) aliases.push({ path: path.join('.'), ref: m[1], ...(mode ? { mode } : {}) });
         };
         const modeOv = node.$extensions?.prism3?.modes;
         if (modeOv && typeof modeOv === 'object' && !Array.isArray(modeOv)) {
@@ -512,7 +519,7 @@ export const aliasFaults = (tree: any): { aliases: { path: string; ref: string; 
         const resp = node.$extensions?.prism3?.responsive;
         if (resp?.fluid) for (const end of [resp.min, resp.max]) {
           const sv = end?.ref;
-          if (typeof sv === 'string') { const m = sv.match(/^\{(.+)\}$/); if (m) aliases.push({ path: path.join('.'), ref: m[1] }); }
+          if (typeof sv === 'string') { const m = sv.match(/^\{(.+)\}$/); if (m?.[1] !== undefined) aliases.push({ path: path.join('.'), ref: m[1] }); }
         }
         return;
       }
@@ -610,8 +617,9 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const m of modes) {
     for (const [key, r] of Object.entries(m.roles)) {
       if (!key.startsWith('glass.') || key === 'glass.surface') continue;
-      const [family, step] = r.path.slice(theme.namespace.length + 1).split('.');
+      const [family = '', stepOrNone] = r.path.slice(theme.namespace.length + 1).split('.');
       if (family === 'white-alpha' || family === 'black-alpha') continue;
+      const step = must(stepOrNone, `${key}'s alpha step (${r.path})`); // a glass role names `<family>-alpha.<step>`
       const node = (palette[family] ??= {});
       if (node[step]) continue;
       const source = family.replace(/-alpha$/, '').replace(/-(\d+)$/, '.$1');
@@ -647,7 +655,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const lightMode = byMode.get('light')!;
   const colorRoles: Record<string, any> = {};
   for (const roleKey of orderedRoleKeys(Object.keys(lightMode.roles))) {
-    const lr = lightMode.roles[roleKey];
+    const lr = must(lightMode.roles[roleKey], `light role '${roleKey}'`); // `roleKey` is one of its keys
     const modeOverrides: Record<string, any> = {};
     for (const m of OVERRIDE_MODES) {
       const rr = byMode.get(m)?.roles[roleKey];
@@ -683,8 +691,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       };
       const parts = roleKey.split('.');
       let node = colorRoles;
-      for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
-      node[parts[parts.length - 1]] = leaf;
+      for (const [i, seg] of parts.entries()) if (i < parts.length - 1) node = (node[seg] ??= {}); else node[seg] = leaf;
       continue;
     }
     // Elevation is not a colour group — a component composes a foreground tier +
@@ -696,8 +703,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     });
     const parts = roleKey.split('.'); // property-led, may nest (group / variant / state)
     let node = colorRoles;
-    for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
-    node[parts[parts.length - 1]] = leaf;
+    for (const [i, seg] of parts.entries()) if (i < parts.length - 1) node = (node[seg] ??= {}); else node[seg] = leaf;
   }
 
   /**
@@ -933,10 +939,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const lineBoxFrom: Record<string, string> = {};
   for (const c of theme.typography.composites) {
     if (c.group !== 'body') continue;
-    const rung = c.path.split('.')[1]; // 'body.md.default' → 'md'
+    const rung = must(c.path.split('.')[1], `${c.path}'s rung`); // 'body.md.default' → 'md'
     const px = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
-    if (bodyLineBox[rung] !== undefined && bodyLineBox[rung] !== px)
-      throw new Error(`control.size.${rung}.line-box is ambiguous: ${lineBoxFrom[rung]} gives ${bodyLineBox[rung]}px but ${c.path} gives ${px}px. Every body composite at one rung must share a size and line height (#1220).`);
+    const had = bodyLineBox[rung];
+    if (had !== undefined && had !== px)
+      throw new Error(`control.size.${rung}.line-box is ambiguous: ${lineBoxFrom[rung]} gives ${had}px but ${c.path} gives ${px}px. Every body composite at one rung must share a size and line height (#1220).`);
     bodyLineBox[rung] = px;
     lineBoxFrom[rung] ??= c.path;
   }
@@ -957,10 +964,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const from: Record<string, string> = {};
     for (const c of theme.typography.composites) {
       if (c.group !== group) continue;
-      const rung = c.path.split('.')[1]; // 'label.md.emphasis' → 'md'
+      const rung = must(c.path.split('.')[1], `${c.path}'s rung`); // 'label.md.emphasis' → 'md'
       const px = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
-      if (box[rung] !== undefined && box[rung] !== px)
-        throw new Error(`type.${group}.${rung}.line-box is ambiguous: ${from[rung]} gives ${box[rung]}px but ${c.path} gives ${px}px. Every ${group} composite at one rung must share a size and line height (#2586, as #1220).`);
+      const had = box[rung];
+      if (had !== undefined && had !== px)
+        throw new Error(`type.${group}.${rung}.line-box is ambiguous: ${from[rung]} gives ${had}px but ${c.path} gives ${px}px. Every ${group} composite at one rung must share a size and line height (#2586, as #1220).`);
       box[rung] = px;
       from[rung] ??= c.path;
     }
@@ -1030,12 +1038,12 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // `line-box`, one value per rung with NO per-mode override: a literal may not re-value by mode (#296), and the
     // Figma `control` collection is single-mode, so a `controlsByMode` brand (none in the corpus) keeps the default
     // mode's inset in a mode whose control is a different size. The code projection can compute it there.
+    // A rung with no body line box (no corpus brand, but a theme without that body rung) gets no `label-inset`.
     const rowLine = bodyLineBox[ROW_LABEL_RUNG[c.name] ?? ''];
-    const inset = (box: number) => Math.max(0, (box - rowLine) / 2);
     const rowInsets: Record<string, Token> = {};
     if (rowLine !== undefined) {
       const lr = ROW_LABEL_RUNG[c.name];
-      const li = inset(c.height);
+      const li = Math.max(0, (c.height - rowLine) / 2);
       rowInsets['label-inset'] = dimLeaf(li, `control.size.${c.name} label-inset — ${li}px, how far an option row's label starts below the top of its control cell: half of the ${c.height}px box less the ${rowLine}px \`type.body.${lr}\` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line.`);
     }
     // #1015 — the corner, clamped to this rung's own edge (see `controlRadiusLeaf` above).
@@ -1185,13 +1193,14 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // with it, which is the coupling #390's per-composite familyMap existed to work around.
   const family: Record<string, Token> = {};
   for (const f of ty.families) {
-    const slug = typefaceSlug(f.stack[0]);
-    const leaf = familySemanticAlias(`${root}.${CORE_TIER}.font.typeface.${slug}`, f.stack[0], `font family \u2014 ${f.group} \u2192 ${f.stack[0]}`);
+    const face = must(f.stack[0], `${f.group}'s first family`);
+    const slug = typefaceSlug(face);
+    const leaf = familySemanticAlias(`${root}.${CORE_TIER}.font.typeface.${slug}`, face, `font family \u2014 ${f.group} \u2192 ${face}`);
     const modeOverrides: Record<string, unknown> = {};
     for (const [mode, fams] of Object.entries(familiesByMode)) {
       const mf = fams.find((x) => x.group === f.group);
       if (!mf || stackKey(mf.stack) === stackKey(f.stack)) continue;   // same stack -> no diff -> no override
-      const mslug = typefaceSlug(mf.stack[0]);
+      const mslug = typefaceSlug(must(mf.stack[0], `${mf.group}'s first family in ${mode}`));
       modeOverrides[mode] = { $value: `{${root}.${CORE_TIER}.font.typeface.${mslug}}`, aliasOf: `${root}.${CORE_TIER}.font.typeface.${mslug}`, face: mf.stack[0] };
     }
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
@@ -1263,9 +1272,10 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const leaf = rungRoleAlias(`${root}.${CORE_TIER}.font.line-height.${lineHeightStepKey(lh.value)}`, lh.value,
       `line-height role '${lh.key}' → ${lh.value}× — a relative-emphasis name a mode may re-point; the step itself never changes`);
     const modes: Record<string, any> = {};
-    for (const [m, byRole] of Object.entries(ty.lineHeightRoleByMode ?? {}))
-      if (byRole[lh.key] !== undefined)
-        modes[m] = { $value: `{${root}.${CORE_TIER}.font.line-height.${lineHeightStepKey(byRole[lh.key])}}` };
+    for (const [m, byRole] of Object.entries(ty.lineHeightRoleByMode ?? {})) {
+      const to = byRole[lh.key];
+      if (to !== undefined) modes[m] = { $value: `{${root}.${CORE_TIER}.font.line-height.${lineHeightStepKey(to)}}` };
+    }
     if (Object.keys(modes).length) (leaf.$extensions as any).prism3.modes = modes;
     lineHeightRole[lh.key] = leaf;
   }
@@ -1274,9 +1284,10 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const leaf = rungRoleAlias(`${root}.${CORE_TIER}.font.letter-spacing.${letterSpacingStepKey(ls.em)}`, ls.em,
       `letter-spacing role '${ls.key}' → ${ls.em} × the font size — a relative-emphasis name a mode may re-point; the step itself never changes`);
     const modes: Record<string, any> = {};
-    for (const [m, byRole] of Object.entries(ty.letterSpacingRoleByMode ?? {}))
-      if (byRole[ls.key] !== undefined)
-        modes[m] = { $value: `{${root}.${CORE_TIER}.font.letter-spacing.${letterSpacingStepKey(byRole[ls.key])}}` };
+    for (const [m, byRole] of Object.entries(ty.letterSpacingRoleByMode ?? {})) {
+      const to = byRole[ls.key];
+      if (to !== undefined) modes[m] = { $value: `{${root}.${CORE_TIER}.font.letter-spacing.${letterSpacingStepKey(to)}}` };
+    }
     if (Object.keys(modes).length) (leaf.$extensions as any).prism3.modes = modes;
     letterSpacingRole[ls.key] = leaf;
   }
@@ -1293,15 +1304,14 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // primitive (title.xs and body.lg at 18px) — distinct by category/line-height/
   // weight, resolved via the composite, not the size. The shared ladder stays
   // single-source; font.size.* aliased_by then shows the overlap explicitly.
-  const faceOf: Record<string, string> = Object.fromEntries(ty.families.map((f) => [f.group, f.stack[0]]));
+  const faceOf: Record<string, string> = Object.fromEntries(ty.families.map((f) => [f.group, must(f.stack[0], `${f.group}'s first family`)]));
   const typeGroup: Record<string, any> = {};
   for (const c of ty.composites) {
-    const leaf = typographyLeaf(root, c, faceOf[c.group], ty.minViewport, ty.maxViewport, ty.underline);
+    const leaf = typographyLeaf(root, c, must(faceOf[c.group], `the '${c.group}' family`), ty.minViewport, ty.maxViewport, ty.underline);
     // Nest by the full composite path (group / size? / weight / link?).
     const parts = c.path.split('.');
     let node: Record<string, any> = typeGroup;
-    for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
-    node[parts[parts.length - 1]] = leaf;
+    for (const [i, seg] of parts.entries()) if (i < parts.length - 1) node = (node[seg] ??= {}); else node[seg] = leaf;
   }
   // #2586 — the label's alignment box (see `labelLineBox` above), a dimension beside the composites it
   // measures, baked and mode-free like `control.size.*.line-box`.

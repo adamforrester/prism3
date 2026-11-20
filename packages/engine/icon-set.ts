@@ -200,5 +200,23 @@ export const ICON_SOURCES: Record<string, string> = {
   'resize-grip': 'resize-grip',
 };
 
+/**
+ * THE GLYPHS THAT MIRROR IN RIGHT-TO-LEFT TEXT (#3986, owner decision Q-RTL1 A). AUTHORED: whether a glyph points a
+ * direction is a fact about its drawing, so a person writes it down, and every glyph not named here never mirrors.
+ *
+ * Read from the Icon def's own prose (directional glyphs mirror: back and forward; a clock stays a clock) and Link's
+ * (the arrow and the external icon mirror): every glyph that points left or right, the diagonals with them, and the
+ * external-link arrow. Up, down, a check, a close and every symbol stay as drawn. The owner approved the list on 2026-11-18
+ * (#4030); any icon set swapped in for this one brings its own (`icons/NOTICE.md`).
+ *
+ * A part whose `mirror` is `per-glyph` (the Icon's glyph, or a slot that holds an icon) mirrors exactly when its glyph
+ * is in this set. `test.ts` holds every name to `ICON_SOURCES`.
+ */
+export const RTL_MIRRORED_GLYPHS: ReadonlySet<string> = new Set([
+  'chevron-left', 'chevron-right',
+  'arrow-left', 'arrow-right', 'arrow-up-left', 'arrow-up-right', 'arrow-down-left', 'arrow-down-right',
+  'external-link-filled',
+]);
+
 /** Every glyph name this engine defines — the literal vocabulary `icon.name` is typed against. */
 export type IconName = keyof typeof ICON_SOURCES;

@@ -358,6 +358,13 @@ const migrateAxes = (brand: string): MigrateAxis[] => {
   return axes.filter((a) => a.planned.length > 0).map((a) => ({ ...a, owns: ownedCoreGroup(a.planned) }));
 };
 
+/** The planned names of every plan besides the palette that writes `core` — its dimension and font slices —
+ *  for `verify`'s unowned report (#3857), the slices the plugin hands `unownedCore` (#1109). */
+const otherCoreSlices = (brand: string): string[][] => [
+  ...floatPlans(brand).filter((p) => p.name === CORE_COLLECTION).map((p) => p.create.map((r) => r.name)),
+  ...fontVarPlans(brand).filter((p) => p.name === CORE_COLLECTION).map((p) => p.rows.map((r) => r.name)),
+];
+
 /** The variable plans every pass here reads, for the reference brand's tree on disk: exported so the plugin
  *  suite can run the plugin's executors over EXACTLY the plans this path pastes (#1024's parity gate). */
 export const variablePlans = (brand: string): { plan: WritePlan; floats: FloatCollectionPlan[]; fonts: VarCollectionPlan[]; motion: VarCollectionPlan[] } =>
@@ -389,7 +396,7 @@ const all=await figma.variables.getLocalVariablesAsync();
 for(const [cname,owns,root,tails] of AXES){
   const col=cols.find(c=>c.name===cname);
   const planned=tails.map(t=>root+'/'+t);
-  const byName=new Map(col?all.filter(v=>v.variableCollectionId===col.id&&(owns===null||coreGroupOf(v.name)===owns)).map(v=>[v.name,v]):[]);
+  const byName=new Map(col?all.filter(v=>v.variableCollectionId===col.id&&(owns===null||sliceGroupOf(cname,v.name,root,mig.rules,coreGroupOf)===owns)).map(v=>[v.name,v]):[]);
   renameVariables(mig,cname,byName,planned,rootOf(planned[0]));
 }
 return {axes:AXES.map(a=>a[0]+(a[1]?'/'+a[1]:'')),migrated:mig.outcomes.filter(o=>o.status==='migrated').map(o=>o.from+' -> '+o.to),refused:mig.outcomes.filter(o=>isRefusal(o.status)).map(o=>o.from+' -> '+o.to+': '+o.status),refusals:mig.refusals};
@@ -990,7 +997,7 @@ export const pruneReport = (existing: Iterable<string>, planned: Iterable<string
 // ---- pass: verify (API-probe read-back; the collapse guard + the #479 prune report live here) --
 /** The `verify` payload for a plan and its colour modes. Exported so the suite can RUN it in a shim
  *  over a plan no committed brand emits (a single-mode brand, #1687) — the same string the CLI prints. */
-export const verifyJs = (plan: WritePlan, modes: readonly string[]): string => {
+export const verifyJs = (plan: WritePlan, modes: readonly string[], otherCoreSlices: readonly (readonly string[])[]): string => {
   const PLANNED_PALETTE = plan.palette.map((r) => r.name);
   const PLANNED_COLOR = plan.color.create.map((r) => r.name);
   // The `core` tier segment, stated LITERALLY rather than imported from `theme.ts`'s `CORE_TIER`
@@ -1003,8 +1010,21 @@ export const verifyJs = (plan: WritePlan, modes: readonly string[]): string => {
   // is the correct one — so the filter is generated, not defaulted.
   const PALETTE_GROUP = ownedCoreGroup(PLANNED_PALETTE);
   const PALETTE_AXIS = axisLabel(CORE_COLLECTION, PLANNED_PALETTE);
-  const paletteFilter = PALETTE_GROUP === null ? '' : `&&coreGroup(v.name)===${JSON.stringify(PALETTE_GROUP)}`;
+  // Membership is read on the name the MATERIALIZATION rules carry a variable to (`sliceGroupOf`, #3857), as
+  // the plugin's `upsertCollection` reads it (#1109): an un-rooted `palette/x` the migrate pass did not move
+  // is in the palette slice, so the palette report names it.
+  const paletteFilter = PALETTE_GROUP === null ? '' : `&&slice(v.name)===${JSON.stringify(PALETTE_GROUP)}`;
+  // THE `core` VARIABLES NO SLICE OWNS (#3857, the plugin's `unownedCore`, #1109). Every plan writing `core`
+  // names its slice; a variable in none of them (a hand-made `<root>/core/<other>/*`, a group the engine no
+  // longer emits, an un-rooted name no rule routes into a slice) is in no other report. `null` when a slice
+  // spans the whole collection: then nothing is unowned.
+  const liveSlices = [PLANNED_PALETTE, ...otherCoreSlices].filter((sl) => sl.length > 0);
+  const sliceGroups = liveSlices.map((sl) => ownedCoreGroup(sl));
+  const OWNED_GROUPS = liveSlices.length && sliceGroups.every((g) => g !== null) ? sliceGroups : null;
+  const CORE_ROOT = liveSlices.length ? rootOf(liveSlices[0][0]) : '';
+  const UNOWNED_AXIS = `${CORE_COLLECTION}/other`;
   return `${PRELUDE}
+${renameRuntimeSrc()}
 const MODES=${JSON.stringify(modes)};
 const vars=await figma.variables.getLocalVariablesAsync();
 const col=await findCol('color');
@@ -1041,13 +1061,18 @@ const PLANNED_COLOR=${JSON.stringify(PLANNED_COLOR)};
 // palette plan on every single paste. \`coreGroup\` is positional — segment 2 of \`<root>/core/<group>/…\`
 // — so it never spells a root either.
 const coreGroup=(n)=>{const s=n.split('/');return s[1]===${JSON.stringify(CORE_TIER_SEGMENT)}?(s[2]||null):null;};
+const CORE_ROOT=${JSON.stringify(CORE_ROOT)};
+const slice=(n)=>sliceGroupOf(${JSON.stringify(CORE_COLLECTION)},n,CORE_ROOT,RULES,coreGroupOf);
 const palCol=await findCol(${JSON.stringify(CORE_COLLECTION)});
 const palVars=palCol?vars.filter(v=>v.variableCollectionId===palCol.id${paletteFilter}):[];
+const OWNED_GROUPS=${JSON.stringify(OWNED_GROUPS)};
+const unownedCore=palCol&&OWNED_GROUPS?vars.filter(v=>v.variableCollectionId===palCol.id&&!OWNED_GROUPS.includes(slice(v.name))).map(v=>v.name).sort():[];
 const orphanReason=(name,planned)=>planned.some(p=>p.indexOf(name+'/')===0)?'path now used as a group prefix, not a leaf':'no longer referenced by any current plan';
 const pruneReport=(existingNames,planned)=>{const keep=new Set(planned);return existingNames.filter(n=>!keep.has(n)).sort().map(n=>({name:n,reason:orphanReason(n,planned)}));};
 const orphans={
   ${JSON.stringify(PALETTE_AXIS)}:pruneReport(palVars.map(v=>v.name),PLANNED_PALETTE),
   'color':pruneReport(cvars.map(v=>v.name),PLANNED_COLOR),
+  ${JSON.stringify(UNOWNED_AXIS)}:pruneReport(unownedCore,[]),
 };
 return {
   colorVars:cvars.length,
@@ -1093,7 +1118,7 @@ const PASSES: Record<string, (b: string) => string[]> = {
   'dims-create': (b) => [dimsCreatePass(b)], 'dims-aliases': (b) => [dimsAliasesPass(b)],
   'font-vars': (b) => [fontVarsPass(b)], 'text-styles': (b) => [textStylesPass(b)],
   'motion-vars': (b) => [motionVarsPass(b)],
-  styles: (b) => [stylesPass(b)], verify: (b) => [verifyJs(planFor(b), colourModes(b))],
+  styles: (b) => [stylesPass(b)], verify: (b) => [verifyJs(planFor(b), colourModes(b), otherCoreSlices(b))],
 };
 // `migrate` first (#1024): a collection rename must land before any pass looks a collection up by name.
 // Then colour, then floats, then typography, then styles — WITHIN each lane create-before-alias is a hard

@@ -41,18 +41,20 @@ Shown on the default member: size `medium`, status `default`.
 
 Use a group of these for exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Always inside a Radio.Group, never alone: the group owns the shared name, the value and the validation. Prefer vertical orientation, which scans better and lets long labels wrap safely; reserve horizontal for a few short options and space them so no label associates with the wrong control. Compose FieldMessage at the group rather than per option.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Ship options inside a group — the group owns the shared name, the single value, validation and the tab stop
 - Give the group a label; without one, assistive tech announces "radio button, 1 of 3" with no idea what the choice is
 - Give an optional group an explicit "None" option — a radio cannot be deselected, so a stray click is otherwise permanent
-- Keep onChange cheap, since selection follows focus and a screen-reader user arrowing through fires it at every step
+- Keep `onChange` cheap, since selection follows focus and a screen-reader user arrowing through fires it at every step
 - On focus restore, focus the checked option rather than the first
 - Start empty to force a deliberate choice; pre-select only a genuinely safe default
 
 ### Don't
 
-- Set checked, onChange or name on an option — all three belong to the group, and an option setting its own name breaks exclusivity outright
+- Set checked, `onChange` or name on an option — all three belong to the group, and an option setting its own name breaks exclusivity outright
 - Make each option its own tab stop — the group is one stop with arrow navigation, and getting this wrong is the most common radio accessibility failure
 - Add toggle-off behavior — no-deselect is native and deliberate
 - Model an exclusive choice as several checkboxes, or a true/false toggle as two radios
@@ -61,9 +63,9 @@ Use a group of these for exactly one of 2 to 7 mutually exclusive, all-visible o
 
 ## Accessibility
 
-- **Keyboard:** The keyboard model is the opposite of Checkbox.Row's. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option. Implement with roving tabindex — one radio at tabindex="0" (the checked one, or the first if none), siblings at -1, with arrow handling moving focus, the 0, and calling .focus() — rather than aria-activedescendant, which is more verbose and prone to synchronization bugs. Making each radio its own tab stop is the most common radio accessibility failure. Native inputs sharing a name give the grouping, the exclusivity, the single tab stop and the arrow keys for free; native radios do not handle Home/End, so that jump is added in script.
-- **Focus:** :focus-visible ring on the control, offset, at least 3:1, keyboard traversal only — and circular, because the control is full-round and the ring is derived concentrically from it. The ring must appear instantly — fading it lags rapid arrow navigation. Selection follows focus by default: arrowing moves focus and selects, which is native \<input type="radio"> behavior and the APG default, and the catalog keeps native semantics rather than reimplementing them. The known cost is that a screen-reader user exploring the options fires onChange at every step; the answer is to keep radio onChange cheap — a radio selection must never trigger navigation or expensive work — and to decouple selection from focus only as a deliberate, documented exception. On focus restore into the group (a validation error, a legend click), focus the checked radio rather than blindly the first; if none is checked, the first non-disabled option.
-- **Screen readers:** radio (native \<input type="radio"> sharing a name), with aria-checked; the group carries role="radiogroup"
+- **Keyboard:** The keyboard model is the opposite of Checkbox.Row's. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option. Implement with roving `tabindex` — one radio at `tabindex="0"` (the checked one, or the first if none), siblings at `-1`, with arrow handling moving focus, the `0`, and calling `.focus()` — rather than `aria-activedescendant`, which is more verbose and prone to synchronization bugs. Making each radio its own tab stop is the most common radio accessibility failure. Native inputs sharing a name give the grouping, the exclusivity, the single tab stop and the arrow keys for free; native radios do not handle Home/End, so that jump is added in script.
+- **Focus:** `:focus-visible` ring on the control, offset, at least 3:1, keyboard traversal only — and circular, because the control is full-round and the ring is derived concentrically from it. The ring must appear instantly — fading it lags rapid arrow navigation. Selection follows focus by default: arrowing moves focus and selects, which is native `<input type="radio">` behavior and the APG default, and the catalog keeps native semantics rather than reimplementing them. The known cost is that a screen-reader user exploring the options fires `onChange` at every step; the answer is to keep radio `onChange` cheap — a radio selection must never trigger navigation or expensive work — and to decouple selection from focus only as a deliberate, documented exception. On focus restore into the group (a validation error, a legend click), focus the checked radio rather than blindly the first; if none is checked, the first non-disabled option.
+- **Screen readers:** radio (native `<input type="radio">` sharing a name), with `aria-checked`; the group carries `role="radiogroup"`
 
   Prefer the styled native input — appearance: none plus a pseudo-element or SVG keeps role, checked state, exclusivity and the single-tab-stop arrow-key model for free (Home/End is added in script; native radios ignore it). For the container, role="radiogroup" plus aria-labelledby is the default over fieldset/legend, for the same CSS-layout reason as Checkbox.Row. The group label is mandatory for meaning: without it assistive tech announces an orphaned "radio button, 1 of 3" with no indication of what is being chosen. Group error and required associate to the group and announce once; an option never owns its own error — its status is the group's, passed down, and the danger ring it draws is never the only signal. On mobile (Jetpack Compose) put the click target on the row rather than the dot — selectableGroup() on the parent, selectable(role = Role.RadioButton) on the row, and onClick = null on the RadioButton itself — or the control double-fires and assistive tech announces twice.
 
@@ -87,7 +89,7 @@ Use a group of these for exactly one of 2 to 7 mutually exclusive, all-visible o
 Option labels are parallel and brief; the detail that distinguishes them goes in the description. The group label names the decision. Errors are group-level and say what to do.
 
 - **Labels:** Parallel, mutually exclusive, scannable — the same grammatical shape across the set, brief, sentence case, no terminal punctuation, and no overlap that would let two options both apply. Long labels wrap rather than ellipsis-truncate, with the control centered within the first line-box so it stays on the first line rather than floating mid-paragraph. The group label names the decision or asks the question ("Shipping method", "How should we contact you?") and may be visually hidden when an enclosing labeled section already frames it, but must stay programmatically present.
-- **Errors:** Group-level and specific — "Select a preferred contact method", never "Invalid input" (SC 3.3.3). Never per-option: the group sets status=error on every option and shows the message once, under them.
+- **Errors:** Group-level and specific — "Select a preferred contact method", never "Invalid input" (SC 3.3.3). Never per-option: the group sets `status=error` on every option and shows the message once, under them.
 - **Empty states:** A group starts empty by default, so no option carries a pre-selected state — the practice forces a deliberate choice and pre-selects only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must therefore carry an explicit "None" or "N/A" option, or a stray click permanently pollutes the data with no way back. If a "None" option would corrupt the data model, the choice belongs in a clearable Select instead.
 
 ## Related components
@@ -97,7 +99,7 @@ Option labels are parallel and brief; the detail that distinguishes them goes in
 - **Often used with:** `radio-group`, `field-label`, `field-message`, `focus-ring`
 - **Replaces:**
   - a set of checkboxes misused for a mutually exclusive choice
-  - a bare \<input type="radio"> set with no group label
+  - a bare `<input type="radio">` set with no group label
   - two radios standing in for a true/false toggle
 
 ## Building it in code

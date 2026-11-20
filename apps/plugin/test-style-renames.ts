@@ -17,7 +17,8 @@
  * Mutations, each failing here by name: drop `renameStylesForPlan` from `apply-theme.ts` (the effect and paint arms
  * of "Apply Theme"); drop `renameTextStylesForPlan` from it (the text arm); drop either from `mcp-steps.ts` (the
  * "paste" arms); make `renameStyles` ignore ownership (the client-style arm); drop the client-at-target guard in
- * `renameStyles` (the "client at target" arm).
+ * `renameStyles` (the "client at target" arm); drop `styleRenamedNote(styleRenames)` from `main.ts`'s `renameNotes`, or
+ * count unapplied outcomes in `styleRenamedNote` (the "#1040 summary" arms).
  *
  * Run: `npx tsx apps/plugin/test-style-renames.ts`
  */
@@ -28,12 +29,14 @@ import { runApplyTheme, themePlans } from './src/apply-theme';
 import { pack, runStyles, runText } from './src/mcp-steps';
 import { brandFromDesignMd } from './mcp-paste';
 import { FileShim } from './file-shim';
-import { renameStyles } from './src/rename-styles';
+import { renameStyles, styleRenamedNote, type StyleRenameOutcome } from './src/rename-styles';
 import { isMarkedOwned, markOwned } from './src/provenance';
 
 let failed = 0;
 let passed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) { passed++; console.log(`  ✓ ${label}`); }
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -114,6 +117,10 @@ ok(plans.stylesPlan.paints.length > 0, `the fixture brand emits gradient paint s
   ok(client.name === `${OLD}${plans.textPlan[1].name}` && f.styles.text.some((x: any) => x.id === clientId)
     && result.some((o) => o.notOurs && o.from === client.name && !o.applied),
     `Apply Theme: a client's style a rule would move is reported and left as it is (${client.name})`);
+  // #1040 (owner decision A): the summary line names the three applied renames, and not the client's style.
+  const pairs = result.filter((o) => o.applied).map((o) => `${o.from}→${o.to}`).join(', ');
+  ok(styleRenamedNote(result) === `3 renamed styles migrated in place (layers kept: ${pairs})`,
+    `#1040 Apply Theme: the summary line counts the applied renames only — "${styleRenamedNote(result)}"`);
   // With the register empty again, a re-apply renames nothing and creates nothing: the pass is a no-op.
   const again = await runApplyTheme(input, f as any);
   ok(again.guarded.ok && again.guarded.result.styleRenames.length === 0 && f.styles.text.length === counts.text + 1,
@@ -168,5 +175,27 @@ ok(plans.stylesPlan.paints.length > 0, `the fixture brand emits gradient paint s
     + `(status ${row?.status ?? 'none'}, applied ${row?.applied}; names ${live.map((s) => `${s.id}=${s.name}`).join(', ')})`);
 }
 
-console.log(`\n${failed ? '✗' : '✓'} style renames: ${passed} passed, ${failed} failed`);
+/* ── the summary line (#1040, owner decision A; copy DRAFT) ────────────────────────────────────────── */
+// Literals, as the grid skip clause is tested (`test-write-grid-styles.ts`): the line, its singular, its cap at three
+// pairs, and its absence when nothing was applied — a refused or client outcome alone prints no line.
+{
+  const step = (from: string, to: string, applied: boolean, extra: Partial<StyleRenameOutcome> = {}): StyleRenameOutcome =>
+    ({ collection: 'text-styles', from, to, rules: ['r'], status: applied ? 'rename' : 'target-exists', applied, ...extra });
+  ok(styleRenamedNote([]) === '', '#1040 summary: no rename, no line');
+  ok(styleRenamedNote([step('a', 'b', false), step('c', 'd', false, { notOurs: true })]) === '',
+    '#1040 summary: a refused rename and a client\'s style print no line');
+  ok(styleRenamedNote([step('body/old', 'body/new', true), step('c', 'd', false)]) === '1 renamed style migrated in place (layers kept: body/old→body/new)',
+    `#1040 summary: one applied rename reads singular and names its pair — "${styleRenamedNote([step('body/old', 'body/new', true)])}"`);
+  const four = ['a', 'b', 'c', 'd'].map((x) => step(`${x}0`, `${x}1`, true));
+  ok(styleRenamedNote(four) === '4 renamed styles migrated in place (layers kept: a0→a1, b0→b1, c0→c1…)',
+    `#1040 summary: four renames read plural, capped at three pairs — "${styleRenamedNote(four)}"`);
+  // The Apply Theme summary carries the line: `main.ts` hands the apply's `styleRenames` to it among the clauses.
+  const mainSrc = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+  const clauses = mainSrc.slice(mainSrc.indexOf('fromClauses(['), mainSrc.indexOf('].map((x) => [\', \', x] as const)'));
+  const notes = mainSrc.slice(mainSrc.indexOf('const renameNotes = ['), mainSrc.indexOf('fromClauses(['));
+  ok(notes.includes('styleRenamedNote(styleRenames)') && clauses.includes('...renameNotes'),
+    '#1040 summary: the Apply Theme summary includes the style rename line (`styleRenamedNote(styleRenames)` in main.ts\'s `renameNotes`)');
+}
+
+console.log(`\n${failed ? '✗' : '✓'} style renames: ${passed} passed, ${failed} failed — ${executed} assertions executed`);
 if (failed) process.exit(1);

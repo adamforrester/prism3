@@ -2096,8 +2096,8 @@
         },
         "border": {
           "$type": "color",
-          "$value": "{hds.core.palette.neutral.200}",
-          "$description": "Disabled control border — muted neutral"
+          "$value": "{hds.core.palette.neutral.500}",
+          "$description": "Disabled control border — reduced contrast, legible; clears 3:1"
         }
       },
       "scrim": {
@@ -2886,8 +2886,8 @@
           },
           "border": {
             "$type": "color",
-            "$value": "{hds.core.palette.neutral.800}",
-            "$description": "Disabled control border on an inverse surface — muted neutral"
+            "$value": "{hds.core.palette.neutral.550}",
+            "$description": "Disabled control border on an inverse surface — reduced contrast, legible; clears 3:1"
           }
         },
         "field": {

@@ -13,7 +13,7 @@ The visible, persistent label above a form field — the field's accessible name
 
 - **Purpose:** Name a form field visibly and programmatically.
 - **Use when:** Above every field control — the accessible name for the input.
-- **Avoid when:** As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.
+- **Avoid when:** As a section heading or standalone text (use a heading) — this is bound to one control via `htmlFor`. Never omit it in favor of a placeholder.
 
 ## Anatomy
 
@@ -36,13 +36,13 @@ Shown on the default member: size `small`, emphasis `primary`, weight `regular`.
 
 ## Usage guidelines
 
-Place above every field as its accessible name. Wire htmlFor to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. The label reads in full-strength ink by default, so it leads and the placeholder in the field reads as the quieter hint; secondary steps it back where a label should not lead. In code the marker flows inline after the name, and the name wraps at the field's width.
+Place above every field as its accessible name. Wire `htmlFor` to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. The label reads in full-strength ink by default, so it leads and the placeholder in the field reads as the quieter hint; secondary steps it back where a label should not lead. In code the marker flows inline after the name, and the name wraps at the field's width.
 
 ### Do
 
 - Always render a label, even for search (visually-hidden, still in the DOM)
 - Keep it a short noun phrase in sentence case, no trailing colon
-- Set required consistently across a form, and back the marker with required / aria-required, or for a slider, "required" in the thumb's accessible name — never the marker alone
+- Set required consistently across a form, and back the marker with required / `aria-required`, or for a slider, "required" in the thumb's accessible name — never the marker alone
 
 ### Don't
 
@@ -52,7 +52,7 @@ Place above every field as its accessible name. Wire htmlFor to the field id. Se
 
 ## Accessibility
 
-- **Screen readers:** none (native \<label> element)
+- **Screen readers:** none (native `<label>` element)
 
   Prefer a native \<label for=id>; use aria-label / aria-labelledby only when a visible label genuinely cannot be shown (a search field with a hidden label — and it still exists in the DOM). The required marker is visual; the field carries required / aria-required, or for a slider, "required" in the thumb's accessible name, so the state is not marker-only.
 
@@ -78,7 +78,7 @@ Write the label as a noun or noun phrase in sentence case, three words or fewer,
 
 - **Often used with:** `text-field`, `password-field`, `search-field`, `card-number-field`, `textarea`, `select`, `checkbox-group`, `radio-group`, `segmented-control`, `counter`, `code-input`, `slider`, `field-message`
 - **Replaces:**
-  - an aria-label standing in for a visible label
+  - an `aria-label` standing in for a visible label
 
 ## Building it in code
 

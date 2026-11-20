@@ -19,7 +19,7 @@
  * cross-axis links are emitted as VARIABLE_ALIAS-by-name (space→dimension, size→dimension/space,
  * radius→dimension, layout grid→space), resolved by the executor's global name map.
  */
-import { Theme } from './theme';
+import { Theme, defaultTypeMode } from './theme';
 import { buildTree, at } from './tree';
 import {
   figmaDimensionDescription, figmaSpaceDescription, figmaRadiusDescription, figmaSizeDescription, figmaIconSizeDescription,
@@ -736,7 +736,9 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
         name: ns(`breakpoint/${bpKey}`),
         resolvedType: 'FLOAT',
         scopes: LAYOUT_BREAKPOINT_SCOPES,
-        description: figmaBreakpointDescription(pxFromValue(tree, leaf.$value)),
+        // #2935: with fluid type, each breakpoint says which `type-sets` mode its frames start from.
+        description: figmaBreakpointDescription(pxFromValue(tree, leaf.$value),
+          theme.typography.fluid ? defaultTypeMode(pxFromValue(tree, leaf.$value)) : undefined),
         value: pxFromValue(tree, leaf.$value),
         alias: null,
       });

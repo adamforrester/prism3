@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Button Hover Colors Wireframe</title>
+<meta name="description" content="DRAFT wireframe for #3116: outline and text button hover and pressed colors sit with each button set's other colors in Color › Interactive. Before and after, 1280 and 380, light and dark, with the questions still open.">
+<style>
+/* DRAFT wireframe for #3116 (owner decision 2026-11-18: A, unheld). Self-contained: no external scripts, fonts or images.
+   Every color on this page is a real Prism3 value, copied at main 2ef39ee6:
+   - the page and the frames' chrome use the Studio chrome's own --p3-* variables, read from the built Studio
+     (apps/studio, `npm run build`) in light and dark;
+   - the swatches, buttons and ratios use the example brand's resolved roles (examples/prism3.design.md through
+     brandTheme + resolveAllModes), one resolution per outline hover method, light and dark. */
+:root {
+  --bg-page: #ffffff; --levers-bg: #f7f7f7; --bar-bg: #e9e9e9; --fill-1: #e9e9e9; --fill-2: #dbdbdc;
+  --text: #0d0d0e; --text-2: #67696b; --line-1: #dbdbdc; --line-2: #67696b; --edge: #808284; --ctl-edge: #0d0d0e;
+  --focus: #1e1eff; --inv-bg: #0d0d0e; --inv-text: #f7f7f7; --bad: #a82e2e;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-page: #0d0d0e; --levers-bg: #171718; --bar-bg: #212123; --fill-1: #171718; --fill-2: #212123;
+    --text: #f7f7f7; --text-2: #808284; --line-1: #37383a; --line-2: #747678; --edge: #67696b; --ctl-edge: #f7f7f7;
+    --focus: #4f79fa; --inv-bg: #f7f7f7; --inv-text: #0d0d0e; --bad: #e34b49; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg-page: #0d0d0e; --levers-bg: #171718; --bar-bg: #212123; --fill-1: #171718; --fill-2: #212123;
+  --text: #f7f7f7; --text-2: #808284; --line-1: #37383a; --line-2: #747678; --edge: #67696b; --ctl-edge: #f7f7f7;
+  --focus: #4f79fa; --inv-bg: #f7f7f7; --inv-text: #0d0d0e; --bad: #e34b49; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg-page); color: var(--text); font: 15px/1.5 var(--sans); overflow-x: hidden; }
+main { max-width: 1180px; margin: 0 auto; padding: 0 16px 64px; }
+h1 { font-size: 26px; line-height: 1.2; margin: 24px 0 8px; }
+h2 { font-size: 20px; margin: 40px 0 8px; }
+h3 { font-size: 16px; margin: 0 0 6px; }
+p { margin: 8px 0; }
+code, .mono { font-family: var(--mono); font-size: 0.88em; overflow-wrap: anywhere; }
+a { color: var(--focus); }
+.muted { color: var(--text-2); }
+.flag { display: inline-block; font: 600 11px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text);
+  border: 1px dashed var(--line-2); border-radius: 4px; padding: 4px 6px; }
+.banner { margin-top: 16px; padding: 12px 14px; border: 1px dashed var(--line-2); background: var(--levers-bg); border-radius: 8px; }
+.qtag { display: inline-block; font: 600 11px/1 var(--sans); color: var(--inv-text); background: var(--inv-bg); border-radius: 4px; padding: 3px 5px; text-decoration: none; white-space: nowrap; }
+ul.tight { margin: 6px 0; padding-left: 20px; }
+ul.tight li { margin: 3px 0; }
+
+.controls { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+  padding: 10px 0; margin-top: 16px; background: var(--bg-page); border-bottom: 1px solid var(--line-1); }
+.controls label { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; }
+.controls select { font: inherit; font-size: 14px; background: var(--bg-page); color: var(--text); border: 1px solid var(--edge); border-radius: 6px; padding: 4px 6px; max-width: 100%; }
+select:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.pair { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 12px; }
+.pair.narrow { grid-template-columns: repeat(auto-fit, minmax(min(100%, 382px), 1fr)); }
+.pair.narrow .fit { max-width: 382px; }
+.cap { font-size: 13px; color: var(--text-2); margin: 0 0 6px; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.cap strong { color: var(--text); }
+.fit { position: relative; overflow: hidden; border: 1px solid var(--line-1); border-radius: 8px; }
+.fit > .frame { transform-origin: 0 0; position: absolute; left: 0; top: 0; }
+
+/* ── the frame: a mock of the Studio shell, painted with the frame's own scheme ─────────────────── */
+.frame { background: var(--f-page); color: var(--f-text); font: 13px/1.45 var(--sans); }
+.f-bar { height: 56px; background: var(--f-bar); border-bottom: 1px solid var(--f-line); display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+.f-brand { display: inline-flex; gap: 8px; align-items: center; border: 1px solid var(--f-edge); border-radius: 6px; padding: 6px 10px; background: var(--f-page); font-weight: 600; }
+.f-brand i { width: 14px; height: 14px; border-radius: 3px; background: var(--b-fill-rest); display: inline-block; }
+.f-body { display: flex; align-items: stretch; }
+.f-rail { width: 60px; flex: none; border-right: 1px solid var(--f-line); background: var(--f-page); }
+.f-rail i { display: block; width: 24px; height: 24px; margin: 14px auto 0; border-radius: 6px; background: var(--f-fill2); }
+.f-levers { background: var(--f-levers); flex: none; padding: 0 24px 24px; }
+.f-tabs { display: flex; gap: 16px; height: 56px; align-items: center; border-bottom: 1px solid var(--f-line); margin: 0 -24px 12px; padding: 0 16px; color: var(--f-text2); }
+.f-tabs .on { color: var(--f-text); box-shadow: inset 0 -2px 0 var(--f-text); padding: 18px 0; }
+.f-sub { display: flex; background: var(--f-fill1); border-radius: 8px; padding: 2px; margin-bottom: 16px; }
+.f-sub span { flex: 1; text-align: center; padding: 6px 4px; border-radius: 6px; color: var(--f-text); }
+.f-sub .on { background: var(--f-page); outline: 1px solid var(--f-ctl); }
+.f-intro { color: var(--f-text2); margin: 0 0 10px; }
+.f-jump { margin: 0 0 16px; } .f-jump u { margin-left: 12px; }
+.card { background: var(--f-page); border: 1px solid var(--f-line); border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
+.card h4 { font-size: 15px; margin: 0; font-weight: 600; }
+.card h4 small { font-weight: 400; color: var(--f-text2); font-size: 12px; }
+.card .desc { color: var(--f-text2); margin: 2px 0 14px; }
+.lever { margin: 16px 0 0; }
+.lever > b { display: block; font-weight: 600; margin-bottom: 6px; }
+.chips { display: flex; flex-direction: column; background: var(--f-fill1); border-radius: 8px; padding: 2px; }
+.chips.row { flex-direction: row; flex-wrap: wrap; }
+.chips span { padding: 6px 8px; text-align: center; border-radius: 6px; }
+.chips.row span { flex: 1 1 auto; }
+.chips .on { background: var(--f-page); outline: 1px solid var(--f-ctl); }
+.sel { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 1px solid var(--f-edge); border-radius: 6px; padding: 7px 12px; background: var(--f-page); min-width: 0; }
+.sel::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--f-text2); border-bottom: 1.5px solid var(--f-text2); transform: rotate(45deg) translateY(-2px); flex: none; }
+.sel .r { font-family: var(--mono); font-size: 12px; color: var(--f-text2); margin-left: auto; }
+.sel.off { color: var(--f-text2); }
+.fl { color: var(--f-text); margin: 10px 0 4px; display: block; }
+.hint { color: var(--f-text2); margin: 8px 0 0; }
+.switch { width: 44px; height: 22px; border-radius: 11px; border: 1.5px solid var(--f-edge); position: relative; }
+.switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 13px; height: 13px; border-radius: 50%; background: var(--f-text2); }
+.modeline { color: var(--f-text2); margin: 4px 0 12px; }
+.grp { border-top: 1px solid var(--f-line); padding-top: 14px; margin-top: 16px; position: relative; }
+.grp:first-of-type { border-top: 0; }
+.grp > b { display: block; font-weight: 600; margin-bottom: 8px; }
+.row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; margin: 8px 0; }
+.row.nest { margin-left: 24px; }
+.sw { width: 40px; height: 40px; border-radius: 4px; border: 1px solid var(--f-line); position: relative; overflow: hidden; background: var(--f-page); }
+.sw > i { position: absolute; inset: 0; }
+.row .nm { min-width: 0; } .row .nm span { display: block; } .row .nm code { color: var(--f-text2); font-size: 11px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.collapsed { display: flex; gap: 6px; align-items: center; color: var(--f-text2); font-size: 12px; }
+.collapsed i { width: 18px; height: 18px; border-radius: 3px; border: 1px solid var(--f-line); display: inline-block; }
+.pickrow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.pickrow .fl { margin-top: 0; }
+.mark { outline: 2px dashed var(--focus); outline-offset: 6px; border-radius: 4px; }
+.badge { position: absolute; right: 0; top: 12px; font: 600 10px/1 var(--sans); letter-spacing: .05em; text-transform: uppercase; color: var(--f-page); background: var(--f-text); border-radius: 3px; padding: 3px 5px; }
+.f-preview { flex: 1; min-width: 0; padding: 24px 32px; background: var(--f-page); border-left: 1px solid var(--f-line); }
+.f-preview h5 { font-size: 20px; margin: 0 0 16px; }
+.pv { border: 1px solid var(--f-line); border-radius: 8px; padding: 16px; }
+.pvrow { display: grid; grid-template-columns: 90px repeat(3, minmax(0, 1fr)); gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--f-line); }
+.pvrow:first-child { border-top: 0; }
+.pvrow small { color: var(--f-text2); display: block; margin-top: 4px; font-size: 11px; }
+.btn { display: inline-block; padding: 9px 18px; border-radius: 6px; font-weight: 600; text-align: center; border: 1.5px solid transparent; }
+.gap-note { margin: 10px 0 0; color: var(--f-text2); font-style: italic; }
+
+/* ── Q-blocks ──────────────────────────────────────────────────────────────────────────────────── */
+.q { border: 1px solid var(--line-1); border-radius: 10px; padding: 16px; margin: 16px 0; background: var(--bg-page); }
+.q h3 { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.q ol { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 10px; }
+.q li { border: 1px solid var(--line-1); border-radius: 8px; padding: 10px 12px; }
+.q li.rec { border-color: var(--line-2); }
+.q li > strong:first-child { margin-right: 4px; }
+.why { margin-top: 10px; color: var(--text-2); }
+.minis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; margin-top: 10px; }
+.mini { border-radius: 8px; overflow: hidden; border: 1px solid var(--line-1); }
+.mini .frame { padding: 14px 16px; }
+.mini .row { grid-template-columns: 40px minmax(0, 1fr); }
+.mini .row .sel { grid-column: 1 / -1; }
+.chips .on { outline-offset: -1px; }
+.chips.row span { padding: 6px 12px; }
+.mini .frame > .cap2 { font: 600 11px/1 var(--sans); color: var(--f-text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; display: block; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; vertical-align: top; padding: 6px; border-top: 1px solid var(--line-1); }
+th { color: var(--text-2); font-weight: 600; }
+.table-wrap { overflow-x: auto; max-width: 100%; }
+@media (max-width: 520px) {
+  h1 { font-size: 22px; }
+  .controls { position: static; }
+}
+</style>
+</head>
+<body>
+<main>
+  <p style="margin-top:20px"><span class="flag">Draft · for owner review</span> <span class="muted">#3116 · not built · placement decided (A, 2026-11-18); everything else here waits for the owner</span></p>
+  <h1>Outline and text button hover colors, with the other button colors</h1>
+  <p class="muted">Color › Interactive, in Studio and the plugin (one shell). The owner decided where these colors go: with each button set's fill and state pickers, not under the outline hover method's chooser. This page shows that placement before and after, and asks only the questions still open.</p>
+
+  <div class="banner">
+    <strong>How to read this.</strong> Every frame is a mock of the levers panel, drawn with the Studio chrome's own colors and the example brand's resolved colors (<code>prism3</code>, at <code>main</code> <code>2ef39ee6</code>). Use the method menu to see each method. The dashed outline marks the group that moves. Tags such as <a class="qtag" href="#q3116-1">Q3116.1</a> point to an open question <a href="#questions">at the end</a>. Where a question is open, the "after" frames draw today's build and say so. The one exception is <a class="qtag" href="#q3116-3">Q3116.3</a>: the frames draw its option A, and it is still open. All new wording is DRAFT.
+  </div>
+
+  <h2 id="today">What is there today</h2>
+  <ul class="tight">
+    <li><strong>#3335 already put the Solid fill picks in each button set's card.</strong> They sit in an "Outline &amp; text hover" group that is <strong>seventh</strong> in the card, after Fill, Fill · inverse, Text, Text · inverse, Border and Border · inverse. In the 1280 panel that is about 1,600px below Fill.</li>
+    <li>The group shows only under Solid fill. Under the two washes, the card shows read-only "Overlay wash" or "Tinted wash" swatches in the same place. Under No hover fill, it shows nothing.</li>
+    <li>The method is one brand-wide choice (Q3335.6 A): four options in the Interactive settings card, stacked one per line since #3115. Wash opacity sits under it.</li>
+    <li>The label and border have hover and pressed rows already, in the card's Text and Border groups. Those colors are shared: the same Text and Border roles also color tabs, tags, pagination, segmented controls, switches and checkboxes. That is why <a class="qtag" href="#q3116-1">Q3116.1</a> is a real choice.</li>
+  </ul>
+
+  <h2 id="change">What the page proposes</h2>
+  <ul class="tight">
+    <li><strong>The group moves up, directly under Fill</strong>, so the filled button's hover and pressed and the outline and text buttons' hover and pressed read as one block.</li>
+    <li><strong>The group is set up like every other color group in the card</strong> (owner direction, 2026-11-18): a Rest row, with Hover and Pressed as inset rows under it. Each row has its swatch, its name and token path, and an "Auto · &lt;step&gt;" picker with its contrast ratio, as in Fill, Text and Border. There is no separate two-picker row and no separate read-only layout.</li>
+    <li><strong>The group shows under every method</strong>, always with the same title. Under Solid fill the rows show the picked fills. Under a wash the same rows show the wash values, with a line saying where the method and opacity change. Under No hover fill it shows one line. Today's separate "Overlay wash" and "Tinted wash" groups fold into it. The owner's A doesn't settle this, so it is open: <a class="qtag" href="#q3116-3">Q3116.3</a>.</li>
+    <li>The method chooser and Wash opacity stay in Interactive settings, because they apply to every button set. Their form is <a class="qtag" href="#q3116-2">Q3116.2</a>.</li>
+    <li>Nothing in the engine changes for the placement: same levers, same tokens, same writes. It is a Studio layout change only.</li>
+  </ul>
+
+  <div class="controls" role="group" aria-label="Preview controls">
+    <label>Method
+      <select id="method">
+        <option value="opaque-fill">Solid fill</option>
+        <option value="overlay-neutral">Neutral overlay wash (default)</option>
+        <option value="solid-tint">Tinted wash</option>
+        <option value="none">No hover fill</option>
+      </select>
+    </label>
+    <label>Schemes
+      <select id="schemes">
+        <option value="both">light and dark</option>
+        <option value="light">light only</option>
+        <option value="dark">dark only</option>
+      </select>
+    </label>
+    <label>Page theme
+      <select id="theme">
+        <option value="auto">system</option>
+        <option value="light">light</option>
+        <option value="dark">dark</option>
+      </select>
+    </label>
+  </div>
+
+  <h2 id="w1280">At 1280 <span class="flag">Draft</span></h2>
+  <p class="muted">The panes layout: the levers on the left, the preview on the right. Frames are scaled to fit this page; the mock inside is laid out at the real 1280 width. The card is cut after its first groups, and the groups that do not change are folded to one line.</p>
+  <div id="f1280"></div>
+
+  <h2 id="w380">At 380 <span class="flag">Draft</span></h2>
+  <p class="muted">The page layout: the levers alone, at full width.</p>
+  <div id="f380"></div>
+
+  <h2 id="questions">Open questions</h2>
+  <p class="muted">Each can be answered in one line, such as "Q3116.1 A". The recommendation is listed first, as A. None of them is built, and this page picks none of them.</p>
+
+  <section class="q" id="q3116-1">
+    <h3><span class="qtag">Q3116.1</span> Which parts of outline and text buttons can a brand change for hover and pressed?</h3>
+    <p>Today a brand can pick the fill (under Solid fill). The label and border have hover and pressed rows too, but those colors are shared with tabs, tags, pagination, segmented controls, switches and checkboxes. So changing the outline button's hover border today also changes those.</p>
+    <ol>
+      <li class="rec"><strong>A (rec).</strong> The fill only, as built. The group holds the fill's rows: Rest, with Hover and Pressed inset. The label and border keep their own rows in Text and Border. The label still moves itself where it needs to, to stay legible on the fill you pick.</li>
+      <li><strong>B.</strong> The fill, plus a label and border color that belong to outline and text buttons only, for hover and pressed. Changing them would not touch tabs or tags. This adds new colors to every button set in every mode, so it needs engine work and new tokens.</li>
+      <li><strong>C.</strong> The fill, and the group also shows the existing Text and Border hover and pressed rows, moved in from their groups, inset under a Text and a Border row as they are today. Same colors as today. A line says which other controls they also change.</li>
+    </ol>
+    <div class="minis" id="mini-q1"></div>
+    <p class="why"><strong>Why A:</strong> it needs nothing new, and nothing on the page changes colors you didn't expect. B is the only option where the outline button's label and border change without moving tabs and tags. It is worth building if testing shows the shared colors get in the way.</p>
+  </section>
+
+  <section class="q" id="q3116-2">
+    <h3><span class="qtag">Q3116.2</span> What form should the method chooser take?</h3>
+    <p>The chooser is brand-wide and stays in Interactive settings. Today it is four options, stacked one per line since the #3115 fix, with Wash opacity under it.</p>
+    <ol>
+      <li class="rec"><strong>A (rec).</strong> Two short choices. "Hover fill": Wash · Solid · None. Then, only under Wash, "Wash color": Neutral · Tinted. Each fits on one row at 380.</li>
+      <li><strong>B.</strong> Keep the four options as they are today.</li>
+      <li><strong>C.</strong> A list with one option per line and a one-line description under each.</li>
+      <li><strong>D.</strong> A menu (a select) with the four options, and the chosen one's description under it.</li>
+    </ol>
+    <div class="minis" id="mini-q2"></div>
+    <p class="why"><strong>Why A:</strong> it splits the two things the four names mix: whether there is a fill, and what color the wash is. It also keeps Studio's rule of chips for two to four options (#1675), with short labels that don't wrap. It writes the same four values as today, so nothing in the engine changes. The labels are DRAFT.</p>
+  </section>
+
+  <section class="q" id="q3116-3">
+    <h3><span class="qtag">Q3116.3</span> Does the group show under every method, with the wash groups folded into it?</h3>
+    <p>The owner's A puts these colors beside Fill. It doesn't say what the card shows under the other three methods. Today the "Outline &amp; text hover" group shows only under Solid fill. Under a wash, the card shows a separate read-only "Overlay wash" or "Tinted wash" group instead, and under No hover fill it shows nothing. The "after" frames draw A.</p>
+    <ol>
+      <li class="rec"><strong>A (rec).</strong> One group under every method, as drawn. It is always titled "Outline &amp; text hover" and always sits directly under Fill. It holds the same rows as Fill under Solid fill and under a wash (showing the wash values), and one line under No hover fill. The "Overlay wash" and "Tinted wash" groups fold into it.</li>
+      <li><strong>B.</strong> The group under Solid fill only, as today. The "Overlay wash" and "Tinted wash" read-outs stay as they are, with their own titles, but move up beside Fill too. Under No hover fill, nothing shows.</li>
+      <li><strong>C.</strong> The two wash groups kept separate and where they are today, after Border · inverse. Only the Solid fill group moves up beside Fill.</li>
+    </ol>
+    <p class="why"><strong>Why A:</strong> the hover colors are in the same place, under the same title, whichever method the brand picks, and under a wash the group says where to change them. B and C keep today's split, and C leaves the wash read-outs far below Fill. All three are layout only: same levers, tokens and writes.</p>
+  </section>
+
+  <section class="q" id="q3105-1">
+    <h3><span class="qtag">Q3105.1</span> Should the pressed contrast check also cover the two washes?</h3>
+    <p>Under Solid fill, the label is checked against both the hover fill and the pressed fill. Under the neutral and tinted washes, the pressed state is still checked against the page, or not at all. One known case falls short: on one brand's high-contrast modes, a pressed label on the neutral wash measures 6.99:1 against a 7:1 floor.</p>
+    <ol>
+      <li class="rec"><strong>A (rec).</strong> As built: the check covers Solid fill only, and a follow-up issue covers the washes.</li>
+      <li><strong>B.</strong> Extend the check to every method now.</li>
+    </ol>
+    <p class="why"><strong>Why A:</strong> the washes are a separate change, and checking them would move values for every brand that uses the default wash.</p>
+  </section>
+
+  <section class="q" id="q3105-2">
+    <h3><span class="qtag">Q3105.2</span> When the label is too faint on the pressed fill, what gives way?</h3>
+    <p>Pressed is the next step past hover unless the brand picks one. If the label doesn't clear its floor on that step, one of the two has to move.</p>
+    <ol>
+      <li class="rec"><strong>A (rec).</strong> As built: the fill stays as picked, and the label moves along its own color until it clears. If no step clears both the fill and the page, the label stays put and a warning names the miss.</li>
+      <li><strong>B.</strong> The pressed fill steps back toward the page until the label clears.</li>
+    </ol>
+    <p class="why"><strong>Why A:</strong> it keeps the brand's chosen step exactly, and it is the same way links already stay legible (#1510).</p>
+  </section>
+
+  <h2 id="notes">Not covered here</h2>
+  <ul class="tight">
+    <li>The inverse band's hover fill. It keeps the engine's default rule, with no picker, as today.</li>
+    <li>Tags, segmented controls and pagination. They keep the neutral wash under every method (Q3071.4 A), so Wash opacity stays visible under Solid fill (Q3335.4 A).</li>
+    <li>The other button sets. Neutral, Destructive and any added set get the same group in the same place. The frames draw Primary only.</li>
+    <li>The style guide pages and the preview's own layout. Neither changes.</li>
+  </ul>
+  <p class="muted" style="margin-top:32px;font-size:13px">DRAFT wireframe · #3116 (Q3116.1, Q3116.2, Q3116.3) · Refs #3105 (Q3105.1, Q3105.2), #3071, #3335, #3115, #1675. Made for owner review; not a shipped surface.</p>
+</main>
+
+<script>
+// ---------------------------------------------------------------------------------------------
+// The Studio chrome's --p3-* values, read from the built Studio at main 2ef39ee6 (light, dark).
+// ---------------------------------------------------------------------------------------------
+const CHROME = {
+  light: { page: '#ffffff', levers: '#f7f7f7', bar: '#e9e9e9', fill1: '#e9e9e9', fill2: '#dbdbdc', text: '#0d0d0e', text2: '#67696b', line: '#dbdbdc', edge: '#808284', ctl: '#0d0d0e' },
+  dark: { page: '#0d0d0e', levers: '#171718', bar: '#212123', fill1: '#171718', fill2: '#212123', text: '#f7f7f7', text2: '#808284', line: '#37383a', edge: '#67696b', ctl: '#f7f7f7' },
+};
+// ---------------------------------------------------------------------------------------------
+// The example brand's resolved roles (examples/prism3.design.md → brandTheme → resolveAllModes) at main 2ef39ee6,
+// with outlineInteraction forced to each method. Primary set only. [hex, palette path, contracted ratio, alpha?].
+// ---------------------------------------------------------------------------------------------
+const ROLES = {"overlay-neutral:light":{"fill.rest":["#1e1eff","primary.600",6.4423],"fill.hover":["#1408c6","primary.700",9.2009],"fill.pressed":["#0b008c","primary.800",12.4178],"text.rest":["#1e1eff","primary.600",7.8215],"text.hover":["#1408c6","primary.700",11.1707],"text.pressed":["#0b008c","primary.800",15.0762],"border.rest":["#1e1eff","primary.600",7.8215],"border.hover":["#1408c6","primary.700",11.1707],"border.pressed":["#0b008c","primary.800",15.0762],"overlay.hover":["#000000","black-alpha.10",15.4213,0.1],"overlay.pressed":["#000000","black-alpha.20",12.0964,0.2],"on-fill":["#ffffff","white",7.8215]},"overlay-neutral:dark":{"fill.rest":["#3d68fc","primary.500",3.9108],"fill.hover":["#6189f9","primary.400",5.5064],"fill.pressed":["#86a7f7","primary.300",7.5792],"text.rest":["#4f79fa","primary.450",5.0395],"text.hover":["#7398f8","primary.350",7.0079],"text.pressed":["#99b4f7","primary.250",9.4596],"border.rest":["#4f79fa","primary.450",5.0395],"border.hover":["#7398f8","primary.350",7.0079],"border.pressed":["#99b4f7","primary.250",9.4596],"overlay.hover":["#ffffff","white-alpha.10",14.1735,0.1],"overlay.pressed":["#ffffff","white-alpha.20",10.0677,0.2],"on-fill":["#ffffff","white",4.581]},"solid-tint:light":{"fill.rest":["#1e1eff","primary.600",6.4423],"fill.hover":["#1408c6","primary.700",9.2009],"fill.pressed":["#0b008c","primary.800",12.4178],"text.rest":["#1e1eff","primary.600",7.8215],"text.hover":["#1408c6","primary.700",11.1707],"text.pressed":["#0b008c","primary.800",15.0762],"border.rest":["#1e1eff","primary.600",7.8215],"border.hover":["#1408c6","primary.700",11.1707],"border.pressed":["#0b008c","primary.800",15.0762],"subtle-fill.hover":["#1e1eff","primary.600",7.6615,0.2],"subtle-fill.pressed":["#1e1eff","primary.600",8.3792,0.3],"on-fill":["#ffffff","white",7.8215]},"solid-tint:dark":{"fill.rest":["#3d68fc","primary.500",3.9108],"fill.hover":["#6189f9","primary.400",5.5064],"fill.pressed":["#86a7f7","primary.300",7.5792],"text.rest":["#4f79fa","primary.450",5.0395],"text.hover":["#7398f8","primary.350",7.0079],"text.pressed":["#99b4f7","primary.250",9.4596],"border.rest":["#4f79fa","primary.450",5.0395],"border.hover":["#7398f8","primary.350",7.0079],"border.pressed":["#99b4f7","primary.250",9.4596],"subtle-fill.hover":["#3d68fc","primary.500",5.8173,0.2],"subtle-fill.pressed":["#3d68fc","primary.500",6.8543,0.3],"on-fill":["#ffffff","white",4.581]},"opaque-fill:light":{"fill.rest":["#1e1eff","primary.600",6.4423],"fill.hover":["#1408c6","primary.700",9.2009],"fill.pressed":["#0b008c","primary.800",12.4178],"text.rest":["#1e1eff","primary.600",7.8215],"text.hover":["#1408c6","primary.700",11.1707],"text.pressed":["#0b008c","primary.800",15.0762],"border.rest":["#1e1eff","primary.600",7.8215],"border.hover":["#1408c6","primary.700",11.1707],"border.pressed":["#0b008c","primary.800",15.0762],"overlay.hover":["#000000","black-alpha.10",15.4213,0.1],"overlay.pressed":["#000000","black-alpha.20",12.0964,0.2],"hover-fill.hover":["#e9e9e9","neutral.050",1.2141],"hover-fill.pressed":["#dbdbdc","neutral.100",1.3836],"on-fill":["#ffffff","white",7.8215]},"opaque-fill:dark":{"fill.rest":["#3d68fc","primary.500",3.9108],"fill.hover":["#6189f9","primary.400",5.5064],"fill.pressed":["#86a7f7","primary.300",7.5792],"text.rest":["#4f79fa","primary.450",5.0395],"text.hover":["#7398f8","primary.350",7.0079],"text.pressed":["#99b4f7","primary.250",9.4596],"border.rest":["#4f79fa","primary.450",5.0395],"border.hover":["#7398f8","primary.350",7.0079],"border.pressed":["#99b4f7","primary.250",9.4596],"overlay.hover":["#ffffff","white-alpha.10",14.1735,0.1],"overlay.pressed":["#ffffff","white-alpha.20",10.0677,0.2],"hover-fill.hover":["#212123","neutral.850",1.2086],"hover-fill.pressed":["#2c2c2e","neutral.800",1.3939],"on-fill":["#ffffff","white",4.581]},"none:light":{"fill.rest":["#1e1eff","primary.600",6.4423],"fill.hover":["#1408c6","primary.700",9.2009],"fill.pressed":["#0b008c","primary.800",12.4178],"text.rest":["#1e1eff","primary.600",7.8215],"text.hover":["#1408c6","primary.700",11.1707],"text.pressed":["#0b008c","primary.800",15.0762],"border.rest":["#1e1eff","primary.600",7.8215],"border.hover":["#1408c6","primary.700",11.1707],"border.pressed":["#0b008c","primary.800",15.0762],"on-fill":["#ffffff","white",7.8215]},"none:dark":{"fill.rest":["#3d68fc","primary.500",3.9108],"fill.hover":["#6189f9","primary.400",5.5064],"fill.pressed":["#86a7f7","primary.300",7.5792],"text.rest":["#4f79fa","primary.450",5.0395],"text.hover":["#7398f8","primary.350",7.0079],"text.pressed":["#99b4f7","primary.250",9.4596],"border.rest":["#4f79fa","primary.450",5.0395],"border.hover":["#7398f8","primary.350",7.0079],"border.pressed":["#99b4f7","primary.250",9.4596],"on-fill":["#ffffff","white",4.581]}};
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0); };
+const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const fmt = (r) => `${(Math.floor(r * 100) / 100).toFixed(2)}:1`;
+const stepName = (path) => path.replace('.', ' ').replace(/-alpha (\d+)$/, '-alpha $1');
+const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${a})`; };
+
+const METHOD_LABEL = { 'overlay-neutral': 'Neutral overlay wash', 'solid-tint': 'Tinted wash', 'opaque-fill': 'Solid fill', none: 'No hover fill' };
+const OPTION_ORDER = ['overlay-neutral', 'solid-tint', 'opaque-fill', 'none'];
+// DRAFT, verbatim today (apps/studio/src/domains/color-interactive.ts WASH_COPY.hint).
+const WASH_HINT = {
+  'overlay-neutral': 'A black wash on light grounds, a white one on dark. Tags, segmented controls and pagination hover with it too.',
+  'solid-tint': 'Each set’s own fill at this opacity. A set steps it where its label would drop below 4.5:1, or where the hover would not show.',
+  'opaque-fill': 'Buttons take the hover fills set in each color below. Tags, segmented controls and pagination keep this wash.',
+};
+// DRAFT, new on this page (the after frames only).
+const AFTER_COPY = {
+  title: 'Outline & text hover',
+  wash: (m) => `${METHOD_LABEL[m]}. Change it, and its opacity, in Interactive settings.`,
+  none: 'No hover fill. Outline and text buttons keep their rest fill on hover and press. Change it in Interactive settings.',
+};
+
+/** A frame's custom properties: the chrome for `scheme`, plus the brand roles the buttons read. */
+const vars = (scheme, R) => {
+  const c = CHROME[scheme];
+  return [`--f-page:${c.page}`, `--f-levers:${c.levers}`, `--f-bar:${c.bar}`, `--f-fill1:${c.fill1}`, `--f-fill2:${c.fill2}`, `--f-text:${c.text}`,
+    `--f-text2:${c.text2}`, `--f-line:${c.line}`, `--f-edge:${c.edge}`, `--f-ctl:${c.ctl}`, `--b-fill-rest:${R['fill.rest'][0]}`, `color-scheme:${scheme}`].join(';');
+};
+/** The outline/text hover and pressed fill a method paints, as a CSS color over the page. */
+const hoverPaint = (R, st) => {
+  if (R[`hover-fill.${st}`]) return R[`hover-fill.${st}`][0];
+  if (R[`subtle-fill.${st}`]) { const [h, , , a] = R[`subtle-fill.${st}`]; return rgba(h, a); }
+  if (R[`overlay.${st}`]) { const [h, , , a] = R[`overlay.${st}`]; return rgba(h, a); }
+  return 'transparent';
+};
+
+const sw = (paint) => `<span class="sw"><i style="background:${paint}"></i></span>`;
+/** A step's name as the picker shows it; a wash of a palette step names its opacity. */
+const pickName = (path, a) => (a !== undefined && !/alpha/.test(path) ? `${stepName(path)} at ${Math.round(a * 100)}%` : stepName(path));
+/** The card's one color-row pattern: swatch, name and token path, and an "Auto · <step>" picker with its ratio. */
+const row = (R, key, label, nest, pageBg, tokenPath) => {
+  const [hex, path, r, a] = R[key];
+  return `<div class="row${nest ? ' nest' : ''}">${sw(a !== undefined ? rgba(hex, a) : hex)}<span class="nm"><span>${label}</span><code>${esc(tokenPath || `interactive.primary.${key}`)}</code></span>
+    <span class="sel">Auto · ${esc(pickName(path, a))}${r == null ? '' : `<span class="r">${fmt(r)}</span>`}</span></div>`;
+};
+/** The hover fill's Rest row: outline and text buttons have no fill at rest. DRAFT. */
+const restNone = () => `<div class="row">${sw('transparent')}<span class="nm"><span>Rest</span><code>no fill at rest</code></span><span class="sel off">None</span></div>`;
+/** The hover group's rows, the same pattern as Fill: Rest, then Hover and Pressed inset. */
+const hoverRows = (R, part, pageBg) => `${restNone()}${row(R, `${part}.hover`, 'Hover', true, pageBg)}${row(R, `${part}.pressed`, 'Pressed', true, pageBg)}`;
+const fullGroup = (R, part, title, pageBg) => `<div class="grp"><b>${title}</b>${row(R, `${part}.rest`, 'Rest', false, pageBg)}${row(R, `${part}.hover`, 'Hover', true, pageBg)}${row(R, `${part}.pressed`, 'Pressed', true, pageBg)}</div>`;
+const folded = (title) => `<div class="grp"><b>${title}</b><span class="collapsed">Rest · Hover · Pressed <em>(folded in this wireframe, unchanged)</em></span></div>`;
+const readout = (R, key, label) => { const [h, path, , a] = R[key]; const name = a !== undefined && !/alpha/.test(path) ? `${stepName(path)} at ${Math.round(a * 100)}%` : stepName(path);
+  return `<div class="row">${sw(a !== undefined ? rgba(h, a) : h)}<span class="nm"><span>${label}</span><code>interactive.primary.${key}</code></span><span class="muted" style="font-size:12px">${esc(name)}</span></div>`; };
+const worstLine = (R) => {
+  const w = (st) => ratio(R[`text.${st}`][0], R[`hover-fill.${st}`][0]);   // icons are value twins of text
+  return `<p class="hint">Labels and icons on it, at worst: ${fmt(w('hover'))} hover, ${fmt(w('pressed'))} pressed. They shift where they need to, to stay legible.</p>`;
+};
+const solidPickers = (R, pickrow) => `<div class="${pickrow ? 'pickrow' : ''}">
+    <div><span class="fl">Hover</span><span class="sel">Auto · ${esc(stepName(R['hover-fill.hover'][1]))}</span></div>
+    <div><span class="fl">Pressed</span><span class="sel off">Auto · ${esc(stepName(R['hover-fill.pressed'][1]))}</span></div></div>${worstLine(R)}`;
+
+/** Before: the group as built, seventh in the card, titled by the method; none under No hover fill. */
+const hoverGroupBefore = (R, m) => {
+  if (m === 'none') return '';
+  if (m === 'opaque-fill') return `<div class="grp"><b>Outline &amp; text hover</b>${solidPickers(R, false)}</div>`;
+  const part = m === 'solid-tint' ? 'subtle-fill' : 'overlay';
+  return `<div class="grp"><b>${m === 'solid-tint' ? 'Tinted wash' : 'Overlay wash'}</b>${readout(R, `${part}.hover`, 'Hover')}${readout(R, `${part}.pressed`, 'Pressed')}</div>`;
+};
+/** After: one group under Fill, the same title under every method, set up like every other color group (owner, 2026-11-18). */
+const hoverGroupAfter = (R, m, pageBg) => {
+  let body;
+  if (m === 'opaque-fill') body = `${hoverRows(R, 'hover-fill', pageBg)}${worstLine(R)}`;
+  else if (m === 'none') body = `<p class="hint">${esc(AFTER_COPY.none)}</p>`;
+  else { const part = m === 'solid-tint' ? 'subtle-fill' : 'overlay'; body = `${hoverRows(R, part, pageBg)}<p class="hint">${esc(AFTER_COPY.wash(m))}</p>`; }
+  return `<div class="grp mark"><span class="badge">moved</span><b>${esc(AFTER_COPY.title)}</b>${body}</div>`;
+};
+
+const settingsCard = (m) => `<section class="card"><h4>Interactive settings</h4><p class="desc">Every button set, in every mode.</p>
+  <div class="lever"><b>Outline hover <span class="muted" style="font-weight:400">ⓘ</span></b>
+    <div class="chips">${OPTION_ORDER.map((o) => `<span class="${o === m ? 'on' : ''}">${METHOD_LABEL[o]}</span>`).join('')}</div>
+    <p class="hint" style="font-size:11px">Form as built: open in Q3116.2.</p></div>
+  ${m === 'none' ? '' : `<div class="lever"><b>Wash opacity <span class="muted" style="font-weight:400">ⓘ</span></b>
+    <span class="fl">Hover</span><span class="sel">${m === 'solid-tint' ? '20%, stepped per set where needed' : '10%'}</span>
+    <span class="fl">Pressed</span><span class="sel">${m === 'solid-tint' ? '30%, stepped per set where needed' : '20%'}</span>
+    <p class="hint">${esc(WASH_HINT[m])}</p></div>`}
+  <div class="lever"><b>Strict interactive contrast <span class="muted" style="font-weight:400">ⓘ</span></b><div class="switch"></div>
+    <p class="hint">Off: inverse button labels clear 4.5:1 at rest and may dip on hover and pressed. On: they clear 4.5:1 in every state.</p></div></section>`;
+
+const primaryCard = (R, m, after, wide, scheme) => {
+  const page = CHROME[scheme].page;
+  // Before draws Text and Border in full, so the distance from Fill to the hover group reads as it does today.
+  const groups = [
+    fullGroup(R, 'fill', 'Fill', page),
+    after ? hoverGroupAfter(R, m, page) : '',
+    folded('Fill · inverse'),
+    after ? folded('Text') : fullGroup(R, 'text', 'Text', page),
+    folded('Text · inverse'),
+    after ? folded('Border') : fullGroup(R, 'border', 'Border', page),
+    folded('Border · inverse'),
+    after ? '' : (m === 'none' ? '' : `<div class="mark" style="margin-top:16px">${hoverGroupBefore(R, m)}</div>`),
+  ].join('');
+  return `<section class="card"><h4>Primary Interactive Colors <small>palette primary</small></h4>
+    <div class="lever"><b>Primary Action Palette <span class="muted" style="font-weight:400">ⓘ</span></b><span class="sel">Primary</span></div>
+    ${groups}
+    ${after ? '' : (m === 'none' ? '<p class="gap-note">Under No hover fill the card has no hover group.</p>' : '')}
+    <p class="gap-note">… On-fill text and On-fill text · inverse follow, unchanged.</p></section>`;
+};
+
+const preview = (R, scheme) => {
+  const page = CHROME[scheme].page;
+  const cell = (kind, st) => {
+    const bg = st === 'rest' ? 'transparent' : hoverPaint(R, st);
+    const ink = R[`text.${st}`][0];
+    const edge = kind === 'outline' ? R[`border.${st}`][0] : 'transparent';
+    return `<div><span class="btn" style="background:${bg};color:${ink};border-color:${edge}">Button</span><small>${st[0].toUpperCase()}${st.slice(1)}</small></div>`;
+  };
+  const filled = (st) => `<div><span class="btn" style="background:${R[`fill.${st}`][0]};color:${R['on-fill'][0]}">Button</span><small>${st[0].toUpperCase()}${st.slice(1)}</small></div>`;
+  return `<div class="f-preview"><h5>Interactive</h5><div class="pv">
+    <div class="pvrow"><b>Filled</b>${['rest', 'hover', 'pressed'].map(filled).join('')}</div>
+    <div class="pvrow"><b>Outline</b>${['rest', 'hover', 'pressed'].map((s) => cell('outline', s)).join('')}</div>
+    <div class="pvrow"><b>Text</b>${['rest', 'hover', 'pressed'].map((s) => cell('text', s)).join('')}</div>
+  </div><p class="gap-note">The preview does not change: it is here so the frame reads as the app.</p></div>`;
+};
+
+const frame = (width, scheme, m, after) => {
+  const R = ROLES[`${m}:${scheme}`];
+  const wide = width === 1280;
+  const levers = `<div class="f-levers" style="width:${wide ? 512 : 380}px">
+    <div class="f-tabs"><span>Brand</span><span class="on">Color</span><span>Type</span><span>Shape</span>${wide ? '<span>Depth &amp; motion</span><span>Layout</span>' : '<span>…</span>'}</div>
+    <div class="f-sub"><span>Palettes</span><span>Surfaces &amp; fills</span><span class="on">Interactive</span></div>
+    <p class="f-intro">How actions, links and disabled states draw from the palettes, and the floors they meet.</p>
+    <p class="f-jump">Jump to:<u>Primary</u><u>Neutral</u><u>Destructive</u></p>
+    ${settingsCard(m)}
+    <p class="modeline">Editing ${scheme === 'light' ? 'Light' : 'Dark'}, the mode the preview shows.</p>
+    ${primaryCard(R, m, after, wide, scheme)}
+  </div>`;
+  const inner = wide
+    ? `<div class="f-bar"><span class="f-brand"><i></i>Prism3</span></div><div class="f-body"><div class="f-rail"><i></i><i></i><i></i></div>${levers}${preview(R, scheme)}</div>`
+    : `<div class="f-bar"><span class="f-brand"><i></i>Prism3</span></div>${levers}`;
+  return `<div class="frame" data-w="${width}" style="width:${width}px;${vars(scheme, R)}">${inner}</div>`;
+};
+
+const block = (width, schemes, m) => {
+  const one = (scheme, after) => `<figure style="margin:0"><figcaption class="cap"><strong>${after ? 'After' : 'Before'}</strong> ${width} · ${scheme} · ${esc(METHOD_LABEL[m])}</figcaption><div class="fit">${frame(width, scheme, m, after)}</div></figure>`;
+  return schemes.map((s) => `<div class="pair${width === 380 ? ' narrow' : ''}">${one(s, false)}${one(s, true)}</div>`).join('');
+};
+
+// ── Q-block mocks (open variants; the recommendation first) ─────────────────────────────────────
+const mini = (scheme, title, body) => `<div class="mini"><div class="frame" style="${vars(scheme, ROLES[`opaque-fill:${scheme}`])}"><span class="cap2">${esc(title)}</span>${body}</div></div>`;
+const q1 = (scheme) => {
+  const R = ROLES[`opaque-fill:${scheme}`];
+  const page = CHROME[scheme].page;
+  const head = `<b style="display:block;font-weight:600;margin-bottom:6px">Outline &amp; text hover</b>`;
+  const sub = (t) => `<b style="display:block;font-weight:600;margin:12px 0 4px">${t}</b>`;
+  const fills = hoverRows(R, 'hover-fill', page);
+  // B's label and border rows are new, button-only tokens (DRAFT paths); before a brand picks, they start at today's shared values.
+  const own = (part, title, tok) => `${sub(title)}${row(R, `${part}.rest`, 'Rest', false, page)}${row(R, `${part}.hover`, 'Hover', true, page, `interactive.primary.${tok}.hover`)}${row(R, `${part}.pressed`, 'Pressed', true, page, `interactive.primary.${tok}.pressed`)}`;
+  const shared = (part, title) => `${sub(title)}${row(R, `${part}.rest`, 'Rest', false, page)}${row(R, `${part}.hover`, 'Hover', true, page)}${row(R, `${part}.pressed`, 'Pressed', true, page)}`;
+  return [
+    mini(scheme, 'A (rec) · fill only', `${head}${fills}<p class="hint">Label and border: in Text and Border.</p>`),
+    mini(scheme, 'B · fill, plus button-only label and border', `${head}${fills}${own('text', 'Label', 'outline-label')}${own('border', 'Border', 'outline-border')}<p class="hint">Outline and text buttons only. New colors.</p>`),
+    mini(scheme, 'C · fill, plus the shared rows moved in', `${head}${fills}${shared('text', 'Text')}${shared('border', 'Border')}<p class="hint">Also changes tabs, tags, pagination, segmented controls, switches and checkboxes.</p>`),
+  ].join('');
+};
+const q2 = (scheme) => {
+  const chips = (list, on) => `<div class="chips row">${list.map((x) => `<span class="${x === on ? 'on' : ''}">${x}</span>`).join('')}</div>`;
+  const lab = (t) => `<b style="display:block;font-weight:600;margin:8px 0 6px">${t}</b>`;
+  return [
+    mini(scheme, 'A (rec) · two short choices', `${lab('Hover fill')}${chips(['Wash', 'Solid', 'None'], 'Wash')}${lab('Wash color')}${chips(['Neutral', 'Tinted'], 'Neutral')}`),
+    mini(scheme, 'B · four options, as today', `${lab('Outline hover')}<div class="chips">${OPTION_ORDER.map((o) => `<span class="${o === 'overlay-neutral' ? 'on' : ''}">${METHOD_LABEL[o]}</span>`).join('')}</div>`),
+    mini(scheme, 'C · a list with descriptions', `${lab('Outline hover')}${OPTION_ORDER.map((o) => `<div style="display:flex;gap:8px;margin:6px 0"><span style="width:14px;height:14px;border-radius:50%;border:1.5px solid var(--f-edge);flex:none;margin-top:2px;${o === 'overlay-neutral' ? 'box-shadow:inset 0 0 0 3px var(--f-page);background:var(--f-text)' : ''}"></span><span>${METHOD_LABEL[o]}<span style="display:block;color:var(--f-text2);font-size:12px">${esc({ 'overlay-neutral': 'A gray wash over the ground.', 'solid-tint': 'A wash of the set’s own color.', 'opaque-fill': 'A solid color you pick per set.', none: 'No fill on hover or press.' }[o])}</span></span></div>`).join('')}`),
+    mini(scheme, 'D · a menu', `${lab('Outline hover')}<span class="sel">Neutral overlay wash</span><p class="hint">A gray wash over the ground.</p>`),
+  ].join('');
+};
+
+// ── draw, fit, and the controls ─────────────────────────────────────────────────────────────────
+const fitAll = () => document.querySelectorAll('.fit').forEach((w) => {
+  const f = w.firstElementChild; const k = Math.min(1, w.clientWidth / f.offsetWidth);
+  f.style.transform = `scale(${k})`; w.style.height = `${Math.ceil(f.offsetHeight * k)}px`;
+});
+const draw = () => {
+  const m = $('#method').value;
+  const schemes = $('#schemes').value === 'both' ? ['light', 'dark'] : [$('#schemes').value];
+  $('#f1280').innerHTML = block(1280, schemes, m);
+  $('#f380').innerHTML = block(380, schemes, m);
+  $('#mini-q1').innerHTML = schemes.map(q1).join('');
+  $('#mini-q2').innerHTML = schemes.map(q2).join('');
+  fitAll();
+};
+const applyTheme = () => { const v = $('#theme').value; if (v === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', v); };
+$('#method').addEventListener('change', draw);
+$('#schemes').addEventListener('change', draw);
+$('#theme').addEventListener('change', applyTheme);
+window.addEventListener('resize', fitAll);
+draw();
+</script>
+</body>
+</html>

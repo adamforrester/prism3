@@ -183,7 +183,7 @@ Keyed by `selection`, `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `track` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `track/thumb` | `color.disabled.on-fill` | — | — | — |
-| `track/thumb/offGlyph` | — | — | — | `color.disabled.border` |
+| `track/thumb/offGlyph` | — | — | — | `color.disabled.fill` |
 
 **selection=off, status=error, state=rest**
 
@@ -223,7 +223,7 @@ Keyed by `selection`, `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `track` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `track/thumb` | `color.disabled.on-fill` | — | — | — |
-| `track/thumb/offGlyph` | — | — | — | `color.disabled.border` |
+| `track/thumb/offGlyph` | — | — | — | `color.disabled.fill` |
 
 **selection=on, status=default, state=rest**
 
@@ -263,7 +263,7 @@ Keyed by `selection`, `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `track` | `color.disabled.fill` | — | — | — |
 | `track/thumb` | `color.disabled.on-fill` | — | — | — |
-| `track/thumb/onGlyph` | — | — | — | `color.disabled.border` |
+| `track/thumb/onGlyph` | — | — | — | `color.disabled.fill` |
 
 **selection=on, status=error, state=rest**
 
@@ -303,7 +303,7 @@ Keyed by `selection`, `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `track` | `color.disabled.fill` | — | — | — |
 | `track/thumb` | `color.disabled.on-fill` | — | — | — |
-| `track/thumb/onGlyph` | — | — | — | `color.disabled.border` |
+| `track/thumb/onGlyph` | — | — | — | `color.disabled.fill` |
 
 ### Nesting and properties
 

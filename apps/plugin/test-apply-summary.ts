@@ -40,7 +40,9 @@ import type { BrandInput } from '@prism3/engine';
 import { readFileSync as readSrc } from 'node:fs';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -376,5 +378,5 @@ ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.str
     '#2887: Apply\'s clause list carries the tag style notice, off the brand read before the new one persisted');
 }
 
-console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

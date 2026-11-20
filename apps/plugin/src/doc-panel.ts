@@ -26,6 +26,11 @@
  *     member reads as its family, linked to the lead's set, once across the lists (in the first that names it, #3552 Q-UG3 A), and the panel's own family is left out
  *     (#2970 Q5 A).
  *
+ * LAST CHANGED IN (#2889, #2858 piece 2; wireframe approved, Q479.3 A): under the header, above Overview, the lead set's
+ * newest release from the bundled release notes and that release's items for the set (`library-about.ts`), or
+ * "Unchanged since" the oldest notes. In the plan's hash and in the as-built ledger (`changed`), so after a fold only the
+ * panels whose block reads differently are due (owner decision A); the print covers it as it covers every block.
+ *
  * EVERY SPECIMEN AT ITS MEMBER'S OWN WIDTH (#2970 Q1 A). The panel is as wide as its widest stage needs and never
  * narrower than `PANEL_WIDTH` (`panelLayout`), read off the set alone, so the seat, the dry run and the apply agree.
  *
@@ -65,13 +70,15 @@
  */
 import { docSections, partName, type DocSection, type DocSectionId, type ComponentDef, componentDefs, CANVAS_FURNITURE } from '@prism3/engine/components';
 import { leadOf, leafForDef } from './file-taxonomy';
-import { isTemplateSet } from './file-components';
+import { isTemplateSet, REGULAR, SEMIBOLD, solid } from './file-components';
+import { LABEL_INK } from './furniture-templates';
 import { fingerprintOf, fnv, type SgNode } from './style-guide';
 import { NS } from './persist-figma';
 import { STAMP_KEY } from './write-components';
 import { builtByPrism3, readBaseline } from './member-baseline';
 import { readTag } from './canvas-furniture';
 import { readSpecTag } from './spec-tag';
+import { lastChangedIn, lastChangedLines, type ReleaseIndex } from './library-about';
 import { CAPTION, CHIP_SLOTS, CODE_STYLE, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, STAGE_PAD, TOP_PADDING, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 
 export const DOC_PANEL_NS = 'prism3';
@@ -87,6 +94,8 @@ export const DOC_PANEL_WIDTH = 'docPanelWidth';
 /** On the set's parent: each set whose panel the last draw found blocked, with the panel's height and plan then
  *  (`docPanelBlockers`). Cleared when the panel is drawn. */
 export const DOC_PANEL_BLOCKED = 'docPanelBlocked';
+/** The frame that holds the "Last changed in" block (#2889), between the header and the first section. */
+export const LAST_CHANGED = 'last-changed';
 /** On each section frame: the model section it draws. */
 export const DOC_SECTION_KEY = 'docSection';
 /** The panel's narrowest width. A set whose specimens need more widens its panel (`panelWidthFor`, #2970 Q1 A). */
@@ -95,9 +104,17 @@ export const PANEL_WIDTH = 560;
  *  this wide or wider; then they stack. No cap otherwise: a single wide specimen widens the panel as far as it needs. */
 export const THEMING_ROW_MAX = 960;
 export const MODE_GAP = 16;
-/** What the width rule allows for one part marker across, before the host lays the Badge out: a bracket's tier is this
- *  plus `MARK_SEP` on each side. The draw measures the real Badge and widens the panel further if it needs to. */
-export const MARK_ROOM = 24;
+/** THE PART MARKER (#3773, owner decision B): a disc this many px across, drawn by the panel itself, never an instance of
+ *  the brand's Badge, so it never reads as the component it marks. The width rule's left gutter is one disc wide. */
+export const MARK_DISC = 20;
+/** The dot that ends each leader on its part's edge (#3773), in px across. */
+export const MARK_DOT = 4;
+/** How far above its bottom edge the outermost container's leader lands (#3773): near its bottom corner. */
+export const MARK_CORNER = 8;
+/** THE MARKERS' INK (#3773): `_Label`'s, a literal color, not a token, so it never moves with the brand it annotates. The
+ *  disc and every leader and dot are `MARK_INK`, the numeral `MARK_NUMERAL`. */
+export const MARK_INK = LABEL_INK;
+export const MARK_NUMERAL = '#FFFFFF';
 /** Between the set's right edge and the panel. More than `BACKDROP_PAD`, so a backdrop never reaches it. */
 export const PANEL_GAP = 40;
 export const PANEL_PAD = 24;
@@ -123,9 +140,12 @@ const SIZE: DocBlockSize = 'sm';
  *  6: each specimen sized again once its panel is on the page, where the host kept 5's width only until the panel
  *  moved there (#3205 follow-up). 7: each specimen FILLs its stage, its width set by the stage's padding, since Figma drops a
  *  width written to a layer inside an instance and 4–6's widths never held in a real file (#3205, owner review 2026-11-13).
+ *  8: the anatomy markers as `_Label`-ink discs with one direct leader per part, each ending in a dot on its part's
+ *  edge, and no brackets (#3773, owner decision B). 9: each anatomy entry's number drawn as its marker's disc, not
+ *  as text in its label (#2927, owner decision Q2927-R1 A).
  *  The as-built ledger records it per set (`panel`, `main.ts` `ledgerNow`), so a raise
  *  makes a lead set due in Update file's check even when its set is current (#3205, the format-due credit). */
-export const PANEL_FORMAT = 7;
+export const PANEL_FORMAT = 9;
 /** THE TITLES (#2970 item 5, owner decision): the panel's title and each section's, in px, with their letter-spacing
  *  in percent. The tracking is the studio's: its 20px page titles take `ls-tightest` (−4%) and its 16px section titles
  *  `ls-tighter` (−3%), the default theme's values (`theme.ts` `LETTER_SPACINGS`). Written over the block's text style,
@@ -133,20 +153,23 @@ export const PANEL_FORMAT = 7;
 export const TITLE_TYPE = { size: 18, tracking: -4 } as const;
 export const SECTION_TYPE = { size: 16, tracking: -3 } as const;
 /** THE ANATOMY MARKERS' GEOMETRY (#2916, #2927; HELD FOR THE OWNER): the shortest leader, and its gap from the
- *  specimen's edge; the space between two markers, or a marker and its bracket; how far a leader or a bracket's tick
- *  reaches into its part, so it reads as touching it. */
+ *  specimen's edge; the space between two markers. */
 export const MARK_GAP = 8;
 export const MARK_SEP = 4;
-export const MARK_INSET = 2;
-/** The width of a leader or a bracket line. */
+/** The width of a leader. */
 export const LEADER = 1;
+/** Between a parts-list entry's disc and its Field block (#2927, Q2927-R1 A; HELD FOR THE OWNER with the disc's top
+ *  alignment, under the copy-file QA). */
+export const ENTRY_GAP = 8;
 
 /* ── the pure planner ──────────────────────────────────────────────────────────────────────────────────── */
 
 export type PanelBlock =
   | { type: 'Heading'; text: string; size: DocBlockSize }
   | { type: 'Paragraph'; text: string; size: DocBlockSize }
-  | { type: 'Field'; label: string; text: string }
+  /** `n`: an anatomy entry's number (#2927, owner decision Q2927-R1 A), drawn as the same disc as its specimen marker
+   *  (`MARK_DISC`) before the label, which then carries no number of its own. */
+  | { type: 'Field'; label: string; text: string; n?: number }
   | { type: 'Do-Dont'; do: string[]; dont: string[] }
   | { type: 'Chips'; label: string; chips: string[]; note?: string }
   /** A bulleted list (#2970 item 3): each item's name, the def whose set it links to when the file has one, and a line
@@ -162,14 +185,31 @@ export interface PanelSection { id: DocSectionId; title: string; blocks: PanelBl
 /** `family`: every def on the lead's taxonomy page, the lead included, when it holds more than one (#2927): the panel
  *  lists them under the lede, the lead first, each by its name in the family and its own summary's first sentence,
  *  linked to its set (#2970 Q4 A). */
-export interface PanelPlan { def: string; title: string; lede: string; family?: LinkItem[]; sections: PanelSection[]; hash: string }
+/** `changed`: the "Last changed in" block's lines (#2889, #2858 piece 2): the lead set's newest release, from the release
+ *  notes only (Q479.3 A), its date, then that release's items for the set; or "Unchanged since <first version>"; or none
+ *  when the notes hold nothing that old. In the hash, so after a fold only the panels whose block reads differently are
+ *  due (#2889, owner decision A). */
+export interface PanelPlan { def: string; title: string; lede: string; family?: LinkItem[]; changed: string[]; sections: PanelSection[]; hash: string }
+/** The release notes the "Last changed in" block reads: the plugin's own engine and the bundled notes, unless a test
+ *  pins them. */
+export interface PanelReleases { engine?: string; ix?: ReleaseIndex }
+/**
+ * THE "LAST CHANGED IN" BLOCK'S LINES FOR A PANEL (#2889): the family's LEAD set's history, the set the panel sits beside
+ * and is tagged with. A member's own release items are not read: the block names one set's release, as the approved
+ * wireframe drew it for one component (Q479). `lastChangedIn` caps it at the engine.
+ */
+export const lastChangedFor = (defId: string, r: PanelReleases = {}): string[] => lastChangedLines(lastChangedIn(defId, r.engine, r.ix));
+/** The block's text as the as-built ledger keeps it on a lead set (`changed`, #2889 decision A): a fold that moves it makes
+ *  the set due for its panel even when the set itself is current; one that leaves it does not. */
+export const lastChangedKey = (defId: string, r: PanelReleases = {}): string => fnv(JSON.stringify(lastChangedFor(defId, r)), false);
 /**
  * ONE NUMBERED ENTRY OF THE ANATOMY (#2916, #2927): its number, the part it marks, and that part's path below the
- * def's root, by part id (empty for the root itself: the specimen is the root). `bracket` marks a part that holds
- * another marked part, the root among them (Q551 A on Q5): a bracket along its left edge instead of a leader. `parts`
+ * def's root, by part id (empty for the root itself: the specimen is the root). `container` marks a part that holds
+ * another marked part, the root among them (Q551 A on Q5): its leader comes in from the left gutter to its left edge
+ * (#3773; a bracket along that edge before). `parts`
  * counts the repeats merged into it (Q4): siblings with the same nest settings are one entry, marked on the first.
  */
-export interface AnatomyMark { n: number; part: string; path: string[]; bracket: boolean; parts: number; run: string[] }
+export interface AnatomyMark { n: number; part: string; path: string[]; container: boolean; parts: number; run: string[] }
 
 /** THE FAMILY A DEF'S PANEL COVERS (#2927, owner decision Q551 A on Q1): the defs on its taxonomy page that draw canvas
  *  furniture, in page order, and the one that leads (`leadOf`). A def on no page is a family of one. Null for a def
@@ -225,7 +265,7 @@ export const firstSentences = (s: string, n: number): string => {
 };
 
 /**
- * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927, #3265), from the def's part tree: pure, so the runs and the bracket rule
+ * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927, #3265), from the def's part tree: pure, so the runs and the container rule
  * are checked with no host. `listed` is the model's parts, in its order. A repeat (Q551 A on Q4) is a numbered sibling of
  * one name (`item1`, `item2`) nesting one component; its overrides (an item's own text) are content, not settings.
  * NUMBERED INSTANCES (#3265, owner decisions Q3265.1 A and Q3265.2 A): each instance keeps its number, and NEIGHBORS that
@@ -270,7 +310,7 @@ export const anatomyMarks = (def: ComponentDef, listed: readonly string[]): Anat
   }
   const marked = new Set(entries.map((e) => e.part));
   const holds = (id: string): boolean => [...marked].some((o) => o !== id && pathOf(o).includes(id));
-  return entries.map((e, i) => ({ n: i + 1, part: e.part, path: pathOf(e.part), bracket: e.part === root || holds(e.part), parts: e.run.length, run: e.run }));
+  return entries.map((e, i) => ({ n: i + 1, part: e.part, path: pathOf(e.part), container: e.part === root || holds(e.part), parts: e.run.length, run: e.run }));
 };
 
 /** The number a repeat's part carries (`cell4` → 4), or null for a part that is not numbered. */
@@ -325,7 +365,7 @@ const labelsBefore3265 = (def: ComponentDef, listed: readonly string[]): string[
  * (`test-doc-panel.ts`). `names` gives a component id its display name, for Related's chips; an id it does not know
  * shows as the id.
  */
-export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]; names?: (id: string) => string } = {}): PanelPlan => {
+export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]; names?: (id: string) => string; releases?: PanelReleases } = {}): PanelPlan => {
   const name = ctx.names ?? ((id: string) => id);
   const sections: PanelSection[] = [];
   const model = docSections(def, { modes: ctx.modes }).sections;
@@ -336,7 +376,7 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
   for (const s of model as DocSection[]) {
     if (PANEL_OMITS.includes(s.id)) continue;
     const blocks: PanelBlock[] = [];
-    const field = (label: string, text: string, n: number) => blocks.push({ type: 'Field', label, text: firstSentences(text, n) });
+    const field = (label: string, text: string, n: number, mark?: number) => blocks.push({ type: 'Field', label, text: firstSentences(text, n), ...(mark === undefined ? {} : { n: mark }) });
     let row = false;
     switch (s.id) {
       case 'overview':
@@ -348,9 +388,10 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         blocks.push({ type: 'Specimen', caption: `Shown on the default member: ${s.specimen.map((x) => `${x.axis} ${x.value}`).join(', ')}`, marks });
         for (const m of marks) {
           const p = s.parts.find((x) => x.id === m.part)!;
-          // #3265: "Cell 4" for one instance, "Cells 1–6" for a run, each captioned truly for every part it covers.
+          // #3265: "Cell 4" for one instance, "Cells 1–6" for a run, each captioned truly for every part it covers. The
+          // number is the entry's disc, never its label's text (Q2927-R1 A): one number source, the marker's.
           const e = anatomyEntry(def, m, (id) => s.parts.find((x) => x.id === id)?.caption ?? '');
-          field(`${m.n}  ${e.label}${p.optional ? ' (optional)' : ''}`, e.caption, 1);
+          field(`${e.label}${p.optional ? ' (optional)' : ''}`, e.caption, 1, m.n);
         }
         break;
       }
@@ -361,6 +402,9 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         break;
       case 'usage': {
         if (s.usage) blocks.push({ type: 'Paragraph', text: firstSentences(s.usage, 2), size: SIZE });
+        // #3986 part 3 (Q-RTL1 A): Figma draws left to right only, so the panel says what changes in right-to-left text,
+        // generated from the parts' `mirror` fields. No right-to-left variants. The wording is DRAFT for the owner.
+        if (s.rtl) blocks.push({ type: 'Paragraph', text: `In RTL: ${s.rtl}`, size: SIZE });
         // The family's items, the lead's first, each once (Q551 A on Q2): the counts are of the merged lists.
         const merged = (pick: (u: { do: string[]; dont: string[] }) => string[]): string[] => [...new Set([s, ...others.map((o) => {
           const u = docSections(o).sections.find((x) => x.id === 'usage');
@@ -414,7 +458,7 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
   // and its parts listed, the lead first and then the page's order. THE LEAD BY ITS NAME ONLY (#3552 Q-UG4 A): the lede
   // is its summary, so its entry does not say that again.
   const family = others.length ? [def, ...others].map((d) => ({ name: nameInFamily(name(d.id), fam!.page), def: d.id, ...(d === def ? {} : { note: firstSentences(d.summary, 1) }) })) : undefined;
-  const body = { def: def.id, title: family ? fam!.page : def.name, lede: plain(def.summary), ...(family ? { family } : {}), sections };
+  const body = { def: def.id, title: family ? fam!.page : def.name, lede: plain(def.summary), ...(family ? { family } : {}), changed: lastChangedFor(def.id, ctx.releases), sections };
   return { ...body, hash: `${PANEL_FORMAT}:${fnv(JSON.stringify(body), false)}${fnv(JSON.stringify(body), true)}` };
 };
 
@@ -441,7 +485,7 @@ export interface PNode {
   readonly parent?: unknown;
   readonly children?: readonly PNode[];
   characters?: string;
-  readonly fontName?: unknown;
+  fontName?: unknown;
   fontSize?: unknown;
   letterSpacing?: unknown;
   setRangeHyperlink?(start: number, end: number, link: { type: 'NODE' | 'URL'; value: string } | null): void;
@@ -472,6 +516,10 @@ export interface PNode {
   /** Where the node sits on the canvas, laid out: the one box a marker is placed from (#2916). */
   readonly absoluteBoundingBox?: { x: number; y: number; width: number; height: number } | null;
   clipsContent?: boolean;
+  cornerRadius?: unknown;
+  textAutoResize?: unknown;
+  textAlignHorizontal?: unknown;
+  textAlignVertical?: unknown;
   setProperties?(props: Record<string, string | boolean>): void;
   setExplicitVariableModeForCollection?(collection: unknown, modeId: string): void;
   resize?(w: number, h: number): void;
@@ -496,6 +544,8 @@ export interface PanelApi {
   /** The file's text styles: the code style a code span is drawn in (#3552 Q-UG2 A). */
   getLocalTextStylesAsync?(): Promise<readonly { id: string; name: string; fontName?: { family: string; style: string } }[]>;
   createFrame(): PNode;
+  /** The part markers' numerals (#3773): the disc is the panel's own furniture, not a block. */
+  createText(): PNode;
   variables?: {
     getLocalVariablesAsync(): Promise<readonly PanelVariable[]>;
     getLocalVariableCollectionsAsync?(): Promise<readonly { id: string; name: string; modes: readonly { modeId: string; name: string }[] }[]>;
@@ -681,12 +731,12 @@ const overrideView = (n: PNode, fields: ReadonlySet<string>, kids: SgNode[], top
   },
 }) as SgNode;
 /** An instance on the panel, read through its overrides: itself, then each layer under it that overrides something, in
- *  order, flat, so a layer its main adds, drops or moves does not move the print. */
-const instanceView = (inst: PNode, ovr: Map<string, Set<string>>): SgNode => {
+ *  order, flat, so a layer its main adds, drops or moves does not move the print. `spec` reads a specimen inside it. */
+const instanceView = (inst: PNode, ovr: Map<string, Set<string>>, spec: (c: PNode) => SgNode = (c) => printView(c as unknown as SgNode)): SgNode => {
   const flat: SgNode[] = [];
   const take = (q: PNode): void => {
     for (const c of q.children ?? []) {
-      if (c.type === 'INSTANCE' && c.name === 'specimen') { flat.push(printView(c as unknown as SgNode)); continue; }
+      if (c.type === 'INSTANCE' && c.name === 'specimen') { flat.push(spec(c)); continue; }
       const f = ovr.get(String(c.id ?? ''));
       if (f) flat.push(overrideView(c, f, [], false));
       take(c);
@@ -695,21 +745,41 @@ const instanceView = (inst: PNode, ovr: Map<string, Set<string>>): SgNode => {
   take(inst);
   return overrideView(inst, ovr.get(String(inst.id ?? '')) ?? new Set(), flat, true);
 };
-/** `printView`, with each instance on the panel read through its overrides (`instanceView`). */
-const ownView = (n: SgNode): SgNode => new Proxy({}, {
+/** `printView`, with each instance on the panel read through its overrides (`instanceView`). `spec` reads a specimen:
+ *  as `printView` does in the third form, through its own overrides in the fourth (`specimenView`). */
+const ownView = (n: SgNode, spec: (c: PNode) => SgNode = (c) => printView(c as unknown as SgNode)): SgNode => new Proxy({}, {
   get(_, k) {
     const own = n as unknown as PNode;
     if (k === 'children') {
       return ((own.children ?? []) as readonly PNode[]).map((c) => {
-        if (c.type !== 'INSTANCE' || c.name === 'specimen') return c.type === 'INSTANCE' ? printView(c as unknown as SgNode) : ownView(c as unknown as SgNode);
+        if (c.type !== 'INSTANCE') return ownView(c as unknown as SgNode, spec);
+        if (c.name === 'specimen') return spec(c);
         const ovr = overridesUnder(c);
-        return ovr ? instanceView(c, ovr) : printView(c as unknown as SgNode);
+        return ovr ? instanceView(c, ovr, spec) : printView(c as unknown as SgNode);
       });
     }
     return Reflect.get(printView(n), k);
   },
 }) as SgNode;
-export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V3}${await fingerprintOf(ownView(n as unknown as SgNode))}`;
+/** A print in the third form (#3303): a specimen read as `printView` reads it. Exported so a test can age a panel to it. */
+export const printV3 = async (n: PNode): Promise<string> => `${PRINT_V3}${await fingerprintOf(ownView(n as unknown as SgNode))}`;
+/**
+ * THE SPECIMEN AS THE PANEL SET IT (#4070). `printView` empties a specimen, but it still read the specimen's own root:
+ * its fills, strokes, corners and effects. Those are the documented member's, read through the instance, so an Update
+ * that redrew the member's root (Wallet and Sign-in buttons' corners under Control shape, #3794) moved the print of a
+ * panel nobody touched, and it was kept aside as "(edited)" (three on the template file, 2026-11-18). In the fourth form
+ * a specimen is read, as `instanceView` reads an instance, only through what is set on the specimen itself, its own entry
+ * in `overrides`: a fill or a corner a designer sets there still moves the print. Its properties stay out, as in every
+ * form: which member it shows is the set's. A host that reports no `overrides` has it read as the third form reads it.
+ */
+const PRINT_V4 = '4:';
+const specimenView = (sp: PNode): SgNode => {
+  if (!Array.isArray(sp.overrides)) return printView(sp as unknown as SgNode);
+  const mine = (sp.overrides as { id: string; overriddenFields: string[] }[]).find((o) => o.id === String(sp.id ?? ''));
+  const fields = new Set((mine?.overriddenFields ?? []).filter((k) => !UNPRINTED.has(k) && k !== 'componentProperties'));
+  return overrideView(sp, fields, [], false);
+};
+export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V4}${await fingerprintOf(ownView(n as unknown as SgNode, specimenView))}`;
 /**
  * Whether `n` still prints as `print`, read in the form it was recorded in. A print in the second form (#2927) is
  * compared in that form: a panel drawn before #3303 and untouched since still matches until a component it nests is
@@ -717,7 +787,7 @@ export const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V3}${awa
  * rebuild from a hand edit, so nothing a designer did is drawn over. Once redrawn, a panel carries this form.
  */
 export const printMatches = async (n: PNode, print: string): Promise<boolean> =>
-  !!print && (print.startsWith(PRINT_V3) ? (await panelPrint(n)) === print : print.startsWith(PRINT_V2) ? (await printV2(n)) === print : false);
+  !!print && (print.startsWith(PRINT_V4) ? (await panelPrint(n)) === print : print.startsWith(PRINT_V3) ? (await printV3(n)) === print : print.startsWith(PRINT_V2) ? (await printV2(n)) === print : false);
 /**
  * THE TEXT PRISM3 WRITES INTO `defId`'s PANEL (#2968), today or before one panel per family (#2927): every string of its
  * plan; the wording #2927 changed (each part's own anatomy line, the def's own Do and Don't items and their count); a
@@ -741,8 +811,11 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
   const fam = panelFamily(defId);
   if (fam && fam.members.length > 1) out.add(fam.members.map(names).join(', '));
   if (plan.family) out.add(plan.family.map(linkLine).join('\n'));
+  if (plan.changed.length > 1) out.add(plan.changed.slice(1).join('\n'));
   for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Chips' && b.chips.length > CHIP_SLOTS) out.add(`+${b.chips.length - CHIP_SLOTS + 1} more`);
   for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Links') out.add(b.items.map(linkLine).join('\n'));
+  // An anatomy entry as it read before its number became a disc (#2927, Q2927-R1 A): "3  Caret".
+  for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Field' && b.n !== undefined) out.add(`${b.n}  ${b.label}`);
   for (const s of docSections(def, { modes: PANEL_MODES }).sections as DocSection[]) {
     // A further specimen's caption names what its member changes (`markSpecimens`): each pair, joined by commas.
     if (s.id === 'styles') for (const pair of [...s.axes.flatMap((a) => a.values.map((v) => `${a.axis} ${v}`)), ...s.states.map((v) => `state ${v}`)]) out.add(`${SHOWN_ON}${pair}`);
@@ -795,7 +868,7 @@ const legacyUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode, print: stri
 export const panelUnedited = async (api: Pick<PanelApi, 'root'>, n: PNode): Promise<boolean> => {
   const print = n.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PRINT) ?? '';
   if (!print) return false;
-  return print.startsWith(PRINT_V3) || print.startsWith(PRINT_V2) ? printMatches(n, print) : legacyUnedited(api, n, print);
+  return print.startsWith(PRINT_V4) || print.startsWith(PRINT_V3) || print.startsWith(PRINT_V2) ? printMatches(n, print) : legacyUnedited(api, n, print);
 };
 
 /**
@@ -953,33 +1026,93 @@ export const anatomyMembers = (set: PNode, marks: readonly AnatomyMark[]): { mem
   }
   return out;
 };
+/** A node's box on the canvas as the host lays it out, or its offsets summed up its parents where the host gives none. */
+const boxOn = (n: PNode): Box => {
+  const r = n.absoluteBoundingBox;
+  if (r) return { x: r.x, y: r.y, width: r.width, height: r.height };
+  let x = 0, y = 0;
+  for (let q: PNode | undefined = n; q; q = q.parent as PNode | undefined) { x += q.x ?? 0; y += q.y ?? 0; }
+  return { x, y, width: n.width ?? 0, height: n.height ?? 0 };
+};
 /**
- * HOW MANY BRACKET TIERS A SPECIMEN TAKES, read off the member's layers as the draw lays them out (`drawMarkers`): the
- * innermost first, each in the lowest tier no bracket it overlaps already holds. Two brackets overlap down the page when
- * one holds the other, or when the layer that holds both lays them side by side; stacked siblings share a tier.
+ * THE LEFT GUTTER'S DISCS (#3773, owner decision B), pure on the containers' heights so the width rule and the draw
+ * place them alike. Each container's leader lands on its left edge: an outermost one (no other container listed here
+ * holds it) near its bottom corner (`MARK_CORNER`), an inner one at its middle. Each disc goes in the one left column, the
+ * shortest part first, since it has the least room: one that would touch another there slides along its own left edge to
+ * the nearest free place, so its leader still lands on the part (the root, tallest, gives way to a footer at its bottom).
+ * Only a part too short for any free place, as nested containers sharing one edge are, takes a further column. Returns,
+ * in the order given, each landing's offset from its part's top and its column.
  */
-const bracketTiers = (member: PNode, marks: readonly AnatomyMark[]): number => {
-  const nodes = [...marks].filter((m) => m.bracket).sort((a, b) => b.path.length - a.path.length).flatMap((m) => {
-    const n = locate(member, m.path);
-    return n ? [chain(n, member)] : [];
-  });
-  const tiers: PNode[][][] = [];
-  const meets = (a: PNode[], b: PNode[]): boolean => {
-    if (a.includes(b[0]) || b.includes(a[0])) return true;
-    const common = a.find((q) => b.includes(q));
-    return common?.layoutMode === 'HORIZONTAL';
-  };
-  for (const up of nodes) {
-    let t = 0;
-    while ((tiers[t] ?? []).some((o) => meets(o, up))) t++;
-    (tiers[t] ??= []).push(up);
+export const leftColumns = (items: readonly { path: readonly string[]; top: number; height: number }[], disc = MARK_DISC): { dy: number; column: number }[] => {
+  const holds = (o: readonly string[], l: readonly string[]): boolean => o.length < l.length && o.every((s, i) => l[i] === s);
+  const out: { dy: number; column: number }[] = items.map(() => ({ dy: 0, column: 0 }));
+  const cols: [number, number][][] = [];
+  const touches = (c: number, y: number): boolean => (cols[c] ?? []).some(([a, b]) => y - disc / 2 < b + MARK_SEP && a < y + disc / 2 + MARK_SEP);
+  for (const i of items.map((_, k) => k).sort((a, b) => items[a].height - items[b].height || items[b].path.length - items[a].path.length)) {
+    const it = items[i];
+    const outer = !items.some((o) => holds(o.path, it.path));
+    const want = it.top + (outer ? it.height - Math.min(MARK_CORNER, it.height / 2) : it.height / 2);
+    let y = want;
+    for (let k = 1; touches(0, y) && k <= it.height; k++) {
+      if (want - k >= it.top && !touches(0, want - k)) y = want - k;
+      else if (want + k <= it.top + it.height && !touches(0, want + k)) y = want + k;
+    }
+    if (touches(0, y)) y = want;
+    let c = 0;
+    while (touches(c, y)) c++;
+    (cols[c] ??= []).push([y - disc / 2, y + disc / 2]);
+    out[i] = { dy: y - it.top, column: c };
   }
-  return tiers.length;
+  return out;
+};
+/**
+ * WHERE EACH CONTAINER'S LEADER COMES FROM (#3773, owner decision Q-BK4 A, point 2). `items` are the listed parts the
+ * specimen shows, marked on it or not, with their boxes. A container's leader comes in from the left gutter only when no
+ * other part sits to its left where the leader lands (from its middle down to `MARK_CORNER` above its bottom, the band
+ * `leftColumns` lands in), apart from the containers that hold it: those the leader must enter. Otherwise, as Accordion's trailing indicator with its title to its left, a leader from the gutter would cross the row,
+ * so the container is marked as a part is, by a short leader from the top or bottom gutter to its near edge at its middle
+ * across: the side its middle is nearer (`P`, the specimen's box), unless a part between it and that gutter would be
+ * crossed and the other side is clear. Pure on the boxes, so the width rule and the draw decide alike. Returns, in the
+ * order given, each container's side, and null for a part that holds no other.
+ */
+export const containerSides = (items: readonly { path: readonly string[]; container: boolean; box: Box }[], P: Box): ('left' | 'top' | 'bottom' | null)[] => {
+  const holds = (o: readonly string[], l: readonly string[]): boolean => o.length < l.length && o.every((s, i) => l[i] === s);
+  return items.map((it) => {
+    if (!it.container) return null;
+    const B = it.box;
+    const others = items.filter((o) => o !== it && !holds(o.path, it.path) && !holds(it.path, o.path));
+    const lo = B.y + B.height / 2, hi = Math.max(lo, B.y + B.height - Math.min(MARK_CORNER, B.height / 2));
+    if (!others.some((o) => o.box.x < B.x - 0.5 && o.box.y < hi + LEADER / 2 && o.box.y + o.box.height > lo - LEADER / 2)) return 'left';
+    const cx = B.x + B.width / 2;
+    const inColumn = others.filter((o) => o.box.x < cx + LEADER / 2 - 0.01 && o.box.x + o.box.width > cx - LEADER / 2 + 0.01);
+    const clear = { top: !inColumn.some((o) => o.box.y < B.y - 0.5), bottom: !inColumn.some((o) => o.box.y + o.box.height > B.y + B.height + 0.5) };
+    const near: 'top' | 'bottom' = B.y + B.height / 2 <= P.y + P.height / 2 ? 'top' : 'bottom';
+    const far: 'top' | 'bottom' = near === 'top' ? 'bottom' : 'top';
+    return clear[near] || !clear[far] ? near : far;
+  });
+};
+/** The listed parts a specimen (or its member) shows, with their boxes: each marked here, and each other mark whose part
+ *  is shown, the parts a leader could cross (`containerSides`). */
+const shownParts = (root: PNode, here: readonly AnatomyMark[], every: readonly AnatomyMark[]): { mark: AnatomyMark; here: boolean; layer: PNode; box: Box }[] =>
+  every.flatMap((m) => {
+    const n = locate(root, m.path);
+    const on = here.includes(m);
+    if (!n || (!on && !chain(n, root).every((q) => q.visible !== false))) return [];
+    return [{ mark: m, here: on, layer: n, box: boxOn(n) }];
+  });
+/** How many left columns a member's containers take (`leftColumns`), read off its layers as the host lays them out. */
+const leftColumnsOf = (member: PNode, marks: readonly AnatomyMark[], every: readonly AnatomyMark[] = marks): number => {
+  const M = boxOn(member);
+  const found = shownParts(member, marks, every);
+  const sides = containerSides(found.map((f) => ({ path: f.mark.path, container: f.mark.container, box: f.box })), M);
+  const items = found.filter((f, k) => f.here && sides[k] === 'left').map((f) => ({ path: f.mark.path, top: f.box.y - M.y, height: f.box.height }));
+  return items.length ? Math.max(...leftColumns(items).map((c) => c.column)) + 1 : 0;
 };
 /** The stage a specimen `w` wide needs: its padding on the right, and on the left its padding or, when the specimen
- *  carries brackets, room for each tier (`MARK_ROOM`), whichever is more. */
-const stageFor = (w: number, tiers: number): number =>
-  w + STAGE_PAD + Math.max(STAGE_PAD, tiers ? MARK_GAP + tiers * (MARK_ROOM + 2 * MARK_SEP) + LEADER : 0);
+ *  carries a container's marker, the left gutter's columns of discs (`MARK_DISC`, #3773), whichever is more. No bracket
+ *  tiers: a container's leader comes in from the gutter, so nested containers share a column wherever their discs fit. */
+const stageFor = (w: number, columns: number): number =>
+  w + STAGE_PAD + Math.max(STAGE_PAD, columns ? MARK_GAP + columns * (MARK_DISC + 2 * MARK_SEP) : 0);
 /**
  * THE NARROWEST AN EXAMPLE MAY BE (#3205). Whether a member is `built` comes from the def alone, never from the sizing
  * the member reports: a root the def builds at a width (`placementWidth`, `builtSize` naming the member's value on its
@@ -1016,7 +1149,7 @@ export const panelLayout = (set: PNode, def: ComponentDef | undefined = componen
   const w0 = (set.children ?? [])[0]?.width ?? 0;
   const anatomy = def?.anatomy ? docSections(def).sections.find((s) => s.id === 'anatomy') : undefined;
   const marks = anatomy && anatomy.id === 'anatomy' ? anatomyMarks(def!, anatomy.parts.map((p) => p.id)) : [];
-  const stages = anatomyMembers(set, marks).map((a) => stageFor(a.member.width ?? 0, bracketTiers(a.member, a.marks)));
+  const stages = anatomyMembers(set, marks).map((a) => stageFor(a.member.width ?? 0, leftColumnsOf(a.member, a.marks, marks)));
   const row = 2 * stageFor(w0, 0) + MODE_GAP;
   const stack = row + 2 * PANEL_PAD >= THEMING_ROW_MAX;
   return { width: Math.ceil(Math.max(PANEL_WIDTH - 2 * PANEL_PAD, stageFor(w0, 0), ...stages, stack ? 0 : row) + 2 * PANEL_PAD), stack };
@@ -1035,7 +1168,7 @@ export const drawDocPanel = async (
   api: PanelApi,
   set: PNode,
   def: ComponentDef,
-  opts: { names?: (id: string) => string } = {},
+  opts: { names?: (id: string) => string; releases?: PanelReleases } = {},
 ): Promise<PanelOutcome> => {
   const out: PanelOutcome = { def: def.id, drawn: false, sections: [], replaced: 0, kept: [], skipped: [], misses: [] };
   const fam = panelFamily(def.id);
@@ -1046,7 +1179,7 @@ export const drawDocPanel = async (
   if (!blocks) { out.missing = [DOC_BLOCK_SET]; return out; }
   const variant = (type: DocBlockType, size: DocBlockSize = SIZE): PNode | undefined => (blocks.children ?? []).find((m) => m.name === docBlockVariant(type, size));
   const { modes, pin } = await panelModes(api);
-  const plan = planDocPanel(def, { modes, names: opts.names });
+  const plan = planDocPanel(def, { modes, names: opts.names, releases: opts.releases });
 
   // THE EARLIER PANELS: unedited ones go now, so they are not in the fresh panel's way; edited ones wait for the
   // fresh panel to land, and stay exactly as they are if it cannot.
@@ -1110,6 +1243,44 @@ export const drawDocPanel = async (
     const i = v?.createInstance?.();
     if (!i) out.misses.push(`${DOC_BLOCK_SET} has no ${docBlockVariant(type, size ?? SIZE)} variant`);
     return i;
+  };
+  /** The numeral's face for every part disc, the specimen's markers and the parts list's alike: Inter Semi Bold, else
+   *  Regular, loaded once. A host with neither draws each disc without its numeral. The miss line's wording is APPROVED
+   *  (owner decision Q-BK4 A, 2026-11-17). */
+  let face: { family: string; style: string } | null | undefined;
+  const markFace = async (): Promise<void> => {
+    if (face !== undefined) return;
+    face = null;
+    for (const f of [SEMIBOLD, REGULAR]) {
+      try { await api.loadFontAsync(f); face = f; break; } catch { /* the next face */ }
+    }
+    if (face !== SEMIBOLD) out.misses.push(`${SEMIBOLD.family} ${SEMIBOLD.style} unavailable for the part markers${face ? `: used ${face.family} ${face.style}` : ''}`);
+  };
+  /** THE PART DISC (#3773 B): `MARK_DISC` across, filled `MARK_INK`, its numeral `MARK_NUMERAL`. The one drawing of a
+   *  part's number: each specimen marker is one, and so is each parts-list entry's (#2927, Q2927-R1 A). Call
+   *  `markFace` first. */
+  const disc = (n: number): PNode => {
+    const d = api.createFrame();
+    d.name = 'marker';
+    d.fills = solid(MARK_INK);
+    d.cornerRadius = MARK_DISC / 2;
+    d.resize?.(MARK_DISC, MARK_DISC);
+    const t = api.createText();
+    t.name = 'count';
+    d.appendChild?.(t);
+    if (face) {
+      t.fontName = { ...face };
+      t.characters = String(n);
+    }
+    t.fontSize = 12;
+    t.fills = solid(MARK_NUMERAL);
+    t.textAutoResize = 'NONE';
+    t.textAlignHorizontal = 'CENTER';
+    t.textAlignVertical = 'CENTER';
+    t.resize?.(MARK_DISC, MARK_DISC);
+    t.x = 0;
+    t.y = 0;
+    return d;
   };
   const setBool = (i: PNode, name: string, value: boolean): void => { const k = propKey(i, name); if (k) i.setProperties?.({ [k]: value }); };
 
@@ -1254,8 +1425,20 @@ export const drawDocPanel = async (
   const draw = async (into: PNode, b: PanelBlock): Promise<void> => {
     const i = block(b.type === 'Links' ? 'Field' : b.type, b.type === 'Heading' || b.type === 'Paragraph' ? b.size : SIZE);
     if (!i) return;
-    into.appendChild?.(i);
-    fill(i);
+    // A NUMBERED ANATOMY ENTRY (#2927, owner decision Q2927-R1 A): a row of its part's disc, the one `disc` draws for the
+    // specimen's marker, then the Field block, so the list and the specimen read their number from one drawing.
+    if (b.type === 'Field' && b.n !== undefined) {
+      await markFace();
+      const row = frame(`entry ${b.n}`, 'HORIZONTAL', ENTRY_GAP);
+      into.appendChild?.(row);
+      fill(row);
+      row.appendChild?.(disc(b.n));
+      row.appendChild?.(i);
+      i.layoutGrow = 1;
+    } else {
+      into.appendChild?.(i);
+      fill(i);
+    }
     switch (b.type) {
       case 'Heading': case 'Paragraph': await write(findText(i, 'text'), b.text, 'text'); break;
       case 'Field': await write(findText(find(i, 'row') ?? i, 'label'), b.label, 'label'); await write(findText(find(i, 'row') ?? i, 'text'), b.text, 'text'); break;
@@ -1315,46 +1498,46 @@ export const drawDocPanel = async (
   };
 
   /**
-   * THE PART MARKERS (#2916, Q551 A on Q3–Q5), once the panel has its layout: a numbered Badge per mark, over the panel,
-   * placed from the boxes the host lays out (`absoluteBoundingBox`), never from summed offsets, which miss a part inside
-   * a slot or a nested instance. A part is marked in the specimen's gutter with a 1px leader to it: above when its
-   * middle is in the specimen's top half, else below, at its middle across. A part that holds another marked part (the
-   * root among them) gets a bracket along its left edge, its marker beside the bracket, the innermost nearest. A marker
-   * that would touch another on the same side moves one tier out, and the stage's padding grows to hold every tier.
-   * Each marker and its lines are one frame, `part <n>`. Returns how many parts were marked.
+   * THE PART MARKERS (#2916, Q551 A on Q3–Q5; #3773, owner decision B), once the panel has its layout: a numbered disc per
+   * mark in `_Label`'s ink (`MARK_INK`), over the panel, placed from the boxes the host lays out (`absoluteBoundingBox`),
+   * never from summed offsets, which miss a part inside a slot or a nested instance. ONE LEADER PER PART, containers
+   * included, ending in a `MARK_DOT` dot on the part's edge, never over its content. A part is marked in the specimen's
+   * top or bottom gutter: above when its middle is in the specimen's top half, else below, at its middle across, the
+   * leader stopping at its near edge. A container (a part that holds another marked part, the root among them) is marked
+   * in the left gutter, its leader coming in to its left edge: the outermost near its bottom corner (`MARK_CORNER`), an
+   * inner one at its middle; one with a marked part to its left across its height is marked from the top or bottom
+   * gutter as a part is, so no leader crosses the row (`leadsLeft`, Q-BK4 A). No brackets. A marker that would touch
+   * another on the same side moves one tier out, and the stage's padding grows to hold every tier.
+   *
+   * Each marker and its lines are one frame, `part <n>`, a child of the panel: never inside the set or a specimen, so the
+   * set's hand-edit check and its as-built record never read it, and the panel's print reads it as drawn, every fill a
+   * literal. Returns how many parts were marked.
    */
   const drawMarkers = async (): Promise<number> => {
-    const rect = (n: PNode): Box => {
-      const r = n.absoluteBoundingBox;
-      if (r) return { x: r.x, y: r.y, width: r.width, height: r.height };
-      let x = 0, y = 0;
-      for (let q: PNode | undefined = n; q; q = q.parent as PNode | undefined) { x += q.x ?? 0; y += q.y ?? 0; }
-      return { x, y, width: n.width ?? 0, height: n.height ?? 0 };
-    };
-    type Laid = { mark: AnatomyMark; part: PNode; group: PNode; badge: PNode; inner: PNode; side: 'top' | 'bottom' | 'left'; tier: number };
+    const rect = boxOn;
+    if (anatomy.some((a) => a.marks.length)) await markFace();
+    type Laid = { mark: AnatomyMark; part: PNode; group: PNode; disc: PNode; side: 'top' | 'bottom' | 'left'; tier: number; dy: number };
     const all: { spec: PNode; stage?: PNode; laid: Laid[] }[] = [];
     for (const a of anatomy) {
       const laid: Laid[] = [];
       for (const mark of a.marks) {
         const part = locate(a.spec, mark.path);
-        const badge = block('Part-marker');
-        if (!part || !badge) continue;
+        if (!part) continue;
         const group = api.createFrame();
         group.name = `part ${mark.n}`;
         group.fills = [];
         group.clipsContent = false;
         panel.appendChild?.(group);
         group.layoutPositioning = 'ABSOLUTE';
-        group.appendChild?.(badge);
-        try { badge.layoutSizingHorizontal = 'HUG'; } catch { /* the block keeps its width; the Badge inside is what is placed */ }
-        await write(findText(badge, 'count'), String(mark.n), 'marker count');
-        laid.push({ mark, part, group, badge, inner: find(badge, 'marker') ?? badge, side: 'top', tier: 0 });
+        const d = disc(mark.n);
+        group.appendChild?.(d);
+        laid.push({ mark, part, group, disc: d, side: 'top', tier: 0, dy: 0 });
       }
       all.push({ spec: a.spec, stage: a.stage, laid });
     }
     const every = all.flatMap((a) => a.laid);
     if (!every.length) return 0;
-    const mw = Math.max(...every.map((l) => rect(l.inner).width)), mh = Math.max(...every.map((l) => rect(l.inner).height));
+    const mw = Math.max(...every.map((l) => rect(l.disc).width)), mh = Math.max(...every.map((l) => rect(l.disc).height));
     // THE TIERS, from the boxes as first laid out: padding moves the specimen as a whole, so they hold after it.
     for (const { spec, stage, laid } of all) {
       const P = rect(spec);
@@ -1365,21 +1548,23 @@ export const drawDocPanel = async (
           if (!row.some(([a, b]) => lo < b + MARK_SEP && a < hi + MARK_SEP)) { row.push([lo, hi]); return t; }
         }
       };
-      // Brackets innermost first, so the deepest part sits nearest its specimen.
-      for (const l of [...laid].filter((x) => x.mark.bracket).sort((a, b) => b.mark.path.length - a.mark.path.length)) {
-        const B = rect(l.part);
-        l.side = 'left';
-        l.tier = tier('left', B.y, B.y + B.height);
-      }
-      for (const l of laid.filter((x) => !x.mark.bracket)) {
+      // The containers in the left gutter (`leadsLeft`, `leftColumns`), placed as the width rule placed them. A container
+      // with a marked part to its left is marked from the top or bottom, as a part is (#3773, Q-BK4 A).
+      const seen = shownParts(spec, laid.map((l) => l.mark), every.map((l) => l.mark));
+      const sides = containerSides(seen.map((f) => ({ path: f.mark.path, container: f.mark.container, box: f.box })), P);
+      const sideOf = (l: Laid) => sides[seen.findIndex((f) => f.mark === l.mark)] ?? null;
+      const boxes = laid.filter((l) => sideOf(l) === 'left');
+      leftColumns(boxes.map((l) => { const B = l.part === spec ? P : rect(l.part); return { path: l.mark.path, top: B.y - P.y, height: B.height }; }), mh)
+        .forEach((c, k) => { boxes[k].side = 'left'; boxes[k].dy = c.dy; boxes[k].tier = c.column; });
+      for (const l of laid.filter((x) => sideOf(x) !== 'left')) {
         const B = rect(l.part);
         const cx = B.x + B.width / 2;
-        l.side = B.y + B.height / 2 <= P.y + P.height / 2 ? 'top' : 'bottom';
+        l.side = sideOf(l) ?? (B.y + B.height / 2 <= P.y + P.height / 2 ? 'top' : 'bottom');
         l.tier = tier(l.side, cx - mw / 2, cx + mw / 2);
       }
       if (!stage) continue;
       const deepest = (side: Laid['side']) => Math.max(-1, ...laid.filter((l) => l.side === side).map((l) => l.tier));
-      const need = (side: Laid['side'], step: number) => (deepest(side) < 0 ? 0 : MARK_GAP + (deepest(side) + 1) * step + (side === 'left' ? LEADER : 0));
+      const need = (side: Laid['side'], step: number) => (deepest(side) < 0 ? 0 : MARK_GAP + (deepest(side) + 1) * step);
       for (const [k, side, step] of [['paddingTop', 'top', mh + MARK_SEP], ['paddingBottom', 'bottom', mh + MARK_SEP], ['paddingLeft', 'left', mw + 2 * MARK_SEP]] as const) {
         const n = need(side, step);
         // The left gutter is the stage's base: `fitSpecimens` adds the spare to it.
@@ -1391,8 +1576,8 @@ export const drawDocPanel = async (
       }
     }
     fitSpecimens();
-    // A GUTTER WIDER THAN THE RULE ALLOWED (the real Badge wider than `MARK_ROOM`): the panel widens again, before the
-    // places are read, so every specimen keeps its own width inside its stage.
+    // A GUTTER WIDER THAN THE RULE ALLOWED (the host laid a specimen out unlike its member, so its discs took more columns
+    // than `leftColumnsOf` read): the panel widens again, before the places are read, so every specimen keeps its width.
     const need = Math.max(0, ...all.map(({ spec, stage }) => (stage ? rect(spec).width + Number(stage.paddingLeft ?? 0) + Number(stage.paddingRight ?? 0) : 0))) + 2 * PANEL_PAD;
     if (need > (panel.width ?? 0)) { panel.resize?.(Math.ceil(need), panel.height ?? 1); panel.layoutSizingVertical = 'HUG'; }
     fitSpecimens();
@@ -1403,45 +1588,45 @@ export const drawDocPanel = async (
       const P = rect(spec);
       for (const l of laid) {
         const B = l.part === spec ? P : rect(l.part);
-        const lines: Box[] = [];
-        let mx: number, my: number;
+        let mx: number, my: number, leader: Box, end: { x: number; y: number };
         if (l.side === 'left') {
-          const lx = P.x - MARK_GAP - LEADER - l.tier * (mw + 2 * MARK_SEP);
-          const tick = B.x + MARK_INSET - lx;
-          lines.push({ x: lx, y: B.y, width: LEADER, height: B.height }, { x: lx, y: B.y, width: tick, height: LEADER }, { x: lx, y: B.y + B.height - LEADER, width: tick, height: LEADER });
-          mx = lx - MARK_SEP - mw;
-          my = B.y + B.height / 2 - mh / 2;
+          const y = B.y + l.dy;
+          mx = P.x - MARK_GAP - mw - l.tier * (mw + 2 * MARK_SEP);
+          my = y - mh / 2;
+          leader = { x: mx + mw, y: y - LEADER / 2, width: B.x - (mx + mw), height: LEADER };
+          end = { x: B.x, y };
         } else {
-          const cx = Math.round(B.x + B.width / 2);
+          const cx = B.x + B.width / 2;
           mx = cx - mw / 2;
           if (l.side === 'top') {
             my = P.y - MARK_GAP - mh - l.tier * (mh + MARK_SEP);
-            lines.push({ x: cx, y: my + mh, width: LEADER, height: B.y + MARK_INSET - (my + mh) });
+            leader = { x: cx - LEADER / 2, y: my + mh, width: LEADER, height: B.y - (my + mh) };
+            end = { x: cx, y: B.y };
           } else {
             my = P.y + P.height + MARK_GAP + l.tier * (mh + MARK_SEP);
-            const from = B.y + B.height - MARK_INSET;
-            lines.push({ x: cx, y: from, width: LEADER, height: my - from });
+            leader = { x: cx - LEADER / 2, y: B.y + B.height, width: LEADER, height: my - (B.y + B.height) };
+            end = { x: cx, y: B.y + B.height };
           }
         }
-        const boxes = [{ x: mx, y: my, width: mw, height: mh }, ...lines];
+        const dot: Box = { x: end.x - MARK_DOT / 2, y: end.y - MARK_DOT / 2, width: MARK_DOT, height: MARK_DOT };
+        const boxes = [{ x: mx, y: my, width: mw, height: mh }, leader, dot];
         const u = { x: Math.min(...boxes.map((b) => b.x)), y: Math.min(...boxes.map((b) => b.y)) };
         const w = Math.max(...boxes.map((b) => b.x + b.width)) - u.x, h = Math.max(...boxes.map((b) => b.y + b.height)) - u.y;
         l.group.x = u.x - at.x;
         l.group.y = u.y - at.y;
         l.group.resize?.(w, h);
-        // The Badge's own place inside its block, so the Badge, not the block, lands on the mark.
-        const inner = rect(l.inner), outer = rect(l.badge);
-        l.badge.x = mx - u.x - (inner.x - outer.x);
-        l.badge.y = my - u.y - (inner.y - outer.y);
-        lines.forEach((b, k) => {
+        l.disc.x = mx - u.x;
+        l.disc.y = my - u.y;
+        for (const [name, b, round] of [['leader', leader, 0], ['end', dot, MARK_DOT / 2]] as const) {
           const f = api.createFrame();
-          f.name = k ? 'tick' : 'leader';
-          f.fills = paint('color/text/secondary');
+          f.name = name;
+          f.fills = solid(MARK_INK);
+          if (round) f.cornerRadius = round;
           l.group.appendChild?.(f);
           f.x = b.x - u.x;
           f.y = b.y - u.y;
           f.resize?.(Math.max(LEADER, b.width), Math.max(LEADER, b.height));
-        });
+        }
         marked++;
       }
     }
@@ -1451,6 +1636,26 @@ export const drawDocPanel = async (
   // THE FAMILY (#2927, #2970 Q4 A): every set the panel covers, as a bulleted list under the lede, each name linked to its
   // set and followed by its own summary. DRAFT label (Q10).
   if (plan.family) await draw(header, { type: 'Links', label: 'In this family', items: plan.family });
+
+  // LAST CHANGED IN (#2889, #2858 piece 2, Q479.3 A): under the header, above Overview, as the approved wireframe places
+  // it. No block type of its own: the version line is a Heading block and the release's items a Paragraph block under
+  // it, bulleted. The wording is the approved wireframe's ("Last changed in", "Unchanged since").
+  if (plan.changed.length) {
+    const lc = frame(LAST_CHANGED, 'VERTICAL', 4);
+    panel.appendChild?.(lc);
+    fill(lc);
+    const h = block('Heading', SIZE);
+    if (h) { lc.appendChild?.(h); fill(h); await write(findText(h, 'text'), plan.changed[0], 'text'); }
+    const items = plan.changed.slice(1);
+    const para = items.length ? block('Paragraph', SIZE) : undefined;
+    if (para) {
+      lc.appendChild?.(para); fill(para);
+      const t = findText(para, 'text');
+      if (await write(t, items.join('\n'), 'text') && t) {
+        try { t.setRangeListOptions?.(0, String(t.characters).length, { type: 'UNORDERED' }); } catch { out.misses.push('Last changed in: list bullets not set'); }
+      }
+    }
+  }
 
   for (const s of plan.sections) {
     const d = block('Divider');

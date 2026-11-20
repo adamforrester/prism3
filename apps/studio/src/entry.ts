@@ -20,7 +20,7 @@
  */
 import { brandTheme, type BrandInput, resolvePreview, toDesignMd } from '@prism3/engine';
 import type { Origin } from './provenance';
-import { clearInput, persistInput, restoreInput, type LocalStore } from './persist-local';
+import { clearInput, persistInput, restoreSession, type LocalStore } from './persist-local';
 import { glyph, h, hook } from './shell/dom';
 import { initTheme } from './shell/theme';
 import { BRANDS, BOOT_BRAND, brandState, initSession, rebuild, setPersist, setPath, subscribe } from './state/store';
@@ -52,14 +52,20 @@ import CHROME from 'p3:chrome-css';
 // state and keeps what was refused, so `showRefusedBrand` below can offer to export or clear it.
 type RefusedBrand = { input: BrandInput; message: string };
 let refusedBrand: RefusedBrand | null = null;
-const bootBrand = (): { input: BrandInput; origin: Origin } => {
+const bootBrand = (): { input: BrandInput; origin: Origin; baseline?: BrandInput } => {
   if (PRISM3_HOST !== 'figma') {
-    const restored = restoreInput(localStorage);
+    const restored = restoreSession(localStorage);
     if (restored) {
-      // The persisted web brand is the state as the user last left it — its own origin, not an
-      // example. Which example it once descended from is not recoverable and not what reset means.
-      try { resolvePreview(brandTheme(restored)); return { input: restored, origin: { kind: 'file' } }; }
-      catch (e) { refusedBrand = { input: restored, message: (e as Error).message }; }
+      // #3880 (owner decision A): the persisted web brand comes back with the origin and baseline it was persisted
+      // beside, so a reload changes nothing about what is dirty: edits made before it still ask before a load replaces
+      // them. Storage written before #3880 has no origin entry, and restores as it did: the brand as its own baseline,
+      // origin `file`. A baseline the engine now refuses is not kept either: the brand is then its own baseline.
+      try {
+        resolvePreview(brandTheme(restored.input));
+        if (restored.baseline === restored.input) return { input: restored.input, origin: restored.origin };
+        try { resolvePreview(brandTheme(restored.baseline)); } catch { return { input: restored.input, origin: { kind: 'file' } }; }
+        return restored;
+      } catch (e) { refusedBrand = { input: restored.input, message: (e as Error).message }; }
     }
     // Web, nothing valid stored → the EMPTY STATE. brandState still holds the demo so the app is in a
     // valid state behind the start screen, but the origin is `none`: nothing has been chosen yet, so
@@ -72,10 +78,11 @@ const bootBrand = (): { input: BrandInput; origin: Origin } => {
   return { input: structuredClone(BRANDS[BOOT_BRAND]), origin: { kind: 'example', id: BOOT_BRAND } };
 };
 const boot = bootBrand();
-initSession(boot.input, boot.origin);
-// Every successful rebuild persists the last-good brand — on web only. The plugin injects nothing: its
-// brand is written to the file by the main thread on Apply. Statically dead in the plugin bundle.
-if (PRISM3_HOST !== 'figma') setPersist((input) => persistInput(localStorage, input));
+initSession(boot.input, boot.origin, boot.baseline);
+// Every successful rebuild persists the last-good brand, and the provenance beside it (#3880) — on web only. The
+// plugin injects nothing: its brand is written to the file by the main thread on Apply. Statically dead in the plugin
+// bundle.
+if (PRISM3_HOST !== 'figma') setPersist((input, prov) => persistInput(localStorage, input, prov));
 
 // ---- 2. host ---------------------------------------------------------------------------------------
 commit.onHostMessage(handleHostMessage);

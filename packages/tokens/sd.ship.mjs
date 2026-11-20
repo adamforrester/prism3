@@ -13,25 +13,44 @@
  * What it builds: the house brand, `prism3`, from the conforming projection the engine emits
  * (`prism3.base.tokens.json` plus one `prism3.<mode>.overlay.tokens.json` per theme mode), one stock
  * Style Dictionary run per mode — the shape the consumer build already proves. The base run (the light
- * defaults) writes under `:root`; each mode writes under `[data-theme="<mode>"]`. Names keep stock Style
+ * defaults) writes under `:root, [data-theme="light"]`; each mode writes under `[data-theme="<mode>"]`. Names keep stock Style
  * Dictionary's root prefix, `--pds3-…` (Q98 A): no `prefix` option, no rename.
  *
- *   dist/prism3/<mode>.css   one file per block, straight out of Style Dictionary
+ *   dist/prism3/<mode>.css   one file per mode, straight out of Style Dictionary
  *   dist/prism3.css          those files joined in order (`:root` first), so one import carries every mode
+ *
+ * THE SYSTEM-PREFERENCE BLOCK (#4140, owner decision A). `dark.css` carries a second rule: the dark values again,
+ * nested by stock `css/variables` under `@media (prefers-color-scheme: dark)` on `:root:not([data-theme])`, so a page
+ * that sets no `data-theme` follows the OS with no script and no flash. It is a second stock run of the same dark
+ * sources, written outside `dist/` and appended to `dark.css`: the same file plumbing as the join, no format. A page
+ * or subtree that sets `data-theme` keeps the theme it asked for, because the selector excludes it.
  *
  * Joining finished files is file plumbing after Style Dictionary has run, not a format: no client runs it.
  * Modes are discovered from the engine's `out/`, so a new overlay ships the day it is emitted;
  * `check-package.mjs` asserts the promised ones by name.
  */
 import StyleDictionary from 'style-dictionary';
-import { readdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { readdirSync, readFileSync, writeFileSync, appendFileSync, rmSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT_ROOT = resolve(here, '../engine/out');
 export const DIST = resolve(here, 'dist');
 export const BRAND = 'prism3';
+/**
+ * The light defaults' selector. `:root` makes them the page default; `[data-theme="light"]` makes them
+ * reachable on a subtree, as every other mode is, so a light section inside a `data-theme="dark"` page
+ * switches back (#4135). One stock `selector` option, one rule.
+ */
+const BASE_SELECTOR = ':root, [data-theme="light"]';
+
+/**
+ * Modes that also apply by system preference when no `data-theme` is set (#4140): the mode, and the stock nested
+ * `selector` its second rule is written under. hc-dark and hc-light stay opt-in, by attribute only.
+ */
+const SYSTEM_SELECTORS = new Map([['dark', ['@media (prefers-color-scheme: dark)', ':root:not([data-theme])']]]);
 
 /** `base` first, then every overlay the engine emits for the brand, sorted. */
 export const discoverModes = () => [
@@ -42,7 +61,8 @@ export const discoverModes = () => [
     .sort(),
 ];
 
-const buildMode = async (mode) => {
+/** One stock run of a mode's sources: `css/variables` under `selector`, written to `buildPath/<mode>.css`. */
+const runMode = async (mode, buildPath, selector, showFileHeader = true) => {
   const sd = new StyleDictionary({
     source: [
       resolve(OUT_ROOT, `${BRAND}.base.tokens.json`),
@@ -54,23 +74,31 @@ const buildMode = async (mode) => {
     platforms: {
       css: {
         transformGroup: 'css',
-        buildPath: `${DIST}/${BRAND}/`,
-        files: [{
-          destination: `${mode}.css`,
-          format: 'css/variables',
-          options: { outputReferences: true, selector: mode === 'base' ? ':root' : `[data-theme="${mode}"]` },
-        }],
+        buildPath: `${buildPath}/`,
+        files: [{ destination: `${mode}.css`, format: 'css/variables', options: { outputReferences: true, selector, showFileHeader } }],
       },
     },
   });
   await sd.buildAllPlatforms();
-  return resolve(DIST, BRAND, `${mode}.css`);
+  return resolve(buildPath, `${mode}.css`);
+};
+
+const buildMode = async (mode, systemDir) => {
+  const file = await runMode(mode, resolve(DIST, BRAND), mode === 'base' ? BASE_SELECTOR : `[data-theme="${mode}"]`);
+  const system = SYSTEM_SELECTORS.get(mode);
+  if (system) appendFileSync(file, '\n' + readFileSync(await runMode(mode, systemDir, system, false), 'utf8'));
+  return file;
 };
 
 export const buildShip = async () => {
   rmSync(DIST, { recursive: true, force: true });
+  const systemDir = mkdtempSync(join(tmpdir(), 'prism3-ship-system-'));
   const files = [];
-  for (const mode of discoverModes()) files.push(await buildMode(mode));
+  try {
+    for (const mode of discoverModes()) files.push(await buildMode(mode, systemDir));
+  } finally {
+    rmSync(systemDir, { recursive: true, force: true });
+  }
   writeFileSync(resolve(DIST, `${BRAND}.css`), files.map((f) => readFileSync(f, 'utf8')).join('\n'));
   return resolve(DIST, `${BRAND}.css`);
 };

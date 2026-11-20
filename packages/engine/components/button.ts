@@ -307,6 +307,16 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
+    // THE MOTION, AS BINDINGS (#3408 Q146 A, after Q-MD4 A named them in prose). The state change (fill, border, ink,
+    // shadow) and the press both run on the ramp's `fast` step with the default curve: the brief's ~100–150ms, and
+    // prism3-motion R6 (a control's state change is `instant` or `fast`). Under reduced motion the color change keeps
+    // its reduced twin and the press scale resolves to none, so the press has no reduced binding. The press's 0.98
+    // MAGNITUDE is not a timing and no token holds it: it stays in `motion.reduceMotion` (OWNER DECISION on the PR).
+    'motion.state': 'motion.duration.fast',
+    'motion.state-easing': 'motion.easing-role.default',
+    'motion.state-reduced': 'motion.duration-reduced.fast',
+    'motion.press': 'motion.duration.fast',
+    'motion.press-easing': 'motion.easing-role.default',
     // A flush button's padding (#2350): the zero step, bound rather than left a literal 0, so the designer reads
     // `space/0` on both sides and a brand cannot move it. Zero by meaning: a pinned icon sits at the edge.
     'inset.flush': 'space.0',
@@ -437,7 +447,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         // THE ORDER IS THE PRECEDENCE (#933): the overlay if it resolves, otherwise the fill. `filled`
         // keys a fill and no overlay; `outline` and `text` key an overlay and no fill, because they have
         // no fill to change for hover and express it as a translucent wash on this same node. Exactly
@@ -480,12 +490,12 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       // `nesting: swap` on all three swap-materialized parts (#681). A slot's target is nominated per
       // FILE by the caller and its content is the designer's to change, so there is no variant for the
       // def to fix — which is exactly what `swap` says.
-      leadingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / avatar / counter / spinner before the label.' },
+      leadingVisual: { kind: 'slot', mirror: 'per-glyph', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / avatar / counter / spinner before the label.' },
       label: { kind: 'text', optional: false, type: 'size.{size}.{appearance}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
       // Maintainer detail, out of the reader caption (#3610): Icon / caret / indicator after the label. Not split
       // into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own
       // slot — is already carried by leadingVisual + isPending.
-      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'An icon, caret or indicator after the label.' },
+      trailingVisual: { kind: 'slot', mirror: 'per-glyph', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'An icon, caret or indicator after the label.' },
       spinner: {
         kind: 'overlay',
         // THE SPINNER COMPONENT (#1670), swapped in at the member on the slot's own icon rung (a medium
@@ -729,7 +739,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   },
 
   accessibility: {
-    role: 'button (native <button>; never div[role=button] — it inherits Space/Enter activation, focus, and high-contrast affordances for free)',
+    role: 'button (native `<button>`; never `div[role=button]` — it inherits Space/Enter activation, focus, and high-contrast affordances for free)',
     // #1697 — every entry carries its reason, and 2.5.5 is stated as intent: `lint-hit-target.ts` gates the
     // 44px floor at the default size on comfortable and spacious densities, and names a small button and
     // compact density as the two exceptions, so "meets 44×44" would be a claim the engine does not make.
@@ -744,8 +754,8 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       '2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)',
       '4.1.2 Name/Role/Value (native <button>: the label is the name, the role is button, and state rides aria-disabled and aria-busy, plus aria-pressed on a toggle button only)',
     ],
-    keyboard: 'Native <button>: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating "button" must be a real link.)',
-    focus: 'A :focus-visible ring (color.border.focus) with an outline-offset so a sliver of background separates ring from border — it does not blend into the button\'s own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (aria-disabled, not native disabled).',
+    keyboard: 'Native `<button>`: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating "button" must be a real link.)',
+    focus: 'A `:focus-visible` ring (`color.border.focus`) with an `outline-offset` so a sliver of background separates ring from border — it does not blend into the button\'s own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (`aria-disabled`, not native disabled).',
     aria: 'State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization: the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip.',
   },
 
@@ -763,7 +773,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     do: [
       'Lead with a verb, name the object ("Publish post", not "Submit")',
       'Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing',
-      'Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
+      'Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
       // THE BRAND'S BUTTON SETTINGS (#1667), stated for the agent that builds this component in code: the
       // def is brand-agnostic, so the settings travel as brand input (`buttonIcons`,
       // `buttonMinWidthMultiplier`, `buttonContentSize`, and #1752's `buttonLabelWeight`) and these lines
@@ -786,8 +796,8 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       ...sibling.do,
     ],
     dont: [
-      'Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text',
-      'Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an <a>',
+      'Set `inset=flush` on a filled or outline button — their visible edge needs its padding; flush is for `appearance=text`',
+      'Use a button with no `href` for navigation to a URL — use Link, or give the button an `href` so it renders an `<a>`',
       'Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills',
       'Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)',
       'Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual\'s place, or overlays a label held at zero opacity',
@@ -799,10 +809,10 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #3555 Q-MD14 A: one line per sibling, in the imperative register every def's primaryPurpose takes.
     primaryPurpose: { primary: 'Trigger an action in place, in the brand\'s primary style.', destructive: 'Trigger an action in place that deletes or removes something.', neutral: 'Trigger an action in place that carries no brand emphasis.' }[family],
     whenToUse: 'The user needs to act on this surface — submit, confirm, open, apply, or start async work.',
-    avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use ${ICON_BUTTON_OF[family]} (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
+    avoidWhen: `The target is a different location/URL → use Link (or give the button an \`href\`, which renders an \`<a>\`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use ${ICON_BUTTON_OF[family]} (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
     // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
     // nests it) are the two components this one always builds with, beside the icon in its slots.
-    commonPartners: ['icon', 'spinner', 'focus-ring', 'button-group'],
+    commonPartners: ['icon', 'spinner', 'focus-ring', 'button-group', 'popover'],
     triggerKeywords: sibling.triggerKeywords,
     generationPriority: sibling.generationPriority,
   },
@@ -814,16 +824,16 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1697 — each sibling points at the icon-button of its OWN family, so the destructive button's
     // icon-only alternative is the destructive icon-button rather than the primary one.
     alternativeTo: [family === 'primary' ? 'icon-button' : `icon-button-${family}`, 'switch-row', ...(family === 'primary' ? ['tag', 'link'] : [])],
-    planned: ['tooltip', 'menu', 'popover', 'toggle-button', 'split-button'],
-    replacesPatterns: ['input[type=button|submit]', 'div[role=button]'],
+    planned: ['tooltip', 'menu', 'toggle-button', 'split-button'],
+    replacesPatterns: ['input[type=button|submit]', '`div[role=button]`'],
   },
 
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    // Q-MD4 A (#3555): the brief's ~100–150ms maps to motion.duration.fast, named in prose. `motion` is prose, so
-    // nothing gates it; recorded in `notes.unverified`.
-    reduceMotion: 'State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
+    // Q-MD4 A (#3555): the brief's ~100–150ms maps to motion.duration.fast. Since #3408 Q146 A the tokens are bound in
+    // `tokens` (`motion.state*`, `motion.press*`), and `test.ts` holds the bindings; this prose names the same ones.
+    reduceMotion: 'State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) on the same duration and curve gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {
@@ -851,7 +861,6 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       // #1697 — narrowed. The ring's 3:1 against the PAGE is gated (focus-ring.ts wcag, per mode, 4.5:1 in
       // high contrast); what stays open is its contrast against the host's own edge.
       'FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host\'s own edge or fill is not measured — the offset is what makes it achievable, not what proves it.',
-      'motion timing — the state transition names motion.duration.fast in `motion.reduceMotion` (Q-MD4 A). `motion` is prose and no motion token is bound, so nothing gates it.',
     ],
   },
 });

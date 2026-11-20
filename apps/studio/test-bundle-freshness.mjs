@@ -24,8 +24,10 @@ import { readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 /** What `apps/studio/dist/main.js` compiles from: the studio app, its chrome CSS, the engine it bundles, and the
- *  build script that sets its defines. */
-export const STUDIO_SOURCE_ROOTS = ['apps/studio/src', 'apps/studio/chrome', 'packages/engine', 'apps/studio/build.mjs'];
+ *  build script that sets its defines. Since #3429 the same build writes the component specs chunk beside it, shaped
+ *  by the shared chunk config and the plugin's maintainer-prose strip, so both are roots too. */
+export const STUDIO_SOURCE_ROOTS = ['apps/studio/src', 'apps/studio/chrome', 'packages/engine', 'apps/studio/build.mjs',
+  'apps/studio/component-specs-build.mjs', 'apps/plugin/strip-maintainer-prose.mjs'];
 /** What `apps/plugin/dist/ui.html` compiles from: the studio app it inlines whole, its chrome CSS, the plugin's
  *  iframe entry and the modules it imports, the engine, the build script, and the strip it runs over component
  *  prose. `apps/plugin/src` is wider than the iframe (its `main.ts` is the main thread's), which only costs an

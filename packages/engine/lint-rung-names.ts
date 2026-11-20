@@ -357,6 +357,7 @@ const RUNG_REPEATS: Record<string, { families: string[]; why: string }> = {
   'flush-icon-button-destructive': { families: ['icon.size.*'], why: 'Q283.13 A, as Flush icon button' },
   'flush-icon-button-neutral': { families: ['icon.size.*'], why: 'Q283.13 A, as Flush icon button' },
   'card-number-field': { families: ['icon.size.*'], why: 'the mark tile is the icon rung, 20 at small and medium and 24 at large (#2429 §2)' },
+  'code-input-cell': { families: ['radius.*'], why: '#3551 A: small, medium and large follow the control corner (control.size.{sm,md,lg}.radius = radius.sm), as a same-size text field does; the x-large display cell is the deliberate exception at radius.lg' },
 };
 
 /**
@@ -365,9 +366,7 @@ const RUNG_REPEATS: Record<string, { families: string[]; why: string }> = {
  * instead, and is checked both directions like RUNG_REPEATS. When the issue is answered, the entry moves to
  * RUNG_REPEATS (kept) or is deleted with the def's fix (changed).
  */
-const RUNG_REPEATS_OPEN: Record<string, { families: string[]; issue: string }> = {
-  'code-input-cell': { families: ['radius.*'], issue: '#3551: small, medium and large on radius.sm with md skipped, from the as-built wireframe, no decision cited' },
-};
+const RUNG_REPEATS_OPEN: Record<string, { families: string[]; issue: string }> = {};
 
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
 const expectedDefaultRung = (defId: string, family: string): string =>
@@ -391,6 +390,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'banner': 'a banner has no size RUNG — its axes are `tone` and `edge` (contained or full-bleed), and the brief names no size; density moves its padding and gaps (`densitySpacing`), and the nested buttons carry their own small rung (#2579)',
   '_breadcrumb-separator': 'one 16px mark (`icon.size.xs`) at both breadcrumb sizes (#2666, owner call 6 A, kept by Q382 A), bound under a non-`size.*` key; its axis is `type`, chevron or slash, so there is no ladder to compare. The item it sits in carries the size',
   'toast': 'one size: the brief names none and the owner approved one (#2668 call 11 A). It is built 360 wide as a literal (`placementWidth`), its type is one role (`type.body.sm.default`, #3165), its floor one rung (`size.md.height`, Q3165.1 A), its glyph one rung (`icon.size.sm`), and its nested Button and IconButton.Neutral are fixed at small; there is no size ladder to compare against the tier',
+  'popover': 'one size: the proposal names none and the owner approved one member (#4008, Q-FL2 on OD-P2 A). It is built 320 wide as a literal (`placementWidth`), its title and body are one role each, and its nested close button is fixed at small; there is no size ladder to compare against the tier',
   'button-group': 'a layout of Buttons has no size RUNG of its own — its axis is `layout`, its gaps are `space.*` steps, and each nested Button is medium and measured under its own name; a size axis for smaller actions is held for the owner (#2661)',
   'divider': 'a rule has no size RUNG — its axis is `orientation`, its thickness is one border-width role (`border-width.hairline`), and its length is a NOMINAL standalone placeholder (`container.narrow` across, `size.md.height` tall) a host stretches; there is no size ladder to compare against the tier (#2455)',
 };
@@ -491,6 +491,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   'switch-control': Q1B,
   'switch-row': Q1B,
   tag: Q1B,
+  'tag-group': Q1B,
   'tab-item': Q1B,
   tabs: Q1B,
   '_accordion-indicator': Q1B,
@@ -523,6 +524,7 @@ const DEFAULT_FIRST: Record<string, string> = {
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
   'checkbox-group': 'its inter-row gap is 0px (`space.0`, the rows self-space — #1623 sign-off), so the size axis binds nothing of its own and reaches the nested field-label and checkbox rows by `follow`',
+  'tag-group': 'its one gap is `space.100` at every size (Tag\'s group gap, held at no less than 8px), so the size axis binds nothing of its own and reaches the nested tags by `follow` (#1739)',
   'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
   'tabs': 'the tab list binds no size.* key of its own — its gap is 0px (`space.0`, each tab carries its own padding) and the baseline is a fixed 1px hairline — so the size axis reaches the six nested tabs by `follow` only (#2416)',
   'code-input': 'the field binds no size.* key of its own — its gaps are fixed `space.100` steps — so the size axis reaches the six nested cells by `follow` only; the label keeps one size (#2428)',
@@ -557,7 +559,7 @@ const MUST_COVER = [
   'button', 'button-destructive', 'button-neutral', 'wallet-button', 'sign-in-button',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-  'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter', 'slider', '_slider-thumb',
+  'field-label', 'text-field', 'textarea', 'select', 'tag', 'tag-group', 'counter', 'slider', '_slider-thumb',
   'badge',
   'tab-item', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',

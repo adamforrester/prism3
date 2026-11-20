@@ -32,11 +32,13 @@ import { BrandInput } from './theme';
 export type DesignMd = { input: BrandInput; prose: string };
 
 // --- scalar typing: bare YAML scalar string → typed JS value ------------------
+// A double-quoted scalar takes YAML's escapes the serializer writes, `\\` and `\"` (#3876), and `\n` and `\r` (#3984):
+// without decoding them, each export → import added a backslash before every quote in a brand name, and a line break
+// in one ended the frontmatter line. Any other backslash is kept as written. A single-quoted scalar has no escapes here.
 const unquote = (s: string): string => {
   const t = s.trim();
-  if (t.length >= 2 && ((t[0] === '"' && t[t.length - 1] === '"') || (t[0] === "'" && t[t.length - 1] === "'"))) {
-    return t.slice(1, -1);
-  }
+  if (t.length >= 2 && t[0] === '"' && t[t.length - 1] === '"') return t.slice(1, -1).replace(/\\(["\\nr])/g, (_, c: string) => (c === 'n' ? '\n' : c === 'r' ? '\r' : c));
+  if (t.length >= 2 && t[0] === "'" && t[t.length - 1] === "'") return t.slice(1, -1);
   return t;
 };
 const isQuoted = (s: string): boolean => {
@@ -60,13 +62,13 @@ const typeScalar = (raw: string): unknown => {
 // and unquoted scalar values (the natural, compact YAML leaf form).
 const parseFlow = (src: string): unknown => {
   let i = 0;
-  const ws = () => { while (i < src.length && /\s/.test(src[i])) i++; };
+  const ws = () => { while (i < src.length && /\s/.test(src.charAt(i))) i++; };
   const scanBare = (stops: string): string => {           // scalar until a structural char
     const start = i;
     let depth = 0, q = '';
     while (i < src.length) {
-      const c = src[i];
-      if (q) { if (c === q) q = ''; i++; continue; }
+      const c = src.charAt(i);
+      if (q) { if (q === '"' && c === '\\') i++; else if (c === q) q = ''; i++; continue; }   // `\"` stays inside
       if (c === '"' || c === "'") { q = c; i++; continue; }
       if (c === '{' || c === '[') { depth++; i++; continue; }
       if (c === '}' || c === ']') { if (depth === 0) break; depth--; i++; continue; }
@@ -87,7 +89,7 @@ const parseFlow = (src: string): unknown => {
     if (src[i] === '}') { i++; return o; }
     while (i < src.length) {
       ws();
-      const key = unquote(scanBare(':')).trim();
+      const key = unquote(scanBare(':'));                // unquote trims the raw text; a quoted key keeps its own spaces (#3984)
       i++;                                                 // skip ':'
       o[key] = value();
       ws();
@@ -121,13 +123,13 @@ const stripComment = (line: string): string => {
   let q = '', depth = 0;
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
-    if (q) { if (c === q) q = ''; continue; }
+    if (q) { if (q === '"' && c === '\\') i++; else if (c === q) q = ''; continue; }   // `\"` stays inside
     if (c === '"' || c === "'") { q = c; continue; }
     if (c === '{' || c === '[') depth++;
     else if (c === '}' || c === ']') depth = Math.max(0, depth - 1);
     // A `#` starts a comment only at line start or after whitespace (YAML rule),
     // and only outside quotes / flow collections.
-    else if (c === '#' && depth === 0 && (i === 0 || /\s/.test(line[i - 1]))) return line.slice(0, i);
+    else if (c === '#' && depth === 0 && (i === 0 || /\s/.test(line.charAt(i - 1)))) return line.slice(0, i);
   }
   return line;
 };
@@ -138,7 +140,7 @@ const colonSplit = (s: string): number => {              // top-level `key:` col
   let q = '', depth = 0;
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
-    if (q) { if (c === q) q = ''; continue; }
+    if (q) { if (q === '"' && c === '\\') i++; else if (c === q) q = ''; continue; }   // `\"` stays inside
     if (c === '"' || c === "'") { q = c; continue; }
     else if (c === '{' || c === '[') depth++;
     else if (c === '}' || c === ']') depth = Math.max(0, depth - 1);
@@ -149,22 +151,26 @@ const colonSplit = (s: string): number => {              // top-level `key:` col
 
 const parseBlock = (lines: Line[]): Record<string, unknown> => {
   let pos = 0;
-  const block = (indent: number): unknown =>
-    lines[pos].content.startsWith('- ') || lines[pos].content === '-' ? seq(indent) : map(indent);
+  // Called only with a line at `pos` (each caller checks `next` first).
+  const block = (indent: number): unknown => {
+    const cur = lines[pos];
+    if (!cur) throw new Error(`design.md: a nested block was expected at line ${pos + 1} and the frontmatter ended`);
+    return cur.content.startsWith('- ') || cur.content === '-' ? seq(indent) : map(indent);
+  };
 
   const map = (indent: number): Record<string, unknown> => {
     const o: Record<string, unknown> = {};
     const seen = new Set<string>();
-    while (pos < lines.length && lines[pos].indent === indent && !lines[pos].content.startsWith('- ')) {
-      const line = lines[pos].content;
+    for (let cur = lines[pos]; cur && cur.indent === indent && !cur.content.startsWith('- '); cur = lines[pos]) {
+      const line = cur.content;
       const ci = colonSplit(line);
       if (ci < 0) break;                                   // not a mapping line at this level
-      const key = unquote(line.slice(0, ci)).trim();
+      const key = unquote(line.slice(0, ci));           // unquote trims the raw text; a quoted key keeps its own spaces (#3984)
       const rest = line.slice(ci + 1).trim();
       // L-08: a duplicate key at the same level silently last-wins in plain object
       // assignment — a designer who pastes two `primary:` blocks would lose one without
       // warning. Fail loud instead (mirrors the misindent guard below).
-      if (seen.has(key)) throw new Error(`design.md: duplicate key '${key}' at line ${lines[pos].src ?? '?'} — a repeated key silently overwrites the earlier one; remove one.`);
+      if (seen.has(key)) throw new Error(`design.md: duplicate key '${key}' at line ${cur.src ?? '?'} — a repeated key silently overwrites the earlier one; remove one.`);
       seen.add(key);
       pos++;
       if (rest !== '') { o[key] = parseScalarOrFlow(rest); continue; }
@@ -181,15 +187,14 @@ const parseBlock = (lines: Line[]): Record<string, unknown> => {
 
   const seq = (indent: number): unknown[] => {
     const a: unknown[] = [];
-    while (pos < lines.length && lines[pos].indent === indent &&
-           (lines[pos].content.startsWith('- ') || lines[pos].content === '-')) {
-      const after = lines[pos].content === '-' ? '' : lines[pos].content.slice(2);
+    for (let cur = lines[pos]; cur && cur.indent === indent && (cur.content.startsWith('- ') || cur.content === '-'); cur = lines[pos]) {
+      const after = cur.content === '-' ? '' : cur.content.slice(2);
       if (after !== '' && colonSplit(after) >= 0) {
         // Sequence of mappings: the item's first key is inline after `- `; its
         // remaining keys are deeper lines. Re-home the current line as the first
         // line of a mapping at a virtual indent, then let map() consume the rest.
         const virtual = indent + 2;
-        lines[pos] = { indent: virtual, content: after, src: lines[pos].src };
+        lines[pos] = { indent: virtual, content: after, src: cur.src };
         a.push(map(virtual));
       } else if (after === '') {
         // `-` on its own line → the item is the nested block beneath it.
@@ -205,12 +210,12 @@ const parseBlock = (lines: Line[]): Record<string, unknown> => {
     return a;
   };
 
-  const result = map(lines.length ? lines[0].indent : 0);
+  const result = map(lines[0]?.indent ?? 0);
   // CR-05: every line must be consumed. A misindented line (or a stray no-colon/prose line)
   // ends the map/seq loop early — leaving it AND everything after it unparsed. Silently
   // dropping a designer's lever is the worst failure here, so fail LOUD at the first orphan.
-  if (pos < lines.length) {
-    const bad = lines[pos];
+  const bad = lines[pos];
+  if (bad) {
     throw new Error(`design.md: unparseable frontmatter at line ${bad.src ?? '?'} — "${bad.content}" (indent ${bad.indent}). This line's indentation doesn't fit its block, which would otherwise silently drop it and every line after it. Fix the indentation / structure.`);
   }
   return result;
@@ -220,8 +225,8 @@ const parseBlock = (lines: Line[]): Record<string, unknown> => {
 export const parseYamlSubset = (src: string): Record<string, unknown> => {
   const lines: Line[] = [];
   const rawLines = src.split('\n');
-  for (let i = 0; i < rawLines.length; i++) {
-    const stripped = stripComment(rawLines[i]);
+  for (const [i, raw] of rawLines.entries()) {
+    const stripped = stripComment(raw);
     if (stripped.trim() === '') continue;                  // blank / comment-only
     const indent = stripped.length - stripped.trimStart().length;
     lines.push({ indent, content: stripped.slice(indent).trimEnd(), src: i + 1 });
@@ -260,20 +265,23 @@ export const parseDesignMd = (text: string): DesignMd => {
 // (e.g. no `root`) stays omitted, preserving the exact round-trip. Prose, if given,
 // follows the closing fence. Pairs with `parseDesignMd` for the E2E export leg.
 const bareOk = (s: string): boolean =>
-  s.length > 0 && s.trim() === s && !/[,{}[\]:#"']/.test(s) &&
+  s.length > 0 && s.trim() === s && !/[,{}[\]:#"'\n\r]/.test(s) &&
   !/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s) && !['true', 'false', 'null', '~'].includes(s);
+// Double-quoted with the escapes `unquote` decodes, backslash first (#3876), so a typed `\n` stays text; a line break
+// is written as `\n` (and a carriage return as `\r`), so the value stays on its one frontmatter line (#3984).
+const dq = (s: string): string => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}"`;
 const serScalar = (v: unknown): string => {
   if (v === null) return 'null';
   if (typeof v === 'number' || typeof v === 'boolean') return String(v);
   const s = String(v);
-  return bareOk(s) ? s : `"${s.replace(/"/g, '\\"')}"`;
+  return bareOk(s) ? s : dq(s);
 };
 const serValue = (v: unknown): string => {
   if (Array.isArray(v)) return `[${v.map(serValue).join(', ')}]`;
   if (v && typeof v === 'object') {
     const body = Object.entries(v as Record<string, unknown>)
       .filter(([, x]) => x !== undefined)
-      .map(([k, x]) => `${bareOk(k) ? k : `"${k}"`}: ${serValue(x)}`)
+      .map(([k, x]) => `${bareOk(k) ? k : dq(k)}: ${serValue(x)}`)
       .join(', ');
     return `{ ${body} }`;
   }

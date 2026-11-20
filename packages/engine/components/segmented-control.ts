@@ -168,7 +168,7 @@ export const segmentedControlSegment: ComponentDef = {
         note: 'The indicator, inset 4px inside the cell and as wide as the cell allows. Selected, it is a flat pill in the page surface color, with no border or shadow, and it does not change at hover or press; unselected, it is clear at rest and takes a light neutral wash over the track at hover and press.',
       },
       content: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         children: ['leadingVisual', 'labelBox'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
@@ -224,7 +224,7 @@ export const segmentedControlSegment: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
@@ -432,7 +432,7 @@ export const segmentedControl: ComponentDef = {
       // options, three by default with the first selected. It grows across the track, so the options inside it
       // still share the track's width equally (Q269.6). A designer adds, removes and reorders options in place.
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         contentSlot: true,
         // Owner decision Q307 A: at least one item, at most 5, and only a segmented-control-segment (#2646's slot constraints).
@@ -453,7 +453,7 @@ export const segmentedControl: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'runtime-behavior',
@@ -515,7 +515,7 @@ export const segmentedControl: ComponentDef = {
   },
 
   accessibility: {
-    role: 'view behavior: role="group" of buttons, the selected one with aria-current="true". form behavior: a radio group (a fieldset with a legend, or role="radiogroup"), native radios inside. Never role="tablist".',
+    role: 'view behavior: `role="group"` of buttons, the selected one with `aria-current="true"`. form behavior: a radio group (a fieldset with a legend, or `role="radiogroup"`), native radios inside. Never `role="tablist"`.',
     wcag: [
       '1.3.1 Info and Relationships (the group and its label are exposed together)',
       '4.1.2 Name, Role, Value',
@@ -528,7 +528,7 @@ export const segmentedControl: ComponentDef = {
       '2.5.5 Target Size (targets 44 by 44 at medium on comfortable and spacious density)',
     ],
     keyboard: 'view behavior: Tab moves to each option and Enter or Space selects it. form behavior: Tab enters at the selected option, arrow keys move to the next or previous option and select it, wrapping at the ends, and Tab leaves.',
-    focus: 'A focus ring around the focused option\'s indicator on :focus-visible.',
+    focus: 'A focus ring around the focused option\'s indicator on `:focus-visible`.',
     aria: 'The label names the group (aria-labelledby, or a legend in the form behavior); without it a screen reader announces options with no subject. Some screen readers do not announce aria-current on a button, so test the view behavior. Every name is translatable, and the row mirrors right to left.',
   },
 

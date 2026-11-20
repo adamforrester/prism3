@@ -24,8 +24,10 @@
  */
 import { ComponentDef } from '../component-schema';
 import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
+import { withMirrors } from '../rtl-mirror';
 
-export const passwordField: ComponentDef = makeTextField({
+// #3986: what the def's right-to-left entry says, as `mirror` fields.
+export const passwordField: ComponentDef = withMirrors(makeTextField({
   id: 'password-field',
   levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
   name: 'PasswordField',
@@ -146,7 +148,7 @@ export const passwordField: ComponentDef = makeTextField({
   ],
 
   accessibility: {
-    role: 'textbox (native <input type="password">, switched to type="text" while shown), plus a native <button type="button">',
+    role: 'textbox (native `<input type="password">`, switched to `type="text"` while shown), plus a native `<button type="button">`',
     wcag: [
       '1.3.1 Info and Relationships (label, describedby, and the button\'s aria-controls)',
       '1.3.5 Identify Input Purpose (autocomplete current-password or new-password, never off)',
@@ -169,16 +171,16 @@ export const passwordField: ComponentDef = makeTextField({
   },
 
   docs: {
-    usage: 'Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set autoComplete to current-password on a sign-in form and new-password where the user sets one. Put the rules for a new password in helper text or a list under the field.',
+    usage: 'Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.',
     do: [
-      'Set autoComplete to current-password or new-password on every password field',
+      'Set `autoComplete` to `current-password` or `new-password` on every password field',
       'Let the user paste, so a password manager can fill the field',
       'Return the field to hidden when its form submits',
       'State the rules for a new password before the user types',
     ],
     dont: [
       'Use an eye icon inside the field instead of the Show/Hide button',
-      'Add aria-pressed to the button as well as changing its name',
+      'Add `aria-pressed` to the button as well as changing its name',
       'Use this for a one-time code in separate boxes',
       'Put the password rules in the placeholder',
     ],
@@ -197,7 +199,7 @@ export const passwordField: ComponentDef = makeTextField({
   composition: {
     composesWith: ['field-label', 'field-message', 'button'],
     alternativeTo: ['text-field', 'code-input'],
-    replacesPatterns: ['eye icon inside a password field', 'password field with no way to show the characters', 'autocomplete="off" on a password'],
+    replacesPatterns: ['eye icon inside a password field', 'password field with no way to show the characters', '`autocomplete="off"` on a password'],
   },
 
   motion: {
@@ -223,4 +225,4 @@ export const passwordField: ComponentDef = makeTextField({
       'A later idea (owner, Q301.6): the Show/Hide button as its own subcomponent with a shown and a hidden variant, the field\'s value still changed by hand. Filed separately; not part of this def.',
     ],
   },
-});
+}), { labelRow: 'reverses' });

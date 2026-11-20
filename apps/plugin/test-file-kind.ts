@@ -25,7 +25,9 @@ import { stampOwnedModes } from './src/write-figma';
 import { classifyFile, outcomeOf, probeFile, type FileKind, type FileKindApi, type PageNode, type LibraryCollection } from './src/file-kind';
 
 let failures = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   console.log(`${cond ? 'PASS' : 'FAIL'}  ${label}`);
   if (!cond) failures++;
 };
@@ -158,5 +160,5 @@ for (const [k, want] of [['library', 'restore-input-library'], ['brand', 'restor
   ok(outcomeOf(k) === want, `file-kind: ${k === 'undecided' ? 'an' : 'a'} ${k} file posts ${want} (got ${outcomeOf(k)})`);
 }
 
-console.log(failures ? `\n${failures} failure(s)` : '\nfile-kind: all checks pass');
+console.log(`${failures ? `\n${failures} failure(s)` : '\nfile-kind: all checks pass'} — ${executed} assertions executed`);
 if (failures > 0) process.exit(1);

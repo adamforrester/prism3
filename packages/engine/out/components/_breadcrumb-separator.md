@@ -33,6 +33,8 @@ Shown on the default member: type `chevron`.
 
 Part of a BreadcrumbItem. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.
 
+**In RTL.** The chevron glyph flips to point the other way. The slash glyph does not mirror.
+
 ### Do
 
 - Choose the look once, on Breadcrumbs

@@ -35,7 +35,7 @@
  *     .6 an on box taking out every set it could add (`toggleSets` without its chosen filter) → `Q3306.6 A: …`.
  *   · #3439 (Q-IF.1–3 A, section 2c): `inFileOf` false when the file holds every set (`&& false`) → `Q-IF.1 A: a set the
  *     file holds …`; true while the family can still add a set (its `addableOf` test dropped) → `Q-IF.3 A: a family
- *     partly in the file keeps an active box …`.
+ *     partly in the file keeps an active box …` and `#1739, Q-IF.3 A: a file holding Tag without Tag.Group …`.
  *   · search keeping a family only on its own label → `search: a family stays while any of its sets matches`.
  *   · Stop ending the run at once (before the current set's result) → `call 16: Stop waits for the set being built…`.
  *   · "Also builds" by component name again (`displayNameOf` bypassed) → `idea 7: the sets a build makes first…`.
@@ -90,7 +90,8 @@ const WIRE_BUTTONS: [string, string[]][] = [['Buttons', ['Button', 'Button.Destr
 // #2343 PR 4: the Card number field joins Fields, on its own page.
 const WIRE_FIELDS: [string, string[]][] = [['Card number field', ['CardNumberField']], ['Code input', ['CodeInput', 'CodeInput.Cell']], ['Password field', ['PasswordField']], ['Search field', ['SearchField']], ['Select', ['Select']], ['Text field', ['TextField']], ['Textarea', ['Textarea']]];
 // Q578 part 2 (A on #2931's wireframe): Tag leaves Other components for its own Tag section.
-const WIRE_TAGS: [string, string[]][] = [['Tag', ['Tag']]];
+// #1739: Tag.Group shares Tag's page, so the page's row holds both sets (Field's rule: the component on the page that nests it).
+const WIRE_TAGS: [string, string[]][] = [['Tag', ['Tag', 'Tag.Group']]];
 // #2958: Dialog leaves Other components for its own section, as Tag did (the wireframe on #2958).
 const WIRE_DIALOGS: [string, string[]][] = [['Dialog', ['Dialog']]];
 // #2924 (Q693 A): Banner leaves Other components for its own section, as Dialog did (the wireframe on #2924, §4).
@@ -106,6 +107,8 @@ const WIRE_COMPONENTS: [string, string[]][] = [
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['List', ['List', 'List.Item']],
   // Pagination (#2665) joins after the wireframe: its own page, the row and its item, a family.
   ['Pagination', ['Pagination', 'Pagination.Item']],
+  // #4008: Popover, its own page under Components.
+  ['Popover', ['Popover']],
   ['Progress', ['Progress']],
   ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']],
   // #2343 PR 5: Sign-in button, on its own page (Q-S10 A).
@@ -139,8 +142,13 @@ ok(JSON.stringify(drawn('fields')) === JSON.stringify(WIRE_FIELDS) && JSON.strin
   && Object.keys(FIELD_FRAME_PARTS).every((id) => fieldRowIds.includes(id) || catalog.some((e) => e.section === 'Components' && e.nests.includes(id))),
   `#2905 Q548, Q-2789.3 A: Fields holds the sets Field style draws, the engine's FIELD_FRAME_PARTS (${Object.keys(FIELD_FRAME_PARTS).sort().join(', ')}), each with the component on its page that nests it (${fieldRowIds.join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('fields'))})`);
 const tagIds = (groups.find((g) => g.kind === 'tags')?.rows ?? []).flatMap((r) => r.ids).sort();
-ok(JSON.stringify(drawn('tags')) === JSON.stringify(WIRE_TAGS) && JSON.stringify(tagIds) === JSON.stringify(Object.keys(TAG_STYLE_PARTS).sort()),
-  `#2931 Q579 A: Tag holds the sets Tag style draws, the engine's TAG_STYLE_PARTS (${Object.keys(TAG_STYLE_PARTS).sort().join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('tags'))})`);
+// #1739: and, as Fields does, the component on its page that nests one (Tag.Group), read from the catalog's page and `nests`.
+const tagRowIds = [...new Set(Object.keys(TAG_STYLE_PARTS).flatMap((id) => {
+  const page = catalog.find((e) => e.id === id)?.page;
+  return [id, ...catalog.filter((e) => e.page === page && e.nests.includes(id)).map((e) => e.id)];
+}))].sort();
+ok(JSON.stringify(drawn('tags')) === JSON.stringify(WIRE_TAGS) && JSON.stringify(tagIds) === JSON.stringify(tagRowIds),
+  `#2931 Q579 A, #1739: Tag holds the sets Tag style draws, the engine's TAG_STYLE_PARTS (${Object.keys(TAG_STYLE_PARTS).sort().join(', ')}), each with the component on its page that nests it (${tagRowIds.join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('tags'))})`);
 const dialogIds = (groups.find((g) => g.kind === 'dialogs')?.rows ?? []).flatMap((r) => r.ids).sort();
 ok(JSON.stringify(drawn('dialogs')) === JSON.stringify(WIRE_DIALOGS) && JSON.stringify(dialogIds) === JSON.stringify(Object.keys(DIALOG_TITLE_TYPE_KEYS).sort()),
   `#2958: Dialog holds the sets Dialog title size reaches, the engine's DIALOG_TITLE_TYPE_KEYS (${Object.keys(DIALOG_TITLE_TYPE_KEYS).sort().join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('dialogs'))})`);
@@ -183,8 +191,8 @@ ok(JSON.stringify(drawn('components')) === JSON.stringify(WIRE_COMPONENTS) && JS
   `note 2: a family's sets are alphabetical by component name, and call 12: a part set stays in its family (${JSON.stringify(drawn('components').filter((r) => r[1].length > 1).map((r) => r[1].join('/')))})`);
 ok(groups.find((g) => g.kind === 'subcomponents')?.rows.some((r) => r.ids.includes('icon') && r.page === 'Icons & assets') === true,
   'call 11: Icon lists under Subcomponents, and still lands on ↳ Icons & assets');
-ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 62,
-  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, Sign-in button since #2343 PR 5, and Page navigation with its item since #3345)`);
+ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 64,
+  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, Sign-in button since #2343 PR 5, Page navigation with its item since #3345, Tag.Group since #1739, and Popover since #4008)`);
 ok(sentenceCase('Field Label') === 'Field label' && sentenceCase('Text field') === 'Text field' && sentenceCase('Icons & assets') === 'Icons & assets',
   'call 14: a page name reads in sentence case ("Field Label" → "Field label")');
 ok(GROUPS_COPY.sectionCount('components', 19, 32) === '19 families and sets · 32 sets' && GROUPS_COPY.sectionCount('subcomponents', 7, 9) === '7 entries · 9 sets'
@@ -355,6 +363,14 @@ ok(!inFileOf(catalog, radio, ['radio-control']) && boxOfSets(catalog, radio, new
   && JSON.stringify(toggleSets(catalog, radio, new Set(), ['radio-control'])) === JSON.stringify({ ids: ['radio-group', 'radio-row'], on: true }),
   'Q-IF.3 A: a family partly in the file keeps an active box, and its tick adds only the missing sets');
 ok(inFileOf(catalog, radio, radio), 'Q-IF.3 A: once every set of a family is in the file, its box is checked and disabled');
+// #1739: Tag.Group joined Tag's family (typed here, not read from SETTING_SECTIONS), so a file that holds Tag alone,
+// as every file built before Tag.Group does, keeps an active Tag box whose tick adds only the group; once the file holds
+// both, the box is checked and disabled. Studio's chrome 3129 arm holds the drawn box over a file holding both.
+const tagFamily = ['tag', 'tag-group'];
+ok(!inFileOf(catalog, tagFamily, ['tag']) && boxOfSets(catalog, tagFamily, new Set(), ['tag']) === 'off'
+  && JSON.stringify(toggleSets(catalog, tagFamily, new Set(), ['tag'])) === JSON.stringify({ ids: ['tag-group'], on: true })
+  && inFileOf(catalog, tagFamily, tagFamily),
+  '#1739, Q-IF.3 A: a file holding Tag without Tag.Group keeps an active Tag box that adds only the group; holding both, it is in the file');
 ok(!inFileOf(withOff, ['planted-off'], []) && !inFileOf(catalog, ['badge'], []), 'Q3129.6 A kept: a box over no set the file holds or could add is no box');
 ok(GROUPS_COPY.inFile === 'In file' && GROUPS_COPY.inFileName('Badge') === 'Badge is in this file',
   'Q-IF.1 A, Q-IF.2 A: the tag reads In file; the box\'s name reads "{name} is in this file" (DRAFT)');

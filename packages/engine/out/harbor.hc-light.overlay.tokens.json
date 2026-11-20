@@ -485,6 +485,11 @@
           "$type": "color",
           "$value": "{hds.core.palette.neutral.600}",
           "$description": "Disabled icon — reduced contrast, legible; clears 4.5:1"
+        },
+        "border": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.600}",
+          "$description": "Disabled control border — reduced contrast, legible; clears 4.5:1"
         }
       },
       "scrim": {
@@ -1017,6 +1022,11 @@
             "$type": "color",
             "$value": "{hds.core.palette.neutral.500}",
             "$description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 4.5:1"
+          },
+          "border": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.500}",
+            "$description": "Disabled control border on an inverse surface — reduced contrast, legible; clears 4.5:1"
           }
         },
         "field": {

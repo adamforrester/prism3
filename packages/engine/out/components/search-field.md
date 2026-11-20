@@ -44,6 +44,8 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 Use for a query that finds or filters: a site search, a search within a section, a filter over a long list. The field nests FieldLabel above the box and FieldMessage below it; the box starts with the search glyph and ends with a clear button while it holds a value. Wrap a site or section search in a search landmark. Keep the label visible in a form; hide it only where the field's purpose is plain from where it sits, and it still names the field. In a site header, as an example and not a separate component: on a wide screen a small field sits inline in the header with its label hidden; on a narrow screen an Icon button named "Search" opens a search row under the header with a Cancel button, focus moves into the field, and Cancel closes the row and returns focus to the Search button.
 
+**In RTL.** The layout mirrors: the start edge is on the right. The leading visual does not mirror.
+
 ### Do
 
 - Wrap a site or section search in a search landmark
@@ -62,7 +64,7 @@ Use for a query that finds or filters: a site search, a search within a section,
 
 - **Keyboard:** Tab reaches the input, then the clear button while the field holds a value. Enter submits the host's form. Escape empties the field. Enter or Space on the clear button empties the field and returns focus to the input.
 - **Focus:** The input takes TextField's 2px focus edge, in place of its border. The clear button takes its own focus ring, and pressing it moves focus back to the input.
-- **Screen readers:** searchbox (native \<input type="search">), plus a native \<button type="button"> to clear it
+- **Screen readers:** searchbox (native `<input type="search">`), plus a native `<button type="button">` to clear it
 
   The host wires the label, aria-describedby and aria-invalid as TextField does. A hidden label stays in the DOM, visually hidden, never display: none. The clear button carries aria-label="Clear search" and aria-controls naming the input; the cleared state is announced once through the app's shared polite live region: "Search cleared". While results load, aria-busy.
 

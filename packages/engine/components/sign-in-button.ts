@@ -104,7 +104,8 @@ const RULES: Record<Provider, {
 };
 
 /** Every provider × style pair the rules name, in rule order: provider, then style. */
-const PAIRS = PROVIDERS.flatMap((p) => Object.keys(RULES[p].styles).map((style) => ({ provider: p, style })));
+// Each pair carries its own style rule, so no reader looks it up again by a key it already walked (#1182).
+const PAIRS = PROVIDERS.flatMap((p) => Object.entries(RULES[p].styles).map(([style, rule]) => ({ provider: p, style, rule })));
 
 /** The size rungs, with the mark one icon rung under Button's (16 / 20 / 24) and the label type per size. */
 const SIZE_KEYS = {
@@ -128,7 +129,7 @@ const spacingTokens = (): Record<string, string> => Object.fromEntries(PROVIDERS
  *  vocabulary without a glyph, and counts. */
 export const makeSignInButton = (markNames: readonly string[]): ComponentDef => {
   const have = new Set(markNames);
-  const built = PAIRS.filter((x) => have.has(RULES[x.provider].styles[x.style].mark));
+  const built = PAIRS.filter((x) => have.has(x.rule.mark));
   const providers = PROVIDERS.filter((p) => built.some((x) => x.provider === p));
   const styles = [...new Set(PAIRS.map((x) => x.style))].filter((s) => built.some((x) => x.style === s));
   // Every provider × style coordinate with no member: a pair the rules do not name, or one whose glyph is missing.
@@ -136,8 +137,8 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
     const missing = styles.filter((s) => !built.some((x) => x.provider === p && x.style === s));
     return missing.length ? [{ provider: [p], style: missing }] : [];
   });
-  const entries: Record<string, LiteralEntry> = Object.fromEntries(built.map(({ provider, style }) => {
-    const r = RULES[provider], s = r.styles[style];
+  const entries: Record<string, LiteralEntry> = Object.fromEntries(built.map(({ provider, style, rule: s }) => {
+    const r = RULES[provider];
     return [`${provider}.${style}`, {
       fill: s.fill,
       ...(s.edge ? { edge: s.edge } : {}),
@@ -149,6 +150,7 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
     }];
   }));
   const first = built[0];
+  if (!first) throw new Error('sign-in-button: the mark vocabulary holds no glyph for any provider × style pair, so the set would have no member');
   const styleList = (p: Provider): string => Object.keys(RULES[p].styles).filter((s) => built.some((x) => x.provider === p && x.style === s)).join(', ');
   const wordingList = (p: Provider): string => Object.keys(RULES[p].wording).join(', ');
   return {
@@ -201,7 +203,7 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
       root: 'container',
       parts: {
         container: {
-          kind: 'box',
+          kind: 'box', mirror: 'reverses',
           role: 'target',
           children: ['mark', 'label', 'focusRing'],
           layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
@@ -215,10 +217,11 @@ export const makeSignInButton = (markNames: readonly string[]): ComponentDef => 
           note: 'The provider\'s button: its fill, and a 1px edge where the provider draws one. Hover and pressed lay a light wash over the fill, which never changes.',
         },
         mark: markPart({
+          mirror: 'never',
           nesting: {
             kind: 'nest-fixed',
-            variant: { name: RULES[first.provider].styles[first.style].mark },
-            variantWhere: built.map(({ provider, style }) => ({ when: { provider, style }, set: { name: RULES[provider].styles[style].mark } })),
+            variant: { name: first.rule.mark },
+            variantWhere: built.map(({ provider, style, rule }) => ({ when: { provider, style }, set: { name: rule.mark } })),
           },
           height: 'size.{size}.mark',
           literal: 'mark',

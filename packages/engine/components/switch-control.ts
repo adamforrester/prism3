@@ -110,8 +110,9 @@
  * so the off member reads the same at rest, hover and pressed.
  *
  * THE DISABLED GLYPH (#1764). At `disabled` the thumb is `disabled.on-fill` and the glyph is
- * `disabled.border` — the disabled TRACK's own value in every corpus mode, so it repeats the rest-state
- * "glyph = track" inversion in the muted disabled inks. Glyph vs thumb measures 3.04–5.49:1 across the
+ * `disabled.fill` — the disabled TRACK's own role, so it repeats the rest-state "glyph = track" inversion
+ * in the muted disabled inks. (It bound `disabled.border` until #2750, which had the track's value until
+ * the disabled levers began setting the border's contrast.) Glyph vs thumb measures 3.04–5.49:1 across the
  * token-contract corpus, prism3 and the NB master theme (NB master light 3.07:1, prism3 light 3.06:1).
  * Disabled is contrast-exempt (1.4.3); the number is recorded so the glyph is shown to be visible, not
  * promised to be legible. `disabled.text` was measured and rejected: 1.21–1.79:1 against the thumb.
@@ -240,12 +241,13 @@ export const switchControl: ComponentDef = {
 
     // ── DISABLED SKIN (contrast-exempt, 1.4.3). The thumb sits ON the track's fill, so it takes the
     // `on-fill` disabled ink. The GLYPH sits on the thumb, so it takes a DIFFERENT muted ink (#1764): it
-    // used to bind `disabled.on-fill` too and drew in its own thumb's color. `disabled.border` is the
-    // disabled track's value, so the glyph repeats the rest-state inversion — 3.04–5.49:1 against the thumb.
+    // used to bind `disabled.on-fill` too and drew in its own thumb's color. `disabled.fill` is the
+    // disabled track's role, so the glyph repeats the rest-state inversion — 3.04–5.49:1 against the thumb.
+    // (It was `disabled.border` until #2750 moved that role off the track's value.)
     'disabled.fill': 'color.disabled.fill',
     'disabled.border': 'color.disabled.border',
     'disabled.indicator.on-fill': 'color.disabled.on-fill',
-    'disabled.icon.on-fill': 'color.disabled.border',
+    'disabled.icon.on-fill': 'color.disabled.fill',
 
     // ── GEOMETRY. `radius.round` gives the pill (and the round thumb), resolving to `dimension.128` —
     // the same token radio uses for its circle: a pill and a circle are both "round as the shape allows".
@@ -500,7 +502,7 @@ export const switchControl: ComponentDef = {
       'THE STATE GLYPH IS ONE FIGMA BOOLEAN (`state icon`, default on) OVER TWO SELECTION-GATED PARTS, not a variant axis (owner, 2026-09-28). A `showStateLabel` boolean VARIANT axis would add a name to the closed `VARIANT_AXES` family vocabulary for one def AND double the member count (24 → 48). The node-visibility boolean does neither: the check and the X are each built at their own `selection` value and each carries the property, so a designer turns the glyph off once, in the panel, and the set stays at 24. The cost is a narrowing of #1331\'s refusal — a boolean may now target parts that are `presentWhen`-gated, but only when they share one axis and cover all its values, so every member still has a node to toggle.',
       'THE OFF TRACK IS A LIGHT SURFACE STEP (`background.tertiary`) WITH A DARK THUMB, not the neutral button fill (owner, 2026-09-28). The neutral button fill is the one the `neutralEmphasis` lever darkens, and under `strong` emphasis on a brand-neutral action palette it made the off and on tracks both near-black (NB master theme: #2D2C2C off, #34383D on). A surface step no interactive lever moves keeps off light in every brand; the dark thumb in the border\'s ink is Material 3\'s unselected shape and Prism 2\'s. The cost: hover and pressed do not step the off fill (no darker surface step exists, and the overlay wash replaces a fill rather than layering on it).',
       'OFF HOVER AND PRESSED SHOW NO VISIBLE CHANGE, like checkbox and radio at unchecked (owner-decided, 2026-09-28). The off fill holds its rest value — the tier has no surface step darker than `background.tertiary`, and the interactive overlay wash REPLACES a box\'s fill (one `fills` array) rather than layering on it, so a 10% wash over the page would read lighter than `tertiary`. The `off.border.hover`/`.pressed` keys stay bound and resolve to the rest border in this tier. The rejected alternative was a new darker surface role, a token mint and a CONTRACT MINOR.',
-      'THE DISABLED GLYPH TAKES `disabled.border`, not the thumb\'s `disabled.on-fill` (#1764, owner-directed 2026-09-28). Both keys bound `disabled.on-fill` before, so the glyph drew in its own thumb\'s color and could not be seen — and the glyph now defaults on. `disabled.border` equals the disabled track in every corpus mode, so the glyph repeats the rest-state inversion, 3.04–5.49:1 against the thumb. `disabled.text` was measured and rejected at 1.21–1.79:1.',
+      'THE DISABLED GLYPH TAKES `disabled.fill`, not the thumb\'s `disabled.on-fill` (#1764, owner-directed 2026-09-28; `disabled.border` until #2750). Both keys bound `disabled.on-fill` before, so the glyph drew in its own thumb\'s color and could not be seen — and the glyph now defaults on. `disabled.fill` is the disabled track, so the glyph repeats the rest-state inversion, 3.04–5.49:1 against the thumb. `disabled.text` was measured and rejected at 1.21–1.79:1.',
     ],
     unverified: [
       'THE GLYPH IN THE THUMB IS UNVERIFIED ON A REAL HOST for legibility at its smallest size. The thumb is `control.size.*.thumb` = 0.75 × the track (Prism 2\'s 24-in-32, #1425), its own tier field rather than radio\'s `dot`. In every corpus brand the thumb is 18px at `small` and 24px at `medium`, so its ~71%-inset glyph is ~12.7px and ~17px. The smallest case is compact density `small`, a 16px track with a 12px thumb and a ~8.5px glyph. The affordance is most useful at `medium`, and the row, not the atom, is what reaches SC 2.5.8.',

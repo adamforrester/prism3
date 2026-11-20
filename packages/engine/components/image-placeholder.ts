@@ -227,7 +227,7 @@ export const imagePlaceholder: ComponentDef = {
   },
 
   accessibility: {
-    role: 'img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (alt="") when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.',
+    role: 'img once it holds an image: with a descriptive accessible name when the image is informative, or an empty `alt` (`alt=""`) when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and `aria-hidden`; it is a visual affordance, not the accessible content.',
     wcag: [
       '1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it, or an empty alt="" when the image is decorative (an omitted alt and an empty one behave oppositely); the empty-state marker is decorative and is hidden from assistive tech',
       '1.4.11 Non-text Contrast — where the frame edge is a meaningful boundary, verify it against the surface behind it; the neutral fill is a background, not a UI boundary carrying meaning',
@@ -246,7 +246,7 @@ export const imagePlaceholder: ComponentDef = {
     do: [
       'Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes',
       'Drop the photograph on as an image fill — the frame is the container, not a swappable slot — and turn the marker property off once it is in',
-      'Give an informative image an accessible name and a decorative one an empty alt; keep the empty-state marker decorative and aria-hidden',
+      'Give an informative image an accessible name and a decorative one an empty `alt`; keep the empty-state marker decorative and `aria-hidden`',
       'Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout',
     ],
     dont: [

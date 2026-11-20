@@ -79,7 +79,7 @@ export const pageNav: ComponentDef = {
         note: 'The navigation: a row that hugs its items, with no padding, no fill and no baseline.',
       },
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         contentSlot: true,
         // At least two pages and at most six (Q8 A), and only a PageNav.Item.
@@ -99,7 +99,7 @@ export const pageNav: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project\'s developers choose.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
@@ -203,7 +203,7 @@ export const pageNav: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'Move between sibling pages: a navigation of links, each to its own address, with the current page marked by a bar and aria-current="page".',
+    primaryPurpose: 'Move between sibling pages: a navigation of links, each to its own address, with the current page marked by a bar and `aria-current="page"`.',
     whenToUse: 'Two to about six sibling pages of one area, such as Log in and Create account, or an account\'s Overview, Orders and Profile, where each page has its own address and the current one is marked.',
     avoidWhen: 'The content switches in place without changing the address (use Tabs), the links are the site\'s main navigation, the path is a hierarchy (use Breadcrumbs), or the pages are a required sequence (a stepper, not built yet).',
     commonPartners: ['page-nav-item', 'link', 'breadcrumbs'],

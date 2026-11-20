@@ -1762,7 +1762,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
             const ownerNode = main?.parent as Node | null | undefined;
             Object.defineProperty(mainNow, 'name', { enumerable: true, get: () => (main ? String(main.name) : name) });
             if (main) Object.defineProperty(mainNow, 'id', { enumerable: false, get: () => main.id });
-            Object.defineProperty(mainNow, 'parent', { enumerable: true, get: () => (ownerNode && ownerNode.type === 'COMPONENT_SET' ? { name: String(ownerNode.name), type: owner.type } : { ...owner }) });
+            // #4070 — and the property definitions Figma's live node holds: a variant's on its set (`parent`), a plain
+            // component's on itself. Non-enumerable, so the descriptor still serializes as before.
+            const defsOn = (o: object, holder: Node | null | undefined): object => Object.defineProperty(o, 'componentPropertyDefinitions', { enumerable: false, get: () => holder?.componentPropertyDefinitions });
+            Object.defineProperty(mainNow, 'parent', { enumerable: true, get: () => (ownerNode && ownerNode.type === 'COMPONENT_SET' ? defsOn({ name: String(ownerNode.name), type: owner.type }, ownerNode) : { ...owner }) });
+            if (main && !(ownerNode && ownerNode.type === 'COMPONENT_SET')) defsOn(mainNow, main);
             Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: mainNow });
             // An instance measures what its MAIN measures (`layoutModel`, a member this run built).
             // A FILLED instance (#1751) measures the width its parent gives it, and is as tall as its main

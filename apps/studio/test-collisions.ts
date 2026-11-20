@@ -20,7 +20,9 @@ import { toHostMessage, type CollisionView } from './src/write-adapter';
 import { initialHostSession, reduce } from './src/state/host-session';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -84,5 +86,5 @@ ok(same(withEarlier({ 'collection:color': 'rename' }, choicesToPost(TAKEN, { 'co
   'the review of #3518: the choices already used are posted back with the new row\'s');
 ok(same(withEarlier(null, mixed), mixed), 'the review of #3518: with none already used, the list\'s choices alone are posted');
 
-console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ collision choice: all checks passed');
+console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ collision choice: all checks passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

@@ -176,6 +176,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    So it reads at the weight of the select beside it: a recessed --paper track with a raised
    --panel thumb, matching the select's fill and type size rather than out-shouting the page.
    The principle this states: selection weight tracks SCOPE, and a display preference has none. */
+/* #3911: no page draws `.seg` / `.seg-b` any more. The Alias path control, its last user, is the shared `.p3-seg`
+   (lever-kit `choice`). These rules stay until the next `lint-live-css.mjs --accept` drops them from the baseline. */
 .seg{display:flex;border:1px solid var(--line2);border-radius:var(--r-xs);padding:2px;gap:2px;background:var(--paper)}
 .seg-b{border:0;background:none;font:inherit;font-size:13.5px;color:var(--muted);padding:calc(var(--ctl-py) - 2px) 12px;border-radius:5px;cursor:pointer}
 .seg-b:hover{color:var(--ink)}

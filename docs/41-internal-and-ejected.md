@@ -302,6 +302,24 @@ a standalone client repo in two modes: the components as a versioned package, an
 in with the tokens kept a package. The copied client is the client-shaped fixture §4 property 3 asks
 for, so the checker's first mutations run against it rather than against this repo.
 
+### 7.2 Decided (2026-11-18, #2454): plain HTML/CSS ships a behavior contract, web components carry their own
+
+Q-BH1 A, after the developers' input: they judged that a written contract per component gives the best
+odds, because an optional script would assume more than many developers, React developers above all,
+would adopt or could fit into their framework. This answers the wall for every interactive component.
+
+- **Plain HTML/CSS** ships the markup and the CSS, plus a **written behavior contract per interactive
+  component**: which keys do what, where focus goes, and which ARIA attributes change. The developer
+  wires it up in their own framework. No behavior script ships with it.
+- **Web components** carry their own behavior: keyboard, focus, Escape and the rest.
+
+The contract is the def's existing `accessibility` block and its `codeOnly` entries, written
+framework-neutral from the start, so no def's contract moved. What changed is each interactive def's
+code note: "code delivery pending: behavior layer" became "Plain HTML/CSS: wire this behavior contract
+up in your framework. The web component includes it." `test.ts` fails by the def's id if one drops it.
+§7.1's small script stays the POC's choice for its own three components; it is not a script the plain
+HTML/CSS distribution ships.
+
 ## 8. The cost this creates, and the evidence that would retire it
 
 This decision removes the defs' only consumer-facing justification. They are now **purely an internal

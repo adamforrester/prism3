@@ -18,6 +18,10 @@
  * 4. HIT TARGET. A flush button's `::before` is at least 24×24 at small and 44×44 at medium and large, held to this
  *    file's own px literals, never to a token the def or the generator names (`docs/34`).
  *
+ * 5. THE OS'S COLOR SCHEME. The whole check runs again with the page's `prefers-color-scheme` set to dark. Since
+ *    #4140 the token CSS follows the OS into dark wherever no `data-theme` is set, so the demo's light section must
+ *    name `data-theme="light"` or, on a dark OS, it shows dark tokens and only a light-scheme run can't see it.
+ *
  * SELF-TEST: four mutants, each must fail by name — the label tracking rebound, a rest fill rebound to the hover
  * token, a ring drawn on any `:focus` (so a mouse click shows it), and the medium hit target shrunk to 24px.
  */
@@ -84,11 +88,12 @@ const samples = (theme: string): Sample[] => {
 };
 const THEMES: Record<string, string> = { light: 'light', dark: 'dark' }; // demo theme → oracle mode
 
-export const run = async (browser: any, extraCss = ''): Promise<{ failures: string[]; passed: number }> => {
+export const run = async (browser: any, extraCss = '', colorScheme: 'light' | 'dark' = 'light'): Promise<{ failures: string[]; passed: number }> => {
   const failures: string[] = [];
   let passed = 0;
-  const ok = (cond: boolean, what: string) => { if (cond) passed++; else failures.push(what); };
-  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+  const os = colorScheme === 'dark' ? 'on a dark OS: ' : '';
+  const ok = (cond: boolean, what: string) => { if (cond) passed++; else failures.push(os + what); };
+  const page = await browser.newPage({ viewport: { width: 1400, height: 1000 }, colorScheme });
   await page.goto(DEMO);
   if (extraCss) await page.addStyleTag({ content: extraCss });
   const cdp = await page.context().newCDPSession(page);
@@ -110,7 +115,7 @@ export const run = async (browser: any, extraCss = ''): Promise<{ failures: stri
       const sel = `[data-demo="${s.demo}"]`;
       if (s.force) {
         const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: docId, selector: sel });
-        if (!nodeId) { failures.push(`${s.demo}: no such demo button`); continue; }
+        if (!nodeId) { failures.push(os + `${s.demo}: no such demo button`); continue; }
         await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [s.force] });
       }
       const got = await page.evaluate(([q, part, prop]: string[]) => {
@@ -194,9 +199,11 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const browser = await chromium.launch();
   let bad = 0;
   try {
-    const real = await run(browser);
+    const light = await run(browser);
+    const dark = await run(browser, '', 'dark');
+    const real = { failures: [...light.failures, ...dark.failures], passed: light.passed + dark.passed };
     if (real.failures.length) { bad++; console.error(`FAIL browser: ${real.failures.length} check(s) failed, ${real.passed} passed`); for (const f of real.failures) console.error(`  - ${f}`); }
-    else console.log(`OK browser: ${real.passed} checks on demo.html (light and dark): computed values equal the resolved tokens, focus-visible on keyboard only, the accessibility tree holds`);
+    else console.log(`OK browser: ${real.passed} checks on demo.html (light and dark, each on a light and a dark OS): computed values equal the resolved tokens, focus-visible on keyboard only, the accessibility tree holds`);
     for (const m of MUTANTS) {
       const r = await run(browser, m.css);
       if (r.failures.some((f) => m.mustName.test(f))) console.log(`OK self-test: mutant "${m.name}" fails by name`);

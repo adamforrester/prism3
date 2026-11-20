@@ -835,7 +835,7 @@ export const textField: ComponentDef = makeTextField({
   ],
 
   accessibility: {
-    role: 'textbox (native <input>)',
+    role: 'textbox (native `<input>`)',
     wcag: [
       '1.3.5 Identify Input Purpose (autocomplete — the most field-specific SC)',
       '1.3.1 Info and Relationships (label + describedby association)',
@@ -846,8 +846,8 @@ export const textField: ComponentDef = makeTextField({
       '3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste',
     ],
     keyboard: 'Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are separate tab stops with their own accessible names. Escape clears when clearable.',
-    focus: ':focus-visible draws the 2px focus edge in place of the border: from the field\'s outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border\'s color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.',
-    aria: 'The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the most frequent real accessibility failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.',
+    focus: '`:focus-visible` draws the 2px focus edge in place of the border: from the field\'s outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border\'s color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. `forwardRef` must reach the `<input>`, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.',
+    aria: 'The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the most frequent real accessibility failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, and on submit move focus to the first invalid field (with an error summary on a long form). The message is read through aria-describedby when focus reaches the field, never through a live region on the field; the form\'s error summary is the only region that announces. While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.',
   },
 
   content: {
@@ -857,17 +857,17 @@ export const textField: ComponentDef = makeTextField({
   },
 
   docs: {
-    usage: 'Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small input renders at 16px, because a smaller input makes iOS zoom the page on focus.',
+    usage: 'Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and `aria-describedby` chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small input renders at 16px, because a smaller input makes iOS zoom the page on focus.',
     do: [
       'Always render a visible, associated label (FieldLabel) — visually-hidden only for search',
-      'Distinguish readOnly (copyable, submitted, full-contrast) from disabled (silent, exempt)',
-      'Emit a real <input name> so it works uncontrolled, in a native form, with Server Actions',
-      'Separate a decorative glyph (aria-hidden) from an interactive trailing action (a labeled button)',
+      'Distinguish `readOnly` (copyable, submitted, full-contrast) from disabled (silent, exempt)',
+      'Emit a real `<input name>` so it works uncontrolled, in a native form, with Server Actions',
+      'Separate a decorative glyph (`aria-hidden`) from an interactive trailing action (a labeled button)',
       'Follow the error-timing contract: validate on blur, re-validate on input after the first error, move focus to the first invalid field on submit, and show an error summary on a long form (the form library runs it; the field renders it)',
     ],
     dont: [
       'Use the placeholder as the label, or put load-bearing text in it',
-      'Use type="number" for numeric input — use a number field, not built yet (email/url/tel stay as type here)',
+      'Use `type="number"` for numeric input — use a number field, not built yet (email/url/tel stay as type here)',
       'Bake a validation engine or timing into the field — render the error you are handed',
       'Signal error with the border color alone — the message carries the text + icon',
     ],
@@ -888,7 +888,7 @@ export const textField: ComponentDef = makeTextField({
     // runtime, so they are partners in `ai.commonPartners`, not parts.
     composesWith: ['field-label', 'field-message'],
     alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row', 'password-field', 'search-field', 'counter', 'card-number-field', 'slider', 'code-input'],
-    replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
+    replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', '`type=number` for formatted numeric'],
     planned: ['form', 'tooltip', 'combobox', 'number-field', 'date-picker'],
   },
 

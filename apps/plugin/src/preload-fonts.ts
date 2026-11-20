@@ -58,6 +58,12 @@ export type FaceOrigin = 'theme' | 'file' | 'crossed';
 export type FontPreloadResult = {
   /** faces successfully loaded, so the write that follows cannot fail on them. */
   loaded: number;
+  /** the BRAND's own faces that loaded: distinct loaded faces some `theme` candidate resolved to (#1090). The
+   *  number the Apply Theme summary reports. `loaded` also counts faces preloaded for the styles the file
+   *  already held (file and crossed), so it grew between two applies of one brand as the file filled up —
+   *  4 on an empty file, 6 once the first run's styles were there — under a sentence that reads as the
+   *  brand's fonts. This depends only on the brand and the host's font list. */
+  brandLoaded: number;
   /** distinct resolved faces passed to `loadFontAsync` (loaded + failed loads). Not `loaded + unavailable
    *  + crossedMisses`: a resolver miss is reported without a load, and a repeat of a failed face is
    *  reported again under its own origin without a second load. */
@@ -254,6 +260,9 @@ export const loadPreloadCandidates = async (
    *  not just "seen", is what keeps this independent of candidate order — a named face whose load failed
    *  first under a crossed candidate must not vanish from the report. */
   const tried = new Map<string, { ok: true } | { ok: false; reason: string }>();
+  /** resolved faces a theme candidate loaded (#1090). A set, filled from whichever candidate's outcome is read,
+   *  so it does not depend on a theme candidate being the one that made the attempt. */
+  const brandFaces = new Set<string>();
 
   for (const { face, origin } of candidates) {
     byOrigin[origin]++;
@@ -286,10 +295,13 @@ export const loadPreloadCandidates = async (
       }
       tried.set(key(toLoad), outcome);
     }
-    if (outcome.ok) continue;
+    if (outcome.ok) {
+      if (origin === 'theme') brandFaces.add(key(toLoad));
+      continue;
+    }
     if (origin === 'crossed') crossedMisses++;
     else unavailable.push({ face: key(face), origin, reason: outcome.reason });
   }
 
-  return { loaded, attempted, unavailable, crossedMisses, byOrigin };
+  return { loaded, brandLoaded: brandFaces.size, attempted, unavailable, crossedMisses, byOrigin };
 };

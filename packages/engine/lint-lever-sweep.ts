@@ -150,6 +150,13 @@ const LIST_BOUNDARIES: Record<string, { refused: Value[]; built: Value[]; reason
     built: [[0, 768], SEVEN_FLOORS],
     reason: 'two to seven floors: two is the contract corpus\'s sparsest layout (`minimal-bp2`, #1479), seven is the last t-shirt name (#2198)',
   },
+  // #3707 (owner decision A): at least one text type. The empty list dropped the six guaranteed body and caption link
+  // styles and left Link binding text styles nothing emitted. The built sample is the default pair, which keeps them.
+  'typography.links': {
+    refused: [[]],
+    built: [['body', 'caption']],
+    reason: 'at least one text type: an empty list ships no body or caption link style, which the contract guarantees and Link binds (#3707)',
+  },
 };
 
 const valuesOf = (l: Lever): Value[] => {
@@ -169,22 +176,14 @@ const valuesOf = (l: Lever): Value[] => {
 // gate can ship green without hiding it; `by-design` = a removal that IS the lever's purpose and the
 // contract should say so (#957's two cases were settled by DEMOTION, so they never reach this arm).
 type Removal = { lever: string; value: Value; brands: BrandId[]; paths: string[]; disposition: 'defect' | 'by-design'; reason: string };
-const LINK_PATHS = ['type.body.lg.default-link', 'type.body.md.default-link', 'type.body.sm.default-link', 'type.body.xs.default-link',
-  'type.caption.lg.default-link', 'type.caption.md.default-link'];
-const REMOVALS: Removal[] = [
-  { lever: 'typography.links', value: [], brands: ALL_BRANDS, paths: LINK_PATHS, disposition: 'defect',
-    reason: '#3707: an empty list validates and ships no body or caption link style, and the contract guarantees them (owner decision open)' },
-];
+const REMOVALS: Removal[] = [];
 
 // ── ARM (b) DEFECTS: a filed binding miss, held so the gate ships green without hiding it (#3698 R2) ──
 // Arm (b) has no by-design allowlist: a component that binds what its brand does not emit is always a miss on
 // paste. A FILED one is held here, exact in both directions per (brand, lever, value): the same def ids and the
 // same miss count, or the gate fails, and an entry that stops missing fails as stale. Delete with the fix.
 type BindingDefect = { lever: string; value: Value; brands: BrandId[]; misses: Record<string, number>; issue: string };
-const BINDING_DEFECTS: BindingDefect[] = [
-  { lever: 'typography.links', value: [], brands: ALL_BRANDS, misses: { link: 112 },
-    issue: '#3707: Link binds the body link text styles, which an empty `typography.links` does not emit' },
-];
+const BINDING_DEFECTS: BindingDefect[] = [];
 
 // ── REFUSALS: a setting the engine is RIGHT to reject on a brand, matched by message ─────────────────
 type Refusal = { brand: BrandId; lever: string; value: Value; message: RegExp; reason: string };
@@ -218,6 +217,9 @@ const REFUSALS: Refusal[] = [
     { brand, lever: 'layout.breakpoints', value: [...SEVEN_FLOORS, 2560], message: /^The brand can have at most seven breakpoints\. This brand has 8\.$/,
       reason: 'an eighth breakpoint has no t-shirt name (#2198)' },
   ]),
+  // #3707 (owner decision A): the schema's `minItems: 1` refuses an empty `typography.links` before the build path runs.
+  ...ALL_BRANDS.map((brand): Refusal => ({ brand, lever: 'typography.links', value: [], message: /^schema: typography\.links: 0 item\(s\) < minItems 1$/,
+    reason: 'an empty list ships no body or caption link style, which the contract guarantees and Link binds (#3707)' })),
 ];
 
 // ── HELPERS ─────────────────────────────────────────────────────────────────────────────────────────
@@ -256,6 +258,7 @@ const materialize = (def: ComponentDef, input: BrandInput, theme: Theme): Compon
       minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
       labelWeight: input.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
       textHover: input.buttonTextHover ?? DEFAULT_BUTTON_LAYOUT.textHover,
+      borderWeight: input.buttonBorderWeight ?? DEFAULT_BUTTON_LAYOUT.borderWeight,
     },
     sizeRefPx(theme.dims.sizes)), sizeRefPx(theme.dims.sizes));
 

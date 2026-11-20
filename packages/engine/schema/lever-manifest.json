@@ -521,6 +521,25 @@
       "description": "What a text button does on hover and when pressed. Text & icon only changes the label and icon colors. Fill also fills the button. A text button is never filled at rest."
     },
     {
+      "key": "buttonBorderWeight",
+      "group": "form",
+      "kind": "value",
+      "label": "Outline button border",
+      "control": "enum",
+      "default": "hairline",
+      "options": [
+        {
+          "value": "hairline",
+          "label": "Thin (1px)"
+        },
+        {
+          "value": "thick",
+          "label": "Thick (2px)"
+        }
+      ],
+      "description": "How thick the border of an outline button is, in every button set. Each set keeps its own border color. Filled and text buttons draw no border."
+    },
+    {
       "key": "buttonMinWidthMultiplier",
       "group": "form",
       "kind": "value",

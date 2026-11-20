@@ -41,7 +41,9 @@ import { buildFileComponents, ensureFileComponents } from './src/file-components
 import type { FileComponentsApi, FNode } from './src/file-components';
 
 let failures = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (!cond) { failures++; console.error(`  ✗ ${label}`); }
   else console.log(`  ✓ ${label}`);
 };
@@ -287,5 +289,5 @@ console.log('file setup: existing sets in another case');
   ok(res3.skipped === false && made3.length === 2, `file setup: a FRAME named _section-header does not block the build (${made3.length} sets built)`);
 }
 
-console.log(failures === 0 ? '\nfile-components: all assertions pass' : `\nfile-components: ${failures} FAILED`);
+console.log(`${failures === 0 ? '\nfile-components: all assertions pass' : `\nfile-components: ${failures} FAILED`} — ${executed} assertions executed`);
 if (failures > 0) process.exit(1);

@@ -132,7 +132,7 @@ const ok = (cond: boolean, label: string): void => {
 };
 
 /** The brief each brand's emission was compiled from (`emit-figma.ts`), applied here the way a person would. */
-const SOURCES: Record<string, string> = { prism3: 'prism3.design.md', aurora: 'aurora.design.md', wendys: 'wendys.design.md' };
+const SOURCES: Record<string, string> = { prism3: 'prism3.design.md', aurora: 'aurora.design.md', harbor: 'harbor.design.md', wendys: 'wendys.design.md' };
 const EXCLUDED: Record<string, string> = {
   nb: 'the regression fixture: its emission is built from nbTheme() and the measured reference, not from a BrandInput, so there is no brief to apply',
 };

@@ -522,7 +522,7 @@ ${themeBlock(modes.dark, rows.dark)}
 ${themeBlock(modes.dark, rows.dark).replace(/^/gm, '  ')}
   }
 }
-${src}`;
+${shippedRules(src)}`;
 
   // [offline] nothing in the output may make a request. The chrome faces are data: URIs.
   const out = css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -552,6 +552,13 @@ ${src}`;
   }
   return errors.length ? { css: null, errors } : { css, errors };
 }
+
+/** `chrome.css` as it ships (#4231): its comments removed, about 72 KB of the 213 KB file, and the blank lines they
+ *  leave folded to one. Every check above reads the file as written; only the output loses them. A comment inside a
+ *  JS string survives JS minification, so the bundles' minifiers never reached these. The generated comments around
+ *  it (the header, and the font and icon license notices the [license] checks hold) are not part of `src` and stay.
+ *  `chrome.css` carries no string or `url()` holding a slash-star, so the plain pattern is exact for it. */
+export const shippedRules = (css) => css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n');
 
 /** The esbuild plugin. Add it to every entry that bundles `apps/studio/src`. */
 export const chromeCss = () => ({

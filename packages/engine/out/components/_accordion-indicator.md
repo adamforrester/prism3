@@ -37,6 +37,8 @@ Shown on the default member: indicator `chevron`, expansion `collapsed`, size `m
 
 Part of an Accordion. Choose chevron or plus-minus on the Accordion; the glyph follows the Accordion's open or closed state.
 
+**In RTL.** The chevron down, chevron up, plus and minus glyphs do not mirror.
+
 ### Do
 
 - Choose the pair once, on the Accordion, and keep one pair across a page

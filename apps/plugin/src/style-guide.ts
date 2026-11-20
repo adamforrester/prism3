@@ -114,7 +114,7 @@ export type SgContract = readonly {
 }[];
 
 export type { SwatchType, ValueFormat, StyleGuideOptions, DimensionDisplay, FontDisplay } from './messages';
-import type { SwatchType, StyleGuideOptions, ValueFormat, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideKind } from './messages';
+import type { SwatchType, StyleGuideOptions, ValueFormat, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideKind } from './messages'; import { failureDetail } from './host-detail';   // #4253
 
 /** The types phases 1 and 2 document: `color`; `dimension` (spacing, size, radius and icon-size variables); `borderWidth`
  *  and `opacity` (#2353 batch 1); the five font-variable kinds, one table each; `typography`, the file's text styles;
@@ -572,9 +572,13 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   // PHASE 2 TITLES ARE UNIQUE (proposed, owner to confirm): two collections can both hold a font-size table (`core`
   // and `type-sets`), so a title two phase-2 tables share names its collection, "Font size (core)". The tables filter
   // matches a title, so a shared one would draw both. Color titles are phase 1's and unchanged.
+  // A PHASE-2 TITLE THAT A COLOR TABLE ON THE SAME PAGE ALREADY HAS takes its collection the same way (#2729, owner
+  // decision A): a dimension collection named like a color family (`border`) is "Border (border)" beside the border
+  // colors' "Border".
   const phase2 = tables.filter((t) => t.type !== 'color');
+  const colorTitles = new Set(tables.filter((t) => t.type === 'color').map((t) => `${t.page}\n${t.title}`));
   const shared = new Set(phase2.filter((t) => phase2.filter((u) => u.title === t.title).length > 1).map((t) => t.title));
-  for (const t of phase2) if (shared.has(t.title)) {
+  for (const t of phase2) if (shared.has(t.title) || colorTitles.has(`${t.page}\n${t.title}`)) {
     const col = catalog.collections.find((c) => c.id === t.collectionId);
     if (col) t.title = `${t.title} (${col.name})`;
   }
@@ -2976,7 +2980,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       const o = out[out.length - 1];
       run.onTable?.(o?.key === t.key && o.status === 'skipped' ? { index: i, status: 'failed', reason: SKIP_REASON(t, o.reason) } : { index: i, status: 'done' });
     } catch (e) {
-      const reason = (e as Error)?.message ?? String(e);
+      const reason = failureDetail(e);
       out.push({ key: t.key, title: t.title, page: t.page, status: 'failed', reason });
       run.onTable?.({ index: i, status: 'failed', reason });
     }

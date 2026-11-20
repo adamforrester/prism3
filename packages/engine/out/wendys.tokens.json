@@ -11855,32 +11855,38 @@
         },
         "border": {
           "$type": "color",
-          "$value": "{wds.core.palette.neutral.200}",
-          "$description": "Disabled control border — muted neutral",
+          "$value": "{wds.core.palette.neutral.450}",
+          "$description": "Disabled control border — reduced contrast, legible; clears 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "wds.core.palette.neutral.200",
-              "contrast": 1.8,
-              "against": "background.primary",
+              "aliasOf": "wds.core.palette.neutral.450",
+              "contrast": 3.18,
+              "against": "neutral.050",
+              "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{wds.core.palette.neutral.750}",
-                  "aliasOf": "wds.core.palette.neutral.750",
-                  "contrast": 1.65,
-                  "against": "background.primary"
+                  "$value": "{wds.core.palette.neutral.550}",
+                  "aliasOf": "wds.core.palette.neutral.550",
+                  "contrast": 3.24,
+                  "against": "neutral.900",
+                  "min": 3
                 },
                 "hc-light": {
-                  "$value": "{wds.core.palette.neutral.200}",
-                  "aliasOf": "wds.core.palette.neutral.200",
-                  "contrast": 1.8,
-                  "against": "background.primary"
+                  "$value": "{wds.core.palette.neutral.550}",
+                  "aliasOf": "wds.core.palette.neutral.550",
+                  "contrast": 4.54,
+                  "against": "neutral.050",
+                  "min": 4.5,
+                  "description": "Disabled control border — reduced contrast, legible; clears 4.5:1"
                 },
                 "hc-dark": {
-                  "$value": "{wds.core.palette.neutral.750}",
-                  "aliasOf": "wds.core.palette.neutral.750",
-                  "contrast": 1.78,
-                  "against": "background.primary"
+                  "$value": "{wds.core.palette.neutral.450}",
+                  "aliasOf": "wds.core.palette.neutral.450",
+                  "contrast": 4.63,
+                  "against": "neutral.900",
+                  "min": 4.5,
+                  "description": "Disabled control border — reduced contrast, legible; clears 4.5:1"
                 }
               },
               "figma": {
@@ -18587,32 +18593,38 @@
           },
           "border": {
             "$type": "color",
-            "$value": "{wds.core.palette.neutral.800}",
-            "$description": "Disabled control border on an inverse surface — muted neutral",
+            "$value": "{wds.core.palette.neutral.550}",
+            "$description": "Disabled control border on an inverse surface — reduced contrast, legible; clears 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.neutral.800",
-                "contrast": 1.39,
-                "against": "inverse.background.primary",
+                "aliasOf": "wds.core.palette.neutral.550",
+                "contrast": 3.24,
+                "against": "inverse.background.secondary",
+                "min": 3,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.neutral.250}",
-                    "aliasOf": "wds.core.palette.neutral.250",
-                    "contrast": 1.93,
-                    "against": "inverse.background.primary"
+                    "$value": "{wds.core.palette.neutral.450}",
+                    "aliasOf": "wds.core.palette.neutral.450",
+                    "contrast": 3.18,
+                    "against": "inverse.background.secondary",
+                    "min": 3
                   },
                   "hc-light": {
-                    "$value": "{wds.core.palette.neutral.800}",
-                    "aliasOf": "wds.core.palette.neutral.800",
-                    "contrast": 1.5,
-                    "against": "inverse.background.primary"
+                    "$value": "{wds.core.palette.neutral.500}",
+                    "aliasOf": "wds.core.palette.neutral.500",
+                    "contrast": 4.55,
+                    "against": "inverse.background.secondary",
+                    "min": 4.5,
+                    "description": "Disabled control border on an inverse surface — reduced contrast, legible; clears 4.5:1"
                   },
                   "hc-dark": {
-                    "$value": "{wds.core.palette.neutral.250}",
-                    "aliasOf": "wds.core.palette.neutral.250",
-                    "contrast": 2.07,
-                    "against": "inverse.background.primary"
+                    "$value": "{wds.core.palette.neutral.500}",
+                    "aliasOf": "wds.core.palette.neutral.500",
+                    "contrast": 4.61,
+                    "against": "inverse.background.secondary",
+                    "min": 4.5,
+                    "description": "Disabled control border on an inverse surface — reduced contrast, legible; clears 4.5:1"
                   }
                 },
                 "figma": {

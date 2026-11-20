@@ -14,8 +14,8 @@ Figma plugin without touching either UI (docs/08 §4).
 
 ## Shell
 
-The shell is a rail of areas: Theme · Components · Documentation · Export (#2909, IA v2;
-`src/shell/pages.ts`). Theme holds the levers as a tab row in the order a theme composes:
+The shell is a rail of areas: Theme · Components · Docs · Export (#2909, IA v2;
+`src/shell/pages.ts`; the Docs area's id is `documentation`, #3553 Q-UI9 A). Theme holds the levers as a tab row in the order a theme composes:
 Brand, Color, Type, Shape, Depth & motion, Layout. Each page puts its levers beside the live
 preview, which has its own mode selector. What each area holds today: **Scope**, below.
 
@@ -94,8 +94,8 @@ Two smaller traps worth inheriting rather than rediscovering:
 
 ## Scope (what's here vs. next)
 
-- ✅ **The shell (IA v2, #2909):** a rail of areas, Theme · Components · Documentation · Export
-  (`RAIL_AREAS`, `src/shell/pages.ts`). The web hides Documentation, which documents a Figma file
+- ✅ **The shell (IA v2, #2909):** a rail of areas, Theme · Components · Docs · Export
+  (`RAIL_AREAS`, `src/shell/pages.ts`). The web hides Docs, which documents a Figma file
   (`railAreas`). Theme's pages are a tab row: Brand, Color (Palettes, Surfaces & fills, Interactive),
   Type, Shape, Depth & motion and Layout (`DOMAINS`, `THEME_TABS`). Every lever edit runs the
   engine again, and the preview redraws.
@@ -110,6 +110,9 @@ Two smaller traps worth inheriting rather than rediscovering:
   set the preview's mode selector (`MODE_ROWS`, `src/state/brand-input.ts`).
 - ✅ **Export**, a rail area since #2909, offers **Design tokens**, **Brand brief** (the
   `design.md`, which imports back into Studio) and **Component specs** (`src/export-settings.ts`).
+  The last downloads `<brand>.component-contracts.json`, the brand's component contracts (#1325), the same
+  file as `<brand>.component-defs.json` for one release, and the Specs projection. The web Studio builds them from a
+  separate chunk, `dist/component-specs.js`, that it loads only when Download is clicked (#3429).
   Design tokens are the consumer set, since #2552: `<brand>.base.tokens.json` plus one
   `<brand>.<mode>.overlay.tokens.json` per mode, with no `$extensions`. *Include build metadata*,
   off by default, keeps them. Studio never offers the single-file tree, because it holds the

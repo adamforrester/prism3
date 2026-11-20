@@ -1,0 +1,4 @@
+---
+engine: minor
+---
+The component definitions mark the code in their usage prose with backticks (#3552, owner decision Q-UG2b A): HTML elements (`<button>`), attributes with values (`type="number"`), ARIA attributes (`aria-checked`), selectors (`div[role=button]`), focus pseudo-classes (`:focus-visible`), prop names (`htmlFor`, `onChange`) and literal values. 127 prose strings in the fields a usage panel draws change, and only by backticks: no wording moved. The Markdown pages (`out/components/*.md`) now print these as code spans instead of escaped text, and `components.ai.json` carries the same spans. Summaries, anatomy notes and prop descriptions are unchanged, so Figma descriptions and anatomy captions are too. The component-register test now allows a code span in those fields when it holds code, and still refuses one in a summary, a description or a prop description.

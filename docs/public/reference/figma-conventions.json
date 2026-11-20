@@ -153,8 +153,10 @@
           {
             "name": "↳ Tag",
             "components": [
-              "tag"
-            ]
+              "tag",
+              "tag-group"
+            ],
+            "usagePanelLead": "tag"
           },
           {
             "name": "↳ Tabs",
@@ -204,6 +206,12 @@
             "name": "↳ Dialog",
             "components": [
               "dialog"
+            ]
+          },
+          {
+            "name": "↳ Popover",
+            "components": [
+              "popover"
             ]
           },
           {
@@ -2068,6 +2076,27 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tag.md"
       },
       {
+        "id": "tag-group",
+        "name": "Tag.Group",
+        "figmaName": "tag-group",
+        "kind": "component set",
+        "page": "↳ Tag",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tag-group.md"
+      },
+      {
         "id": "tab-item",
         "name": "Tab.Item",
         "figmaName": "tab-item",
@@ -2567,6 +2596,10 @@
           {
             "name": "description text",
             "type": "TEXT"
+          },
+          {
+            "name": "show title",
+            "type": "BOOLEAN"
           },
           {
             "name": "description",
@@ -3497,6 +3530,42 @@
         ],
         "properties": [],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/page-nav.md"
+      },
+      {
+        "id": "popover",
+        "name": "Popover",
+        "figmaName": "popover",
+        "kind": "component set",
+        "page": "↳ Popover",
+        "section": "Components",
+        "members": 1,
+        "variantProperties": [
+          {
+            "name": "placement",
+            "values": [
+              "bottom"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "title text",
+            "type": "TEXT"
+          },
+          {
+            "name": "title",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "close",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "footer",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/popover.md"
       }
     ]
   },
@@ -3579,6 +3648,17 @@
         },
         "preferred": [
           "radio-row"
+        ]
+      },
+      {
+        "component": "tag-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "tag"
         ]
       },
       {
@@ -3685,6 +3765,10 @@
         "preferred": [
           "page-nav-item"
         ]
+      },
+      {
+        "component": "popover",
+        "property": "body"
       }
     ]
   },
@@ -3839,6 +3923,7 @@
       "image-placeholder",
       "badge",
       "tag",
+      "tag-group",
       "tab-item",
       "tabs",
       "divider",

@@ -69,6 +69,16 @@ export type ModeName = BuiltinModeName | (string & {});
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
 const BLACK: RGB = { r: 0, g: 0, b: 0 };
 
+/**
+ * A value the caller has established is present: a list entry inside its bounds, a role this resolve has
+ * already put. A miss is a named throw, never the silent `undefined` an unchecked index reads as (#1182,
+ * `noUncheckedIndexedAccess`). Every caller below would otherwise have thrown a bare TypeError a line later.
+ */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`modes: ${what} is missing`);
+  return x;
+};
+
 type Cand = { path: string; rgb: RGB };
 type Rated = Cand & { ratio: number };
 type RatedNum = Rated & { num: number };
@@ -77,12 +87,12 @@ type RatedNum = Rated & { num: number };
 const pickMinPass = (cands: Cand[], surface: RGB, min: number): Rated => {
   const rated = cands.map((c) => ({ ...c, ratio: contrast(c.rgb, surface) }));
   const passing = rated.filter((c) => c.ratio >= min).sort((a, b) => a.ratio - b.ratio);
-  return passing[0] ?? rated.sort((a, b) => b.ratio - a.ratio)[0]; // fallback: most extreme
+  return passing[0] ?? must(rated.sort((a, b) => b.ratio - a.ratio)[0], 'pickMinPass: a candidate'); // fallback: most extreme
 };
 
 /** Most-extreme candidate against `surface` — for primary text (max legibility). */
 const pickMostExtreme = (cands: Cand[], surface: RGB): Rated =>
-  cands.map((c) => ({ ...c, ratio: contrast(c.rgb, surface) })).sort((a, b) => b.ratio - a.ratio)[0];
+  must(cands.map((c) => ({ ...c, ratio: contrast(c.rgb, surface) })).sort((a, b) => b.ratio - a.ratio)[0], 'pickMostExtreme: a candidate');
 
 /**
  * Candidate whose contrast is closest to a target (for the border ladders).
@@ -100,8 +110,8 @@ const pickMostExtreme = (cands: Cand[], surface: RGB): Rated =>
 const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0, alsoClear: RGB[] = []): Rated => {
   const rated = cands.map((c) => ({ ...c, ratio: contrast(c.rgb, surface) }));
   const eligible = rated.filter((c) => c.ratio >= min && alsoClear.every((g) => contrast(c.rgb, g) >= min));
-  if (!eligible.length) return rated.sort((a, b) => b.ratio - a.ratio)[0];
-  return eligible.sort((a, b) => Math.abs(a.ratio - target) - Math.abs(b.ratio - target))[0];
+  if (!eligible.length) return must(rated.sort((a, b) => b.ratio - a.ratio)[0], 'pickClosest: a candidate');
+  return must(eligible.sort((a, b) => Math.abs(a.ratio - target) - Math.abs(b.ratio - target))[0], 'pickClosest: an eligible candidate');
 };
 
 /**
@@ -127,7 +137,11 @@ const pickClosest = (cands: Cand[], surface: RGB, target: number, min = 0, alsoC
  */
 const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = [], avoid: RGB[] = [], alsoMin = min): RatedNum => {
   const cands = steps.map((s) => ({ path: `${ns}.${palette}.${s.key}`, rgb: s.rgb, num: s.num }));
-  const anchor = cands.find((c) => c.num === anchorNum) ?? cands.find((c) => c.num === 500)!;
+  const found = cands.find((c) => c.num === anchorNum);
+  // #3873: an authored anchor off the ramp is refused in `brandTheme`; this is the backstop. Falling back to 500 is a
+  // derivation aid, so it is only defensible for a derived anchor: an exact one would ship 500 uncorrected.
+  if (!found && exact) throw new Error(`An anchor at step ${anchorNum} is not on the ${palette} ramp (${steps.map((s) => s.num).join(', ')}).`);
+  const anchor = found ?? cands.find((c) => c.num === 500)!;
   const avoidHex = new Set(avoid.map(hex));
   const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= alsoMin) && !avoidHex.has(hex(rgb));
   // `exact` = the anchor was AUTHORED (a pinned step, not the engine's derived default), so it is
@@ -662,8 +676,19 @@ export const raisedChoice = (family: 'light' | 'dark', lever: RaisedSurface | un
  *   · `standard` (the default, and unset): 40 light, 60 dark, 60 hc-light, 70 hc-dark — the steps before the lever.
  *   · `strong`: 80 light and dark; 90 hc-light and hc-dark. High contrast stays at least one step heavier than its own
  *     mode, as it is under `standard`, and the ramp tops out at 90, so both high-contrast modes meet there.
- * Heavier in dark under `standard`, because the page behind is already dark; under `strong` the page stops competing
- * in either family, so light and dark share a step. Exported so `test.ts` can pin every cell of the table.
+ * Under `strong` the page stops competing in either family, so light and dark share a step. Exported so `test.ts`
+ * can pin every cell of the table.
+ *
+ * PROVENANCE OF THE `standard` STEPS (#1043, owner decision B): chosen, not derived — a taste value. A modal backdrop
+ * has no contrast pair (`ratio: 1`, `against: 'self'`, `min: 0`), so no floor picks a step, and no gate can move one.
+ *   · light 40, dark 60: after Spectrum 2 and Radix Themes (`docs/03` Item 2). Heavier in dark so the bright content
+ *     behind a dark UI (photos, colored fills) competes less. It is not equal suppression: measured, the same alpha
+ *     suppresses the page about equally in both families (#1043's research note).
+ *   · hc-light 60, hc-dark 70: the high-contrast step-up is a deliberate choice of this system. No reference system
+ *     escalates its backdrop in high contrast, and no contrast floor asks for it.
+ * Deriving the steps from a suppression floor was tried and refused: each floor gives a different "derivation", so
+ * the floor is only the taste value moved one level up. Do not unify this with the veil's derivation (#1030), whose
+ * contrast target is real. `test.ts` (#1043) pins the steps to this declaration.
  */
 export const SCRIM_STEPS: Record<ScrimStrength, Record<'light' | 'dark' | 'hc-light' | 'hc-dark', number>> = {
   standard: { light: 40, dark: 60, 'hc-light': 60, 'hc-dark': 70 },
@@ -719,7 +744,7 @@ export const engineGrounds = (roles: Record<string, ResolvedRole>): Set<string> 
  *  cannot answer different questions — a dependent count that ignored `legibleFor` would understate
  *  the blast radius in the very message that has to justify a refusal. */
 export const groundDependentsOf = (roles: Record<string, ResolvedRole>, g: string): string[] =>
-  Object.keys(roles).filter((k) => roles[k].against === g || roles[k].legibleFor === g).sort();
+  Object.entries(roles).filter(([, r]) => r.against === g || r.legibleFor === g).map(([k]) => k).sort();
 
 /**
  * The ground an OVERRIDE is re-rated against (#2025, #2034): `self`, a role in this mode, or a
@@ -818,6 +843,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const asGround = (key: string, computed: RGB): RGB => ovRgb.get(key) ?? computed;
   // ratio is the RAW contrast — every gate/pass check compares it against `min` un-rounded
   // (CR-01). Rounding to 2dp happens only where it's serialised (tree.ts / ai-metadata.ts).
+  /** A role this resolve has already `put` — read back to add a field the put does not take. */
+  const roleAt = (key: string): ResolvedRole => must(roles[key], `role '${key}'`);
   const put = (key: string, r: Rated, description: string, against: string, min: number) =>
     { roles[key] = { path: r.path, description, ratio: r.ratio, against, min, hex: hex(r.rgb), model: 'ink-on-surface' }; rgbByRole.set(key, r.rgb); };
   const putSurf = (key: string, c: Cand, description: string) =>
@@ -900,7 +927,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // Clearing every state first; if no step does, the rest-only pick, and the per-state gate in `test.ts`
     // reports the miss rather than this function hiding it.
     const clears = (st: Step, grounds: RGB[]) => grounds.every((g) => contrast(st.rgb, g) >= onMin);
-    const pick = order.find((st) => clears(st, [fill, ...alsoClear])) ?? order.find((st) => clears(st, [fill])) ?? order[order.length - 1];
+    const pick = order.find((st) => clears(st, [fill, ...alsoClear])) ?? order.find((st) => clears(st, [fill])) ?? must(order[order.length - 1], `${palette}: a last step`);
     return rated(cand(`${ns}.${palette}.${pick.key}`, pick.rgb), fill);
   };
 
@@ -1172,7 +1199,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const invFloorRgb = asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
   putSurf('inverse.background.tertiary', cfg.bgInverse.tertiary, 'Inverse page surface, third tier');
   // scrim — semi-transparent backdrop behind modals/drawers (alpha; heavier in dark).
-  // Its step follows the `scrimStrength` lever (#3050); `scrimStep` holds the table.
+  // Its step follows the `scrimStrength` lever (#3050); `scrimStep` holds the table. The steps are chosen, not
+  // derived (#1043, owner B): their provenance is declared at `SCRIM_STEPS`.
   const scrimAt = scrimStep(cfg.family, hc, theme.scrimStrength);
   put('scrim.default', { path: `${ns}.black-alpha.${scrimAt}`, rgb: BLACK, ratio: 1 },
     `Scrim — black backdrop behind modals and drawers; opacity ${scrimAt}%`, 'self', 0);
@@ -1181,7 +1209,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // is what every consumer of `resolveAllModes` painted. The DTCG emit was always right (it aliases
   // `black-alpha.<step>`, and the alpha is on the primitive), so no artifact ever drifted; the bug
   // could only surface where a UI rendered the RESOLVED role, and until now nothing rendered scrim.
-  roles['scrim.default'].alpha = scrimAt / 100;
+  roleAt('scrim.default').alpha = scrimAt / 100;
 
   /*
    * GLASS (#2869, Q464 A; values Q2869.3 A) — the translucent fill behind a background blur, for text set over
@@ -1200,7 +1228,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const glassBase = cfg.family === 'light' ? 'white' : 'black';
   put('glass.surface', { path: `${ns}.${glassBase}-alpha.${glassStep}`, rgb: cfg.family === 'light' ? WHITE : BLACK, ratio: 1 },
     `Glass — the translucent ${glassBase} fill behind the glass background blur; opacity ${glassStep}%`, 'self', 0);
-  roles['glass.surface'].alpha = glassStep / 100;
+  roleAt('glass.surface').alpha = glassStep / 100;
 
   /**
    * MEDIA VEIL (#1030) — the wash a designer puts over a photograph so text on top stays legible.
@@ -1287,7 +1315,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         + `${base === 'black' ? 'light' : 'dark'} text off it. Verify contrast against your own photo. `
         + `Identical in every mode; the mode-varying modal backdrop is scrim.default`,
         'self', 0);
-      roles[`veil.${polarity}.${rung}`].alpha = step / 100;
+      roleAt(`veil.${polarity}.${rung}`).alpha = step / 100;
     }
     /*
      * THE CLEAR END (#1318) — what a DIRECTIONAL veil fades to. The `veil` component's gradient members run
@@ -1311,7 +1339,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       + (polarity === 'light' ? 'Clear white, not clear black, so the fade stays white instead of passing through gray. ' : '')
       + `Identical in every mode`,
       'self', 0);
-    roles[`veil.${polarity}.clear`].alpha = 0;
+    roleAt(`veil.${polarity}.clear`).alpha = 0;
   }
 
   // -------------------------------------------------------------- foregrounds
@@ -1337,7 +1365,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // close to the page is the author's choice, and the contrast sweep below names the shortfall rather than
   // moving the band.
   put('inverse.foreground.tertiary', rated(cfg.fgInverse.tertiary, baseRgb), 'Inverse surface, third tier', 'background.primary', cfg.nonTextMin);
-  roles['inverse.foreground.tertiary'].alsoAgainst = { against: 'inverse.text.primary', min: onMin };
+  roleAt('inverse.foreground.tertiary').alsoAgainst = { against: 'inverse.text.primary', min: onMin };
   // bold semantic fills (filled badge / banner / button at rest) — static.
   const fills: Partial<Record<Role, RatedNum>> = {};
   for (const r of ['brand', 'success', 'warning', 'info'] as const) {
@@ -1555,7 +1583,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // thing again.
   const iBorder = (name: string, inkByState: Record<string, Cand>, ground: RGB, keyPrefix: string, against: string, where = ''): void => {
     for (const stKey of ['rest', 'hover', 'pressed'] as const)
-      put(`${keyPrefix}interactive.${name}.border.${stKey}`, rated(inkByState[stKey], ground),
+      put(`${keyPrefix}interactive.${name}.border.${stKey}`, rated(must(inkByState[stKey], `${name} ${stKey} ink`), ground),
         `${name} interactive border${where} — ${stKey} (the outline edge; follows the ink)`, against, cfg.nonTextMin);
     iIndicator(name, inkByState, ground, keyPrefix, against, where);
   };
@@ -1572,7 +1600,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
    */
   const iIndicator = (name: string, inkByState: Record<string, Cand>, ground: RGB, keyPrefix: string, against: string, where = ''): void => {
     for (const stKey of ['rest', 'hover', 'pressed'] as const)
-      put(`${keyPrefix}interactive.${name}.indicator.${stKey}`, rated(inkByState[stKey], ground),
+      put(`${keyPrefix}interactive.${name}.indicator.${stKey}`, rated(must(inkByState[stKey], `${name} ${stKey} ink`), ground),
         `${name} interactive indicator${where} — ${stKey} (the selection mark; matches the label)`, against, cfg.nonTextMin);
   };
 
@@ -1982,7 +2010,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   { const d = onDisabled(); put('disabled.on-fill', d.r, `Label / icon on a disabled fill — muted but clears ${d.min}:1`, 'disabled.fill', d.min); }
   { const d = disabledText(); put('disabled.text', d.r, `Disabled text — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
   { const d = disabledText(); put('disabled.icon', d.r, `Disabled icon — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
-  put('disabled.border', rated(neutralLow(), baseRgb), 'Disabled control border — muted neutral', 'background.primary', 0);
+  // The disabled EDGE takes the disabled levers' target too (#2750; owner decision lettered A, text = option B): it clears the
+  // same floor as the disabled inks, against the same worst-case surface. Before #2750 it was the
+  // fixed `neutralLow()` step `disabled.fill` uses, rated `min: 0`, so no lever moved it and a disabled
+  // outlined control measured 1.5–1.8:1. It no longer matches `disabled.fill` by construction.
+  { const d = disabledText(); put('disabled.border', d.r, `Disabled control border — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
 
   // The same five for a disabled control on a dark hero / inverse band (#892 step 5).
   //
@@ -2000,8 +2032,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     `Label / icon on a disabled fill on an inverse surface — muted but clears ${disabledTarget}:1`, 'inverse.disabled.fill', disabledTarget);
   { const r = pickMinPass(textCands, invFloorRgb, disabledTarget);
     put('inverse.disabled.text', r, `Disabled text on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget);
-    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget); }
-  put('inverse.disabled.border', rated(neutralLowInverse(), invRgb), 'Disabled control border on an inverse surface — muted neutral', 'inverse.background.primary', 0);
+    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget);
+    // The inverse edge follows the page's (#2750).
+    put('inverse.disabled.border', r, `Disabled control border on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget); }
 
   // ---- field — form-element chrome (docs/20 §17). Deliberately MINIMAL + gated: a field
   // surface, a PERCEIVABLE resting border, and a READABLE placeholder. Everything stateful
@@ -2197,7 +2230,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // the same argument stated by the taxonomy instead of by an exception.
     if (g.page) {
       for (const r of SEMANTICS)
-        T(`on-${r}`, onColor(asGround(`foreground.${r}`, fills[r]!.rgb)), `${p.label[0].toUpperCase()}${p.label.slice(1)} on a solid ${r} fill — ${onMin}:1`, `foreground.${r}`, onMin);
+        T(`on-${r}`, onColor(asGround(`foreground.${r}`, fills[r]!.rgb)), `${p.label.charAt(0).toUpperCase()}${p.label.slice(1)} on a solid ${r} fill — ${onMin}:1`, `foreground.${r}`, onMin);
     }
     // link (interactive text) + states — no disabled.
     //
@@ -2353,8 +2386,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     .map((k) => ({ k, rgb: asGround(k, rgbByRole.get(k)!) }));
   const borderTertiary = pickClosest(ramp, baseRgb, cfg.borderTertiaryTarget, cfg.nonTextMin, edgeGrounds.map((g) => g.rgb));
   put('border.tertiary', borderTertiary, `Accessible border — the first edge that clears ${cfg.nonTextMin}:1 (SC 1.4.11) on every page and surface tier`, 'background.primary', cfg.nonTextMin);
-  roles['border.tertiary'].alsoAgainst = {
-    against: edgeGrounds.map((g) => ({ k: g.k, r: contrast(borderTertiary.rgb, g.rgb) })).sort((a, b) => a.r - b.r)[0].k,
+  roleAt('border.tertiary').alsoAgainst = {
+    against: must(edgeGrounds.map((g) => ({ k: g.k, r: contrast(borderTertiary.rgb, g.rgb) })).sort((a, b) => a.r - b.r)[0], 'border.tertiary: an edge ground').k,
     min: cfg.nonTextMin,
   };
   // #1782 — THE THREE FIELD STATUS BORDERS ALSO CLEAR THE FIELD'S OWN GROUNDS. `text-field`, `textarea` and
@@ -2579,10 +2612,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // Removing this block emits the raw sub-floor step and fails L-06's guard arm BY NAME.
       let outRgb = newRgb, outStep = ref.step;
       if (isLinkRole(rolePath) && existing.min > 0 && contrast(newRgb, againstRgb) < existing.min) {
-        const dir = contrast(steps[steps.length - 1].rgb, againstRgb) >= contrast(steps[0].rgb, againstRgb) ? 1 : -1;
+        const dir = contrast(must(steps[steps.length - 1], `${ref.palette}: a last step`).rgb, againstRgb) >= contrast(must(steps[0], `${ref.palette}: a first step`).rgb, againstRgb) ? 1 : -1;
         let i = steps.findIndex((s) => s.key === ref.step);
-        while (i >= 0 && i + dir >= 0 && i + dir < steps.length && contrast(steps[i].rgb, againstRgb) < existing.min) i += dir;
-        if (i >= 0) { outRgb = steps[i].rgb; outStep = steps[i].key; }
+        // `i` stays in range: it starts at a found index, and moves only while the next index is inside the ramp.
+        while (i >= 0 && i + dir >= 0 && i + dir < steps.length && contrast(must(steps[i], `${ref.palette} step ${i}`).rgb, againstRgb) < existing.min) i += dir;
+        if (i >= 0) { const st = must(steps[i], `${ref.palette} step ${i}`); outRgb = st.rgb; outStep = st.key; }
       }
       const ratio = contrast(outRgb, againstRgb);
       roles[rolePath] = { ...existing, path: `${ns}.${ref.palette}.${outStep}`, ratio, hex: hex(outRgb) };
@@ -2624,7 +2658,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         throw new Error(`glassRoles.${name}.role: '${g.role}' resolves to '${src.path}' in ${mode}, not an opaque palette color, so it has no alpha step to take`);
       path = src.path; rgb = rgbByRole.get(g.role)!; from = `${g.role}'s color`;
     } else {
-      const [pal, step] = g.palette!.split('.');
+      const [pal = '', step] = g.palette!.split('.');
       if (pal === 'white' || pal === 'black') {
         path = `${ns}.${pal}`; rgb = pal === 'white' ? WHITE : BLACK;
       } else {
@@ -2639,7 +2673,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       throw new Error(`glassRoles.${name}: in ${mode} the color is ${family.replace('-alpha', '')}, whose alpha ramp has the steps ${OPACITY_STEPS.filter((x) => x > 0 && x < 100).join(', ')}; ${g.alpha} is not one`);
     put(key, { path: `${ns}.${family}.${g.alpha}`, rgb, ratio: 1 },
       `Glass ${name} — ${from} at ${g.alpha}% behind the glass background blur, a glass fill this brand adds`, 'self', 0);
-    roles[key].alpha = g.alpha / 100;
+    roleAt(key).alpha = g.alpha / 100;
   }
 
   /*
@@ -2661,9 +2695,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const HOVER_RATIO = 1.15;
     const neutralSteps = ramps.get(r2p.neutral)!;
     const towardInk = (steps: Step[], ground: RGB): 1 | -1 =>
-      contrast(steps[steps.length - 1].rgb, ground) >= contrast(steps[0].rgb, ground) ? 1 : -1;
+      contrast(must(steps[steps.length - 1], 'towardInk: a last step').rgb, ground) >= contrast(must(steps[0], 'towardInk: a first step').rgb, ground) ? 1 : -1;
     const named = (ref: string, what: string): { pal: string; steps: Step[]; i: number } => {
-      const [pal, step] = ref.split('.');
+      const [pal = '', step] = ref.split('.');
       const steps = ramps.get(pal);
       const i = steps ? steps.findIndex((x) => x.key === step) : -1;
       if (!steps || i < 0) throw new Error(`outlineHoverFill.${mode}.${what}: '${ref}' is not a palette step (have: ${[...ramps.keys()].join(', ')})`);
@@ -2688,9 +2722,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         const h = named(pick.hover, `${pick.at}hover`);
         const dir = towardInk(h.steps, ground);
         const p = pick.pressed ? named(pick.pressed, `${pick.at}pressed`) : { ...h, i: Math.min(Math.max(h.i + dir, 0), h.steps.length - 1) };
+        // `named` found both indices; the pressed default is clamped into the ramp.
+        const hs = must(h.steps[h.i], `${h.pal} step ${h.i}`), ps = must(p.steps[p.i], `${p.pal} step ${p.i}`);
         return {
-          hover: { path: `${ns}.${h.pal}.${h.steps[h.i].key}`, rgb: h.steps[h.i].rgb, why: 'the brand\'s pick' },
-          pressed: { path: `${ns}.${p.pal}.${p.steps[p.i].key}`, rgb: p.steps[p.i].rgb, why: pick.pressed ? 'the brand\'s pick' : 'the next step past hover' },
+          hover: { path: `${ns}.${h.pal}.${hs.key}`, rgb: hs.rgb, why: 'the brand\'s pick' },
+          pressed: { path: `${ns}.${p.pal}.${ps.key}`, rgb: ps.rgb, why: pick.pressed ? 'the brand\'s pick' : 'the next step past hover' },
         };
       } else {
         const dir = towardInk(neutralSteps, ground);
@@ -2700,9 +2736,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         if (!side.length) throw new Error(`outlineInteraction opaque-fill: ${mode} has no ${r2p.neutral} step on the ink side of ${groundKey}`);
         const h = side.reduce((a, b) => (Math.abs(contrast(b.x.rgb, ground) - HOVER_RATIO) < Math.abs(contrast(a.x.rgb, ground) - HOVER_RATIO) ? b : a)).i;
         const p = Math.min(Math.max(h + dir, 0), neutralSteps.length - 1);
+        const hs = must(neutralSteps[h], `${r2p.neutral} step ${h}`), ps = must(neutralSteps[p], `${r2p.neutral} step ${p}`);
         return {
-          hover: { path: `${ns}.${r2p.neutral}.${neutralSteps[h].key}`, rgb: neutralSteps[h].rgb, why: `the default step on the ${groundName}` },
-          pressed: { path: `${ns}.${r2p.neutral}.${neutralSteps[p].key}`, rgb: neutralSteps[p].rgb, why: 'the next step past hover' },
+          hover: { path: `${ns}.${r2p.neutral}.${hs.key}`, rgb: hs.rgb, why: `the default step on the ${groundName}` },
+          pressed: { path: `${ns}.${r2p.neutral}.${ps.key}`, rgb: ps.rgb, why: 'the next step past hover' },
         };
       }
       };
@@ -2721,7 +2758,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
             if (!ink || !(ink.min > 0)) continue;
             let inkRgb = rgbByRole.get(inkKey)!;
             const at = ink.path.slice(ns.length + 1).split('.');
-            const steps = at.length === 2 ? ramps.get(at[0]) : undefined;
+            const [atPal = '', atStep] = at;
+            const steps = at.length === 2 ? ramps.get(atPal) : undefined;
             if (steps && contrast(inkRgb, f.rgb) < ink.min) {
               // The nearest step that clears BOTH its own contract and the fill. A fill so far toward the ink that no
               // step clears both (a mid-gray pick) leaves the ink where its own contract put it, and the sweep below
@@ -2730,15 +2768,17 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
               const own = rgbByRole.get(ink.against) ?? baseRgb;
               const clears = (x: Step) => contrast(x.rgb, f.rgb) >= ink.min && contrast(x.rgb, own) >= ink.min;
               const dir = towardInk(steps, f.rgb);
-              let i = steps.findIndex((x) => x.key === at[1]);
-              while (i >= 0 && i + dir >= 0 && i + dir < steps.length && !clears(steps[i])) i += dir;
-              if (i >= 0 && clears(steps[i])) {
-                inkRgb = steps[i].rgb;
-                roles[inkKey] = { ...ink, path: `${ns}.${at[0]}.${steps[i].key}`, hex: hex(inkRgb), ratio: contrast(inkRgb, own) };
+              let i = steps.findIndex((x) => x.key === atStep);
+              // `i` stays in range, as in the link clamp above.
+              const stepAt = (j: number) => must(steps[j], `${atPal} step ${j}`);
+              while (i >= 0 && i + dir >= 0 && i + dir < steps.length && !clears(stepAt(i))) i += dir;
+              if (i >= 0 && clears(stepAt(i))) {
+                inkRgb = stepAt(i).rgb;
+                roles[inkKey] = { ...ink, path: `${ns}.${atPal}.${stepAt(i).key}`, hex: hex(inkRgb), ratio: contrast(inkRgb, own) };
                 rgbByRole.set(inkKey, inkRgb);
               }
             }
-            roles[inkKey].alsoAgainst = { against: fillKey, min: ink.min };
+            roleAt(inkKey).alsoAgainst = { against: fillKey, min: ink.min };
           }
         }
       }
@@ -2825,7 +2865,7 @@ export const resolveAllModes = (theme: Theme): ModeResult[] => {
   // Only the modes the brand opted into (light always; dark/HC opt-in — docs/11 Pillar 1; customs
   // appended last). Canonical order preserved (Object.keys order: built-ins first, then customs),
   // so `rp.modes` is stable regardless of input order.
-  const results = (Object.keys(cfgs) as ModeName[]).filter((m) => theme.modes.includes(m)).map((m) => resolveMode(m, cfgs[m], theme, ramps));
+  const results = (Object.keys(cfgs) as ModeName[]).filter((m) => theme.modes.includes(m)).map((m) => resolveMode(m, must(cfgs[m], `mode config '${m}'`), theme, ramps));
   // Tests the lever directly, for the reason spelled out at the `overlay-neutral` branch in `resolveMode`.
   if (theme.outlineInteraction === 'solid-tint') settleSolidTint(theme, results);
   // THE SELECTED TINT FOR EVERY BRAND THAT HAS AN OUTLINE FILL (owner, 2026-09-29). A selectable control (Tag's
@@ -2845,7 +2885,7 @@ export const resolveAllModes = (theme: Theme): ModeResult[] => {
  */
 export const OPACITY_STEPS = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 /** Where each state starts on that scale (owner, #1614 amendment): hover `opacity.20`, pressed/selected `opacity.30`. */
-export const TINT_NOMINAL: Record<string, number> = { hover: 20, pressed: 30, selected: 30 };
+export const TINT_NOMINAL: Record<'hover' | 'pressed' | 'selected', number> = { hover: 20, pressed: 30, selected: 30 };
 /** ΔE00 below which a hover reads as no hover at all — the #305 just-noticeable bar the #288 arms assert. */
 const TINT_VISIBLE_DE = 2.3;
 
@@ -2910,7 +2950,7 @@ const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: st
       const inkKeyOf = (st: string) => `${prefix}interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`;
       const cells = (st: string) => results.map((m) => {
         const ink = m.roles[inkKeyOf(st)];
-        return { m, fill: hexRgb(m.roles[fillKey]), ground: hexRgb(m.roles[groundKey]), ink: ink ? hexRgb(ink) : undefined, min: ink?.min ?? 0 };
+        return { m, fill: hexRgb(must(m.roles[fillKey], `${m.mode} ${fillKey}`)), ground: hexRgb(must(m.roles[groundKey], `${m.mode} ${groundKey}`)), ink: ink ? hexRgb(ink) : undefined, min: ink?.min ?? 0 };
       });
       // Every composite here is at the alpha that ships (#3698 finding 7a), so the step the guards pick and the ratio
       // published below measure the same wash.
@@ -2919,22 +2959,28 @@ const settleSolidTint = (theme: Theme, results: ModeResult[], only?: { color: st
       const visible = (st: string, s: number) => cells(st).every((c) => deltaE2000(composite(c.ground, c.fill, shipped(s)), c.ground) >= TINT_VISIBLE_DE);
 
       // hover: the text guard steps down; failing nothing, the visibility guard steps up under the text cap.
+      // Both nominals are opacity steps (`OUTLINE_WASH_STEPS` or `TINT_NOMINAL`), so `indexOf` finds them; `stepAt`
+      // names the miss if one ever is not, rather than measuring an `undefined` alpha.
+      const stepAt = (i: number): number => must(steps[i], `opacity step ${i}`);
       let h = steps.indexOf(nominalOf('hover'));
-      if (!legible('hover', steps[h])) { while (h > 0 && !legible('hover', steps[h])) h--; }
-      else while (!visible('hover', steps[h]) && h + 1 < steps.length && legible('hover', steps[h + 1])) h++;
-      // pressed/selected: ungated for text; at least one step above hover, then up until visible.
-      let p = Math.max(steps.indexOf(nominalOf('pressed')), h + 1);
-      while (!visible('pressed', steps[p]) && p + 1 < steps.length) p++;
+      if (!legible('hover', stepAt(h))) { while (h > 0 && !legible('hover', stepAt(h))) h--; }
+      else while (!visible('hover', stepAt(h)) && h + 1 < steps.length && legible('hover', stepAt(h + 1))) h++;
+      // pressed/selected: ungated for text; at least one step above hover, then up until visible. A hover already on
+      // the top step leaves no step above it, so pressed stays on the top step (#1182: before this it read past the
+      // ladder's end and wrote `alpha: NaN`), the clamp the opaque-fill branch takes for the same case.
+      let p = Math.min(Math.max(steps.indexOf(nominalOf('pressed')), h + 1), steps.length - 1);
+      while (!visible('pressed', stepAt(p)) && p + 1 < steps.length) p++;
 
       for (const [st, i] of [['hover', h], ['pressed', p], ['selected', p]] as const) {
         if (only && st !== only.state) continue;
-        const step = steps[i];
+        const step = stepAt(i);
         const nominal = nominalOf(st);
         const why = step < nominal ? `, stepped down from opacity.${nominal} to keep the ${st} label legible`
           : step > nominal ? `, stepped up from opacity.${nominal} so the ${st} is visible on the ${groundName}` : '';
         const gated = st === 'hover';
         for (const c of cells(st)) {
-          const fill = c.m.roles[fillKey];
+          // `continue`d above unless every mode carries the fill.
+          const fill = must(c.m.roles[fillKey], `${c.m.mode} ${fillKey}`);
           const inkKey = inkKeyOf(st);
           c.m.roles[`${prefix}interactive.${color}.subtle-fill.${st}`] = {
             path: fill.path,

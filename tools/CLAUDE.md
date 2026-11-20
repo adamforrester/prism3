@@ -351,3 +351,51 @@ is gated is the bridge's arm switch, `PRISM3_BRIDGE_ARM`, by the `arm/…` arms 
 The scorer never reads the bridge's note, its resources or a skill (`docs/34` shape 1): its names are literals or come
 from the run's own captures, and the self-test's `independence/static-*` arms read its source to keep it so. The code
 half (`score-code.ts`) is a separate lane and shares no module with this one.
+
+## `tools/file-seed-comparison/`
+
+#2075 part 2 (Q-FS1 A): turns one file facts report into a starting brand two ways and scores both against
+`answer-key.json`, which is written by hand from the sources each value cites. The engine path, `file-seed.ts`, runs
+live. The agent path is `agent/<row>.design.md`, recorded by a fresh agent that saw only the report and the
+`prism3-theme` skill, so the comparison re-runs without an agent. `scan-script.ts` is the external rows' capture: a
+`use_figma` script that runs part 1's own `scanOpenFile` in the open file and returns the report in hashed chunks.
+`selftest` runs it against a shim and checks that the rejoined report equals a direct scan. **No gate sibling, and the
+reason is the subject:** the question is which path to build on, the owner answers it from the findings
+(`docs/superpowers/2075-seed-comparison-findings.md`), and nobody has decided what score would be a failure. The
+interpreter's own behavior *is* gated, in `test.ts`'s `#2075 seed` arms. **The one rule to keep:** external reports
+name a client's pages, styles and components, so they and their keys stay off the repo, and only verdicts come back.
+
+## `tools/restore-autostash/`
+
+`mutations.sh` — the mutation battery for `.claude/hooks/pre-tool-use-restore-autostash.mjs` (#1050, owner decision
+2026-11-18, A). Before a Bash command restores a path that has uncommitted work (`git checkout -- <path>`,
+`git checkout <ref> -- <path>`, `git checkout <path>`, `git restore`), the hook saves the tree's uncommitted tracked
+work to a **named** stash entry (`auto-before-restore-<UTC stamp>`), reports the entry's commit, and lets the command
+run unchanged. It never denies a restore, with one exception: the work is dirty and the stash could not be written.
+The battery builds a fresh repo in `$TMPDIR` per arm, with no remote and no network. Positive arms cover each restore
+form, and P12 pins that the restore's result is the one it would have had with no hook (`git stash create`, never
+`push`). Negative arms cover clean paths, branch switches and look-alikes. F1 is the fail-closed arm. Seven mutants of
+the hook, each in a `$TMPDIR` copy, must each fail one named arm for one named reason. **It asserts and exits non-zero,
+so it is gate-shaped, but it is not wired into `ci.yml`:** #1050 asked for the hook and its battery, and wiring it the
+way #1123 wired `claude-md-freshness/` is a separate decision. The hook itself is live: #4064 added its entry to
+`.claude/settings.json`, and agents never edit that file.
+
+## `tools/component-roundtrip/`
+
+This is the real-host component round trip (#1218, owner decision of 2026-11-18, B). `roundtrip.ts scripts` writes
+the scripts the Mac passes to the Desktop Bridge, one per call. They build the projected defs into a named scratch
+file with the plugin's own `applyComponentPlan`, read them back, and diff them with `diffAnatomy` in the host.
+`roundtrip.ts report` prints one line per def and each divergence by name. The plan is the offline round trip's
+(`figmaAnatomySet(def, { swapTarget })`, hashed, so `report` refuses a result from other plans). The in-host half,
+`host-roundtrip.ts`, enforces the Mac rules itself:
+- it refuses unless the open file is the one named by `--scratch-file`;
+- it saves a version before writes;
+- import-by-key throws, through a facade, never a `Proxy` over `figma` (#3209);
+- it writes only to a page it creates, and reports any page that went missing.
+
+`selftest.ts` runs the same scripts against the component shim dressed as a file. It plants #866's accept-and-discard
+and expects a `field-label · … · propertyRef` line by name, and it fails each safety rule in its own arm. **No gate
+sibling, and the reason is the subject:** the question is what a live Figma host keeps, CI has no host, and the
+offline gate (`apps/plugin/test-roundtrip.ts`) already covers what a shim can. `field-label` is its first named case
+and #866's permanent guard. It has not yet run against real Figma; its README's "Not yet verified live" lists what is
+unconfirmed.

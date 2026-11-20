@@ -1034,5 +1034,67 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     `the plugin's iframe entry provides the catalog before the studio evaluates (imports ${order.join(', ')})`);
 }
 
+// ── the web's component specs chunk is the one carrier (#3429, owner decision C) ─────────────────────────────────
+// The web Studio exports the component specs from a chunk it loads on Download. Subject: the studio source the web
+// build reads, walked from `src/web-entry.ts` along STATIC imports (a dynamic `import()` is a run-time boundary, not an
+// edge into main.js). Oracle: the definitions' literal module specifiers, as above, and the one sanctioned specifier.
+// `vercel-ignore-check.mjs` holds the same on the built outputs; this holds it in the source, where it fails first.
+{
+  const DEF = /(^|\/)engine\/components(\/|$)|^@prism3\/engine\/components|(^|\/)components\/index$|^\.\.?\/components$|anatomy-figma$/;
+  const WEB_ENTRY = join(SRC, 'web-entry.ts');
+  const LOADER = join(SRC, 'web-component-specs.ts');
+  const CHUNK = join(SRC, 'component-specs-chunk.ts');
+  const CHUNK_SPEC = './component-specs-chunk.js';
+  /** The line of each literal `import()` in a module, read from the AST. */
+  const dynamicLines = (src: string, file: string): Set<number> => {
+    const sf = ts.createSourceFile(file, src, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS);
+    const out = new Set<number>();
+    const visit = (n: ts.Node): void => {
+      if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword) out.add(sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1);
+      ts.forEachChild(n, visit);
+    };
+    visit(sf);
+    return out;
+  };
+  const seen = new Set<string>([WEB_ENTRY]);
+  const queue = [WEB_ENTRY];
+  const dynamicEdges: string[] = [];
+  const defHits: string[] = [];
+  while (queue.length) {
+    const f = queue.shift()!;
+    const src = readFileSync(f, 'utf8');
+    const dyn = dynamicLines(src, f);
+    for (const i of imports(src, f)) {
+      const rel = relative(ROOT, f);
+      if (dyn.has(i.line)) { dynamicEdges.push(`${rel}:${i.line} ${i.spec}`); continue; }
+      if (DEF.test(i.spec)) defHits.push(`${rel}:${i.line} '${i.spec}'`);
+      const to = resolveSpec(DISK, f, i.spec);
+      if (to && to !== '<computed>' && to.startsWith(SRC + sep) && !seen.has(to)) { seen.add(to); queue.push(to); }
+    }
+  }
+  ok(seen.has(MAIN) && seen.has(LOADER), `#3429 the web entry's static graph reaches src/main.ts and the loader (${seen.size} modules)`);
+  ok(defHits.length === 0, `#3429 the web entry's static graph imports no component definition or projector${defHits.length ? ` — ${defHits.join(', ')} (main.js would carry it)` : ''}`);
+  ok(!seen.has(CHUNK), '#3429 the web entry\'s static graph does not reach src/component-specs-chunk.ts: it is loaded at run time, never bundled into main.js');
+  ok(dynamicEdges.length === 1 && dynamicEdges[0]!.startsWith('src/web-component-specs.ts:') && dynamicEdges[0]!.endsWith(` ${CHUNK_SPEC}`),
+    `#3429 the one run-time import in the web's static graph is src/web-component-specs.ts loading ${CHUNK_SPEC} (got ${JSON.stringify(dynamicEdges)})`);
+  const chunkSrc = readFileSync(CHUNK, 'utf8');
+  ok(imports(chunkSrc, 'component-specs-chunk.ts').some((i) => i.spec === '@prism3/engine/components'),
+    '#3429 src/component-specs-chunk.ts is the carrier: it imports the definitions from @prism3/engine/components');
+  const webOrder = imports(readFileSync(WEB_ENTRY, 'utf8'), 'web-entry.ts').map((i) => i.spec);
+  ok(webOrder.indexOf('./web-component-specs') >= 0 && webOrder.indexOf('./web-component-specs') < webOrder.indexOf('./entry'),
+    `#3429 the web entry provides the loader before the studio evaluates (imports ${webOrder.join(', ')})`);
+  // The plugin bundles `src/entry.ts` into one offline file, so the loader (and its `import()`) must not be on that path.
+  const entryReach = new Set<string>([join(SRC, 'entry.ts')]);
+  const q2 = [join(SRC, 'entry.ts')];
+  while (q2.length) {
+    const f = q2.shift()!;
+    for (const i of imports(readFileSync(f, 'utf8'), f)) {
+      const to = resolveSpec(DISK, f, i.spec);
+      if (to && to !== '<computed>' && to.startsWith(SRC + sep) && !entryReach.has(to)) { entryReach.add(to); q2.push(to); }
+    }
+  }
+  ok(!entryReach.has(LOADER) && !entryReach.has(WEB_ENTRY), '#3429 src/entry.ts, which the plugin bundles, never reaches the web loader');
+}
+
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);
 if (failed) process.exit(1);

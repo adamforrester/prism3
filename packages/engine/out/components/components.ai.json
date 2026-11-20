@@ -670,7 +670,7 @@
           "2.4.11 Focus Not Obscured (Minimum) — the page's concern, not the ring's: a focused control must not be entirely hidden by author content such as a sticky header or a banner. The ring cannot see the page it is on, so the layout meets this, not this component.",
           "2.4.13 Focus Appearance (AAA) — the intent, not gated: an indicator whose area and change of contrast are large enough to see. The offset and width tokens are the levers, and no gate measures a brand against this criterion."
         ],
-        "focus": "This component is the focus appearance. It is drawn for :focus-visible rather than :focus, so a pointer click does not raise it while keyboard navigation does — the distinction browsers make and the one a design system must not flatten. Never suppress it without replacing it: removing the indicator is the single most common 2.4.7 failure.",
+        "focus": "This component is the focus appearance. It is drawn for `:focus-visible` rather than `:focus`, so a pointer click does not raise it while keyboard navigation does — the distinction browsers make and the one a design system must not flatten. Never suppress it without replacing it: removing the indicator is the single most common 2.4.7 failure.",
         "aria": "None, and that is a contract rather than an absence. The ring is presentational — the focus state is already conveyed by the platform focus itself, so an ARIA attribute here would announce something assistive tech already knows. It must never be given a role that makes it a stop in the tab order: a focusable focus ring is a node the user can land on with nothing to do."
       },
       "docs": {
@@ -684,8 +684,8 @@
         "dont": [
           "Draw the ring on the host's own border — an outline appearance then has to give up its border for it, and the two contend for one stroke at different palette steps",
           "Remove the indicator without replacing it (the most common 2.4.7 failure)",
-          "Render it for :focus rather than :focus-visible — a ring after every mouse click trains users to ignore it",
-          "Implement it as a box-shadow: shadows are dropped in forced-colors mode and the indicator vanishes for the users who need it most",
+          "Render it for `:focus` rather than `:focus-visible` — a ring after every mouse click trains users to ignore it",
+          "Implement it as a `box-shadow`: shadows are dropped in forced-colors mode and the indicator vanishes for the users who need it most",
           "Make it focusable or give it an ARIA role — it is presentational"
         ],
         "contentGuidelines": "The ring carries no text of its own. The accessible name and any message shown on focus belong to the control it surrounds."
@@ -693,7 +693,7 @@
       "ai": {
         "primaryPurpose": "Render the shared keyboard-focus indicator for a focusable control.",
         "whenToUse": "Every component that can receive keyboard focus nests it as an absolute sibling and picks its surface and offset. It is never placed in a layout on its own.",
-        "avoidWhen": "As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. Fields draw their own focus edge instead. \"Standalone\" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.",
+        "avoidWhen": "As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside `:focus-visible` destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. Fields draw their own focus edge instead. \"Standalone\" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.",
         "commonPartners": [
           "button",
           "button-destructive",
@@ -938,7 +938,7 @@
         }
       },
       "accessibility": {
-        "role": "button (native <button>; never div[role=button] — it inherits Space/Enter activation, focus, and high-contrast affordances for free)",
+        "role": "button (native `<button>`; never `div[role=button]` — it inherits Space/Enter activation, focus, and high-contrast affordances for free)",
         "wcag": [
           "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
@@ -948,8 +948,8 @@
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
           "4.1.2 Name/Role/Value (native <button>: the label is the name, the role is button, and state rides aria-disabled and aria-busy, plus aria-pressed on a toggle button only)"
         ],
-        "keyboard": "Native <button>: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating \"button\" must be a real link.)",
-        "focus": "A :focus-visible ring (color.border.focus) with an outline-offset so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (aria-disabled, not native disabled).",
+        "keyboard": "Native `<button>`: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating \"button\" must be a real link.)",
+        "focus": "A `:focus-visible` ring (`color.border.focus`) with an `outline-offset` so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (`aria-disabled`, not native disabled).",
         "aria": "State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region (\"Saving…\"), and set aria-hidden=\"true\" on the embedded spinner, which otherwise announces its own \"Loading\" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization: the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip."
       },
       "content": {
@@ -962,7 +962,7 @@
         "do": [
           "Lead with a verb, name the object (\"Publish post\", not \"Submit\")",
           "Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing",
-          "Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
+          "Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
           "Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered",
           "Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button",
           "Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button",
@@ -976,8 +976,8 @@
           "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant"
         ],
         "dont": [
-          "Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text",
-          "Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an <a>",
+          "Set `inset=flush` on a filled or outline button — their visible edge needs its padding; flush is for `appearance=text`",
+          "Use a button with no `href` for navigation to a URL — use Link, or give the button an `href` so it renders an `<a>`",
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
@@ -987,12 +987,13 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place, in the brand's primary style.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.",
         "commonPartners": [
           "icon",
           "spinner",
           "focus-ring",
-          "button-group"
+          "button-group",
+          "popover"
         ],
         "triggerKeywords": [
           "button",
@@ -1008,7 +1009,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) on the same duration and curve gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -1026,13 +1027,12 @@
         "planned": [
           "tooltip",
           "menu",
-          "popover",
           "toggle-button",
           "split-button"
         ],
         "replacesPatterns": [
           "input[type=button|submit]",
-          "div[role=button]"
+          "`div[role=button]`"
         ]
       },
       "syncBoundary": [
@@ -1266,7 +1266,7 @@
         }
       },
       "accessibility": {
-        "role": "button (native <button>; never div[role=button] — it inherits Space/Enter activation, focus, and high-contrast affordances for free)",
+        "role": "button (native `<button>`; never `div[role=button]` — it inherits Space/Enter activation, focus, and high-contrast affordances for free)",
         "wcag": [
           "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
@@ -1276,8 +1276,8 @@
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
           "4.1.2 Name/Role/Value (native <button>: the label is the name, the role is button, and state rides aria-disabled and aria-busy, plus aria-pressed on a toggle button only)"
         ],
-        "keyboard": "Native <button>: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating \"button\" must be a real link.)",
-        "focus": "A :focus-visible ring (color.border.focus) with an outline-offset so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (aria-disabled, not native disabled).",
+        "keyboard": "Native `<button>`: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating \"button\" must be a real link.)",
+        "focus": "A `:focus-visible` ring (`color.border.focus`) with an `outline-offset` so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (`aria-disabled`, not native disabled).",
         "aria": "State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region (\"Saving…\"), and set aria-hidden=\"true\" on the embedded spinner, which otherwise announces its own \"Loading\" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization: the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip."
       },
       "content": {
@@ -1290,7 +1290,7 @@
         "do": [
           "Lead with a verb, name the object (\"Publish post\", not \"Submit\")",
           "Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing",
-          "Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
+          "Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
           "Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered",
           "Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button",
           "Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button",
@@ -1305,8 +1305,8 @@
           "Place it beside a neutral escape (\"Cancel\" / \"Keep\"), never alone; on a delete confirmation the safe choice is often the filled button and the destructive action sits at a lower appearance beside it"
         ],
         "dont": [
-          "Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text",
-          "Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an <a>",
+          "Set `inset=flush` on a filled or outline button — their visible edge needs its padding; flush is for `appearance=text`",
+          "Use a button with no `href` for navigation to a URL — use Link, or give the button an `href` so it renders an `<a>`",
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
@@ -1316,12 +1316,13 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place that deletes or removes something.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Destructive (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Destructive (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
         "commonPartners": [
           "icon",
           "spinner",
           "focus-ring",
-          "button-group"
+          "button-group",
+          "popover"
         ],
         "triggerKeywords": [
           "destructive button",
@@ -1338,7 +1339,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) on the same duration and curve gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -1354,13 +1355,12 @@
         "planned": [
           "tooltip",
           "menu",
-          "popover",
           "toggle-button",
           "split-button"
         ],
         "replacesPatterns": [
           "input[type=button|submit]",
-          "div[role=button]"
+          "`div[role=button]`"
         ]
       },
       "syncBoundary": [
@@ -1594,7 +1594,7 @@
         }
       },
       "accessibility": {
-        "role": "button (native <button>; never div[role=button] — it inherits Space/Enter activation, focus, and high-contrast affordances for free)",
+        "role": "button (native `<button>`; never `div[role=button]` — it inherits Space/Enter activation, focus, and high-contrast affordances for free)",
         "wcag": [
           "1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)",
           "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)",
@@ -1604,8 +1604,8 @@
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)",
           "4.1.2 Name/Role/Value (native <button>: the label is the name, the role is button, and state rides aria-disabled and aria-busy, plus aria-pressed on a toggle button only)"
         ],
-        "keyboard": "Native <button>: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating \"button\" must be a real link.)",
-        "focus": "A :focus-visible ring (color.border.focus) with an outline-offset so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (aria-disabled, not native disabled).",
+        "keyboard": "Native `<button>`: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating \"button\" must be a real link.)",
+        "focus": "A `:focus-visible` ring (`color.border.focus`) with an `outline-offset` so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (`aria-disabled`, not native disabled).",
         "aria": "State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region (\"Saving…\"), and set aria-hidden=\"true\" on the embedded spinner, which otherwise announces its own \"Loading\" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization: the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip."
       },
       "content": {
@@ -1618,7 +1618,7 @@
         "do": [
           "Lead with a verb, name the object (\"Publish post\", not \"Submit\")",
           "Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing",
-          "Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
+          "Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
           "Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered",
           "Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button",
           "Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button",
@@ -1632,8 +1632,8 @@
           "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant"
         ],
         "dont": [
-          "Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text",
-          "Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an <a>",
+          "Set `inset=flush` on a filled or outline button — their visible edge needs its padding; flush is for `appearance=text`",
+          "Use a button with no `href` for navigation to a URL — use Link, or give the button an `href` so it renders an `<a>`",
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
@@ -1643,12 +1643,13 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place that carries no brand emphasis.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Neutral (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Neutral (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
         "commonPartners": [
           "icon",
           "spinner",
           "focus-ring",
-          "button-group"
+          "button-group",
+          "popover"
         ],
         "triggerKeywords": [
           "neutral button",
@@ -1662,7 +1663,7 @@
       "motion": {
         "enter": "none (present on mount)",
         "exit": "none",
-        "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
+        "reduceMotion": "State transitions (background, border, shadow) run on motion.duration.fast with motion.easing-role.default. A subtle press (scale 0.98) on the same duration and curve gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the color change, on motion.duration-reduced.fast, so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless."
       },
       "composition": {
         "composesWith": [
@@ -1678,13 +1679,12 @@
         "planned": [
           "tooltip",
           "menu",
-          "popover",
           "toggle-button",
           "split-button"
         ],
         "replacesPatterns": [
           "input[type=button|submit]",
-          "div[role=button]"
+          "`div[role=button]`"
         ]
       },
       "syncBoundary": [
@@ -2341,7 +2341,7 @@
         }
       },
       "accessibility": {
-        "role": "button (native <button>)",
+        "role": "button (native `<button>`)",
         "wcag": [
           "4.1.2 Name/Role/Value (the mandatory accessible name)",
           "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
@@ -2352,8 +2352,8 @@
           "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
         ],
-        "keyboard": "Native <button> — Enter on keydown, Space on keyup. Identical to Button.",
-        "focus": "Same offset :focus-visible ring as Button; retained through pending/inactive.",
+        "keyboard": "Native `<button>` — Enter on keydown, Space on keyup. Identical to Button.",
+        "focus": "Same offset `:focus-visible` ring as Button; retained through pending/inactive.",
         "aria": "aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region (\"Saving…\"), and set aria-hidden=\"true\" on the embedded spinner, which otherwise announces its own \"Loading\" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron)."
       },
       "content": {
@@ -2369,7 +2369,7 @@
         "dont": [
           "Ship it without an accessible name (\"button, unlabeled\")",
           "Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button",
-          "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use isInactive"
+          "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use `isInactive`"
         ],
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
@@ -2380,7 +2380,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "popover"
         ],
         "triggerKeywords": [
           "icon button",
@@ -2409,12 +2410,11 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "menu",
-          "popover"
+          "menu"
         ],
         "replacesPatterns": [
-          "div[role=button] wrapping an icon",
-          "a <button> holding only an <svg> and no accessible name"
+          "`div[role=button]` wrapping an icon",
+          "a `<button>` holding only an `<svg>` and no accessible name"
         ]
       },
       "syncBoundary": [
@@ -2600,7 +2600,7 @@
         }
       },
       "accessibility": {
-        "role": "button (native <button>)",
+        "role": "button (native `<button>`)",
         "wcag": [
           "4.1.2 Name/Role/Value (the mandatory accessible name)",
           "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
@@ -2611,8 +2611,8 @@
           "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
         ],
-        "keyboard": "Native <button> — Enter on keydown, Space on keyup. Identical to Button.",
-        "focus": "Same offset :focus-visible ring as Button; retained through pending/inactive.",
+        "keyboard": "Native `<button>` — Enter on keydown, Space on keyup. Identical to Button.",
+        "focus": "Same offset `:focus-visible` ring as Button; retained through pending/inactive.",
         "aria": "aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region (\"Saving…\"), and set aria-hidden=\"true\" on the embedded spinner, which otherwise announces its own \"Loading\" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron)."
       },
       "content": {
@@ -2629,7 +2629,7 @@
         "dont": [
           "Ship it without an accessible name (\"button, unlabeled\")",
           "Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button",
-          "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use isInactive"
+          "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use `isInactive`"
         ],
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
@@ -2640,7 +2640,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "popover"
         ],
         "triggerKeywords": [
           "delete icon button",
@@ -2669,12 +2670,11 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "menu",
-          "popover"
+          "menu"
         ],
         "replacesPatterns": [
-          "div[role=button] wrapping an icon",
-          "a <button> holding only an <svg> and no accessible name"
+          "`div[role=button]` wrapping an icon",
+          "a `<button>` holding only an `<svg>` and no accessible name"
         ]
       },
       "syncBoundary": [
@@ -2860,7 +2860,7 @@
         }
       },
       "accessibility": {
-        "role": "button (native <button>)",
+        "role": "button (native `<button>`)",
         "wcag": [
           "4.1.2 Name/Role/Value (the mandatory accessible name)",
           "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
@@ -2871,8 +2871,8 @@
           "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)"
         ],
-        "keyboard": "Native <button> — Enter on keydown, Space on keyup. Identical to Button.",
-        "focus": "Same offset :focus-visible ring as Button; retained through pending/inactive.",
+        "keyboard": "Native `<button>` — Enter on keydown, Space on keyup. Identical to Button.",
+        "focus": "Same offset `:focus-visible` ring as Button; retained through pending/inactive.",
         "aria": "aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region (\"Saving…\"), and set aria-hidden=\"true\" on the embedded spinner, which otherwise announces its own \"Loading\" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron)."
       },
       "content": {
@@ -2888,7 +2888,7 @@
         "dont": [
           "Ship it without an accessible name (\"button, unlabeled\")",
           "Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button",
-          "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use isInactive"
+          "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use `isInactive`"
         ],
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
@@ -2899,7 +2899,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "popover"
         ],
         "triggerKeywords": [
           "close button",
@@ -2928,12 +2929,11 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "menu",
-          "popover"
+          "menu"
         ],
         "replacesPatterns": [
-          "div[role=button] wrapping an icon",
-          "a <button> holding only an <svg> and no accessible name"
+          "`div[role=button]` wrapping an icon",
+          "a `<button>` holding only an `<svg>` and no accessible name"
         ]
       },
       "syncBoundary": [
@@ -3092,7 +3092,7 @@
         }
       },
       "accessibility": {
-        "role": "button (native <button>)",
+        "role": "button (native `<button>`)",
         "wcag": [
           "4.1.2 Name/Role/Value (the required accessible name)",
           "1.4.11 Non-text Contrast (the glyph and the focus ring at 3:1 against the page; the round edge is decorative and is not held to it, since the glyph identifies the control)",
@@ -3100,8 +3100,8 @@
           "2.5.8 Target Size (Minimum) (24×24, as intent — through the code-side hit area, since the flush glyph box alone is 20 or 24px)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — through the code-side hit area at every size; the flush glyph box alone is 20 or 24px, and the small round circle 36px)"
         ],
-        "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
-        "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
+        "keyboard": "Native `<button>`: Enter on keydown, Space on keyup. A host may take it out of the tab order (`tabindex=\"-1\"`) where its own keys do the same job, as a counter's arrow keys do.",
+        "focus": "An offset `:focus-visible` ring around the glyph square, or around the circle on the round shape.",
         "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
       },
       "content": {
@@ -3111,7 +3111,7 @@
         "usage": "Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.",
         "do": [
           "Always give it an accessible name (a verb)",
-          "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
           "Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap"
         ],
         "dont": [
@@ -3123,7 +3123,7 @@
       },
       "ai": {
         "primaryPurpose": "Trigger a brand action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
-        "whenToUse": "Any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
+        "whenToUse": "Any icon action inside a component. `shape=flush` where the glyph must line up with the content edge; `shape=round` where the buttons stand on their own beside a value.",
         "avoidWhen": "The action deletes or removes something (use FlushIconButton.Destructive). It carries no brand emphasis, such as the minus and plus of a counter or the close on a card (use FlushIconButton.Neutral). It stands on its own in a toolbar or a header (use IconButton, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
           "icon",
@@ -3157,7 +3157,7 @@
           "card"
         ],
         "replacesPatterns": [
-          "an <svg> with a click handler and no button",
+          "an `<svg>` with a click handler and no button",
           "an IconButton with its padding overridden to zero"
         ]
       },
@@ -3317,7 +3317,7 @@
         }
       },
       "accessibility": {
-        "role": "button (native <button>)",
+        "role": "button (native `<button>`)",
         "wcag": [
           "4.1.2 Name/Role/Value (the required accessible name)",
           "1.4.11 Non-text Contrast (the glyph and the focus ring at 3:1 against the page; the round edge is decorative and is not held to it, since the glyph identifies the control)",
@@ -3325,8 +3325,8 @@
           "2.5.8 Target Size (Minimum) (24×24, as intent — through the code-side hit area, since the flush glyph box alone is 20 or 24px)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — through the code-side hit area at every size; the flush glyph box alone is 20 or 24px, and the small round circle 36px)"
         ],
-        "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
-        "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
+        "keyboard": "Native `<button>`: Enter on keydown, Space on keyup. A host may take it out of the tab order (`tabindex=\"-1\"`) where its own keys do the same job, as a counter's arrow keys do.",
+        "focus": "An offset `:focus-visible` ring around the glyph square, or around the circle on the round shape.",
         "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
       },
       "content": {
@@ -3336,7 +3336,7 @@
         "usage": "Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.",
         "do": [
           "Always give it an accessible name (a verb)",
-          "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
           "Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap",
           "Confirm a destructive action that cannot be undone, and give the confirmation a neutral way out (\"Cancel\" or \"Keep\"), since a lone glyph offers none"
         ],
@@ -3349,7 +3349,7 @@
       },
       "ai": {
         "primaryPurpose": "Trigger a destructive action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
-        "whenToUse": "Any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
+        "whenToUse": "Any icon action inside a component. `shape=flush` where the glyph must line up with the content edge; `shape=round` where the buttons stand on their own beside a value.",
         "avoidWhen": "The action is not destructive (use FlushIconButton, or FlushIconButton.Neutral for one with no brand emphasis). It stands on its own in a toolbar or a header (use IconButton.Destructive, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
           "icon",
@@ -3383,7 +3383,7 @@
           "card"
         ],
         "replacesPatterns": [
-          "an <svg> with a click handler and no button",
+          "an `<svg>` with a click handler and no button",
           "an IconButton with its padding overridden to zero"
         ]
       },
@@ -3543,7 +3543,7 @@
         }
       },
       "accessibility": {
-        "role": "button (native <button>)",
+        "role": "button (native `<button>`)",
         "wcag": [
           "4.1.2 Name/Role/Value (the required accessible name)",
           "1.4.11 Non-text Contrast (the glyph and the focus ring at 3:1 against the page; the round edge is decorative and is not held to it, since the glyph identifies the control)",
@@ -3551,8 +3551,8 @@
           "2.5.8 Target Size (Minimum) (24×24, as intent — through the code-side hit area, since the flush glyph box alone is 20 or 24px)",
           "2.5.5 Target Size (Enhanced) (44×44, as intent — through the code-side hit area at every size; the flush glyph box alone is 20 or 24px, and the small round circle 36px)"
         ],
-        "keyboard": "Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex=\"-1\") where its own keys do the same job, as a counter's arrow keys do.",
-        "focus": "An offset :focus-visible ring around the glyph square, or around the circle on the round shape.",
+        "keyboard": "Native `<button>`: Enter on keydown, Space on keyup. A host may take it out of the tab order (`tabindex=\"-1\"`) where its own keys do the same job, as a counter's arrow keys do.",
+        "focus": "An offset `:focus-visible` ring around the glyph square, or around the circle on the round shape.",
         "aria": "aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled=\"true\", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips."
       },
       "content": {
@@ -3562,7 +3562,7 @@
         "usage": "Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.",
         "do": [
           "Always give it an accessible name (a verb)",
-          "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
           "Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap"
         ],
         "dont": [
@@ -3574,7 +3574,7 @@
       },
       "ai": {
         "primaryPurpose": "Trigger an action with no brand emphasis inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.",
-        "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.",
+        "whenToUse": "The minus and plus of a counter, a card's close, or any icon action inside a component. `shape=flush` where the glyph must line up with the content edge; `shape=round` where the buttons stand on their own beside a value.",
         "avoidWhen": "The action carries the brand (use FlushIconButton) or deletes something (use FlushIconButton.Destructive). It stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
           "icon",
@@ -3610,7 +3610,7 @@
           "card"
         ],
         "replacesPatterns": [
-          "an <svg> with a click handler and no button",
+          "an `<svg>` with a click handler and no button",
           "an IconButton with its padding overridden to zero"
         ]
       },
@@ -3740,7 +3740,7 @@
         }
       },
       "accessibility": {
-        "role": "none (native <label> element)",
+        "role": "none (native `<label>` element)",
         "wcag": [
           "1.3.1 Info and Relationships (native <label for> ties the name to the control)",
           "3.3.2 Labels or Instructions (every field has a visible, programmatic label)",
@@ -3752,11 +3752,11 @@
         "labelPattern": "Noun or noun phrase, sentence case, concise, ≤3 words, no trailing colon. Not an instruction — that belongs in helper text."
       },
       "docs": {
-        "usage": "Place above every field as its accessible name. Wire htmlFor to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. The label reads in full-strength ink by default, so it leads and the placeholder in the field reads as the quieter hint; secondary steps it back where a label should not lead. In code the marker flows inline after the name, and the name wraps at the field's width.",
+        "usage": "Place above every field as its accessible name. Wire `htmlFor` to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. The label reads in full-strength ink by default, so it leads and the placeholder in the field reads as the quieter hint; secondary steps it back where a label should not lead. In code the marker flows inline after the name, and the name wraps at the field's width.",
         "do": [
           "Always render a label, even for search (visually-hidden, still in the DOM)",
           "Keep it a short noun phrase in sentence case, no trailing colon",
-          "Set required consistently across a form, and back the marker with required / aria-required, or for a slider, \"required\" in the thumb's accessible name — never the marker alone"
+          "Set required consistently across a form, and back the marker with required / `aria-required`, or for a slider, \"required\" in the thumb's accessible name — never the marker alone"
         ],
         "dont": [
           "Use the placeholder as the label (it vanishes on input — fails SC 3.3.2)",
@@ -3768,7 +3768,7 @@
       "ai": {
         "primaryPurpose": "Name a form field visibly and programmatically.",
         "whenToUse": "Above every field control — the accessible name for the input.",
-        "avoidWhen": "As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.",
+        "avoidWhen": "As a section heading or standalone text (use a heading) — this is bound to one control via `htmlFor`. Never omit it in favor of a placeholder.",
         "commonPartners": [
           "text-field",
           "password-field",
@@ -3806,7 +3806,7 @@
           "number-field"
         ],
         "replacesPatterns": [
-          "an aria-label standing in for a visible label"
+          "an `aria-label` standing in for a visible label"
         ]
       },
       "syncBoundary": [
@@ -3888,7 +3888,7 @@
         }
       },
       "accessibility": {
-        "role": "none (rendered text; the host associates it via aria-describedby)",
+        "role": "none (rendered text; the host associates it via `aria-describedby`)",
         "wcag": [
           "1.4.1 Use of Color (status is carried by icon + text, never color alone)",
           "3.3.1 Error Identification / 3.3.3 Error Suggestion (the error status names the problem and the fix — wired by the host)",
@@ -3896,24 +3896,24 @@
           "1.4.3 Contrast (caption ink clears 4.5:1; the engine gates text.<role> per mode)",
           "1.4.11 Non-text Contrast (the status glyph's ink, icon.<role>, is gated at 3:1 per mode)",
           "1.3.1 Info and Relationships / 4.1.2 Name, Role, Value (the host associates the message through aria-describedby and sets aria-invalid on error)",
-          "4.1.3 Status Messages (a message that arrives without focus moving to its field must still reach assistive tech — the host decides how)"
+          "4.1.3 Status Messages (the form's error summary announces; the message itself is read through aria-describedby when focus reaches its field)"
         ],
-        "aria": "The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it (\"Error:\"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does not announce itself; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus."
+        "aria": "The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it (\"Error:\"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does not announce itself and is never a live region. On error the host field sets aria-invalid=\"true\" and references the message's id in aria-describedby, and focus moves to the invalid field or to the form's error summary, so the message is read once, with the field. The form's error summary is the only region that announces — a live region on the field fires while focus moves to it and reads the error twice."
       },
       "content": {
         "errorPattern": "Say what is wrong and how to fix it (SC 3.3.3): \"Enter a valid email address, e.g. name@example.com\" — specific, human, not \"Invalid input\", not blaming the user.",
         "labelPattern": "Default status carries the format up front (\"Use 8+ characters\") so the guidance is seen before failure, not only in the error."
       },
       "docs": {
-        "usage": "Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into aria-describedby.",
+        "usage": "Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into `aria-describedby`.",
         "do": [
           "Show the format/constraint in the default status before the user can fail",
           "Pair the status with an icon so it is never color-only",
-          "Let the host own aria-describedby + aria-invalid; keep this node presentational"
+          "Let the host own `aria-describedby` + `aria-invalid`; keep this node presentational"
         ],
         "dont": [
           "Signal error with color alone (fails SC 1.4.1)",
-          "Duplicate the error into a self-announcing live region here and on the host — the host owns announcement",
+          "Wrap the message in a live region — focus moves to the field, so the error is read twice; the form's error summary is the only region that announces",
           "Use warning as a hard blocker — it is a soft, non-blocking caution (many systems fold it into helper/error)"
         ],
         "contentGuidelines": "Say what is wrong and how to fix it, with the constraint stated: \"Enter a valid email address, like name@example.com\", \"First name must be 35 characters or less\" — never \"Invalid\" or an error code. Use plain language with no blame (\"Enter your first name\", not \"You forgot to enter your name\") and no humor. Reuse the field label's own words, and keep the message identical to its line in any error summary. Use a success status sparingly, for an asynchronous confirmation such as \"Username available\". In the default status, state the requirement up front so the error never has to."
@@ -4218,7 +4218,7 @@
         }
       },
       "accessibility": {
-        "role": "textbox (native <input>)",
+        "role": "textbox (native `<input>`)",
         "wcag": [
           "1.3.5 Identify Input Purpose (autocomplete — the most field-specific SC)",
           "1.3.1 Info and Relationships (label + describedby association)",
@@ -4229,8 +4229,8 @@
           "3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste"
         ],
         "keyboard": "Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are separate tab stops with their own accessible names. Escape clears when clearable.",
-        "focus": ":focus-visible draws the 2px focus edge in place of the border: from the field's outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.",
-        "aria": "The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the most frequent real accessibility failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir=\"auto\" on the input so content direction can differ from UI direction."
+        "focus": "`:focus-visible` draws the 2px focus edge in place of the border: from the field's outer edge, at its own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. `forwardRef` must reach the `<input>`, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.",
+        "aria": "The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the most frequent real accessibility failure). placeholder is not the accessible name. Error timing: validate on blur, re-validate on input after the first error, and on submit move focus to the first invalid field (with an error summary on a long form). The message is read through aria-describedby when focus reaches the field, never through a live region on the field; the form's error summary is the only region that announces. While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir=\"auto\" on the input so content direction can differ from UI direction."
       },
       "content": {
         "labelPattern": "Noun phrase, sentence case, ≤3 words, no trailing colon; never the placeholder (see field-label).",
@@ -4238,17 +4238,17 @@
         "emptyPattern": "The empty state is the label plus an optional placeholder — there is no separate empty UI."
       },
       "docs": {
-        "usage": "Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small input renders at 16px, because a smaller input makes iOS zoom the page on focus.",
+        "usage": "Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and `aria-describedby` chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small input renders at 16px, because a smaller input makes iOS zoom the page on focus.",
         "do": [
           "Always render a visible, associated label (FieldLabel) — visually-hidden only for search",
-          "Distinguish readOnly (copyable, submitted, full-contrast) from disabled (silent, exempt)",
-          "Emit a real <input name> so it works uncontrolled, in a native form, with Server Actions",
-          "Separate a decorative glyph (aria-hidden) from an interactive trailing action (a labeled button)",
+          "Distinguish `readOnly` (copyable, submitted, full-contrast) from disabled (silent, exempt)",
+          "Emit a real `<input name>` so it works uncontrolled, in a native form, with Server Actions",
+          "Separate a decorative glyph (`aria-hidden`) from an interactive trailing action (a labeled button)",
           "Follow the error-timing contract: validate on blur, re-validate on input after the first error, move focus to the first invalid field on submit, and show an error summary on a long form (the form library runs it; the field renders it)"
         ],
         "dont": [
           "Use the placeholder as the label, or put load-bearing text in it",
-          "Use type=\"number\" for numeric input — use a number field, not built yet (email/url/tel stay as type here)",
+          "Use `type=\"number\"` for numeric input — use a number field, not built yet (email/url/tel stay as type here)",
           "Bake a validation engine or timing into the field — render the error you are handed",
           "Signal error with the border color alone — the message carries the text + icon"
         ],
@@ -4310,7 +4310,7 @@
         "replacesPatterns": [
           "bare input without label wiring",
           "placeholder-as-label",
-          "type=number for formatted numeric"
+          "`type=number` for formatted numeric"
         ]
       },
       "syncBoundary": [
@@ -4571,7 +4571,7 @@
         }
       },
       "accessibility": {
-        "role": "textbox (native <textarea>), with the implicit aria-multiline=\"true\"",
+        "role": "textbox (native `<textarea>`), with the implicit `aria-multiline=\"true\"`",
         "wcag": [
           "4.1.3 Status Messages (the counter and over-limit live region — the most Textarea-specific SC)",
           "1.4.4 Resize Text / 1.4.10 Reflow (the field, counter and resize handle must survive 200% zoom and 320px without colliding or clipping)",
@@ -4581,8 +4581,8 @@
           "1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on background.secondary, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value",
           "2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so Textarea does not set its target"
         ],
-        "keyboard": "Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.",
-        "focus": ":focus-visible draws Text field's 2px focus edge in place of the border: from the outer edge, at the field's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color). forwardRef must reach the <textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.",
+        "keyboard": "Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract `aria-multiline` advertises and the default. `submitOnEnter` inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.",
+        "focus": "`:focus-visible` draws Text field's 2px focus edge in place of the border: from the outer edge, at the field's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color). `forwardRef` must reach the `<textarea>` itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.",
         "aria": "The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is announced, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir=\"auto\" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition."
       },
       "content": {
@@ -4591,11 +4591,11 @@
         "emptyPattern": "Label plus an optional placeholder. The placeholder may model the expected shape (\"Describe the issue, including steps to reproduce\") but still vanishes on the first keystroke — and the recall cost is higher here than on a single-line field, because a user may write several paragraphs, tab away, and come back to a prompt that is long gone. Nothing load-bearing lives in it."
       },
       "docs": {
-        "usage": "Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.",
+        "usage": "Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the `aria-describedby` chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.",
         "do": [
-          "Set maxRows whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste",
+          "Set `maxRows` whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste",
           "Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length",
-          "Announce the over-limit through the live region and aria-invalid — color alone is not a signal",
+          "Announce the over-limit through the live region and `aria-invalid` — color alone is not a signal",
           "Normalize \\r\\n to \\n on paste before counting or storing, and resize once per paste rather than once per inserted line",
           "Keep a read-only textarea scrollable and selectable, so the whole value stays reachable — far more text is hidden here than in a single-line field",
           "Reserve space in the footer for the validation message and the counter, so an over-limit error does not push the resize handle"
@@ -4612,7 +4612,7 @@
       "ai": {
         "primaryPurpose": "Capture multi-line free-form text with an associated label, an optional soft character limit, and a stated sizing model.",
         "whenToUse": "Comments, descriptions, messages, feedback, notes, commit-message bodies, a multi-line address — any input that predictably runs past the ~40–60 characters a single-line field shows comfortably, or that legitimately needs user-authored line breaks.",
-        "avoidWhen": "The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a <textarea> holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general \"big box of text\" when the content is genuinely structured — that is the rich-text signal.",
+        "avoidWhen": "The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a `<textarea>` holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general \"big box of text\" when the content is genuinely structured — that is the rich-text signal.",
         "commonPartners": [
           "field-label",
           "field-message",
@@ -5008,7 +5008,7 @@
         }
       },
       "accessibility": {
-        "role": "checkbox (native <input type=\"checkbox\">), with aria-checked true / false / mixed",
+        "role": "checkbox (native `<input type=\"checkbox\">`), with `aria-checked` `true` / `false` / `mixed`",
         "wcag": [
           "2.5.8 Target Size — the intent: the whole row is the target, because the 12–24px box fails in isolation. The row's minimum height is the control-height ladder, so every row is at least 24px tall, and the default (medium) row is 44px on comfortable density.",
           "4.1.2 Name Role Value (role, checked and mixed — aria-checked=\"mixed\" must be set explicitly)",
@@ -5019,18 +5019,18 @@
           "3.3.7 Redundant Entry (repeated consents)"
         ],
         "keyboard": "Each checkbox is its own Tab stop and Space toggles — the key cross-control difference from Radio.Group, which is one Tab stop for the group with arrows moving within it. Never override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.",
-        "focus": ":focus-visible ring on the control, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row wrapper (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 or 48 on touch. The label sits inline-end of the control, not above it.",
+        "focus": "`:focus-visible` ring on the control, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row wrapper (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 or 48 on touch. The label sits inline-end of the control, not above it.",
         "aria": "Prefer the styled native input — appearance: none plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a role=\"checkbox\" div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, role=\"group\" plus aria-labelledby is the default over fieldset/legend — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the group and announce once; a row inside a group never owns its own required or error — the group sets its status. A standalone row (a consent line) is the one that sets its own: status=error with aria-invalid on the input and the host's message in its aria-describedby. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label."
       },
       "content": {
         "labelPattern": "A positive statement of what becomes true when checked — \"Subscribe to newsletter\", never \"Do not send me emails\", which a user has to mentally invert in order to uncheck. Sentence case, no terminal period for a terse single-sentence label; apply punctuation only for multi-sentence or legal labels. Abstract shared words up into the group label, so \"Notification preferences\" lets its rows read \"Email\", \"SMS\", \"Push\".",
-        "errorPattern": "Group-level for a set — \"Select at least one option\" — stating what is wrong and how to fix it (SC 3.3.3). Inside a group the group sets status=error on every row and carries the message. A standalone row sets its own status=error (\"Accept the terms to continue\"), and its host shows the message."
+        "errorPattern": "Group-level for a set — \"Select at least one option\" — stating what is wrong and how to fix it (SC 3.3.3). Inside a group the group sets `status=error` on every row and carries the message. A standalone row sets its own `status=error` (\"Accept the terms to continue\"), and its host shows the message."
       },
       "docs": {
-        "usage": "Use a single Checkbox.Row for one independent opt-in (a consent line, \"Remember me\"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Past roughly 7–10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.",
+        "usage": "Use a single Checkbox.Row for one independent opt-in (a consent line, \"Remember me\"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the `aria-describedby` chain. Past roughly 7–10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.",
         "do": [
           "Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond",
-          "Set aria-checked=\"mixed\" explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech",
+          "Set `aria-checked=\"mixed\"` explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech",
           "Let the group own required, validation and the value array; a row inside a group never manages its own error",
           "Accept rich content in the label, so a consent line can carry the link it needs",
           "Phrase the label positively, and state exactly what is being agreed to on a consent checkbox"
@@ -5048,7 +5048,7 @@
       "ai": {
         "primaryPurpose": "Capture an independent binary choice that is staged into a form and submitted, with an associated label that doubles as the hit target and an optional indeterminate state for select-all hierarchy.",
         "whenToUse": "A single opt-in (consent, \"remember me\", \"include X\"), or any-number-from-a-set selection where the change applies on save rather than instantly. The indeterminate state when a parent row summarizes a partially-selected set of children.",
-        "avoidWhen": "The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with aria-pressed, not built yet), or the set runs past roughly 7–10 options (a filtering multi-select combobox or listbox, not built yet).",
+        "avoidWhen": "The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with `aria-pressed`, not built yet), or the set runs past roughly 7–10 options (a filtering multi-select combobox or listbox, not built yet).",
         "commonPartners": [
           "checkbox-control",
           "checkbox-group",
@@ -5092,8 +5092,8 @@
           "listbox"
         ],
         "replacesPatterns": [
-          "a bare <input type=\"checkbox\"> with no label wiring",
-          "a role=\"checkbox\" div where a styled native input would do"
+          "a bare `<input type=\"checkbox\">` with no label wiring",
+          "a `role=\"checkbox\"` div where a styled native input would do"
         ]
       },
       "syncBoundary": [
@@ -5320,7 +5320,8 @@
           "radio-group",
           "switch-row",
           "select",
-          "tag"
+          "tag",
+          "tag-group"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -5644,7 +5645,7 @@
         }
       },
       "accessibility": {
-        "role": "radio (native <input type=\"radio\"> sharing a name), with aria-checked; the group carries role=\"radiogroup\"",
+        "role": "radio (native `<input type=\"radio\">` sharing a name), with `aria-checked`; the group carries `role=\"radiogroup\"`",
         "wcag": [
           "1.3.1 Info and Relationships (the group structure is the meaning)",
           "4.1.2 Name Role Value (role and checked)",
@@ -5653,13 +5654,13 @@
           "1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)",
           "2.5.8 Target Size — the intent: the whole row is the target, as in Checkbox.Row. The row's minimum height is the control-height ladder, so every row is at least 24px tall, and the default (medium) row is 44px on comfortable density."
         ],
-        "keyboard": "The keyboard model is the opposite of Checkbox.Row's. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option. Implement with roving tabindex — one radio at tabindex=\"0\" (the checked one, or the first if none), siblings at -1, with arrow handling moving focus, the 0, and calling .focus() — rather than aria-activedescendant, which is more verbose and prone to synchronization bugs. Making each radio its own tab stop is the most common radio accessibility failure. Native inputs sharing a name give the grouping, the exclusivity, the single tab stop and the arrow keys for free; native radios do not handle Home/End, so that jump is added in script.",
-        "focus": ":focus-visible ring on the control, offset, at least 3:1, keyboard traversal only — and circular, because the control is full-round and the ring is derived concentrically from it. The ring must appear instantly — fading it lags rapid arrow navigation. Selection follows focus by default: arrowing moves focus and selects, which is native <input type=\"radio\"> behavior and the APG default, and the catalog keeps native semantics rather than reimplementing them. The known cost is that a screen-reader user exploring the options fires onChange at every step; the answer is to keep radio onChange cheap — a radio selection must never trigger navigation or expensive work — and to decouple selection from focus only as a deliberate, documented exception. On focus restore into the group (a validation error, a legend click), focus the checked radio rather than blindly the first; if none is checked, the first non-disabled option.",
+        "keyboard": "The keyboard model is the opposite of Checkbox.Row's. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option. Implement with roving `tabindex` — one radio at `tabindex=\"0\"` (the checked one, or the first if none), siblings at `-1`, with arrow handling moving focus, the `0`, and calling `.focus()` — rather than `aria-activedescendant`, which is more verbose and prone to synchronization bugs. Making each radio its own tab stop is the most common radio accessibility failure. Native inputs sharing a name give the grouping, the exclusivity, the single tab stop and the arrow keys for free; native radios do not handle Home/End, so that jump is added in script.",
+        "focus": "`:focus-visible` ring on the control, offset, at least 3:1, keyboard traversal only — and circular, because the control is full-round and the ring is derived concentrically from it. The ring must appear instantly — fading it lags rapid arrow navigation. Selection follows focus by default: arrowing moves focus and selects, which is native `<input type=\"radio\">` behavior and the APG default, and the catalog keeps native semantics rather than reimplementing them. The known cost is that a screen-reader user exploring the options fires `onChange` at every step; the answer is to keep radio `onChange` cheap — a radio selection must never trigger navigation or expensive work — and to decouple selection from focus only as a deliberate, documented exception. On focus restore into the group (a validation error, a legend click), focus the checked radio rather than blindly the first; if none is checked, the first non-disabled option.",
         "aria": "Prefer the styled native input — appearance: none plus a pseudo-element or SVG keeps role, checked state, exclusivity and the single-tab-stop arrow-key model for free (Home/End is added in script; native radios ignore it). For the container, role=\"radiogroup\" plus aria-labelledby is the default over fieldset/legend, for the same CSS-layout reason as Checkbox.Row. The group label is mandatory for meaning: without it assistive tech announces an orphaned \"radio button, 1 of 3\" with no indication of what is being chosen. Group error and required associate to the group and announce once; an option never owns its own error — its status is the group's, passed down, and the danger ring it draws is never the only signal. On mobile (Jetpack Compose) put the click target on the row rather than the dot — selectableGroup() on the parent, selectable(role = Role.RadioButton) on the row, and onClick = null on the RadioButton itself — or the control double-fires and assistive tech announces twice."
       },
       "content": {
         "labelPattern": "Parallel, mutually exclusive, scannable — the same grammatical shape across the set, brief, sentence case, no terminal punctuation, and no overlap that would let two options both apply. Long labels wrap rather than ellipsis-truncate, with the control centered within the first line-box so it stays on the first line rather than floating mid-paragraph. The group label names the decision or asks the question (\"Shipping method\", \"How should we contact you?\") and may be visually hidden when an enclosing labeled section already frames it, but must stay programmatically present.",
-        "errorPattern": "Group-level and specific — \"Select a preferred contact method\", never \"Invalid input\" (SC 3.3.3). Never per-option: the group sets status=error on every option and shows the message once, under them.",
+        "errorPattern": "Group-level and specific — \"Select a preferred contact method\", never \"Invalid input\" (SC 3.3.3). Never per-option: the group sets `status=error` on every option and shows the message once, under them.",
         "emptyPattern": "A group starts empty by default, so no option carries a pre-selected state — the practice forces a deliberate choice and pre-selects only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must therefore carry an explicit \"None\" or \"N/A\" option, or a stray click permanently pollutes the data with no way back. If a \"None\" option would corrupt the data model, the choice belongs in a clearable Select instead."
       },
       "docs": {
@@ -5668,12 +5669,12 @@
           "Ship options inside a group — the group owns the shared name, the single value, validation and the tab stop",
           "Give the group a label; without one, assistive tech announces \"radio button, 1 of 3\" with no idea what the choice is",
           "Give an optional group an explicit \"None\" option — a radio cannot be deselected, so a stray click is otherwise permanent",
-          "Keep onChange cheap, since selection follows focus and a screen-reader user arrowing through fires it at every step",
+          "Keep `onChange` cheap, since selection follows focus and a screen-reader user arrowing through fires it at every step",
           "On focus restore, focus the checked option rather than the first",
           "Start empty to force a deliberate choice; pre-select only a genuinely safe default"
         ],
         "dont": [
-          "Set checked, onChange or name on an option — all three belong to the group, and an option setting its own name breaks exclusivity outright",
+          "Set checked, `onChange` or name on an option — all three belong to the group, and an option setting its own name breaks exclusivity outright",
           "Make each option its own tab stop — the group is one stop with arrow navigation, and getting this wrong is the most common radio accessibility failure",
           "Add toggle-off behavior — no-deselect is native and deliberate",
           "Model an exclusive choice as several checkboxes, or a true/false toggle as two radios",
@@ -5728,7 +5729,7 @@
         ],
         "replacesPatterns": [
           "a set of checkboxes misused for a mutually exclusive choice",
-          "a bare <input type=\"radio\"> set with no group label",
+          "a bare `<input type=\"radio\">` set with no group label",
           "two radios standing in for a true/false toggle"
         ]
       },
@@ -6324,7 +6325,7 @@
         }
       },
       "accessibility": {
-        "role": "switch (native <input type=\"checkbox\" role=\"switch\">), with aria-checked true/false — announced \"on\"/\"off\", not \"checked\"",
+        "role": "switch (native `<input type=\"checkbox\" role=\"switch\">`), with `aria-checked` `true`/`false` — announced \"on\"/\"off\", not \"checked\"",
         "wcag": [
           "4.1.2 Name Role Value (the switch role and aria-checked doing the work)",
           "1.4.1 Use of Color (thumb position distinguishes on from off, never track color alone; the thumb glyph is a legibility aid on top of that)",
@@ -6333,11 +6334,11 @@
           "4.1.3 Status Messages (the async outcome or error of an immediate change)"
         ],
         "keyboard": "Each switch is its own tab stop — like Checkbox.Row, unlike Radio.Row, and there is no group to traverse. Space toggles, which is the canonical W3C activation; some systems also accept Enter. Nothing else: no arrow keys, because a switch is never one of a mutually-related set.",
-        "focus": ":focus-visible ring on the track, never the thumb — the thumb moves, and a ring that travels with it reads as two indicators. Offset, at least 3:1, keyboard traversal only. A read-only switch stays in the tab order and stays focusable; a disabled one is removed from it.",
+        "focus": "`:focus-visible` ring on the track, never the thumb — the thumb moves, and a ring that travels with it reads as two indicators. Offset, at least 3:1, keyboard traversal only. A read-only switch stays in the tab order and stays focusable; a disabled one is removed from it.",
         "aria": "Three roles are easily confused: checkbox is role=\"checkbox\" (announced \"checked\"), switch is role=\"switch\" (announced \"on\"/\"off\"), and a toggle button is role=\"button\" + aria-pressed (announced \"pressed\"). Putting aria-pressed on a switch is a recurring and severe error that corrupts the announcement. Prefer the styled native input — <input type=\"checkbox\" role=\"switch\"> keeps focus, activation and the accessibility tree for free. Announce the immediate effect: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3); on a failed change, set status=error and announce the message, since the danger border alone says nothing. If the toggle changes the page layout (it reveals or removes content), announce that change through an aria-live region. The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. Two implementation traps: some platform accessibility layers map aria-pressed buttons and role=\"switch\" to the same toggle-button role — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native <label> does not associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly."
       },
       "content": {
-        "labelPattern": "Names the setting, not the state and not the action — \"Airplane mode\", \"Location services\"; not \"Airplane mode is on\" and not \"Turn on airplane mode\". A stable noun or adjective phrase that does not change on toggle: a label flipping between Enable and Disable is disorienting and is a common bug. Positive framing is mandatory — the on state is the affirmative, so off never means a double negative. Sentence case, no terminal punctuation. Long labels wrap; the fixed-width track does not shrink. And reject hardcoded adjacent \"On\"/\"Off\" text, which is the label rule this control has and its siblings do not: it competes with the track state, produces duplicative screen-reader output, and does not localize. The track plus the role=\"switch\" announcement already carries it; where legibility genuinely demands more, use the thumb glyph affordance (showStateLabel) rather than words.",
+        "labelPattern": "Names the setting, not the state and not the action — \"Airplane mode\", \"Location services\"; not \"Airplane mode is on\" and not \"Turn on airplane mode\". A stable noun or adjective phrase that does not change on toggle: a label flipping between Enable and Disable is disorienting and is a common bug. Positive framing is mandatory — the on state is the affirmative, so off never means a double negative. Sentence case, no terminal punctuation. Long labels wrap; the fixed-width track does not shrink. And reject hardcoded adjacent \"On\"/\"Off\" text, which is the label rule this control has and its siblings do not: it competes with the track state, produces duplicative screen-reader output, and does not localize. The track plus the `role=\"switch\"` announcement already carries it; where legibility genuinely demands more, use the thumb glyph affordance (`showStateLabel`) rather than words.",
         "errorPattern": "An outcome failure, not a validation failure: say what did not happen and that it reverted — \"Couldn't turn on notifications. Try again.\" Near the control, as a status message rather than a field error. Never \"Invalid input\"; there was no input to invalidate."
       },
       "docs": {
@@ -6354,7 +6355,7 @@
         "dont": [
           "Use a switch for a binary that is submitted with a form — if a Save button sits anywhere in the flow it is a Checkbox.Row",
           "Use a switch whose toggle reveals a sub-form that must be filled before the data is valid — that is progressive disclosure, not an immediate mutation, and it is the most common real misuse",
-          "Put aria-pressed on a switch — it corrupts the announcement; aria-pressed is a toggle button",
+          "Put `aria-pressed` on a switch — it corrupts the announcement; `aria-pressed` is a toggle button",
           "Reach for a Switch.Group — there is none, deliberately: a settings list is a list of rows",
           "Hardcode \"On\"/\"Off\" text beside the label — use the thumb glyph affordance instead",
           "Add a third or indeterminate state — role=\"switch\" coerces aria-checked=\"mixed\" to false",
@@ -6367,7 +6368,7 @@
       "ai": {
         "primaryPurpose": "Set a binary on/off value that takes effect immediately, with no save step, via a labeled row that nests the track-and-thumb control.",
         "whenToUse": "A single independent setting that applies the moment it is flipped — a notification preference, dark mode, a feature flag — usually in a settings row or list with the label leading.",
-        "avoidWhen": "The change is staged and committed by a Save or Submit button (Checkbox.Row — the presence of that button anywhere in the flow is the tell), the toggle reveals a sub-form that must be completed for the data to be valid (Checkbox.Row again; the most common misuse), it is a single consent or agreement (Checkbox.Row), it performs an action or sets a view mode rather than holding a setting (a toggle button with aria-pressed, not built yet), it is a one-of-two exclusive labeled choice (Radio.Group, or SegmentedControl), or a third indeterminate state is needed (Checkbox.Row). Also do not reach for Switch.Row expecting a group: there is no Switch.Group by decision.",
+        "avoidWhen": "The change is staged and committed by a Save or Submit button (Checkbox.Row — the presence of that button anywhere in the flow is the tell), the toggle reveals a sub-form that must be completed for the data to be valid (Checkbox.Row again; the most common misuse), it is a single consent or agreement (Checkbox.Row), it performs an action or sets a view mode rather than holding a setting (a toggle button with `aria-pressed`, not built yet), it is a one-of-two exclusive labeled choice (Radio.Group, or SegmentedControl), or a third indeterminate state is needed (Checkbox.Row). Also do not reach for Switch.Row expecting a group: there is no Switch.Group by decision.",
         "commonPartners": [
           "switch-control",
           "focus-ring"
@@ -6416,7 +6417,7 @@
         "replacesPatterns": [
           "a checkbox misused for an immediate-effect setting",
           "two radios standing in for an obvious binary on/off",
-          "an aria-pressed toggle button misused to hold a state setting"
+          "an `aria-pressed` toggle button misused to hold a state setting"
         ]
       },
       "syncBoundary": [
@@ -6636,7 +6637,7 @@
         }
       },
       "accessibility": {
-        "role": "Trigger: a native <select>, or a custom button or role=\"combobox\" (ARIA 1.2) with aria-haspopup=\"listbox\", aria-expanded and aria-controls. Popup: role=\"listbox\" with role=\"option\" children carrying aria-selected — the platform's or a listbox component's, not modeled here.",
+        "role": "Trigger: a native `<select>`, or a custom button or `role=\"combobox\"` (ARIA 1.2) with `aria-haspopup=\"listbox\"`, `aria-expanded` and `aria-controls`. Popup: `role=\"listbox\"` with `role=\"option\"` children carrying `aria-selected` — the platform's or a listbox component's, not modeled here.",
         "wcag": [
           "1.3.5 Identify Input Purpose (autocomplete on a select collecting user information, such as a country)",
           "1.3.1 Info and Relationships (label + describedby association)",
@@ -6645,7 +6646,7 @@
           "4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size"
         ],
         "keyboard": "The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.",
-        "focus": ":focus-visible draws the 2px focus edge on the control in place of its border: from the outer edge, at the control's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.",
+        "focus": "`:focus-visible` draws the 2px focus edge on the control in place of its border: from the outer edge, at the control's own radius, with no ring and no gap, and the box keeps its size. It takes the focus color, or the status color on an error, warning or success field (in CSS, an outline of the focus width at a negative offset of the same width, in the border's color), boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; `forwardRef` reaches it so a form can focus the first invalid field on submit.",
         "aria": "The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is not the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native <select> where its OS menu is acceptable, because it is correct for free."
       },
       "content": {
@@ -6653,7 +6654,7 @@
         "errorPattern": "What is wrong and how to fix it (SC 3.3.3); icon + text, not color-only (carried by the nested field-message)."
       },
       "docs": {
-        "usage": "Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native <select> where its OS menu is acceptable. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.",
+        "usage": "Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native `<select>` where its OS menu is acceptable. The select band is 8 to about 15 familiar options: at 7 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.",
         "do": [
           "Render a visible, associated label (FieldLabel) above the control",
           "Show a muted placeholder as a prompt, never as the label or a real option",
@@ -6714,7 +6715,7 @@
           "combobox"
         ],
         "replacesPatterns": [
-          "a bare <select> with no label wiring",
+          "a bare `<select>` with no label wiring",
           "placeholder-as-label"
         ]
       },
@@ -6764,7 +6765,7 @@
         "media-wash",
         "photo-overlay"
       ],
-      "category": "foundations",
+      "category": "overlay",
       "status": "draft",
       "summary": "Wash over media so text stays legible, solid or fading from one edge. Verify contrast.",
       "description": "A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a dark wash under light text or a light wash under dark text (the value axis), then the intensity for how much the image needs muting, then the direction — a solid wash over the whole image, or one strongest at the edge the text sits on and fading to clear at the opposite edge. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.",
@@ -6836,7 +6837,7 @@
         }
       },
       "accessibility": {
-        "role": "none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is aria-hidden and the text on top carries the accessible content.",
+        "role": "none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is `aria-hidden` and the text on top carries the accessible content.",
         "wcag": [
           "1.4.3 Contrast (Minimum) — the veil exists to help text on an image clear 4.5:1 (or 3:1 for large text), but it cannot guarantee it: the result depends on the photo, so the contrast is verified against the real image, not assumed from the wash",
           "1.4.11 Non-text Contrast — where content on the veil is itself a UI boundary, the same per-image verification applies",
@@ -6965,7 +6966,7 @@
         }
       },
       "accessibility": {
-        "role": "img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (alt=\"\") when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The \"no image\" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.",
+        "role": "img once it holds an image: with a descriptive accessible name when the image is informative, or an empty `alt` (`alt=\"\"`) when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The \"no image\" marker inside it is decorative and `aria-hidden`; it is a visual affordance, not the accessible content.",
         "wcag": [
           "1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it, or an empty alt=\"\" when the image is decorative (an omitted alt and an empty one behave oppositely); the empty-state marker is decorative and is hidden from assistive tech",
           "1.4.11 Non-text Contrast — where the frame edge is a meaningful boundary, verify it against the surface behind it; the neutral fill is a background, not a UI boundary carrying meaning",
@@ -6982,7 +6983,7 @@
         "do": [
           "Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes",
           "Drop the photograph on as an image fill — the frame is the container, not a swappable slot — and turn the marker property off once it is in",
-          "Give an informative image an accessible name and a decorative one an empty alt; keep the empty-state marker decorative and aria-hidden",
+          "Give an informative image an accessible name and a decorative one an empty `alt`; keep the empty-state marker decorative and `aria-hidden`",
           "Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout"
         ],
         "dont": [
@@ -7163,9 +7164,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "A quick fade in on mount: opacity over `motion.duration.fast` (100ms at the standard tempo) on the `motion.easing-role.enter` curve. The host decides when to mount it.",
+        "enter": "A quick fade in on mount: opacity over `motion.duration.fast` on the `motion.easing-role.enter` curve. The host decides when to mount it.",
         "exit": "none",
-        "reduceMotion": "The turn runs `motion.duration.spin` (800ms) per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` (2600ms) per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion."
+        "reduceMotion": "The turn runs `motion.duration.spin` per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion."
       },
       "composition": {
         "composesWith": [],
@@ -7377,11 +7378,11 @@
         }
       },
       "accessibility": {
-        "role": "none. A status label is plain text and announces itself; a count or dot is aria-hidden and its meaning is in the host's accessible name.",
+        "role": "none. A status label is plain text and announces itself; a count or dot is `aria-hidden` and its meaning is in the host's accessible name.",
         "wcag": [
           "1.4.1 Use of Color, as intent (the text carries the meaning, so a tone or a dot is not the only signal)",
-          "1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands; an inline label clears 4.5:1 against the page and card surfaces)",
-          "1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information: its bold fill clears 3:1 against the page, measured in every mode of the example brands. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement: the subtle label's 1px edge and every bold fill clear 3:1 against the page in the same measurement. The same holds for the inline style's dot: its label says the same thing, so 1.4.11 does not require 3:1, and the dot clears 3:1 against the page and card surfaces as design intent)",
+          "1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, measured in every mode of the example brands. The bold neutral label, `color.inverse.text.primary` on `color.inverse.foreground.tertiary`, is also a mode contract at 4.5:1, so the engine checks it for every brand in every mode and names any shortfall. An inline label clears 4.5:1 against the page and card surfaces)",
+          "1.4.11 Non-text Contrast (applies to the dot, which has no text, so the colored circle is the information. The neutral dot's fill, `color.inverse.foreground.tertiary`, is a mode contract against the page at the non-text bar, 3:1 and 4.5:1 in high contrast, so the engine checks it for every brand in every mode. The tone dots' bold fills clear 3:1 against the page as measured in every mode of the example brands; that is a measurement, not a contract. For a status label or count the text carries the meaning, and the separation from the page is design intent rather than a 1.4.11 requirement. The subtle label's 1px neutral edge, `color.border.tertiary`, is a mode contract at the same bar on every page and surface tier, and the bold neutral fill is contracted as above. The bold tone fills clear 3:1 against the page in the same measurement, not by contract. The same holds for the inline style's dot: its label says the same thing, so 1.4.11 does not require 3:1, and the dot clears 3:1 against the page and card surfaces as design intent)",
           "4.1.2 Name, Role, Value (a count or dot joins its host's accessible name, so the host says what it means)",
           "4.1.3 Status Messages (a count that changes after render reaches assistive technology through a polite live region)"
         ],
@@ -7617,7 +7618,7 @@
         }
       },
       "accessibility": {
-        "role": "By type. Select: a <button> with aria-pressed, or a role=\"checkbox\" or listbox option when a group owns the selection (a radiogroup for single choice). Dismissible: the remove control is a real button named \"Remove\" followed by the label; in a group of dismissible tags it sits in a role=\"grid\" row.",
+        "role": "By type. Select: a `<button>` with `aria-pressed`; in a group of select tags (Tag.Group) it is one of the pressed buttons in a `role=\"toolbar\"`, and any number may be pressed. Dismissible: the remove control is a real button named \"Remove\" followed by the label; in a group of dismissible tags it sits in a `role=\"grid\"` row.",
         "wcag": [
           "1.4.1 Use of Color (a selected tag adds a 2px outline and, by default, a check mark to its tint, never color alone)",
           "1.4.3 Contrast (the label ink clears 4.5:1 on the tag at rest in every mode, on the page unselected and on the tint selected)",
@@ -7630,9 +7631,9 @@
           "2.5.5 Target Size (Enhanced) (44×44, as intent — under Tag style Pill a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px), and a small tag reaches 44 only at spacious density; elsewhere, and at every size under Underline, a code-side hit area reaches it)",
           "1.1.1 Non-text Content / 4.1.2 Name, Role, Value (the remove control is named \"Remove\" followed by the label, and a select tag exposes its state)"
         ],
-        "keyboard": "Select: Space or Enter toggles. In a single-choice group, arrows move and select, as radios do. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.",
-        "focus": "A focus ring around the whole tag on :focus-visible. In a group of dismissible tags, focus moves to the next tag after a removal, else the previous one, else the group or its input, and never to <body>.",
-        "aria": "Name the remove control \"Remove\" followed by the label (\"Remove Marketing\"), or aria-label=\"Remove\" plus aria-labelledby pointing at the label. Never a bare \"Remove\" or \"×\". A select tag exposes its state with aria-pressed, aria-checked or aria-selected, matching the role its group gives it. The check mark and a leading icon are aria-hidden. Every name is translatable, and the row mirrors under right-to-left layout."
+        "keyboard": "Select: Space or Enter toggles. In a group, one tab stop enters the group and Left and Right arrows move focus between tags without toggling them. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.",
+        "focus": "A focus ring around the whole tag on `:focus-visible`. In a group of dismissible tags, focus moves to the next tag after a removal, else the previous one, else the group or its input, and never to `<body>`.",
+        "aria": "Name the remove control \"Remove\" followed by the label (\"Remove Marketing\"), or aria-label=\"Remove\" plus aria-labelledby pointing at the label. Never a bare \"Remove\" or \"×\". A select tag exposes its state with aria-pressed, alone or in a group. The check mark and a leading icon are aria-hidden. Every name is translatable, and the row mirrors under right-to-left layout."
       },
       "content": {
         "labelPattern": "One word where possible; two or three short words only for a specific entity, such as a name, an email address or a category. Sentence case, or the casing the user typed, the same across the set. The remove control is \"Remove\" followed by the label."
@@ -7661,10 +7662,12 @@
         "whenToUse": "Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.",
         "avoidWhen": "Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).",
         "commonPartners": [
+          "tag-group",
           "badge",
           "icon",
           "checkbox-group",
-          "radio-group"
+          "radio-group",
+          "popover"
         ],
         "triggerKeywords": [
           "tag",
@@ -7702,11 +7705,9 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tag-group",
           "combobox",
           "toggle-button",
-          "avatar",
-          "popover"
+          "avatar"
         ],
         "replacesPatterns": [
           "a removable token list built as a listbox",
@@ -7782,6 +7783,207 @@
         {
           "class": "hit-target",
           "disposition": "UNSUPPORTED"
+        }
+      ]
+    },
+    "tag-group": {
+      "id": "tag-group",
+      "name": "Tag.Group",
+      "aliases": [
+        "chip-group",
+        "chip-set",
+        "tag-list",
+        "filter-chips",
+        "filter-bar",
+        "token-list"
+      ],
+      "category": "foundations",
+      "status": "draft",
+      "summary": "A wrapping row of Tags. The group owns which tags are pressed, arrow keys and removal. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
+      "description": "A labeled set of tags in a row that wraps onto more lines, with the same space between tags across and down. Any number of select tags can be pressed at once, each a toggle button. A dismissible tag in the group is removed with its × or with Delete. The group owns the pressed values, one Tab stop with arrow keys between tags, and where focus goes after a removal. Not a form choice submitted with other fields (Checkbox.Group), not exactly one choice (SegmentedControl or Radio.Group), and not a single tag on its own (Tag).",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The group's accessible name, naming the decision its tags answer (\"Filter by color\"). It is not drawn; a visible heading above the group belongs to the page."
+        },
+        {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "tag"
+          ],
+          "minItems": 1,
+          "description": "The tags, each a Tag, in order. Three by default; a designer adds, removes and reorders them in place."
+        },
+        {
+          "name": "value",
+          "type": "string[]",
+          "required": false,
+          "description": "The controlled array of pressed tag values. The group owns it, and each select tag's pressed state is derived from it, never wired on the tag. Pair with onChange; use defaultValue for the uncontrolled form."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string[]",
+          "required": false,
+          "description": "The uncontrolled initial set of pressed tag values."
+        },
+        {
+          "name": "onChange",
+          "type": "(value: string[], event) => void",
+          "required": false,
+          "description": "Fires with the new array of pressed values when a select tag toggles. The group dispatches it; a tag inside the group never owns its own toggle."
+        },
+        {
+          "name": "onRemove",
+          "type": "(value: string, event) => void",
+          "required": false,
+          "description": "Fires with the tag's value when a dismissible tag is removed, by its × or by Delete or Backspace on the focused tag. The group then moves focus to the next tag, else the previous one, else the group."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "Scales every tag in the group, passed to each one. The space between tags is the same at every size."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "A group of select tags is `role=\"toolbar\"`, named by `aria-label` or `aria-labelledby`, holding the tags in order. Each select tag is a `<button>` with `aria-pressed`, and any number may be pressed. A group of dismissible tags whose × slot alone is the target is `role=\"grid\"`: each tag a row, its label one gridcell and its remove control a second.",
+        "wcag": [
+          "1.3.1 Info and Relationships (the group's name ties its tags to the decision they answer)",
+          "1.4.10 Reflow (the row wraps rather than scrolling sideways, so every tag stays visible in a narrow column)",
+          "2.1.1 Keyboard (every tag can be reached, toggled or removed from the keyboard)",
+          "2.4.3 Focus Order (after a removal, focus moves to the next tag, the previous one or the group, never to the top of the page)",
+          "4.1.2 Name, Role, Value (each select tag exposes its pressed state; each remove control is named)"
+        ],
+        "keyboard": "One Tab stop enters the group. Left and Right arrows move focus between tags without toggling them, and Up and Down move across wrapped lines. Space or Enter toggles a select tag; Delete or Backspace removes the focused dismissible tag.",
+        "focus": "The focus ring is on the focused tag; the group itself draws none. After a removal, focus moves to the next tag, else the previous one, else the group or the input that owns it, and never to `<body>`.",
+        "aria": "Name the group for the decision its tags answer (\"Filter by color\"). Each select tag exposes its state with `aria-pressed`, set from the group's value. Each remove control is named \"Remove\" followed by the tag's label. Every name is translatable, and the row and the arrow keys mirror under right-to-left layout."
+      },
+      "content": {
+        "labelPattern": "Name the group for the decision its tags answer (\"Filter by color\"). Each tag keeps its own short label, one word where possible, in the same casing across the set."
+      },
+      "docs": {
+        "usage": "Use a tag group for a set of tags the user toggles or removes in place: filters above a list, applied filters, or recipients in a field. Any number of select tags can be pressed. Give the group a name, let it own the pressed values, and let the row wrap. For a structured choice submitted with a form, use Checkbox.Group; for exactly one choice, SegmentedControl or Radio.Group.",
+        "do": [
+          "Name the group for the decision its tags answer",
+          "Let the group own the pressed values, and derive each tag's pressed state from them",
+          "Move focus to the next tag after a removal, else the previous one, else the group",
+          "Let the row wrap, so every tag stays visible"
+        ],
+        "dont": [
+          "Wire a pressed state or a toggle handler on a tag inside the group. Both belong to the group.",
+          "Put dismissible tags in a listbox. A listbox option cannot contain the remove control.",
+          "Use a tag group for exactly one choice. That is a segmented control or a radio group.",
+          "Disable every tag in a group. Hide the group instead."
+        ],
+        "contentGuidelines": "The group name says what the tags filter or hold; the tags carry the short values, in the words the data or the user supplies."
+      },
+      "ai": {
+        "primaryPurpose": "Lay out a set of Tags in a wrapping row, with the group owning which select tags are pressed, the one Tab stop with arrow keys, and removal with focus kept in the group.",
+        "whenToUse": "A set of filters the user toggles in place, any number at once (above a list or search results), or a set of applied filters, recipients or keywords the user removes.",
+        "avoidWhen": "One tag on its own (Tag), a structured choice submitted with a form (Checkbox.Group), exactly one choice (SegmentedControl or Radio.Group), or a row of actions (Button.Group).",
+        "commonPartners": [
+          "tag",
+          "search-field",
+          "list",
+          "popover"
+        ],
+        "triggerKeywords": [
+          "tag group",
+          "chip group",
+          "chip set",
+          "filter chips",
+          "filter bar",
+          "tag list",
+          "token list",
+          "applied filters",
+          "multi-select tags"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None for the group. A tag added to it takes Tag's own entrance.",
+        "exit": "A removed tag takes Tag's exit; the tags after it then slide into its place, and a tag that changes line moves there on the same duration.",
+        "reduceMotion": "Under prefers-reduced-motion the tags after a removal take their new places at once; only the fade remains."
+      },
+      "composition": {
+        "composesWith": [
+          "tag"
+        ],
+        "alternativeTo": [
+          "checkbox-group"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "combobox"
+        ],
+        "replacesPatterns": [
+          "a removable token list built as a listbox",
+          "a row of tags each its own Tab stop, with no group name",
+          "tags that scroll sideways out of view instead of wrapping"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
         }
       ]
     },
@@ -7921,7 +8123,7 @@
       "motion": {
         "enter": "None. On selection the underline slides from the previous tab to this one, on motion.transition.default.",
         "exit": "None.",
-        "reduceMotion": "The underline snaps to the selected tab; the panel swaps with no transition."
+        "reduceMotion": "Under prefers-reduced-motion the underline snaps to the selected tab, and the incoming panel fades in on motion.duration-reduced.fast."
       },
       "composition": {
         "composesWith": [
@@ -8088,7 +8290,7 @@
           "2.4.13 Focus Appearance"
         ],
         "keyboard": "Tab moves into the list, landing on the selected tab, and the next Tab moves into the panel. Left and Right move between tabs (Up and Down when vertical), wrapping at the ends; Home and End go to the first and last. With automatic activation, moving focus selects; with manual activation, Enter or Space selects.",
-        "focus": "Focus stays on the tab after it is selected, so arrowing continues. The panel takes focus as a whole (tabindex=\"0\").",
+        "focus": "Focus stays on the tab after it is selected, so arrowing continues. The panel takes focus as a whole (`tabindex=\"0\"`).",
         "aria": "role=\"tablist\" with an aria-label or aria-labelledby; aria-selected on every tab; aria-controls from each tab to its panel and aria-labelledby back. Never use tabs to change the page: a route change is a navigation of links with aria-current."
       },
       "content": {
@@ -8132,7 +8334,7 @@
       "motion": {
         "enter": "None. On a change, the underline slides to the new tab and the panel cross-fades, on motion.transition.default.",
         "exit": "The outgoing panel fades out under the incoming one. Panels never slide sideways.",
-        "reduceMotion": "The underline snaps and the panel swaps with no transition."
+        "reduceMotion": "Under prefers-reduced-motion the underline snaps to the new tab, and the incoming panel fades in on motion.duration-reduced.fast."
       },
       "composition": {
         "composesWith": [
@@ -8151,7 +8353,7 @@
         "planned": [],
         "replacesPatterns": [
           "show and hide divs with no tab semantics",
-          "role=\"tab\" on links that change the route"
+          "`role=\"tab\"` on links that change the route"
         ]
       },
       "syncBoundary": [
@@ -8205,7 +8407,7 @@
         "rule",
         "hr"
       ],
-      "category": "foundations",
+      "category": "layout",
       "status": "draft",
       "summary": "A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.",
       "description": "A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. Bold by default; subtle draws it in the lighter border color, for a quieter break. A labeled divider breaks the rule with one short centered word, such as Or between two ways to sign in: a line on each side, 24px clear of the label (12px when vertical), and the label in the secondary text color, which clears 4.5:1 against the page. It has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator. A labeled divider is read as its label.",
@@ -8291,7 +8493,7 @@
         }
       },
       "accessibility": {
-        "role": "none with aria-hidden=\"true\" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native <hr> for a horizontal rule, role=\"separator\" with aria-orientation=\"vertical\" for a vertical one); a labeled divider takes no role, its two lines hidden and its label read as plain text",
+        "role": "none with `aria-hidden=\"true\"` by default, because a divider is decorative unless set otherwise; with `decorative=false`, separator (native `<hr>` for a horizontal rule, `role=\"separator\"` with `aria-orientation=\"vertical\"` for a vertical one); a labeled divider takes no role, its two lines hidden and its label read as plain text",
         "wcag": [
           "1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees",
           "1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background.",
@@ -8674,7 +8876,7 @@
         }
       },
       "accessibility": {
-        "role": "A native <button> with aria-expanded and aria-controls, inside an <hN>; the panel is role=\"region\" with aria-labelledby pointing at the button. Native <details> and <summary> are the alternative where their styling and animation support are enough.",
+        "role": "A native `<button>` with `aria-expanded` and `aria-controls`, inside an `<hN>`; the panel is `role=\"region\"` with `aria-labelledby` pointing at the button. Native `<details>` and `<summary>` are the alternative where their styling and animation support are enough.",
         "wcag": [
           "4.1.2 Name, Role, Value (a button that exposes aria-expanded)",
           "1.3.1 Info and Relationships (each header is a heading at the level the page outline needs)",
@@ -8686,7 +8888,7 @@
           "2.5.5 Target Size (Enhanced), as intent (the whole header is the target, at least 44px tall on comfortable and spacious density)"
         ],
         "keyboard": "Tab moves from header to header, and into an open panel's content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.",
-        "focus": "A focus ring around the header row on :focus-visible. Opening a section does not move focus.",
+        "focus": "A focus ring around the header row on `:focus-visible`. Opening a section does not move focus.",
         "aria": "Hide the indicator glyph from assistive technology (aria-hidden=\"true\"); the button's aria-expanded carries the state. Do not put role=\"tab\" or a tablist on an accordion."
       },
       "content": {
@@ -8735,7 +8937,7 @@
       "motion": {
         "enter": "The panel eases open to its content height (motion.transition.enter), and the indicator turns to its open glyph.",
         "exit": "The panel eases closed (motion.transition.exit), and the indicator turns back.",
-        "reduceMotion": "Under prefers-reduced-motion the panel opens and closes at the reduced duration, since the change is the information and the height movement is not."
+        "reduceMotion": "Under prefers-reduced-motion the height changes at once, and the panel's fade stays, on motion.duration-reduced.normal to open and to close. The indicator swaps without turning. A fade is not movement, and it keeps the cue that the panel opened or closed."
       },
       "composition": {
         "composesWith": [
@@ -8753,7 +8955,7 @@
           "tree"
         ],
         "replacesPatterns": [
-          "a show/hide div with no aria-expanded or heading",
+          "a show/hide div with no `aria-expanded` or heading",
           "a tablist used for vertical sections that open together"
         ]
       },
@@ -9048,7 +9250,7 @@
         }
       },
       "accessibility": {
-        "role": "list (a native <ul> or <ol> with role=\"list\" set explicitly), its items listitem",
+        "role": "list (a native `<ul>` or `<ol>` with `role=\"list\"` set explicitly), its items listitem",
         "wcag": [
           "1.3.1 Info and Relationships (the list and its items are marked up as a list, so the count and each position are announced)",
           "1.4.1 Use of Color (an icon marker never carries meaning alone)",
@@ -9117,7 +9319,7 @@
           "navigation"
         ],
         "replacesPatterns": [
-          "a <ul> with list-style: none and no role=\"list\"",
+          "a `<ul>` with `list-style: none` and no `role=\"list\"`",
           "a column of text boxes with typed bullet characters"
         ]
       },
@@ -9436,7 +9638,7 @@
         }
       },
       "accessibility": {
-        "role": "view behavior: role=\"group\" of buttons, the selected one with aria-current=\"true\". form behavior: a radio group (a fieldset with a legend, or role=\"radiogroup\"), native radios inside. Never role=\"tablist\".",
+        "role": "view behavior: `role=\"group\"` of buttons, the selected one with `aria-current=\"true\"`. form behavior: a radio group (a fieldset with a legend, or `role=\"radiogroup\"`), native radios inside. Never `role=\"tablist\"`.",
         "wcag": [
           "1.3.1 Info and Relationships (the group and its label are exposed together)",
           "4.1.2 Name, Role, Value",
@@ -9449,7 +9651,7 @@
           "2.5.5 Target Size (targets 44 by 44 at medium on comfortable and spacious density)"
         ],
         "keyboard": "view behavior: Tab moves to each option and Enter or Space selects it. form behavior: Tab enters at the selected option, arrow keys move to the next or previous option and select it, wrapping at the ends, and Tab leaves.",
-        "focus": "A focus ring around the focused option's indicator on :focus-visible.",
+        "focus": "A focus ring around the focused option's indicator on `:focus-visible`.",
         "aria": "The label names the group (aria-labelledby, or a legend in the form behavior); without it a screen reader announces options with no subject. Some screen readers do not announce aria-current on a button, so test the view behavior. Every name is translatable, and the row mirrors right to left."
       },
       "content": {
@@ -9702,7 +9904,7 @@
         }
       },
       "accessibility": {
-        "role": "link (a real <a href>, with the label text inside the anchor)",
+        "role": "link (a real `<a href>`, with the label text inside the anchor)",
         "wcag": [
           "1.4.1 Use of Color (an inline link is underlined at every state, never told apart by color alone)",
           "2.4.4 Link Purpose (the link text names the destination)",
@@ -9715,14 +9917,14 @@
           "2.4.1 Bypass Blocks (the skip link)"
         ],
         "keyboard": "Tab moves to the link; Enter follows it. Space does not activate a link: it scrolls the page.",
-        "focus": "The shared focus ring at :focus-visible, so a mouse click leaves no ring behind.",
+        "focus": "The shared focus ring at `:focus-visible`, so a mouse click leaves no ring behind.",
         "aria": "Usually none: the anchor and its text carry the role and the name. aria-current=\"page\" marks the current page in a navigation, set by current; the bar shows it. A link that opens a new tab adds visually hidden \"(opens in new tab)\" text; the icons are aria-hidden. Where space forces generic text such as \"Read more\", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror."
       },
       "content": {
         "labelPattern": "Names the destination and makes sense on its own: \"Shipping and returns\", \"Annual report (PDF, 2 MB)\". Link the noun phrase, not the whole sentence. Never a bare \"click here\" or \"learn more\", and never a raw URL."
       },
       "docs": {
-        "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style.",
+        "usage": "Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style. A social follow link, such as a footer row of networks, is a link too, not a sign-in or wallet button: a standalone Link around the network's one-color mark (ProviderLogo, such as social/instagram-mono, at 24px) with a 44 by 44 target. The link carries the name in aria-label (\"Instagram\", plus \"opens in new tab\" when it does), and the mark is aria-hidden. The link's ink, hover and focus ring are the theme's; the mark keeps the provider's drawing.",
         "do": [
           "Write link text that names the destination",
           "State the format and size of a file link",
@@ -9742,9 +9944,9 @@
         "contentGuidelines": "Descriptive text that stands alone, sentence case. Front-load the words that name the destination. File links state format and size."
       },
       "ai": {
-        "primaryPurpose": "Navigate from text to a URL, a fragment or a file, rendered as a real <a href>.",
+        "primaryPurpose": "Navigate from text to a URL, a fragment or a file, rendered as a real `<a href>`.",
         "whenToUse": "The interaction changes the address or the place on the page: a page, an in-page anchor, a document, another site. Standalone for a link on its own line (below a form, in a footer, beside a control); inline for a link that sits in body copy.",
-        "avoidWhen": "The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button's weight, such as \"Continue to checkout\", is a Button given an href, which renders an <a>. Switching panels in place is Tabs.",
+        "avoidWhen": "The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button's weight, such as \"Continue to checkout\", is a Button given an `href`, which renders an `<a>`. Switching panels in place is Tabs.",
         "commonPartners": [
           "icon",
           "button",
@@ -9786,8 +9988,8 @@
         ],
         "replacesPatterns": [
           "a click handler on a div or span styled as a link",
-          "an <a> with no href, href=\"#\" or javascript:void(0)",
-          "a[role=button] used for navigation"
+          "an `<a>` with no `href`, `href=\"#\"` or `javascript:void(0)`",
+          "`a[role=button]` used for navigation"
         ]
       },
       "syncBoundary": [
@@ -10028,6 +10230,13 @@
           "description": "The heading that names the task. It is the dialog's accessible name, so make it specific: \"Delete this address?\", not \"Are you sure?\". It wraps rather than truncating."
         },
         {
+          "name": "hideTitle",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Hides the title from view and keeps it as the dialog's accessible name, for a dialog whose tabs or body name the content, such as a full-screen dialog on a small screen. An alertdialog always shows its title. Never display: none."
+        },
+        {
           "name": "description",
           "type": "node",
           "required": false,
@@ -10132,7 +10341,7 @@
         }
       },
       "accessibility": {
-        "role": "role=\"dialog\" with aria-modal=\"true\", or role=\"alertdialog\" for a confirmation that needs an answer. A native <dialog> opened with showModal() provides the dialog role, the modal state, the top layer and an inert page.",
+        "role": "`role=\"dialog\"` with `aria-modal=\"true\"`, or `role=\"alertdialog\"` for a confirmation that needs an answer. A native `<dialog>` opened with `showModal()` provides the dialog role, the modal state, the top layer and an inert page.",
         "wcag": [
           "1.3.1 Info and Relationships (the title is a heading and labels the dialog; the description describes it)",
           "2.1.1 Keyboard (every action, the close button included, works from the keyboard)",
@@ -10147,14 +10356,14 @@
         ],
         "keyboard": "Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.",
         "focus": "Moves into the dialog on open (the first control, the title for long content, or Cancel in an alertdialog), stays inside while it is open, and returns to the control that opened it.",
-        "aria": "aria-modal=\"true\"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button's accessible name is \"Close\". Hide the dividers from assistive technology."
+        "aria": "aria-modal=\"true\"; aria-labelledby pointing at the title, a heading that stays in place, visually hidden, when the title is hidden; aria-describedby pointing at the description when there is one. The close button's accessible name is \"Close\". Hide the dividers from assistive technology."
       },
       "content": {
         "labelPattern": "The title names the task or asks the question (\"Delete this address?\"), never \"Warning\" or \"Are you sure?\". The main action echoes the title's verb (\"Delete address\"), not \"OK\" or \"Yes\". Sentence case.",
         "dialogPattern": "A confirmation asks about the action in its title (\"Delete this address?\"). The body states what is lost and whether it can be undone. The destructive button repeats the verb (\"Delete address\") beside Cancel or a named way out (\"Keep address\"), and focus starts on that way out. Leave the close button off an alertdialog, so the user answers it."
       },
       "docs": {
-        "usage": "Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something.",
+        "usage": "Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something. Turn the title off only when tabs or a heading in the body already name the content, most often in a full-screen dialog or a bottom sheet; the title still names the dialog for assistive technology.",
         "do": [
           "Name the task in the title, and the action in the main button",
           "Keep the close button on a standard dialog",
@@ -10170,7 +10379,8 @@
           "Focus a destructive button when the dialog opens",
           "Build the backdrop into the panel. It is the page's scrim, behind the dialog.",
           "Use an end panel for navigation that stays open beside the page. It is a modal dialog and makes the page inert.",
-          "Make an end panel an alertdialog. A confirmation belongs in the center."
+          "Make an end panel an alertdialog. A confirmation belongs in the center.",
+          "Hide the title of an alertdialog. Its title is the question the user answers."
         ],
         "contentGuidelines": "Titles are specific and in sentence case. Body text is short and states the consequence of an action, especially one that cannot be undone. Buttons are named by what they do."
       },
@@ -10216,12 +10426,12 @@
         "alternativeTo": [
           "accordion",
           "toast",
-          "banner"
+          "banner",
+          "popover"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "popover",
           "menu"
         ],
         "replacesPatterns": [
@@ -10240,6 +10450,10 @@
         },
         {
           "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
           "disposition": "REFUSED"
         },
         {
@@ -10484,7 +10698,7 @@
         }
       },
       "accessibility": {
-        "role": "textbox (native <input type=\"password\">, switched to type=\"text\" while shown), plus a native <button type=\"button\">",
+        "role": "textbox (native `<input type=\"password\">`, switched to `type=\"text\"` while shown), plus a native `<button type=\"button\">`",
         "wcag": [
           "1.3.1 Info and Relationships (label, describedby, and the button's aria-controls)",
           "1.3.5 Identify Input Purpose (autocomplete current-password or new-password, never off)",
@@ -10505,16 +10719,16 @@
         "emptyPattern": "The label plus an optional placeholder, as on TextField."
       },
       "docs": {
-        "usage": "Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set autoComplete to current-password on a sign-in form and new-password where the user sets one. Put the rules for a new password in helper text or a list under the field.",
+        "usage": "Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.",
         "do": [
-          "Set autoComplete to current-password or new-password on every password field",
+          "Set `autoComplete` to `current-password` or `new-password` on every password field",
           "Let the user paste, so a password manager can fill the field",
           "Return the field to hidden when its form submits",
           "State the rules for a new password before the user types"
         ],
         "dont": [
           "Use an eye icon inside the field instead of the Show/Hide button",
-          "Add aria-pressed to the button as well as changing its name",
+          "Add `aria-pressed` to the button as well as changing its name",
           "Use this for a one-time code in separate boxes",
           "Put the password rules in the placeholder"
         ],
@@ -10560,7 +10774,7 @@
         "replacesPatterns": [
           "eye icon inside a password field",
           "password field with no way to show the characters",
-          "autocomplete=\"off\" on a password"
+          "`autocomplete=\"off\"` on a password"
         ]
       },
       "syncBoundary": [
@@ -10691,7 +10905,7 @@
         }
       },
       "accessibility": {
-        "role": "The toast sits in one shared role=\"status\" live region (polite, aria-atomic=\"true\"), inside a landmark labeled \"Notifications\". The toast itself takes no role and never takes focus.",
+        "role": "The toast sits in one shared `role=\"status\"` live region (polite, `aria-atomic=\"true\"`), inside a landmark labeled \"Notifications\". The toast itself takes no role and never takes focus.",
         "wcag": [
           "4.1.3 Status Messages (the message is announced through a live region without moving focus)",
           "2.2.1 Timing Adjustable (a toast with no action shows for at least 5 seconds, pausing on hover, focus and a hidden window; a toast with an action does not time out)",
@@ -10767,7 +10981,7 @@
         "supersededBy": [],
         "planned": [],
         "replacesPatterns": [
-          "an alert() after a save",
+          "an `alert()` after a save",
           "a status message that moves focus",
           "a timed message with no pause"
         ]
@@ -11134,7 +11348,7 @@
       "category": "navigation",
       "status": "draft",
       "summary": "The path to the current page as links, with the current page last and not a link. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
-      "description": "Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.",
+      "description": "Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. To show a collapsed trail, set a middle item to overflow. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.",
       "props": [
         {
           "name": "items",
@@ -11266,12 +11480,13 @@
         "labelPattern": "Each step is its page's own title, short and in sentence case. The root is \"Home\". No \"You are here\" prefix and no separators typed as text."
       },
       "docs": {
-        "usage": "Use breadcrumbs on a site three or more levels deep, to show where a page sits and to climb back up. They follow the site's structure, not the visitor's history, and supplement the main navigation. For a one or two level site, use a single link back, or nothing. To go back in history, use the browser's Back or a Link. To switch between peers at one level, use Tabs.",
+        "usage": "Use breadcrumbs on a site three or more levels deep, to show where a page sits and to climb back up. They follow the site's structure, not the visitor's history, and supplement the main navigation. For a one or two level site, use a single link back, or nothing. To go back in history, use the browser's Back or a Link. To switch between peers at one level, use Tabs. A trail of six steps collapses to four: Home, the overflow button, the parent and the current page. Pressing the button shows all six in place, and focus moves to the first step it revealed.",
         "do": [
           "Start at the root and end at the current page",
           "Use each page's own title as its label",
           "Place breadcrumbs above the page heading",
-          "Let a long trail collapse its middle rather than wrap"
+          "Let a long trail collapse its middle rather than wrap",
+          "Show a collapsed trail in a design by setting a middle item to overflow and removing the steps it stands for"
         ],
         "dont": [
           "Show the visitor's click history",
@@ -11541,7 +11756,7 @@
           "2.5.8 Target Size (Minimum) (24×24, as intent, through each button's code-side hit area)",
           "2.5.5 Target Size (Enhanced) (targets 44×44 for each button at every size, through its code-side hit area)"
         ],
-        "keyboard": "The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (tabindex=\"-1\").",
+        "keyboard": "The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (`tabindex=\"-1\"`).",
         "focus": "While the value has keyboard focus, outline draws the 2px focus edge in place of its edge, in the focus color, from the outer edge at the row's radius, with no ring and no gap, and the row keeps its size; ghost draws the shared focus ring 2px outside the buttons. The buttons never take focus from the keyboard, so they draw no ring of their own.",
         "aria": "The value has role=\"spinbutton\", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, aria-valuetext where the number is shown formatted (\"3 items\"), and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object (\"Increase quantity\"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled=\"true\" and stays in the accessibility tree. The buttons are not aria-hidden: they keep their names for pointer and touch users of assistive technology, as the ARIA Authoring Practices spin button example does. Every name is translatable, and the row mirrors right to left."
       },
@@ -11560,7 +11775,7 @@
           "Use it for a large or precise number, such as a price or a measurement; use a number input",
           "Use it for a count shown on another element, such as unread messages; use Badge",
           "Put the minus and plus buttons in the Tab order; the arrow keys already step the value",
-          "Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology",
+          "Hide the minus and plus buttons with `aria-hidden`; they stay in the accessibility tree for pointer and touch users of assistive technology",
           "Change the value on a mouse wheel or scroll"
         ],
         "contentGuidelines": "The label is a noun (\"Quantity\"). Button names are a verb with the object. A limit message states the limit and why (\"Limit 5 per order\")."
@@ -11609,9 +11824,9 @@
           "number-field"
         ],
         "replacesPatterns": [
-          "an <input type=\"number\"> for an item count",
+          "an `<input type=\"number\">` for an item count",
           "a select of 1 to 10 for a bag quantity",
-          "two IconButtons around a <span> with no spinbutton semantics"
+          "two IconButtons around a `<span>` with no spinbutton semantics"
         ]
       },
       "syncBoundary": [
@@ -12059,7 +12274,7 @@
         }
       },
       "accessibility": {
-        "role": "navigation: a <nav> landmark named \"Pagination\", holding a list of links or buttons",
+        "role": "navigation: a `<nav>` landmark named \"Pagination\", holding a list of links or buttons",
         "wcag": [
           "1.3.1 Info and Relationships (a labeled navigation landmark around a list; the current page carries aria-current=\"page\")",
           "1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)",
@@ -12137,7 +12352,7 @@
           "carousel"
         ],
         "replacesPatterns": [
-          "page links built from <a href=\"#\"> and click handlers",
+          "page links built from `<a href=\"#\">` and click handlers",
           "a disabled next button that drops focus at the last page",
           "infinite scroll on a page with a footer"
         ]
@@ -12424,9 +12639,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "Appears after a short delay (400ms), so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep` (1600ms), on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.",
-        "exit": "Stays at least 500ms once shown, then leaves with its host.",
-        "reduceMotion": "The fill snaps to each value (`motion.duration-reduced.moderate`, 0ms). The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep` (2600ms). It is never removed, because a still bar reads as stuck."
+        "enter": "Appears after a short delay, `delay`, so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep`, on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.",
+        "exit": "Stays at least `minDisplay` once shown, then leaves with its host.",
+        "reduceMotion": "The fill snaps to each value, on `motion.duration-reduced.moderate`. The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep`. It is never removed, because a still bar reads as stuck."
       },
       "composition": {
         "composesWith": [
@@ -12694,7 +12909,7 @@
         }
       },
       "accessibility": {
-        "role": "searchbox (native <input type=\"search\">), plus a native <button type=\"button\"> to clear it",
+        "role": "searchbox (native `<input type=\"search\">`), plus a native `<button type=\"button\">` to clear it",
         "wcag": [
           "1.3.1 Info and Relationships (a label, kept in the DOM when visually hidden, and the search landmark)",
           "2.4.6 Headings and Labels (the label names what is searched)",
@@ -13031,7 +13246,7 @@
         }
       },
       "accessibility": {
-        "role": "textbox (a native <input inputmode=\"numeric\">, or the payment provider's hosted input inside its frame)",
+        "role": "textbox (a native `<input inputmode=\"numeric\">`, or the payment provider's hosted input inside its frame)",
         "wcag": [
           "1.3.5 Identify Input Purpose (autocomplete cc-number, never off)",
           "1.3.1 Info and Relationships (label, describedby and the hidden network name)",
@@ -13052,19 +13267,19 @@
         "emptyPattern": "The label plus an optional format example as the placeholder, \"1234 1234 1234 1234\", and the generic tile."
       },
       "docs": {
-        "usage": "Use for a payment card's number in a checkout or a saved-card form. The field nests FieldLabel above, the input box with the card network's tile at its trailing edge, and FieldMessage below. Set brand from the card-type detection, or from the payment provider's brand event, and brandName to the network's name, so the network is stated in text as well as shown. Ask for the expiration date and the security code in their own text fields, with autocomplete cc-exp and cc-csc. When the payment provider hosts the input, pass its mount point with renderInput and let the field draw everything around it.",
+        "usage": "Use for a payment card's number in a checkout or a saved-card form. The field nests FieldLabel above, the input box with the card network's tile at its trailing edge, and FieldMessage below. Set brand from the card-type detection, or from the payment provider's brand event, and `brandName` to the network's name, so the network is stated in text as well as shown. Ask for the expiration date and the security code in their own text fields, with `autocomplete` `cc-exp` and `cc-csc`. When the payment provider hosts the input, pass its mount point with `renderInput` and let the field draw everything around it.",
         "do": [
           "Let the leading digits set the network, and swap the tile in place",
-          "State the detected network in text with brandName, not by the tile alone",
+          "State the detected network in text with `brandName`, not by the tile alone",
           "Group the digits as the user types, and keep the value digits only",
-          "Use the payment provider's hosted input in production, with renderInput",
+          "Use the payment provider's hosted input in production, with `renderInput`",
           "Warn, rather than block, when the number fails the checksum"
         ],
         "dont": [
           "Recolor, dim or redraw the tile, at any state",
           "Add a card-type select: the digits tell the network",
           "Put the expiration date or the security code in this box",
-          "Use type=\"number\" or turn off autocomplete",
+          "Use `type=\"number\"` or turn off autocomplete",
           "Move focus to the next field when the number is complete"
         ],
         "contentGuidelines": "Label = \"Card number\", sentence case, no trailing colon. Placeholder = a format example only. Helper = \"The card type shows when you start typing.\" Error says what is wrong and how to fix it."
@@ -13072,7 +13287,7 @@
       "ai": {
         "primaryPurpose": "Capture a payment card's number, showing the detected card network's tile and stating the network in text.",
         "whenToUse": "The card number in a checkout or a saved-card form, beside text fields for the expiration date and the security code.",
-        "avoidWhen": "The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (WalletButton). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).",
+        "avoidWhen": "The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (WalletButton). Never for the expiration date or the security code (TextField with `autocomplete` `cc-exp` or `cc-csc`).",
         "commonPartners": [
           "text-field",
           "provider-logo",
@@ -13112,7 +13327,7 @@
           "a card number in a plain text input with no card type",
           "a manual card-type select",
           "number, expiration and security code packed into one box",
-          "type=\"number\" on a card number"
+          "`type=\"number\"` on a card number"
         ]
       },
       "syncBoundary": [
@@ -13302,7 +13517,7 @@
         }
       },
       "accessibility": {
-        "role": "A banner present when the page loads is a region (<section aria-labelledby> pointing at the title) and has no live role. A banner inserted after an action is announced through the page's live region: role=\"alert\" for danger, role=\"status\" for the other tones.",
+        "role": "A banner present when the page loads is a region (`<section aria-labelledby>` pointing at the title) and has no live role. A banner inserted after an action is announced through the page's live region: `role=\"alert\"` for danger, `role=\"status\"` for the other tones.",
         "wcag": [
           "4.1.3 Status Messages (a banner inserted after an action is announced without moving focus)",
           "1.3.1 Info and Relationships (the title is a heading at the level the page outline needs, and it labels the region)",
@@ -13369,7 +13584,7 @@
       "motion": {
         "enter": "Fades in. A banner inserted at the top of a page reserves its space, so the content below does not jump.",
         "exit": "Collapses its height and fades on motion.transition.exit, so the content below moves up smoothly.",
-        "reduceMotion": "Under prefers-reduced-motion it appears and goes instantly."
+        "reduceMotion": "Under prefers-reduced-motion it fades only, on motion.duration-reduced.normal to appear and to go, and its height changes at once when it is dismissed."
       },
       "composition": {
         "composesWith": [
@@ -13387,7 +13602,7 @@
         "supersededBy": [],
         "planned": [],
         "replacesPatterns": [
-          "a colored div with an icon and role=\"alert\" on a message present at load",
+          "a colored div with an icon and `role=\"alert\"` on a message present at load",
           "an error shown as a toast that disappears"
         ]
       },
@@ -13827,7 +14042,7 @@
         }
       },
       "accessibility": {
-        "role": "slider, once per thumb, from a visually hidden native <input type=\"range\">; a range is two sliders in a group named by the label",
+        "role": "slider, once per thumb, from a visually hidden native `<input type=\"range\">`; a range is two sliders in a group named by the label",
         "wcag": [
           "4.1.2 Name, Role, Value (each thumb named, with aria-valuetext for a formatted value)",
           "2.1.1 Keyboard (arrow, Page and Home and End keys on every thumb)",
@@ -13839,7 +14054,7 @@
           "3.3.2 Labels or Instructions (a visible label names the dimension)"
         ],
         "keyboard": "Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move ten steps; Home and End go to the minimum and maximum, or for a range thumb to the other thumb. Tab moves from the minimum thumb to the maximum thumb. In right-to-left text, Right lowers and Left raises.",
-        "focus": "A focus ring around the focused thumb on :focus-visible, never around the track.",
+        "focus": "A focus ring around the focused thumb on `:focus-visible`, never around the track.",
         "aria": "Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs \"Minimum {label}\" and \"Maximum {label}\", which are translatable. Help and error text join aria-describedby, and an error sets aria-invalid on each thumb. A required slider adds \"required\" to each thumb's accessible name, such as \"Price range, required\", and sets no aria-required, which the slider role does not support. The layout mirrors right to left."
       },
       "content": {
@@ -13850,9 +14065,9 @@
         "usage": "Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use TextField, or turn on the paired inputs. Don't use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).",
         "do": [
           "Name the dimension with a visible label",
-          "Format the value with its unit or currency, and use the same text for aria-valuetext",
+          "Format the value with its unit or currency, and use the same text for `aria-valuetext`",
           "Turn on the paired inputs when an exact value matters",
-          "Bind costly work, such as a network filter, to onChangeEnd"
+          "Bind costly work, such as a network filter, to `onChangeEnd`"
         ],
         "dont": [
           "Use a slider for a precise value over a wide range; a 300px track cannot reach every value",
@@ -13904,7 +14119,7 @@
         "supersededBy": [],
         "planned": [],
         "replacesPatterns": [
-          "a native <input type=\"range\"> styled per browser engine",
+          "a native `<input type=\"range\">` styled per browser engine",
           "a drag-only custom slider with no keyboard support",
           "two separate sliders for a minimum and a maximum"
         ]
@@ -14345,7 +14560,7 @@
         }
       },
       "accessibility": {
-        "role": "textbox (one native <input>); the cells are aria-hidden",
+        "role": "textbox (one native `<input>`); the cells are `aria-hidden`",
         "wcag": [
           "1.3.1 Info and Relationships (one labeled input, the helper and error in aria-describedby)",
           "1.3.5 Identify Input Purpose (autocomplete one-time-code)",
@@ -14367,7 +14582,7 @@
         "emptyPattern": "The helper text says how many characters and where the code was sent: \"Enter the 6-digit code sent to your phone.\""
       },
       "docs": {
-        "usage": "Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with one-time-code autocomplete.",
+        "usage": "Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with `one-time-code` `autocomplete`.",
         "do": [
           "Accept a pasted or autofilled code in full, ignoring spaces and hyphens",
           "Say which error it is: too few digits, wrong code or expired code",
@@ -14383,7 +14598,7 @@
       "ai": {
         "primaryPurpose": "Capture a short one-time code in one input, drawn as a row of cells.",
         "whenToUse": "A step whose job is a fixed-length code of four to eight characters sent by text message, email or an authenticator app.",
-        "avoidWhen": "The code length is unknown or the code sits inside a longer form (TextField with one-time-code autocomplete), the value is a password or a kept PIN (PasswordField), or it is a quantity (Counter).",
+        "avoidWhen": "The code length is unknown or the code sits inside a longer form (TextField with `one-time-code` `autocomplete`), the value is a password or a kept PIN (PasswordField), or it is a quantity (Counter).",
         "commonPartners": [
           "code-input-cell",
           "field-label",
@@ -14729,7 +14944,7 @@
         "contentGuidelines": "Page titles in sentence case, matching each page heading."
       },
       "ai": {
-        "primaryPurpose": "Move between sibling pages: a navigation of links, each to its own address, with the current page marked by a bar and aria-current=\"page\".",
+        "primaryPurpose": "Move between sibling pages: a navigation of links, each to its own address, with the current page marked by a bar and `aria-current=\"page\"`.",
         "whenToUse": "Two to about six sibling pages of one area, such as Log in and Create account, or an account's Overview, Orders and Profile, where each page has its own address and the current one is marked.",
         "avoidWhen": "The content switches in place without changing the address (use Tabs), the links are the site's main navigation, the path is a hierarchy (use Breadcrumbs), or the pages are a required sequence (a stepper, not built yet).",
         "commonPartners": [
@@ -14810,6 +15025,269 @@
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED"
+        }
+      ]
+    },
+    "popover": {
+      "id": "popover",
+      "name": "Popover",
+      "aliases": [
+        "popup",
+        "overlay",
+        "anchored-overlay",
+        "floating-panel",
+        "flyout"
+      ],
+      "category": "overlay",
+      "status": "draft",
+      "summary": "A panel beside the control that opened it, for detail or a short task. The page stays usable.",
+      "description": "A non-modal panel anchored to the button that opened it. It holds content the user reaches for on purpose and that belongs next to that control: a few details, a short form, a set of links, or an explanation behind an info button. It opens on a press, sits below its trigger by default, and moves to stay on screen. The page stays usable while it is open, and a press outside, Escape or moving focus away closes it. A header can hold a title and the close button, the body holds the content, and an optional footer holds actions. Not a dialog (it does not block the page), not a tooltip (it opens on a press and can hold controls), and not a menu (a menu is a list of actions).",
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the popover is showing. Leave it unset and use defaultOpen for a popover that manages its own state."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the popover starts open, when open is not set."
+        },
+        {
+          "name": "onOpenChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with true when the trigger opens the popover, and with false on every way it closes: the close button, Escape, a press outside, or focus moving out of it."
+        },
+        {
+          "name": "placement",
+          "type": "enum: 'top' | 'bottom' | 'start' | 'end'",
+          "default": "bottom",
+          "required": false,
+          "values": [
+            "top",
+            "bottom",
+            "start",
+            "end"
+          ],
+          "description": "The side of the trigger it opens on. start and end follow the writing direction. When there is no room on that side it moves to the opposite one."
+        },
+        {
+          "name": "align",
+          "type": "enum: 'start' | 'center' | 'end'",
+          "default": "start",
+          "required": false,
+          "values": [
+            "start",
+            "center",
+            "end"
+          ],
+          "description": "Where it lines up along that side: with the start edge of the trigger, its center, or its end edge. It shifts along the side to stay on screen."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "description": "A short heading that names the popover. When set it is the accessible name; without one, give the popover a label."
+        },
+        {
+          "name": "showClose",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Whether the header shows the close button. Escape and a press outside close it either way."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The body content: text, links or a few controls. The body scrolls when the screen is too short for it."
+        },
+        {
+          "name": "footer",
+          "type": "slot",
+          "required": false,
+          "anyOf": [
+            "button",
+            "button-neutral",
+            "button-destructive"
+          ],
+          "minItems": 1,
+          "maxItems": 2,
+          "description": "Actions at the bottom of the panel, one or two buttons laid out by a Button group. Leave it off for a popover that only shows information."
+        },
+        {
+          "name": "initialFocus",
+          "type": "node",
+          "required": false,
+          "description": "The control that takes focus when the popover opens, for a popover that holds controls. Unset, the first control does. A popover with no controls leaves focus on its trigger."
+        },
+        {
+          "name": "arrow",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether a small arrow points at the trigger. Off by default; turn it on where the link to the trigger is unclear."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "placement": {
+          "values": [
+            "bottom"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "`role=\"dialog\"` with no `aria-modal`, so the page stays usable. The trigger carries `aria-haspopup=\"dialog\"`, `aria-expanded` and `aria-controls`.",
+        "wcag": [
+          "1.3.1 Info and Relationships (the title names the popover through aria-labelledby)",
+          "1.4.10 Reflow (the popover is never wider than the viewport less its margins)",
+          "1.4.13 Content on Hover or Focus (it opens on a press, stays until dismissed, and Escape closes it)",
+          "2.1.1 Keyboard (the trigger, every control inside and the close button work from the keyboard)",
+          "2.1.2 No Keyboard Trap (Tab moves through and out, and Escape closes it)",
+          "2.4.3 Focus Order (focus moves in only for interactive content, and returns to the trigger on Escape)",
+          "2.4.7 Focus Visible (every control inside shows the shared focus ring)",
+          "2.4.11 Focus Not Obscured (only the body scrolls, so a focused control stays in view)",
+          "4.1.2 Name, Role, Value (the trigger states its popup and whether it is expanded)"
+        ],
+        "keyboard": "Enter or Space on the trigger opens it. Tab and Shift+Tab move through the controls inside and out of it, and leaving closes it. Escape closes it and returns focus to the trigger.",
+        "focus": "Moves into the popover on open only when it holds controls: to the chosen control or the first one. A popover that only shows information leaves focus on its trigger. Escape returns focus to the trigger.",
+        "aria": "aria-labelledby pointing at the title, or aria-label when there is no title. On the trigger: aria-haspopup=\"dialog\", aria-expanded, and aria-controls pointing at the popover. The close button's accessible name is \"Close\"."
+      },
+      "content": {
+        "labelPattern": "A title, when there is one, names what the popover holds in a few words (\"Shipping details\"), in sentence case. The trigger says what it opens."
+      },
+      "docs": {
+        "usage": "Use a Popover for content the user asks for that belongs next to the control that opened it: a few details, a short form such as a filter or a date, a set of links, or the explanation behind an info button. It opens on a press and leaves the page usable. For a decision the user must make before going on, use a Dialog; for a hint on hover, a tooltip; for a list of actions, a Menu.",
+        "do": [
+          "Open it from a button, on a press",
+          "Keep it short: a few lines, a few controls",
+          "Give it a title, or a label when it has none",
+          "Leave focus on the trigger when it only shows information",
+          "Return focus to the trigger when Escape closes it"
+        ],
+        "dont": [
+          "Open a popover on hover. Use a tooltip for a hint.",
+          "Put a long form or a task the user must finish in it. Use a Dialog.",
+          "Use it as a list of actions. Use a Menu.",
+          "Open a popover from a popover"
+        ],
+        "contentGuidelines": "Titles are short and in sentence case. Body text says what the user needs and no more. Buttons are named by what they do."
+      },
+      "ai": {
+        "primaryPurpose": "Show extra detail or a short task beside the control that opened it, without blocking the page.",
+        "whenToUse": "The user presses a button to see a few details, an explanation, a set of links or a short form that belongs next to that button, and the page should stay usable while it is open.",
+        "avoidWhen": "The user must decide or finish before going on (a dialog), the content is a hint shown on hover (a tooltip), the content is a list of actions (a menu), or the content can sit in the page (an accordion).",
+        "commonPartners": [
+          "button",
+          "button-neutral",
+          "icon-button",
+          "icon-button-neutral",
+          "flush-icon-button-neutral",
+          "button-group",
+          "link",
+          "text-field",
+          "select",
+          "checkbox-group"
+        ],
+        "triggerKeywords": [
+          "popover",
+          "popup",
+          "flyout",
+          "floating panel",
+          "anchored panel",
+          "toggletip",
+          "info popover",
+          "filter popover"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "Fades in and scales up from a little under full size, from the trigger's side (motion.duration.fast, motion.easing-role.enter). The origin follows the side it opens on.",
+        "exit": "Fades out (motion.duration.instant, motion.easing-role.exit), quicker than it opened.",
+        "reduceMotion": "Under prefers-reduced-motion it fades only, with no scale, on motion.duration-reduced.fast to open and to close. A fade is not movement, and it keeps the cue that a layer opened or closed."
+      },
+      "composition": {
+        "composesWith": [
+          "flush-icon-button-neutral",
+          "button-group"
+        ],
+        "alternativeTo": [
+          "dialog"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "tooltip",
+          "menu"
+        ],
+        "replacesPatterns": [
+          "an absolutely positioned div with a hand-written click-outside handler",
+          "a dialog used for a few lines of detail"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
         }
       ]
     }
