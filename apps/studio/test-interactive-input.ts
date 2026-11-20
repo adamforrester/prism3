@@ -734,5 +734,31 @@ console.log('\n15. #4210: "Add button set" on a brand with the legacy accentPale
     `#4210 the Accent set keeps its Dark anchor and Light border override, and Coral is a set of its own (${afill}, ${aborder}, ${cfill})`);
 }
 
+console.log('\n16. #4294: the Light anchor of a legacy `accentPalette` brand\'s accent column is written, by folding it first');
+{
+  // THE FIXTURE is the issue's: a brand on the legacy single-column field (`accentPalette`, no `interactivePalettes`),
+  // whose `accent` column the engine builds through its back-compat. The expected fold is a literal typed here, the
+  // shape the engine's back-compat is byte-identical to (`test.ts`, `interactivePalettes: back-compat accentPalette`).
+  // "It resolves to the pick" is the engine's own `resolveAllModes`.
+  const legacy = (): void => { reset(); store.brandState.accentPalette = 'accent'; store.rebuild(); };
+  legacy();
+  const LEGACY = JSON.stringify(store.brandState);
+  ok(takes() && resolvedStep('interactive.accent.fill.rest', 'light') !== undefined && store.brandState.interactivePalettes === undefined,
+    `premise: the legacy brand builds an accent column with no interactivePalettes (${resolvedStep('interactive.accent.fill.rest', 'light')})`);
+  I.setAnchor('light', 'accent', 550);
+  ok(same(store.brandState.interactivePalettes, [{ name: 'accent', palette: 'accent', anchorStep: 550 }]) && store.brandState.accentPalette === undefined,
+    `#4294 setAnchor(light, accent) on a legacy brand folds accentPalette into interactivePalettes and writes the anchor (${JSON.stringify(store.brandState.interactivePalettes)}, accentPalette ${JSON.stringify(store.brandState.accentPalette)})`);
+  ok(takes() && resolvedStep('interactive.accent.fill.rest', 'light') === '550',
+    `#4294 the engine resolves the legacy accent's Light fill to the anchor 550 (${resolvedStep('interactive.accent.fill.rest', 'light')})`);
+  ok(I.anchorOf('light', 'accent') === 550, `#4294 anchorOf(light, accent) reads the pinned anchor back (${I.anchorOf('light', 'accent')})`);
+  legacy();
+  I.setAnchor('light', 'accent', undefined);
+  ok(JSON.stringify(store.brandState) === LEGACY, '#4294 Auto on a legacy brand with no anchor changes nothing: no fold');
+  legacy();
+  I.setAnchor('light', 'primary', 700);
+  ok(store.brandState.accentPalette === 'accent' && store.brandState.interactivePalettes === undefined,
+    '#4294 an anchor on another column leaves the legacy field as it is');
+}
+
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
 if (failed) process.exit(1);
