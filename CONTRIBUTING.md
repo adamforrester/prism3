@@ -1788,9 +1788,9 @@ npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds
                                           # apps/plugin/dist (main.js + ui.html), where the component
                                           # defs' description/note/aria prose actually ships
 npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here.
-                                          # NOT the same scope any more: it still has the
-                                          # apps/plugin/dist hole #937 closed above (3 violations
-                                          # measured in main.js), filed as #948 not folded in
+                                          # Same bundle scope since #948: it reads
+                                          # apps/plugin/dist (main.js + ui.html) too, the hole
+                                          # #937 closed above for the US-English gate
 sh tools/claude-md-freshness/mutations.sh  # the mutation battery for the CLAUDE.md-freshness
                                           # SessionStart hook (#1110), wired into CI as #1123 — the
                                           # one tools/ battery that is a gate. NAMED FOR THE
