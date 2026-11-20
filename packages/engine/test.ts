@@ -25,7 +25,7 @@ import { isInverseRole } from './inverse-roles';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd, xPrism3Warnings } from './standard-design-md';
 import { classifyColors } from './classify-colors';
-import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
+import { SLIDER_STOPS, TRAITS, TRAIT_OPPOSITES, resolveVocabulary } from './vocabulary';
 import { leverManifest, leverGroups, buildLeverManifest, identityFields } from './levers';
 import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
@@ -1241,6 +1241,27 @@ ok(autoPlaceStep(0.9) < autoPlaceStep(0.3), 'autoPlaceStep: lighter < darker');
   // A literal, not a fragment: the note is approved copy (#1883), so a change to it shows up here as a diff.
   ok(mkTheme(oog).notes.includes("anchor 'x' (oklch 0.55 0.32 145) is outside the sRGB gamut — sRGB shows at most 0.173 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.173 ships exactly."), 'M-03: brandTheme surfaces an out-of-gamut anchor in the decisions log (not silent)');
   ok(!mkTheme({ l: 0.5, c: 0.04, h: 200 }).notes.some((n) => n.includes('outside the sRGB gamut')), 'M-03: an all-in-gamut brand produces no gamut warning');
+}
+{
+  // #4211: the ratio floor must not lose a step to float error. `4.6 * 100` is 459.99999999999994, so a bare
+  // `Math.floor(r * 100) / 100` printed an exact 4.6 as 4.59 (141 of the two-decimal values 1.00–21.00 did). The
+  // expected strings are built from the integer step, not from `floorRatio`, so the arm cannot agree with itself.
+  for (const [r, want] of [[4.6, '4.60:1'], [4.35, '4.35:1'], [4.5, '4.50:1'], [7, '7.00:1']] as const)
+    ok(formatRatio(r) === want, `#4211 formatRatio(${r}) prints as itself, ${want} (got ${formatRatio(r)})`);
+  const lost: string[] = [];
+  for (let k = 100; k <= 2100; k++) {
+    const r = k / 100, want = `${Math.floor(k / 100)}.${String(k % 100).padStart(2, '0')}`;
+    if (formatRatio(r, { bare: true }) !== want || floorRatio(floorRatio(r)) !== floorRatio(r)) lost.push(`${want}→${formatRatio(r, { bare: true })}`);
+  }
+  ok(lost.length === 0, `#4211 every two-decimal ratio from 1.00 to 21.00 floors to itself, and re-flooring is a no-op (${lost.length} lose a step: ${lost.slice(0, 6).join(', ')})`);
+  // The tolerance absorbs float error only: a pair that genuinely misses a step still floors down (CR-01's concern).
+  for (const [r, want] of [[4.5 - 1e-8, '4.49:1'], [7 - 1e-8, '6.99:1'], [3 - 1e-6, '2.99:1']] as const)
+    ok(formatRatio(r) === want, `#4211 a ratio just under a step still floors below it: ${r} → ${want} (got ${formatRatio(r)})`);
+  // #4214 item 4: the sidecar schema says the stored ratio is floored (#3759), not just "to two decimals". A literal: the
+  // description is the published contract's prose.
+  const ratioDesc = JSON.parse(readFileSync(resolve(HERE, 'schema/ai-metadata.schema.json'), 'utf8')).$defs?.contrast?.properties?.ratio?.description;
+  ok(ratioDesc === 'The measured ratio in light mode, floored to two decimals, so it never reads at or above a floor it misses.',
+    `#4214 the sidecar schema says contrast_with[].ratio is floored, as floorRatio stores it (got ${JSON.stringify(ratioDesc)})`);
 }
 
 // ------------------------------------------------ extreme white-label brands
@@ -22454,9 +22475,23 @@ arm: {
     // THE OWNER'S DEPARTURES FROM A BRIEF'S CATEGORY, typed from the decision and admitted by name, never by pattern.
     // Each entry records the brief and the category it departs from, so the entry fails if the brief moves under it.
     // Veil has no brief, so its choice is the header's stated category and needs no entry here.
-    const OWNER_CATEGORY: Record<string, { brief: string; from: string; category: string }> = {
-      divider: { brief: 'divider.md', from: 'foundations', category: 'layout' },
+    // THE OWNER'S DEPARTURES FROM A BRIEF'S CATEGORY (#2092 A, 2026-11-18), typed here from the decision and never read
+    // from a def. Badge and Tag leave the KB's `foundations` to match the Figma file, which places both under Components
+    // (`apps/plugin/src/file-taxonomy.ts`). The two values are DRAFT, held for the owner in the PR. Mutations: Badge or
+    // Tag back on `foundations` → `#2092 badge:` / `#2092 tag:`; an entry dropped → `#1700 <id>: category is …`.
+    const OWNER_CATEGORY: Record<string, { issue: string; brief: string; from: string; category: string }> = {
+      divider: { issue: '#4045', brief: 'divider.md', from: 'foundations', category: 'layout' },
+      badge: { issue: '#2092', brief: 'badge.md', from: 'foundations', category: 'feedback' },
+      tag: { issue: '#2092', brief: 'tag.md', from: 'foundations', category: 'form' },
     };
+    for (const id of Object.keys(OWNER_CATEGORY).filter((k) => OWNER_CATEGORY[k].issue === '#2092'))
+      ok(componentDefs.find((d) => d.id === id)?.category === OWNER_CATEGORY[id].category,
+        `#2092 ${id} is filed under '${OWNER_CATEGORY[id].category}', out of foundations, as the Figma file places it under Components (got '${componentDefs.find((d) => d.id === id)?.category}')`);
+    // D16's retired words never reach a summary, which ships to the plugin bundle (#1623). Spinner's "icon ladder" was
+    // the one hit in the sweep; the owner approved "in the icon sizes" (#2092 A).
+    const RETIRED = /\b(ladder|ramp|band|rung|face|muted)s?\b/i;
+    const retiredHits = componentDefs.filter((d) => RETIRED.test(d.summary)).map((d) => `${d.id}: "${d.summary}"`);
+    ok(retiredHits.length === 0, `#2092 no component summary uses a retired word (ladder, ramp, band, rung, face, muted)${retiredHits.length ? ` — ${retiredHits.join('; ')}` : ''}`);
     const defDir = resolve(HERE, './components');
     const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
     const fileOf = new Map<string, string>();
@@ -22480,7 +22515,7 @@ arm: {
           if (owned) {
             // An owner's departure from the brief, admitted by name, and only while the brief still says what it departs from.
             ok(owned.brief === cites[0] && owned.from === want && d.category === owned.category,
-              `#4045 ${d.id}: the owner moved it from its brief's '${owned.from}' to '${owned.category}' (\`components/${owned.brief}\`) — got category '${d.category}', brief \`components/${cites[0]}\` says '${want}'`);
+              `${owned.issue} ${d.id}: the owner moved it from its brief's '${owned.from}' to '${owned.category}' (\`components/${owned.brief}\`) — got category '${d.category}', brief \`components/${cites[0]}\` says '${want}'`);
           } else {
             ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
           }
@@ -31880,6 +31915,23 @@ arm: {
     ok(lever.stops === stops, `vocabulary: the '${key}' manifest entry carries the SAME stops object the engine resolves against (joined, not restated)`);
   }
 
+  // ---- #3976: the direct opposites a host turns off on a pick ----
+  // The pairs are the owner's (Q-PW1 A), typed here, not read from TRAIT_OPPOSITES: a pair dropped or added there fails
+  // by name. Each pair must share a lever the two set to different values, or "only one of them can take effect" is
+  // not a fact about the engine.
+  {
+    const OWNER_PAIRS = ['bold|restrained', 'calm|energetic', 'dense|generous', 'sharp|soft'];
+    const held = TRAIT_OPPOSITES.map(([a, b]) => [a, b].sort().join('|')).sort();
+    ok(JSON.stringify(held) === JSON.stringify(OWNER_PAIRS), `#3976 vocabulary: the opposite pairs are the owner's four (${OWNER_PAIRS.join(', ')}) — holds ${held.join(', ')}`);
+    const words = TRAIT_OPPOSITES.flat();
+    ok(new Set(words).size === words.length, `#3976 vocabulary: no trait is in two opposite pairs — ${words.join(', ')}`);
+    for (const [a, b] of TRAIT_OPPOSITES) {
+      ok(!!TRAITS[a] && !!TRAITS[b], `#3976 vocabulary: opposite pair ${a}/${b} names two traits the engine knows`);
+      const clash = Object.keys(TRAITS[a]?.levers ?? {}).filter((k) => k in (TRAITS[b]?.levers ?? {}) && TRAITS[a].levers[k] !== TRAITS[b].levers[k]);
+      ok(clash.length > 0, `#3976 vocabulary: opposite pair ${a}/${b} sets at least one shared lever differently — clashes on ${clash.join(', ') || 'nothing'}`);
+    }
+  }
+
   // ---- traits target real levers, with values those levers accept ----
   const leverKeys = new Set(leverManifest.map((l) => l.key));
   for (const [name, trait] of Object.entries(TRAITS)) {
@@ -32851,6 +32903,45 @@ arm: {
   ok(set.overlays.length === modes.length, `overlay: the set carries one overlay per mode (${set.overlays.length})`);
 }
 
+// ---- #4155: the WEB base carries each typeface's fallback stack; the conforming base does not ----------------
+// Owner decision B (2026-11-19). The canonical tree holds one family per typeface (#105.3, for the Figma and
+// TokenPress round trip) and the curated stack under `$extensions.prism3.fallbackStack`, which every projection
+// strips. The platform-neutral base must STAY single-family: stock Style Dictionary's android group would write a
+// stack as one unusable `<string>`. The web base (`<brand>.web.base.tokens.json`, what `@prism3/tokens` builds from)
+// carries the stack as DTCG 2025.10 §8.3's array, primary first, ending in a CSS generic family, and differs from
+// the base in nothing else. Read from the COMMITTED files, so this holds what a consumer gets (`regen --check` ties
+// them to the engine). The generic list is CSS Fonts 4 §4.1.1, written here, not read off the engine.
+{
+  const GENERIC = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-serif',
+    'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji', 'fangsong']);
+  const OUT = resolve(HERE, 'out');
+  const rootOf = (x: any) => x?.[Object.keys(x ?? {}).find((k) => !k.startsWith('$'))!];
+  const brands = readdirSync(OUT).filter((f) => /^[^.]+\.base\.tokens\.json$/.test(f)).map((f) => f.split('.')[0]).sort();
+  ok(brands.length >= 5, `#4155: every brand with a conforming base is checked (${brands.join(', ')})`);
+  for (const b of brands) {
+    const read = (f: string) => JSON.parse(readFileSync(resolve(OUT, f), 'utf8'));
+    const canonFaces = Object.entries((rootOf(read(`${b}.tokens.json`))?.core?.font?.typeface ?? {}) as Record<string, any>);
+    const base = read(`${b}.base.tokens.json`);
+    const webFile = `${b}.web.base.tokens.json`;
+    const web = existsSync(resolve(OUT, webFile)) ? read(webFile) : undefined;
+    ok(web !== undefined, `#4155 ${b}: the web base ${webFile} is emitted`);
+    const baseFaces = (rootOf(base)?.core?.font?.typeface ?? {}) as Record<string, any>;
+    const webFaces = (rootOf(web)?.core?.font?.typeface ?? {}) as Record<string, any>;
+    ok(canonFaces.length > 0 && canonFaces.every(([k, f]) => typeof baseFaces[k]?.$value === 'string' && baseFaces[k].$value === f.$value),
+      `#4155 ${b}: the conforming base keeps each typeface a single family, the canonical one (${canonFaces.length} faces)`);
+    for (const [k, f] of canonFaces) {
+      const v = webFaces[k]?.$value;
+      ok(Array.isArray(v) && v[0] === f.$value && v.length > 1 && GENERIC.has(v[v.length - 1]),
+        `#4155 ${b}: the web base's typeface \`${k}\` is a fallback stack, primary first, ending in a CSS generic family (got ${JSON.stringify(v)})`);
+    }
+    // Nothing else moves: the web base with its typefaces put back to the base's values IS the base.
+    const restored = web === undefined ? undefined : structuredClone(web);
+    if (restored) for (const k of Object.keys(webFaces)) rootOf(restored).core.font.typeface[k].$value = baseFaces[k]?.$value;
+    ok(JSON.stringify(restored) === JSON.stringify(base),
+      `#4155 ${b}: the web base differs from the conforming base only in its typefaces' values`);
+  }
+}
+
 // ---- Arc 2's primitives: `icon` and `focus-ring` as real defs (#741) ---------------------------
 // The two defs Button and IconButton already NOMINATE by name. Before this, both nested references
 // resolved against whatever the Figma file happened to contain (`compByName.get(n.nestTarget)`), which
@@ -33659,8 +33750,16 @@ arm: {
       // size. A coordinate the set lacks at that size is read at the first size where it exists.
       const excludedAt = (c: Record<string, string>, z: string | undefined) => isExcludedCoordinate(def, { ...c, ...(z === undefined ? {} : { size: z }) });
       const sizeFor = (c: Record<string, string>) => (excludedAt(c, size) ? sizes.find((z) => !excludedAt(c, z)) ?? size : size);
-      const has = (coord: Record<string, string>): boolean =>
-        planPartNames(figmaAnatomyPlan(def, sizeFor(coord), coord as never).root).includes(name);
+      // #3058: a `hiddenWhenAbsent` box stays in the tree where its gate fails, built hidden, so for it "in the tree"
+      // reads as SHOWN: present and not `visible: false`. The excluded values still read absent from view, and the
+      // node's being there at all is the #3058 accordion arm's to pin.
+      type VN = { name: string; visible?: boolean; children?: VN[] };
+      const nodeOf = (n: VN): VN | undefined => (n.name === name ? n : (n.children ?? []).map(nodeOf).find(Boolean));
+      const soft = part.kind === 'box' && part.hiddenWhenAbsent === true;
+      const has = (coord: Record<string, string>): boolean => {
+        const root = figmaAnatomyPlan(def, sizeFor(coord), coord as never).root;
+        return soft ? nodeOf(root as unknown as VN)?.visible !== false && planPartNames(root).includes(name) : planPartNames(root).includes(name);
+      };
       // A SPARSE GRID (`excludeCoordinates`, 2026-09-28) may not have the pinned coordinate at every value of
       // the gated axis — badge has no `type=count, emphasis=subtle` — and the projector refuses a coordinate
       // the set does not have. So each value is read at the FIRST coordinate the set does have, walking the
@@ -39668,6 +39767,33 @@ arm: {
   ok(sec !== '' && !DATE_WORDS.test(sec + '\n' + check),
     `#3472 prism3-build-ui: the can't-build section and its self-check line name no date, calendar or birth-date control, so they can't teach to the adherence R5 detector (found: ${(sec + '\n' + check).match(DATE_WORDS)?.[0] ?? 'none'})`);
 }
+// #4171: prism3-theme's compile loop sends a failed contrast contract to the input that can cause it. The ENGINE is the
+// oracle: a primary at either end of lightness compiles clean (the action fill takes another step), and a tinted page
+// fails. The skill's Exit 1 advice must name the surfaces, and must not send the author to the primary's lightness.
+{
+  const base = { neutral: { hue: 100, chroma: 0.008 } };
+  const contracts = (input: object) => { const st = buildTree(brandTheme(input as BrandInput)).stats; return { pass: st.modePass, of: st.modeChecks }; };
+  const pale = contracts({ id: 'pale4171', primary: { l: 0.92, c: 0.12, h: 100 }, ...base });
+  const deep = contracts({ id: 'deep4171', primary: { l: 0.15, c: 0.05, h: 285 }, ...base });
+  const tint = contracts({ id: 'tint4171', primary: { l: 0.5, c: 0.18, h: 285 }, ...base, surfaces: { light: { base: 300 } } });
+  ok(pale.pass === pale.of && deep.pass === deep.of,
+    `#4171 a pale (l 0.92) and a deep (l 0.15) primary both hold every mode contract (${pale.pass}/${pale.of}, ${deep.pass}/${deep.of})`);
+  ok(tint.pass < tint.of, `#4171 a page tinted to step 300 fails a mode contract (${tint.pass}/${tint.of})`);
+  // Dark runs the other way (#4273 review): a dark page tinted UP the ramp fails, and the fix is toward black (a higher
+  // step), not toward white. Measured: base 600 fails, 500 fails more, 800 holds every contract.
+  const dark = (step: number) => contracts({ id: `dark${step}4171`, primary: { l: 0.5, c: 0.18, h: 285 }, ...base, surfaces: { dark: { base: step } } });
+  const d500 = dark(500), d600 = dark(600), d800 = dark(800);
+  ok(d600.pass < d600.of && d500.pass < d600.pass && d800.pass === d800.of,
+    `#4171 a dark page tinted toward white fails more the further it goes, and toward black holds (500: ${d500.pass}/${d500.of}, 600: ${d600.pass}/${d600.of}, 800: ${d800.pass}/${d800.of})`);
+  const theme = readFileSync(resolve(HERE, '../../skills/prism3-theme/SKILL.md'), 'utf8');
+  const exit1 = theme.slice(theme.indexOf('**Exit 1**'), theme.indexOf('\n\n', theme.indexOf('**Exit 1**')));
+  ok(exit1.length > 0 && /`surfaces`/.test(exit1) && /`floorStep`/.test(exit1),
+    '#4171 prism3-theme: the Exit 1 advice names `surfaces` and `floorStep` as what to move for a failed contrast contract');
+  ok(/\bblack\b/.test(exit1) && /\bdark\b/.test(exit1),
+    '#4171 prism3-theme: the Exit 1 advice says a tinted dark page moves toward black, not only toward white');
+  ok(!/nudging the primary's lightness/.test(exit1),
+    "#4171 prism3-theme: the Exit 1 advice no longer says a failed contract means nudging the primary's lightness");
+}
 
 // ---- Progress (#2670): the approved calls as literals, and its contrast on every committed brand × mode ----
 // The owner approved the proposal on #2670 with every numbered call at A (2026-10-16). Each arm below holds one call
@@ -40703,8 +40829,21 @@ arm: {
     const g = c.iconPosition === 'leading' ? start : end, other = c.iconPosition === 'leading' ? end : start;
     return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.indicator === c.indicator && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && !g.nestExpose;
   }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, following the member's indicator (#2878), expansion and size, and not exposed`);
-  ok(plans.every((p) => { const c = coord(p); const panel = find(p.root as PN, 'content'); return c.expansion === 'expanded' ? panel?.type === 'CONTENT_SLOT' : !panel; }),
-    `#2417 accordion panel: a native slot on every expanded member and on no collapsed one (Q182)`);
+  // #3058 (owner decision 2026-11-18 A, superseding Q182's "no panel while collapsed"): a collapsed member keeps the
+  // panel as the SAME native slot, built hidden, so what a designer put in it survives a switch to collapsed and back
+  // (Figma carries an instance's slot content across a variant switch by the slot's name). Shown on every expanded
+  // member, hidden on every collapsed one, and never absent: a collapsed member with no `content` node fails here.
+  const panels = plans.map((p) => ({ c: coord(p), panel: find(p.root as PN, 'content') }));
+  ok(panels.every(({ c, panel }) => panel?.type === 'CONTENT_SLOT' && (c.expansion === 'expanded' ? panel.visible !== false : panel.visible === false)),
+    `#3058 accordion panel: a native slot on every member, shown while expanded and built hidden while collapsed, never left out (got ${panels.filter(({ c, panel }) => !(panel?.type === 'CONTENT_SLOT' && (c.expansion === 'expanded' ? panel.visible !== false : panel.visible === false))).slice(0, 3).map(({ c, panel }) => `${c.expansion}/${c.size}: ${panel ? `${panel.type} visible=${String(panel.visible)}` : 'ABSENT'}`).join('; ') || 'all as expected'})`);
+  // #3058: the flag softens a VARIANT gate, so on a part with none it is refused by name, and the shipped panel is clean.
+  {
+    const parts = acc.anatomy!.parts;
+    const noGate = { ...acc, anatomy: { ...acc.anatomy!, parts: { ...parts, content: { ...parts.content, presentWhen: undefined } as PartDef } } } as ComponentDef;
+    const errs = validateComponentDef(noGate).errors;
+    ok(errs.some((e) => e.includes("part 'content'") && e.includes("'hiddenWhenAbsent' without a variant gate")) && !validateComponentDef(acc).errors.some((e) => e.includes('hiddenWhenAbsent')),
+      `#3058 hiddenWhenAbsent with no variant gate to soften is refused by name, and the shipped accordion panel is not (got ${errs.filter((e) => e.includes('hiddenWhenAbsent')).join(' | ') || 'no hiddenWhenAbsent error'})`);
+  }
   const open = plans.find((p) => coord(p).expansion === 'expanded' && coord(p).size === 'medium')!;
   const panel = find(open.root as PN, 'content')!, ph = find(open.root as PN, 'placeholder')!;
   ok(panel.bound?.paddingTop === 'space/0' && panel.bound?.paddingBottom === 'space/200' && ph.paints?.fills === 'color/text/primary' && !!ph.characters,
@@ -43838,6 +43977,7 @@ const MIN_ASSERTIONS = 1800;
     when: { kinds: ['overlay', 'absolute'], value: 'pressed' },
     children: { kinds: ['box'], value: ['probeChild'] },
     type: { kinds: ['text'], value: 'type.label.{size}.default' },
+    hiddenWhenAbsent: { kinds: ['box'], value: true },
   };
   const KINDS = ['box', 'text', 'slot', 'overlay', 'absolute', 'nest', 'vector'];
   const firstOf = (k: string): [ComponentDef, string] | undefined => {

@@ -1176,7 +1176,7 @@ section('strip — minimizing resizes the window and never touches the link or i
   ok(offTrail() === 0, `strip/no-bounce: from Minimize to Restore the link never published off, to the panel or the record (${offTrail()} off)`);
   root.setSharedPluginData = origLinkSet;
 
-  const fid = root.getPluginData('prism3:file-id');
+  const fid = root.getSharedPluginData('prism3', 'prism3:file-id');   // #4154: the id is a shared record
   const spot = kept.filter(([key]) => key.startsWith('prism3:strip-at:'));
   ok(fid.length > 0 && JSON.stringify(spot) === JSON.stringify([[`prism3:strip-at:${fid}`, { x: 1200, y: 800 }]]),
     `strip/kept-spot: Restore keeps the strip's spot, window (1200,800), for this file, keyed by its id (${JSON.stringify({ fid, spot })})`);
@@ -1955,7 +1955,9 @@ section('strip-relaunch — a new launch puts the first Minimize on the spot thi
       getAsync: async (key: string) => { asked.push(key); return key === 'prism3:strip-at:f-relaunch' ? { x: 1200, y: 800 } : undefined; },
       setAsync: async () => undefined,
     },
-    root: { ...root, getPluginData: (key: string) => relaunchStore.get(key) ?? '', setPluginData: (key: string, v: string) => { relaunchStore.set(key, v); } },
+    root: { ...root, getPluginData: (key: string) => relaunchStore.get(key) ?? '', setPluginData: (key: string, v: string) => { relaunchStore.set(key, v); },
+      // #4154: the file id is a shared record, so this file's id is read there.
+      getSharedPluginData: (ns: string, key: string) => (ns === 'prism3' && key === 'prism3:file-id' ? relaunchStore.get(key) ?? '' : root.getSharedPluginData(ns, key)) },
     viewport: { bounds: { x: 100, y: 200, width: 800, height: 500 }, zoom: 2 },
   };
   g.figma = launch2;
