@@ -997,8 +997,8 @@ section('scrim — Dialog: the backdrop is furniture behind each center, bottom 
     const want = p === 'center' ? { x: b.x - 12, y: b.y - 12, w: b.w + 24, h: b.h + 24 } : p === 'end' ? { x: b.x - 12, y: b.y, w: b.w + 12, h: b.h } : { x: b.x, y: b.y - 12, w: b.w, h: b.h + 12 };
     return scrims.some((n) => Number(n.x) === want.x && Number(n.y) === want.y && Number(n.width) === want.w && Number(n.height) === want.h);
   });
-  ok(o.scrims === 20 && scrims.length === 20 && spanned,
-    `scrim/drawn: 20 scrims, one fitted to each of the 12 center, 4 bottom and 4 end members, none for the 4 full ones (${o.scrims}, ${scrims.length})`);
+  ok(o.scrims === 12 && scrims.length === 12 && spanned,
+    `scrim/drawn: 12 scrims, one fitted to each of the 4 center (one per footer since #3392 A), 4 bottom and 4 end members, none for the 4 full ones (${o.scrims}, ${scrims.length})`);
   ok(scrims.every((n) => page.children.indexOf(n) < page.children.indexOf(set)) && !members.some((m) => /scrim/.test(String(m.name))),
     'scrim/behind and outside: every scrim is under the set on the page, and no member of the set is a scrim');
   const fullBoxes = members.filter((m) => valuesOf(String(m.name)).placement === 'full').map((m) => boxOf(set, m));
@@ -1088,7 +1088,7 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     ok(due.labels + due.backdrops === 0 && due.clear === 0, `rollout/${id} due: nothing due right after the draw (${JSON.stringify(due)})`);
     const surfaces = new Set(members.map((m) => valuesOf(String(m.name)).surface).filter(Boolean));
     // THE SCRIMS (#2609, #2877, #2880): Dialog alone, one behind each of its 12 center, 4 bottom and 4 end members; every other def none.
-    ok(o.scrims === (id === 'dialog' ? 20 : 0), `rollout/${id} scrims: ${id === 'dialog' ? '20, behind the center, bottom and end members' : 'none'} (${o.scrims})`);
+    ok(o.scrims === (id === 'dialog' ? 12 : 0), `rollout/${id} scrims: ${id === 'dialog' ? '12, behind the center, bottom and end members' : 'none'} (${o.scrims})`);
     ok(o.columns + o.rows > 0 && o.skipped.length === 0 && furn.length === o.columns + o.rows + o.backdrops + o.scrims,
       `rollout/${id} drawn: ${o.columns} column and ${o.rows} row labels, nothing skipped (${JSON.stringify(o.skipped)})`);
     ok(BACKDROP.has(id) ? o.backdrops === 1 && surfaces.has('inverse') : o.backdrops === 0,
