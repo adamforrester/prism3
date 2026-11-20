@@ -16,7 +16,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### `border-width.hairline`
 
-Type: dimension. Bound by 26 component(s).
+Type: dimension. Bound by 27 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -45,6 +45,7 @@ Type: dimension. Bound by 26 component(s).
 | password-field | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | state: disabled, filled, hover, read-only, rest (60 of 84) |
+| popover | `border-width` | panel | every member (1 of 1) |
 | provider-logo | `tile.border-width` | glyph | name: payment/affirm, payment/amazon-pay, payment/apple-pay, payment/diners-club, payment/discover, payment/google-pay, payment/klarna, payment/maestro, payment/mastercard, payment/paypal, payment/visa (11 of 86) |
 | search-field | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
@@ -218,7 +219,7 @@ Type: color. Bound by 4 component(s).
 
 ### `color.border.secondary`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -229,6 +230,7 @@ Type: color. Bound by 6 component(s).
 | flush-icon-button-destructive | `round.border` | container | shape: round · state: focus-visible, hover, pressed, rest · surface: default (12 of 60) |
 | flush-icon-button-neutral | `round.border` | container | shape: round · state: focus-visible, hover, pressed, rest · surface: default (12 of 60) |
 | pagination-item | `selected.border.page.border.focus-visible`, `selected.border.page.border.rest` | container | labeled: false · selection: selected · state: focus-visible, rest · style: border · type: page (6 of 87) |
+| popover | `border` | panel | every member (1 of 1) |
 | tab-item | `unselected.fill.hover`, `unselected.fill.pressed` | indicator | selection: unselected · state: hover, pressed (6 of 30) |
 
 ### `color.border.success`
@@ -508,11 +510,12 @@ Type: color. Bound by 2 component(s).
 
 ### `color.foreground.raised`
 
-Type: color. Bound by 1 component(s).
+Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| dialog | `fill` | panel | every member (24 of 24) |
+| dialog | `fill` | panel | every member (16 of 16) |
+| popover | `fill` | panel | every member (1 of 1) |
 
 ### `color.foreground.secondary`
 
@@ -2012,11 +2015,11 @@ Type: color. Bound by 1 component(s).
 
 ### `color.text.primary`
 
-Type: color. Bound by 21 component(s).
+Type: color. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `body` | placeholder | expansion: expanded (24 of 48) |
+| accordion | `body` | placeholder | every member (48 of 48) |
 | badge | `danger.status.inline.subtle.label`, `info.status.inline.subtle.label`, `neutral.status.contained.subtle.label`, `neutral.status.contained.surface.label`, `neutral.status.inline.subtle.label`, `success.status.inline.subtle.label`, `warning.status.inline.subtle.label` | label | emphasis: subtle, surface · type: status (14 of 50) |
 | banner | `body`, `label` | bodyText | every member (10 of 10) |
 |  |  | title | every member (10 of 10) |
@@ -2028,8 +2031,8 @@ Type: color. Bound by 21 component(s).
 | code-input-cell | `caret`, `label` | caret | state: focus-visible (8 of 48) |
 |  |  | digit | state: filled, focus-visible-filled (16 of 48) |
 | counter | `ghost.label`, `outline.label` | value | state: focus-visible, rest (12 of 18) |
-| dialog | `body`, `label` | placeholder | every member (24 of 24) |
-|  |  | title | every member (24 of 24) |
+| dialog | `body`, `label` | placeholder | every member (16 of 16) |
+|  |  | title | every member (16 of 16) |
 | field-label | `primary.indicator`, `primary.label` | indicator | emphasis: primary · state: rest (6 of 24) |
 |  |  | label | emphasis: primary · state: rest (6 of 24) |
 | list-item | `label` | label | every member (12 of 12) |
@@ -2038,6 +2041,8 @@ Type: color. Bound by 21 component(s).
 | password-field | `caret`, `caret-end`, `label` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | value | state: filled, focus-visible-filled, read-only (36 of 84) |
+| popover | `body`, `label` | placeholder | every member (1 of 1) |
+|  |  | title | every member (1 of 1) |
 | progress | `label` | label | shape: linear · size: medium (4 of 12) |
 | radio-row | `label` | label | every member (6 of 6) |
 | search-field | `caret`, `caret-end`, `label` | caret | state: focus-visible (12 of 84) |
@@ -2061,7 +2066,7 @@ Type: color. Bound by 14 component(s).
 |---|---|---|---|
 | card-number-field | `label.empty` (not drawn), `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
 | checkbox-row | `indicator` | description | every member (6 of 6) |
-| dialog | `indicator` | description | every member (24 of 24) |
+| dialog | `indicator` | description | every member (16 of 16) |
 | divider | `label` | label | inset: none · labeled: true (4 of 14) |
 | field-label | `secondary.indicator`, `secondary.label` | indicator | emphasis: secondary · state: rest (6 of 24) |
 |  |  | label | emphasis: secondary · state: rest (6 of 24) |
@@ -2769,7 +2774,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| dialog | `placement.bottom.radius-top`, `placement.center.radius-bottom`, `placement.center.radius-top` | panel | placement: bottom, center (16 of 24) |
+| dialog | `placement.bottom.radius-top`, `placement.center.radius-bottom`, `placement.center.radius-top` | panel | placement: bottom, center (8 of 16) |
 
 ### `radius.capsule`
 
@@ -2782,11 +2787,12 @@ Type: dimension. Bound by 1 component(s).
 
 ### `radius.lg`
 
-Type: dimension. Bound by 1 component(s).
+Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | code-input-cell | `size.x-large.radius` | container | size: x-large (12 of 48) |
+| popover | `radius` | panel | every member (1 of 1) |
 
 ### `radius.md`
 
@@ -2814,7 +2820,7 @@ Type: dimension. Bound by 6 component(s).
 |---|---|---|---|
 | badge | `inline.count.radius` (not drawn), `inline.dot.radius` (not drawn), `inline.status.radius` | surface | emphasis: subtle · style: inline · type: status (10 of 50) |
 | banner | `edge.full-bleed.radius` | container | edge: full-bleed (5 of 10) |
-| dialog | `placement.bottom.radius-bottom`, `placement.end.radius-bottom`, `placement.end.radius-top`, `placement.full.radius-bottom`, `placement.full.radius-top` | panel | placement: bottom, end, full · size: medium (12 of 24) |
+| dialog | `placement.bottom.radius-bottom`, `placement.end.radius-bottom`, `placement.end.radius-top`, `placement.full.radius-bottom`, `placement.full.radius-top` | panel | placement: bottom, end, full (12 of 16) |
 | flush-icon-button | `radius.flush` | container | shape: flush (30 of 60) |
 | flush-icon-button-destructive | `radius.flush` | container | shape: flush (30 of 60) |
 | flush-icon-button-neutral | `radius.flush` | container | shape: flush (30 of 60) |
@@ -2873,10 +2879,11 @@ Type: dimension. Bound by 1 component(s).
 
 ### `shadow.lg`
 
-Type: shadow. Bound by 1 component(s).
+Type: shadow. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| popover | `shadow` | panel | every member (1 of 1) |
 | toast | `shadow` | container | every member (2 of 2) |
 
 ### `shadow.xl`
@@ -2885,7 +2892,7 @@ Type: shadow. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| dialog | `shadow` | panel | every member (24 of 24) |
+| dialog | `shadow` | panel | every member (16 of 16) |
 
 ### `size.lg.height`
 
@@ -3007,7 +3014,7 @@ Type: dimension. Bound by 24 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | expansion: expanded (24 of 48) |
+| accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | every member (48 of 48) |
 | badge | `size.medium.contained.dot.pad-x`, `size.medium.contained.dot.pad-y`, `size.medium.contained.gap`, `size.medium.inline.count.pad-x` (not drawn), `size.medium.inline.count.pad-y` (not drawn), `size.medium.inline.dot.pad-x` (not drawn), `size.medium.inline.dot.pad-y` (not drawn), `size.medium.inline.status.pad-x`, `size.medium.inline.status.pad-y`, `size.small.contained.dot.pad-x` (not drawn), `size.small.contained.dot.pad-y` (not drawn), `size.small.contained.gap`, `size.small.inline.count.pad-x` (not drawn), `size.small.inline.count.pad-y` (not drawn), `size.small.inline.dot.pad-x` (not drawn), `size.small.inline.dot.pad-y` (not drawn), `size.small.inline.status.pad-x`, `size.small.inline.status.pad-y` | surface | every member (50 of 50) |
 | button | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-destructive | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
@@ -3018,10 +3025,10 @@ Type: dimension. Bound by 24 component(s).
 | code-input-cell | `pad` | content | every member (48 of 48) |
 | counter | `ghost.size.large.pad-x`, `ghost.size.medium.pad-x`, `ghost.size.small.pad-x`, `pad-y` | control | every member (18 of 18) |
 |  |  | entry | every member (18 of 18) |
-| dialog | `pad-none` | body | every member (24 of 24) |
-|  |  | footer | footer: fill, inline, stacked (18 of 24) |
-|  |  | header | every member (24 of 24) |
-|  |  | panel | every member (24 of 24) |
+| dialog | `pad-none` | body | every member (16 of 16) |
+|  |  | footer | footer: fill, inline, stacked (12 of 16) |
+|  |  | header | every member (16 of 16) |
+|  |  | panel | every member (16 of 16) |
 | divider | `horizontal.inset.pad-block`, `horizontal.inset.pad-end`, `horizontal.middle-inset.pad-block`, `horizontal.none.pad-block`, `horizontal.none.pad-end`, `horizontal.none.pad-start`, `vertical.inset.pad-block` (not drawn), `vertical.inset.pad-end` (not drawn), `vertical.inset.pad-start` (not drawn), `vertical.middle-inset.pad-end`, `vertical.middle-inset.pad-start`, `vertical.none.pad-block`, `vertical.none.pad-end`, `vertical.none.pad-start` | container | every member (14 of 14) |
 | list-item | `gap` | row | every member (12 of 12) |
 | page-nav-item | `gap` | container | every member (4 of 4) |
@@ -3142,7 +3149,7 @@ Type: dimension. Bound by 35 component(s).
 |  |  | items | every member (48 of 48) |
 | counter | `root-gap`, `size.large.value-pad` | container | every member (18 of 18) |
 |  |  | entry | size: large (6 of 18) |
-| dialog | `title-gap` | titleBox | every member (24 of 24) |
+| dialog | `title-gap` | titleBox | every member (16 of 16) |
 | divider | `vertical.middle-inset.pad-block` | container | inset: middle-inset · labeled: false · orientation: vertical (2 of 14) |
 | link | `size.large.gap` | container | size: large (48 of 192) |
 | list-item | `size.large.bullet`, `size.medium.bullet` | bullet | size: large, medium · type: unordered (2 of 12) |
@@ -3184,11 +3191,11 @@ Type: dimension. Bound by 35 component(s).
 
 ### `space.150`
 
-Type: dimension. Bound by 19 component(s).
+Type: dimension. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.medium.gap`, `size.medium.pad-y`, `size.small.pad-x`, `size.small.panel-pad-end` | content | expansion: expanded · size: small (8 of 48) |
+| accordion | `size.medium.gap`, `size.medium.pad-y`, `size.small.pad-x`, `size.small.panel-pad-end` | content | size: small (16 of 48) |
 |  |  | header | size: medium, small (32 of 48) |
 |  |  | titleRow | size: medium (16 of 48) |
 | badge | `size.medium.contained.status.pad-x` | surface | size: medium · style: contained · type: status (15 of 50) |
@@ -3204,6 +3211,8 @@ Type: dimension. Bound by 19 component(s).
 | divider | `vertical.gap` | container | inset: middle-inset, none · orientation: vertical (6 of 14) |
 | list | `size.small.gap` | container | size: small (3 of 12) |
 |  |  | items | size: small (3 of 12) |
+| popover | `gap` | header | every member (1 of 1) |
+|  |  | panel | every member (1 of 1) |
 | radio-row | `size.large.gap`, `size.large.pad-y`, `size.medium.gap` | content | size: large, medium (4 of 6) |
 |  |  | row | size: large (2 of 6) |
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
@@ -3216,11 +3225,11 @@ Type: dimension. Bound by 19 component(s).
 
 ### `space.200`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.gap`, `size.large.pad-y`, `size.medium.pad-x`, `size.medium.panel-pad-end` | content | expansion: expanded · size: medium (8 of 48) |
+| accordion | `size.large.gap`, `size.large.pad-y`, `size.medium.pad-x`, `size.medium.panel-pad-end` | content | size: medium (16 of 48) |
 |  |  | header | size: large, medium (32 of 48) |
 |  |  | titleRow | size: large (16 of 48) |
 | banner | `pad` | container | every member (10 of 10) |
@@ -3229,16 +3238,17 @@ Type: dimension. Bound by 22 component(s).
 | button-neutral | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | card-number-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | counter | `outline.size.large.pad-x` | control | appearance: outline · size: large (3 of 18) |
-| dialog | `gap`, `header-gap`, `placement.bottom.pad`, `placement.full.pad` | body | placement: bottom, full · size: medium (8 of 24) |
-|  |  | footer | footer: fill, inline, stacked · placement: bottom, full · size: medium (6 of 24) |
-|  |  | header | every member (24 of 24) |
-|  |  | panel | every member (24 of 24) |
+| dialog | `gap`, `header-gap`, `placement.bottom.pad`, `placement.full.pad` | body | placement: bottom, full (8 of 16) |
+|  |  | footer | footer: fill, inline, stacked · placement: bottom, full (6 of 16) |
+|  |  | header | every member (16 of 16) |
+|  |  | panel | every member (16 of 16) |
 | divider | `horizontal.inset.pad-start`, `horizontal.middle-inset.pad-end`, `horizontal.middle-inset.pad-start` | container | inset: inset, middle-inset · labeled: false · orientation: horizontal (4 of 14) |
 | list | `size.medium.gap` | container | size: medium (3 of 12) |
 |  |  | items | size: medium (3 of 12) |
 | list-item | `size.x-small.ordered.marker-column`, `size.x-small.unordered.marker-column` | markerBox | size: x-small · type: ordered, unordered (2 of 12) |
 | page-nav | `size.small.gap` | items | size: small (1 of 2) |
 | password-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
+| popover | `pad` | panel | every member (1 of 1) |
 | search-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | segmented-control-segment | `size.medium.padding-x` | content | size: medium (10 of 30) |
 | select | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
@@ -3255,7 +3265,7 @@ Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.pad-x` | content | expansion: expanded · size: large (8 of 48) |
+| accordion | `size.large.pad-x` | content | size: large (16 of 48) |
 |  |  | header | size: large (16 of 48) |
 | list | `size.large.gap` | container | size: large (3 of 12) |
 |  |  | items | size: large (3 of 12) |
@@ -3269,15 +3279,15 @@ Type: dimension. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.panel-pad-end` | content | expansion: expanded · size: large (8 of 48) |
+| accordion | `size.large.panel-pad-end` | content | size: large (16 of 48) |
 | button | `size.large.padding-x`, `size.small.hit-target` (not drawn) | container | inset: default · size: large (108 of 576) |
 | button-destructive | `size.large.padding-x`, `size.small.hit-target` (not drawn) | container | inset: default · size: large (108 of 576) |
 | button-neutral | `size.large.padding-x`, `size.small.hit-target` (not drawn) | container | inset: default · size: large (108 of 576) |
 | card-number-field | `size.large.pad-x` | control | size: large (28 of 84) |
-| dialog | `placement.center.pad`, `placement.end.pad` | body | placement: center, end (16 of 24) |
-|  |  | footer | footer: fill, inline, stacked · placement: center, end (12 of 24) |
-|  |  | header | placement: center, end (16 of 24) |
-|  |  | panel | placement: center, end (16 of 24) |
+| dialog | `placement.center.pad`, `placement.end.pad` | body | placement: center, end (8 of 16) |
+|  |  | footer | footer: fill, inline, stacked · placement: center, end (6 of 16) |
+|  |  | header | placement: center, end (8 of 16) |
+|  |  | panel | placement: center, end (8 of 16) |
 | divider | `horizontal.gap` | container | orientation: horizontal (8 of 14) |
 | list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column`, `size.x-small.icon.marker-column` | markerBox | size: medium, x-small (3 of 12) |
 | page-nav | `size.medium.gap` | items | size: medium (1 of 2) |
@@ -3328,7 +3338,7 @@ Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.panel-type` | placeholder | expansion: expanded · size: large (8 of 48) |
+| accordion | `size.large.panel-type` | placeholder | size: large (16 of 48) |
 | card-number-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
 | counter | `size.large.type` | value | size: large (6 of 18) |
@@ -3376,7 +3386,7 @@ Type: typography. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (8 of 48) |
+| accordion | `size.medium.panel-type` | placeholder | size: medium (16 of 48) |
 | banner | `body-type` | bodyText | every member (10 of 10) |
 | breadcrumb-item | `size.medium.type` | label | kind: current · separator: chevron · size: medium (1 of 10) |
 | card-number-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3384,8 +3394,8 @@ Type: typography. Bound by 17 component(s).
 | checkbox-row | `size.large.text` | label | size: large (2 of 6) |
 | code-input-cell | `size.small.type` | digit | size: small · state: filled, focus-visible-filled (4 of 48) |
 | counter | `size.medium.type` | value | size: medium (6 of 18) |
-| dialog | `body-type`, `description-type` | description | every member (24 of 24) |
-|  |  | placeholder | every member (24 of 24) |
+| dialog | `body-type`, `description-type` | description | every member (16 of 16) |
+|  |  | placeholder | every member (16 of 16) |
 | field-label | `size.large.regular.text` | indicator | size: large · weight: regular (4 of 24) |
 |  |  | label | size: large · weight: regular (4 of 24) |
 | link | `size.medium.type.default.standalone.selected.focus-visible`, `size.medium.type.default.standalone.selected.hover`, `size.medium.type.default.standalone.selected.pressed`, `size.medium.type.default.standalone.selected.rest`, `size.medium.type.default.standalone.unselected.rest` | label | size: medium · style: standalone · weight: default (10 of 192) |
@@ -3440,11 +3450,11 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.default`
 
-Type: typography. Bound by 18 component(s).
+Type: typography. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (8 of 48) |
+| accordion | `size.small.panel-type` | placeholder | size: small (16 of 48) |
 | breadcrumb-item | `size.small.type` | label | kind: current · separator: chevron · size: small (1 of 10) |
 | card-number-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
@@ -3458,6 +3468,7 @@ Type: typography. Bound by 18 component(s).
 |  |  | number | size: small · type: ordered (1 of 12) |
 | password-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
+| popover | `body-type` | placeholder | every member (1 of 1) |
 | progress | `value-type` | ringValue | shape: circular · status: active, error · type: determinate (4 of 12) |
 |  |  | ringValueComplete | shape: circular · status: complete · type: determinate (2 of 12) |
 |  |  | value | shape: linear · size: medium · status: active, error · type: determinate (2 of 12) |
@@ -3620,7 +3631,7 @@ Type: typography. Bound by 9 component(s).
 | button | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
 | button-destructive | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
 | button-neutral | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
-| dialog | `title-type` | title | every member (24 of 24) |
+| dialog | `title-type` | title | every member (16 of 16) |
 | pagination-item | `size.large.type.selected` | label | labeled: false · selection: selected · size: large · state: focus-visible, rest · type: page (4 of 87) |
 |  |  | labelReserve | labeled: false · size: large · state: focus-visible, hover, pressed, rest · type: page (8 of 87) |
 |  |  | underlineLabel | labeled: false · selection: selected · size: large · state: focus-visible, rest · style: underline · type: page (2 of 87) |
@@ -3658,7 +3669,7 @@ Type: typography. Bound by 6 component(s).
 
 ### `type.label.md.emphasis`
 
-Type: typography. Bound by 10 component(s).
+Type: typography. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3669,6 +3680,7 @@ Type: typography. Bound by 10 component(s).
 | pagination-item | `size.medium.type.selected` | label | labeled: false · selection: selected · size: medium · state: focus-visible, rest · type: page (4 of 87) |
 |  |  | labelReserve | labeled: false · size: medium · state: focus-visible, hover, pressed, rest · type: page (8 of 87) |
 |  |  | underlineLabel | labeled: false · selection: selected · size: medium · state: focus-visible, rest · style: underline · type: page (2 of 87) |
+| popover | `title-type` | title | every member (1 of 1) |
 | progress | `label-type` | label | shape: linear · size: medium (4 of 12) |
 | segmented-control-segment | `size.medium.type.selected` | label | selection: selected · size: medium (5 of 30) |
 |  |  | labelReserve | size: medium (10 of 30) |
@@ -3911,7 +3923,7 @@ Declared, not drawn: `color.disabled.text`
 
 ### dialog
 
-12 token(s); 24 design-file member(s).
+12 token(s); 16 design-file member(s).
 
 `color.foreground.raised`, `color.text.primary`, `color.text.secondary`, `radius.2xl`, `radius.none`, `shadow.xl`, `space.0`, `space.100`, `space.200`, `space.300`, `type.body.md.default`, `type.label.lg.emphasis`
 
@@ -4066,6 +4078,12 @@ Declared, not drawn: `color.border.focus`
 30 token(s); 84 design-file member(s).
 
 `border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.border.success`, `color.border.warning`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.icon.primary`, `color.text.primary`, `color.text.secondary`, `control.size.lg.line-box`, `control.size.md.line-box`, `control.size.sm.line-box`, `focus.ring.width`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.075`, `space.100`, `space.200`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+
+### popover
+
+10 token(s); 1 design-file member(s).
+
+`border-width.hairline`, `color.border.secondary`, `color.foreground.raised`, `color.text.primary`, `radius.lg`, `shadow.lg`, `space.150`, `space.200`, `type.body.sm.default`, `type.label.md.emphasis`
 
 ### progress
 

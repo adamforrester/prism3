@@ -512,14 +512,9 @@
         "center",
         "end",
         "full"
-      ],
-      "size": [
-        "large",
-        "medium",
-        "small"
       ]
     },
-    "members": 24,
+    "members": 16,
     "properties": {
       "body": "SLOT",
       "close": "BOOLEAN",
@@ -1060,6 +1055,21 @@
       "placeholder": "TEXT",
       "value": "TEXT",
       "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
+  "popover": {
+    "axes": {
+      "placement": [
+        "bottom"
+      ]
+    },
+    "members": 1,
+    "properties": {
+      "body": "SLOT",
+      "close": "BOOLEAN",
+      "footer": "BOOLEAN",
+      "title": "BOOLEAN",
+      "title text": "TEXT"
     }
   },
   "progress": {

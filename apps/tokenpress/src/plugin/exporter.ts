@@ -33,7 +33,7 @@ import { ColorConverter } from './converters/color-converter';
 import { DimensionConverter } from './converters/dimension-converter';
 import { ShadowConverter } from './converters/shadow-converter';
 import { TypographyConverter } from './converters/typography-converter';
-import { TokenScanner } from './scanner';
+import { TokenScanner, ExternalAliasTargets } from './scanner';
 import { TokenTypeDetector } from './type-detection';
 import { isVariableAlias, hasAlpha, isComposedColor } from '../types/figma-guards';
 
@@ -78,6 +78,15 @@ export class TokenExporter {
    * resolver then reads the target's first mode.
    */
   private collectionDefaultModes = new Map<string, string>();
+
+  /**
+   * Alias targets that are not local variables: team-library variables the file imports
+   * (prism3 #4166). Resolved once per export by `TokenScanner.resolveExternalAliasTargets`. An alias
+   * to one exports as a reference by its name, marked `$extensions.figma.externalAlias`, because the
+   * target lives outside this export.
+   */
+  private externalVariables: Map<string, Variable> = new Map();
+  private externalCollectionNames: Record<string, string> = {};
 
   constructor(protected options: ExportOptions) {
     this.scanner = new TokenScanner();
@@ -209,6 +218,7 @@ export class TokenExporter {
       await this.scanner.scanAll({
       excludedCollectionNames: this.options.excludedCollections,
     });
+    this.setExternalAliasTargets(await this.scanner.resolveExternalAliasTargets(variables));
 
     // When any collection has multiple modes we lay the ZIP out as
     //   tokens/shared/<single-mode files>      ← apply to every mode
@@ -252,6 +262,23 @@ export class TokenExporter {
         `Failed to create ZIP file: ${zipError instanceof Error ? zipError.message : 'Unknown error'}`
       );
     }
+  }
+
+  /** Records the external alias targets this export resolves against (prism3 #4166). */
+  protected setExternalAliasTargets(targets: ExternalAliasTargets): void {
+    this.externalVariables = new Map(targets.variables.map(v => [v.id, v]));
+    this.externalCollectionNames = targets.collectionNames;
+  }
+
+  /** An id → variable map over `variables` and the external alias targets. */
+  protected variableMapOf(variables: Variable[]): Map<string, Variable> {
+    const map = new Map(variables.map(v => [v.id, v]));
+    this.externalVariables.forEach((v, id) => {
+      if (!map.has(id)) {
+        map.set(id, v);
+      }
+    });
+    return map;
   }
 
   private async exportVariables(
@@ -688,7 +715,7 @@ export class TokenExporter {
     allVariables: Variable[]
   ): DTCGFile {
     const tokens: JsonObject = {};
-    const variableMap = new Map(allVariables.map(v => [v.id, v]));
+    const variableMap = this.variableMapOf(allVariables);
 
     // Decide the wrapper/alias namespace once, before any token is converted.
     this.beginFile(variables.map(v => v.name));
@@ -782,6 +809,22 @@ export class TokenExporter {
       if (variable.codeSyntax) {
         token.$extensions.figma.codeSyntax = variable.codeSyntax;
       }
+    }
+
+    // A reference to a team-library variable resolves only where that library's tokens are exported
+    // too, so it says where it points (prism3 #4166, owner decision C). Written whether or not the Figma
+    // metadata option is on: it qualifies the `$value`, it isn't metadata about this variable.
+    const external = isVariableAlias(value) ? this.externalVariables.get(value.id) : undefined;
+    if (external) {
+      const extensions = (token.$extensions || {}) as Record<string, Record<string, unknown>>;
+      const figmaExt = extensions.figma || {};
+      figmaExt.externalAlias = {
+        variableId: external.id,
+        variableKey: external.key,
+        collection: this.externalCollectionNames[external.variableCollectionId] || null,
+      };
+      extensions.figma = figmaExt;
+      token.$extensions = extensions;
     }
 
     return token;

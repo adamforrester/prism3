@@ -233,7 +233,7 @@
     {
       "id": "badge",
       "name": "Badge",
-      "category": "foundations",
+      "category": "feedback",
       "states": [],
       "projectedStates": [],
       "axes": {
@@ -1661,11 +1661,6 @@
           "full",
           "end"
         ],
-        "size": [
-          "medium",
-          "small",
-          "large"
-        ],
         "footer": [
           "inline",
           "stacked",
@@ -1735,11 +1730,7 @@
           ]
         }
       ],
-      "sizes": [
-        "medium",
-        "small",
-        "large"
-      ],
+      "sizes": [],
       "sizeDefault": "medium"
     },
     {
@@ -3381,6 +3372,71 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "popover",
+      "name": "Popover",
+      "category": "overlay",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "placement": [
+          "bottom"
+        ]
+      },
+      "props": [
+        {
+          "name": "open",
+          "default": false
+        },
+        {
+          "name": "defaultOpen",
+          "default": false
+        },
+        {
+          "name": "onOpenChange"
+        },
+        {
+          "name": "placement",
+          "default": "bottom",
+          "values": [
+            "top",
+            "bottom",
+            "start",
+            "end"
+          ]
+        },
+        {
+          "name": "align",
+          "default": "start",
+          "values": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        {
+          "name": "title"
+        },
+        {
+          "name": "showClose",
+          "default": true
+        },
+        {
+          "name": "children"
+        },
+        {
+          "name": "footer"
+        },
+        {
+          "name": "initialFocus"
+        },
+        {
+          "name": "arrow",
+          "default": false
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "progress",
       "name": "Progress",
       "category": "feedback",
@@ -4855,7 +4911,7 @@
     {
       "id": "tag",
       "name": "Tag",
-      "category": "foundations",
+      "category": "form",
       "states": [
         "rest",
         "hover",
@@ -6107,6 +6163,14 @@
     "placement": [
       {
         "values": [
+          "bottom"
+        ],
+        "components": [
+          "popover"
+        ]
+      },
+      {
+        "values": [
           "bottom",
           "center",
           "end",
@@ -6264,7 +6328,6 @@
           "checkbox-group",
           "checkbox-row",
           "counter",
-          "dialog",
           "field-label",
           "flush-icon-button",
           "flush-icon-button-destructive",
@@ -6657,6 +6720,17 @@
         ]
       }
     ],
+    "align": [
+      {
+        "id": "popover",
+        "default": "start",
+        "values": [
+          "start",
+          "center",
+          "end"
+        ]
+      }
+    ],
     "alignment": [
       {
         "id": "tabs",
@@ -6791,6 +6865,12 @@
         "id": "switch-control"
       }
     ],
+    "arrow": [
+      {
+        "id": "popover",
+        "default": false
+      }
+    ],
     "asChild": [
       {
         "id": "link",
@@ -6884,6 +6964,9 @@
       },
       {
         "id": "list-item"
+      },
+      {
+        "id": "popover"
       }
     ],
     "clearable": [
@@ -6943,6 +7026,12 @@
     "defaultExpanded": [
       {
         "id": "accordion",
+        "default": false
+      }
+    ],
+    "defaultOpen": [
+      {
+        "id": "popover",
         "default": false
       }
     ],
@@ -7244,6 +7333,9 @@
           "fill",
           "none"
         ]
+      },
+      {
+        "id": "popover"
       }
     ],
     "formatOptions": [
@@ -7476,6 +7568,11 @@
           "chevron",
           "plus-minus"
         ]
+      }
+    ],
+    "initialFocus": [
+      {
+        "id": "popover"
       }
     ],
     "inputMode": [
@@ -8304,6 +8401,9 @@
     "onOpenChange": [
       {
         "id": "dialog"
+      },
+      {
+        "id": "popover"
       }
     ],
     "onPageChange": [
@@ -8322,6 +8422,10 @@
     "open": [
       {
         "id": "dialog",
+        "default": false
+      },
+      {
+        "id": "popover",
         "default": false
       }
     ],
@@ -8386,6 +8490,16 @@
           "center",
           "bottom",
           "full",
+          "end"
+        ]
+      },
+      {
+        "id": "popover",
+        "default": "bottom",
+        "values": [
+          "top",
+          "bottom",
+          "start",
           "end"
         ]
       }
@@ -8683,6 +8797,12 @@
     "showCheck": [
       {
         "id": "tag",
+        "default": true
+      }
+    ],
+    "showClose": [
+      {
+        "id": "popover",
         "default": true
       }
     ],
@@ -9478,6 +9598,9 @@
       },
       {
         "id": "dialog"
+      },
+      {
+        "id": "popover"
       }
     ],
     "tone": [
@@ -10286,6 +10409,15 @@
     },
     {
       "kind": "axis values",
+      "subject": "axis placement",
+      "components": [
+        "dialog",
+        "popover"
+      ],
+      "detail": "the placement axis takes 2 value sets — [bottom] in popover; [bottom, center, end, full] in dialog"
+    },
+    {
+      "kind": "axis values",
       "subject": "axis provider",
       "components": [
         "sign-in-button",
@@ -10343,7 +10475,6 @@
         "code-input",
         "code-input-cell",
         "counter",
-        "dialog",
         "field-label",
         "flush-icon-button",
         "flush-icon-button-destructive",
@@ -10380,7 +10511,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
     },
     {
       "kind": "axis values",
@@ -10589,14 +10720,6 @@
         "counter"
       ],
       "detail": "counter declares its sizes as [medium, small, large], not smallest first"
-    },
-    {
-      "kind": "size order",
-      "subject": "dialog",
-      "components": [
-        "dialog"
-      ],
-      "detail": "dialog declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -10868,7 +10991,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 51 of 52 sized components default to medium"
+      "detail": "field-label defaults size to small; 50 of 51 sized components default to medium"
     },
     {
       "kind": "prop default",

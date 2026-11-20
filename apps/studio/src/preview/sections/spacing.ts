@@ -16,13 +16,13 @@ export const SPACING_PREVIEW = { title: 'Spacing', desc: 'The 8px rhythm is the 
 export const spacingSection = (c: SgCtx, dims: Theme['dims'], copy: { title: string; desc: string }): HTMLElement => {
   const sec = palSection(copy.title, copy.desc);
   sec.dataset.sgSection = 'spacing';   // the shared-section marker (`kit.ts`'s header)
-  sec.append(spacingTable(c, dims));
+  sec.append(spacingTable(c, dims, copy.title));
   return sec;
 };
 
 /** Each space step: its value, its token, and a bar at its true width (a zero step draws an empty bar). */
-const spacingTable = (c: SgCtx, dims: Theme['dims']): HTMLElement => {
-  const t = shapeTable(['Step', 'Sample'], dims.space.map((s) => {
+const spacingTable = (c: SgCtx, dims: Theme['dims'], name: string): HTMLElement => {
+  const t = shapeTable(name, ['Step', 'Sample'], dims.space.map((s) => {
     const bar = s.px ? shapeSample(c, 'shp-wbar') : el('div', 'shp-wbar zero');
     if (s.px) bar.style.width = `${s.px}px`;
     return { hook: 'space-row', key: s.key, label: `${s.px}px`, token: `space.${s.key}`, who: '', sample: bar };

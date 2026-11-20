@@ -33,7 +33,7 @@ import { applyTextStylePlan } from './write-text-styles';
 import { renameStylesForPlan, renameTextStylesForPlan } from './rename-styles';
 import { preflightApply } from './preflight';
 import type { PreflightPlan } from './preflight';
-import { preloadFonts } from './preload-fonts';
+import { availableStylesByFamily, preloadFonts, resolveCutPlan } from './preload-fonts';
 import type { FontPreloadResult } from './preload-fonts';
 import { persistInput } from './persist-figma';
 import { stampEmission } from './theme-emission';
@@ -327,8 +327,13 @@ export const runGrid = (raw: unknown) => writeStep(raw, 'grid', async (host, d, 
 
 /** TYPOGRAPHY variables (#237) — `core/font` + `type-sets`. */
 export const runFont = (raw: unknown) => writeStep(raw, 'font', async (host, d, r) => {
+  // #3861: each cut variable in its family's own spelling before it is written, as Apply Theme does (#1728), from the
+  // text plan's cut → family pairing the step carries (`cutPairs`). Without the pairing, the values as planned.
+  const pairs = (d.cutPairs ?? []) as [string, string][];
+  const cut = pairs.length ? resolveCutPlan(d.plans as VarCollectionPlan[], pairs, await availableStylesByFamily(fontPreloadApiOf(host))) : null;
+  if (cut?.resolved) r.resolvedCuts = cut.resolved;
   const mig = await beginMigration(host.variables);
-  const res = await applyVarCollectionPlan(d.plans as VarCollectionPlan[], host.variables, mig);
+  const res = await applyVarCollectionPlan(cut ? cut.plans : d.plans as VarCollectionPlan[], host.variables, mig);
   Object.assign(r, { migration: migrationOf(mig), created: res.collections.reduce((n, c) => n + c.created, 0), total: res.collections.reduce((n, c) => n + c.total, 0), bound: res.bound, misses: res.misses, refused: res.refused });
 });
 

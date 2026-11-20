@@ -121,8 +121,97 @@
             "additionalProperties": false
           },
           "output": {
-            "structuredContent": null,
-            "text": "a JSON object in content[0].text; this tool declares no outputSchema"
+            "structuredContent": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "modes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "contracts": {
+                  "type": "object",
+                  "description": "Every declared contrast pair across every mode: how many were checked, how many pass, and each failure.",
+                  "properties": {
+                    "checks": {
+                      "type": "number"
+                    },
+                    "pass": {
+                      "type": "number"
+                    },
+                    "failures": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "checks",
+                    "pass",
+                    "failures"
+                  ]
+                },
+                "aliases": {
+                  "type": "object",
+                  "description": "Alias integrity: how many aliases, how many resolve, and each broken one.",
+                  "properties": {
+                    "total": {
+                      "type": "number"
+                    },
+                    "resolved": {
+                      "type": "number"
+                    },
+                    "broken": {
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "resolved",
+                    "broken"
+                  ]
+                },
+                "omitted": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The sections this result leaves out."
+                },
+                "hint": {
+                  "type": "string",
+                  "description": "How to add the sections it leaves out."
+                },
+                "notes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "With include notes (the default): the decisions log."
+                },
+                "tokens": {
+                  "type": "object",
+                  "description": "With include tokens: the DTCG token tree."
+                },
+                "aiMetadata": {
+                  "type": "object",
+                  "description": "With include aiMetadata: the agent metadata."
+                }
+              },
+              "required": [
+                "id",
+                "modes",
+                "contracts",
+                "aliases",
+                "omitted"
+              ]
+            },
+            "text": "the same object as JSON in content[0].text"
           },
           "source": "packages/engine/mcp.ts#name: 'theme_brand'"
         },
@@ -230,15 +319,109 @@
             "additionalProperties": false
           },
           "output": {
-            "structuredContent": null,
-            "text": "a JSON object in content[0].text; this tool declares no outputSchema"
+            "structuredContent": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "modes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "contracts": {
+                  "type": "object",
+                  "description": "Every declared contrast pair across every mode: how many were checked, how many pass, and each failure.",
+                  "properties": {
+                    "checks": {
+                      "type": "number"
+                    },
+                    "pass": {
+                      "type": "number"
+                    },
+                    "failures": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "checks",
+                    "pass",
+                    "failures"
+                  ]
+                },
+                "aliases": {
+                  "type": "object",
+                  "description": "Alias integrity: how many aliases, how many resolve, and each broken one.",
+                  "properties": {
+                    "total": {
+                      "type": "number"
+                    },
+                    "resolved": {
+                      "type": "number"
+                    },
+                    "broken": {
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "resolved",
+                    "broken"
+                  ]
+                },
+                "omitted": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The sections this result leaves out."
+                },
+                "hint": {
+                  "type": "string",
+                  "description": "How to add the sections it leaves out."
+                },
+                "notes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "With include notes (the default): the decisions log."
+                },
+                "tokens": {
+                  "type": "object",
+                  "description": "With include tokens: the DTCG token tree."
+                },
+                "aiMetadata": {
+                  "type": "object",
+                  "description": "With include aiMetadata: the agent metadata."
+                },
+                "derivedBrandInput": {
+                  "type": "object",
+                  "description": "The BrandInput the brief was read as."
+                }
+              },
+              "required": [
+                "id",
+                "modes",
+                "contracts",
+                "aliases",
+                "omitted",
+                "derivedBrandInput"
+              ]
+            },
+            "text": "the same object as JSON in content[0].text"
           },
           "source": "packages/engine/mcp.ts#name: 'theme_from_brief'"
         },
         {
           "name": "export_theme",
           "title": "Write the token system to disk",
-          "description": "Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:[\"tokens\"] whenever you want the actual files: the DTCG tree alone is roughly 890,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files; add \"componentSpecs\" to `include` for component-contracts.json (every component contract, with the brand's settings resolved), component-defs.json (the same file under its old name, kept for one release) and component-defs.specs.json (the same in the Specs format). Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.",
+          "description": "Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:[\"tokens\"] whenever you want the actual files: the DTCG tree alone is roughly 890,000 characters for a four-mode brand, which no tool result should carry. Files carry the names the CLI writes. \"tokens\" writes <id>.tokens.json (the full DTCG tree), <id>.base.tokens.json and one <id>.<mode>.overlay.tokens.json per other mode (the set a multi-mode code build reads); \"aiMetadata\" writes <id>.ai.json; \"figma\" writes a figma/ directory of Figma collection files; \"componentSpecs\" writes <id>.component-contracts.json (every component contract, with the brand's settings resolved), <id>.component-defs.json (the same file under its old name) and <id>.component-defs.specs.json (the same in the Specs format). `include` replaces the default [\"tokens\", \"aiMetadata\", \"figma\"]; for everything, pass all four. For one release each file is also written under its old unprefixed name (tokens.json, ai-metadata.json, component-contracts.json, component-defs.json, component-defs.specs.json). Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -252,7 +435,7 @@
               },
               "include": {
                 "type": "array",
-                "description": "Artifact families to write. Defaults to tokens, aiMetadata and figma; componentSpecs is opt-in.",
+                "description": "Artifact families to write, replacing the default [\"tokens\", \"aiMetadata\", \"figma\"]. componentSpecs is written only when named, so pass all four for everything.",
                 "items": {
                   "type": "string",
                   "enum": [
@@ -321,10 +504,19 @@
         {
           "name": "validate_brand",
           "title": "Validate a brand input",
-          "description": "Validate a BrandInput against the engine schema and the engine's own input refusals, WITHOUT generating tokens. Returns { valid, errors } — a fast pre-flight before theme_brand. Takes the same brand object as theme_brand's `brand` argument; see that tool for the full input schema.",
+          "description": "Validate a BrandInput against the engine schema and the engine's own input refusals, WITHOUT generating tokens. Returns { valid, errors } — a fast pre-flight before theme_brand. Arguments: { brand }, the same argument theme_brand takes; see that tool for the full input schema. A bare BrandInput, with no `brand` key, is still accepted for one release.",
           "inputSchema": {
             "type": "object",
-            "description": "A BrandInput — the same shape as theme_brand's `brand` property."
+            "properties": {
+              "brand": {
+                "type": "object",
+                "description": "The same BrandInput you pass to theme_brand — see that tool for the full input schema."
+              }
+            },
+            "required": [
+              "brand"
+            ],
+            "additionalProperties": false
           },
           "output": {
             "structuredContent": {
@@ -861,7 +1053,7 @@
         "args": "{ changes: OverrideChange[]; confirm: false } | { changes: OverrideChange[]; confirm: true; previewHash: string }",
         "description": "Color overrides, 1 to 32 changes applied all or nothing. `confirm: false` previews and writes nothing; its result carries a `previewHash`. `confirm: true` must echo it, and runs the Theme write itself.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.set-override",
-        "writes": "With confirm: false, nothing: a preview whose result carries a previewHash, each change before and after, and every pair that moved. With confirm: true and that previewHash, the Theme write: the variables, the stored brand and a saved version, through the same handler as apply-theme; refused when a pair would drop below its minimum, the file's brand moved after the preview, or Theme has unapplied edits.",
+        "writes": "With confirm: false, nothing: a preview whose result carries a previewHash, each change before and after, and every pair that moved. With confirm: true and that previewHash, the Theme write: the variables, the stored brand and a saved version, through the same handler as apply-theme; refused when a pair would drop below its minimum, the changes sent are not the ones previewed, the file's brand moved after the preview, or Theme has unapplied edits.",
         "refuses": [
           {
             "computed": "changes",

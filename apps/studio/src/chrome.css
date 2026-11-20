@@ -117,6 +117,8 @@
 .p3-textarea::placeholder { color: var(--p3-text-2); opacity: 1; }
 .p3-textarea:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-field-edge-hover); }
 .p3-textarea:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
+/* #4223: a preview table's scroll wrapper (`.mtbl-scroll`, `preview/sections/kit.ts` `scrollBox`) is a Tab stop, so it draws the chrome's ring. */
+.mtbl-scroll:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-field-err { margin: 0; color: var(--p3-bad-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
 .p3-import-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
 .p3-upload { cursor: pointer; }
@@ -370,7 +372,10 @@
 .p3-bardlg-title { flex: 1 1 auto; margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-tighter); }
 .p3-bardlg-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 0; overflow: hidden; }
 .p3-bardlg-col { display: flex; flex-direction: column; gap: var(--p3-space-150); min-width: 0; padding: var(--p3-space-200) var(--p3-space-300); overflow-y: auto; }
-.p3-export-out { background: var(--p3-fill-1); border-left: var(--p3-bw-hairline) solid var(--p3-line-1); }
+/* #4192 F2 (owner decision 2026-11-19, A): Export's layers in Theme's order (IA-2), settings left on the levers ground,
+   the result right on the page ground, so "settings left, result right" reads the same in every area. */
+.p3-export-out { background: var(--p3-bg-page); border-left: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-bardlg-body:has(> .p3-export-out) > .p3-bardlg-col:not(.p3-export-out) { background: var(--p3-levers-bg); }
 .p3-bardlg-desc { margin: 0; }
 .p3-bardlg-note { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
 .p3-export-oseg { align-self: flex-start; max-width: 100%; }
@@ -1116,6 +1121,8 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14);
 }
 .p3-text-input.p3-value { font-family: var(--p3-font-mono); }
+/* #4220: the field's hint in the chrome's secondary ink, as the other fields' are, not the browser's default gray. */
+.p3-text-input::placeholder { color: var(--p3-text-2); opacity: 1; }
 /* No hover on a disabled field: it cannot be edited, so nothing answers the pointer (owner, 2026-10-05; Q28 a). */
 .p3-text-input:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-field-edge-hover); }
 .p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
@@ -1405,6 +1412,8 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 /* QA-B5, QA-B18: every select and step-picker button in the levers pane is one control: the field's height (40),
    12px text set from the left, and the caret at the far right (the select's sits where the button's does). */
 .p3-levers :is(.p3-select, .p3-btn.p3-pick) { min-height: var(--p3-ctl-h); font-size: var(--p3-fs-12); text-align: left; }
+/* #4188: the preview's two selects (the style guide's ground, Slow motion) are the levers' size: they pick a value too. */
+:is(.p3-sg-ground, .p3-mo-slowmo).p3-select { min-height: var(--p3-ctl-h); font-size: var(--p3-fs-12); }
 /* #3938 (owner decision A, 2026-11-18): the token list's dropdowns take the height of the Alias path segmented control
    beside them, the convention the levers above use, so `.tok-ctrls`' bottom-aligned captions sit on one line. */
 .tok-ctrls .p3-select { min-height: var(--p3-ctl-h); }
@@ -2023,12 +2032,15 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-frame[data-shell="rail"][data-place="components"] .p3-nav .p3-tabs { display: none; }
 .p3-frame[data-place="components"] .p3-nav > .p3-search { margin-left: auto; }
 .p3-frame[data-place="components"] .p3-preview-head > .p3-modes-wrap { display: none; }
-/* #3149 (Q3149.1–.4, all A, the owner, 2026-11-01): Components shows no Inspect either, on both hosts, so its preview
-   header holds nothing. At wide widths the empty row stays, so the preview's divider still meets the levers header's at
-   one y (Q2). At the narrow tier the Preview pane has no levers pane beside it to line up with, so the row collapses.
-   Inspect stays on every Theme page, and with it the build stamp and the privacy note at its foot (Q3149.3 A). */
+/* #3149 (Q3149.2–.4 A, the owner, 2026-11-01): Components shows no Inspect, on both hosts; Inspect stays on every Theme
+   page, and with it the build stamp and the privacy note at its foot (Q3149.3 A). Its own rule, so Inspect stays off
+   Components even if the header below is drawn again. */
 .p3-frame[data-place="components"] .p3-preview-head > .p3-popwrap { display: none; }
-.p3-frame[data-w="narrow"][data-place="components"] .p3-preview-head { display: none; }
+/* #4192 F1 (owner decision 2026-11-19, A; it reverses Q3149.1's empty row at wide widths): the header row that holds
+   nothing on Components is gone at every width, so the family's own title is the pane's first line; the preview body
+   takes the row. */
+.p3-frame[data-place="components"] .p3-preview-head { display: none; }
+.p3-frame[data-layout="panes"][data-place="components"] { grid-template-areas: "bar bar" "notices notices" "nav pbody" "subnav pbody" "levers pbody" "levers drawer"; }
 
 /* ── Documentation (#2909, Q667 A, Q2909.21 A): a page no tab shows, full width, its own tab row ─────────── */
 .p3-docs {
@@ -2389,3 +2401,8 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
      once. Placed after it, at the specificity it needs to win. */
   .p3-popwrap > .p3-menu.p3-agent-pair { transition-property: opacity, display; transition-duration: var(--p3-motion-reduced); transition-behavior: allow-discrete; }
 }
+
+/* #4188 A ("preview tables"): the Durations table (`.ctable.mo-ramp`, no `<thead>`) takes the preview tables' one header,
+   the uppercase tracked band `.mtbl-tbl thead th` draws in `styles.css`, on the chrome's 10px. Scoped to the preview's
+   table: Inspect's Contrast and Tokens tables are `.ctable` too, and keep their own header. */
+.mo-ramp tr:first-child > th { font-size: var(--p3-fs-10); font-weight: var(--p3-fw-bold); letter-spacing: var(--p3-ls-wide); text-transform: uppercase; color: var(--p3-text-2); background: var(--p3-fill-1); }
