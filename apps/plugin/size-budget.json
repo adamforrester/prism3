@@ -1,0 +1,11 @@
+{
+  "$comment": "DRAFT ceilings (#4233): proposed, not yet the owner's. Raw bytes, or gzip -9 bytes, per artifact. Raising one is a reviewed diff with its reason in the PR, as ARTIFACT_FLOOR is. Read by test-size-budget.ts, never written by it.",
+  "status": "draft",
+  "artifacts": [
+    { "id": "studio-site-main", "file": "apps/studio/public/dist/main.js", "measure": "gzip", "ceiling": 470000, "why": "the public Studio page: gzip is what crosses the network" },
+    { "id": "plugin-release-main", "file": "apps/plugin/release/main.js", "measure": "raw", "ceiling": 2300000, "why": "Figma evaluates the main thread uncompressed on every launch" },
+    { "id": "plugin-release-ui", "file": "apps/plugin/release/ui.html", "measure": "raw", "ceiling": 2600000, "why": "the panel's one inline script: its parse is the boot task people feel" },
+    { "id": "plugin-offline-ui", "file": "apps/plugin/release-offline/ui.html", "measure": "raw", "ceiling": 2600000, "why": "the offline variant's panel, the same parse" },
+    { "id": "chrome-css", "file": null, "measure": "raw", "ceiling": 290000, "why": "the generated chrome stylesheet, inside both UIs" }
+  ]
+}
