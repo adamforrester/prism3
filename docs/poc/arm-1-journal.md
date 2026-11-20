@@ -2320,3 +2320,67 @@ Mac record can show agreement.
 **Learning.** The element-form token parity found, on its first run, the one structural difference between the forms
 that the HTML-only parity and the real-value comparison both hid: the spinner exists only while pending. Equal
 computed styles don't mean equal structure.
+
+---
+
+## The scorecard harness, arm 1's side (#3408, plan item 2)
+
+Started about 16:50 UTC on 2026-11-20, from `poc/arm-1` at `40d7fc01`. The brief's output is a one-page KPI table for
+both arms. This builds it from records, so the day arm 2's records exist, the card is one command away.
+
+### What was built
+
+- **`tools/poc-scorecard/measures.ts`** lists the brief's 15 KPI rows by hand: KPI 1 (3), KPI 2 (4), KPI 3 (6) and
+  ejection (2). For arm 1 it gives the command that measures each row it can (9), and why the other 6 aren't measured
+  yet.
+- **`scorecard.ts record`** runs an arm's commands and stores each run's record, uncommitted. A record holds the exit
+  code, the summary line, the parsed value, the commit, whether the tree was dirty, the time and the duration.
+  **`render`** writes the card. **`--self-test`** holds the card's rules on planted records:
+  - a missing record reads "not measured", with the arm's reason;
+  - a failure reads FAIL, with its line, never a count;
+  - an unparsed pass reads "unparsed";
+  - a dirty tree is marked;
+  - the parse sums every pattern;
+  - every arm 1 row is measured or says why not.
+- A tool, not a gate (`tools/CLAUDE.md`): each row's command is already a check in the POC packages.
+
+### The card, arm 1, measured 16:51–17:01 UTC
+
+The tree was `poc/arm-1` at `40d7fc01` plus this tool, which no measurement reads.
+
+| KPI | Measure | Arm 1 |
+|---|---|---|
+| KPI 2 | Token parity, HTML/CSS form | 1,770 bindings |
+| KPI 2 | Token parity, component form | 1,666 bindings |
+| KPI 2 | API parity | 57 props matched (button 15, text field 24, password field 18), 0 mismatches |
+| KPI 2 | Geometry against Figma | FAIL: `figma-geometry.json` is missing (the Mac job, B3) |
+| KPI 3 | Geometry, the two forms against each other | 300 checks |
+| KPI 3 | axe, light and dark | 800 checks |
+| KPI 3 | Accessibility tree, the two forms | 1,522 checks |
+| KPI 3 | Keyboard | 388 checks |
+| KPI 3 | Right to left | 438 checks |
+| KPI 1 ×3, KPI 3 one-edit, ejection ×2 | | not measured: plan items 3–5 and D2 |
+
+### What was checked, and how
+
+- `--self-test`: 8 cases, all OK.
+- **Hand mutation on disk**, after a commit, restored with `git show HEAD:<path> > <path>`: making a missing record
+  render `0` fails 3 self-test cases by name, starting with "an arm with no records still shows every row, as not
+  measured".
+- The API parity sum was checked against the source lines: 15 + 24 + 18 = 57.
+
+### Surprises and learnings
+
+- **The Figma row is a FAIL, not a blank, and that's deliberate.** The comparison exits 1 without the Mac's record,
+  as S6 built it to, so the card shows the run that didn't happen and names the job.
+- **axe takes most of a run's time.** A full arm 1 record took about 10 minutes, and 281s of it was axe. That's why
+  the recorder takes `--only`: a lane can stay under its 10-minute command limit.
+
+### Effort
+
+- **Wall clock:** about 16:50 to 17:10 UTC.
+- **Commands:** the self-test, four `record` batches (33s, 108s, 339s, 161s), one render, and one hand mutation.
+- **Hand edits:** `measures.ts` (new, about 75 lines), `scorecard.ts` (new, about 150), the tool's README and
+  `.gitignore`, a `tools/CLAUDE.md` section, this entry and the progress entry.
+- **Errors hit:** 1, mine. The first `measures.ts` recorded only the last command, which would have dropped the
+  button's API parity. It now records every command.
