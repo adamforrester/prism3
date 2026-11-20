@@ -6,7 +6,8 @@
  * Prints each hex color as the OKLCH object a design.md anchor takes (`primary`, `neutral.anchor`,
  * `brandColors[].oklch`), through `hex-anchors.ts`, the conversion `brandTheme` applies to a hex anchor and the
  * standard-dialect classifier applies to a flat `colors:` map. So the numbers it prints and the hex they came from
- * build the same anchor, to the printed precision (lightness and chroma to four places, hue to two).
+ * build the same anchor, to the printed precision (lightness and chroma to four places, hue to two). An 8- or 4-digit
+ * hex is taken too, and its alpha dropped, as the engine drops it (#4312, owner decision B).
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,7 +19,7 @@ if (isMain) {
   if (args.length === 0 || args.some((a) => !HEX_ANCHOR.test(a))) {
     const bad = args.find((a) => !HEX_ANCHOR.test(a));
     console.error(bad !== undefined
-      ? `✖ ${JSON.stringify(bad)} is not a hex color; pass #rrggbb or #rgb, such as '#2f6b4f'.`
+      ? `✖ ${JSON.stringify(bad)} is not a hex color; pass #rrggbb, #rgb, #rrggbbaa or #rgba, such as '#2f6b4f'. An alpha is dropped.`
       : `usage: npx tsx packages/engine/oklch.ts '#rrggbb' [...]  prints each color as an OKLCH anchor for a design.md`);
     process.exit(1);
   }

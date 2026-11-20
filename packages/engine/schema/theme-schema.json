@@ -673,9 +673,9 @@
     },
     "hexColor": {
       "type": "string",
-      "title": "a hex color, such as \"#2f6b4f\"",
-      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$",
-      "description": "A hex color, #rrggbb or #rgb, such as \"#2f6b4f\". The engine converts it to OKLCH and records the converted value in the notes."
+      "title": "a hex color (#rrggbb, #rgb, #rrggbbaa or #rgba), such as \"#2f6b4f\"",
+      "pattern": "^#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})$",
+      "description": "A hex color, #rrggbb, #rgb, #rrggbbaa or #rgba, such as \"#2f6b4f\". An alpha is dropped, because an anchor is opaque. The engine converts the color to OKLCH and records the converted value in the notes."
     },
     "oklch": {
       "type": "object",

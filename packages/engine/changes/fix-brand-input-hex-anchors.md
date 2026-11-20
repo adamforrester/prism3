@@ -2,7 +2,8 @@
 engine: minor
 ---
 A brand anchor takes a hex color (#4133, owner decision A, 2026-11-19). primary, neutral.anchor and brandColors[].oklch
-accept "#rrggbb" or "#rgb" beside the OKLCH object; brandTheme converts it first, through the conversion the
+accept "#rrggbb", "#rgb", "#rrggbbaa" or "#rgba" beside the OKLCH object (an alpha is dropped, as the standard dialect
+drops it: owner decision B, 2026-11-20); brandTheme converts it first, through the conversion the
 standard-dialect classifier uses, and the notes record the converted value ("primary: the hex #2f6b4f, converted to
 OKLCH { l: 0.4794, c: 0.078, h: 161.08 }.", DRAFT wording). A hex brand builds the same tree as the same brand written
 in the converted OKLCH. New: packages/engine/oklch.ts '<hex>' prints the anchor for a design.md (#4176, owner decision

@@ -96,7 +96,7 @@ import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { hexToAnchor, formatAnchor } from './hex-anchors';
+import { hexToAnchor, formatAnchor, HEX_ANCHOR } from './hex-anchors';
 import { spawnSync } from 'node:child_process';
 import { readListing } from './files-listing';
 import { isDeepStrictEqual } from 'node:util';
@@ -44117,6 +44117,36 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   }
   const bad = validateBrandInput({ ...base, primary: '#zz0000' });
   ok(bad.length === 1 && /OKLCH object/.test(bad[0]) && /hex color/.test(bad[0]), `#4133 a malformed hex is refused, naming both forms the anchor takes (got ${JSON.stringify(bad)})`);
+}
+
+// #4312 (owner decision B, 2026-11-20) — an 8- or 4-digit hex anchor is taken too, its alpha dropped, as the standard
+// dialect drops it. EXPECTED is typed literals (docs/34), never `hexToAnchor` of the 6-digit form: the 8- and 4-digit
+// spellings land on the same OKLCH as their opaque twins, in the schema, in `brandTheme` and on the command line.
+{
+  const base = { id: 'alpha4312', neutral: { hue: 262, chroma: 0.01 } };
+  for (const [h, want] of [['#2f6b4fcc', '{ l: 0.4794, c: 0.078, h: 161.08 }'], ['#2F6B4F00', '{ l: 0.4794, c: 0.078, h: 161.08 }'],
+    ['#808080ff', '{ l: 0.5999, c: 0, h: 0 }'], ['#888f', '{ l: 0.6268, c: 0, h: 0 }'], ['#36a8', '{ l: 0.5095, c: 0.1216, h: 256.41 }']] as const) {
+    const errs = validateBrandInput({ ...base, primary: h });
+    ok(errs.length === 0, `#4312 the schema accepts the alpha hex anchor ${h} (got ${JSON.stringify(errs)})`);
+    let t: Theme | string;
+    try { t = brandTheme({ ...base, primary: h } as unknown as BrandInput); } catch (e) { t = (e as Error).message; }
+    const line = `primary: the hex ${h}, converted to OKLCH ${want}.`;
+    ok(typeof t !== 'string' && t.notes.includes(line),
+      `#4312 brandTheme drops the alpha of ${h} (want the note ${JSON.stringify(line)}; got ${typeof t === 'string' ? t : JSON.stringify(t.notes.filter((n) => n.includes('hex')))})`);
+  }
+  // The schema's pattern and HEX_ANCHOR are two spellings of one rule; each sample is judged by both.
+  const pattern = new RegExp(JSON.parse(readFileSync(resolve(HERE, 'schema', 'theme-schema.json'), 'utf8')).$defs.hexColor.pattern);
+  const takes = ['#abc', '#ABCD', '#a1b2c3', '#A1B2C3D4', '#000', '#ffff', '#000000', '#ffffffff'];
+  const refuses = ['#ab', '#abcde', '#abcdefa', '#abcdefabc', 'abc', '#ggg', '#12345g', '# abc', '#abc ', ''];
+  const split = [...takes.filter((s) => !(pattern.test(s) && HEX_ANCHOR.test(s))), ...refuses.filter((s) => pattern.test(s) || HEX_ANCHOR.test(s))];
+  ok(split.length === 0, `#4312 the schema's hexColor pattern and HEX_ANCHOR take #rgb, #rgba, #rrggbb and #rrggbbaa and refuse every other length (misjudged: ${JSON.stringify(split)})`);
+  for (const h of ['#2f6b4', '#2f6b4fc']) {
+    const errs = validateBrandInput({ ...base, primary: h });
+    ok(errs.length === 1 && /#rrggbb, #rgb, #rrggbbaa or #rgba/.test(errs[0]), `#4312 a ${h.length - 1}-digit hex is refused, naming the four hex forms (got ${JSON.stringify(errs)})`);
+  }
+  const r = spawnSync('npx', ['tsx', resolve(HERE, 'oklch.ts'), '#2f6b4fcc'], { cwd: HERE, encoding: 'utf8' });
+  ok(r.status === 0 && r.stdout.trim() === '#2f6b4fcc  →  { l: 0.4794, c: 0.078, h: 161.08 }',
+    `#4312 oklch.ts prints an 8-digit hex as its opaque anchor (status ${r.status}, got ${JSON.stringify(r.stdout.trim() || r.stderr.trim())})`);
 }
 
 // #4133 / #4200 A (owner decisions 2026-11-19) — the schema validator's messages say what the field takes, in the voice

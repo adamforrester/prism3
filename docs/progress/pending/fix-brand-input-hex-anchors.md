@@ -4,12 +4,15 @@ Three findings from the overnight audit (#4104), one root cause: the brand input
 or agent, the anchor color and the validator's reply, asked for OKLCH and said only where the input was wrong.
 
 - **#4133 A, hex anchors.** `$defs.colorAnchor` is a `oneOf` of the OKLCH object and a new `$defs.hexColor`
-  (`#rrggbb` or `#rgb`), at the three anchor sites: `primary`, `neutral.anchor`, `brandColors[].oklch`.
+  (`#rrggbb`, `#rgb`, `#rrggbbaa` or `#rgba`), at the three anchor sites: `primary`, `neutral.anchor`, `brandColors[].oklch`.
   `hex-anchors.ts` converts at the top of `brandTheme`, before `resolveVocabulary`, the same narrowing pattern
   the named stops use (`BrandInputAuthored` widens the three fields; `BrandInput` stays OKLCH, so nothing past
   that line sees a string). The conversion is the classifier's, `storedOklch(rgbToOklch(hexToRgb()))`, so a
   hue-less gray stores hue 0 as #2280 decided. It lives in its own pure module because `brandTheme` reaches the
-  plugin bundle, which carries no `node:` import.
+  plugin bundle, which carries no `node:` import. **8- and 4-digit hex (owner decision B, 2026-11-20):** the alpha
+  is dropped, as the standard dialect's `hexToRgb` drops it, because an anchor is opaque. `#2f6b4fcc` builds the
+  anchor `#2f6b4f` builds; `test.ts` pins both forms to literal OKLCH, keeps the schema's pattern and `HEX_ANCHOR`
+  agreeing on 18 spellings, and refuses a 5- or 7-digit hex.
 - **#4176 b, `oklch.ts <hex>`.** A command-line wrapper over the same conversion, listed in the agent reference.
   `prism3-theme` step 1 names it, and says the hex is accepted too. Its printed precision (`n4`, `n2`, the notes'
   precision) is checked to convert back to the same hex over a sweep of 586 colors.

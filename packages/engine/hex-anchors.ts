@@ -15,10 +15,14 @@
 import { hexToRgb, rgbToOklch, storedOklch, type OKLCH } from './color';
 import { n2, n4 } from './theme-types';
 
-/** A hex color as the input schema takes it (`$defs.hexColor`): `#rrggbb` or `#rgb`. */
-export const HEX_ANCHOR = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/;
+/** A hex color as the input schema takes it (`$defs.hexColor`): `#rrggbb`, `#rgb`, `#rrggbbaa` or `#rgba`. An alpha
+ *  is dropped (owner decision B on #4312, 2026-11-20), as the standard dialect's `hexToRgb` drops it: an anchor is
+ *  opaque, and real extractions often carry an 8-digit hex like `#c8102eff`. Kept in step with the schema's pattern by
+ *  `test.ts`'s #4312 arm. */
+export const HEX_ANCHOR = /^#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})$/;
 
-/** The stored OKLCH for a hex color: a hue-less gray stores hue 0 (#2280), as the classifier does. */
+/** The stored OKLCH for a hex color: a hue-less gray stores hue 0 (#2280), as the classifier does. `hexToRgb` drops
+ *  the alpha of an 8- or 4-digit hex. */
 export const hexToAnchor = (hex: string): OKLCH => storedOklch(rgbToOklch(hexToRgb(hex)));
 
 /** How an anchor prints in a note or on the command line. */
