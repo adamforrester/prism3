@@ -4,6 +4,24 @@
 
 The engine is dependency-free TypeScript in `packages/engine/`, run with `npx tsx` and no build. The Figma plugin does every write to a Figma file; an agent sends it commands and reads the results. Every path below is relative to this file, or a link into the public repository.
 
+## Use the MCP server
+
+The server runs from a clone of the repository, with Node 20 or later and no install step: `npx --yes tsx@4 packages/engine/mcp.ts`, run from the clone's root. It speaks MCP over stdio. A client registers the same command with an absolute path, for example `{ "mcpServers": { "prism3": { "command": "npx", "args": ["--yes", "tsx@4", "/path/to/prism3/packages/engine/mcp.ts"] } } }`. [Connect an agent](https://github.com/adamforrester/prism3/blob/main/packages/engine/README.md#connect-an-agent-mcp) covers Claude Code, the protocol versions and where `export_theme` writes.
+
+One minimal call per tool. Each line is the `params` of a `tools/call` request, and each runs as written (`mcp-test.ts` runs them). A brand needs `id`, `primary` as OKLCH (`l` 0 to 1, `c` chroma, `h` hue in degrees) and `neutral` (`hue` as degrees, `warm` or `cool`; `chroma` 0 to 0.03).
+
+```jsonl
+{"name": "list_levers", "arguments": {}}
+{"name": "list_levers", "arguments": {"describe": ["neutral"]}}
+{"name": "validate_brand", "arguments": {"brand": {"id": "acme", "primary": {"l": 0.55, "c": 0.18, "h": 265}, "neutral": {"hue": "cool", "chroma": 0.01}}}}
+{"name": "theme_brand", "arguments": {"brand": {"id": "acme", "primary": {"l": 0.55, "c": 0.18, "h": 265}, "neutral": {"hue": "cool", "chroma": 0.01}}}}
+{"name": "theme_from_brief", "arguments": {"brief": "---\nid: acme\nprimary: { l: 0.55, c: 0.18, h: 265 }\nneutral: { hue: cool, chroma: 0.01 }\n---\nA calm, precise brand."}}
+{"name": "score_consumption", "arguments": {"brand": {"id": "acme", "primary": {"l": 0.55, "c": 0.18, "h": 265}, "neutral": {"hue": "cool", "chroma": 0.01}}, "refs": ["color.text.primary", "color.background.primary"], "pairs": [{"fg": "color.text.primary", "bg": "color.background.primary"}]}}
+{"name": "export_theme", "arguments": {"brand": {"id": "acme", "primary": {"l": 0.55, "c": 0.18, "h": 265}, "neutral": {"hue": "cool", "chroma": 0.01}}, "outDir": "./tokens"}}
+```
+
+`theme_brand` returns the contrast results and the decisions log; pass `"include": ["notes", "tokens"]` for the token tree as well (`include` replaces the default, so name `notes` to keep the log), or use `export_theme` to write the files instead.
+
 ## Reference
 
 - [commands.json](reference/commands.json): every MCP tool (name, description, input schema, output), every agent-link command (args, what it writes, what it refuses) and every command-line entry point (usage, flags), each with its source file and the symbol to search for. Generated from the code and checked in CI, so it matches the code at the commit it was built from.
@@ -19,7 +37,7 @@ Task guides for designers, in task order. Every write to a Figma file goes throu
 - [Write the theme to a Figma file](guides/apply-a-theme.md): the variables, modes and styles the theme writes, and what makes it refuse.
 - [Set up a file](guides/file-setup.md): the pages and helper components setup adds.
 - [Build components](guides/build-components.md): choose sets in the Components area, and add them with Update file.
-- [Build style guides](guides/style-guides.md): set them up in Documentation, and draw them with Update file.
+- [Build style guides](guides/style-guides.md): set them up in Docs, and draw them with Update file.
 - [Export tokens](guides/export-tokens.md): from the studio, from the plugin, and from any Figma file with TokenPress.
 - [Use the agent link](guides/agent-link.md): let an AI agent drive the open plugin, its commands, and how it stays off by default.
 - [Feature reference](guides/features.md): what each surface can do, side by side.
