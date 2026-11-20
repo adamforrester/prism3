@@ -43777,6 +43777,61 @@ arm: {
   }
 }
 
+// #4178, #4179, #4182, #4183: the build skills state what the engine does. Each arm reads its oracle from the engine,
+// the CLI or a gate's source, never from the skill it checks.
+{
+  const ui = readFileSync(resolve(HERE, '../../skills/prism3-build-ui/SKILL.md'), 'utf8');
+  const bc = readFileSync(resolve(HERE, '../../skills/prism3-build-component/SKILL.md'), 'utf8');
+  // #4178: the on-fill ink is promised on the rest fill only, so the self-check must not call hover and pressed failures.
+  // Every `[inverse.]interactive.<intent>.on-fill` in the sidecar, not primary alone (review S1): each sits on its rest
+  // fill only. Then the intents whose hover or pressed label actually fails under it, scored by the engine over every
+  // example brand and mode: the self-check must name each one, so a new failing intent fails here by name.
+  const ai = JSON.parse(readFileSync(resolve(HERE, 'out/prism3.ai.json'), 'utf8'));
+  const onFills = Object.entries(ai?.color ?? {}).filter(([k]) => /^(inverse\.)?interactive\.[a-z-]+\.on-fill$/.test(k)) as [string, any][];
+  const offRest = onFills.filter(([k, v]) => { const so: string[] = v?.sits_on ?? []; return !so.includes(k.replace(/on-fill$/, 'fill.rest')) || so.some((x) => /fill\.(hover|pressed)$/.test(x)); });
+  ok(onFills.length >= 6 && offRest.length === 0,
+    `#4178 oracle: every interactive.<intent>.on-fill sits on its fill.rest and not on hover or pressed (${onFills.length} read; off: ${offRest.map(([k]) => k).join(', ') || 'none'})`);
+  const intents = [...new Set(onFills.map(([k]) => k.match(/interactive\.([a-z-]+)\.on-fill$/)![1]))];
+  const failing = new Set<string>();
+  let scored = 0;
+  for (const id of EXAMPLE_IDS) {
+    const pairs = onFills.flatMap(([k]) => (['hover', 'pressed'] as const).map((st) => ({ fg: k, bg: k.replace(/on-fill$/, `fill.${st}`), kind: 'text' as const })));
+    const r = scoreContractCompliance(pairs, brandTheme(exampleBrands()[id] as BrandInput));
+    if (r.checked > 0 && r.unresolved.length === 0) scored++;
+    for (const f of r.failures) { const m = f.pair.match(/interactive\.([a-z-]+)\.on-fill on /); if (m) failing.add(m[1]); }
+  }
+  const selfCheck = ui.slice(ui.indexOf('## The self-check'), ui.indexOf('Then reread the brief against what you built.'));
+  const unnamedIntents = [...failing].filter((i) => !selfCheck.includes(`\`${i}\``));
+  ok(intents.length >= 3 && scored === EXAMPLE_IDS.length && failing.size >= 1 && unnamedIntents.length === 0
+    && /`interactive\.<intent>\.on-fill`\s+is promised only on `interactive\.<intent>\.fill\.rest`/.test(selfCheck) && /#1626/.test(selfCheck),
+    `#4178 prism3-build-ui: the self-check says each on-fill is promised only on fill.rest, names every intent whose hover or pressed label fails over ${scored}/${EXAMPLE_IDS.length} brands (${[...failing].join(', ') || 'none'}; unnamed: ${unnamedIntents.join(', ') || 'none'}), and cites #1626`);
+  // #4179: the skill names where a brand's resolved component bindings come from, and both routes exist.
+  const cli = readFileSync(resolve(HERE, 'cli.ts'), 'utf8');
+  ok(cli.includes("a === '--component-specs'") && ui.includes('--component-specs'),
+    '#4179 prism3-build-ui: names `cli.ts --component-specs`, the flag cli.ts accepts, for a brand\'s resolved component bindings');
+  ok((EXPORT_SECTIONS as readonly string[]).includes('componentSpecs') && /`export_theme`[^\n]*\n?[^\n]*`componentSpecs`/.test(ui),
+    "#4179 prism3-build-ui: names MCP `export_theme` with `componentSpecs`, one of export_theme's sections");
+  ok(!/a Button is `radius\.md`\. /.test(ui),
+    '#4179 prism3-build-ui: the radius row no longer states a Button is `radius.md` for every brand');
+  // #4182: §7's table names the hand lists a new def or part kind joins, each read as declared in its gate.
+  const sec7 = bc.slice(bc.indexOf('## 7. Verification'), bc.indexOf('## 8. Versioning'));
+  const declares = (file: string, name: string) => new RegExp(`(?:const|let)\\s+${name}\\b`).test(readFileSync(resolve(HERE, '../..', file), 'utf8'));
+  for (const [file, name] of [['packages/engine/lint-part-union.ts', 'KINDS'], ['packages/engine/lint-part-union.ts', 'ADMITS'], ['packages/engine/lint-motion-literals.ts', 'RECIPE_DEFS'], ['apps/plugin/src/executor-revision.ts', 'EXECUTOR_REVISION']] as const)
+    ok(declares(file, name) && sec7.includes(`\`${name}\``), `#4182 prism3-build-component: §7 names \`${name}\`, declared in ${file}`);
+  // #4183: the closing checklist counts the baselines §7 lists, and every top-level ComponentDef field is named.
+  const accepted = bc.match(/(\w+) baselines move with a new or changed projection/)?.[1] ?? '';
+  const listed = (bc.slice(bc.indexOf('baselines move with a new or changed projection')).split('Read the diff')[0].match(/`lint-[a-z-]+`/g) ?? []).length;
+  const words: Record<string, number> = { Two: 2, Three: 3, Four: 4 };
+  const item8 = bc.match(/^8\. The def is in every gate list[\s\S]*?(?=^9\. )/m)?.[0] ?? '';
+  ok(words[accepted] === listed && new RegExp(`all ${accepted.toLowerCase()} baselines`).test(item8),
+    `#4183 prism3-build-component: "Before you finish" item 8 accepts all ${listed} baselines §7 lists (§7 says "${accepted}")`);
+  const schemaSrc = readFileSync(resolve(HERE, 'component-schema.ts'), 'utf8');
+  const defSrc = schemaSrc.slice(schemaSrc.indexOf('export type ComponentDef ='));
+  const defFields = [...defSrc.slice(0, defSrc.indexOf('\n};\n')).matchAll(/^  (?:readonly )?([A-Za-z]+)\??:/gm)].map((m) => m[1]);
+  const unnamed = defFields.filter((f) => !new RegExp('`' + f + '\\b').test(bc));
+  ok(defFields.length > 20 && unnamed.length === 0,
+    `#4183 prism3-build-component: names every top-level ComponentDef field (${defFields.length} read; unnamed: ${unnamed.join(', ') || 'none'})`);
+}
 // ---- #3346 (owner Q1 revised A, E1 A, E3 A; 2026-11-03): THE SELECTION MARK, `interactive.<c>.indicator.*` ----
 // A shape that marks a control as selected or on binds its own role, the bold value: the label's ink as RESOLVED,
 // overrides included. Every expectation below is a literal typed from the decision on #3346, never read off the defs,
@@ -44715,6 +44770,29 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     `#3076 duplicate art: the brand glyphs that draw a core icon's shape are named with it, relative spellings included, and a mapped-away icon is not (got ${JSON.stringify(dups)})`);
   ok(iconArtDuplicates(figmaAnatomySet(iconDef, {})).length === 0, `#3076 duplicate art: Prism3's own duplicates are not the brand's to report (got ${JSON.stringify(iconArtDuplicates(figmaAnatomySet(iconDef, {})))})`);
   ok(iconArtDuplicates(iconPlans).length === 0, `#3076 duplicate art: a brand whose art draws no icon's shape reports nothing (got ${JSON.stringify(iconArtDuplicates(iconPlans))})`);
+}
+
+// #3505 — the dependency-advisory register holds each accepted or awaited `npm audit` advisory with a review date,
+// and `lint-advisory-expiry.ts` is what fails on that date. A row worded so the detector misses it would never come
+// due. EXPECTED is the owner decision's four advisories, written here; ACTUAL is the detector's own reading of the
+// register, so each row must be a claim the gate sees, and under the section the decision put it in.
+{
+  const { claimsIn } = await import('./lint-advisory-expiry.ts');
+  const file = 'docs/dependency-advisories.md';
+  const src = readFileSync(resolve(HERE, '..', '..', file), 'utf8');
+  const lines = src.split('\n');
+  const claimLines = new Set(claimsIn(file, src).map((c) => c.line));
+  const sectionOf = (i: number) => lines.slice(0, i).filter((l) => l.startsWith('## ')).at(-1) ?? '';
+  for (const [ghsa, section] of [
+    ['GHSA-gcqx-w48m-w2h4', '## Accepted'], ['GHSA-67mh-4wv8-2f99', '## Accepted'],
+    ['GHSA-3g3m-2fjr-6pw4', '## Waiting on upstream'], ['GHSA-g3hv-75wg-m249', '## Waiting on upstream'],
+  ] as const) {
+    const i = lines.findIndex((l) => l.startsWith(`| ${ghsa} `));
+    ok(i >= 0, `#3505 ${file} has a row for ${ghsa}`);
+    if (i < 0) continue;
+    ok(sectionOf(i).startsWith(section), `#3505 ${ghsa} is under "${section}" in ${file} (got ${JSON.stringify(sectionOf(i))})`);
+    ok(claimLines.has(i + 1), `#3505 lint-advisory-expiry reads a review date on ${ghsa}'s row (${file}:${i + 1}), so the row comes due`);
+  }
 }
 
 // #3284 (owner decision A, 2026-11-18) — the action note told an unset lever from an explicit `primary` by the
