@@ -39,7 +39,7 @@
  * what a designer does by hand, and `setProperties` on a fresh instance. Neither has been probed through the plugin
  * API on a real file yet; the first run on the master file is that probe, and a refusal there is a miss by name.
  */
-import type { ComponentRename } from '@prism3/engine';
+import type { ComponentRename } from '@prism3/engine'; import { failureDetail } from './host-detail';   // #4253
 
 type SlotEntry = Extract<ComponentRename, { kind: 'slot' }>;
 type Val = string | boolean;
@@ -328,7 +328,7 @@ export const fillSlots = async (setName: string, entry: SlotEntry, live: LiveRow
           if (to) write[to] = v; else out.misses.push(`${where}: ${r.row} ${k.split('#')[0]} -> the slot's button has no such property`);
         }
         if (!Object.keys(write).length) continue;
-        try { x.setProperties?.(write); } catch (err) { out.misses.push(`${where}: ${r.row} values -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+        try { x.setProperties?.(write); } catch (err) { out.misses.push(`${where}: ${r.row} values -> REFUSED (${failureDetail(err)})`); continue; }
         const got = valuesOf(x, false);
         for (const [k, v] of Object.entries(write)) if (got[k] !== v) out.misses.push(`${where}: ${r.row} ${k.split('#')[0]} reads ${JSON.stringify(got[k])}, expected ${JSON.stringify(v)}`);
         carried++;
@@ -347,17 +347,17 @@ export const fillSlots = async (setName: string, entry: SlotEntry, live: LiveRow
       const main = l.rows[i]?.main;
       if (!main?.createInstance) { out.misses.push(`${where}: ${r.row} -> NOT MADE (its component can't be instanced here)`); continue; }
       let x: MigNode;
-      try { x = main.createInstance(); } catch (err) { out.misses.push(`${where}: ${r.row} -> NOT MADE (${(err as Error)?.message ?? String(err)})`); continue; }
+      try { x = main.createInstance(); } catch (err) { out.misses.push(`${where}: ${r.row} -> NOT MADE (${failureDetail(err)})`); continue; }
       x.name = r.row;
-      try { slot.appendChild(x); } catch (err) { out.misses.push(`${where}: ${r.row} -> REFUSED by the slot (${(err as Error)?.message ?? String(err)})`); x.remove?.(); continue; }
+      try { slot.appendChild(x); } catch (err) { out.misses.push(`${where}: ${r.row} -> REFUSED by the slot (${failureDetail(err)})`); x.remove?.(); continue; }
       for (const [f, v] of Object.entries(layout)) if (v !== undefined) (x as Record<string, unknown>)[f] = v;
       if (Object.keys(r.props).length) {
-        try { x.setProperties?.(r.props); } catch (err) { out.misses.push(`${where}: ${r.row} values -> REFUSED (${(err as Error)?.message ?? String(err)})`); }
+        try { x.setProperties?.(r.props); } catch (err) { out.misses.push(`${where}: ${r.row} values -> REFUSED (${failureDetail(err)})`); }
       }
       for (const e of r.exposed) {
         const target = (x.exposedInstances ?? []).find((y) => y.name === e.name);
         if (!target) { out.misses.push(`${where}: ${r.row} has no exposed ${e.name} to set`); continue; }
-        try { target.setProperties?.(e.props); } catch (err) { out.misses.push(`${where}: ${r.row}/${e.name} values -> REFUSED (${(err as Error)?.message ?? String(err)})`); }
+        try { target.setProperties?.(e.props); } catch (err) { out.misses.push(`${where}: ${r.row}/${e.name} values -> REFUSED (${failureDetail(err)})`); }
       }
       made++;
     }
