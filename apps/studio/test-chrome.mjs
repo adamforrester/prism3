@@ -20447,6 +20447,37 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await settle(page);
     const av = await strip(page);
     ok(av.kind === 'verdict' && av.what === 'Theme applied' && N_CLOCK.test(av.n ?? ''), `${where}: Q3170.6 A: "Theme applied" and its time (${JSON.stringify(av)})`);
+    // ── #4219 (owner A): one announcer per run, Activity's, and a failure says why ──
+    // Every write to both polite regions is recorded through one run that fails: the drawer's `activity-status` speaks
+    // once at the start and once at the end, the strip's `status-live` not at all (it keeps only "Still working on …",
+    // held above), and the end names the host's reason. The reason is the issue's literal.
+    step = '#4219 one announcer';
+    await page.evaluate(() => {
+      window.__live = [];
+      for (const k of ['activity-status', 'status-live']) {
+        const n = document.querySelector(`[data-p3="${k}"]`);
+        if (n) new MutationObserver(() => { if (n.textContent.trim()) window.__live.push([k, n.textContent]); }).observe(n, { childList: true, characterData: true, subtree: true });
+      }
+    });
+    await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+    await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+    await postMsg(page, { ...T_FILE, due: { button: { state: 'current' }, tag: { state: 'current' }, badge: { state: 'current' } } });
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]'), null, WAIT).catch(() => {});
+    if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'))) !== 'true') await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+    await postMsg(page, { ...T_FILE, due: { button: { state: 'current' }, tag: { state: 'current' }, badge: { state: 'current' } } });
+    await page.waitForFunction(() => !document.querySelector('[data-p3="update-go"]')?.disabled, null, WAIT).catch(() => {});
+    const go4219 = await page.evaluate(() => ({ disabled: document.querySelector('[data-p3="update-go"]')?.disabled ?? null, ticks: [...document.querySelectorAll('[data-p3="update-dialog"] [role="checkbox"]')].map((n) => `${n.dataset.key}=${n.getAttribute('aria-checked')}`) }));
+    ok(go4219.disabled === false, `${where}: #4219 premise: Update file's Go is on with Theme ticked (${JSON.stringify(go4219)})`);
+    await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+    await postMsg(page, { type: 'run-progress', run: 'apply-theme', phase: 'work', item: 'color', done: 1, total: 7 });
+    await settle(page);
+    await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ Apply failed', summary: 'Figma refused the write: the file is read-only.', lines: null });
+    await settle(page);
+    const said = await page.evaluate(() => window.__live);
+    const act = said.filter(([k]) => k === 'activity-status').map(([, t]) => t), str = said.filter(([k]) => k === 'status-live').map(([, t]) => t);
+    ok(str.length === 0, `${where}: #4219 the status strip announces nothing of the run (${JSON.stringify(str)})`);
+    ok(act.length === 2 && act[0].startsWith('Update file'), `${where}: #4219 Activity announces the run once at its start and once at its end (${JSON.stringify(act)})`);
+    ok(act[act.length - 1] === 'Update file failed: Figma refused the write: the file is read-only.', `${where}: #4219 the failure's announcement carries the host's reason (${JSON.stringify(act[act.length - 1])})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
