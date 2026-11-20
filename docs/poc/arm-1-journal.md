@@ -406,7 +406,8 @@ already carries `button-destructive` and `button-neutral` rows, so generating th
   12; writing about 8; running and fixing about 10.
 - **Hand edits:** `generate.ts` (one helper, one declaration), the three checks, the README section, this entry and
   the progress entry. `button.css` was regenerated, not hand-edited.
-- **Errors hit:** 2. The first `$type` lookup ignored a group-inherited type, so it was rewritten as a walk. The
+- **Errors hit:** 3.
+  - The first cut of the #3946 fix still raced the upgrade (above). `verify.ts`'s run caught it. The first `$type` lookup ignored a group-inherited type, so it was rewritten as a walk. The
   first browser check failed on Chromium's `normal`, as described above.
 
 ---
@@ -2165,8 +2166,14 @@ the earlier stages loaded the runner. Whether the check saw the defect depended 
 "intermittent" the issue saw from the other side.
 
 **The fix.** Stage 4 writes the press, the value and the caret in one task, so the script's delayed restore always
-runs after them, which is the order the slow runner hit. The read now waits 50 ms after the upgrade, so a restore or
-reset that lands a task later shows too. With that wait, the element's own restore holds `1,4`, so the issue's
+runs after them, which is the order the slow runner hit. The evaluate then waits on a zero-delay timer of its own,
+queued after the script's, so that restore has run before the upgrade starts. The read waits 50 ms after the upgrade,
+so a restore or reset that lands a task later shows too.
+
+The timer wait came second. The first cut had only the one task, and under `verify.ts`'s load the new mutant went
+uncaught once (`was not reported by name (nothing)`). The script's timer had run after the upgrade, so it touched the
+replaced input, and the check passed by timing again. With the wait, 12 of 12 runs, six side by side, pass the real
+check and fail the mutant by name. With that wait, the element's own restore holds `1,4`, so the issue's
 suspect (a Chromium reset after the adopted input is focused) isn't seen.
 
 **Mutation.** A new self-test mutant drops `@prism3/css`'s #3945 guard and must fail as
@@ -2179,7 +2186,8 @@ check failed 4 of 4 runs by that name. Restored with `git show`.
 - **Hand edits:** `generate-fields.ts` (the guard and a comment), `check-browser-fields.ts` (one new arm, stage 4
   rewritten, two mutants), this entry and the progress entry. `p3-password-field.js` and `custom-elements.json`
   were regenerated.
-- **Errors hit:** 2.
+- **Errors hit:** 3.
+  - The first cut of the #3946 fix still raced the upgrade (above). `verify.ts`'s run caught it.
   - The manifest analyzer cut a JSDoc description at `@prism3`, reading it as a tag. I reworded the comment.
   - My first reproduction script crashed: tsx compiled it as CommonJS, and importing `run-suites.ts` runs its main.
 
