@@ -28246,6 +28246,42 @@ arm: {
         ok(remedy.every((r) => !r.misses.length) && renPage.children.length === 2 && kids(setOf(renPage)).length === 36
           && at(setOf(renPage)) === '664,0' && kids(setOf(renPage, 'button (earlier axes)')).every((m, i) => m === renBefore[i]),
           `#1809 after renaming the old set aside, the paste makes a fresh 36-member set beside it at 664,0 and leaves the old one as it was (${renPage.children.length} top-level, new set at ${at(setOf(renPage))}, misses ${JSON.stringify(remedy.map((r) => r.misses.length))})`);
+
+        // (k) #2610 — UNDER THE PAGE'S SECTION HEADER, as the plugin's \`placeNewSet\` places it (#2405, #2598). Every coordinate is a
+        // literal worked by hand from the rule: the row's top is the sets' top, else the header's bottom + 80; the set takes the
+        // first slot, scanning right from the header's left edge, whose box widened 160 each side meets nothing in the row.
+        // A header alone: 0,120 + 80 = 0,200. Before #2610 the paste read the header as content, so 1200 + 160 = 1360,0.
+        const header = () => ({ type: 'INSTANCE', name: '_section-header', x: 0, y: 0, width: 1200, height: 120 });
+        const hdrPage: StubPage = { children: [header()] };
+        const hdrPlug: StubPage = { children: [header()] };
+        await paste(btn, hdrPage);
+        await plug(btn, hdrPlug);
+        ok(at(setOf(hdrPage)) === '0,200',
+          `#2610 on a page holding only its section header, the pasted set goes under it, on its left edge, 80 below: 0,200 (got ${at(setOf(hdrPage))})`);
+        ok(at(setOf(hdrPlug)) === at(setOf(hdrPage)),
+          `#2610 parity: the plugin places the set under the header at the same coordinate (plugin ${at(setOf(hdrPlug))}, paste ${at(setOf(hdrPage))})`);
+        // A header plus a kept set moved right (1500..2004 at y 200): the slot at the header's edge is free (0 + 504 + 160 < 1500), so
+        // the set goes into the gap, 0,200, and not past the kept set (2004 + 160 = 2164) as the old rule put it.
+        const kept = () => ({ type: 'COMPONENT_SET', name: 'kept', x: 1500, y: 200, width: 504, height: 348, children: [] });
+        const gapPage: StubPage = { children: [header(), kept()] };
+        const gapPlug: StubPage = { children: [header(), kept()] };
+        await paste(btn, gapPage);
+        await plug(btn, gapPlug);
+        ok(at(setOf(gapPage)) === '0,200',
+          `#2610 on a page with a header and a kept set, the pasted set takes the first free slot under the header: 0,200 (got ${at(setOf(gapPage))})`);
+        ok(at(setOf(gapPlug)) === at(setOf(gapPage)),
+          `#2610 parity: the plugin takes the same slot (plugin ${at(setOf(gapPlug))}, paste ${at(setOf(gapPage))})`);
+        // A header plus a kept set ON the header's left edge (0..504 at y 200), the ordinary second paste: the slot at the edge is
+        // taken, so the scan pushes the set right of it, 504 + 160 = 664,200, and never onto the kept set at 0,200.
+        const keptAtEdge = () => ({ type: 'COMPONENT_SET', name: 'kept', x: 0, y: 200, width: 504, height: 348, children: [] });
+        const pushPage: StubPage = { children: [header(), keptAtEdge()] };
+        const pushPlug: StubPage = { children: [header(), keptAtEdge()] };
+        await paste(btn, pushPage);
+        await plug(btn, pushPlug);
+        ok(at(setOf(pushPage)) === '664,200',
+          `#2610 on a page with a header and a kept set on its left edge, the pasted set is pushed right of the kept set: 664,200 (got ${at(setOf(pushPage))})`);
+        ok(at(setOf(pushPlug)) === at(setOf(pushPage)),
+          `#2610 parity: the plugin pushes the set to the same slot (plugin ${at(setOf(pushPlug))}, paste ${at(setOf(pushPage))})`);
       }
 
       // ---- #1377 / #1392: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, over EVERY nest-exposed def -------
