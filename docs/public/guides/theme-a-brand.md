@@ -46,7 +46,7 @@ On **Palettes**, your colors are pinned as anchors on their ramps and never shif
 
 Each tab shows its levers on one side and a preview on the other. <!-- src: apps/studio/src/shell/frame.ts:16-19#7ed29f7d -->
 
-- **Preview mode** switches the preview between the brand's modes. <!-- src: apps/studio/src/shell/preview.ts:82 -->
+- **Preview mode** switches the preview between the brand's modes. <!-- src: apps/studio/src/shell/preview.ts:78 -->
 - The **Palettes** tab always shows Light, and the mode control is off while it is open: "Palettes always show Light. Ramps are the same in every mode." <!-- src: apps/studio/src/preview/palettes.ts:32 -->
 - A derived mode, such as a high-contrast one, is shown but not edited. The studio says "is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit." <!-- src: apps/studio/src/shell/frame.ts:126 -->
 - **Inspect** opens two views over any tab: **Contrast**, each pair against its floor, and **Tokens**. <!-- src: apps/studio/src/shell/pages.ts:120 --> <!-- src: apps/studio/src/shell/preview.ts:254 -->
