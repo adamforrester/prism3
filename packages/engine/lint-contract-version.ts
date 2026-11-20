@@ -52,7 +52,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { comparisonBase } from './comparison-base';
+import { comparisonBase, mergeGroupBase } from './comparison-base';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
@@ -130,7 +130,12 @@ if (selfFails.length)
 const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : null;
 let baseRef: string | null = null;
 const tried: string[] = [];
-if (prBase) {
+const mg = mergeGroupBase(git);
+if (mg) {
+  // A merge-queue run (#4106): the group's parent commit, authoritative (`comparison-base.ts`).
+  tried.push(mg.tried);
+  baseRef = mg.ref;
+} else if (prBase) {
   if (process.env.GITHUB_ACTIONS === 'true') {
     // The checkout's `origin/<base>` is as old as the run's start, and a PR that landed since may hold the
     // number this one claims (#2551's shape). Fetched again, and a failed fetch does not fall back.
