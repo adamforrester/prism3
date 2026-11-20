@@ -12,8 +12,9 @@ tree by its own alias walk, while the projector reads the handoff files.
 at 4.04–4.25 on every brand. They are listed in `KNOWN` per brand, with the decision and the ratio accepted (the value
 measured, floored to two places), and #4279 holds the engine question. A known pair below its accepted ratio fails by
 name, and an entry whose pair passes fails as STALE, so the list remembers what the owner saw (review on #4289). One more
-pair fails and is held in `KNOWN_PENDING` for the owner: nb, light, `muted-foreground` on `muted`, 3.77. It prints on
-every run, and fails as STALE once it passes. The round trip is exact for all 320 values. No mapped role carries alpha
+pair fails: nb, light, `muted-foreground` on `muted`, 3.77. The owner accepted it on #4289 (owner decision 2026-11-19
+A: a legacy fixture, not engine-derived), and it stays in `KNOWN_PENDING`, held the same way as `KNOWN`: to its accepted
+3.77, printed on every run, STALE once it passes. The round trip is exact for all 320 values. No mapped role carries alpha
 today, so the alpha arm has nothing to read until one does.
 
 **Trap.** A function passed to Playwright's `page.evaluate` from a `tsx` script carries esbuild's `__name` helper, which
@@ -29,3 +30,5 @@ no dependency.
 - a pending key that no longer fails fails `STALE PENDING`, and the real nb pair fails by name;
 - prism3's dark `primary` emitted as `oklch(0.25 0.1 266.7)` fails `prism3 dark: primary on background 1.19 < 4.5 — BELOW
   ACCEPTED 4.24`, and a lighter dark `destructive` fails `STALE KNOWN prism3 dark: destructive on background`.
+- nb's light `muted` darkened fails `nb light: muted-foreground on muted 2.57 < 4.5 — BELOW ACCEPTED 3.77`, where it
+  was muted at any ratio before (delta review on #4289).
