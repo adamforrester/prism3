@@ -13,7 +13,7 @@ import { PALETTE_NAME_RE, RESERVED_PALETTES, STATUS_DEFAULTS, statusRamp, inRedT
 import { buildDims } from './theme-dims';
 import { buildMotion, type MotionAxis } from './theme-motion';
 import { LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, DISPLAY_VARIANTS, buildTypography, withLabelDefault, WEIGHT_ROLE_DEFAULT, type FontFamilyBinding, type WeightRole, deriveFamilies, WEIGHT_ROLE_ORDER, type TypeGroup, deriveTypefaces, PER_MODE_SIZE_GROUPS, type PerModeSizeGroup, HEADING_SIZE_FLOOR, mobileEndpoint, TYPE_GROUPS } from './theme-type';
-import { buildShadow, type ShadowAxis, type ShadowStep, type ShadowLayer } from './theme-shadow';
+import { buildShadow, darkShadowSeed, type ShadowAxis, type ShadowStep, type ShadowLayer } from './theme-shadow';
 import { buildLayout, gridGapNotes } from './theme-layout';
 import { buildGradient } from './theme-gradient';
 
@@ -668,6 +668,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     for (const s of shadow.steps) layers[s.name] = s.dark;
     shadowByMode[cm.name] = { appearance: 'dark', colorRgb: shadow.colorRgb, softness: shadow.softness, tint: shadow.tint, layers };
   }
+  // The built-in `hc-dark` is a dark-appearance mode too (#4131, owner decision A): it takes the same
+  // global reduced dark layers, so the shadow model holds in every dark mode. It is generate-only, so it
+  // never carries an override of its own.
+  if (modes.includes('hc-dark') && !shadowByMode['hc-dark']) shadowByMode['hc-dark'] = darkShadowSeed(shadow);
   if (Object.keys(shadowByMode).length) shadow.shadowByMode = shadowByMode;
   const gradient = buildGradient(input.gradients, palettes, root);
   const [firstGradient] = gradient.gradients;
