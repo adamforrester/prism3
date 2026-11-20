@@ -15488,7 +15488,7 @@
       ],
       "category": "navigation",
       "status": "draft",
-      "summary": "A person's place in a fixed sequence of steps. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
+      "summary": "A person's place in a fixed sequence of steps. Size and orientation apply to the items you haven't edited. After editing an item, select the items and set their size and orientation.",
       "description": "Shows where a person is in a fixed sequence of steps, such as a checkout. Each step has a numbered disc and a name, joined to the next by a line. Complete steps show a check and can link back; the current step is filled; steps not started yet are outlined and never links, so they do not read as reachable. A step can also show an error. The row runs across or down, and on a narrow screen collapses to one line naming the current step.",
       "props": [
         {

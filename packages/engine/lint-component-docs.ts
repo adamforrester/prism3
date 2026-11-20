@@ -768,10 +768,26 @@ const ITEMS_SIZE_NOTE = "Size applies to the items you haven't edited. After edi
 const ITEMS_SIZE_HOST_FLOOR = 5;
 const itemsSizeHosts = componentDefs.filter((d) => d.props.some((p) => p.name === 'items' && p.type === 'slot') && d.props.some((p) => p.name === 'size'));
 if (itemsSizeHosts.length < ITEMS_SIZE_HOST_FLOOR) note(`ITEMS SIZE NOTE FLOOR: only ${itemsSizeHosts.length} items-slot hosts with a size were found, expected at least ${ITEMS_SIZE_HOST_FLOOR} — the host scan is not reaching the defs`);
+// A host whose slot also turns with an axis its items carry (`directionWhen` on the slot, the same axis on every
+// item: Steps' orientation) passes that axis the same way, so its note names direction as well as size (#3055,
+// owner decision 2026-11-20). The host is found from the anatomy and the item defs, not listed here; the sentence
+// is a literal here for the same reason as the size note.
+const ITEMS_SIZE_DIRECTION_NOTE = "Size and orientation apply to the items you haven't edited. After editing an item, select the items and set their size and orientation.";
+const ITEMS_SIZE_DIRECTION_HOST_FLOOR = 1;
+const followsDirection = (def: (typeof componentDefs)[number]): boolean => {
+  const items = def.props.find((p) => p.name === 'items' && p.type === 'slot') as { anyOf?: readonly string[] } | undefined;
+  const itemIds = items?.anyOf ?? [];
+  return itemIds.length > 0 && Object.values(def.anatomy?.parts ?? {}).some((part: any) => part?.contentSlot && part.directionWhen
+    && itemIds.every((id) => !!componentDefs.find((d) => d.id === id)?.variants?.[part.directionWhen.axis]));
+};
+const directionHosts = itemsSizeHosts.filter(followsDirection);
+if (directionHosts.length < ITEMS_SIZE_DIRECTION_HOST_FLOOR) note(`ITEMS SIZE NOTE FLOOR: only ${directionHosts.length} items-slot hosts whose slot turns with an axis its items carry, expected at least ${ITEMS_SIZE_DIRECTION_HOST_FLOOR} — the direction scan is not reaching the defs`);
 for (const def of itemsSizeHosts) {
-  if (!def.summary.endsWith(ITEMS_SIZE_NOTE)) note(`ITEMS SIZE NOTE (def): \`${def.id}\` holds items in a slot and takes a size, but its summary — the Figma description — does not end with the note: "${ITEMS_SIZE_NOTE}"`);
-  if (!String(entries[def.id]?.summary ?? '').endsWith(ITEMS_SIZE_NOTE)) note(`ITEMS SIZE NOTE (json): \`${def.id}\` in components.ai.json does not carry the items size note`);
-  if (!unescape(pages.get(def.id) ?? '').includes(ITEMS_SIZE_NOTE)) note(`ITEMS SIZE NOTE (page): out/components/${def.id}.md does not carry the items size note`);
+  const want = followsDirection(def) ? ITEMS_SIZE_DIRECTION_NOTE : ITEMS_SIZE_NOTE;
+  const what = followsDirection(def) ? 'items size-and-orientation note' : 'items size note';
+  if (!def.summary.endsWith(want)) note(`ITEMS SIZE NOTE (def): \`${def.id}\` holds items in a slot and takes a size, but its summary — the Figma description — does not end with the ${what}: "${want}"`);
+  if (!String(entries[def.id]?.summary ?? '').endsWith(want)) note(`ITEMS SIZE NOTE (json): \`${def.id}\` in components.ai.json does not carry the ${what}`);
+  if (!unescape(pages.get(def.id) ?? '').includes(want)) note(`ITEMS SIZE NOTE (page): out/components/${def.id}.md does not carry the ${what}`);
 }
 
 // ---- ARM G: the component-defs export (#3425, owner decision Q45 A) ------------------------------------------------

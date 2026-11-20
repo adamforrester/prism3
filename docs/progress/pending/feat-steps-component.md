@@ -35,6 +35,13 @@ Link), the Figma page section, the DRAFT copy ("Step name", the four hidden word
 DRAFT spacing, the default last step's trailing line (nested overrides take no booleans), StepItem's aliases, the
 `responsive` prop, and the Q438 sentence's reach to orientation.
 
+**Owner decisions, 2026-11-20.** All A except the line color, which waits on a comparison render: 16 members, the
+`↳ Steps` page, the DRAFT copy and spacing, the trailing line accepted, both aliases and `responsive` kept, and the
+wireframe rule waived for this PR. The summary's Q438 sentence now names orientation as well as size, as DRAFT wording
+("Size and orientation apply to the items you haven't edited …"). `lint-component-docs` ARM F holds it: a host
+whose slot turns with an axis its items also carry (`directionWhen`, found from the anatomy, not listed) must end its
+summary with that sentence, in the def, the JSON and the page.
+
 **After review:** the default Steps numbers its second and third items "2" and "3" in Figma (`nestTexts`, #2317);
 StepItem's own default is "1", so an inserted Steps read 1, 1 before. `#3055 steps/slot` asserts the numbers.
 

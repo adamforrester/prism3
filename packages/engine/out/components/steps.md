@@ -1,6 +1,6 @@
 # Steps
 
-> A person's place in a fixed sequence of steps. Size applies to the items you haven't edited. After editing an item, select the items and set their size.
+> A person's place in a fixed sequence of steps. Size and orientation apply to the items you haven't edited. After editing an item, select the items and set their size and orientation.
 
 - **ID:** `steps`
 - **Category:** navigation
