@@ -498,10 +498,10 @@ export const dialog: ComponentDef = {
 
   composition: {
     composesWith: ['flush-icon-button-neutral', 'divider', 'button-group'],
-    alternativeTo: ['accordion', 'toast', 'banner'],
+    alternativeTo: ['accordion', 'toast', 'banner', 'popover'],
     replacesPatterns: ['a div overlay with a z-index and a hand-written focus trap', 'a backdrop built from a veil'],
     supersededBy: [],
-    planned: ['popover', 'menu'],
+    planned: ['menu'],
   },
 
   motion: {
