@@ -7164,9 +7164,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "A quick fade in on mount: opacity over `motion.duration.fast` (100ms at the standard tempo) on the `motion.easing-role.enter` curve. The host decides when to mount it.",
+        "enter": "A quick fade in on mount: opacity over `motion.duration.fast` on the `motion.easing-role.enter` curve. The host decides when to mount it.",
         "exit": "none",
-        "reduceMotion": "The turn runs `motion.duration.spin` (800ms) per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` (2600ms) per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion."
+        "reduceMotion": "The turn runs `motion.duration.spin` per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion."
       },
       "composition": {
         "composesWith": [],
@@ -12640,9 +12640,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "Appears after a short delay (400ms), so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep` (1600ms), on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.",
-        "exit": "Stays at least 500ms once shown, then leaves with its host.",
-        "reduceMotion": "The fill snaps to each value (`motion.duration-reduced.moderate`, 0ms). The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep` (2600ms). It is never removed, because a still bar reads as stuck."
+        "enter": "Appears after a short delay, `delay`, so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep`, on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.",
+        "exit": "Stays at least `minDisplay` once shown, then leaves with its host.",
+        "reduceMotion": "The fill snaps to each value, on `motion.duration-reduced.moderate`. The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep`. It is never removed, because a still bar reads as stuck."
       },
       "composition": {
         "composesWith": [
