@@ -446,6 +446,7 @@ const RAW_READS: [file: string, needle: string, cls: 'data' | 'engine' | 'helper
   ['panel-census.ts', 'node.remove?.()', 'data', "Clean up's panel tab, not Activity"],
   ['preload-fonts.ts', "'load failed'", 'data', 'the apply line names the face only'],
   ['prune-figma.ts', 'counts.failed.push', 'data', "prune's failed list: the summary prints its count; the names go to sink.data"],
+  ['theme-ports.ts', '/Limited to (\\d+) modes?/i.exec(', 'data', "the mode probe's cap: only the number it parses is kept, posted as the refusal's count and agent data"],
   ['update-plan.ts', 'partRenames(defId, ledger)', 'engine', "the engine's rename refusal"],
   ['update-plan.ts', 'String((err as Error).message)', 'engine', "the engine's coordinate refusal"],
   ['update-plan.ts', "the plan's properties contradict each other", 'engine', "the engine's property-plan refusal"],
