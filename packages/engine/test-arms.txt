@@ -157,6 +157,8 @@ apps/plugin/test-rename-parity.ts #1024
 apps/plugin/test-rename-parity.ts #3857
 apps/plugin/test-report-redaction.ts #3697
 apps/plugin/test-report-redaction.ts #3702
+apps/plugin/test-report-redaction.ts #3854
+apps/plugin/test-report-redaction.ts #3865
 apps/plugin/test-report-redaction.ts #4205
 apps/plugin/test-report-redaction.ts #4253
 apps/plugin/test-report-redaction.ts #865

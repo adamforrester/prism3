@@ -64,7 +64,7 @@
     { "file": "test-file-kind.ts", "floor": 26 },
     { "file": "test-consistency-audit.ts", "floor": 31 },
     { "file": "test-file-facts.ts", "floor": 111 },
-    { "file": "test-report-redaction.ts", "floor": 76 }
+    { "file": "test-report-redaction.ts", "floor": 125 }
   ],
   "elsewhere": {
     "test-roundtrip.ts": "its own CI step, test:roundtrip (#874)",
