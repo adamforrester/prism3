@@ -137,7 +137,7 @@ The card says so: "Panels edited by hand stay. Turning panels on again draws the
 
 ### When a mode is renamed
 
-Prism3 never renames a mode in a file, and that includes a custom mode renamed in **Custom mode name**. <!-- src: apps/studio/src/domains/brand.ts:208 -->
+Prism3 never renames a mode in a file, and that includes a custom mode renamed in **Custom mode name**. <!-- src: apps/studio/src/domains/brand.ts:210 -->
 The renamed mode arrives as a new mode beside the old one. The old mode keeps the values it last had, and frames set to it still show them. <!-- src: apps/plugin/src/write-figma.ts:364-379#ffc2b3a2 -->
 Removing a mode removes its values from every variable in the collection, so move the frames first: <!-- src: apps/plugin/src/prune-figma.ts:45-53#979f9c19 -->
 
