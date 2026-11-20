@@ -536,6 +536,19 @@ the sets it would change, read from `index.json`.
 ## What this does *not* cover
 
 - **Values.** By design, per above.
+- **Three typography sub-properties beyond DTCG §9.8** (owner decision A on #4128, 2026-11-20). A
+  `type.*` style's `$value` carries the five sub-properties DTCG 2025.10 Format §9.8 defines, and up to
+  three Prism3 extensions to it, each a literal string present only where it applies:
+  - `fontStyle`: `"italic"`, on the italic styles;
+  - `textDecoration`: `"underline"`, on the `*-link` styles;
+  - `textCase`: `"uppercase"`, on the eyebrow styles (the engine also accepts `"lowercase"`; no brand
+    emits it).
+
+  They stay in `$value` rather than `$extensions`, because the conforming projection strips
+  `$extensions` (#2552) and a moved key would not reach a consumer. A strict §9.8 reader may drop all
+  three. The stock CSS `font` shorthand carries `fontStyle` today; `textDecoration` and `textCase` aren't
+  in the shorthand. They are sub-values of a guaranteed name, not names, so adding, removing or changing
+  one moves no `CONTRACT_VERSION`. The consumer-facing table is in `packages/tokens/README.md`.
 - **The code-side prop API.** `#1252` covers the FIGMA projection, which is what `figmaAnatomySet`
   computes. A def's `variantAxes` also reach a React prop table, and that is a real consumer surface
   nothing here measures — a def could move it without moving a projected member. Filed rather than
