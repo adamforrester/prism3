@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 290 of 822 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 291 of 823 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members. A key marked "not drawn" names the token but no member draws it; another key on the row does.
 
@@ -117,10 +117,11 @@ Type: dimension. Bound by 1 component(s).
 
 ### `color.background.primary`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| avatar | `overlay` | presenceRing | every member (30 of 30) |
 | badge | `danger.status.contained.surface.fill`, `info.status.contained.surface.fill`, `neutral.status.contained.surface.fill`, `success.status.contained.surface.fill`, `warning.status.contained.surface.fill` | surface | emphasis: surface · style: contained · type: status (10 of 50) |
 | segmented-control-segment | `disabled.fill`, `selected.fill` | indicator | selection: selected (15 of 30) |
 
@@ -136,10 +137,11 @@ Type: color. Bound by 3 component(s).
 
 ### `color.background.tertiary`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| avatar | `fill` | mask | every member (30 of 30) |
 | progress | `fill` | ringGlyph | shape: circular (8 of 12) |
 |  |  | track | shape: linear · size: medium (4 of 12) |
 | switch-control | `off.fill`, `off.icon` | offGlyph | selection: off · state: focus-visible, hover, pressed, rest (16 of 40) |
@@ -638,7 +640,7 @@ Type: color. Bound by 9 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | card-number-field | `icon` | leadingVisual | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
-| icon | `icon`, `tone.primary` (not drawn) | glyph | every member (46 of 46) |
+| icon | `icon`, `tone.primary` (not drawn) | glyph | every member (48 of 48) |
 | list-item | `icon`, `indicator` | bullet | type: unordered (4 of 12) |
 |  |  | icon | type: icon (4 of 12) |
 | pagination-item | `unselected.ellipsis.icon` | gapGlyph | labeled: false · selection: unselected · state: rest · style: border · type: ellipsis (3 of 87) |
@@ -653,12 +655,14 @@ Type: color. Bound by 9 component(s).
 
 ### `color.icon.secondary`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | _breadcrumb-separator | `icon` | chevronGlyph | type: chevron (1 of 2) |
 |  |  | slashGlyph | type: slash (1 of 2) |
+| avatar | `icon` | organizationGlyph | shape: square · type: icon (5 of 30) |
+|  |  | personGlyph | shape: circular · type: icon (5 of 30) |
 | badge | `neutral.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: neutral · type: status (2 of 50) |
 | field-message | `default.icon` | (not drawn) | — |
 | icon | `tone.secondary` | (not drawn) | — |
@@ -2015,11 +2019,12 @@ Type: color. Bound by 1 component(s).
 
 ### `color.text.primary`
 
-Type: color. Bound by 22 component(s).
+Type: color. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `body` | placeholder | every member (48 of 48) |
+| avatar | `label` | initials | type: initials (10 of 30) |
 | badge | `danger.status.inline.subtle.label`, `info.status.inline.subtle.label`, `neutral.status.contained.subtle.label`, `neutral.status.contained.surface.label`, `neutral.status.inline.subtle.label`, `success.status.inline.subtle.label`, `warning.status.inline.subtle.label` | label | emphasis: subtle, surface · type: status (14 of 50) |
 | banner | `body`, `label` | bodyText | every member (10 of 10) |
 |  |  | title | every member (10 of 10) |
@@ -2517,12 +2522,23 @@ Type: dimension. Bound by 29 component(s).
 | textarea | `border-width.focus-visible`, `border-width.focus-visible-filled` | control | state: focus-visible, focus-visible-filled (24 of 84) |
 | wallet-button | `ring-width` | focusRing | state: focus-visible (34 of 68) |
 
-### `icon.size.lg`
+### `icon.size.2xl`
 
-Type: dimension. Bound by 8 component(s).
+Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| avatar | `size.x-large.box` | container | size: x-large (6 of 30) |
+|  |  | mask | size: x-large (6 of 30) |
+
+### `icon.size.lg`
+
+Type: dimension. Bound by 9 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| avatar | `size.medium.box` | container | size: medium (6 of 30) |
+|  |  | mask | size: medium (6 of 30) |
 | icon | `size.large` | (not drawn) | — |
 | icon-button | `size.large.icon` | icon | size: large · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: large · state: pending (12 of 216) |
@@ -2538,7 +2554,7 @@ Type: dimension. Bound by 8 component(s).
 
 ### `icon.size.md`
 
-Type: dimension. Bound by 24 component(s).
+Type: dimension. Bound by 25 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2547,6 +2563,10 @@ Type: dimension. Bound by 24 component(s).
 |  |  | frame | size: large (4 of 12) |
 |  |  | minusGlyph | expansion: expanded · indicator: plus-minus · size: large (1 of 12) |
 |  |  | plusGlyph | expansion: collapsed · indicator: plus-minus · size: large (1 of 12) |
+| avatar | `glyph.large`, `size.small.box` | container | size: small (6 of 30) |
+|  |  | mask | size: small (6 of 30) |
+|  |  | organizationGlyph | shape: square · size: large · type: icon (1 of 30) |
+|  |  | personGlyph | shape: circular · size: large · type: icon (1 of 30) |
 | banner | `glyph-size` | dangerGlyph | tone: danger (2 of 10) |
 |  |  | infoGlyph | tone: info (2 of 10) |
 |  |  | successGlyph | tone: success (2 of 10) |
@@ -2597,7 +2617,7 @@ Type: dimension. Bound by 24 component(s).
 
 ### `icon.size.sm`
 
-Type: dimension. Bound by 28 component(s).
+Type: dimension. Bound by 29 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2606,6 +2626,10 @@ Type: dimension. Bound by 28 component(s).
 |  |  | frame | size: medium (4 of 12) |
 |  |  | minusGlyph | expansion: expanded · indicator: plus-minus · size: medium (1 of 12) |
 |  |  | plusGlyph | expansion: collapsed · indicator: plus-minus · size: medium (1 of 12) |
+| avatar | `glyph.medium`, `size.x-small.box` | container | size: x-small (6 of 30) |
+|  |  | mask | size: x-small (6 of 30) |
+|  |  | organizationGlyph | shape: square · size: medium · type: icon (1 of 30) |
+|  |  | personGlyph | shape: circular · size: medium · type: icon (1 of 30) |
 | button | `size.medium.icon` | leadingVisual | leading: true · size: medium · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: medium · state: pending (32 of 576) |
 |  |  | trailingVisual | size: medium · trailing: true (88 of 576) |
@@ -2657,10 +2681,14 @@ Type: dimension. Bound by 28 component(s).
 
 ### `icon.size.xl`
 
-Type: dimension. Bound by 2 component(s).
+Type: dimension. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| avatar | `glyph.x-large`, `size.large.box` | container | size: large (6 of 30) |
+|  |  | mask | size: large (6 of 30) |
+|  |  | organizationGlyph | shape: square · size: x-large · type: icon (1 of 30) |
+|  |  | personGlyph | shape: circular · size: x-large · type: icon (1 of 30) |
 | code-input-cell | `size.x-large.caret-height` | caret | size: x-large · state: focus-visible (2 of 48) |
 | progress | `size.medium` | arcGlyph | shape: circular · size: medium · status: active, error (3 of 12) |
 |  |  | fullRingGlyph | shape: circular · size: medium · status: complete · type: determinate (1 of 12) |
@@ -2669,7 +2697,7 @@ Type: dimension. Bound by 2 component(s).
 
 ### `icon.size.xs`
 
-Type: dimension. Bound by 18 component(s).
+Type: dimension. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2681,6 +2709,8 @@ Type: dimension. Bound by 18 component(s).
 | _breadcrumb-separator | `glyph-size` | chevronGlyph | type: chevron (1 of 2) |
 |  |  | frame | every member (2 of 2) |
 |  |  | slashGlyph | type: slash (1 of 2) |
+| avatar | `glyph.small`, `glyph.x-small` | organizationGlyph | shape: square · size: small, x-small · type: icon (2 of 30) |
+|  |  | personGlyph | shape: circular · size: small, x-small · type: icon (2 of 30) |
 | breadcrumbs | `back-icon` | backGlyph | path: parent · separator: chevron (2 of 6) |
 | button | `size.small.icon` | leadingVisual | leading: true · size: small · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: small · state: pending (32 of 576) |
@@ -2796,10 +2826,11 @@ Type: dimension. Bound by 2 component(s).
 
 ### `radius.md`
 
-Type: dimension. Bound by 11 component(s).
+Type: dimension. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| avatar | `square.large.radius`, `square.medium.radius`, `square.x-large.radius` | mask | shape: square · size: large, medium, x-large (9 of 30) |
 | banner | `edge.contained.radius` | container | edge: contained (5 of 10) |
 | button | `radius` | container | every member (576 of 576) |
 | button-destructive | `radius` | container | every member (576 of 576) |
@@ -2827,7 +2858,7 @@ Type: dimension. Bound by 6 component(s).
 
 ### `radius.round`
 
-Type: dimension. Bound by 13 component(s).
+Type: dimension. Bound by 14 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2835,6 +2866,8 @@ Type: dimension. Bound by 13 component(s).
 |  |  | frame | every member (15 of 15) |
 |  |  | hoverHalo | every member (15 of 15) |
 |  |  | pressHalo | every member (15 of 15) |
+| avatar | `circular.large.radius`, `circular.medium.radius`, `circular.small.radius`, `circular.x-large.radius`, `circular.x-small.radius`, `presence-ring.radius` | mask | shape: circular (15 of 30) |
+|  |  | presenceRing | every member (30 of 30) |
 | badge | `contained.count.radius`, `contained.dot.radius`, `status-dot.radius` | statusDot | emphasis: subtle · style: inline · type: status (10 of 50) |
 |  |  | surface | emphasis: bold · size: medium · style: contained · type: count, dot (10 of 50) |
 | flush-icon-button | `radius.round` | container | shape: round (30 of 60) |
@@ -2853,10 +2886,11 @@ Type: dimension. Bound by 13 component(s).
 
 ### `radius.sm`
 
-Type: dimension. Bound by 11 component(s).
+Type: dimension. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| avatar | `square.small.radius`, `square.x-small.radius` | mask | shape: square · size: small, x-small (6 of 30) |
 | badge | `contained.status.radius` | surface | style: contained · type: status (30 of 50) |
 | card-number-field | `radius` | control | every member (84 of 84) |
 | code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (36 of 48) |
@@ -3010,11 +3044,12 @@ Type: dimension. Bound by 1 component(s).
 
 ### `space.0`
 
-Type: dimension. Bound by 24 component(s).
+Type: dimension. Bound by 25 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | every member (48 of 48) |
+| avatar | `presence-inset` | presenceRing | every member (30 of 30) |
 | badge | `size.medium.contained.dot.pad-x`, `size.medium.contained.dot.pad-y`, `size.medium.contained.gap`, `size.medium.inline.count.pad-x` (not drawn), `size.medium.inline.count.pad-y` (not drawn), `size.medium.inline.dot.pad-x` (not drawn), `size.medium.inline.dot.pad-y` (not drawn), `size.medium.inline.status.pad-x`, `size.medium.inline.status.pad-y`, `size.small.contained.dot.pad-x` (not drawn), `size.small.contained.dot.pad-y` (not drawn), `size.small.contained.gap`, `size.small.inline.count.pad-x` (not drawn), `size.small.inline.count.pad-y` (not drawn), `size.small.inline.dot.pad-x` (not drawn), `size.small.inline.dot.pad-y` (not drawn), `size.small.inline.status.pad-x`, `size.small.inline.status.pad-y` | surface | every member (50 of 50) |
 | button | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-destructive | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
@@ -3056,11 +3091,12 @@ Type: dimension. Bound by 24 component(s).
 
 ### `space.025`
 
-Type: dimension. Bound by 3 component(s).
+Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.title-offset`, `size.medium.title-offset`, `size.small.title-offset` | titleBox | every member (48 of 48) |
+| avatar | `presence-ring` | presenceRing | every member (30 of 30) |
 | badge | `size.medium.contained.count.pad-y`, `size.small.contained.count.pad-y` (not drawn), `size.small.contained.status.pad-y` | surface | style: contained · type: count, status (20 of 50) |
 | tag | `size.small.dismissible.gap` | content | selection: unselected · size: small · type: dismissible (5 of 45) |
 
@@ -3624,10 +3660,11 @@ Type: typography. Bound by 5 component(s).
 
 ### `type.label.lg.emphasis`
 
-Type: typography. Bound by 9 component(s).
+Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| avatar | `size.x-large.initials-type` | initials | size: x-large · type: initials (2 of 30) |
 | button | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
 | button-destructive | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
 | button-neutral | `size.large.filled.type`, `size.large.outline.type` | label | appearance: filled, outline · inset: default · size: large (96 of 576) |
@@ -3669,10 +3706,11 @@ Type: typography. Bound by 6 component(s).
 
 ### `type.label.md.emphasis`
 
-Type: typography. Bound by 11 component(s).
+Type: typography. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| avatar | `size.large.initials-type` | initials | size: large · type: initials (2 of 30) |
 | banner | `title-type` | title | every member (10 of 10) |
 | button | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
 | button-destructive | `size.medium.filled.type`, `size.medium.outline.type` | label | appearance: filled, outline · inset: default · size: medium (96 of 576) |
@@ -3724,10 +3762,11 @@ Type: typography. Bound by 6 component(s).
 
 ### `type.label.sm.emphasis`
 
-Type: typography. Bound by 9 component(s).
+Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| avatar | `size.medium.initials-type`, `size.small.initials-type`, `size.x-small.initials-type` | initials | size: medium, small, x-small · type: initials (6 of 30) |
 | badge | `size.medium.contained.type` | count | emphasis: bold · size: medium · style: contained · type: count (5 of 50) |
 |  |  | label | size: medium · style: contained · type: status (15 of 50) |
 | button | `size.small.filled.type`, `size.small.outline.type` | label | appearance: filled, outline · inset: default · size: small (96 of 576) |
@@ -3814,6 +3853,12 @@ Declared, not drawn: `color.border.focus`
 18 token(s); 48 design-file member(s).
 
 `color.interactive.neutral.text.rest`, `color.text.primary`, `focus.ring.offset-field`, `size.lg.height`, `size.md.min-height`, `space.0`, `space.025`, `space.100`, `space.150`, `space.200`, `space.250`, `space.300`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`, `type.label.lg.default`, `type.label.md.default`, `type.label.sm.default`
+
+### avatar
+
+18 token(s); 30 design-file member(s).
+
+`color.background.primary`, `color.background.tertiary`, `color.icon.secondary`, `color.text.primary`, `icon.size.2xl`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `icon.size.xl`, `icon.size.xs`, `radius.md`, `radius.round`, `radius.sm`, `space.0`, `space.025`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
 
 ### badge
 
@@ -3985,7 +4030,7 @@ Drawn, not declared: `color.inverse.border.focus`
 
 ### icon
 
-12 token(s); 46 design-file member(s).
+12 token(s); 48 design-file member(s).
 
 `color.icon.brand`, `color.icon.danger`, `color.icon.info`, `color.icon.primary`, `color.icon.secondary`, `color.icon.success`, `color.icon.tertiary`, `color.icon.warning`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`
 
