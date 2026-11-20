@@ -394,7 +394,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
           const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
           if (i < 0 || !step) return;
           e.preventDefault();
-          opts[(i + step + opts.length) % opts.length].click();
+          opts[(i + step + opts.length) % opts.length]?.click();
           // The page is drawn again for the new setting; focus follows the selection, as the artifact tabs' keys do.
           requestAnimationFrame(() => document.querySelector<HTMLElement>(`.p3-export-oseg[data-key="${CSS.escape(s.key)}"] [aria-checked="true"]`)?.focus());
         });
