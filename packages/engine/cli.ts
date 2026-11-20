@@ -187,7 +187,8 @@ const main = () => {
     catch (e) { return fail(`could not classify '${std.name}' (standard dialect): ${(e as Error).message}`); }
     const { input, classification, xApplied, xWarnings } = classified;
     console.log(`[standard] '${std.name}' → id '${input.id}' — ${Object.keys(std.colors).length} colours, ${Object.keys(std.typography).length} type tokens; x-prism3: ${xApplied.length ? xApplied.join(', ') : 'none (defaults)'}`);
-    // #2678 (Q-XP1 A): an x-prism3 key the dialect does not read is named here, and the file keeps compiling.
+    // #2678 (Q-XP1 A): an x-prism3 key the dialect does not read is named here, and so is a typography face no category
+    // reads (#4137); the file keeps compiling.
     for (const w of xWarnings) console.log(`  ⚠ ${w}`);
     validateOrExit(input, designPath!);
     let theme: Theme;
