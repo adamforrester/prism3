@@ -27036,6 +27036,16 @@ arm: {
         const ICONS = '[{"type":"COMPONENT","key":"CK:icon/FPO-default-icon"},{"type":"COMPONENT","key":"CK:icon/check"},{"type":"COMPONENT","key":"CK:icon/search"}]';
         ok(iDefs.length > 0 && iDefs.every((d) => JSON.stringify(d.preferredValues) === ICONS) && !iRun.misses.some((m) => /\.preferred ->/.test(m)),
           `#4164 paste: every icon swap prefers the three icon components, by key in name order, and not the provider logo (${JSON.stringify(iDefs.map((d) => d.preferredValues))}${iRun.misses.length ? `; misses ${JSON.stringify(iRun.misses.filter((m) => /preferred/.test(m)).slice(0, 2))}` : ''})`);
+        // A name two components hold (a stale copy of icon/check) is left out of the list and named; the rest are written.
+        // Mutation: the exclusion dropped (`by.get(n).length===1&&by.get(n)[0].key` → `by.get(n)[0].key`) → `#4164 paste, duplicate`.
+        const dPage = { children: [] as Record<string, unknown>[] };
+        const dRun = await runPayload(planSetToPluginJs(iconTag), { vars: iconTag.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: iconTag.flatMap((pl) => planTextStyles(pl.root)),
+          comps: ['icon/FPO-default-icon', 'icon/search', 'icon/check', 'icon/check', 'provider-logo/payment/generic'], compKeys: true, page: dPage });
+        const dDefs = Object.values((((dPage.children.find((c) => c.type === 'COMPONENT_SET') ?? {}) as Record<string, unknown>).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+        const dMisses = dRun.misses.filter((m) => /\.preferred ->/.test(m));
+        ok(dDefs.length > 0 && dDefs.every((d) => JSON.stringify(d.preferredValues) === '[{"type":"COMPONENT","key":"CK:icon/FPO-default-icon"},{"type":"COMPONENT","key":"CK:icon/search"}]') && dMisses.length === dDefs.length
+          && dMisses.every((m) => /^property \S.*\.preferred -> 1 icon name\(s\) held by more than one component \(icon\/check; not offered in the swap\. Rename or remove the stale copies, then rebuild\)$/.test(m)),
+          `#4164 paste, duplicate: an icon name two components hold is left out of the list and named as a miss (${JSON.stringify(dDefs.map((d) => d.preferredValues))}; ${JSON.stringify(dMisses)})`);
       }
 
       // ---- #2645: PER-INSTANCE OVERRIDES on a nested instance — validator, projection, and the PASTE executor ----

@@ -232,6 +232,17 @@ console.log('\nicon swaps prefer every core icon (#4164)');
   await applyComponentPlan(plain, h2.api, {});
   const open = Object.values(((setOf(h2.page) as any).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
   ok(open.length > 0 && open.every((d) => d.preferredValues === undefined), `#4164 icon swaps/open: a swap whose target is not a core icon is written no preferred value (${JSON.stringify(open.map((d) => d.preferredValues))})`);
+  // A name held by two components (a stale copy) is left out of the list and named; the other icons are still written.
+  // Mutation: the exclusion dropped (`byName.get(n)!.length === 1 && …` → `byName.get(n)![0].key`) → `#4164 icon swaps/duplicate`.
+  const h3 = host(plans, { comps: [...new Set([...plans.flatMap((p) => planComps(p.root)), ...ICONS, 'provider-logo/payment/generic']), 'icon/check'] });
+  const r3 = await applyComponentPlan(plans, h3.api, {});
+  const keyOf3 = new Map((h3.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as { name: string; key?: string }[]).map((c) => [c.name, c.key]));
+  const want3 = JSON.stringify(['icon/close', ICON_TARGET].sort().map((n) => ({ type: 'COMPONENT', key: keyOf3.get(n) })));
+  const dup = Object.values(((setOf(h3.page) as any).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+  const dupMisses = r3.misses.filter((m) => /\.preferred ->/.test(m));
+  ok(dup.length > 0 && dup.every((d) => JSON.stringify(d.preferredValues) === want3) && dupMisses.length === dup.length
+    && dupMisses.every((m) => /^property \S.*\.preferred -> 1 icon name\(s\) held by more than one component \(icon\/check; not offered in the swap\. Rename or remove the stale copies, then rebuild\)$/.test(m)),
+    `#4164 icon swaps/duplicate: an icon name two components hold is left out of the list and named as a miss (${JSON.stringify(dup.map((d) => d.preferredValues))}; ${JSON.stringify(dupMisses)})`);
 }
 
 console.log(`\n${executed - failed}/${executed} slot-constraint assertions passed.`);

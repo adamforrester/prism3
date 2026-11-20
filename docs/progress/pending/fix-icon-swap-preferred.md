@@ -6,13 +6,14 @@ Prism3 wrote preferred values for SLOT properties only (#2646), so every INSTANC
 
 - **Engine** (`anatomy-figma.ts`): `planSetProperties` marks an INSTANCE_SWAP whose target is a core icon (`iconComponentName('')`, `icon/`) with `preferIcons: true`. In the plugin, whose placeholder is `icon/FPO-default-icon`, that covers 19 sets: the three Button families and their icon-button and flush-icon-button siblings, plus Card number field, Link, List.Item, Password field, Search field, SegmentedControl.Segment, Select, Tab, Tag and Text field. Card number field's card mark is a provider logo and stays open.
 - **Both executors** write the list after the slot constraints pass, by the same rule. `write-components.ts` has the ICON SWAPS pass, and the paste payload has `PAYLOAD_ICON_SWAPS`. The list is every COMPONENT whose name shares the target's prefix, in name order, by key, written with `editComponentProperty(key, { preferredValues })` and read back. These are named misses, as for a slot's preferred set: no icon in the file; an icon name held by more than one component (left out); a refused or unkept write. Icons with no key are a host that can't name a component by key (Figma always keys one, but the offline shims don't), so nothing is written there and nothing is reported, as a host without the slot API is left alone.
-- `EXECUTOR_REVISION` is 66. Its reach entry names the 19 sets, so Update file makes each due and writes the list onto a set built before this.
+- `EXECUTOR_REVISION` is 67 (#4358 landed first on 66, with an empty reach entry). The `"67"` reach entry names the 19 sets, so Update file makes each due and writes the list onto a set built before this. The plugin pass reports a refused write through `failureDetail(err)`, as #4358's host-message register requires.
 
 ### Tests
 
 - `test.ts`: `#4164 projection` (Tag's swaps carry the flag with an `icon/` target and not without one) and `#4164 paste` (the payload writes the three icon components' keys, in name order, and not a provider logo's). The payload stub gained an opt-in `compKeys`, a plain component's key. The `#1392` clean-run sweep sets it, as a real host keys every component. The List.Item property literal gains the flag.
-- `test-slot-constraints.ts`: `#4164 icon swaps/written`, `/updated` (an update in place writes the list onto an existing swap) and `/open` (a non-icon target stays open).
-- On `main`, `#4164 projection`, `#4164 paste`, `/written` and `/updated` fail by name. Each executor's pass, dropped, fails its own arms.
+- `test-slot-constraints.ts`: `#4164 icon swaps/written`, `/updated` (an update in place writes the list onto an existing swap), `/open` (a non-icon target stays open) and `/duplicate` (two components named `icon/check`: the list leaves it out and the miss names it).
+- `test.ts`: `#4164 paste, duplicate`, the same case through the paste payload.
+- On `main`, `#4164 projection`, `#4164 paste`, `/written` and `/updated` fail by name. Each executor's pass, dropped, fails its own arms. The duplicate-name exclusion, dropped, fails `#4164 icon swaps/duplicate` in the plugin and `#4164 paste, duplicate` in the payload.
 
 ### Trap
 
