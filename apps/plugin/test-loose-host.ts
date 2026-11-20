@@ -36,6 +36,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeShim } from './component-shim';
+import { mergeGroupBase } from '@prism3/engine/harness';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
@@ -137,13 +138,15 @@ const entries = Object.keys(register.entries);
     return { ok: r.status === 0, out: (r.stdout ?? '').trim(), err: (r.stderr ?? '').trim() };
   };
   const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : null;
-  const baseRef = [prBase, 'origin/main', 'main'].filter((x): x is string => !!x).find((r) => git('rev-parse', '--verify', '--quiet', `${r}^{commit}`).ok) ?? null;
+  // A merge-queue run (#4106) reads the group's parent commit, and only it (`mergeGroupBase`); a lost one CANNOT RUN.
+  const mg = mergeGroupBase(git);
+  const baseRef = mg ? mg.ref : [prBase, 'origin/main', 'main'].filter((x): x is string => !!x).find((r) => git('rev-parse', '--verify', '--quiet', `${r}^{commit}`).ok) ?? null;
   const mb = baseRef ? git('merge-base', 'HEAD', baseRef) : null;
   const head = git('rev-parse', 'HEAD');
   // On the base branch itself the merge base is HEAD, so compare with the first parent (as lint-executor-revision does, #2551).
   const baseRev = mb?.ok && head.ok ? (mb.out === head.out ? git('rev-parse', '--verify', '--quiet', 'HEAD^1').out : mb.out) : '';
   if (!baseRev) {
-    ok(false, `register/shrink-only: CANNOT RUN — no merge base (base ref ${baseRef ?? 'none'}: ${mb?.err || head.err || 'git printed nothing'}). Fetch origin main; CI's plugin job has fetch-depth 0.`);
+    ok(false, `register/shrink-only: CANNOT RUN — no merge base (base ref ${baseRef ?? 'none'}: ${(mg && !mg.ref ? mg.tried : '') || mb?.err || head.err || 'git printed nothing'}). Fetch origin main; CI's plugin job has fetch-depth 0.`);
   } else {
     const listed = git('ls-tree', '--name-only', baseRev, '--', REGISTER_PATH);
     const atBase = listed.ok && listed.out ? git('show', `${baseRev}:${REGISTER_PATH}`) : null;

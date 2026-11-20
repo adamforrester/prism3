@@ -24,6 +24,7 @@ The **Update** tab lists these items, in this order:
 | **Theme** | The brand's variables and styles. Layers bound to them restyle at once. See [Write the theme to a Figma file](apply-a-theme.md). <!-- src: apps/studio/src/state/update-file.ts:343-344 --> | When the file's variables differ from the brand, or the file isn't set up yet. Otherwise it reads "Up to date". <!-- src: apps/studio/src/state/update-file.ts:346 --> |
 | **Components** › **To add** | The sets chosen in the Components area, and each family's usage panel, beside its lead, while Docs has panels on. See [Build components](build-components.md). <!-- src: apps/studio/src/state/update-file.ts:349-351 --> | Every set listed runs |
 | **Components** › **Due** | The sets in the file that are out of date, updated in place. See [Update sets in place](#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:358-362 --> | Yes |
+| **Components** › **Usage panels** | A usage panel beside each set in the file that has none, while Docs has panels on. Each is drawn beside its set, and sets move apart to make room; no member changes. <!-- src: apps/studio/src/state/update-file.ts:414-417 --> Past six sets, <!-- src: apps/studio/src/state/update-file.ts:236-237#17a0fec4 --> the names sit under "Show the 8 sets". <!-- src: apps/studio/src/state/update-file.ts:418 --> A set already queued to add or due is left out, because its own run draws its panel. <!-- src: apps/studio/src/state/update-file.ts:136-143#902e6aae --> | Yes, <!-- src: apps/studio/src/state/update-file.ts:183-185#33f3cb0a --> with one tick for the group, such as "Draw 3 usage panels". <!-- src: apps/studio/src/state/update-file.ts:415 --> |
 | **Style guides** | The token tables, drawn with the settings in Docs. See [Build style guides](style-guides.md). <!-- src: apps/studio/src/state/update-file.ts:422-425 --> | Only on a file not set up yet |
 
 <!-- src: apps/studio/src/state/update-file.ts:179-186#dcd3d3c6 -->
@@ -100,7 +101,7 @@ An ordinary hand edit, such as a recolor, stays a hand edit, and the set keeps u
 
 To turn a set's updates off yourself, choose **Turn off updates** on its row under **Due**. <!-- src: apps/studio/src/state/update-file.ts:397 -->
 A set whose updates are off is listed under **Updates off** in the dialog. <!-- src: apps/studio/src/state/update-file.ts:395 --> When the update turned it off, its row adds "Turned off when an update couldn’t apply around your edits." <!-- src: apps/studio/src/state/update-file.ts:396 -->
-Choose **Turn updates back on** to hand it back. <!-- src: apps/studio/src/state/update-file.ts:398 --> That writes nothing to the set but the setting: the next Update file checks it as it checks any other set, and Keep still holds your edits until you choose otherwise. <!-- src: apps/plugin/src/main.ts:2419#c00ec9d7 -->
+Choose **Turn updates back on** to hand it back. <!-- src: apps/studio/src/state/update-file.ts:398 --> That writes nothing to the set but the setting: the next Update file checks it as it checks any other set, and Keep still holds your edits until you choose otherwise. <!-- src: apps/plugin/src/main.ts:2421#c00ec9d7 -->
 
 The setting is kept in the file, on the set, so it holds when the file is opened again. <!-- src: apps/plugin/src/updates-off.ts:30#eb506b52 -->
 
@@ -126,6 +127,11 @@ The delete works out the list again from a fresh read of the file before it dele
 If the list is not the one the tab showed, or the file does not hold the brand in the panel yet, it deletes nothing. Otherwise it saves a named version, then deletes. <!-- src: apps/plugin/src/main.ts:723-726#40ecfc79 -->
 
 After a style-guide run that found tables Prism3 no longer draws, **Clean up** lists them too: "2 style-guide tables the generator no longer draws." Choose **Remove *N* tables** to delete them. <!-- src: apps/studio/src/state/update-file.ts:440-441 -->
+
+While Docs has usage panels off, **Clean up** counts the usage panels already in the file: "4 usage panels, drawn while Docs had panels on." <!-- src: apps/studio/src/state/update-file.ts:419 -->
+Choose **Remove *N* panels** to remove them. <!-- src: apps/studio/src/state/update-file.ts:421 -->
+Only a panel that still holds what Prism3 drew is removed, and the button counts those alone. A panel edited by hand stays. <!-- src: apps/plugin/src/panel-census.ts:48-65#897bd95b -->
+The card says so: "Panels edited by hand stay. Turning panels on again draws them back." <!-- src: apps/studio/src/state/update-file.ts:420 -->
 
 ### When a mode is renamed
 
