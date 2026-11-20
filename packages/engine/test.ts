@@ -31880,6 +31880,38 @@ arm: {
   ok(stamped.$extensions?.generator?.version === ENGINE_VERSION,
     'version: every emitted tree carries the engine version, so a suspect value can be traced to the code that produced it');
 }
+{
+  // #4145: three exports had no reader and a comment claiming one. Each claim is now true or gone.
+  // 1. SPECS_SCHEMA_VERSION is held equal to the Specs pin `packages/tokens/package.json` installs (the pin
+  //    `check-specs.mjs` [PIN] reads). Two authored copies of one version, compared here, so a bump of either alone fails.
+  const specsMod = await import('./component-defs-export') as Record<string, unknown>;
+  const specsPin = JSON.parse(readFileSync(resolve(HERE, '../tokens/package.json'), 'utf8')).devDependencies?.['@directededges/specs-schema'];
+  ok(typeof specsMod.SPECS_SCHEMA_VERSION === 'string' && specsMod.SPECS_SCHEMA_VERSION === specsPin,
+    `#4145 SPECS_SCHEMA_VERSION is the Specs schema pin in packages/tokens/package.json (engine ${String(specsMod.SPECS_SCHEMA_VERSION)}, pin ${specsPin})`);
+  // 2. DISPOSITION_MEANINGS is read by lint-code-only-classes.ts's report: every meaning is printed beside its name.
+  const reg = await import('./code-only-register') as { DISPOSITION_MEANINGS?: Record<string, string>; DISPOSITION_NAMES: Record<string, string> };
+  const report = spawnSync('npx', ['tsx', resolve(HERE, 'lint-code-only-classes.ts')], { cwd: HERE, encoding: 'utf8' }).stdout ?? '';
+  const unprinted = Object.entries(reg.DISPOSITION_NAMES).filter(([k, n]) => !reg.DISPOSITION_MEANINGS?.[k] || !report.includes(`${n}: ${reg.DISPOSITION_MEANINGS[k]}`)).map(([, n]) => n);
+  ok(unprinted.length === 0, `#4145 lint-code-only-classes.ts prints each disposition's meaning beside its name (not printed: ${unprinted.join(', ') || 'none'})`);
+  // 3. PROTOCOL_VERSION ("retained for the older handshake's reply") was read by nothing: `initialize` answers through
+  //    negotiateHandshakeVersion. It is gone, so no second name for LATEST_PROTOCOL_VERSION can drift from it.
+  ok(!('PROTOCOL_VERSION' in (await import('./mcp'))), '#4145 mcp.ts exports no PROTOCOL_VERSION alias, which no handshake reads');
+  // #4214 item 2: the action anchor step is the interactive palettes' own helper, not a line-for-line copy of it that
+  // can drift. Read from the source: the two computed the same number, so no output can tell them apart.
+  const brandSrc = readFileSync(resolve(HERE, 'theme-brand.ts'), 'utf8');
+  for (const [name, pal] of [['actionAnchorStep', 'resolvedAction'], ['linkAnchorStep', 'linkPalette']])
+    ok(new RegExp(`const ${name} = interactiveStepFor\\(${pal}\\);`).test(brandSrc),
+      `#4214 theme-brand.ts computes ${name} through interactiveStepFor, not a copy of its three cases`);
+  // #4214 item 1: CLAUDE.md counted the uncommitted exports ("Three") after #3992 made them four. A count it states must
+  // be the list's length; the fix states none, as the file's own rule asks (#1110).
+  const { UNCOMMITTED_OUT: uncommitted } = await import('./regen') as { UNCOMMITTED_OUT: string[] };
+  const WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  // A count may be a word ("Three") or a digit ("4"); either one is read, so a digit can't slip past (#4214 review nit).
+  const word = readFileSync(resolve(HERE, '../../CLAUDE.md'), 'utf8').match(/\b(\w+) whole-catalog component exports/i)?.[1]?.toLowerCase();
+  const stated = word === undefined ? undefined : /^\d+$/.test(word) ? Number(word) : WORDS.includes(word) ? WORDS.indexOf(word) + 1 : undefined;
+  ok(stated === undefined || stated === uncommitted.length,
+    `#4214 CLAUDE.md states no count of the uncommitted exports that disagrees with UNCOMMITTED_OUT (states ${word !== undefined && stated !== undefined ? word : 'none'}, the list has ${uncommitted.length})`);
+}
 
 // --------------------------------------------------------- vocabulary (#471)
 // Named stops + personality traits. The interesting assertions are not "does 'soft' become 1.5" but
