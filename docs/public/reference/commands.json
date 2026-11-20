@@ -870,7 +870,7 @@
         "args": "{ changes: OverrideChange[]; confirm: false } | { changes: OverrideChange[]; confirm: true; previewHash: string }",
         "description": "Color overrides, 1 to 32 changes applied all or nothing. `confirm: false` previews and writes nothing; its result carries a `previewHash`. `confirm: true` must echo it, and runs the Theme write itself.",
         "source": "apps/plugin/src/agent-protocol.ts#AgentArgs.set-override",
-        "writes": "With confirm: false, nothing: a preview whose result carries a previewHash, each change before and after, and every pair that moved. With confirm: true and that previewHash, the Theme write: the variables, the stored brand and a saved version, through the same handler as apply-theme; refused when a pair would drop below its minimum, the file's brand moved after the preview, or Theme has unapplied edits.",
+        "writes": "With confirm: false, nothing: a preview whose result carries a previewHash, each change before and after, and every pair that moved. With confirm: true and that previewHash, the Theme write: the variables, the stored brand and a saved version, through the same handler as apply-theme; refused when a pair would drop below its minimum, the changes sent are not the ones previewed, the file's brand moved after the preview, or Theme has unapplied edits.",
         "refuses": [
           {
             "computed": "changes",

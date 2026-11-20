@@ -52,7 +52,7 @@ import { dirname, resolve } from 'node:path';
 import { componentDefs } from './components/index';
 import { figmaAnatomySet, planComponentName, planSetProperties } from './anatomy-figma';
 import { COMPONENT_RENAMES, coordKey, coordPairs, danglingTargets, slotTextUnclaimed, unaccounted, type AxesBaseline as Baseline } from './component-renames';
-import { comparisonBase } from './comparison-base';
+import { comparisonBase, mergeGroupBase } from './comparison-base';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(HERE, '..', '..');
@@ -135,7 +135,12 @@ if (nDefs < FLOOR_DEFS)
 const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : null;
 let baseRef: string | null = null;
 const tried: string[] = [];
-if (prBase) {
+const mg = mergeGroupBase(git);
+if (mg) {
+  // A merge-queue run (#4106): the group's parent commit, authoritative (`comparison-base.ts`).
+  tried.push(mg.tried);
+  baseRef = mg.ref;
+} else if (prBase) {
   const r = git('rev-parse', '--verify', '--quiet', `${prBase}^{commit}`);
   tried.push(`${prBase} (GITHUB_BASE_REF, authoritative) — ${r.ok ? 'resolves' : 'does not resolve'}`);
   if (r.ok) baseRef = prBase;
