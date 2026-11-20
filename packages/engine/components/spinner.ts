@@ -127,7 +127,7 @@ export const spinner: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite`, one turn per `motion.duration.spin`, a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here.',
+          'rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) var(--motion-easing-linear) infinite`, one turn per `motion.duration.spin`, a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here.',
       },
       {
         class: 'motion',
