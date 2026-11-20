@@ -43,8 +43,14 @@ shape: a surface), and the canvas furniture switch, the page taxonomy and the st
   `#4009 tooltip code-side contract` arm now requires the fade alone and no scale.
 - **N1 A:** `docs.do` reads "Use label mode when an icon-only control has a tooltip".
 - **Popover and Tooltip list each other in `alternativeTo`**, replacing the `planned` entries. The list must be
-  symmetric and name registered defs, and Popover (#4252) has not merged, so Tooltip keeps `popover` in `planned`
-  here; the swap of both sides lands with whichever of #4251 and #4252 merges second.
+  symmetric and name registered defs. Popover (#4252) merged first, so both halves land here: Popover's
+  `alternativeTo` is `dialog, tooltip` and its `planned` is `menu`; Tooltip's `alternativeTo` is `field-message,
+  popover` and its `planned` is empty.
+
+**Landing second, after Popover (#4252).** The 27-file collision is resolved by the recipe on #4252: both components'
+entries kept, the catalog at 65 sets, canvas furniture at 61 (Popover's one member excluded), Button's partners
+`popover, tooltip`. `EXECUTOR_REVISION` rises 66 → 67, because #4325 widened `lint-executor-revision` to the engine code
+the executor runs and Tooltip adds a `CANVAS_FURNITURE` entry; `executor-reach.json` names no redrawn set for 67.
 
 **Right-to-left (#3986, Q-RTL1 A).** The side arrows (`startGlyph`, `endGlyph`) declare `mirror: 'mirrors'`, filled
 from the right-to-left entry, which now says the arrow flips to point at the trigger; the top and bottom arrows are
