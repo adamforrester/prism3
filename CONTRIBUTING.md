@@ -1382,6 +1382,10 @@ npx tsx packages/engine/lint-test-arms.ts           # a registered test arm is s
                                                     # held to the authored test-arms.txt. A merge that
                                                     # drops an arm fails ARM GONE by name; a new arm
                                                     # fails UNREGISTERED until --accept adds it (sorted).
+npx tsx packages/engine/lint-spec-supplement.ts     # the spec supplement lines up with Spectacular (#2996):
+                                                    # each element, prop and Figma name against a hand-
+                                                    # copied fixture of Spectacular's own output, each
+                                                    # $token path mapped, each code name in the contract.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
