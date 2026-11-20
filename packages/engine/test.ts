@@ -17836,13 +17836,13 @@ arm: {
         && lever.description === 'The title of every dialog and sheet: the large, medium or small label style, at Emphasis weight. One dialog can still be changed by hand in Figma.'
         && order.indexOf('dialogTitleSize') === order.indexOf('tagStyle') + 1,
         `#2958 lever (DRAFT copy, Q1 on #2958): "Dialog title size", Large / Medium / Small, default Large, not advanced, in Form after Tag style (form order: ${order.join(', ')})`);
-      // THE PROJECTION: every one of the 24 members' title, read off the plan as Figma will bind it.
+      // THE PROJECTION: every one of the 16 members' title (24 before #3392 A took `size` off the variants), read off the plan as Figma will bind it.
       for (const [size, style] of [['large', 'label/lg/emphasis'], ['medium', 'label/md/emphasis'], ['small', 'label/sm/emphasis']] as const) {
         const plans = figmaAnatomySet(applyDialogTitleSize(dialog, size));
         const find = (n: any): any => (n.name === 'title' ? n : (n.children ?? []).map(find).find(Boolean));
         const styles = [...new Set(plans.map((p) => find(p.root)?.textStyle))];
-        ok(plans.length === 24 && JSON.stringify(styles) === JSON.stringify([style]),
-          `#2958 projection: at ${size}, every one of Dialog's 24 members binds its title to ${style} (${plans.length} members, ${styles.join(', ')})`);
+        ok(plans.length === 16 && JSON.stringify(styles) === JSON.stringify([style]),
+          `#2958 projection: at ${size}, every one of Dialog's 16 members binds its title to ${style} (${plans.length} members, ${styles.join(', ')})`);
       }
     }
 
@@ -19016,7 +19016,7 @@ arm: {
       const dlg = componentDefs.find((x) => x.id === 'dialog')!;
       const dPlans = figmaAnatomySet(dlg, { swapTarget: 'FPO-default-icon' });
       const bodies = dPlans.map((pl) => pl.root.children.find((c) => c.name === 'body'));
-      ok(dPlans.length === 24 && bodies.every((b) => b?.type === 'CONTENT_SLOT' && b.clipsContent === true && b.overflowDirection === 'VERTICAL'),
+      ok(dPlans.length === 16 && bodies.every((b) => b?.type === 'CONTENT_SLOT' && b.clipsContent === true && b.overflowDirection === 'VERTICAL'),
         `#3163 dialog body: every member's body slot plans clipsContent and overflowDirection VERTICAL (${bodies.filter((b) => b?.clipsContent === true && b.overflowDirection === 'VERTICAL').length}/${dPlans.length})`);
       // #4008: Popover's body is the second scroll region, the same shape as Dialog's (the body scrolls when the screen
       // is shorter than the popover; header and footer stay put).
@@ -26054,7 +26054,7 @@ arm: {
         const bodyMisses = run.misses.filter((x) => /(^|\/)body\./.test(x));
         if (facts !== WANT_BODY || bodyMisses.length) got.push(`${planComponentName(m)}: ${facts}${bodyMisses.length ? ` misses ${JSON.stringify(bodyMisses.slice(0, 2))}` : ''}`);
       }
-      ok(members.length === 24 && got.length === 0,
+      ok(members.length === 16 && got.length === 0,
         `#3163 paste leg: every pasted Dialog member's body is ${WANT_BODY} (${members.length - got.length}/${members.length})${got.length ? ` — ${got.slice(0, 3).join('; ')}` : ''}`);
     }
 
@@ -27230,7 +27230,7 @@ arm: {
             return undefined;
           };
           const bad = dg.filter((pl) => JSON.stringify(findPart(pl.root, 'close')?.nestOverrides) !== '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/close"}]');
-          ok(dg.length === 24 && bad.length === 0, `#2609 dialog: every member's close swaps FlushIconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
+          ok(dg.length === 16 && bad.length === 0, `#2609 dialog: every member's close swaps FlushIconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
           ok(Object.keys(dDef.figmaProperties?.swaps ?? {}).length === 0, `#2609 dialog: no swap property on Dialog's Figma surface (${JSON.stringify(dDef.figmaProperties?.swaps)})`);
           ok(dDef.anatomy!.parts.close?.nesting?.kind === 'nest-fixed', `#2609 dialog: the close is not exposed, so the nested button's swap does not surface on Dialog (${dDef.anatomy!.parts.close?.nesting?.kind})`);
           // Q385 A (settling Q377 A): Dialog nests FlushIconButton.Neutral and depends on IconButton.Neutral nowhere, so a
@@ -40491,7 +40491,8 @@ arm: {
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row',
     'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab-item', 'tabs',
     '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
-    'text-field', 'textarea', 'select', 'password-field', 'dialog', 'search-field', 'pagination-item', 'pagination',
+    'text-field', 'textarea', 'select', 'password-field', 'search-field', 'pagination-item', 'pagination',
+    // Not `dialog`: its `size` is a code prop only since #3392 A, so Figma has no size member to insert.
   ];
   // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
   const NO_SET = ['icon', 'provider-logo', 'spinner'];
@@ -40914,9 +40915,9 @@ arm: {
       }
     }
   }
-  // 48 accordion members, one rule each; 24 dialog members, a header rule each and a footer rule on the 18 with a footer.
-  ok(nested3476 === 90 && notSubtle.length === 0,
-    `#3476 nested divider: Accordion and Dialog nest every divider at ${JSON.stringify(NESTED_3476)}, so their separators draw color/border/primary (owner Q72 B) (${nested3476} nested, want 90${notSubtle.length ? `; NOT SUBTLE: ${notSubtle.slice(0, 3).join(' | ')}` : ''})`);
+  // 48 accordion members, one rule each; 16 dialog members (#3392 A), a header rule each and a footer rule on the 12 with a footer.
+  ok(nested3476 === 76 && notSubtle.length === 0,
+    `#3476 nested divider: Accordion and Dialog nest every divider at ${JSON.stringify(NESTED_3476)}, so their separators draw color/border/primary (owner Q72 B) (${nested3476} nested, want 76${notSubtle.length ? `; NOT SUBTLE: ${notSubtle.slice(0, 3).join(' | ')}` : ''})`);
 }
 
 // ------------------------------------------------------------------- #2417: the accordion and its indicator
@@ -41335,23 +41336,25 @@ arm: {
   const all = (n: DN): DN[] => [n, ...n.children.flatMap(all)];
   const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
 
-  // THE SHAPE (Q303.1, Q303.5, Q303.6; Q483 A, Q488 A, Q489 A; Q492 B): placement center, bottom, full and end; size on
-  // center only; footer inline, stacked, fill, none (fill third, Q?2 A on #2880); 24 members, the end members after the
-  // full ones.
+  // THE SHAPE (Q303.1, Q303.6; Q483 A, Q488 A; Q492 B; #3392 A): placement center, bottom, full and end; footer inline,
+  // stacked, fill, none (fill third, on #2880); 16 members, the end members after the full ones. No size axis: #3392 A
+  // (owner, 2026-11-18) made the width-only `size` a code prop, superseding Q303.5/Q489 for the axis.
   const MEMBERS = [
-    'placement=center, footer=inline, size=medium', 'placement=center, footer=inline, size=small', 'placement=center, footer=inline, size=large',
-    'placement=center, footer=stacked, size=medium', 'placement=center, footer=stacked, size=small', 'placement=center, footer=stacked, size=large',
-    'placement=center, footer=fill, size=medium', 'placement=center, footer=fill, size=small', 'placement=center, footer=fill, size=large',
-    'placement=center, footer=none, size=medium', 'placement=center, footer=none, size=small', 'placement=center, footer=none, size=large',
-    'placement=bottom, footer=inline, size=medium', 'placement=bottom, footer=stacked, size=medium', 'placement=bottom, footer=fill, size=medium', 'placement=bottom, footer=none, size=medium',
-    'placement=full, footer=inline, size=medium', 'placement=full, footer=stacked, size=medium', 'placement=full, footer=fill, size=medium', 'placement=full, footer=none, size=medium',
-    'placement=end, footer=inline, size=medium', 'placement=end, footer=stacked, size=medium', 'placement=end, footer=fill, size=medium', 'placement=end, footer=none, size=medium',
+    'placement=center, footer=inline', 'placement=center, footer=stacked', 'placement=center, footer=fill', 'placement=center, footer=none',
+    'placement=bottom, footer=inline', 'placement=bottom, footer=stacked', 'placement=bottom, footer=fill', 'placement=bottom, footer=none',
+    'placement=full, footer=inline', 'placement=full, footer=stacked', 'placement=full, footer=fill', 'placement=full, footer=none',
+    'placement=end, footer=inline', 'placement=end, footer=stacked', 'placement=end, footer=fill', 'placement=end, footer=none',
   ];
-  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(MEMBERS) && figmaVariantCount(dg) === 24,
-    `#2609 #2877 #2880 dialog: 24 members, center at three sizes and bottom, full and end at the default size only, each with the four footers, in this order (got ${plans.length}: ${plans.map(planComponentName).slice(12).join(' | ')})`);
-  ok(JSON.stringify(dg.variants) === JSON.stringify({ placement: ['center', 'bottom', 'full', 'end'], size: ['medium', 'small', 'large'], footer: ['inline', 'stacked', 'fill', 'none'] })
-    && JSON.stringify(dg.figmaProperties?.variantAxes) === JSON.stringify(['placement', 'size', 'footer']),
-    `#2609 #2877 dialog axes: placement [center, bottom, full, end] (Q303.1, Q488 A), size [medium, small, large], footer [inline, stacked, fill, none] (Q492 B) (got ${JSON.stringify(dg.variants)})`);
+  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(MEMBERS) && figmaVariantCount(dg) === 16,
+    `#2609 #2877 #2880 #3392 dialog: 16 members, each placement with the four footers and no size, in this order (got ${plans.length}: ${plans.map(planComponentName).slice(0, 4).join(' | ')})`);
+  ok(JSON.stringify(dg.variants) === JSON.stringify({ placement: ['center', 'bottom', 'full', 'end'], footer: ['inline', 'stacked', 'fill', 'none'] })
+    && JSON.stringify(dg.figmaProperties?.variantAxes) === JSON.stringify(['placement', 'footer']) && !dg.figmaProperties?.excludeCoordinates,
+    `#2609 #2877 #3392 dialog axes: placement [center, bottom, full, end] (Q303.1, Q488 A) and footer [inline, stacked, fill, none] (Q492 B), no size axis and no excluded coordinates (got ${JSON.stringify(dg.variants)})`);
+  // #3392 A: the code prop stays, its three widths documented as the recommended sizes, never as members.
+  const sizeProp = dg.props.find((x) => x.name === 'size');
+  ok(JSON.stringify(sizeProp?.values) === JSON.stringify(['small', 'medium', 'large']) && sizeProp?.default === 'medium'
+    && /recommended widths are 400px \(small\), 560px \(medium, the default\) and 720px \(large\)/.test(sizeProp?.description ?? '') && /designer sets the width/.test(sizeProp?.description ?? ''),
+    `#3392 dialog: the code prop size stays (small, medium, large; medium the default) and documents 400, 560 and 720px as recommended widths the designer sets (got ${JSON.stringify(sizeProp?.values)}; "${String(sizeProp?.description ?? '').slice(0, 120)}")`);
   // The side placement is `end`, never `side`, `right`, `left` or `start` (Q488 A), in the code enum, the axis and the
   // built sizes alike.
   const placeProp = dg.props.find((x) => x.name === 'placement');
@@ -41366,9 +41369,9 @@ arm: {
   // THE SIZE AND THE CORNERS PER PLACEMENT (Q303.5 A, Q303.11 A as adjusted): [width, height or null, top corners,
   // bottom corners, padding]. Center rounds all four, bottom its top two, full and end none (Q490 A). End is one width,
   // 480 (Q489 A), built 800 tall with the body taking the height, and padded as center is.
-  const WIDTH: Record<string, number> = { small: 400, medium: 560, large: 720 };
   const SHAPE: Record<string, [number | null, number | null, string, string, string]> = {
-    center: [null, null, 'radius/2xl', 'radius/2xl', 'space/300'],
+    // #3392 A: a centered member is built at 560, the recommended medium width; the designer sets it from there.
+    center: [560, null, 'radius/2xl', 'radius/2xl', 'space/300'],
     bottom: [360, null, 'radius/2xl', 'radius/none', 'space/200'],
     full: [360, 640, 'radius/none', 'radius/none', 'space/200'],
     end: [480, 800, 'radius/none', 'radius/none', 'space/300'],
@@ -41379,7 +41382,7 @@ arm: {
     // A placement outside the four has no expected shape and fails here, not throws.
     if (!sh) { shapeBad.push(`${planComponentName(p)}: placement '${c.placement}' is not center, bottom, full or end`); continue; }
     const [w, h, top, bottom, pad] = sh;
-    const wantW = w ?? WIDTH[c.size];
+    const wantW = w;
     const body = find(r, 'body')!;
     const okSize = r.placementWidth === wantW && r.counterAxisSizingMode === 'FIXED'
       && (h === null ? r.placementHeight === undefined && r.primaryAxisSizingMode === 'AUTO' && body.layoutGrow === undefined
@@ -41389,7 +41392,7 @@ arm: {
     if (!okSize || !okCorners || !okPad) shapeBad.push(`${planComponentName(p)}: ${r.placementWidth}×${r.placementHeight ?? 'hug'} corners ${r.bound?.topLeftRadius}/${r.bound?.bottomLeftRadius} pad ${r.bound?.paddingTop}`);
   }
   ok(shapeBad.length === 0,
-    `#2609 dialog size, corners and padding: center 400/560/720 wide hugging its content, every corner radius/2xl, padding space/300; bottom 360 wide, its top corners radius/2xl and bottom none, padding space/200; full 360×640 with the body taking the height, every corner square, padding space/200; end 480×800 with the body taking the height, every corner square, padding space/300${shapeBad.length ? ` — WRONG: ${shapeBad.slice(0, 3).join('; ')}` : ''}`);
+    `#2609 #3392 dialog size, corners and padding: center 560 wide hugging its content, every corner radius/2xl, padding space/300; bottom 360 wide, its top corners radius/2xl and bottom none, padding space/200; full 360×640 with the body taking the height, every corner square, padding space/200; end 480×800 with the body taking the height, every corner square, padding space/300${shapeBad.length ? ` — WRONG: ${shapeBad.slice(0, 3).join('; ')}` : ''}`);
 
   // THE PANEL, AND NO BACKDROP IN THE SET (Q303.2 A, Q303.3 A): the panel is the raised surface (#3049, Q721 A,
   // Q3049.1 C: `foreground.raised`, its own role, no longer the card's `foreground.primary`) with the shadow.xl
@@ -41451,8 +41454,8 @@ arm: {
       const t = find(p.root as DN, 'title') as (DN & { visibleProp?: string; visible?: boolean; textStyle?: string; propertyRef?: { prop: string } }) | undefined;
       return !(t && t.visibleProp === 'show title' && t.visible !== false && t.propertyRef?.prop === 'title' && /^label\/(lg|md|sm)\/emphasis$/.test(t.textStyle ?? ''));
     });
-    ok(plans.length === 24 && titleBad.length === 0,
-      `#2895 dialog show title: every one of the 24 members binds the title's visibility to "show title", shown by default, keeping its title text property and its label emphasis style (${titleBad.length ? `WRONG: ${titleBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    ok(plans.length === 16 && titleBad.length === 0,
+      `#2895 dialog show title: every one of the 16 members (24 until #3392 A) binds the title's visibility to "show title", shown by default, keeping its title text property and its label emphasis style (${titleBad.length ? `WRONG: ${titleBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 16'})`);
     const desc = plans.every((p) => (find(p.root as DN, 'description') as { visibleProp?: string } | undefined)?.visibleProp === 'description');
     ok(desc, '#2895 dialog show title Q2 A: the description keeps its own toggle, independent of the title');
     // Q3 A: the header collapses to its content, so a hidden title takes its gap with it. That holds only while the header
@@ -41465,8 +41468,8 @@ arm: {
       return !(h && tb && h.layoutMode === 'HORIZONTAL' && h.counterAxisSizingMode === 'AUTO' && noMin(h)
         && tb.layoutMode === 'VERTICAL' && tb.primaryAxisSizingMode === 'AUTO' && noMin(tb));
     });
-    ok(plans.length === 24 && q3Bad.length === 0,
-      `#2895 dialog show title Q3 A: on every member the header and the titleBox hug their height with no minimum, so a hidden title collapses the header (${q3Bad.length ? `WRONG: ${q3Bad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 24'})`);
+    ok(plans.length === 16 && q3Bad.length === 0,
+      `#2895 dialog show title Q3 A: on every member the header and the titleBox hug their height with no minimum, so a hidden title collapses the header (${q3Bad.length ? `WRONG: ${q3Bad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 16'})`);
     const co =codeOnlyText(dg.anatomy!.codeOnly);
     ok(co.some((e) => /^labeling — /.test(e) && /`hideTitle` the `<h2>` stays in the DOM, visually hidden/.test(e) && /`aria-labelledby` still points at it/.test(e) && /never `display: none`/.test(e)),
       '#2895 dialog show title Q7 A: a hidden title is a visually hidden <h2> that aria-labelledby still points at, never display: none');
