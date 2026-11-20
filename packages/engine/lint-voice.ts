@@ -451,6 +451,8 @@ const gated: string[] = [
   // The docs/34 shape-index baseline (#786) — the third, same reason. Its shape titles are quoted
   // verbatim in that gate's failure messages, so they are contributor-facing prose.
   join(repo, 'packages/engine/schema/shape-index.json'),
+  // The pinned shadcn/ui variable set (#2997 gate 3) — kept out of `regen`, named by hand as lint-us-english.ts names it.
+  join(repo, 'packages/engine/schema/shadcn-vars.json'),
   // The decisions-index baseline (#886) — the fourth, same reason. Its decision titles are quoted
   // verbatim in that gate's failure messages, so they are contributor-facing prose the same way a
   // shape title is.
@@ -785,6 +787,8 @@ const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   ['declared second tiers', { surfaces: { light: { secondary: 200 }, dark: { secondary: 700, floorStep: 850 } } }],
   ['brand inverse band', { brandColors: [{ name: 'navy', oklch: { l: 0.22, c: 0.06, h: 250 } }], surfaces: { light: { inverseBase: { palette: 'navy', step: 900 } } } }],
   ['links on neutral', { linkPalette: 'neutral' }],
+  // #3284: action named `primary` by the brand, and a pin on it, each with its own line.
+  ['primary named, and pinned', { actionPalette: 'primary', actionAnchorStep: 300 }],
   ['link set apart from a rebased action', { brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }], roleColors: { action: 'accent' }, linkPalette: 'primary' }],
   ['a named stop', { radiusScale: 'soft' }],
   // #3071: the opaque outline hover fill with a pick, and a pick left under another method.
@@ -822,6 +826,7 @@ const PRODUCERS: Producer[] = [
   { id: 'status: default', re: /^(success|warning|info): default hue /, kind: 'site' },
   { id: 'action: default', re: /^action: the primary palette, by default/, kind: 'site' },
   { id: 'action: decoupled', re: /^action: uses the '[^']+' palette/, kind: 'site' },
+  { id: 'action: primary, set', re: /^action: the primary palette, as the brand sets\.$/, kind: 'site' },
   { id: 'danger: supplied', re: /^danger: the brand's hue /, kind: 'site' },
   { id: 'danger: red primary', re: /^danger: the primary \(hue [^,]+, chroma [^)]+\) is a saturated red/, kind: 'site' },
   { id: 'danger: greige primary', re: /^danger: the primary \(hue [^)]+\) is reddish/, kind: 'site' },
@@ -868,6 +873,7 @@ const PRODUCERS: Producer[] = [
   { id: 'surfaces: second tier, floor declared', re: /^surfaces: the \S+ second tier is .+ — the contrast floor stays at /, kind: 'site' },
   { id: 'surfaces: inverse band', re: /^surfaces: the \S+ inverse band is a brand color/, kind: 'site' },
   { id: 'action: anchored', re: /^action: anchored at '[^']+' step \d+/, kind: 'site' },
+  { id: 'action: pinned', re: /^action: pinned at '[^']+' step \d+ by actionAnchorStep/, kind: 'site' },
   { id: 'link color: same as action', re: /^link color: '[^']+', the same palette as the action color,/, kind: 'site' },
   { id: 'link color: decoupled', re: /^link color: links use the '[^']+' palette instead of the action color '[^']+'/, kind: 'site' },
   { id: 'links: Use of Color', re: /^links: .*WCAG 1\.4\.1 \(Use of Color\)/, kind: 'site' },
@@ -893,7 +899,7 @@ const NOTES_UNREACHABLE = ['typography: empty display tier (the "below the usual
 // The push sites, counted in the SOURCE (comments dropped), as a tripwire for a new producer the sweep
 // never reaches: one the sweep reaches is an unclaimed note already. A literal per file, written here.
 // theme-brand.ts (`brandTheme`, in theme.ts until #3698 R5 split it per axis): 45 note pushes (#3052 added the grid-link notes' spread) + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
-const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme-brand.ts': 51, 'packages/engine/vocabulary.ts': 2 };
+const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme-brand.ts': 52, 'packages/engine/vocabulary.ts': 2 };
 // The rules a NOTE must also pass, beyond §2 and `normative`. Each is a thing an engine note has carried.
 const ALLCAPS_OK = new Set(['AA', 'AAA', 'WCAG', 'OKLCH', 'HC']);
 const NOTE_RULES: { rule: string; re: RegExp }[] = [

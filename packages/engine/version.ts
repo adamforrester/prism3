@@ -750,9 +750,10 @@ export const CONTRACT_VERSION = '15.1.0';
  *   `dialog`'s `hideTitle` prop added (#4057).
  * 1.5.0 (the schema, MINOR): #4074's `prism3-component-defs/1.5`, the button's `borderWeight` setting added.
  * 1.2.0 (the contract, MINOR): `popover` added (#4252).
+ * 2.0.0 (the contract, MAJOR): `dialog`'s `size` variant axis removed (#4091, #3392 A: a width-only size is no variant).
  */
 export const COMPONENT_SCHEMA_VERSION = '1.5.0';
-export const COMPONENT_CONTRACT_VERSION = '1.2.0';
+export const COMPONENT_CONTRACT_VERSION = '2.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

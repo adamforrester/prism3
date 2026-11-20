@@ -7071,7 +7071,7 @@
       ],
       "category": "foundations",
       "status": "draft",
-      "summary": "Indeterminate loading indicator on the icon ladder. Announces \"Loading\" unless its host hides it.",
+      "summary": "Indeterminate loading indicator in the icon sizes. Announces \"Loading\" unless its host hides it.",
       "description": "A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button's leading visual, a field's trailing slot. On its own it announces a polite \"Loading\", or a more specific label, through a status region that is already on the page; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.",
       "props": [
         {
@@ -7164,9 +7164,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "A quick fade in on mount: opacity over `motion.duration.fast` (100ms at the standard tempo) on the `motion.easing-role.enter` curve. The host decides when to mount it.",
+        "enter": "A quick fade in on mount: opacity over `motion.duration.fast` on the `motion.easing-role.enter` curve. The host decides when to mount it.",
         "exit": "none",
-        "reduceMotion": "The turn runs `motion.duration.spin` (800ms) per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` (2600ms) per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion."
+        "reduceMotion": "The turn runs `motion.duration.spin` per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion."
       },
       "composition": {
         "composesWith": [],
@@ -7231,7 +7231,7 @@
         "counter",
         "state-label"
       ],
-      "category": "foundations",
+      "category": "feedback",
       "status": "draft",
       "summary": "A static status label, count or dot. Nothing to click; color is not meant to be the only signal.",
       "description": "A small, static marker of one of three types. A status label is short text in the flow of content, such as a lifecycle state, a keyword or a file size, and it announces its own text. A count is a number over a host, such as unread messages on an icon button, capped at a maximum. A dot is a contentless mark over a host for presence or unread state. A count or dot is hidden from assistive technology, and its meaning goes in the host's accessible name. A badge has no hover, focus or pressed state. Anything a user can click, toggle or remove is a tag.",
@@ -7504,7 +7504,7 @@
         "checkable-tag",
         "facet"
       ],
-      "category": "foundations",
+      "category": "form",
       "status": "draft",
       "summary": "An interactive token a user toggles or removes. A static label is a badge.",
       "description": "A compact, interactive token of one of two types. A select tag toggles on and off, such as a filter; while selected it takes a tint, a 2px outline and, by default, a check mark after the label. The label keeps its weight, so its own width does not change; the check mark, when shown, adds its width and one gap. A dismissible tag carries a remove control, a × in a square slot at its trailing end, named \"Remove\" followed by the tag's label, such as an applied filter or a recipient in a field. Tags usually sit in a group that owns the selection model, arrow-key movement between tags and where focus goes after a removal. At rest a tag always shows an outline.",
@@ -10295,7 +10295,7 @@
             "medium",
             "large"
           ],
-          "description": "The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it."
+          "description": "The width of a centered panel. The recommended widths are 400px (small), 560px (medium, the default) and 720px (large); in a design file the designer sets the width. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it."
         },
         {
           "name": "footer",
@@ -10319,14 +10319,6 @@
             "bottom",
             "full",
             "end"
-          ],
-          "kind": "authoring"
-        },
-        "size": {
-          "values": [
-            "medium",
-            "small",
-            "large"
           ],
           "kind": "authoring"
         },
@@ -12639,9 +12631,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "Appears after a short delay (400ms), so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep` (1600ms), on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.",
-        "exit": "Stays at least 500ms once shown, then leaves with its host.",
-        "reduceMotion": "The fill snaps to each value (`motion.duration-reduced.moderate`, 0ms). The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep` (2600ms). It is never removed, because a still bar reads as stuck."
+        "enter": "Appears after a short delay, `delay`, so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep`, on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.",
+        "exit": "Stays at least `minDisplay` once shown, then leaves with its host.",
+        "reduceMotion": "The fill snaps to each value, on `motion.duration-reduced.moderate`. The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep`. It is never removed, because a still bar reads as stuck."
       },
       "composition": {
         "composesWith": [

@@ -301,6 +301,9 @@ const gated: string[] = [
   // and those titles are quoted verbatim in this gate's own failure messages, so an en-GB spelling in
   // one would reach a contributor's terminal.
   join(repo, 'packages/engine/schema/shape-index.json'),
+  // The pinned shadcn/ui variable set (#2997 gate 3) — another baseline kept out of `regen` (only
+  // `shadcn-vars.ts --accept` writes it), so hand-named for the same reason. It carries prose (`note`).
+  join(repo, 'packages/engine/schema/shadcn-vars.json'),
   // The decisions-index baseline (#886) — the fourth baseline kept out of `regen` for the same
   // reason, hand-named for the same reason. It carries prose in `$comment` and in every decision
   // `title`, and those titles are quoted verbatim in the gate's own failure messages, so an en-GB

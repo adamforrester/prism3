@@ -1390,6 +1390,20 @@ npx tsx packages/engine/lint-test-arms.ts           # a registered test arm is s
                                                     # held to the authored test-arms.txt. A merge that
                                                     # drops an arm fails ARM GONE by name; a new arm
                                                     # fails UNREGISTERED until --accept adds it (sorted).
+npx tsx packages/engine/shadcn-vars.ts --check      # the shadcn map covers the pinned shadcn variable set
+                                                    # (#2997): every pinned name mapped, every extra
+                                                    # declared, the map version equal to the pin's; only
+                                                    # --accept moves the pin, after a version raise, and
+                                                    # the pin is held to the base's pin from git (a name
+                                                    # added needs MINOR, dropped MAJOR). Per target.
+npx tsx packages/engine/lint-shadcn-contract.ts     # the shadcn map follows the component contract (#2997):
+                                                    # each anchored variable maps to the role Button, Text
+                                                    # Field, Select or Focus Ring binds; every row anchored
+                                                    # or declared unanchored; every mapped role guaranteed.
+npx tsx packages/engine/lint-spec-supplement.ts     # the spec supplement lines up with Spectacular (#2996):
+                                                    # each element, prop and Figma name against a hand-
+                                                    # copied fixture of Spectacular's own output, each
+                                                    # $token path mapped, each code name in the contract.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
@@ -1855,6 +1869,34 @@ The reviewer-facing half: **duplication between a gate and its subject is usuall
 Routing both through one helper is the obvious cleanup and it silently deletes the gate, leaving
 no failing test and a diff that looks like an improvement. If you're about to suggest that
 cleanup, check for a comment explaining why the duplication is there.
+
+### A new gate fails from day one: no probation inside a required job (#888)
+
+Owner decision #888 A (2026-11-18). **A new gate fails builds from the PR that adds it.** Almost every
+gate here is deterministic, so an advisory week buys nothing: if it fails, the failure is real.
+
+**If a gate genuinely needs probation** (its failures might not be real: a browser, network or external
+service it depends on), **run it as a separate job that branch protection does not require.** Its
+conclusion is honest, it shows in the PR's checks list, and the evidence reads straight off the run
+conclusions, with no clock, flag or summary workaround. The cost is a red X on PRs while probation runs.
+That is chosen on purpose: the invisible alternative is what made #775's evidence almost unreadable.
+Today that job cannot sit in `ci.yml`: `lint-doc-gates.ts` holds every `ci.yml` job to `gates`' `needs`
+(Q503 A), so a job there is required whether you mean it to be or not.
+
+**A required gate step never carries `continue-on-error`, or a step-level `if:` that skips it.** With
+`continue-on-error: true`, GitHub reports the step's own conclusion as `success` when its command exits
+non-zero, not only the job's. Measured on #775, not assumed. So the step leaves no evidence in any
+status check or API read, only an `##[error]` inside its log, which is the opposite of what a probation
+period is for. `lint-doc-gates.ts` fails a gate step carrying either, or a job-level `continue-on-error` over one
+(#3881, #3958).
+
+Two rules hold whichever route a gate takes:
+
+- **Any dated promise gets `lint-advisory-expiry.ts`.** Its oracle is the clock, which the repo cannot
+  edit.
+- **If probation finds flakiness, fix the flake.** Don't extend the window: an extension is how advisory
+  becomes forever. A gate whose browser download fails on a CDN blip gets the browser cached, never the
+  flag back.
 
 ### The `out/*` discipline
 
