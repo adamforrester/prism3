@@ -992,7 +992,8 @@
           "icon",
           "spinner",
           "focus-ring",
-          "button-group"
+          "button-group",
+          "popover"
         ],
         "triggerKeywords": [
           "button",
@@ -1027,7 +1028,6 @@
         "planned": [
           "tooltip",
           "menu",
-          "popover",
           "split-button"
         ],
         "replacesPatterns": [
@@ -1321,7 +1321,8 @@
           "icon",
           "spinner",
           "focus-ring",
-          "button-group"
+          "button-group",
+          "popover"
         ],
         "triggerKeywords": [
           "destructive button",
@@ -1354,7 +1355,6 @@
         "planned": [
           "tooltip",
           "menu",
-          "popover",
           "split-button"
         ],
         "replacesPatterns": [
@@ -1647,7 +1647,8 @@
           "icon",
           "spinner",
           "focus-ring",
-          "button-group"
+          "button-group",
+          "popover"
         ],
         "triggerKeywords": [
           "neutral button",
@@ -1678,7 +1679,6 @@
         "planned": [
           "tooltip",
           "menu",
-          "popover",
           "split-button"
         ],
         "replacesPatterns": [
@@ -2379,7 +2379,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "popover"
         ],
         "triggerKeywords": [
           "icon button",
@@ -2408,8 +2409,7 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "menu",
-          "popover"
+          "menu"
         ],
         "replacesPatterns": [
           "`div[role=button]` wrapping an icon",
@@ -2639,7 +2639,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "popover"
         ],
         "triggerKeywords": [
           "delete icon button",
@@ -2668,8 +2669,7 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "menu",
-          "popover"
+          "menu"
         ],
         "replacesPatterns": [
           "`div[role=button]` wrapping an icon",
@@ -2898,7 +2898,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "popover"
         ],
         "triggerKeywords": [
           "close button",
@@ -2927,8 +2928,7 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "menu",
-          "popover"
+          "menu"
         ],
         "replacesPatterns": [
           "`div[role=button]` wrapping an icon",
@@ -7633,9 +7633,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "A quick fade in on mount: opacity over `motion.duration.fast` (100ms at the standard tempo) on the `motion.easing-role.enter` curve. The host decides when to mount it.",
+        "enter": "A quick fade in on mount: opacity over `motion.duration.fast` on the `motion.easing-role.enter` curve. The host decides when to mount it.",
         "exit": "none",
-        "reduceMotion": "The turn runs `motion.duration.spin` (800ms) per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` (2600ms) per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion."
+        "reduceMotion": "The turn runs `motion.duration.spin` per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion."
       },
       "composition": {
         "composesWith": [],
@@ -8135,7 +8135,8 @@
           "badge",
           "icon",
           "checkbox-group",
-          "radio-group"
+          "radio-group",
+          "popover"
         ],
         "triggerKeywords": [
           "tag",
@@ -8175,8 +8176,7 @@
         "supersededBy": [],
         "planned": [
           "combobox",
-          "avatar",
-          "popover"
+          "avatar"
         ],
         "replacesPatterns": [
           "a removable token list built as a listbox",
@@ -8374,7 +8374,8 @@
         "commonPartners": [
           "tag",
           "search-field",
-          "list"
+          "list",
+          "popover"
         ],
         "triggerKeywords": [
           "tag group",
@@ -8404,8 +8405,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "combobox",
-          "popover"
+          "combobox"
         ],
         "replacesPatterns": [
           "a removable token list built as a listbox",
@@ -10896,12 +10896,12 @@
         "alternativeTo": [
           "accordion",
           "toast",
-          "banner"
+          "banner",
+          "popover"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "popover",
           "menu"
         ],
         "replacesPatterns": [
@@ -13109,9 +13109,9 @@
         "generationPriority": 3
       },
       "motion": {
-        "enter": "Appears after a short delay (400ms), so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep` (1600ms), on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.",
-        "exit": "Stays at least 500ms once shown, then leaves with its host.",
-        "reduceMotion": "The fill snaps to each value (`motion.duration-reduced.moderate`, 0ms). The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep` (2600ms). It is never removed, because a still bar reads as stuck."
+        "enter": "Appears after a short delay, `delay`, so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep`, on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.",
+        "exit": "Stays at least `minDisplay` once shown, then leaves with its host.",
+        "reduceMotion": "The fill snaps to each value, on `motion.duration-reduced.moderate`. The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep`. It is never removed, because a still bar reads as stuck."
       },
       "composition": {
         "composesWith": [
@@ -15495,6 +15495,269 @@
         {
           "class": "right-to-left",
           "disposition": "UNSUPPORTED"
+        }
+      ]
+    },
+    "popover": {
+      "id": "popover",
+      "name": "Popover",
+      "aliases": [
+        "popup",
+        "overlay",
+        "anchored-overlay",
+        "floating-panel",
+        "flyout"
+      ],
+      "category": "overlay",
+      "status": "draft",
+      "summary": "A panel beside the control that opened it, for detail or a short task. The page stays usable.",
+      "description": "A non-modal panel anchored to the button that opened it. It holds content the user reaches for on purpose and that belongs next to that control: a few details, a short form, a set of links, or an explanation behind an info button. It opens on a press, sits below its trigger by default, and moves to stay on screen. The page stays usable while it is open, and a press outside, Escape or moving focus away closes it. A header can hold a title and the close button, the body holds the content, and an optional footer holds actions. Not a dialog (it does not block the page), not a tooltip (it opens on a press and can hold controls), and not a menu (a menu is a list of actions).",
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the popover is showing. Leave it unset and use defaultOpen for a popover that manages its own state."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the popover starts open, when open is not set."
+        },
+        {
+          "name": "onOpenChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with true when the trigger opens the popover, and with false on every way it closes: the close button, Escape, a press outside, or focus moving out of it."
+        },
+        {
+          "name": "placement",
+          "type": "enum: 'top' | 'bottom' | 'start' | 'end'",
+          "default": "bottom",
+          "required": false,
+          "values": [
+            "top",
+            "bottom",
+            "start",
+            "end"
+          ],
+          "description": "The side of the trigger it opens on. start and end follow the writing direction. When there is no room on that side it moves to the opposite one."
+        },
+        {
+          "name": "align",
+          "type": "enum: 'start' | 'center' | 'end'",
+          "default": "start",
+          "required": false,
+          "values": [
+            "start",
+            "center",
+            "end"
+          ],
+          "description": "Where it lines up along that side: with the start edge of the trigger, its center, or its end edge. It shifts along the side to stay on screen."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "description": "A short heading that names the popover. When set it is the accessible name; without one, give the popover a label."
+        },
+        {
+          "name": "showClose",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Whether the header shows the close button. Escape and a press outside close it either way."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The body content: text, links or a few controls. The body scrolls when the screen is too short for it."
+        },
+        {
+          "name": "footer",
+          "type": "slot",
+          "required": false,
+          "anyOf": [
+            "button",
+            "button-neutral",
+            "button-destructive"
+          ],
+          "minItems": 1,
+          "maxItems": 2,
+          "description": "Actions at the bottom of the panel, one or two buttons laid out by a Button group. Leave it off for a popover that only shows information."
+        },
+        {
+          "name": "initialFocus",
+          "type": "node",
+          "required": false,
+          "description": "The control that takes focus when the popover opens, for a popover that holds controls. Unset, the first control does. A popover with no controls leaves focus on its trigger."
+        },
+        {
+          "name": "arrow",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether a small arrow points at the trigger. Off by default; turn it on where the link to the trigger is unclear."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "placement": {
+          "values": [
+            "bottom"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "`role=\"dialog\"` with no `aria-modal`, so the page stays usable. The trigger carries `aria-haspopup=\"dialog\"`, `aria-expanded` and `aria-controls`.",
+        "wcag": [
+          "1.3.1 Info and Relationships (the title names the popover through aria-labelledby)",
+          "1.4.10 Reflow (the popover is never wider than the viewport less its margins)",
+          "1.4.13 Content on Hover or Focus (it opens on a press, stays until dismissed, and Escape closes it)",
+          "2.1.1 Keyboard (the trigger, every control inside and the close button work from the keyboard)",
+          "2.1.2 No Keyboard Trap (Tab moves through and out, and Escape closes it)",
+          "2.4.3 Focus Order (focus moves in only for interactive content, and returns to the trigger on Escape)",
+          "2.4.7 Focus Visible (every control inside shows the shared focus ring)",
+          "2.4.11 Focus Not Obscured (only the body scrolls, so a focused control stays in view)",
+          "4.1.2 Name, Role, Value (the trigger states its popup and whether it is expanded)"
+        ],
+        "keyboard": "Enter or Space on the trigger opens it. Tab and Shift+Tab move through the controls inside and out of it, and leaving closes it. Escape closes it and returns focus to the trigger.",
+        "focus": "Moves into the popover on open only when it holds controls: to the chosen control or the first one. A popover that only shows information leaves focus on its trigger. Escape returns focus to the trigger.",
+        "aria": "aria-labelledby pointing at the title, or aria-label when there is no title. On the trigger: aria-haspopup=\"dialog\", aria-expanded, and aria-controls pointing at the popover. The close button's accessible name is \"Close\"."
+      },
+      "content": {
+        "labelPattern": "A title, when there is one, names what the popover holds in a few words (\"Shipping details\"), in sentence case. The trigger says what it opens."
+      },
+      "docs": {
+        "usage": "Use a Popover for content the user asks for that belongs next to the control that opened it: a few details, a short form such as a filter or a date, a set of links, or the explanation behind an info button. It opens on a press and leaves the page usable. For a decision the user must make before going on, use a Dialog; for a hint on hover, a tooltip; for a list of actions, a Menu.",
+        "do": [
+          "Open it from a button, on a press",
+          "Keep it short: a few lines, a few controls",
+          "Give it a title, or a label when it has none",
+          "Leave focus on the trigger when it only shows information",
+          "Return focus to the trigger when Escape closes it"
+        ],
+        "dont": [
+          "Open a popover on hover. Use a tooltip for a hint.",
+          "Put a long form or a task the user must finish in it. Use a Dialog.",
+          "Use it as a list of actions. Use a Menu.",
+          "Open a popover from a popover"
+        ],
+        "contentGuidelines": "Titles are short and in sentence case. Body text says what the user needs and no more. Buttons are named by what they do."
+      },
+      "ai": {
+        "primaryPurpose": "Show extra detail or a short task beside the control that opened it, without blocking the page.",
+        "whenToUse": "The user presses a button to see a few details, an explanation, a set of links or a short form that belongs next to that button, and the page should stay usable while it is open.",
+        "avoidWhen": "The user must decide or finish before going on (a dialog), the content is a hint shown on hover (a tooltip), the content is a list of actions (a menu), or the content can sit in the page (an accordion).",
+        "commonPartners": [
+          "button",
+          "button-neutral",
+          "icon-button",
+          "icon-button-neutral",
+          "flush-icon-button-neutral",
+          "button-group",
+          "link",
+          "text-field",
+          "select",
+          "checkbox-group"
+        ],
+        "triggerKeywords": [
+          "popover",
+          "popup",
+          "flyout",
+          "floating panel",
+          "anchored panel",
+          "toggletip",
+          "info popover",
+          "filter popover"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "Fades in and scales up from a little under full size, from the trigger's side (motion.duration.fast, motion.easing-role.enter). The origin follows the side it opens on.",
+        "exit": "Fades out (motion.duration.instant, motion.easing-role.exit), quicker than it opened.",
+        "reduceMotion": "Under prefers-reduced-motion it fades only, with no scale, on motion.duration-reduced.fast to open and to close. A fade is not movement, and it keeps the cue that a layer opened or closed."
+      },
+      "composition": {
+        "composesWith": [
+          "flush-icon-button-neutral",
+          "button-group"
+        ],
+        "alternativeTo": [
+          "dialog"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "tooltip",
+          "menu"
+        ],
+        "replacesPatterns": [
+          "an absolutely positioned div with a hand-written click-outside handler",
+          "a dialog used for a few lines of detail"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
         }
       ]
     }

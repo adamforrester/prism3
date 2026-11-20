@@ -812,7 +812,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     avoidWhen: `The target is a different location/URL → use Link (or give the button an \`href\`, which renders an \`<a>\`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use ToggleButton. Icon-only with no visible text → use ${ICON_BUTTON_OF[family]} (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
     // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
     // nests it) are the two components this one always builds with, beside the icon in its slots.
-    commonPartners: ['icon', 'spinner', 'focus-ring', 'button-group'],
+    commonPartners: ['icon', 'spinner', 'focus-ring', 'button-group', 'popover'],
     triggerKeywords: sibling.triggerKeywords,
     generationPriority: sibling.generationPriority,
   },
@@ -824,7 +824,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1697 — each sibling points at the icon-button of its OWN family, so the destructive button's
     // icon-only alternative is the destructive icon-button rather than the primary one.
     alternativeTo: [family === 'primary' ? 'icon-button' : `icon-button-${family}`, 'switch-row', ...(family === 'primary' ? ['tag', 'link'] : []), ...(family === 'destructive' ? [] : ['toggle-button'])],
-    planned: ['tooltip', 'menu', 'popover', 'split-button'],
+    planned: ['tooltip', 'menu', 'split-button'],
     replacesPatterns: ['input[type=button|submit]', '`div[role=button]`'],
   },
 

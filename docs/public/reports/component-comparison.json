@@ -3381,6 +3381,71 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "popover",
+      "name": "Popover",
+      "category": "overlay",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "placement": [
+          "bottom"
+        ]
+      },
+      "props": [
+        {
+          "name": "open",
+          "default": false
+        },
+        {
+          "name": "defaultOpen",
+          "default": false
+        },
+        {
+          "name": "onOpenChange"
+        },
+        {
+          "name": "placement",
+          "default": "bottom",
+          "values": [
+            "top",
+            "bottom",
+            "start",
+            "end"
+          ]
+        },
+        {
+          "name": "align",
+          "default": "start",
+          "values": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        {
+          "name": "title"
+        },
+        {
+          "name": "showClose",
+          "default": true
+        },
+        {
+          "name": "children"
+        },
+        {
+          "name": "footer"
+        },
+        {
+          "name": "initialFocus"
+        },
+        {
+          "name": "arrow",
+          "default": false
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "progress",
       "name": "Progress",
       "category": "feedback",
@@ -6304,6 +6369,14 @@
     "placement": [
       {
         "values": [
+          "bottom"
+        ],
+        "components": [
+          "popover"
+        ]
+      },
+      {
+        "values": [
           "bottom",
           "center",
           "end",
@@ -6858,6 +6931,17 @@
         ]
       }
     ],
+    "align": [
+      {
+        "id": "popover",
+        "default": "start",
+        "values": [
+          "start",
+          "center",
+          "end"
+        ]
+      }
+    ],
     "alignment": [
       {
         "id": "tabs",
@@ -7014,6 +7098,12 @@
         "id": "toggle-icon-button"
       }
     ],
+    "arrow": [
+      {
+        "id": "popover",
+        "default": false
+      }
+    ],
     "asChild": [
       {
         "id": "link",
@@ -7107,6 +7197,9 @@
       },
       {
         "id": "list-item"
+      },
+      {
+        "id": "popover"
       }
     ],
     "clearable": [
@@ -7166,6 +7259,12 @@
     "defaultExpanded": [
       {
         "id": "accordion",
+        "default": false
+      }
+    ],
+    "defaultOpen": [
+      {
+        "id": "popover",
         "default": false
       }
     ],
@@ -7485,6 +7584,9 @@
           "fill",
           "none"
         ]
+      },
+      {
+        "id": "popover"
       }
     ],
     "formatOptions": [
@@ -7720,6 +7822,11 @@
           "chevron",
           "plus-minus"
         ]
+      }
+    ],
+    "initialFocus": [
+      {
+        "id": "popover"
       }
     ],
     "inputMode": [
@@ -8562,6 +8669,9 @@
     "onOpenChange": [
       {
         "id": "dialog"
+      },
+      {
+        "id": "popover"
       }
     ],
     "onPageChange": [
@@ -8588,6 +8698,10 @@
     "open": [
       {
         "id": "dialog",
+        "default": false
+      },
+      {
+        "id": "popover",
         "default": false
       }
     ],
@@ -8652,6 +8766,16 @@
           "center",
           "bottom",
           "full",
+          "end"
+        ]
+      },
+      {
+        "id": "popover",
+        "default": "bottom",
+        "values": [
+          "top",
+          "bottom",
+          "start",
           "end"
         ]
       }
@@ -8957,6 +9081,12 @@
     "showCheck": [
       {
         "id": "tag",
+        "default": true
+      }
+    ],
+    "showClose": [
+      {
+        "id": "popover",
         "default": true
       }
     ],
@@ -9770,6 +9900,9 @@
       },
       {
         "id": "dialog"
+      },
+      {
+        "id": "popover"
       }
     ],
     "tone": [
@@ -10601,6 +10734,15 @@
         "divider"
       ],
       "detail": "the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis placement",
+      "components": [
+        "dialog",
+        "popover"
+      ],
+      "detail": "the placement axis takes 2 value sets — [bottom] in popover; [bottom, center, end, full] in dialog"
     },
     {
       "kind": "axis values",
