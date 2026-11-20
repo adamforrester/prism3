@@ -176,7 +176,7 @@ export const tooltip: ComponentDef = {
         class: 'runtime-behavior',
         disposition: 'refused',
         description:
-          'timing defaults — `delay`, `closeDelay` and the skip window are shared settings of a provider mounted once, so every tooltip on a page keeps the same rhythm. Their default values have no tokens yet; the field ranges (open about 700 to 1500ms, close about 300 to 500ms, skip about 300ms) are with the motion gap batch.',
+          'timing defaults — `delay`, `closeDelay` and the skip window are shared settings of a provider mounted once, so every tooltip on a page keeps the same rhythm. Their default values have no tokens yet; the ranges the field uses for them are with the motion gap batch (#3486).',
       },
       {
         class: 'responsive-layout',

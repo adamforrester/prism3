@@ -57,6 +57,10 @@ from the right-to-left entry, which now says the arrow flips to point at the tri
 symmetric and declare nothing. The usage section takes the generated "In RTL" note. The K7 A arm also rejects a size
 change worded any other way (grow, shrink, zoom, transform, a percentage), not only the word scale.
 
+**No motion literals in the timing note.** #4298 widened `lint-motion-literals` to the code-only notes that name
+motion, so the `runtime-behavior` note no longer quotes the field's delay ranges in milliseconds; it points to the
+motion gap batch (#3486), where the owner's Q-FL2 record already sent them.
+
 **Follow-up, not in this PR.** IconButton's `aria` line still reads "aria-label is the accessible name (required)",
 which K6 B qualifies on an icon-only control with a label-mode tooltip; filed as #4250.
 
