@@ -11,6 +11,7 @@
  *
  *     <brand>.base.tokens.json          every DTCG-typed token, default-mode values, NO `$extensions`
  *     <brand>.<mode>.overlay.tokens.json  ONLY the leaves whose value differs from base, NO `$extensions`
+ *     <brand>.web.base.tokens.json      the base, each typeface's `$value` its fallback stack (#4155; web only)
  *
  * Since #2552 (owner decision Q250 A) this set IS the consumer handoff: no `$extensions` anywhere, so no
  * vendor key, no build data and no internal prose travels to a client — see `buildOverlaySet`.
@@ -316,6 +317,35 @@ export const stripExtensions = (n: unknown): unknown => {
   const out: Node = {};
   for (const [k, v] of Object.entries(n as Node)) if (k !== '$extensions') out[k] = stripExtensions(v);
   return out;
+};
+
+/**
+ * The WEB base (#4155, owner decision B, 2026-11-19): the conforming base with each typeface's curated fallback
+ * stack folded into its `$value`, as DTCG 2025.10 §8.3's array form, primary family first. Stripped like the base.
+ *
+ * WHY A SEPARATE FILE and not the base itself: the base is the platform-NEUTRAL handoff (#609), and a stack such
+ * as `system-ui, -apple-system, Segoe UI, …` means nothing to an Android `fontFamily` — stock Style Dictionary's
+ * android group writes the whole list as one `<string>`, which no platform resolves. The web reads it as written,
+ * so only the web build (`packages/tokens/sd.ship.mjs`) sources this file in place of the base. The canonical tree
+ * keeps one family under `$value` and the stack under `$extensions.prism3.fallbackStack` (#105.3), so the Figma and
+ * TokenPress round trip doesn't move. Typefaces don't vary by mode, so the overlays need no web flavor.
+ *
+ * Every other leaf is the base's, byte for byte; a `fontFamily` leaf with no stack keeps its single family.
+ */
+export const buildWebBase = (tree: unknown): unknown => {
+  const stack = (n: unknown): unknown => {
+    if (!n || typeof n !== 'object') return n;
+    if (isLeaf(n)) {
+      const fallback = ((n.$extensions as Node | undefined)?.prism3 as Node | undefined)?.fallbackStack;
+      return n.$type === 'fontFamily' && typeof n.$value === 'string' && Array.isArray(fallback) && fallback.length
+        ? { ...n, $value: [n.$value, ...fallback] }
+        : n;
+    }
+    const out: Node = {};
+    for (const [k, v] of Object.entries(n as Node)) out[k] = k.startsWith('$') ? v : stack(v);
+    return out;
+  };
+  return stripExtensions(stack(buildBase(tree)));
 };
 
 /**

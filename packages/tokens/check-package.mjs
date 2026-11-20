@@ -39,6 +39,13 @@
  * order written down, or a field the order does not name, fails rather than being compared loosely.
  * What the split still loses: the separators themselves (`,` between shadow layers, `/` in the shorthand).
  *
+ * [FALLBACK] (#4155): every typeface primitive (`--pds3-core-font-typeface-*`) in every block ends in a CSS
+ * generic family, so a face that does not load falls back to its kind (sans-serif, monospace, …), not to the
+ * browser default. The generic list is this gate's own transcription of CSS Fonts 4 §4.1.1. For [VALUE], a
+ * `fontFamily` leaf's engine value is its `$value` followed by its `fallbackStack`, the stack the engine
+ * curates in the tree and the web base (`<brand>.web.base.tokens.json`, the one `sd.ship.mjs` builds from)
+ * carries as the DTCG array form. The platform-neutral base stays single-family; `test.ts` holds that side.
+ *
  * [OWN FILE] (#3877): each block also ships alone at `@prism3/tokens/prism3/<mode>.css`, and each of those
  * files runs the same [NAMES], [PREFIX], [VALUE] and [MODE] arms against the contract and the tree, not
  * against the joined file. Only the selector was checked before, so an empty `[data-theme="dark"] {}` passed.
@@ -69,6 +76,9 @@ const CSS_ORDER = {
   typography: FONT_SHORTHAND,
 };
 
+/** CSS Fonts 4 §4.1.1's generic family names — the [FALLBACK] arm's own list (#4155). */
+const GENERIC_FAMILIES = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-serif',
+  'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji', 'fangsong']);
 /** The system-preference query the dark values also apply under (#4140), written here, not read off the build. */
 const SYSTEM_DARK = '@media (prefers-color-scheme: dark)';
 /** The decided prefix (Q98 A): stock Style Dictionary's root-prefixed names. */
@@ -250,7 +260,9 @@ try {
       const name = PREFIX + key.replaceAll('.', '-');
       if (!(name in vars)) continue;
       const leaf = key.split('.').reduce((n, k) => n?.[k], tree.pds3);
-      const base = mode ? leaf?.$extensions?.prism3?.modes?.[mode]?.$value ?? leaf?.$value : leaf?.$value;
+      const own = mode ? leaf?.$extensions?.prism3?.modes?.[mode]?.$value ?? leaf?.$value : leaf?.$value;
+      const stack = leaf?.$extensions?.prism3?.fallbackStack;
+      const base = type === 'fontFamily' && typeof own === 'string' && Array.isArray(stack) ? [own, ...stack] : own;
       const want = type === 'typography' && base && typeof base === 'object'
         ? Object.fromEntries(FONT_SHORTHAND.filter((f) => f in base).map((f) => [f, base[f]])) : base;
       compared++;
@@ -258,6 +270,11 @@ try {
     }
     ok(compared === expected.length - missing.length && wrong.length === 0,
       `[VALUE] \`${sel}\`${where} holds the engine's ${mode ?? 'base'} value for every guaranteed name (${compared - wrong.length}/${compared})${wrong.length ? ` — e.g. ${wrong.slice(0, 3).join('; ')}` : ''}`);
+    // [FALLBACK] (#4155): each typeface primitive ends in a generic family.
+    const faces = Object.entries(vars).filter(([n]) => n.startsWith(`${PREFIX}core-font-typeface-`));
+    const bare = faces.filter(([, v]) => !GENERIC_FAMILIES.has(v.split(',').at(-1).trim().replace(/^['"]|['"]$/g, '')));
+    ok(faces.length > 0 && bare.length === 0,
+      `[FALLBACK] every typeface in \`${sel}\`${where} ends in a CSS generic family (${faces.length - bare.length}/${faces.length})${bare.length ? ` — e.g. ${bare.slice(0, 3).map(([n, v]) => `${n}: ${v}`).join('; ')}` : ''}`);
     if (mode) {
       const differs = expected.some((n) => n in vars && vars[n] !== root[n]);
       ok(differs, `[MODE] \`${sel}\`${where} changes at least one guaranteed value from \`:root\` — it is a theme, not a copy`);
