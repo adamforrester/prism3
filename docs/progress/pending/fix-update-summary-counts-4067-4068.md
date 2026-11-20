@@ -52,3 +52,11 @@ Google Sans when Roboto is written, so 36 `literalFont -> DISCARDED` misses) and
 throws, so 36 `literalFont -> Roboto Medium` misses and no DISCARDED) pin the other two "fallback did not land" reads,
 and `fallback/line one` pins the singular. Dropping either `notLanded` clause, or swapping the singular verb, fails its
 arm by name.
+
+**Delta review follow-up (2026-11-20).** #4358 reworded the executor's font miss to
+`<part>.font -> <family> <style> REFUSED (<ErrorClass>: <reason>)`, so `splitFontFallbacks` matched none and every
+fallback read as a miss again (five `fallback` arms red on CI). Both reads now key on one copy of the form,
+`fontMissHead` in `update-apply.ts`, and `fallback/miss form` checks it against the 108 label font misses the real
+executor reports on the shim. The `literalFont` and `DISCARDED` forms did not move. The paste twin still words the miss
+without `REFUSED`; an update runs the plugin executor only. Mutation: `fontMissHead` without `REFUSED` →
+`fallback/miss form`, `fallback/reported`, `fallback/not a miss`, `fallback/line`.

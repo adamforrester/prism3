@@ -295,7 +295,7 @@ import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type P
 import { adoptMembers, breakingClause, breakingLine, breakingOf, consumerLines, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict as applyVerdictOf, fallbackLine, ledgerAfter, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict as applyVerdictOf, fallbackLine, fontMissHead, ledgerAfter, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 import { headerFor } from './src/page-header';
 import { readFileSync } from 'node:fs';
 
@@ -7374,8 +7374,14 @@ section("fallback — a declared font fallback that landed is reported as a fall
   // THE FALLBACK DID NOT LAND EITHER: both faces refused. Each label is a real miss, and none reads as a fallback.
   {
     const { o, v } = await run(['Google Sans Medium', 'Roboto Medium']);
-    const face = o.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium (')).length;
-    const back = o.misses.filter((x) => x.startsWith('label.font -> Roboto Medium (')).length;
+    // THE FORM IS THE EXECUTOR'S (#4358): every label face miss the real executor reported, matched on the part and the
+    // face alone, starts with `fontMissHead`, so the head `splitFontFallbacks` keys on is the one the executor writes.
+    // Mutation: `fontMissHead` worded without `REFUSED` (the form before #4358) → `fallback/miss form`.
+    const named = o.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium ') || x.startsWith('label.font -> Roboto Medium '));
+    ok(named.length === 108 && named.every((x) => x.startsWith(fontMissHead('label', 'Google Sans Medium')) || x.startsWith(fontMissHead('label', 'Roboto Medium'))),
+      `fallback/miss form: the executor's 108 label font misses each start with fontMissHead (${named.length}; ${named[0]})`);
+    const face = o.misses.filter((x) => x.startsWith(fontMissHead('label', 'Google Sans Medium'))).length;
+    const back = o.misses.filter((x) => x.startsWith(fontMissHead('label', 'Roboto Medium'))).length;
     // Each label reports its face twice (the literal's load, then the text write's load of the face it still holds).
     ok(face === 72 && back === 36 && !o.fallbacks,
       `fallback/miss kept: 72 face misses and 36 fallback misses stay misses, no fallback reported (${face}, ${back}, ${JSON.stringify(o.fallbacks)})`);
@@ -7393,7 +7399,7 @@ section("fallback — a declared font fallback that landed is reported as a fall
       Object.defineProperty(l, 'fontName', { configurable: true, enumerable: true, get: () => held, set: (f: { family: string }) => { if (f.family !== 'Roboto') held = f; } });
     });
     const gone = o.misses.filter((x) => x.startsWith('label.literalFont -> DISCARDED (set Roboto Medium ')).length;
-    const face = o.misses.filter((x) => x.startsWith('label.font -> Google Sans Medium (')).length;
+    const face = o.misses.filter((x) => x.startsWith(fontMissHead('label', 'Google Sans Medium'))).length;
     ok(gone === 36 && face >= 36 && !o.fallbacks && !v.lines.some((l) => l.includes("isn't installed")),
       `fallback/discarded kept: 36 discarded Roboto writes keep every face miss a miss, no fallback line (${gone}, ${face}, ${JSON.stringify(o.fallbacks)})`);
   }

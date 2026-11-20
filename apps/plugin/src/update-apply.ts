@@ -133,20 +133,28 @@ const noRecordFor = (c: UpdateChoices | undefined, set: string): NoRecordChoice 
 export type FontFallback = { part: string; face: string; used: string; count: number };
 
 /** #4068 — THE FONT FALLBACKS AMONG A BUILD'S MISSES. For a `literalFont` the executor loads the face, then the plan's
- *  fallback, and reports each face that did not load as `<part>.font -> <family> <style> (<reason>)` (`write-components.ts`,
- *  byte for byte with the paste twin). A face miss on a part whose plan declares that face with a fallback is the
+ *  fallback, and reports each face that did not load as `<part>.font -> <family> <style> REFUSED (<ErrorClass>: <reason>)`
+ *  (`write-components.ts`, #4358; `fontMissHead` below is that form's one copy here). A face miss on a part whose plan declares that face with a fallback is the
  *  designed outcome when the fallback then landed. The misses carry no member name, and a label whose fallback did not
  *  land reports its face twice (the literal's load, then the text write's load of the font the node still holds), so
  *  no count pairs them. The rule is the safe one: a part's face misses are fallbacks only when no miss says its fallback
- *  did not land (`<part>.font -> <fallback> (`, or a `<part>.literalFont ->` miss naming it); otherwise every one stays
+ *  did not land (`<part>.font -> <fallback> REFUSED (`, or a `<part>.literalFont ->` miss naming it); otherwise every one stays
  *  a miss. A miss is never hidden as a fallback; a fallback can at worst read as a miss, as it did before #4068. */
+/** #4068 — THE HEAD OF THE EXECUTOR'S MISS FOR A FACE THAT DID NOT LOAD (`write-components.ts`, every `loadFontAsync` catch:
+ *  `<part>.font -> <family> <style> REFUSED (<ErrorClass>: <reason>)`, the form #4358 gave it). Both reads in
+ *  `splitFontFallbacks` key on this one copy, and `test-update-apply.ts` checks it against the misses the real executor
+ *  reports (`fallback/miss form`), so a change to the executor's wording fails by name rather than turning every
+ *  fallback back into a miss in silence. The paste twin (`anatomy-figma.ts`) words it without `REFUSED`; an update runs
+ *  the plugin executor only. */
+export const fontMissHead = (part: string, face: string): string => `${part}.font -> ${face} REFUSED (`;
+
 export const splitFontFallbacks = (misses: readonly string[], plans: readonly AnatomyPlan[]): { fallbacks: FontFallback[]; misses: string[] } => {
   const declared = new Map<string, { part: string; face: string; used: string }>();
   const walk = (n: FigmaNodePlan): void => {
     const f = n.literalFont;
     if (f) {
       const face = `${f.family} ${f.style}`;
-      declared.set(`${n.name}.font -> ${face} (`, { part: n.name, face, used: `${f.fallback.family} ${f.fallback.style}` });
+      declared.set(fontMissHead(n.name, face), { part: n.name, face, used: `${f.fallback.family} ${f.fallback.style}` });
     }
     for (const c of n.children) walk(c);
   };
@@ -155,7 +163,7 @@ export const splitFontFallbacks = (misses: readonly string[], plans: readonly An
   const fallbacks: FontFallback[] = [];
   for (const [key, d] of declared) {
     const at = misses.flatMap((m, i) => (m.startsWith(key) ? [i] : []));
-    const notLanded = misses.filter((m) => m.startsWith(`${d.part}.font -> ${d.used} (`) || m.startsWith(`${d.part}.literalFont -> ${d.used} `)
+    const notLanded = misses.filter((m) => m.startsWith(fontMissHead(d.part, d.used)) || m.startsWith(`${d.part}.literalFont -> ${d.used} `)
       || m.startsWith(`${d.part}.literalFont -> DISCARDED (set ${d.used} `)).length;
     const count = notLanded ? 0 : at.length;
     for (const i of at.slice(0, count)) drop.add(i);
