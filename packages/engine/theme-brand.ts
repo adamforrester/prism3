@@ -988,9 +988,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // the fill at the same step, and the note below fires for either (owner decision pending on #1896).
   const resolvedAction = roleToPalette.action;
   const actionBrandColor = (input.brandColors ?? []).find((b) => b.name === resolvedAction);
-  const actionAnchorStep = resolvedAction === 'primary' ? anchorStep
-    : actionBrandColor ? autoPlaceStep(actionBrandColor.oklch.l)
-    : 500;
+  const actionAnchorStep = interactiveStepFor(resolvedAction);   // #4214: the helper's three cases, never a copy
   // A pinned `actionAnchorStep` is applied exactly (`modes.ts` `restFill`, `exact`, #331) and never moved, so
   // the note reports the pin, not the auto-placed step, and drops the auto-move clause (#1894). Its floor miss
   // is reported as the role's own ratio. Wording: DRAFT for the owner (#1894 Q-block). The pin applies on ANY
@@ -1013,10 +1011,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const linkPalette = input.linkPalette ?? roleToPalette.action;
   if (!palettes.some((p) => p.palette === linkPalette))
     throw new Error(`linkPalette '${linkPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
-  const linkBrandColor = (input.brandColors ?? []).find((b) => b.name === linkPalette);
-  const linkAnchorStep = linkPalette === 'primary' ? anchorStep
-    : linkBrandColor ? autoPlaceStep(linkBrandColor.oklch.l)
-    : 500;
+  const linkAnchorStep = interactiveStepFor(linkPalette);   // #4214: the helper's three cases, never a copy
   // Compared against the RESOLVED action palette, not the `actionPalette` lever (#1895, owner 2026-10-01):
   // with `roleColors.action` set the two differ, and the note must say whether links match the color the
   // action fill actually uses.

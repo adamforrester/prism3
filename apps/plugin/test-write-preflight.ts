@@ -818,5 +818,28 @@ for (const c of ['skip', 'rename'] as const) {
   ok(washIds.length > 0 && into(washIds) === 0, `#1904 wash opacity: ${into(washIds)} of ${washIds.length} opacity aliases landed in the stranded collection`);
 }
 
+// ── #1908 A GRADIENT AT A NEGATIVE OR EXPONENT ANGLE, BEFORE THE MARK: still Prism3's ────────────────────
+// A file applied before #1906's ownership mark carries only the description to say a gradient style is Prism3's, and
+// the engine writes the angle as JavaScript prints the number (`figmaGradientDescription`): `-45°`, `1e-7°`. The brand
+// schema does not bound the angle. aurora's linear gradient at -45°, and a second at 1e-7, both applied, the marks
+// stripped, applied again: 0 conflicts. The angles and the expected description are typed here. Mutation: the sign
+// dropped from `STYLE_SIGNATURES.paint` → `#1908 pre-mark gradient`.
+{
+  const AURORA = (exampleBrands as Record<string, BrandInput>).aurora;
+  const grads = (AURORA as { gradients: { kind: string; angle?: number }[] }).gradients;
+  const lin = grads.find((g) => g.kind === 'linear')!;
+  const brand = { ...AURORA, gradients: [{ ...lin, angle: -45 }, { ...lin, name: 'tiny', angle: 1e-7 }, ...grads.filter((g) => g !== lin)] } as unknown as BrandInput;
+  const run = async (f: FileShim) => { try { return (await runApplyTheme(brand, f as any)).guarded; } catch (e) { return { ok: false as const, conflicts: [], threw: (e as Error).message }; } };
+  const f = new FileShim();
+  await run(f);
+  const desc = f.styles.paint.map((x) => String(x.description ?? ''));
+  ok(desc.some((d) => d.startsWith('gradient brand — linear -45°, ')) && desc.some((d) => d.startsWith('gradient tiny — linear 1e-7°, ')),
+    `#1908 premise: the engine describes the two gradients with a signed and an exponent angle (${JSON.stringify(desc.map((d) => d.split(',')[0]))})`);
+  stripMarks(f);
+  const g = await run(f);
+  ok(g.ok && createdOf(g) === 0,
+    `#1908 pre-mark gradient: a file applied before the mark, with a -45° and a 1e-7° gradient, re-applies with 0 conflicts${g.ok ? '' : ` — ${'threw' in g ? `threw: ${g.threw}` : conflictSummary(g.conflicts, 3)}`}`);
+}
+
 console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);
