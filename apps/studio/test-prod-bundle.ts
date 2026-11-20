@@ -19,10 +19,10 @@
  * rename fails here by name rather than reporting a clean bundle. The smoke suite (§2d) separately holds the local
  * `dist/` to HAVING the hook, so the gate cannot have been satisfied by deleting the hook everywhere.
  *
- * WHAT "LACKS IT" MEANS HERE. esbuild without minification (the deploy does not minify, and must match the local
- * build it is developed against) folds the gate to `if (false) { … }` but keeps the block's text. So the URL
- * parameter, the switch, is gone entirely, and the hook's name may remain only as the body of that dead branch:
- * exactly one occurrence, directly under `if (false) {`. Anything else fails.
+ * WHAT "LACKS IT" MEANS HERE. Neither string, anywhere. The deploy is minified since #4231, and esbuild's syntax
+ * minifier drops the `if (false) { … }` the gate folds to, text and all. Before #4231 the deploy was unminified,
+ * the dead branch's text survived, and this allowed the hook's name once, directly under `if (false) {`; a minified
+ * deploy has no such branch, so any occurrence now fails.
  *
  * Mutations this fails by name: `PRISM3_TEST_HOOKS: 'false'` → `'true'` in `build-site.mjs`, or the
  * `PRISM3_TEST_HOOKS &&` clause removed from `entry.ts` → `the deployed bundle (build-site.mjs) carries no
@@ -68,14 +68,11 @@ ok(bundle.length > 100_000, `the deployed bundle is a real bundle (${bundle.leng
   ok(bundle.length > 0 && at === -1, `the deployed bundle (build-site.mjs) carries no "p3-test-hooks"`,
     at >= 0 ? `found at byte ${at}: …${bundle.slice(Math.max(0, at - 80), at + 60).replace(/\s+/g, ' ')}…` : '');
 }
-// The hook itself. esbuild without minification folds the gate to `if (false)` but keeps the block's text, so the
-// hook's name can still appear, ONLY as the body of that dead branch: one occurrence, directly under `if (false) {`.
-// Any other shape (the gate kept as a runtime test, a second assignment, a reachable one) fails.
+// The hook itself. The minified deploy (#4231) drops the folded `if (false)` branch whole, so the hook's name appears
+// nowhere: any occurrence (the gate kept as a runtime test, the minifier dropped, a second assignment) fails.
 {
   const all = [...bundle.matchAll(/__prism3TestEdit/g)].map((m) => m.index ?? -1);
-  const dead = /if \(false\) \{\s*window\.__prism3TestEdit = /.exec(bundle);
-  const deadAt = dead ? dead.index + dead[0].indexOf('__prism3TestEdit') : -2;
-  ok(bundle.length > 0 && (all.length === 0 || (all.length === 1 && all[0] === deadAt)),
+  ok(bundle.length > 0 && all.length === 0,
     `the deployed bundle (build-site.mjs) carries no reachable "__prism3TestEdit"`,
     all.length ? `${all.length} occurrence(s); first …${bundle.slice(Math.max(0, all[0] - 120), all[0] + 40).replace(/\s+/g, ' ')}…` : '');
 }
