@@ -38,11 +38,13 @@ export const motionTransitionsSection = (
   wrap.append(subHead(copy.title), el('p', 'dm-desc', copy.desc));
 
   const bar = el('div', 'mo-toolbar');
-  const btn = hook(el('button', 'mo-replay', playback.played ? copy.replay : copy.play), 'motion-play') as HTMLButtonElement;
+  // #4188: the chrome's own page button and select, as every control beside the preview is (they steer the preview;
+  // they are not specimens).
+  const btn = hook(el('button', 'p3-btn p3-btn-page p3-mo-play', playback.played ? copy.replay : copy.play), 'motion-play') as HTMLButtonElement;
   btn.type = 'button';
   const slowLabel = el('label', 'mo-slowmo');
   slowLabel.append(document.createTextNode(`${copy.slow} `));
-  const select = hook(viewOnly(el('select', 'mo-slowmo-sel')), 'motion-slowmo') as HTMLSelectElement;
+  const select = hook(viewOnly(el('select', 'p3-select p3-mo-slowmo')), 'motion-slowmo') as HTMLSelectElement;
   for (const v of MOTION_SLOWMO_OPTIONS) {
     const opt = el('option', undefined, v === 1 ? copy.off : `1/${v}`) as HTMLOptionElement;
     opt.value = String(v);
