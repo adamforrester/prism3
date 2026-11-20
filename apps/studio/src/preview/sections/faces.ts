@@ -10,7 +10,7 @@
  *  Nothing here reads the session. */
 import type { Theme } from '@prism3/engine';
 import { drawFace, faceDraw, type FaceStatus, type HostFonts } from '../../ui/fonts';
-import { el, hook, palSection, specimen, subHead, tokenPillSpan, type SgCtx } from './kit';
+import { el, hook, palSection, scrollBox, specimen, subHead, tokenPillSpan, type SgCtx } from './kit';
 
 /** The two tables' sub-headings: the levers' own names for the two controls (Q23). DRAFT, as the levers' are. */
 export const FACES_BY_TYPE = 'Font family for each text type';
@@ -21,9 +21,9 @@ export const facesSection = (c: SgCtx, ty: Theme['typography'], mode: string, co
   const sec = palSection(copy.title, copy.desc);
   sec.dataset.sgSection = 'faces';   // the shared-section marker (`kit.ts`'s header)
   const fams = ty.familiesByMode?.[mode] ?? ty.families;
-  const table = (heads: readonly string[]): { box: HTMLElement; body: HTMLElement } => {
+  const table = (name: string, heads: readonly string[]): { box: HTMLElement; body: HTMLElement } => {
     const box = el('div', 'mtbl');
-    const scroll = el('div', 'mtbl-scroll');
+    const scroll = scrollBox(name);
     const t = el('table', 'mtbl-tbl');
     const head = el('thead'), tr = el('tr');
     heads.forEach((x, i) => tr.append(el('th', i === 0 ? 'mtbl-stick' : i === heads.length - 1 ? 'mtbl-fill mtbl-spec' : 'mtbl-mode', x)));
@@ -50,7 +50,7 @@ export const facesSection = (c: SgCtx, ty: Theme['typography'], mode: string, co
 
   // Each text type, its token, its face in this mode, whether the face is there, and a specimen in it.
   sec.append(subHead(FACES_BY_TYPE));
-  const byType = table(['Token', 'Family', 'Availability', 'Specimen']);
+  const byType = table(FACES_BY_TYPE, ['Token', 'Family', 'Availability', 'Specimen']);
   for (const f of fams) {
     const tr = hook(el('tr'), 'faces-type-row');
     tr.dataset.group = f.group;
@@ -72,7 +72,7 @@ export const facesSection = (c: SgCtx, ty: Theme['typography'], mode: string, co
 
   // The library: every face, its token, what uses it in this mode, and whether it is there.
   sec.append(subHead(FACES_LIBRARY));
-  const lib = table(['Token', 'Family', 'Availability', 'Used by']);
+  const lib = table(FACES_LIBRARY, ['Token', 'Family', 'Availability', 'Used by']);
   for (const tf of ty.typefaces) {
     const tr = hook(el('tr'), 'faces-library-row');
     tr.dataset.slug = tf.slug;
