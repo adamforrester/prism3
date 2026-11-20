@@ -10,12 +10,12 @@ Two audit issues (#4104) of the same shape: code or prose that claims a reader, 
 
 ### #4214, items 1 to 4
 
-1. `CLAUDE.md` said "Three whole-catalog component exports"; `UNCOMMITTED_OUT` has four since #3992. It now names the list and no count, the file's own rule (#1110). An arm fails if the sentence states a number word that disagrees with the list.
+1. `CLAUDE.md` said "Three whole-catalog component exports"; `UNCOMMITTED_OUT` has four since #3992. It now names the list and no count, the file's own rule (#1110). An arm fails if the sentence states a count, as a word or a digit, that disagrees with the list. Mutation: "The 5 whole-catalog component exports" fails `#4214 CLAUDE.md states no count of the uncommitted exports that disagrees with UNCOMMITTED_OUT (states 5, the list has 4)` by name; before the review nit, the arm read only number words and let it pass.
 2. The action anchor step repeated `interactiveStepFor` line for line, and so did the link anchor step, a third copy the issue didn't list. Both call the helper now. The arm reads the source, because the copies computed the same number and no output can tell them apart.
 3. `theme-type.ts`'s comment on the empty-`links` refusal said a brief "cannot ship without the body and caption link styles". It can (`links: ['title']` builds without them, #4040). Narrowed to what the refusal does. Comment only, so no test.
-4. Went with the ratio floor fix (#4211), its root cause.
+4. Not here: it is in #4327 with the ratio floor fix (#4211), its root cause, still open.
 
-Items 5 (weight ranges) and 6 (Windows-invalid ids) are owner calls, flagged on #4214, and not built here.
+Items 5 (weight ranges) and 6 (Windows-invalid ids) are owner calls, flagged on #4214, and not built here. Item 6's technical part, routing `cli.ts`'s fidelity-report and `component-*` writes through the existing guard, is unblocked now that #4271 has merged, but it is not built here either. So this PR refs #4214 and leaves it open.
 
 ### Mutations
 

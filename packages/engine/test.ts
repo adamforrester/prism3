@@ -31861,10 +31861,11 @@ arm: {
   // be the list's length; the fix states none, as the file's own rule asks (#1110).
   const { UNCOMMITTED_OUT: uncommitted } = await import('./regen') as { UNCOMMITTED_OUT: string[] };
   const WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  // A count may be a word ("Three") or a digit ("4"); either one is read, so a digit can't slip past (#4214 review nit).
   const word = readFileSync(resolve(HERE, '../../CLAUDE.md'), 'utf8').match(/\b(\w+) whole-catalog component exports/i)?.[1]?.toLowerCase();
-  const stated = word !== undefined && WORDS.includes(word) ? word : undefined;
-  ok(stated === undefined || WORDS.indexOf(stated) + 1 === uncommitted.length,
-    `#4214 CLAUDE.md states no count of the uncommitted exports that disagrees with UNCOMMITTED_OUT (states ${stated ?? 'none'}, the list has ${uncommitted.length})`);
+  const stated = word === undefined ? undefined : /^\d+$/.test(word) ? Number(word) : WORDS.includes(word) ? WORDS.indexOf(word) + 1 : undefined;
+  ok(stated === undefined || stated === uncommitted.length,
+    `#4214 CLAUDE.md states no count of the uncommitted exports that disagrees with UNCOMMITTED_OUT (states ${word !== undefined && stated !== undefined ? word : 'none'}, the list has ${uncommitted.length})`);
 }
 
 // --------------------------------------------------------- vocabulary (#471)
