@@ -1358,7 +1358,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 24,
+    "members": 16,
     "nests": [
       "flush-icon-button-neutral",
       "icon",

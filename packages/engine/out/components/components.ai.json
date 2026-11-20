@@ -10292,7 +10292,7 @@
             "medium",
             "large"
           ],
-          "description": "The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it."
+          "description": "The width of a centered panel. The recommended widths are 400px (small), 560px (medium, the default) and 720px (large); in a design file the designer sets the width. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it."
         },
         {
           "name": "footer",
@@ -10316,14 +10316,6 @@
             "bottom",
             "full",
             "end"
-          ],
-          "kind": "authoring"
-        },
-        "size": {
-          "values": [
-            "medium",
-            "small",
-            "large"
           ],
           "kind": "authoring"
         },
