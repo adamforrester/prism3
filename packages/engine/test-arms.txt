@@ -103,6 +103,8 @@ apps/plugin/test-doc-panel.ts #4070
 apps/plugin/test-doc-panel.ts #848
 apps/plugin/test-file-components.ts #1600
 apps/plugin/test-file-components.ts #1713
+apps/plugin/test-file-records.ts #4154
+apps/plugin/test-file-records.ts #4267
 apps/plugin/test-file-setup.ts #1561
 apps/plugin/test-file-setup.ts #1670
 apps/plugin/test-file-setup.ts #2597
@@ -486,6 +488,7 @@ apps/studio/test-bounded.mjs #2585
 apps/studio/test-brand-input.ts #1196
 apps/studio/test-brand-input.ts #1939
 apps/studio/test-brand-input.ts #2915
+apps/studio/test-brand-input.ts #3976
 apps/studio/test-build-identity.ts #1117
 apps/studio/test-build-identity.ts #3239
 apps/studio/test-build-identity.ts #474
@@ -644,6 +647,7 @@ apps/studio/test-chrome.mjs #3878
 apps/studio/test-chrome.mjs #3910
 apps/studio/test-chrome.mjs #3911
 apps/studio/test-chrome.mjs #3938
+apps/studio/test-chrome.mjs #3976
 apps/studio/test-chrome.mjs #4219
 apps/studio/test-chrome.mjs #4220
 apps/studio/test-chrome.mjs #4221
@@ -1288,6 +1292,7 @@ packages/engine/test.ts #388
 packages/engine/test.ts #390
 packages/engine/test.ts #391
 packages/engine/test.ts #3949
+packages/engine/test.ts #3976
 packages/engine/test.ts #3984
 packages/engine/test.ts #3985
 packages/engine/test.ts #3986

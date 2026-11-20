@@ -25,7 +25,7 @@ import { isInverseRole } from './inverse-roles';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd, xPrism3Warnings } from './standard-design-md';
 import { classifyColors } from './classify-colors';
-import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
+import { SLIDER_STOPS, TRAITS, TRAIT_OPPOSITES, resolveVocabulary } from './vocabulary';
 import { leverManifest, leverGroups, buildLeverManifest, identityFields } from './levers';
 import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
@@ -31899,6 +31899,23 @@ arm: {
       `vocabulary: every '${key}' stop is inside the lever's range and on its step grid`
       + (bad.length ? ` — OFF-GRID: ${bad.map(([n, v]) => `${n}=${v}`).join(', ')}` : ''));
     ok(lever.stops === stops, `vocabulary: the '${key}' manifest entry carries the SAME stops object the engine resolves against (joined, not restated)`);
+  }
+
+  // ---- #3976: the direct opposites a host turns off on a pick ----
+  // The pairs are the owner's (Q-PW1 A), typed here, not read from TRAIT_OPPOSITES: a pair dropped or added there fails
+  // by name. Each pair must share a lever the two set to different values, or "only one of them can take effect" is
+  // not a fact about the engine.
+  {
+    const OWNER_PAIRS = ['bold|restrained', 'calm|energetic', 'dense|generous', 'sharp|soft'];
+    const held = TRAIT_OPPOSITES.map(([a, b]) => [a, b].sort().join('|')).sort();
+    ok(JSON.stringify(held) === JSON.stringify(OWNER_PAIRS), `#3976 vocabulary: the opposite pairs are the owner's four (${OWNER_PAIRS.join(', ')}) — holds ${held.join(', ')}`);
+    const words = TRAIT_OPPOSITES.flat();
+    ok(new Set(words).size === words.length, `#3976 vocabulary: no trait is in two opposite pairs — ${words.join(', ')}`);
+    for (const [a, b] of TRAIT_OPPOSITES) {
+      ok(!!TRAITS[a] && !!TRAITS[b], `#3976 vocabulary: opposite pair ${a}/${b} names two traits the engine knows`);
+      const clash = Object.keys(TRAITS[a]?.levers ?? {}).filter((k) => k in (TRAITS[b]?.levers ?? {}) && TRAITS[a].levers[k] !== TRAITS[b].levers[k]);
+      ok(clash.length > 0, `#3976 vocabulary: opposite pair ${a}/${b} sets at least one shared lever differently — clashes on ${clash.join(', ') || 'nothing'}`);
+    }
   }
 
   // ---- traits target real levers, with values those levers accept ----
