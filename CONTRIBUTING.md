@@ -1794,7 +1794,9 @@ npm run check:parity -w @prism3/web-components # needs Chromium. components.ai.j
                                           # component-defs.json + the check's own contract against
                                           # custom-elements.json and the live element: props, values,
                                           # defaults, reflected data-prop-* attributes and the inner
-                                          # markup per value; six mutants must fail by name
+                                          # markup per value; six mutants must fail by name. #3408
+                                          # S6: check-token-parity.ts runs @prism3/css's sentinel
+                                          # token probes against the rendered elements
 npm run test:browser -w @prism3/web-components # needs Chromium; builds @prism3/tokens first.
                                           # The element and plain HTML from the @prism3/css contract
                                           # compute equal styles on light and dark; pending and
@@ -1807,7 +1809,9 @@ npm run build -w @prism3/storybook         # #3408 S5 (thin): Storybook 10 on we
 npm run check:build -w @prism3/storybook   # needs Chromium; run AFTER the Storybook build. The index
                                           # holds exactly the check's own story list, each story
                                           # renders its component and forced state, and the element
-                                          # and HTML stories of one case compute the same styles
+                                          # and HTML stories of one case compute the same styles;
+                                          # #3408 S6: check-geometry.ts holds both forms' boxes equal
+                                          # to 0.01px, and the Figma comparison's arithmetic self-tests
 npm run check:a11y -w @prism3/storybook    # needs Chromium; run AFTER the Storybook build. axe on
                                           # every story in light and dark; both forms' accessibility
                                           # trees equal each other and aria-snapshots.json; the

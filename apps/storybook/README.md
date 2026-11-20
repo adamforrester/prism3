@@ -59,6 +59,16 @@ ARIA snapshots and the keyboard suite run from Playwright over the static build 
   field's message; `aria-invalid="true"` is on the input at error only; and no field holds a live region.
 - The element and HTML stories of one case compute the same styles.
 
+**Geometry (#3408 S6, KPI 2 with Q32 A).** `check:build` then runs two more scripts:
+- **`check-geometry.ts`** measures every story, in both forms and both directions: the root's extent, padding, border
+  and corner radii, and each anatomy part's box, from the browser's layout. Parts are keyed by the def's part path, the
+  key Figma's layers carry. The element form must equal the HTML form to 0.01px. It writes the HTML form's left-to-right
+  record to `storybook-static/geometry.code.json`. Four one-form mutants and the represented-story mutants must fail by
+  name.
+- **`compare-figma-geometry.ts --self-test`** proves the Figma comparison's arithmetic on planted records. The
+  comparison itself, `compare-figma-geometry.ts`, needs Figma's record, `figma-geometry.json`, from the Mac job in
+  `figma-geometry.md`. Until that record is committed, the comparison fails and names the job.
+
 The accessibility pass (#3408 S5), four checks over the same static build, shared setup in `a11y-harness.ts`. Each
 runs its own mutants, which must fail by name.
 

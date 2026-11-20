@@ -2193,3 +2193,130 @@ check failed 4 of 4 runs by that name. Restored with `git show`.
 
 **Learning.** A check that passes on a defect when run alone, and fails on it only under load, is a timing test. The
 fix is to write the hostile order in, not to retry or wait longer.
+
+---
+
+## S6 — the parity gate: token parity and geometry, all three components, both delivery forms (KPI 2, Q32 A)
+
+Started about 06:45 UTC on 2026-11-20, stacked on #4391 (which is stacked on refresh 4, #4379).
+
+### Where S6 started
+
+S2's `check:parity` slice was token parity for the HTML form: the button, then the fields (S3). Everything else in
+KPI 2 was missing:
+- **Token parity in the element form.** `check-browser*.ts` held the element equal to the HTML form, but with real token
+  values, which can't tell two tokens of equal value apart.
+- **Geometry.** Nothing measured boxes against Figma, in either form.
+- **API parity.** `check-parity*.ts` in `@prism3/web-components` already does this: props, values, defaults and markup
+  per value, against `components.ai.json`.
+
+### What was built
+
+- **Token parity, element form** (`packages/web-components/check-token-parity.ts`, in `check:parity`). The two
+  `@prism3/css` parity runners now take a delivery form. The default writes the contract's markup, as before. The
+  element form writes each probe as `<p3-button>`, `<p3-text-field>` or `<p3-password-field>` from its props, lets
+  Lit render it, and makes the rendered root the probe. Same probes, same EXPECTED (`specs.json`,
+  `components.ai.json`), same sentinel decoding. 1,666 bindings: button 621, text field 524, password field 521.
+  - **Named, not checked:** `field-label` and `field-message` on their own, which have no element. Also the nested
+    label at an emphasis or weight other than the def's defaults. The fields' nesting `exposes` both, but the
+    elements have no prop for them (OWNER DECISION below).
+  - **A real difference the HTML form hid:** `<p3-button>` renders its spinner only while pending, and the HTML
+    contract writes it always and hides it. A button redline row has no state key, so a row that sizes the spinner
+    is measured while pending in the element form. That's named on every run.
+- **Geometry, code side** (`apps/storybook/check-geometry.ts`, in `check:build`). It runs on every story, in both
+  forms and both directions. It measures the root's extent, padding, border widths and corner radii, and each
+  anatomy part's box relative to the root, from `getBoundingClientRect`. Parts are keyed by the def's part path
+  (`container/control/content`), the key Figma's layers carry. The button's focus ring is an outline, so its box is
+  derived from the root, the offset and the width. **The element form must equal the HTML form to 0.01px** (KPI 3's
+  "same checks"), and 300 checks pass. It writes the left-to-right HTML record, `storybook-static/geometry.code.json`
+  (50 cases), with each case's full variant: props from the emission's defaults where the story writes none, which
+  slots are drawn, and the button's label text.
+- **Geometry, Figma side** (`apps/storybook/figma-geometry.js`, `figma-geometry.md`). This is a read-only script for
+  the Mac's Desktop Bridge. For every member of the three component sets, it records the variant, the boolean
+  properties' defaults, the extent, padding, stroke weights, radii, and every visible layer's box from
+  `absoluteBoundingBox`, with node id, type and horizontal sizing.
+- **The comparison** (`apps/storybook/compare-figma-geometry.ts`). It matches each code case to its member by
+  variant and boolean properties. A code-only case is named, not compared: `inactive`, `fullWidth`, and Show/Hide
+  shown. A KPI 2 member that no case reaches fails by name. Then the arithmetic, to 0.01px:
+  - root padding, border, radii and height are equal;
+  - every part's y and height are equal;
+  - a FILL part keeps both insets;
+  - in a root of another width (a field's build width), a part keeps the inset on the side Figma anchors it to, and
+    its width;
+  - a text run's width is cancelled: parts after it, and a hugging root, are offset by the text's width difference.
+    So a 1px drift in a padding or a gap still fails, however the two renderers set the type. A button at its
+    minimum width whose label text differs is named and not compared, because its content is centered.
+  - Without `figma-geometry.json`, it fails and names the Mac job.
+- **Pixel diff:** not built. Q32 A keeps it as a backstop only, and the boxes are what's compared.
+
+### Decisions (technical, the lane's)
+
+- **The text-width rule.** Figma and Chromium set the same string at different widths, so comparing a hugging width
+  raw would fail every case, and a tolerance would hide the 1px drift Q32 A exists to catch. Cancelling the measured
+  text difference keeps 0.01px everywhere else.
+- **Geometry renders from the Storybook.** Q32 A's comment says the geometry checks render from it, and it already
+  has every case in both forms.
+- **The Figma comparison is not in CI yet.** It would fail with no record. The self-test is in CI, so the arithmetic
+  is held. Once the Mac job commits a record, `compare-figma-geometry.ts` joins `check:build`.
+
+### What was checked, and how
+
+| Check | Real run | Mutants, each fails by name |
+|---|---|---|
+| `check-token-parity.ts` | 1,666 bindings OK | `<p3-button>` drops its size (126), `<p3-text-field>` drops its validation (36), `<p3-password-field>` drops its size (43), `<p3-text-field>` never defined (524, "no probe root") |
+| `check-geometry.ts` | 300 OK | element-only: button padding +1px, field label 1px lower, Show/Hide hidden, focus ring offset +1px; the 3 represented-story mutants |
+| `compare-figma-geometry.ts --self-test` | a planted record differing only in text width (7.3px narrower) agrees, 1,487 comparisons | Figma padding +1px, a label 1px lower, a gap +1px after the text, a control 1px narrower in a field of another width, a missing layer |
+
+The planted record is derived from the code's own, so it proves the arithmetic, not the agreement (`docs/34`). Only the
+Mac record can show agreement.
+
+**Hand mutations on disk**, each after a commit, restored with `git show HEAD:<path> > <path>`:
+- `p3-password-field.js` writes `data-prop-validation="default"`. `check-token-parity.ts` fails with 36, starting
+  `password-field status=error state=rest: container/control border-top-color binds color.field.border.rest, the
+  spec names color.border.danger`.
+- `p3-button.js` stops writing `data-prop-size`, then Storybook is rebuilt. `check-geometry.ts` fails 38, starting
+  `button--small: container width is 127.83 in the element form, 114.42 in the HTML form`.
+
+### OWNER DECISIONS (posted on #3408)
+
+1. **Which Figma file is KPI 2's reference.** A (recommended): a scratch file where the plugin builds the three sets at
+   the measured commit, as `tools/component-roundtrip` does, so the record matches the code it's compared with.
+   B: the owner's published library file, which may lag the commit.
+2. **The fields expose the nested label's emphasis and weight in Figma, but the elements have no prop for them.** The
+   HTML form can set them on the label; the element can't. A (recommended for the POC): record it as a KPI 2 API
+   parity mismatch and change nothing. B: add the two props to the fields' API (a component API change). C: stop
+   exposing them in Figma.
+
+### Blocked, and what's needed
+
+- **Figma's geometry record:** one Mac job (`figma-geometry.md`) in the file decision 1 names, then a PR into
+  `poc/arm-1` with `figma-geometry.json`. No cloud session can reach Figma.
+- **The scored comparison against arm 2:** read access to the contributor's components repo. Arm 2's side then needs
+  the same three measurements:
+  - its Storybook built, with stories for the same cases;
+  - a part map from the anatomy's part paths to arm 2's markup (`PARTS` in `check-geometry.ts` is arm 1's);
+  - for token parity, its CSS custom property names, or a map from them to token paths, so the sentinel decoding can
+    name each value.
+
+  Then `check-geometry.ts` and `compare-figma-geometry.ts` run on its record unchanged, and the scorecard compares
+  the two arms' failures, counts and named gaps.
+
+### Effort
+
+- **Wall clock:** about 06:45 to 07:15 UTC for the build and mutations, plus the gate run.
+- **Hand edits:** the two `@prism3/css` parity runners (a form parameter, about 30 lines),
+  `check-token-parity.ts` (new, about 130), `check-geometry.ts` (new, about 200), `compare-figma-geometry.ts` (new,
+  about 230), `figma-geometry.js` (new, about 60), `figma-geometry.md`, two package scripts, two READMEs, CONTRIBUTING
+  §3, this entry and the progress entry.
+- **Errors hit:** 6, all mine, all caught by the checks themselves.
+  - Spinner checks found no element: the element renders it only while pending (above).
+  - A mutant regex left a dangling `if`.
+  - tsx's `keepNames` broke the page function, as S2 warned. It's now a string.
+  - The focus-ring mutant's selector reached both forms.
+  - The comparator matched code-only cases (full width, Show/Hide shown, a field's icons) to the plain member. Width,
+    and the fields' icons and message, are axes or boolean properties the match had to name.
+  - A fixed part in a root of another width needs its anchored side, not both insets.
+
+**Learning.** The element-form token parity found, on its first run, the one structural difference between the forms
+that the HTML-only parity and the real-value comparison both hid: the spinner exists only while pending. Equal
+computed styles don't mean equal structure.
