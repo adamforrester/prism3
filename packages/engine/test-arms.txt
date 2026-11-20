@@ -456,6 +456,7 @@ apps/plugin/test-write-float.ts #2602
 apps/plugin/test-write-grid-styles.ts #2467
 apps/plugin/test-write-preflight.ts #1581
 apps/plugin/test-write-preflight.ts #1904
+apps/plugin/test-write-preflight.ts #1908
 apps/plugin/test-write-preflight.ts #2467
 apps/plugin/test-write-preflight.ts #3556
 apps/plugin/test-write-preflight.ts #3557
@@ -555,6 +556,7 @@ apps/studio/test-chrome.mjs #2486
 apps/studio/test-chrome.mjs #2487
 apps/studio/test-chrome.mjs #2523
 apps/studio/test-chrome.mjs #2560
+apps/studio/test-chrome.mjs #2641
 apps/studio/test-chrome.mjs #2695
 apps/studio/test-chrome.mjs #2700
 apps/studio/test-chrome.mjs #2830
@@ -623,6 +625,7 @@ apps/studio/test-chrome.mjs #3326
 apps/studio/test-chrome.mjs #3335
 apps/studio/test-chrome.mjs #3337
 apps/studio/test-chrome.mjs #3338
+apps/studio/test-chrome.mjs #3340
 apps/studio/test-chrome.mjs #3345
 apps/studio/test-chrome.mjs #3359
 apps/studio/test-chrome.mjs #3365
