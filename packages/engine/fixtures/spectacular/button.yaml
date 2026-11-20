@@ -1,0 +1,169 @@
+# FIXTURE — Spectacular's own output for the template file's Button, trimmed (#2996, Q2996.4).
+# Source: RESULT 83b, Spectacular CLI 0.37.0 (Pro), schema 0.40.0, run 2026-11-18, copied verbatim into #2996.
+# Kept: `title`, `anatomy` and `props` from api.yaml, as written; and, from variants.yaml, every `$token` path each
+# element binds anywhere in `default` or `variants`, deduplicated and sorted (`tokensByElement`, a key this fixture
+# adds; Spectacular writes no such key). Dropped: `metadata` and `invalidPropCombinations` (api.yaml), and every style
+# value that is not a `$token` (variants.yaml).
+# Read by packages/engine/lint-spec-supplement.ts. Hand-copied, never generated: refresh it only from a new
+# Spectacular run, never from the supplement it checks.
+
+title: button
+anatomy:
+  root:
+    type: container
+  label:
+    type: text
+  trailingVisual:
+    type: instance
+    detectedIn: appearance=filled, surface=default, inset=default, size=medium, state=rest, leading icon=false, trailing icon=true
+    instanceOf: iconFpoDefaultIcon
+  leadingVisual:
+    type: instance
+    detectedIn: appearance=filled, surface=default, inset=default, size=medium, state=rest, leading icon=true, trailing icon=false
+    instanceOf: iconFpoDefaultIcon
+  spinner:
+    type: instance
+    detectedIn: appearance=filled, surface=default, inset=default, size=medium, state=pending, leading icon=false, trailing icon=false
+    instanceOf: spinnerSmall
+  focusRing:
+    type: instance
+    detectedIn: appearance=filled, surface=default, inset=default, size=medium, state=focus-visible, leading icon=false, trailing icon=false
+    instanceOf: focusRing
+props:
+  appearance:
+    type: string
+    default: filled
+    enum:
+      - filled
+      - outline
+      - text
+    nullable: false
+  surface:
+    type: string
+    default: default
+    enum:
+      - default
+      - inverse
+    nullable: false
+  inset:
+    type: string
+    default: default
+    enum:
+      - default
+      - flush
+    nullable: false
+  size:
+    type: string
+    default: medium
+    enum:
+      - medium
+      - small
+      - large
+    nullable: false
+  state:
+    type: string
+    default: rest
+    enum:
+      - rest
+      - hover
+      - pressed
+      - pending
+      - focus-visible
+      - disabled
+    nullable: false
+  leadingIcon:
+    type: boolean
+    default: false
+    $extensions:
+      com.figma:
+        type: VARIANT
+        name: leading icon
+  trailingIcon:
+    type: boolean
+    default: false
+    $extensions:
+      com.figma:
+        type: VARIANT
+        name: trailing icon
+  label:
+    type: string
+    examples:
+      - Button
+  swapLeadingIcon:
+    type: string
+    examples:
+      - iconFpoDefaultIcon
+    $extensions:
+      com.figma:
+        name: ↳ swap leading icon
+  swapTrailingIcon:
+    type: string
+    examples:
+      - iconFpoDefaultIcon
+    $extensions:
+      com.figma:
+        name: ↳ swap trailing icon
+tokensByElement:
+  root:
+    - border-width/pds3/border-width/hairline
+    - color/pds3/color/disabled/border
+    - color/pds3/color/disabled/fill
+    - color/pds3/color/interactive/primary/border/hover
+    - color/pds3/color/interactive/primary/border/pressed
+    - color/pds3/color/interactive/primary/border/rest
+    - color/pds3/color/interactive/primary/fill/hover
+    - color/pds3/color/interactive/primary/fill/pressed
+    - color/pds3/color/interactive/primary/fill/rest
+    - color/pds3/color/interactive/primary/overlay/hover
+    - color/pds3/color/interactive/primary/overlay/pressed
+    - color/pds3/color/inverse/disabled/border
+    - color/pds3/color/inverse/disabled/fill
+    - color/pds3/color/inverse/interactive/primary/border/hover
+    - color/pds3/color/inverse/interactive/primary/border/pressed
+    - color/pds3/color/inverse/interactive/primary/border/rest
+    - color/pds3/color/inverse/interactive/primary/fill/hover
+    - color/pds3/color/inverse/interactive/primary/fill/pressed
+    - color/pds3/color/inverse/interactive/primary/fill/rest
+    - color/pds3/color/inverse/interactive/primary/overlay/hover
+    - color/pds3/color/inverse/interactive/primary/overlay/pressed
+    - radius/pds3/radius/md
+    - size/pds3/size/lg/height
+    - size/pds3/size/md/height
+    - size/pds3/size/sm/height
+    - space/pds3/space/0
+    - space/pds3/space/075
+    - space/pds3/space/100
+    - space/pds3/space/150
+    - space/pds3/space/200
+    - space/pds3/space/300
+  label:
+    - color/pds3/color/disabled/on-fill
+    - color/pds3/color/disabled/text
+    - color/pds3/color/interactive/primary/on-fill
+    - color/pds3/color/interactive/primary/text/hover
+    - color/pds3/color/interactive/primary/text/pressed
+    - color/pds3/color/interactive/primary/text/rest
+    - color/pds3/color/inverse/disabled/on-fill
+    - color/pds3/color/inverse/disabled/text
+    - color/pds3/color/inverse/interactive/primary/on-fill
+    - color/pds3/color/inverse/interactive/primary/text/hover
+    - color/pds3/color/inverse/interactive/primary/text/pressed
+    - color/pds3/color/inverse/interactive/primary/text/rest
+    - label/lg/emphasis
+    - label/lg/emphasis-link
+    - label/md/emphasis
+    - label/md/emphasis-link
+    - label/sm/emphasis
+    - label/sm/emphasis-link
+  trailingVisual:
+    - icon/pds3/icon/size/md
+    - icon/pds3/icon/size/sm
+    - icon/pds3/icon/size/xs
+  leadingVisual:
+    - icon/pds3/icon/size/md
+    - icon/pds3/icon/size/sm
+    - icon/pds3/icon/size/xs
+  spinner:
+    - icon/pds3/icon/size/md
+    - icon/pds3/icon/size/sm
+    - icon/pds3/icon/size/xs

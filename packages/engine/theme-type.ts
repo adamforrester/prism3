@@ -816,7 +816,8 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
       throw new Error(`typography.weights.${g}: the '${g}' category must include '${req.role}', because ${req.why}. Add '${req.role}' back (the set given is ${roles.join('/')}).`);
   }
   // #3707 (owner decision A, 2026-11-18): an empty `links` is refused, as the schema's `minItems: 1` refuses it, so an
-  // in-memory brief cannot ship without the body and caption link styles the contract guarantees and Link binds.
+  // in-memory brief cannot ship with no link style at all. It does not guarantee the body and caption link styles the
+  // contract names: a non-empty list without them (`links: ['title']`) still builds, which is #4040 (#4214 item 3).
   // Wording follows Q-RF1 A's pattern; DRAFT for the owner.
   if (Array.isArray(t.links) && t.links.length === 0)
     throw new Error('Link styles must name at least one text type: typography.links is empty.');
