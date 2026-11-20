@@ -281,8 +281,9 @@
  *
  * Run: `npx tsx apps/plugin/test-update-apply.ts`
  */
-import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName, type AnatomyPlan, componentDefs, type ComponentDef } from '@prism3/engine/components';
-import { ENGINE_VERSION, parseDesignMd, type BrandInput } from '@prism3/engine';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName, planStamp, type AnatomyPlan, componentDefs, type ComponentDef } from '@prism3/engine/components';
+import { ENGINE_VERSION, coordKey, parseDesignMd, type BrandInput } from '@prism3/engine';
+import { createHash } from 'node:crypto';
 import { adoptions, applyComponentPlan, memberStamp, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
@@ -292,10 +293,10 @@ import { EXECUTOR_REVISION } from './src/executor-revision';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY, UPDATING_KEY } from './src/member-baseline';
 import { figmaInstances, fixHostMethods, makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { adoptMembers, breakingClause, breakingLine, breakingOf, consumerLines, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, breakingClause, breakingLine, breakingOf, breaksConsumers, consumerLines, breakingSection, breakingSummary, captureBaselines, checkedSetOf, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type Breaking, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
-import { applyUpdate, applyVerdict as applyVerdictOf, fallbackLine, fontMissHead, ledgerAfter, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict as applyVerdictOf, fallbackLine, fontMissHead, ledgerAfter, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, changedSets, type ApplyHost } from './src/update-apply';
 import { headerFor } from './src/page-header';
 import { readFileSync } from 'node:fs';
 
@@ -6914,7 +6915,7 @@ section('published — on a set in a team library, what breaks consumer files is
     ok(!!res.refusedAll && res.outcomes.length === 0, `published/hash: a set published after the check refuses the confirm (${res.refusedAll ?? 'applied'})`);
   }
 
-  // DIALOG GAINS ITS END PLACEMENT (#2877): a published Dialog built before the side sheet, its 20 members (with the fill
+  // DIALOG GAINS ITS END PLACEMENT (#2877): a published Dialog built before the side sheet, its 12 members (20 before #3392 A) (with the fill
   // footer, #2880), updated to the plan with the four `placement=end` members. Adding a variant value is additive, so the
   // check adds exactly those four and lists NOTHING as breaking: no member dropped, renamed or replaced, no property
   // removed or retyped. The member names are literals typed here, never read off the def.
@@ -6928,14 +6929,15 @@ section('published — on a set in a team library, what breaks consumer files is
     const w = await world('dialog', before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))], componentProps: { 'flush-icon-button-neutral': { 'swap icon#9:1': { type: 'INSTANCE_SWAP', defaultValue: 'icon/close' } } } });
     (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
     const p = (await previewUpdate(w.host, [{ def: 'dialog', plans: next }])).sets[0];
-    const END = ['placement=end, footer=inline, size=medium', 'placement=end, footer=stacked, size=medium', 'placement=end, footer=fill, size=medium', 'placement=end, footer=none, size=medium'];
-    ok(before.length === 20 && next.length === 24, `premise: Dialog was 20 members and is 24 with the end placement (${before.length} → ${next.length})`);
+    // #3392 A: no size axis, so 12 members before the end placement and 16 with it.
+    const END = ['placement=end, footer=inline', 'placement=end, footer=stacked', 'placement=end, footer=fill', 'placement=end, footer=none'];
+    ok(before.length === 12 && next.length === 16, `premise: Dialog was 12 members and is 16 with the end placement (${before.length} → ${next.length})`);
     ok(p?.publish === 'CURRENT' && JSON.stringify([...p.adds].sort()) === JSON.stringify([...END].sort()) && p.drops.length === 0 && (p.breaking ?? []).length === 0,
       `published/dialog end additive: the four end members are added and nothing breaks library consumers (adds ${JSON.stringify(p?.adds)}, drops ${p?.drops.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
   }
 
-  // DIALOG GAINS ITS FILL FOOTER (#2880, Q492 B): a published Dialog built before the fill footer, its 18 members (with
-  // the end placement, #2877), updated to the plan with the six `footer=fill` members. Adding a variant value is additive,
+  // DIALOG GAINS ITS FILL FOOTER (#2880, Q492 B): a published Dialog built before the fill footer, its 12 members (18 before #3392 A) (with
+  // the end placement, #2877), updated to the plan with the four `footer=fill` members (six before #3392 A). Adding a variant value is additive,
   // so the check adds exactly those six and lists NOTHING as breaking: no member dropped, renamed or replaced, no property
   // removed or retyped. The member names are literals typed here, never read off the def.
   {
@@ -6948,13 +6950,11 @@ section('published — on a set in a team library, what breaks consumer files is
     const w = await world('dialog', before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))], componentProps: { 'flush-icon-button-neutral': { 'swap icon#9:1': { type: 'INSTANCE_SWAP', defaultValue: 'icon/close' } } } });
     (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
     const p = (await previewUpdate(w.host, [{ def: 'dialog', plans: next }])).sets[0];
-    const FILL = [
-      'placement=center, footer=fill, size=medium', 'placement=center, footer=fill, size=small', 'placement=center, footer=fill, size=large',
-      'placement=bottom, footer=fill, size=medium', 'placement=full, footer=fill, size=medium', 'placement=end, footer=fill, size=medium',
-    ];
-    ok(before.length === 18 && next.length === 24, `premise: Dialog was 18 members and is 24 with the fill footer (${before.length} → ${next.length})`);
+    // #3392 A: no size axis, so 12 members before the fill footer and 16 with it, one fill member per placement.
+    const FILL = ['placement=center, footer=fill', 'placement=bottom, footer=fill', 'placement=full, footer=fill', 'placement=end, footer=fill'];
+    ok(before.length === 12 && next.length === 16, `premise: Dialog was 12 members and is 16 with the fill footer (${before.length} → ${next.length})`);
     ok(p?.publish === 'CURRENT' && JSON.stringify([...p.adds].sort()) === JSON.stringify([...FILL].sort()) && p.drops.length === 0 && (p.breaking ?? []).length === 0,
-      `published/dialog fill additive: the six fill members are added and nothing breaks library consumers (adds ${JSON.stringify(p?.adds)}, drops ${p?.drops.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+      `published/dialog fill additive: the four fill members are added and nothing breaks library consumers (adds ${JSON.stringify(p?.adds)}, drops ${p?.drops.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
   }
 
   // LINK GAINS ITS CURRENT PAGE (#2872, owner decisions Q507): a published Link built before the axis existed, its 96
@@ -7507,6 +7507,102 @@ section('updates off — a set whose updates are off is left as it is, reported 
   });
   ok(verdictsSeen.some(({ v }) => !v.ok) && !bad.length,
     `causes/every verdict: each of the ${verdictsSeen.filter(({ v }) => !v.ok).length} verdicts not ok names a cause, each subject a def id (${JSON.stringify(bad.slice(0, 3).map(({ v }) => ({ headline: v.headline, causes: v.causes })))})`);
+}
+
+/* ── dialog size merged (#3392) ─────────────────────────────────────────────────────────────────────────── */
+// #3392 A (owner, 2026-11-18): Dialog's width-only `size` axis is no variant. A file built before holds 24 members: 12
+// centered ones on `size=small | medium | large` and 12 bottom, full and end ones at `size=medium`. The update must
+// leave 16, one per coordinate, none on the old axis and none kept deprecated: each `size=medium` member leaves the axis
+// IN PLACE (its id, key and every placed instance kept), and each small or large member MERGES into it: its placed
+// instances are swapped onto the medium member at the width they had (400 or 720), and it is removed. The old def is
+// rebuilt here from today's by putting the axis back, as the def held it; the names, counts and widths are literals.
+// Mutation: the `merge` entry dropped from `COMPONENT_RENAMES` → `dialog size/dry run` (the set is refused: the
+// small and large members collapse). The apply's resize dropped → `dialog size/placed small`, `/placed large`.
+section('dialog size — a set built with the width-only size axis leaves 16 members, the small and large ones merged into medium with their placed instances (#3392)');
+{
+  const now = componentDefs.find((d) => d.id === 'dialog')!;
+  const panel = now.anatomy!.parts.panel as { builtSize: { widths: Record<string, unknown> } };
+  const oldDef = {
+    ...now,
+    variants: { placement: now.variants.placement, size: ['medium', 'small', 'large'], footer: now.variants.footer },
+    axisKinds: { ...now.axisKinds, size: 'authoring' },
+    anatomy: { ...now.anatomy!, parts: { ...now.anatomy!.parts, panel: { ...panel, builtSize: { ...panel.builtSize, widths: { ...panel.builtSize.widths, center: { medium: 560, small: 400, large: 720 } } } } } },
+    figmaProperties: { ...now.figmaProperties!, variantAxes: ['placement', 'size', 'footer'], excludeCoordinates: [{ placement: ['bottom', 'full', 'end'], size: ['small', 'large'] }] },
+  } as ComponentDef;
+  const w = await world('dialog', figmaAnatomySet(oldDef, { swapTarget: SWAP_TARGET }), { componentProps: { 'flush-icon-button-neutral': { 'swap icon#9:1': { type: 'INSTANCE_SWAP', defaultValue: 'icon/close' } } } });
+  const set = w.set();
+  const names = membersOf(set).map((m) => String(m.name));
+  const SMALL = 'placement=center, footer=inline, size=small', LARGE = 'placement=center, footer=stacked, size=large';
+  const MED = 'placement=center, footer=inline, size=medium', MED2 = 'placement=center, footer=stacked, size=medium';
+  // The rebuilt def projects exactly the set main shipped: origin/main's `component-surface.json` records dialog at
+  // 24 members, sha256 529ad20a… over its sorted `name|stamp` rows (typed here, from that baseline; it was 5a835955… until #4057 moved main's Dialog projection, and 17ff3a9b… until #4084).
+  const oldPlans = figmaAnatomySet(oldDef, { swapTarget: SWAP_TARGET });
+  const oldSha = createHash('sha256').update(figmaAnatomySet(oldDef).map((x) => `${planComponentName(x)}|${planStamp(x)}`).sort().join('\n')).digest('hex');
+  ok(oldPlans.length === 24 && oldSha === '529ad20a03c8de6f3621ef34f4f9219e4af1b6873cbbe3aea9c5bd8028e1e14f',
+    `premise: the old def rebuilt here projects main's 24-member Dialog set exactly (${oldPlans.length}, ${oldSha.slice(0, 12)}…)`);
+  ok(names.length === 24 && names.includes(SMALL) && names.includes(LARGE) && names.filter((n) => n.includes('size=')).length === 24,
+    `premise: dialog holds the 24 members of the old set, ${SMALL} among them (${names.length})`);
+  // THE PLACED INSTANCES, on the page beside the set: two of the small member, one of the large, one of medium. The
+  // shim's members build no instances, so each is modelled as the host holds one: a node pointing at its main, whose
+  // `swapComponent` re-points it and takes the new main's size (the worst case: the apply must restore the width), and
+  // which Figma reaches from its main through `getInstancesAsync`, modelled per member from these.
+  const member = (n: string) => membersOf(set).find((m) => m.name === n)!;
+  const placedOf = new Map<Node, Node[]>();
+  const place = (n: string): Node => {
+    const m = member(n);
+    const i = { type: 'INSTANCE', name: 'Dialog', mainComponent: m, width: Number(m.width), height: Number(m.height), _swaps: 0,
+      resize(x: number, y: number) { this.width = x; this.height = y; },
+      swapComponent(c: Node) { this.mainComponent = c; this.width = Number(c.width); this.height = Number(c.height); this._swaps++; } } as unknown as Node;
+    placedOf.set(m, [...(placedOf.get(m) ?? []), i]);
+    (m as { getInstancesAsync?: () => Promise<Node[]> }).getInstancesAsync = async () => placedOf.get(m) ?? [];
+    return i;
+  };
+  const s1 = place(SMALL), s2 = place(SMALL), l1 = place(LARGE), m1 = place(MED);
+  ok(Number(s1.width) === 400 && Number(l1.width) === 720 && Number(m1.width) === 560, `premise: the placed instances are 400, 720 and 560 wide (${s1.width}, ${l1.width}, ${m1.width})`);
+  const medNode = member(MED), medId = String(medNode.id), medKey = String(medNode.key);
+  const med2Node = member(MED2);
+  const { pre, res } = await confirm(w, [{ def: 'dialog', plans: plansOf('dialog') }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.drop === 0 && p.counts.add === 0 && p.counts.rename === 16 && (p.merges?.length ?? 0) === 8
+    && p.merges!.some((x) => x.member === SMALL && x.into === MED) && p.merges!.some((x) => x.member === LARGE && x.into === MED2),
+    `dialog size/dry run: 16 renamed off the axis, 8 merged (${SMALL} into ${MED}), none dropped, added or blocked (${p ? `${p.counts.rename} renamed, ${p.merges?.length ?? 0} merged, ${p.counts.drop} dropped, ${p.counts.add} added; ${p.blockers.join('; ') || 'no blockers'}` : 'no set'})`);
+  ok(previewLine(p!).includes('8 to merge into another member, its instances moved'), `dialog size/line: the confirm line says what the merge removes (${previewLine(p!)})`);
+  // Published, the merge is named as a change that breaks files using the library: their instances of a removed member
+  // stop updating (the wording is a DRAFT; the kind and the count are what this holds).
+  const br = breakingOf({ ...p!, publish: 'CURRENT' });
+  ok(br.filter((b) => b.kind === 'merge').length === 8 && br.filter((b) => b.kind === 'merge').every(breaksConsumers) && /8 members merged into another and removed/.test(breakingSummary(br, 'dialog')),
+    `dialog size/breaking: published, the 8 merges are listed as breaking files that use the library (${br.filter((b) => b.kind === 'merge').length}; ${breakingSummary(br, 'dialog').slice(0, 140)})`);
+  const o = res.outcomes[0];
+  ok(applyVerdict(res).ok && o?.renamed === 16 && o?.merged?.length === 8 && o.deprecated.length === 0,
+    `dialog size/apply: ${applyVerdict(res).headline} (${o?.renamed} renamed, ${o?.merged?.length ?? 0} merged, ${o?.deprecated.length} deprecated${o?.refused ? `; ${o.refused}` : ''})`);
+  // #4091 review S1: the done line confirms the merge, as `marked deprecated` confirms a drop (DRAFT wording).
+  const doneLine = applyVerdict(res).lines.find((l) => l.startsWith(`${o?.set}: `)) ?? '';
+  ok(doneLine.includes('8 merged into another member'), `dialog size/verdict: the set's done line names the 8 merges (${doneLine})`);
+  // A set whose only write was a merge is not idle ("not updated"): its members were removed and its instances moved.
+  const mergeOnly = { ...o!, updated: [], added: 0, renamed: 0, deprecated: [], moved: 0, setMoved: false, skipped: [{ member: 'x', reason: 'y' }] } as typeof o;
+  const mv = applyVerdict({ ...res, outcomes: [mergeOnly] });
+  ok(mv.headline === '✓ 8 merged into another member' && mv.lines.some((l) => l.includes('8 merged into another member')),
+    `dialog size/merge only: a set whose only write was the merge reads as written, never idle (${mv.headline}; ${mv.lines[0]})`);
+  // #4091 review nit: a set whose only write was a merge is named in the publish description's set list.
+  const listed = changedSets([mergeOnly!]);
+  ok(listed.length === 1 && listed[0] === o?.set, `dialog size/publish: a merge-only set is listed as changed in the publish description (${JSON.stringify(listed)})`);
+  const after = membersOf(w.set()).map((m) => String(m.name));
+  const keys = after.map((n) => coordKey(n));
+  ok(after.length === 16 && !after.some((n) => n.includes('size=')) && new Set(keys).size === 16 && !membersOf(w.set()).some((m) => String(m.description ?? '').startsWith(DEPRECATED_PREFIX)),
+    `dialog size/members: the set holds 16, none on size, no two on one coordinate, none deprecated (${after.length}; ${after.filter((n) => n.includes('size=')).join(', ') || 'none on size'})`);
+  const medNow = membersOf(w.set()).find((m) => String(m.id) === medId);
+  ok(!!medNow && medNow === medNode && String(medNow.name) === 'placement=center, footer=inline' && String(medNow.key) === medKey,
+    `dialog size/medium kept: the medium member is the same node, id and key kept, now ${medNow ? String(medNow.name) : 'gone'}`);
+  const mainId = (i: Node): string => String(((i as { mainComponent?: { id?: unknown } }).mainComponent ?? (i as { _main?: { id?: unknown } })._main)?.id ?? '');
+  ok(mainId(s1) === medId && mainId(s2) === medId && Number(s1.width) === 400 && Number(s2.width) === 400,
+    `dialog size/placed small: both small instances now point at the medium member and keep their 400 width (${mainId(s1) === medId}, ${mainId(s2) === medId}; ${s1.width}, ${s2.width})`);
+  ok(mainId(l1) === String(med2Node.id) && Number(l1.width) === 720,
+    `dialog size/placed large: the large instance points at the stacked medium member and keeps its 720 width (${mainId(l1) === String(med2Node.id)}; ${l1.width})`);
+  ok(mainId(m1) === medId && Number(m1.width) === 560 && !(m1 as { _swaps?: number })._swaps, `dialog size/placed medium: the medium instance was not swapped and is 560 wide (${m1.width})`);
+  const props = w.set().componentPropertyDefinitions as Record<string, { type: string }>;
+  ok(!props.size && !!props.placement && !!props.footer, `dialog size/properties: the set offers placement and footer and no size (${Object.keys(props).filter((k) => props[k].type === 'VARIANT').join(', ')})`);
+  const post = (await previewUpdate(w.host, [{ def: 'dialog', plans: plansOf('dialog') }])).sets[0];
+  ok(post?.counts.current === 16 && !post.merges, `dialog size/current: every member reads current after, nothing left to merge (${JSON.stringify(post?.counts)})`);
 }
 
 void STYLE_FONT; void BASELINE_KEY;
