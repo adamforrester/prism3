@@ -37,6 +37,10 @@ const STEPS: Step[] = [
   { label: 'emit-dtcg      (nb · prism3 · aurora · harbor)', args: ['packages/engine/emit-dtcg.ts'] },
   { label: 'nb-regression  (regression report)', args: ['packages/engine/nb-regression.ts'] },
   { label: 'cli            (wendys + fidelity)', args: ['packages/engine/cli.ts', 'packages/engine/examples/wendys.design.md', '--out', 'packages/engine/out', '--fidelity', '--committed'] },
+  // #2997 PR 4 (Q2997.5 B) — the shadcn/ui theme and the Tailwind v4 theme, projected from the handoff files the two
+  // steps above write (emit-dtcg for four brands, cli for wendys), so they come after both.
+  { label: 'emit-shadcn    (out/shadcn/**)', args: ['packages/engine/emit-shadcn.ts'] },
+  { label: 'emit-tailwind  (out/tailwind/**)', args: ['packages/engine/emit-tailwind.ts'] },
   { label: 'emit-figma     (out/figma/**)', args: ['packages/engine/emit-figma.ts'] },
   { label: 'emit-levers    (lever-manifest)', args: ['packages/engine/emit-levers.ts'] },
   { label: 'emit-preview   (preview-spec)', args: ['packages/engine/emit-preview.ts'] },

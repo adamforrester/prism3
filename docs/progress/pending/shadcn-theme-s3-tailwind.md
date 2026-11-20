@@ -1,0 +1,31 @@
+## (2026-11-19) — The Tailwind v4 `@theme` output and the stock-Tailwind gate (#2997 PR 3)
+
+**What.** PR 3 of #2997. `packages/engine/emit-tailwind.ts` writes one self-contained `tailwind/<brand>.theme.css` per
+brand from the emitted handoff:
+- the shadcn variables in `:root` and `.dark`;
+- `--pds3-shadow-<rung>` per mode;
+- an `@theme inline` block. Colors use shadcn's names only (Q2997.15 A). Every radius rung comes from our scale
+  (Q2997.12 B). `--spacing` is 4px, from `space.050`. Fonts are sans and mono only (Q2997.16 A). Shadows run from `xs`
+  to `2xl`.
+
+The map for the non-color rows is `projections/tailwind.ts` (`TAILWIND_MAP_VERSION` 1.0.0, versioned by #2997 §9's rule).
+Gate 5 is `npm run -w @prism3/tokens check:shadcn`. It compiles a typed fixture against each brand's file with the
+stock Tailwind CLI, pinned exact at 4.3.3 in `packages/tokens`. The engine stays dependency-free.
+
+**Why `inline`, and why per-mode shadow variables.** With `@theme inline`, Tailwind writes the variable into the
+utility: `bg-primary` becomes `var(--primary)`, so `.dark` flips it, as shadcn's own scaffold does. Shadows differ per
+mode, and Tailwind copies a shadow's theme value into `--tw-shadow`. A `.dark` override of `--shadow-md` would therefore
+never reach the utility. The theme points `--shadow-md` at `var(--pds3-shadow-md)`, and that variable is set in both
+blocks. Checked in the compiled output: `.shadow-md { --tw-shadow: var(--pds3-shadow-md) }`.
+
+**Trap.** The Tailwind CLI resolves `@import "tailwindcss"` from the input file's own directory, so an input in a temp
+dir fails with "Can't resolve 'tailwindcss'". The gate imports the resolved `tailwindcss/index.css` path with
+`source(none)` and names its classes with `@source inline(...)`. Without `source(none)`, Tailwind also scans the working
+directory and compiles any class-like word it finds there.
+
+**Version pin.** Tailwind 4.3.3 (2026-07-16). 4.3.4 and 4.3.5 were under two weeks old when this was built.
+
+**Checked.** Mutations, each failing by name:
+- dropping `--color-ring` from `@theme` fails `outline-ring utility unresolved`, on all five brands;
+- mapping `spacing` to `space.100` fails `p-2 computes calc(8px * 2), not space.100 (8px)`;
+- leaving the shadow variables out of `.dark` fails `--pds3-shadow-md is not set in .dark`.
