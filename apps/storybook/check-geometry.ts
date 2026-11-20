@@ -24,40 +24,14 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { load, ARM_1, boxedParts } from './arm-contract';
 import { stories, open, context, result, main, at, dirsFor, DROPPED, STATIC, type Plant, type Result, type Story, type Dir } from './a11y-harness';
 
-/** The anatomy's part paths that have a box in code, per component, and where each is in the code's markup. */
-export const PARTS: Record<string, Record<string, string>> = {
-  button: {
-    container: '',
-    'container/leadingVisual': ':scope > .p3-button__leading-visual',
-    'container/spinner': ':scope > .p3-button__spinner',
-    'container/label': ':scope > .p3-button__label',
-    'container/trailingVisual': ':scope > .p3-button__trailing-visual',
-  },
-  'text-field': {
-    container: '',
-    'container/label': ':scope > .p3-field-label',
-    'container/control': ':scope > .p3-text-field__control',
-    'container/control/content': ':scope > .p3-text-field__control > .p3-text-field__content',
-    'container/control/content/leadingVisual': '.p3-text-field__content > .p3-text-field__leading-visual',
-    'container/control/content/entry': '.p3-text-field__content > .p3-text-field__entry',
-    'container/control/trailingVisual': ':scope > .p3-text-field__control > .p3-text-field__trailing-visual',
-    'container/message': ':scope > .p3-field-message',
-  },
-  'password-field': {
-    container: '',
-    'container/labelRow': ':scope > .p3-password-field__label-row',
-    'container/labelRow/labelCell': '.p3-password-field__label-row > .p3-password-field__label-cell',
-    'container/labelRow/labelCell/label': '.p3-password-field__label-cell > .p3-field-label',
-    'container/labelRow/toggle': '.p3-password-field__label-row > .p3-password-field__toggle',
-    'container/control': ':scope > .p3-password-field__control',
-    'container/control/content': ':scope > .p3-password-field__control > .p3-password-field__content',
-    'container/control/content/leadingVisual': '.p3-password-field__content > .p3-password-field__leading-visual',
-    'container/control/content/entry': '.p3-password-field__content > .p3-password-field__entry',
-    'container/message': ':scope > .p3-field-message',
-  },
-};
+/** The anatomy's part paths that have a box in code, per component, and where each is in the code's markup: arm 1's
+ *  input contract (`arm-1.contract.json`, checked by `check-arm-contract.ts`), the same file an arm 2 supplies. */
+const CONTRACT = load(ARM_1);
+export const PARTS: Record<string, Record<string, string>> = boxedParts(CONTRACT);
+const ROOTS: Record<string, string> = Object.fromEntries(Object.entries(CONTRACT.components).map(([id, c]) => [id, c.root]));
 
 export type Box = { x: number; y: number; w: number; h: number };
 export type RootGeometry = { w: number; h: number; padding: number[]; border: number[]; radius: number[] };
@@ -69,10 +43,10 @@ const round = (n: number) => Math.round(n * DP) / DP;
 const STATES = new Set(['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'inactive', 'pending', 'filled', 'read-only']);
 
 // The page side is a string: tsx's keepNames wraps a named helper in `__name`, which the page does not define (S2).
-const MEASURE = `(([component, parts, state, dp]) => {
+const MEASURE = `(([component, rootSel, parts, state, dp]) => {
   const r2 = (n) => Math.round(n * dp) / dp;
-  const root = [...document.querySelectorAll('#storybook-root [data-component]')].find((e) => e.getAttribute('data-component') === component);
-  if (!root) return 'no [data-component="' + component + '"] in the story';
+  const root = document.querySelector('#storybook-root ' + rootSel);
+  if (!root) return 'no ' + rootSel + ' in the story';
   const rb = root.getBoundingClientRect();
   const cs = getComputedStyle(root);
   const px = (v) => r2(parseFloat(v) || 0);
@@ -105,7 +79,7 @@ const MEASURE = `(([component, parts, state, dp]) => {
 })`;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const measure = async (page: any, s: Story): Promise<Measure | string> =>
-  page.evaluate(`${MEASURE}(${JSON.stringify([s.component, PARTS[s.component], STATES.has(s.case) ? s.case : 'rest', DP])})`);
+  page.evaluate(`${MEASURE}(${JSON.stringify([s.component, ROOTS[s.component], PARTS[s.component], STATES.has(s.case) ? s.case : 'rest', DP])})`);
 
 /** Every difference between two records of one case, by name, to 0.01px. `a` and `b` name the two sides. */
 export const diff = (where: string, x: Measure, y: Measure, a: string, b: string): string[] => {

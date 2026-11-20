@@ -31,6 +31,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { load, ARM_1, boxedParts } from './arm-contract';
 
 const HERE = import.meta.dirname ?? '';
 const FIGMA = resolve(HERE, 'figma-geometry.json');
@@ -133,8 +134,11 @@ export const compare = (fig: FigmaRecord, code: CodeRecord): { failures: string[
   return { failures, notes, compared };
 };
 
-/** The part paths the code measures (check-geometry.ts's PARTS keys), so a Figma part outside them is not a miss. */
-const CODE_PARTS: Record<string, string[]> = {};
+/** The part paths the arm says its code draws with a box: its input contract's boxed parts (`arm-contract.ts`), so a
+ *  Figma part outside them is not a miss, and one inside them that no code case drew is. Read from the contract, never
+ *  from the code record: a part the code never draws must not drop out of the comparison with it (`docs/34`). */
+const contractArg = process.argv.indexOf('--contract');
+const CODE_PARTS: Record<string, string[]> = Object.fromEntries(Object.entries(boxedParts(load(contractArg > 0 ? resolve(process.argv[contractArg + 1]) : ARM_1))).map(([id, p]) => [id, Object.keys(p)]));
 /** Each component's API defaults, from the emission (`components.ai.json`); a button's visuals default to absent. */
 const AI = JSON.parse(readFileSync(resolve(HERE, '../../packages/engine/out/components/components.ai.json'), 'utf8')).components;
 const DEFAULTS: Record<string, Record<string, string>> = Object.fromEntries(['button', 'text-field', 'password-field'].map((id) => [id, {
@@ -181,7 +185,7 @@ const plantFigma = (code: CodeRecord): FigmaRecord => {
   return out;
 };
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
-const SELF: { name: string; plant: (f: FigmaRecord) => void; mustName: RegExp }[] = [
+const SELF: { name: string; plant: (f: FigmaRecord) => void; plantCode?: (c: CodeRecord) => void; mustName: RegExp }[] = [
   { name: 'Figma\'s button padding 1px wider on the left (every part 1px further right)',
     plant: (f) => { const m = f.components.button.members.find((x) => x.id === '9:button--rest')!; m.root.padding[3] += 1; m.root.w += 1; for (const p of Object.values(m.parts)) p.x += 1; },
     mustName: /^button rest \(9:button--rest\): container padding left is .* in code, .* in Figma/ },
@@ -197,15 +201,14 @@ const SELF: { name: string; plant: (f: FigmaRecord) => void; mustName: RegExp }[
   { name: 'Figma\'s pending button with no label layer, where the code draws one',
     plant: (f) => { delete f.components.button.members.find((x) => x.id === '9:button--pending')!.parts['container/label']; },
     mustName: /^button pending .*: container\/label is drawn in code, not in Figma/ },
+  { name: 'code that never draws the password field\'s message, in any case, where Figma does',
+    plant: () => {}, plantCode: (c) => { for (const [k, x] of Object.entries(c.cases)) if (k.startsWith('password-field--')) delete x.parts['container/message']; },
+    mustName: /^password-field error .*: container\/message \(.*\) is drawn in Figma, not in code/ },
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma-geometry.ts')) {
   if (!existsSync(CODE)) { console.error('FAIL setup: storybook-static/geometry.code.json is missing. Run: npx tsx apps/storybook/check-geometry.ts'); process.exit(1); }
   const code: CodeRecord = JSON.parse(readFileSync(CODE, 'utf8'));
-  for (const k of Object.keys(code.cases)) {
-    const c = k.split('--')[0];
-    (CODE_PARTS[c] ??= []).push(...Object.keys(code.cases[k].parts).filter((p) => !CODE_PARTS[c].includes(p)));
-  }
   if (process.argv.includes('--self-test')) {
     let bad = 0;
     const base = plantFigma(code);
@@ -216,7 +219,9 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma
     for (const t of SELF) {
       const f = clone(base);
       t.plant(f);
-      const r = compare(f, code);
+      const c = clone(code);
+      t.plantCode?.(c);
+      const r = compare(f, c);
       if (r.failures.some((x) => t.mustName.test(x))) console.log(`OK self-test: "${t.name}" fails by name`);
       else { bad++; console.error(`FAIL self-test: "${t.name}" was not caught by name (${r.failures[0] ?? 'no failures'})`); }
     }
