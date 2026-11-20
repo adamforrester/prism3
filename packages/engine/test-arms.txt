@@ -528,6 +528,7 @@ apps/studio/test-chrome.mjs #2183
 apps/studio/test-chrome.mjs #2184
 apps/studio/test-chrome.mjs #2192
 apps/studio/test-chrome.mjs #2194
+apps/studio/test-chrome.mjs #2206
 apps/studio/test-chrome.mjs #2212
 apps/studio/test-chrome.mjs #2213
 apps/studio/test-chrome.mjs #2214
@@ -550,6 +551,7 @@ apps/studio/test-chrome.mjs #2437
 apps/studio/test-chrome.mjs #2451
 apps/studio/test-chrome.mjs #2486
 apps/studio/test-chrome.mjs #2487
+apps/studio/test-chrome.mjs #2492
 apps/studio/test-chrome.mjs #2523
 apps/studio/test-chrome.mjs #2560
 apps/studio/test-chrome.mjs #2695
