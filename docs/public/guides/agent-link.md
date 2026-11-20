@@ -24,7 +24,7 @@ MCP (Model Context Protocol) is the standard way an AI agent connects to a tool 
 2. Turn on the **Agent** switch in the top bar, beside Update file. <!-- src: apps/plugin/src/agent-link-ui.ts:232-235 -->
 3. Tell the agent the link is on. It sends a status request first, to confirm the plugin answers.
 
-To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:235 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2606#13449644 -->
+To turn it off, turn the **Agent** switch off. <!-- src: apps/plugin/src/agent-link-ui.ts:235 --> Closing the plugin also turns it off. <!-- src: apps/plugin/src/main.ts:2608#13449644 -->
 
 The Activity drawer's bar shows the link's state in a word: "Listening · bridge" or "Listening · mailbox" while it waits, "Listening · mailbox only" in Prism3 Studio Offline, and "Error" or "Not listening" when something is wrong. Point at the word to read the full status. <!-- src: apps/plugin/src/agent-link-ui.ts:124-127 -->
 
@@ -56,6 +56,8 @@ The Activity drawer's bar shows the link's state in a word: "Listening · bridge
 
 Every write an agent asks for passes the same checks as Update file, and is refused for the same reasons. <!-- src: apps/plugin/src/run-guard.ts:1-20#802b70d3 -->
 
+A color override's confirm is refused as `changes-moved` when its changes aren't the ones it previewed, and as `brand-moved` when the file's brand changed after the preview. Either way, nothing is written: preview again. <!-- src: apps/plugin/src/set-override.ts:143-144 -->
+
 ## Safety
 
 - **Off by default, never saved.** The link starts off at every launch and is not remembered between sessions. <!-- src: apps/plugin/src/agent-link.ts:5-8#e3a1fc8c -->
@@ -73,7 +75,7 @@ The panel shows each result an agent's request produced, in Activity, as if you 
 
 ## Other ways an agent works with Prism3
 
-- Without Figma: the Prism3 engine has its own MCP server, which can generate and check a brand's tokens and write them to disk. It does not touch Figma files. <!-- src: packages/engine/mcp.ts:243-379#8afe6b2e --> <!-- src: packages/engine/README.md:118#782d7cd2 -->
+- Without Figma: the Prism3 engine has its own MCP server, which can generate and check a brand's tokens and write them to disk. It does not touch Figma files. <!-- src: packages/engine/mcp.ts:265-407#55cb245e --> <!-- src: packages/engine/README.md:118#782d7cd2 -->
 - With the plugin closed: a set of scripts runs the plugin's own steps through Figma's MCP connection, for test files. This route is for maintainers and is documented in the repository's `tools/figma-mcp` folder. <!-- src: tools/figma-mcp/README.md:1-27 -->
 
 See the [feature reference](features.md) for what each route can do.

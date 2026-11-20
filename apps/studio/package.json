@@ -10,10 +10,11 @@
     "build:site": "node build-site.mjs",
     "typecheck": "tsc --noEmit",
     "test": "npx tsx ../../run-suites.ts",
-    "test:smoke": "node test-smoke.mjs",
+    "test:smoke": "node test-smoke.mjs && node test-site-headers.mjs",
     "test:chrome": "node test-chrome.mjs",
     "test:chrome-shards": "node test-chrome-shards.mjs",
     "test:export-parity": "node test-export-parity.mjs",
+    "test:site-headers": "node test-site-headers.mjs",
     "lint:contrast": "node lint-contrast.mjs",
     "lint:live-css": "node lint-live-css.mjs && node test-live-css.mjs",
     "check:ignore": "node vercel-ignore-check.mjs"

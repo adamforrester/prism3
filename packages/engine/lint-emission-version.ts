@@ -135,7 +135,7 @@ import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 import { PENDING_STAMP, STAMP_PATHS, auditStamps, readStamps, type StampSources } from './rename-stamp-audit';
-import { comparisonBase, integrationBase } from './comparison-base';
+import { comparisonBase, integrationBase, mergeGroupBase } from './comparison-base';
 
 const here = resolve(fileURLToPath(import.meta.url), '..');
 const repo = resolve(here, '../..');
@@ -251,7 +251,13 @@ const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_R
 let baseRef: string | null = null;
 let baseVia = 'local ladder';
 const tried: string[] = [];
-if (prBase) {
+const mg = mergeGroupBase(git);
+if (mg) {
+  // A merge-queue run (#4106): the group's parent commit, authoritative (`comparison-base.ts`).
+  baseVia = 'merge group';
+  tried.push(mg.tried);
+  baseRef = mg.ref;
+} else if (prBase) {
   baseVia = 'GITHUB_BASE_REF';
   const r = git('rev-parse', '--verify', '--quiet', `${prBase}^{commit}`);
   tried.push(`${prBase} (GITHUB_BASE_REF, authoritative) — ${r.ok ? 'resolves' : 'does not resolve'}`);

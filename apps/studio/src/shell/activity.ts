@@ -1099,7 +1099,8 @@ export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narr
         rec.result = { ok: kind === 'ok', kind, verdict: u.verdict ?? ROW_TITLE.update, summary: null, lines: null, causes: null, steps: u.steps, agent: false, t: rec.t ?? now(), ref: u };
         if (kind !== 'ok') { expanded.add('update'); settledBad = true; } else { settledOk = true; expanded.delete('update'); }
         const firstBad = u.steps.find((st) => st.state === 'bad' || st.state === 'warn');
-        said.push(finishLine('update', { state: kind === 'ok' ? 'ok' : 'bad', verdict: u.verdict, summary: null, lines: firstBad ? [firstBad.words, ...firstBad.lines] : null, causes }, kind));
+        // #4219: the step's own lines first, so a failure is announced with the host's reason, not the step's headline.
+        said.push(finishLine('update', { state: kind === 'ok' ? 'ok' : 'bad', verdict: u.verdict, summary: null, lines: firstBad ? [...firstBad.lines, firstBad.words] : null, causes }, kind));
         pendingEnds.push({ k: 'update', kind });
       }
     }

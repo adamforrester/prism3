@@ -2,8 +2,8 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Components area and Update file for #3264). -->
 
-Prism3 defines its components once, and the plugin builds each one as a Figma component set bound to the brand's variables. <!-- src: packages/engine/components/index.ts:110-283#efed1991 -->
-The engine currently defines 63 component sets, from Button and Checkbox to Tabs, Accordion and List. <!-- src: packages/engine/components/index.ts:110-283#efed1991 -->
+Prism3 defines its components once, and the plugin builds each one as a Figma component set bound to the brand's variables. <!-- src: packages/engine/components/index.ts:111-287#3faea520 -->
+The engine currently defines 64 component sets, from Button and Checkbox to Tabs, Accordion and List. <!-- src: packages/engine/components/index.ts:111-287#3faea520 -->
 
 You choose sets in the **Components** area of the rail, and **Update file** builds them. <!-- src: apps/studio/src/state/update-file.ts:330 -->
 Building needs the Figma plugin. On the web, the Components area lists the same sets and says "Building sets needs the Figma plugin." <!-- src: apps/studio/src/preview/sections/component-sets.ts:29 -->
@@ -39,7 +39,7 @@ A new set's description in Figma is its one-line summary from the engine. A desc
 
 ## Read the result
 
-The status strip says how the run went, such as "Sets added" or "File updated". <!-- src: apps/studio/src/state/status-strip.ts:143-145 --> Each set's result is in the Activity drawer: <!-- src: apps/plugin/src/apply-summary.ts:98-108#5f523e92 -->
+The status strip says how the run went, such as "Sets added" or "File updated". <!-- src: apps/studio/src/state/status-strip.ts:143-145 --> Each set's result is in the Activity drawer: <!-- src: apps/plugin/src/apply-summary.ts:85-95#5f523e92 -->
 
 | Result | Meaning |
 |---|---|
@@ -58,7 +58,7 @@ A set that can't be built for this brand is listed with the reason: "Can't be bu
 
 ## Adding and updating
 
-Adding a set never replaces one the file already holds. The plugin finds the set by name and adds only what is missing. <!-- src: apps/plugin/src/apply-summary.ts:70-74#68cb2d2d -->
+Adding a set never replaces one the file already holds. The plugin finds the set by name and adds only what is missing. <!-- src: apps/plugin/src/apply-summary.ts:57-61#68cb2d2d -->
 A set already in the file is brought up to date in place instead, under **Due**, with your hand edits kept unless you choose otherwise. See [Update sets in place](update-a-file-safely.md#update-sets-in-place). <!-- src: apps/studio/src/state/update-file.ts:358 -->
 
 Only one write runs at a time, from the panel or an agent: a build asked for while another write runs reads "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->
@@ -67,3 +67,13 @@ Only one write runs at a time, from the panel or an agent: a build asked for whi
 
 Sets build onto pages under Components (such as `↳ Buttons`, `↳ Checkbox`, `↳ Tabs`) and Subcomponents (such as `↳ Focus Ring`, `↳ Field Label`, `↳ Spinner`). <!-- src: apps/plugin/src/file-taxonomy.ts:92-190 -->
 Icons and provider logos build onto `↳ Icons & assets` under Foundations. <!-- src: apps/plugin/src/file-taxonomy.ts:87 -->
+
+## Specs for your components
+
+<!-- DRAFT copy for the owner (#2996, Q2996.1 hybrid A): the wording, where it sits and the file's path are the owner's to decide. -->
+
+Use Spectacular for any component's spec. It reads a component set in your Figma file and writes its anatomy, props and styles.
+
+Prism3's own components also come with a supplement, starting with Button. It adds what a Figma file can't hold: accessibility, the props and states that exist only in code, motion, right-to-left rules, and the CSS and DTCG name of each token the component uses. It uses the element and prop names Spectacular writes, so you can read the two side by side. Everything it adds sits under `com.prism3`. <!-- src: packages/engine/spec-supplement.ts:64 -->
+
+For a component your team builds itself, Spectacular Pro adds token references to its spec. Prism3 has no supplement for those.

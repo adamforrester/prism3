@@ -181,6 +181,12 @@ export const DETAIL_HEADS: readonly string[] = [
   'Figma refused the write (', 'the engine could not plan it (', 'the named version could not be saved (',
   // #4205: Update file's stopped set (`<set>: stopped (…)`) and its run that threw (`The update failed: …`).
   ': stopped (', 'The update failed: ',
+  // #4253: the component build's and Update file's misses, the slot carry, and the style guide's contrast note. Each
+  // miss names a layer Prism3 drew, then the host's refusal in `failureDetail` form after one of these words.
+  'REFUSED (', 'REFUSED by the slot (', 'NOT MADE (', 'NOT RECORDED (', 'NOT DELETED (', 'could not be cleared (',
+  'not cleared (', 'could not be neutralized (', "after the foot pin's resize (", 'after the #865 defaults (',
+  'on the combine-time handle (', 'on a freshly-resolved one (', 'marking the leftovers also failed (',
+  "slot content on the set (", 'The saved brand did not resolve (', 'Saved brand not restored — ',
 ];
 const HEAD_DETAIL = new RegExp(`(${DETAIL_HEADS.map((h) => escapeRe(h)).join('|')})(${CLASS}): [\\s\\S]*$`);
 /** The apply's variable-write note names the variable, then the host's reason as `write-figma.ts` records it, with no

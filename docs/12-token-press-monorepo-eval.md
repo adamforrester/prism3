@@ -469,6 +469,9 @@ units (px/rem), color format, line-height output, and name casing. `emitDTCGKeys
 read; `formatCss`/`formatRawFigma`/`formatDotNotation` add extra non-DTCG files rather than varying the
 DTCG. **Parity is a much smaller question than it has appeared.**
 
+**Superseded 2026-11-19 by §12** (#2425 A): none of that remainder became a setting. Units, color
+format and line-height output are decided by the spec; only name casing survives, as `tokenNameCase`.
+
 ### 10h. Also uncovered, worth filing against Token Press regardless
 
 - Typography `lineHeight` float noise (see §10f).
@@ -491,6 +494,9 @@ rather than academic.
 
 - **In the web**, a user configures a theme and downloads a **token package** shaped by settings they
   choose — a DTCG preset, a Style Dictionary preset, or custom (the same axis Token Press exposes).
+
+  **Superseded 2026-11-19 by §12** (#2425 A): there is no Style Dictionary preset and no value-shape
+  option; the settings are the four renamings in `apps/studio/src/export-settings.ts`.
 - **In the Figma plugin**, the same user opens the same UI and can instead export **from the Figma
   file**, the way Token Press does today.
 - **Same options. Same package format.**
@@ -567,3 +573,27 @@ overlay, in all four brands; ours, fixed in #713) and **#709** (`OPACITY` return
 0–1 range; Token Press's, fixed in #719). What is left of this list is (1) and (2): conformance
 validation over emitted output, and the token-name baseline resolving inside the exported package.
 Cross-source consistency is the one that already exists.
+
+---
+
+## 12. Decided (2026-11-19, #2425): the export package — no Style Dictionary preset, no value-shape options, a ZIP, CSS from the Style Dictionary build
+
+Owner decision #2425 A, after Q165 A made the engine the exporter for Prism3's tokens. This section is what
+§11a's "token package" is now, and `apps/studio/src/export-settings.ts` is its code.
+
+| Call (#2425) | Decided | In the code today |
+|---|---|---|
+| A Style Dictionary preset | **None.** Stock Style Dictionary 4/5 reads the DTCG with no custom code, which `@prism3/tokens`' `check:consumability` asserts on every CI run. A preset would imply the DTCG needs adapting. | Agrees: `ARTIFACTS` has no Style-Dictionary entry, and its comment gives the same reason. |
+| Value-shape options (px/rem, color format, string dimensions, line-height output) | **None.** If the spec decides it, it is not a setting (`export-settings.ts` admission rule 1). | Agrees: `DTCG_SETTINGS` holds four settings, each a pure renaming that `admissionDefects()` round-trips: token-name case (kebab or snake, never camel), grouping (nested or dotted), file structure (one file or per group), and pretty or compact. |
+| Packaging | **One ZIP once an export has more than one file.** A one-file export stays a plain file. | **Not yet.** `exportTokens` and `exportComponentSpecs` in `apps/studio/src/main.ts` write one download per file. Filed as #4303. |
+| CSS and SCSS | **CSS, built by the Style Dictionary build** (`packages/tokens/sd.ship.mjs`, #3408 S1), never by a second writer. | **Not yet.** The studio exports DTCG, the brief and the component specs. How the live theme reaches the build, and where CSS appears in the dialog, are open: filed as #4304. |
+| The extras export (TokenPress's new role) | **Filed on its own**: hand-added variables and styles, and a drift report of Prism3 variables edited by hand. | Unbuilt. The `file-variables` source is #584's. Filed as #4302. |
+
+Not decided here: collection filtering (`excludedCollections`) and whether TokenPress stays a separate
+Community plugin (#2425's calls 5 and 6). The decision covered the package, and #4302 carries the second
+question with the extras.
+
+What this supersedes: §11a's "a DTCG preset, a Style Dictionary preset, or custom", and §10g's
+"genuinely relevant remainder" of units, color format and line-height output. §9a and §9c's "string via
+SD preset" was already moot once Style Dictionary 4/5 read the object forms natively (§10g).
+
