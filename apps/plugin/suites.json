@@ -60,6 +60,7 @@
     { "file": "test-manifest.ts", "floor": 9 },
     { "file": "test-size-budget.ts", "floor": 21 },
     { "file": "test-git-stamp.ts", "floor": 34 },
+    { "file": "test-absolute-path.ts", "floor": 14 },
     { "file": "test-loose-host.ts", "floor": 14 },
     { "file": "test-file-kind.ts", "floor": 26 },
     { "file": "test-consistency-audit.ts", "floor": 31 },
