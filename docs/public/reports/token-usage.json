@@ -15655,12 +15655,8 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 24,
-              "where": {
-                "expansion": [
-                  "expanded"
-                ]
-              }
+              "members": 48,
+              "where": {}
             }
           }
         },
@@ -23521,12 +23517,8 @@
           ],
           "parts": {
             "content": {
-              "members": 24,
-              "where": {
-                "expansion": [
-                  "expanded"
-                ]
-              }
+              "members": 48,
+              "where": {}
             }
           }
         },
@@ -25366,11 +25358,8 @@
           ],
           "parts": {
             "content": {
-              "members": 8,
+              "members": 16,
               "where": {
-                "expansion": [
-                  "expanded"
-                ],
                 "size": [
                   "small"
                 ]
@@ -25738,11 +25727,8 @@
           ],
           "parts": {
             "content": {
-              "members": 8,
+              "members": 16,
               "where": {
-                "expansion": [
-                  "expanded"
-                ],
                 "size": [
                   "medium"
                 ]
@@ -26184,11 +26170,8 @@
           ],
           "parts": {
             "content": {
-              "members": 8,
+              "members": 16,
               "where": {
-                "expansion": [
-                  "expanded"
-                ],
                 "size": [
                   "large"
                 ]
@@ -26288,11 +26271,8 @@
           ],
           "parts": {
             "content": {
-              "members": 8,
+              "members": 16,
               "where": {
-                "expansion": [
-                  "expanded"
-                ],
                 "size": [
                   "large"
                 ]
@@ -26685,11 +26665,8 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 8,
+              "members": 16,
               "where": {
-                "expansion": [
-                  "expanded"
-                ],
                 "size": [
                   "large"
                 ]
@@ -27092,11 +27069,8 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 8,
+              "members": 16,
               "where": {
-                "expansion": [
-                  "expanded"
-                ],
                 "size": [
                   "medium"
                 ]
@@ -27689,11 +27663,8 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 8,
+              "members": 16,
               "where": {
-                "expansion": [
-                  "expanded"
-                ],
                 "size": [
                   "small"
                 ]
