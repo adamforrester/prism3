@@ -34,6 +34,19 @@ import { resolve } from 'node:path';
 
 const HERE = import.meta.dirname ?? '';
 const FIGMA = resolve(HERE, 'figma-geometry.json');
+const SCRIPT = resolve(HERE, 'figma-geometry.js');
+
+/**
+ * The Mac script must RETURN its IIFE: the Desktop Bridge's `figma_execute` wraps the code in an async function body
+ * and hands back only an explicit `return`, so a bare `(async () => { ... })();` comes back `undefined`. Read from the
+ * script's source, not from any copy of it. Returns the failure, or null.
+ */
+export const scriptReturns = (src: string): string | null => {
+  const body = src.replace(/^\s*\/\*[\s\S]*?\*\/\s*/, '');
+  if (!body.startsWith('return (async () => {')) return 'figma-geometry.js does not start with `return (async () => {`: figma_execute returns only an explicit return, so the record would come back undefined';
+  if (!/\}\)\(\);\s*$/.test(body)) return 'figma-geometry.js does not end by calling its IIFE (`})();`)';
+  return null;
+};
 const CODE = resolve(HERE, 'storybook-static/geometry.code.json');
 const EPS = 0.01 + 1e-9;
 const KPI_STATES = ['rest', 'hover', 'focus-visible', 'disabled', 'pending'];
@@ -208,6 +221,9 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma
   }
   if (process.argv.includes('--self-test')) {
     let bad = 0;
+    const script = scriptReturns(readFileSync(SCRIPT, 'utf8'));
+    if (script) { bad++; console.error(`FAIL self-test: ${script}`); }
+    else console.log('OK self-test: figma-geometry.js returns its IIFE, so figma_execute hands back the record');
     const base = plantFigma(code);
     const clean = compare(base, code);
     for (const n of clean.notes) console.log(`  named: ${n}`);

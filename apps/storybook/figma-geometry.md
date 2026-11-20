@@ -42,9 +42,16 @@ decision on #3408. Never name the file or its key in a public issue, PR or comme
 6. Post the output verbatim to #3408, and push `figma-geometry.json` on a branch for a PR into `poc/arm-1`. The record
    names node ids and layer names only, no file name.
 
+## Settled by a live run
+
+The Desktop Bridge's `figma_execute` wraps the code in an async function body and returns only what the code
+explicitly `return`s. The first live run got `undefined` back from a bare `(async () => { ... })();`, so the script
+now starts `return (async () => {`. `compare-figma-geometry.ts --self-test` (in `check:build`) fails by name if the
+`return` goes.
+
 ## Not yet verified live
 
-The script has not run against real Figma. Unconfirmed: that `loadAllPagesAsync` and `findAllWithCriteria` are allowed
-from the Desktop Bridge; that the layer names match the anatomy's part paths (`container/label`; the plugin names layers
-by part); and how Figma reports a stroke that sits inside the frame (CSS's border takes layout space, and Figma's
-inside stroke does not, so the first run may show a 1px padding difference on the button: a real finding if so).
+Still unconfirmed: that `loadAllPagesAsync` and `findAllWithCriteria` are allowed from the Desktop Bridge; that the
+layer names match the anatomy's part paths (`container/label`; the plugin names layers by part); and how Figma reports
+a stroke that sits inside the frame (CSS's border takes layout space, and Figma's inside stroke does not, so the first
+run may show a 1px padding difference on the button: a real finding if so).

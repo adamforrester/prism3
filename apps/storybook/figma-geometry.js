@@ -10,10 +10,13 @@
  *     the member itself is `container`), with its node id, its type and its horizontal sizing (FIXED, HUG or FILL).
  * The variant is the member's own `variantProperties`.
  *
- * It returns the record as a JSON string. Save it UNEDITED as `apps/storybook/figma-geometry.json`.
+ * It returns the record as a JSON string. Save it UNEDITED as `apps/storybook/figma-geometry.json`. The IIFE is
+ * RETURNED: `figma_execute` wraps the code in an async function body and hands back only an explicit `return`, so a
+ * bare `(async () => { ... })();` comes back `undefined` (the first live run). `compare-figma-geometry.ts --self-test`
+ * holds the `return` in place.
  * `compare-figma-geometry.ts` holds it against the code's record.
  */
-(async () => {
+return (async () => {
   const SETS = ['button', 'text-field', 'password-field'];
   const r2 = (n) => Math.round(n * 100) / 100;
   await figma.loadAllPagesAsync();
