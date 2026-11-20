@@ -1,6 +1,7 @@
 # test-arms.txt — the named-arm registry lint-test-arms.ts reads (#1834). One "<suite> #NNNN" per line.
 # Add lines with: npx tsx packages/engine/lint-test-arms.ts --accept  (it adds, keeps the file sorted, never removes).
 # Retire an arm by deleting its line by hand, in the diff that removes the arm, so a reviewer sees it.
+apps/plugin/test-absolute-path.ts #2028
 apps/plugin/test-agent-bridge.ts #1684
 apps/plugin/test-agent-bridge.ts #2497
 apps/plugin/test-agent-bridge.ts #3109
@@ -652,6 +653,8 @@ apps/studio/test-chrome.mjs #3911
 apps/studio/test-chrome.mjs #3938
 apps/studio/test-chrome.mjs #3976
 apps/studio/test-chrome.mjs #4127
+apps/studio/test-chrome.mjs #4188
+apps/studio/test-chrome.mjs #4192
 apps/studio/test-chrome.mjs #4219
 apps/studio/test-chrome.mjs #4220
 apps/studio/test-chrome.mjs #4221
@@ -1328,6 +1331,7 @@ packages/engine/test.ts #4214
 packages/engine/test.ts #4229
 packages/engine/test.ts #4236
 packages/engine/test.ts #4242
+packages/engine/test.ts #4371
 packages/engine/test.ts #479
 packages/engine/test.ts #480
 packages/engine/test.ts #482

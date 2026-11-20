@@ -10047,9 +10047,17 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
         const time = [...a.mtimes].find(([p, t]) => Math.abs((b.mtimes.get(p) ?? -1e15) - t) > 1);
         return time ? `mtime: ${time[0]} ${time[1]} → ${b.mtimes.get(time[0])}` : '';
       };
-      const temps = (): number => readdirSync(tmpdir()).filter((f) => f.startsWith('prism3-regen-')).length;
-      const stubs = mkdtempSync(join(tmpdir(), 'prism3-4198-'));
+      // #4371: the checks run with the temp root pointed at a PRIVATE directory, and the count reads only that, so
+      // another `regen --check` on the machine (its own `prism3-regen-*` in the shared tmpdir) is not counted.
+      const sharedTmp = tmpdir();
+      const privateTmp = mkdtempSync(join(sharedTmp, 'prism3-4371-'));
+      const temps = (): number => readdirSync(privateTmp).filter((f) => f.startsWith('prism3-regen-')).length;
+      const neighbor4371 = join(sharedTmp, `prism3-regen-4371-neighbor-${process.pid}`);
+      const stubs = mkdtempSync(join(sharedTmp, 'prism3-4198-'));
+      const envWas = { TMPDIR: process.env.TMPDIR, TMP: process.env.TMP, TEMP: process.env.TEMP };
       try {
+        for (const k of Object.keys(envWas)) process.env[k] = privateTmp;
+        ok(tmpdir() === privateTmp, `#4371: the regen --check arms run under a private temp root (tmpdir() is ${tmpdir()})`);
         const quiet = join(stubs, 'quiet.ts'), rewrite = join(stubs, 'rewrite.ts'), fail = join(stubs, 'fail.ts');
         writeFileSync(quiet, 'export {};\n');
         writeFileSync(rewrite, "import { appendFileSync } from 'node:fs';\nappendFileSync(process.argv[2], '\\n');\n");
@@ -10073,8 +10081,14 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
         const failDiff = differs(print0, fingerprint());
         ok(failDiff === '',
           `#4199: regen --check puts every artifact back, bytes and mtimes, when a step fails after another rewrote one (${failDiff || 'same'})`);
+        // #4371: another `regen --check` on this machine, mid-arm. Its temp directory sits in the SHARED tmpdir,
+        // and counting there read it as this check's leftover (`-1 left` or `1 left`), a red run with no defect.
+        mkdirSync(neighbor4371);
         ok(temps() === temps0, `#4199: regen --check removes its temp directory when a step fails (${temps() - temps0} left)`);
-      } finally { rmSync(stubs, { recursive: true, force: true }); }
+      } finally {
+        for (const [k, v] of Object.entries(envWas)) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+        for (const d of [stubs, neighbor4371, privateTmp]) rmSync(d, { recursive: true, force: true });
+      }
     }
   }
 }
