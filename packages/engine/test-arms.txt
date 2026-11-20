@@ -234,6 +234,7 @@ apps/plugin/test-start-screen.mjs #2961
 apps/plugin/test-start-screen.mjs #3697
 apps/plugin/test-start-screen.mjs #3717
 apps/plugin/test-start-screen.mjs #4245
+apps/plugin/test-style-guide.ts #1729
 apps/plugin/test-style-guide.ts #1778
 apps/plugin/test-style-guide.ts #1785
 apps/plugin/test-style-guide.ts #1795
