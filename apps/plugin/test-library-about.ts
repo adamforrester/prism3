@@ -35,6 +35,8 @@
  *   - the frame left out of the preview hash → `update/hash`;
  *   - #2882: a set's range starting at its newest stamp → `publish/own stamp`; the apply not passing the stamps, or the
  *     check reading them off unstamped members → `update/own stamp`.
+ *   - #4381 (owner decision 2026-11-20): the head naming the file's `from`, not the oldest set start →
+ *     `publish/head names the oldest start`, `update/head names the oldest start`.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, componentDefs } from '@prism3/engine/components';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
@@ -146,8 +148,21 @@ section('publish — the description offered after an Update');
   const rix: ReleaseIndex = { releases: ['0.236.0', '0.237.0', '0.238.0'].map((v, i) => ({ version: v, from: i ? `0.23${5 + i}.0` : '0.235.0', date: '2026-10-1' + i, counts: { breaking: 0, new: 0, fix: 1 },
     items: [{ class: 'fix', area: 'figma', kind: 'builds-differently', component: 'button', text: `\`button\` fix ${v}.` }, { class: 'fix', area: 'figma', kind: 'builds-differently', component: 'tag', text: `\`tag\` fix ${v}.` }] })) };
   const per = publishDescription({ title: 'T', sets: ['button', 'tag'], from: '0.237.0', engine: '0.238.0', contract: '1.0.0', ix: rix, stampedBy: { button: ['0.237.0', '0.235.0'], tag: ['unknown'] } });
-  ok(per === 'Prism3 updated button, tag. Engine 0.238.0, from 0.237.0. Token contract 1.0.0.\nbutton: fix 0.238.0.\nbutton: fix 0.237.0.\nbutton: fix 0.236.0.\ntag: fix 0.238.0.\nNo breaking changes.',
+  ok(per.split('\n').slice(1).join('\n') === 'button: fix 0.238.0.\nbutton: fix 0.237.0.\nbutton: fix 0.236.0.\ntag: fix 0.238.0.\nNo breaking changes.',
     `publish/own stamp: each set's range starts at its oldest stamped engine, else the file's (${JSON.stringify(per)})`);
+  // #4381 owner decision (2026-11-20, the first line → A): when the sets' starting versions differ, the head names the
+  // OLDEST one, so it never understates what the list covers. Each expected head is typed here from the case.
+  //   - the issue's case: `button` starts at 0.235.0, `tag` at the file's 0.237.0 → "from 0.235.0";
+  //   - a set stamped newer than the file's `from` leaves the head at `from`, the older start;
+  //   - no file `from` (a first About record) and one stamped set → that set's start;
+  //   - control: no stamps, every set starts at `from` → the head is unchanged.
+  const headOf = (o: Partial<Parameters<typeof publishDescription>[0]>): string =>
+    publishDescription({ title: 'T', sets: ['button', 'tag'], from: '0.237.0', engine: '0.238.0', contract: '1.0.0', ix: rix, ...o }).split('\n')[0];
+  const heads2 = [headOf({ stampedBy: { button: ['0.237.0', '0.235.0'], tag: ['unknown'] } }), headOf({ from: '0.236.0', stampedBy: { button: ['0.237.0'] } }),
+    headOf({ from: null, stampedBy: { button: ['0.236.0'] } }), headOf({})];
+  ok(eq(heads2, ['Prism3 updated button, tag. Engine 0.238.0, from 0.235.0. Token contract 1.0.0.', 'Prism3 updated button, tag. Engine 0.238.0, from 0.236.0. Token contract 1.0.0.',
+    'Prism3 updated button, tag. Engine 0.238.0, from 0.236.0. Token contract 1.0.0.', 'Prism3 updated button, tag. Engine 0.238.0, from 0.237.0. Token contract 1.0.0.']),
+    `publish/head names the oldest start: the first line's "from" is the oldest version any set's range starts at (${JSON.stringify(heads2)})`);
 }
 
 /* ── the shim as a file with a Cover page ────────────────────────────────────────────────────────────── */
@@ -342,6 +357,10 @@ section('update — through a real Update in the component shim');
   const listed = (res5.publish ?? '').split('\n').filter((l) => l.startsWith('tag: ')).length;
   ok(eq(pre5.sets[0]?.engines, ['0.235.0']) && want > 0 && listed === want,
     `update/own stamp: the set's range starts at its members' 0.235.0, not the file's engine (${JSON.stringify(pre5.sets[0]?.engines)}; ${listed} of ${want} tag items; ${JSON.stringify(res5.publish)})`);
+  // #4381 owner decision (2026-11-20): the real run's head names that start too. The file's own `from` is today's
+  // engine, so before the decision the head named no "from" while the list ran from 0.235.0.
+  ok(/^Prism3 updated tag\. Engine [^,]+, from 0\.235\.0\. Token contract /.test(res5.publish ?? ''),
+    `update/head names the oldest start: a real Update's first line says "from 0.235.0" (${JSON.stringify((res5.publish ?? '').split('\n')[0])})`);
 }
 
 /* ── the index the plugin bundles ────────────────────────────────────────────────────────────────────── */
