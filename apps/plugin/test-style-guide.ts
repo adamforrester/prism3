@@ -3904,8 +3904,9 @@ const main = async (): Promise<void> => {
     const fx = plan.tables.find((t) => t.type === 'shadow');
     const gr = plan.tables.find((t) => t.type === 'gradient');
     const EFFECT_ROWS = ['shadow/xs', 'shadow/sm', 'shadow/md', 'shadow/lg', 'shadow/xl', 'shadow/2xl', 'shadow/inset',
-      'shadow-dark/xs', 'shadow-dark/sm', 'shadow-dark/md', 'shadow-dark/lg', 'shadow-dark/xl', 'shadow-dark/2xl', 'shadow-dark/inset', 'glass', 'Brand/Frost'];
-    ok(plan.tables.length === 2 && fx?.key === 'shadow|effect-styles|' && fx.title === 'Effect styles' && fx.page === SEM && fx.description === '16 effect styles in this file'
+      'shadow-dark/xs', 'shadow-dark/sm', 'shadow-dark/md', 'shadow-dark/lg', 'shadow-dark/xl', 'shadow-dark/2xl', 'shadow-dark/inset',
+      'shadow-hc-dark/xs', 'shadow-hc-dark/sm', 'shadow-hc-dark/md', 'shadow-hc-dark/lg', 'shadow-hc-dark/xl', 'shadow-hc-dark/2xl', 'shadow-hc-dark/inset', 'glass', 'Brand/Frost'];   // hc-dark's set: #4131
+    ok(plan.tables.length === 2 && fx?.key === 'shadow|effect-styles|' && fx.title === 'Effect styles' && fx.page === SEM && fx.description === '23 effect styles in this file'
       && JSON.stringify(fx.columns) === JSON.stringify(['Token', 'Specimen', 'Type', 'X', 'Y', 'Blur', 'Spread', 'Color', 'Description']),
       `36: the effect styles draw one table, "Effect styles" on Semantic tokens: Token · Specimen · Type · X · Y · Blur · Spread · Color · Description (${fx?.key}; ${fx?.columns.join(', ')}; "${fx?.description}")`);
     ok(JSON.stringify(fx?.rows.map((r) => r.tokenCell)) === JSON.stringify(EFFECT_ROWS),
@@ -4031,10 +4032,10 @@ const main = async (): Promise<void> => {
     refuseStyle = true;
     const refused = await draw(f.api, contract, { types: ['shadow', 'gradient'] });
     refuseStyle = false;
-    ok(refused.unbound === 19 && refused.misses.some((m) => m.startsWith('16 effect styles are not bound to their style, so they show the cell component\'s own value ('))
+    ok(refused.unbound === 26 && refused.misses.some((m) => m.startsWith('23 effect styles are not bound to their style, so they show the cell component\'s own value ('))
       && refused.misses.some((m) => m.startsWith('3 gradient styles are not bound to their style, so they show the cell component\'s own value ('))
       && !styleGuideSummary(refused).ok,
-      `36: a style the host refuses to apply is counted (19), named by kind, and not a pass (${refused.unbound}; ${refused.misses.filter((m) => m.includes('style')).join(' / ')})`);
+      `36: a style the host refuses to apply is counted (26), named by kind, and not a pass (${refused.unbound}; ${refused.misses.filter((m) => m.includes('style')).join(' / ')})`);
     // Q272 A: the miss names the style in plain words. No internal kind key reaches the user, in the misses or the summary.
     const keyLeaks = [...refused.misses, styleGuideSummary(refused).summary, ...styleGuideSummary(refused).lines].filter((m) => /\b(effect|gradient)-style\b/.test(m));
     ok(keyLeaks.length === 0, `36: the refused styles' miss says "effect styles" / "gradient styles", never a raw kind key (${keyLeaks.join(' / ') || 'none'})`);

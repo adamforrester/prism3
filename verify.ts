@@ -614,8 +614,10 @@ export const environmentProblems = async (): Promise<string[]> => {
  *
  *  259 since #1119, raised to the set's size when harbor's 29-file Figma emission joined it, so losing it fails here.
  *  263 since #1729, the set's size: prism3's Brand B mode added its overlay, its Figma color mode and a per-mode font collection
- *  (`core.font.json` split into `core.font.Default.json` and `core.font.brand-b.json`), net +3, so losing it fails here. */
-export const ARTIFACT_FLOOR = 263;
+ *  (`core.font.json` split into `core.font.Default.json` and `core.font.brand-b.json`), net +3, so losing it fails here.
+ *  265 since #4155, the set's size once each brand's web base (`<brand>.web.base.tokens.json`) joined it.
+ *  270 since #1729 met #4155 on main, the merged set's size: both sides' growth, with prism3's web base carrying Brand B's ramps. */
+export const ARTIFACT_FLOOR = 270;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -1333,6 +1335,26 @@ export const GATES: Gate[] = [
     id: 'lint-test-arms',
     ciStep: 'A registered test arm is still in its suite (#1834)',
     cmd: engine('lint-test-arms.ts'),
+  },
+  {
+    // #2997 gate 3 — reads the role map and the pinned shadcn variable set; needs no build and no `after`.
+    id: 'shadcn-vars',
+    ciStep: 'The shadcn map covers the pinned shadcn variable set (#2997)',
+    cmd: engine('shadcn-vars.ts', '--check'),
+  },
+  {
+    // #2997 gate 4 — renders the uncommitted component-contract export itself and reads the token contract; needs
+    // no build and no `after`.
+    id: 'lint-shadcn-contract',
+    ciStep: 'The shadcn map follows the component contract (#2997)',
+    cmd: engine('lint-shadcn-contract.ts'),
+  },
+  {
+    // #2996 — reads the committed supplement, its Spectacular fixture and the token contract; needs no build and no
+    // `after`. `drift` holds the committed supplement to the emitter, so this reads what ships.
+    id: 'lint-spec-supplement',
+    ciStep: "The spec supplement lines up with Spectacular's output (#2996)",
+    cmd: engine('lint-spec-supplement.ts'),
   },
   {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
