@@ -46,6 +46,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { brandTheme, BrandInput, type Theme } from './theme';
 import { buildTree, validateBrandInput } from './emit-dtcg';
+import { buildOverlaySet } from './emit-dtcg-overlay';
 import { buildAiMetadata } from './ai-metadata';
 import { buildLeverManifest } from './levers';
 import { figmaArtifacts } from './emit-figma';
@@ -347,7 +348,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'export_theme',
     title: 'Write the token system to disk',
-    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 890,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files; add "componentSpecs" to `include` for component-contracts.json (every component contract, with the brand\'s settings resolved), component-defs.json (the same file under its old name, kept for one release) and component-defs.specs.json (the same in the Specs format). Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
+    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 890,000 characters for a four-mode brand, which no tool result should carry. Files carry the names the CLI writes. "tokens" writes <id>.tokens.json (the full DTCG tree), <id>.base.tokens.json and one <id>.<mode>.overlay.tokens.json per other mode (the set a multi-mode code build reads); "aiMetadata" writes <id>.ai.json; "figma" writes a figma/ directory of Figma collection files; "componentSpecs" writes <id>.component-contracts.json (every component contract, with the brand\'s settings resolved), <id>.component-defs.json (the same file under its old name) and <id>.component-defs.specs.json (the same in the Specs format). `include` replaces the default ["tokens", "aiMetadata", "figma"]; for everything, pass all four. For one release each file is also written under its old unprefixed name (tokens.json, ai-metadata.json, component-contracts.json, component-defs.json, component-defs.specs.json). Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -356,7 +357,7 @@ export const toolDefs = (brandSchema: unknown) => [
         brand: { type: 'object', description: 'The same BrandInput you would pass to theme_brand — see that tool for the full input schema.' },
         outDir: { type: 'string', description: 'Relative directory to write into (e.g. "./tokens"). Absolute paths and ".." segments are refused.' },
         include: {
-          type: 'array', description: 'Artifact families to write. Defaults to tokens, aiMetadata and figma; componentSpecs is opt-in.',
+          type: 'array', description: 'Artifact families to write, replacing the default ["tokens", "aiMetadata", "figma"]. componentSpecs is written only when named, so pass all four for everything.',
           items: { type: 'string', enum: [...EXPORT_SECTIONS] },
         },
       },
@@ -383,8 +384,18 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'validate_brand',
     title: 'Validate a brand input',
-    description: 'Validate a BrandInput against the engine schema and the engine\'s own input refusals, WITHOUT generating tokens. Returns { valid, errors } — a fast pre-flight before theme_brand. Takes the same brand object as theme_brand\'s `brand` argument; see that tool for the full input schema.',
-    inputSchema: { type: 'object', description: 'A BrandInput — the same shape as theme_brand\'s `brand` property.' },
+    description: 'Validate a BrandInput against the engine schema and the engine\'s own input refusals, WITHOUT generating tokens. Returns { valid, errors } — a fast pre-flight before theme_brand. Arguments: { brand }, the same argument theme_brand takes; see that tool for the full input schema. A bare BrandInput, with no `brand` key, is still accepted for one release.',
+    // #4120 (owner decision A, 2026-11-19): `{ brand }`, the shape every other brand-taking tool takes, so one
+    // object passes through the documented pre-flight unchanged. The bare form (this tool's old shape) is still
+    // read for one release, as `theme_brand` reads it (`readBrandArg`).
+    inputSchema: {
+      type: 'object',
+      properties: {
+        brand: { type: 'object', description: 'The same BrandInput you pass to theme_brand — see that tool for the full input schema.' },
+      },
+      required: ['brand'],
+      additionalProperties: false,
+    },
     outputSchema: {
       type: 'object',
       properties: { valid: { type: 'boolean' }, errors: { type: 'array', items: { type: 'string' } } },
@@ -420,6 +431,15 @@ export const readThemeArgs = (args: any): { brand: any; include: string[] } =>
   (args && typeof args === 'object' && 'brand' in args)
     ? { brand: args.brand, include: Array.isArray(args.include) ? args.include : [...DEFAULT_THEME_SECTIONS] }
     : { brand: args, include: [...DEFAULT_THEME_SECTIONS] };
+
+/** #4120: the brand a tool was given. `{ brand }` is the shape every brand-taking tool declares; a bare BrandInput
+ *  (validate_brand's old shape, which theme_brand also read) is still accepted for one release where `bare` is set. */
+const readBrandArg = (args: any, bare: boolean): unknown =>
+  args && typeof args === 'object' && 'brand' in args ? args.brand : bare ? args : undefined;
+/** #4120: a missing or non-object `brand`, named, instead of the validator's `(root): expected object`. DRAFT wording. */
+const missingBrand = (tool: string, brand: unknown): ToolResult | undefined =>
+  brand && typeof brand === 'object' && !Array.isArray(brand) ? undefined
+    : text({ error: `${tool} requires \`brand\`: a BrandInput object`, errors: [`brand is ${shapeOf(brand)}; it takes a BrandInput object, such as { "id": "acme", "primary": { "l": 0.55, "c": 0.18, "h": 265 }, "neutral": { "hue": "cool", "chroma": 0.01 } }`] }, true);
 
 const text = (obj: unknown, isError = false): ToolResult =>
   ({ content: [{ type: 'text', text: typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2) }], ...(isError ? { isError: true } : {}) });
@@ -532,6 +552,10 @@ export const EXPORT_SECTIONS = ['tokens', 'aiMetadata', 'figma', 'componentSpecs
  *  brand's component-defs export and its Specs projection, about 3.7 MB) is opt-in, so an existing call writes what
  *  it always wrote. */
 export const DEFAULT_EXPORT_SECTIONS = ['tokens', 'aiMetadata', 'figma'] as const;
+/** #4144: `export_theme` also writes the unprefixed names it used before the CLI's names (`tokens.json`, `ai-metadata.json`,
+ *  `component-contracts.json`, `component-defs.json`, `component-defs.specs.json`), for one release. Delete with the
+ *  sentence in the tool's description that promises them. */
+export const LEGACY_EXPORT_NAMES = true;
 
 /**
  * Reject anything that escapes the caller's own directory.
@@ -559,6 +583,8 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     const { brand, outDir, include } = (args ?? {}) as { brand?: unknown; outDir?: string; include?: string[] };
     const bad = unsafeOutDir(outDir as string);
     if (bad) return text({ error: bad }, true);
+    const noBrand = missingBrand('export_theme', brand);
+    if (noBrand) return noBrand;
     const errors = validateBrandInput(brand);
     if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
     const want = include?.length ? include : [...DEFAULT_EXPORT_SECTIONS];
@@ -569,20 +595,37 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     if (refused(b)) return b;
     const { theme, built: { tree } } = b;
     const files: { path: string; content: string }[] = [];
-    if (want.includes('tokens')) files.push({ path: 'tokens.json', content: JSON.stringify(tree, null, 2) + '\n' });
-    if (want.includes('aiMetadata')) files.push({ path: 'ai-metadata.json', content: JSON.stringify(buildAiMetadata(theme, tree, { tokensFile: 'tokens.json' }), null, 2) + '\n' });
+    const json = (o: unknown): string => JSON.stringify(o, null, 2) + '\n';
+    // #4144 (owner decision A, 2026-11-19): the names the CLI writes (`emit-dtcg.ts` `emitTheme`), `<id>.tokens.json`,
+    // `<id>.ai.json` and the base + overlay consumer set, so one folder holds either route's output and every doc
+    // that says `<brand>.ai.json` is true of both. The unprefixed names this tool wrote before are kept for one
+    // release (`LEGACY_EXPORT_NAMES`), the way `component-defs.json` was kept for #1325.
+    const id = theme.id;
+    if (want.includes('tokens')) {
+      files.push({ path: `${id}.tokens.json`, content: json(tree) });
+      const projected = buildOverlaySet(tree);
+      files.push({ path: `${id}.base.tokens.json`, content: json(projected.base) });
+      for (const o of projected.overlays) files.push({ path: `${id}.${o.mode}.overlay.tokens.json`, content: json(o.tree) });
+      if (LEGACY_EXPORT_NAMES) files.push({ path: 'tokens.json', content: json(tree) });
+    }
+    if (want.includes('aiMetadata')) {
+      files.push({ path: `${id}.ai.json`, content: json(buildAiMetadata(theme, tree, { tokensFile: `${id}.tokens.json` })) });
+      if (LEGACY_EXPORT_NAMES) files.push({ path: 'ai-metadata.json', content: json(buildAiMetadata(theme, tree, { tokensFile: 'tokens.json' })) });
+    }
     // The Figma collection set comes from the SAME function the committed `out/figma/**` artifacts are
     // written from, so an export and a regen cannot disagree about what a brand emits.
     if (want.includes('figma')) for (const a of figmaArtifacts(theme).artifacts) files.push({ path: `figma/${a.path}`, content: a.content });
     // #3425 — the component-defs export, from the same function `regen` writes the brand-neutral one with.
     if (want.includes('componentSpecs')) {
       const doc = exportComponentDefs(componentDefs, { brand: brand as BrandInput, build: BUILD_IDENTITY });
-      // #1325 (Q-CC1 A): under its contract name, and under its old name for one release. Unprefixed, as before.
-      const names = componentDefsFileNames(null);
-      const text = JSON.stringify(doc, null, 2) + '\n';
-      files.push({ path: names.contracts, content: text });
-      files.push({ path: names.defs, content: text });
-      files.push({ path: 'component-defs.specs.json', content: JSON.stringify(toSpecsComponents(doc), null, 2) + '\n' });
+      // #1325 (Q-CC1 A): under its contract name, and under its old name for one release. Prefixed with the brand id
+      // as the CLI's names are (#4144), and unprefixed as before, for one release.
+      const text = json(doc), specs = json(toSpecsComponents(doc));
+      for (const names of [componentDefsFileNames(id), ...(LEGACY_EXPORT_NAMES ? [componentDefsFileNames(null)] : [])]) {
+        files.push({ path: names.contracts, content: text });
+        files.push({ path: names.defs, content: text });
+        files.push({ path: names.specs, content: specs });
+      }
     }
 
     const written: { path: string; bytes: number }[] = [];
@@ -638,7 +681,8 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
   }
 
   if (name === 'validate_brand') {
-    const errors = validateBrandInput(args);
+    const brand = readBrandArg(args, true);
+    const errors = validateBrandInput(brand);
     // #2146: the schema is not the whole contract. `brandTheme` refuses inputs the schema accepts (a first
     // breakpoint that isn't 0, a viewport range that is empty or reversed, #2132 and #2068), so a brand this
     // tool called valid could then fail `theme_brand`. Run only on a schema-valid input: a malformed one
@@ -648,13 +692,15 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     // in the second, when the modes resolve: an override naming an unknown palette or step throws there,
     // so `brandTheme` alone called that brand valid.
     if (errors.length === 0) {
-      try { buildTree(brandTheme(args as BrandInput)); }
+      try { buildTree(brandTheme(brand as BrandInput)); }
       catch (e) { errors.push((e as Error).message); }
     }
     return structured({ valid: errors.length === 0, errors });
   }
 
   if (name === 'score_consumption') {
+    const noBrand = missingBrand('score_consumption', args?.brand);
+    if (noBrand) return noBrand;
     const errors = validateBrandInput(args?.brand);
     if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
     if (!Array.isArray(args?.refs)) return text({ error: 'score_consumption requires `refs`: an array of token refs' }, true);
