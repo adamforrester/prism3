@@ -19,6 +19,8 @@ today, so the alpha arm has nothing to read until one does.
 
 **Trap.** A function passed to Playwright's `page.evaluate` from a `tsx` script carries esbuild's `__name` helper, which
 the page does not have. The page code is therefore a string.
+The `test.ts` import of the gate moves every line below it by one, so the public guide's cite of `test.ts`
+(`docs/public/guides/index.md`) moves with it; `lint-guide-claims` names the stale range (delta review on #4289).
 
 **Where it runs.** CI's studio job, after the Chromium install step, because the engine job has no browser. Playwright
 loads at run time from the workspace, as `tools/block-capture` loads it. `packages/engine/package.json` still declares
