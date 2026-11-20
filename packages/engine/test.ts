@@ -38148,19 +38148,39 @@ arm: {
   const moveArtifact = () => put(EMITTED, `${readFileSync(join(clone, EMITTED), 'utf8')}\n`);
   const FROM_MAIN = 'merge base with origin/main — HEAD carries';
   // A `--shared` clone of `src` at `dst`, on branch `main`, whose tip is W: `src`'s working tree as one commit.
-  //   · W sits on the `main` `src` CARRIES: its merge base with `origin/main` (then `main`), or HEAD when neither
-  //     resolves. On `main` that is HEAD's own history. On an integration branch it is not: that branch's own
-  //     pending entries stay pending and never fold, so on its first-parent chain they landed before `main`'s
-  //     newest folded entry, and the fold below refused them (#3842). On the carried `main` they land at W, as
-  //     any PR's entry lands at its merge.
+  //   · W sits on the `main` `src` CARRIES (`carriedFold`). On `main` that is HEAD's own history. On an integration
+  //     branch it is not: that branch's own pending entries stay pending and never fold, so on its first-parent chain
+  //     they landed before `main`'s newest folded entry, and the fold below refused them (#3842). On the carried
+  //     `main` they land at W, as any PR's entry lands at its merge.
   //   · The clone keeps no ref but `main`. It would inherit `src`'s branches, and a local `poc/…` branch then
   //     blocks the fixture's `poc` (#3842). The fixture names every other ref it reads.
-  const cloneWorkingTree = (src: string, dst: string): void => {
+  // THE `main` A TREE CARRIES, read from the tree's own history and never from a ref's name (#3408, the carry). It is
+  // the fold that set the ENGINE_VERSION HEAD commits: a single-parent commit setting it is a fold on `main` or a
+  // squash of `main` copying one (#3833's a96bdd6a), and the copy can only come after the fold, so the OLDEST is the
+  // fold. Its first-parent chain is `main`'s own, with every fold and landing the replay's real gates read. Once
+  // this was the merge base with `origin/main`: right in prism3, wrong wherever that name means another `main`. In
+  // the repository `poc/arm-1` is carried into, `origin/main` is a seed snapshot plus that repository's own commits,
+  // so W sat on HEAD (no merge base) or on `poc/arm-1`'s own chain (an earlier carry merged), the real gates read
+  // that history, rightly called it wrong, and 3 arms failed on code that had not regressed. A fold the tree's
+  // own history holds is in every repository the tree's commits are in. Null, with the reason, only where it is
+  // truly absent (a shallow clone, or no single-parent commit sets the version): the caller FAILS by name.
+  const carriedFold = (src: string): { sha: string } | { why: string } => {
+    const raw = (args: string[]) => spawnSync('git', ['-C', src, ...args], { encoding: 'utf8', env, maxBuffer: 256 * 1024 * 1024 });
+    if (raw(['rev-parse', '--is-shallow-repository']).stdout.trim() !== 'false') return { why: 'the checkout is shallow, so the fold that set its version may not be in it' };
+    const v = /^export const ENGINE_VERSION = '(\d+\.\d+\.\d+)'/m.exec(raw(['show', 'HEAD:packages/engine/version.ts']).stdout)?.[1];
+    if (!v) return { why: 'HEAD commits no readable ENGINE_VERSION' };
+    const sets = `+export const ENGINE_VERSION = '${v}';`;
+    let fold: { sha: string; t: number } | null = null;
+    for (const rec of raw(['log', '--full-history', '-U0', '--format=%x00%H %ct %P', '-G', 'ENGINE_VERSION = ', 'HEAD', '--', 'packages/engine/version.ts']).stdout.split('\0')) {
+      const [sha, t, ...parents] = rec.split('\n')[0].trim().split(/\s+/);
+      if (!sha || parents.length !== 1 || !rec.split('\n').includes(sets)) continue;
+      if (!fold || Number(t) < fold.t) fold = { sha, t: Number(t) };
+    }
+    return fold ? { sha: fold.sha } : { why: `no single-parent commit in HEAD's history sets ENGINE_VERSION to ${v}` };
+  };
+  const cloneWorkingTree = (src: string, dst: string, carried: string): void => {
     gitIn(work, ['clone', '-q', '--shared', '--no-checkout', src, dst]);
     for (const ref of gitIn(dst, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).split('\n').filter(Boolean)) gitIn(dst, ['update-ref', '-d', ref]);
-    const mainRefIn = ['origin/main', 'main'].find((c) => spawnSync('git', ['-C', src, 'rev-parse', '--verify', '--quiet', `${c}^{commit}`], { env }).status === 0);
-    const carriedIn = mainRefIn ? spawnSync('git', ['-C', src, 'merge-base', 'HEAD', mainRefIn], { encoding: 'utf8', env }) : null;
-    const carried = carriedIn?.status === 0 && carriedIn.stdout.trim() ? carriedIn.stdout.trim() : gitIn(src, ['rev-parse', 'HEAD']).trim();
     gitIn(dst, ['checkout', '-q', '-B', 'main', carried]);
     const patch = gitIn(src, ['diff', '--binary', carried]);
     if (patch) gitIn(dst, ['apply', '--binary', '-'], patch);
@@ -38171,37 +38191,65 @@ arm: {
     gitIn(dst, ['add', '-A']); gitIn(dst, ['commit', '-q', '--allow-empty', '-m', 'W: the working tree']);
   };
   try {
-    // #3842: the clone of an integration branch's tree. `main` c0 · c1; `poc/integ` forks at c0, adds its own
-    // entry at i1 and merges c1. Its entry must land at W, and W must sit on c1, the `main` it carries; and the
-    // branch `poc/integ` must not reach the clone. MUTATIONS VERIFIED (#3842, each fails a case here by name, and
-    // the first also fails the replay below on an integration branch's own tree with CI's fold refusal): W on
-    // HEAD instead of the carried `main` · the inherited refs kept.
+    // #3842: the clone of an integration branch's tree. `main` c0 · c1 (a fold, setting 0.2.0); `poc/integ` forks at
+    // c0, adds its own entry at i1, squashes c1 in at i2 (dated later, as #3833's a96bdd6a was) and merges c1 for real.
+    // Its entry must land at W, and W must sit on c1, the `main` it carries; and the branch `poc/integ` must not reach
+    // the clone. Then `main` is replaced by an unrelated seed, as in the repository `poc/arm-1` is carried into (#3408):
+    // no ref named `main` carries the tree there, and W must still sit on c1. MUTATIONS VERIFIED (#3842, each fails a
+    // case here by name, and the first also fails the replay below on an integration branch's own tree with CI's fold
+    // refusal): W on HEAD instead of the carried `main` · the inherited refs kept. MUTATIONS VERIFIED (#3408, the
+    // carry): the carried `main` read as the merge base with `origin/main`, then `main`, as before (no merge base with
+    // the seed, so W on HEAD) · the NEWEST commit setting the version taken as the fold (the squash, i2).
     {
       const syn = join(work, 's');
       const synClone = join(work, 'sc');
       const ENTRY = 'docs/progress/pending/integ-own.md';
+      const VERSION = 'packages/engine/version.ts';
+      const setVersion = (v: string) => writeFileSync(join(syn, VERSION), `export const ENGINE_VERSION = '${v}';\n`);
       gitIn(work, ['init', '-q', '-b', 'main', syn]);
       mkdirSync(join(syn, 'docs/progress/pending'), { recursive: true });
+      mkdirSync(join(syn, 'packages/engine'), { recursive: true });
       writeFileSync(join(syn, 'docs/progress/pending/README.md'), 'Pending.\n');
+      setVersion('0.1.0');
       gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'c0']);
       gitIn(syn, ['checkout', '-q', '-b', 'poc/integ']);
       writeFileSync(join(syn, ENTRY), '## (2026-11-08) — The integration branch\'s own entry\n');
       gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'i1']);
       gitIn(syn, ['checkout', '-q', 'main']);
       writeFileSync(join(syn, 'main.txt'), 'main moved\n');
-      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'c1']);
+      setVersion('0.2.0');
+      gitIn(syn, ['add', '-A']); gitIn(syn, ['commit', '-q', '-m', 'c1: the fold of 0.2.0']);
       const c1 = gitIn(syn, ['rev-parse', 'HEAD']).trim();
-      gitIn(syn, ['checkout', '-q', 'poc/integ']); gitIn(syn, ['merge', '-q', '--no-ff', '-m', 'refresh from main', 'main']);
-      cloneWorkingTree(syn, synClone);
-      const w = gitIn(synClone, ['rev-parse', 'HEAD']).trim();
-      const landed = gitIn(synClone, ['log', '--first-parent', '--diff-filter=A', '--format=%H', 'HEAD', '--', ENTRY]).trim();
-      ok(landed === w && gitIn(synClone, ['rev-parse', 'HEAD^1']).trim() === c1,
-        `#3842 replay clone: an integration branch's own entry lands at W, on the main its tree carries (landed ${landed.slice(0, 8)}, W ${w.slice(0, 8)}, W's parent ${gitIn(synClone, ['rev-parse', 'HEAD^1']).trim().slice(0, 8)}, carried main ${c1.slice(0, 8)})`);
-      const refs = gitIn(synClone, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).trim();
-      ok(refs === 'refs/heads/main', `#3842 replay clone: the clone keeps no ref of the source but main, so a local poc/… branch cannot block the fixture's poc (refs: ${refs.split('\n').join(', ')})`);
+      gitIn(syn, ['checkout', '-q', 'poc/integ']); gitIn(syn, ['merge', '-q', '--squash', 'main']);
+      env.GIT_COMMITTER_DATE = new Date(Date.now() + 3600_000).toISOString();
+      try { gitIn(syn, ['commit', '-q', '-m', 'i2: main squashed in']); } finally { delete env.GIT_COMMITTER_DATE; }
+      const i2 = gitIn(syn, ['rev-parse', 'HEAD']).trim();
+      gitIn(syn, ['merge', '-q', '--no-ff', '-m', 'refresh from main', 'main']);
+      const landsOnC1 = (label: string) => {
+        rmSync(synClone, { recursive: true, force: true });
+        const carried = carriedFold(syn);
+        if ('why' in carried) { ok(false, `#3408 replay clone (${label}): the main the tree carries is found by its fold — ${carried.why}`); return; }
+        cloneWorkingTree(syn, synClone, carried.sha);
+        const w = gitIn(synClone, ['rev-parse', 'HEAD']).trim();
+        const parent = gitIn(synClone, ['rev-parse', 'HEAD^1']).trim();
+        const landed = gitIn(synClone, ['log', '--first-parent', '--diff-filter=A', '--format=%H', 'HEAD', '--', ENTRY]).trim();
+        ok(landed === w && parent === c1,
+          `#3842 replay clone (${label}): an integration branch's own entry lands at W, on the main its tree carries, the fold and not the squash that copies it (landed ${landed.slice(0, 8)}, W ${w.slice(0, 8)}, W's parent ${parent.slice(0, 8)}, carried main ${c1.slice(0, 8)}, squash ${i2.slice(0, 8)})`);
+        const refs = gitIn(synClone, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).trim();
+        ok(refs === 'refs/heads/main', `#3842 replay clone (${label}): the clone keeps no ref of the source but main, so a local poc/… branch cannot block the fixture's poc (refs: ${refs.split('\n').join(', ')})`);
+      };
+      landsOnC1('main is the main the tree carries');
+      const seed = gitIn(syn, ['commit-tree', gitIn(syn, ['mktree'], '').trim(), '-m', 'seed: another repository\'s own main']).trim();
+      gitIn(syn, ['update-ref', 'refs/heads/main', seed]);
+      landsOnC1('main is another repository\'s, sharing no commit with the tree');
     }
 
-    cloneWorkingTree(REPO, clone);
+    // #3408, the carry: the main this tree carries, by the fold that set its version, in whichever repository runs this.
+    const carried = carriedFold(REPO);
+    ok(!('why' in carried), `#3408 replay: the main this tree carries is found by the fold that set its ENGINE_VERSION, in any repository its history is in (${'why' in carried ? carried.why : `at ${carried.sha.slice(0, 8)}`})`);
+    replay: {
+    if ('why' in carried) break replay;
+    cloneWorkingTree(REPO, clone, carried.sha);
     // executor-reach imports `@prism3/engine`; the clone has no install, so point the name at its own engine.
     mkdirSync(join(clone, 'node_modules', '@prism3'), { recursive: true });
     symlinkSync(join(clone, 'packages', 'engine'), join(clone, 'node_modules', '@prism3', 'engine'), 'dir');
@@ -38291,6 +38339,7 @@ arm: {
       ok(onPoc.status === 1 && onPoc.out.includes(DROPPED),
         `#3863 release-notes: on a PR into the integration branch, a release missing a note main's fold folded still fails NOTES by name (exit ${onPoc.status}: ${said(onPoc, /NOTES|folds read/)})`);
     }
+    } // replay
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
