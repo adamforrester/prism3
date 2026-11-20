@@ -75,6 +75,9 @@ import { cause, runCause, mergeCauses, CAUSE_WHAT } from './causes';
 import { UPDATES_OFF_COPY, writeUpdatesOff, type UpdatesOff } from './updates-off';
 import { COVER_NAME, coverIsWork, coverLine, coverPageOnlyLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 
+/** #3392 — what a merge reads and writes on a member and its placed instances. */
+type MergeInstance = { width?: unknown; height?: unknown; swapComponent?: (c: unknown) => void; resize?: (w: number, h: number) => void };
+type MergeNode = { name?: string; remove?: () => void; getInstancesAsync?: () => Promise<MergeInstance[]> };
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
 export const RETAINED_KEY = 'retained';
 /** What a deprecated member's description starts with (owner decision Q104 A). */
@@ -138,6 +141,9 @@ export type SetOutcome = {
   added: number;
   renamed: number;
   deprecated: string[];
+  /** #3392 — members merged into another (an axis the ledger merges): their placed instances swapped onto the
+   *  surviving member, then the member removed. Each with how many instances moved. Absent when none. */
+  merged?: { member: string; into: string; instances: number }[];
   /** Members left as they are, each with its reason. */
   skipped: { member: string; reason: string }[];
   /** #2956 — of `skipped`, the members skipped because the update could not apply around their hand edits (a layer added
@@ -643,6 +649,25 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
     }
   }
 
+  // ── MERGES (#3392), before the identity is read and before the renames: a member an axis the ledger merges collapses
+  // onto the coordinate of the member it merges into. Every instance of it placed in the file is swapped onto that
+  // member, at the width it had (the merged axis set only the width, so its overrides carry across), and the member is
+  // removed, so the rename block below never sees two members land on one coordinate.
+  for (const mg of p.merges ?? []) {
+    const kids = kidsOf(live);
+    const gone = kids.find((c) => coordKey(String(c.name ?? '')) === coordKey(mg.member)) as MergeNode | undefined;
+    const into = kids.find((c) => coordKey(String(c.name ?? '')) === coordKey(mg.into)) as MergeNode | undefined;
+    if (!gone || !into) continue;
+    const placed = (await gone.getInstancesAsync?.()) ?? [];
+    for (const i of placed) {
+      const w = Number(i.width), h = Number(i.height);
+      i.swapComponent?.(into);
+      if (Number.isFinite(w) && Math.abs(Number(i.width) - w) > 0.5) i.resize?.(w, Number.isFinite(Number(i.height)) ? Number(i.height) : h);
+    }
+    gone.remove?.();
+    (out.merged ??= []).push({ member: mg.member, into: mg.into, instances: placed.length });
+  }
+
   // ── THE IDENTITY BEFORE ─────────────────────────────────────────────────────────────────────────────────
   // A single-component def (#2296) has no set: its key and id are empty on both sides, and identity is per member.
   const { coordOf, hostOf } = namesFor(t);
@@ -959,6 +984,10 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
   }, snug);
 };
 
+/** The sets a run changed, for the publish description: any member write, a merge included (#4091 review nit). */
+export const changedSets = (outcomes: readonly SetOutcome[]): string[] =>
+  outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length || o.merged?.length || o.described)).map((o) => o.set);
+
 /**
  * THE ABOUT FRAME AND THE PUBLISH DESCRIPTION (#2858), once a run has written: `res.version` is set by whichever path
  * saved the named version first, the apply's or `settle`'s re-spacing. The frame is redrawn last, so its date is the
@@ -989,7 +1018,7 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
   }
   // With no version, no set changed: the library has nothing new to publish, and the description has no title.
   if (!res.version) return;
-  const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length || o.described)).map((o) => o.set);
+  const changed = changedSets(res.outcomes);
   res.publish = publishDescription({
     title: res.version, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
     consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.filter(breaksConsumers).length ?? 0), 0),   // #3711 (Q-UF1 A): a retired member is not breaking
@@ -1325,7 +1354,7 @@ const haltedLine = (h: NonNullable<ApplyResult['halted']>): string =>
 const coverDid = (c: CoverOutcome | undefined): boolean => !!c && c.did !== 'none';
 
 /** A set the apply entered and wrote nothing to (see `idle` in `applyVerdict`). */
-const isIdle = (o: SetOutcome): boolean => !o.refused && !o.stopped && o.skipped.length > 0 && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved && !o.setMoved;
+const isIdle = (o: SetOutcome): boolean => !o.refused && !o.stopped && o.skipped.length > 0 && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.merged?.length && !o.moved && !o.setMoved;
 
 /** #3711 (Q-UF3 A): `completed` is true when the run went through every set it was given: none stopped, none refused or
  *  left not updated, and no stop asked for. A run that wrote every set and left some to check is `completed` and not
@@ -1350,6 +1379,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
   const updated = r.outcomes.reduce((k, o) => k + done(o), 0);
   const added = r.outcomes.reduce((k, o) => k + o.added, 0);
   const deprecated = r.outcomes.reduce((k, o) => k + o.deprecated.length, 0);
+  const merged = r.outcomes.reduce((k, o) => k + (o.merged?.length ?? 0), 0);
   const renamed = r.outcomes.reduce((k, o) => k + o.renamed, 0);
   const moved = r.outcomes.reduce((k, o) => k + (o.moved ?? 0), 0);
   const setsMoved = r.outcomes.filter((o) => o.setMoved).length;
@@ -1379,6 +1409,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
       o.added ? `${o.added} added` : '',
       o.renamed ? `${o.renamed} renamed` : '',
       o.deprecated.length ? `${o.deprecated.length} marked deprecated` : '',
+      // #3392 (DRAFT wording for the owner, #4091 review S1): the dry run's "to merge into another member" as done.
+      o.merged?.length ? `${o.merged.length} merged into another member` : '',
       // DRAFT wording for the owner (#2188 Q173), the dry run's "to move" as done.
       o.moved ? `${o.moved} moved` : '',
       // Wording approved, Q246 A (#2542, Q245.2 A), the dry run's "moves to its place on the page" as done.
@@ -1457,6 +1489,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
         : updated ? `✓ updated ${updated} in place`
           : added ? `✓ added ${added}`
             : deprecated ? `✓ ${deprecated} marked deprecated`
+              // DRAFT wording for the owner (#3392, #4091 review S1): a run whose only member write was a merge.
+              : merged ? `✓ ${merged} merged into another member`
               : renamed ? `✓ renamed ${renamed}`
                 : moved ? `✓ moved ${moved}`
                   // DRAFT wording for the owner: sets moved AND pages reordered in one run, the two approved headlines
