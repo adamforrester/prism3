@@ -100,14 +100,14 @@
  *     is not impossible) for no benefit.
  *
  * SCOPE — imported from `regen.ts`: `out/**`, the emitted `schema/`+report artifacts,
- * `apps/studio/dist/*.js` (the BUILT bundle — same trap 2 reasoning), the schema contract, the engine
- * README, and shipped skills. **NO LONGER IDENTICAL to `lint-us-english.ts`, which is a defect and not
- * a decision:** #937 added `apps/plugin/dist` (main.js + ui.html) there and deliberately did not widen
- * this gate in the same PR. Measured with the surface temporarily added here: **3 §2 violations in
- * `apps/plugin/dist/main.js`**, all "simply", all in string literals rather than comments, with
- * `ui.html` not yet measured. Filed as #948; until it lands, this sentence is the only place
- * recording that the two sets diverge, because nothing asserts they agree — the both-gates rule
- * `lint-schema-classification.ts` enforces covers `schema/` files only, and neither bundle is one. A new emitted artifact is covered automatically
+ * `apps/studio/dist/*.js` and `apps/plugin/dist/main.js` + `ui.html` (the BUILT bundles — same trap 2
+ * reasoning), the schema contract, the engine README, and shipped skills. #937 added the plugin bundle to
+ * `lint-us-english.ts` and left this gate behind; #948 closed that, each file claimed separately in
+ * REQUIRED_SURFACES, `ui.html` stripped of comments like a `.js` bundle because it inlines the UI script.
+ * Measured when it landed: 1 §2 hit, "just" in a materialization-rename rule's `why` in `main.js`
+ * (reworded); the 3 "simply" measured when #948 was filed had gone by then. Nothing asserts the two
+ * gates' bundle scopes agree — the both-gates rule `lint-schema-classification.ts` enforces covers
+ * `schema/` files only, and neither bundle is one. A new emitted artifact is covered automatically
  * because both gates read the same `ENGINE_ARTIFACTS`/`SCHEMA_ARTIFACTS` exports; nobody has to
  * remember to add it here separately.
  * The on-demand preview page (`out/tokens.html`, Q319.6) is not committed, so both gates skip a local
@@ -184,8 +184,8 @@
  *     function-body comments (a file header, `// ---- 1. named stops` inside `resolveVocabulary`) and keeps
  *     the ones inside an expression — an object or array literal, a call's arguments (the comments beside
  *     the TRAITS entries, a component def's fields). A comment's position decides whether it ships, so the
- *     scan reads the bundle raw rather than guessing. The plugin files are in scope here although #948
- *     still keeps them out of the voice rules; that is why `verify.ts` now runs this gate after BOTH builds.
+ *     scan reads the bundle raw rather than guessing. The voice rules read the plugin files too since #948,
+ *     comments stripped; this arm reads them raw. Either way `verify.ts` runs this gate after BOTH builds.
  *   - IN: every personality note as the engine RENDERS it, one `brandTheme` call per trait in the
  *     schema's enum. No committed brand sets `personality`, so `out/**` never shows a trait note; reading
  *     the emitted corpus for them would be a scan of a surface that cannot hold the defect.
@@ -390,7 +390,8 @@ const scan = (abs: string): Hit[] => {
   // `//` source comments — esbuild does not strip the latter, contrary to what this gate assumed until
   // #804. Block spans go first: a `//` inside a block comment is part of that comment, not a line
   // comment, and blanking the span makes the line-pass a no-op over it either way.
-  const txt = abs.endsWith('.js') ? stripLineComments(stripBlockComments(raw)) : raw;
+  // The plugin's `ui.html` is a bundle too (#948): the UI script and stylesheet inlined, so it carries the same comments.
+  const txt = abs.endsWith('.js') || abs === join(repo, 'apps/plugin/dist/ui.html') ? stripLineComments(stripBlockComments(raw)) : raw;
   // The normative rule reads the same text, except that a payload sidecar first loses its valid contract
   // requirements (header: the payload channel). An unparseable sidecar is a surface this gate cannot see.
   let normText = txt;
@@ -422,9 +423,19 @@ const walk = (dir: string): string[] => {
 
 const walkRequired = (dir: string, why: string): string[] => {
   const found = walk(dir);
-  if (!found.length) blind.push(`${relative(repo, dir)} — ${why}`);
+  if (!found.length) { blind.push(`${relative(repo, dir)} — ${why}`); unbuilt.push({ dir: relative(repo, dir), why }); }
   return found;
 };
+// #949: the required directories that came back empty, kept by path so the SCOPE report can name the remedy. That
+// report runs first and exits, so the `blind[]` line saying "not built — run …" never printed, and a contributor who
+// forgot a build was told the gate's scope shrank and invited to edit REQUIRED_SURFACES.
+const unbuilt: { dir: string; why: string }[] = [];
+/** Each missing surface's line, with the remedy of the empty required directory its path lies under. */
+const scopeLines = (missing: string[], empty: { dir: string; why: string }[]): string[] =>
+  missing.map((m) => {
+    const u = empty.find((x) => m.includes(`${x.dir}/`) || m.includes(`${x.dir})`));
+    return u ? `${m} — ${u.dir} is empty: ${u.why}` : m;
+  });
 
 // ---- GATED: same surfaces as lint-us-english.ts, same reasoning, imported from the same
 // regen.ts exports so a new emitted artifact is covered here automatically too.
@@ -439,6 +450,10 @@ const gated: string[] = [
   // `build:site`, which writes apps/studio/public/dist instead.
   ...walkRequired(join(repo, 'apps/studio/dist'), 'the web bundle is not built — run `npm run -w @prism3/studio build` (NOT build:site, which writes apps/studio/public/dist)')
     .filter((f) => f.endsWith('.js')),
+  // …and the plugin bundle, the identical surface #937 gave lint-us-english.ts (#948): `main.js` and `ui.html`, which
+  // inlines the same UI and carries the component defs' prose. Claimed per file below, as there.
+  ...walkRequired(join(repo, 'apps/plugin/dist'), 'the plugin bundle is not built — run `npm run -w @prism3/plugin build`')
+    .filter((f) => f.endsWith('.js') || f.endsWith('.html')),
   join(repo, 'packages/engine/schema/theme-schema.json'),
   join(repo, 'packages/engine/README.md'),
   // The token-name baseline — deliberately not a `regen` artifact (see CLAUDE.md principle 5), so
@@ -636,6 +651,9 @@ const LINE_SAMPLE = [
 // still see "simply", not that the file containing it was ever opened.
 const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   { label: 'the built web bundle (apps/studio/dist/*.js)', test: (f) => f.includes('/apps/studio/dist/') && f.endsWith('.js') },
+  // #948: per file, not one `/apps/plugin/dist/` predicate, which would stay satisfied by either file alone.
+  { label: 'the built plugin controller (apps/plugin/dist/main.js)', test: (f) => f === join(repo, 'apps/plugin/dist/main.js') },
+  { label: 'the built plugin UI document (apps/plugin/dist/ui.html)', test: (f) => f === join(repo, 'apps/plugin/dist/ui.html') },
   { label: 'emitted artifacts (packages/engine/out)', test: (f) => f.includes('/packages/engine/out/') },
   // The on-demand preview page (Q319.6): not committed, so the `out/` walk no longer finds it in CI. Rendered
   // into a temp dir instead, and matched by that render, so dropping the render fails here rather than
@@ -655,10 +673,25 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   { label: 'the served docs entry point (docs/public/llms.txt)', test: (f) => f === join(repo, 'docs/public/llms.txt') },
   { label: 'the served docs (docs/public/**)', test: (f) => f.startsWith(`${repo}/docs/public/`) && f !== join(repo, 'docs/public/llms.txt') && !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !f.startsWith(`${repo}/docs/public/guides/`) },
 ];
+// #949 SELF-CHECK: an unbuilt bundle's missing surfaces carry its build command, and a surface under no empty
+// directory is printed unchanged.
+{
+  const probe = scopeLines(['the built plugin controller (apps/plugin/dist/main.js)', 'emitted artifacts (packages/engine/out)', 'the engine README'],
+    [{ dir: 'apps/plugin/dist', why: 'not built — run `npm run -w @prism3/plugin build`' }, { dir: 'packages/engine/out', why: 'run regen' }]);
+  if (!probe[0].includes('npm run -w @prism3/plugin build') || !probe[1].endsWith('run regen') || probe[2] !== 'the engine README') {
+    console.error(`❌ self-check (#949): the SCOPE report no longer names an empty directory's remedy: ${JSON.stringify(probe)}`);
+    process.exit(1);
+  }
+}
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {
   console.error(`\n❌ the gate's SCOPE shrank — ${missingSurfaces.length} promised surface(s) are absent from the compared set:\n`);
-  for (const m of missingSurfaces) console.error(`    ${m}`);
+  const scoped = scopeLines(missingSurfaces, unbuilt);
+  for (const m of scoped) console.error(`    ${m}`);
+  if (scoped.some((m, i) => m !== missingSurfaces[i])) {
+    console.error(`\n    A surface marked "is empty" above is NOT BUILT, not dropped: run the command it names and rerun.`);
+    console.error(`    Do not edit REQUIRED_SURFACES for it.`);
+  }
   console.error(`\n    Each is a surface this gate claims to cover. Unrepresented, a clean result is silence,`);
   console.error(`    not evidence. If one is deliberately dropped, remove it from REQUIRED_SURFACES in the`);
   console.error(`    same PR so the decision is visible.\n`);
