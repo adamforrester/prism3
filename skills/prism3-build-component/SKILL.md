@@ -464,6 +464,8 @@ whose actual value comes from the host, not from the plan.
   is fill-colored (`interactive.<c>.fill.selected`). One named exception: Link's current-page bar, which PageNav.Item
   inherits, binds `color.icon.link.*`, because link roles have no indicator twin and the edge setting does not reach
   `icon.link.*` (Q-CC12 A). No shape binds `interactive.<c>.text.*`, even where the values match.
+  The text cursor (caret) is the one shape exempt from that rule, by owner decision (#3397 A): it keeps the field's
+  value ink, `color.text.primary`, matching CSS `caret-color: currentColor`.
 
   **The one exception to the constant weight: a choice between peers in a row** (Tab, the Segmented control's
   segment, and Pagination.Item's current page, Q381; owner decisions). There the selected label takes the emphasis
