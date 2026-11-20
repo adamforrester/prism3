@@ -288,10 +288,10 @@ export const tooltip: ComponentDef = {
 
   composition: {
     composesWith: [],
-    alternativeTo: ['field-message'],
+    alternativeTo: ['field-message', 'popover'],
     replacesPatterns: ['the `title` attribute', 'a hover-only label with no keyboard route', 'a tooltip on a natively disabled control'],
     supersededBy: [],
-    planned: ['popover'],
+    planned: [],
   },
 
   motion: {

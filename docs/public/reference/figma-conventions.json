@@ -209,6 +209,12 @@
             ]
           },
           {
+            "name": "↳ Popover",
+            "components": [
+              "popover"
+            ]
+          },
+          {
             "name": "↳ Banner",
             "components": [
               "banner"
@@ -3532,6 +3538,42 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/page-nav.md"
       },
       {
+        "id": "popover",
+        "name": "Popover",
+        "figmaName": "popover",
+        "kind": "component set",
+        "page": "↳ Popover",
+        "section": "Components",
+        "members": 1,
+        "variantProperties": [
+          {
+            "name": "placement",
+            "values": [
+              "bottom"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "title text",
+            "type": "TEXT"
+          },
+          {
+            "name": "title",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "close",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "footer",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/popover.md"
+      },
+      {
         "id": "tooltip",
         "name": "Tooltip",
         "figmaName": "tooltip",
@@ -3760,6 +3802,10 @@
         "preferred": [
           "page-nav-item"
         ]
+      },
+      {
+        "component": "popover",
+        "property": "body"
       }
     ]
   },

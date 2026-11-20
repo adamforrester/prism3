@@ -85,7 +85,7 @@ Short and plain: the name of the action or one fact about it. No punctuation at 
 
 ## Related components
 
-- **Instead, consider:** `field-message`
+- **Instead, consider:** `field-message`, `popover`
 - **Often used with:** `icon-button`, `flush-icon-button`, `button`
 - **Replaces:**
   - the `title` attribute

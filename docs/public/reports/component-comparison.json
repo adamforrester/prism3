@@ -3381,6 +3381,71 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "popover",
+      "name": "Popover",
+      "category": "overlay",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "placement": [
+          "bottom"
+        ]
+      },
+      "props": [
+        {
+          "name": "open",
+          "default": false
+        },
+        {
+          "name": "defaultOpen",
+          "default": false
+        },
+        {
+          "name": "onOpenChange"
+        },
+        {
+          "name": "placement",
+          "default": "bottom",
+          "values": [
+            "top",
+            "bottom",
+            "start",
+            "end"
+          ]
+        },
+        {
+          "name": "align",
+          "default": "start",
+          "values": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        {
+          "name": "title"
+        },
+        {
+          "name": "showClose",
+          "default": true
+        },
+        {
+          "name": "children"
+        },
+        {
+          "name": "footer"
+        },
+        {
+          "name": "initialFocus"
+        },
+        {
+          "name": "arrow",
+          "default": false
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "progress",
       "name": "Progress",
       "category": "feedback",
@@ -6182,6 +6247,14 @@
     "placement": [
       {
         "values": [
+          "bottom"
+        ],
+        "components": [
+          "popover"
+        ]
+      },
+      {
+        "values": [
           "bottom",
           "center",
           "end",
@@ -6745,6 +6818,15 @@
     ],
     "align": [
       {
+        "id": "popover",
+        "default": "start",
+        "values": [
+          "start",
+          "center",
+          "end"
+        ]
+      },
+      {
         "id": "tooltip",
         "default": "center",
         "values": [
@@ -6890,6 +6972,10 @@
     ],
     "arrow": [
       {
+        "id": "popover",
+        "default": false
+      },
+      {
         "id": "tooltip",
         "default": true
       }
@@ -6989,6 +7075,9 @@
         "id": "list-item"
       },
       {
+        "id": "popover"
+      },
+      {
         "id": "tooltip"
       }
     ],
@@ -7058,6 +7147,10 @@
       }
     ],
     "defaultOpen": [
+      {
+        "id": "popover",
+        "default": false
+      },
       {
         "id": "tooltip",
         "default": false
@@ -7368,6 +7461,9 @@
           "fill",
           "none"
         ]
+      },
+      {
+        "id": "popover"
       }
     ],
     "formatOptions": [
@@ -7600,6 +7696,11 @@
           "chevron",
           "plus-minus"
         ]
+      }
+    ],
+    "initialFocus": [
+      {
+        "id": "popover"
       }
     ],
     "inputMode": [
@@ -8441,6 +8542,9 @@
         "id": "dialog"
       },
       {
+        "id": "popover"
+      },
+      {
         "id": "tooltip"
       }
     ],
@@ -8460,6 +8564,10 @@
     "open": [
       {
         "id": "dialog",
+        "default": false
+      },
+      {
+        "id": "popover",
         "default": false
       },
       {
@@ -8527,6 +8635,16 @@
           "center",
           "bottom",
           "full",
+          "end"
+        ]
+      },
+      {
+        "id": "popover",
+        "default": "bottom",
+        "values": [
+          "top",
+          "bottom",
+          "start",
           "end"
         ]
       },
@@ -8834,6 +8952,12 @@
     "showCheck": [
       {
         "id": "tag",
+        "default": true
+      }
+    ],
+    "showClose": [
+      {
+        "id": "popover",
         "default": true
       }
     ],
@@ -9629,6 +9753,9 @@
       },
       {
         "id": "dialog"
+      },
+      {
+        "id": "popover"
       }
     ],
     "tone": [
@@ -10440,9 +10567,10 @@
       "subject": "axis placement",
       "components": [
         "dialog",
+        "popover",
         "tooltip"
       ],
-      "detail": "the placement axis takes 2 value sets — [bottom, center, end, full] in dialog; [bottom, end, start, top] in tooltip"
+      "detail": "the placement axis takes 3 value sets — [bottom] in popover; [bottom, center, end, full] in dialog; [bottom, end, start, top] in tooltip"
     },
     {
       "kind": "axis values",
@@ -11032,6 +11160,24 @@
     },
     {
       "kind": "prop default",
+      "subject": "prop align",
+      "components": [
+        "popover",
+        "tooltip"
+      ],
+      "detail": "align defaults differ over the same values — center in tooltip; start in popover"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop arrow",
+      "components": [
+        "popover",
+        "tooltip"
+      ],
+      "detail": "arrow defaults differ over the same values — false in popover; true in tooltip"
+    },
+    {
+      "kind": "prop default",
       "subject": "prop dismissible",
       "components": [
         "banner",
@@ -11077,6 +11223,15 @@
         "slider"
       ],
       "detail": "max defaults differ over the same values — 100 in progress, slider; 99 in badge"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop placement",
+      "components": [
+        "popover",
+        "tooltip"
+      ],
+      "detail": "placement defaults differ over the same values — bottom in popover; top in tooltip"
     },
     {
       "kind": "prop default",

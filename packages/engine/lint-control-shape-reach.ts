@@ -113,6 +113,7 @@ const OUTSIDE_REASON: Record<string, string> = {
   'toast': 'a surface',
   'tooltip': 'a surface',
   'banner': 'a surface',
+  'popover': 'a surface',
   'pagination-item': 'a pagination cell, not a button',
   'progress': 'an indicator',
   '_slider-thumb': 'intrinsically round',

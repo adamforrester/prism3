@@ -106,7 +106,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 
 - **Built from:** `focus-ring`, `spinner`
 - **Instead, consider:** `icon-button`, `switch-row`, `tag`, `link`
-- **Often used with:** `icon`, `button-group`, `tooltip`
+- **Often used with:** `icon`, `button-group`, `popover`, `tooltip`
 - **Replaces:**
   - input[type=button\|submit]
   - `div[role=button]`
