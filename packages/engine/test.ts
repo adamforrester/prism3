@@ -32011,6 +32011,38 @@ arm: {
   ok(stamped.$extensions?.generator?.version === ENGINE_VERSION,
     'version: every emitted tree carries the engine version, so a suspect value can be traced to the code that produced it');
 }
+{
+  // #4145: three exports had no reader and a comment claiming one. Each claim is now true or gone.
+  // 1. SPECS_SCHEMA_VERSION is held equal to the Specs pin `packages/tokens/package.json` installs (the pin
+  //    `check-specs.mjs` [PIN] reads). Two authored copies of one version, compared here, so a bump of either alone fails.
+  const specsMod = await import('./component-defs-export') as Record<string, unknown>;
+  const specsPin = JSON.parse(readFileSync(resolve(HERE, '../tokens/package.json'), 'utf8')).devDependencies?.['@directededges/specs-schema'];
+  ok(typeof specsMod.SPECS_SCHEMA_VERSION === 'string' && specsMod.SPECS_SCHEMA_VERSION === specsPin,
+    `#4145 SPECS_SCHEMA_VERSION is the Specs schema pin in packages/tokens/package.json (engine ${String(specsMod.SPECS_SCHEMA_VERSION)}, pin ${specsPin})`);
+  // 2. DISPOSITION_MEANINGS is read by lint-code-only-classes.ts's report: every meaning is printed beside its name.
+  const reg = await import('./code-only-register') as { DISPOSITION_MEANINGS?: Record<string, string>; DISPOSITION_NAMES: Record<string, string> };
+  const report = spawnSync('npx', ['tsx', resolve(HERE, 'lint-code-only-classes.ts')], { cwd: HERE, encoding: 'utf8' }).stdout ?? '';
+  const unprinted = Object.entries(reg.DISPOSITION_NAMES).filter(([k, n]) => !reg.DISPOSITION_MEANINGS?.[k] || !report.includes(`${n}: ${reg.DISPOSITION_MEANINGS[k]}`)).map(([, n]) => n);
+  ok(unprinted.length === 0, `#4145 lint-code-only-classes.ts prints each disposition's meaning beside its name (not printed: ${unprinted.join(', ') || 'none'})`);
+  // 3. PROTOCOL_VERSION ("retained for the older handshake's reply") was read by nothing: `initialize` answers through
+  //    negotiateHandshakeVersion. It is gone, so no second name for LATEST_PROTOCOL_VERSION can drift from it.
+  ok(!('PROTOCOL_VERSION' in (await import('./mcp'))), '#4145 mcp.ts exports no PROTOCOL_VERSION alias, which no handshake reads');
+  // #4214 item 2: the action anchor step is the interactive palettes' own helper, not a line-for-line copy of it that
+  // can drift. Read from the source: the two computed the same number, so no output can tell them apart.
+  const brandSrc = readFileSync(resolve(HERE, 'theme-brand.ts'), 'utf8');
+  for (const [name, pal] of [['actionAnchorStep', 'resolvedAction'], ['linkAnchorStep', 'linkPalette']])
+    ok(new RegExp(`const ${name} = interactiveStepFor\\(${pal}\\);`).test(brandSrc),
+      `#4214 theme-brand.ts computes ${name} through interactiveStepFor, not a copy of its three cases`);
+  // #4214 item 1: CLAUDE.md counted the uncommitted exports ("Three") after #3992 made them four. A count it states must
+  // be the list's length; the fix states none, as the file's own rule asks (#1110).
+  const { UNCOMMITTED_OUT: uncommitted } = await import('./regen') as { UNCOMMITTED_OUT: string[] };
+  const WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  // A count may be a word ("Three") or a digit ("4"); either one is read, so a digit can't slip past (#4214 review nit).
+  const word = readFileSync(resolve(HERE, '../../CLAUDE.md'), 'utf8').match(/\b(\w+) whole-catalog component exports/i)?.[1]?.toLowerCase();
+  const stated = word === undefined ? undefined : /^\d+$/.test(word) ? Number(word) : WORDS.includes(word) ? WORDS.indexOf(word) + 1 : undefined;
+  ok(stated === undefined || stated === uncommitted.length,
+    `#4214 CLAUDE.md states no count of the uncommitted exports that disagrees with UNCOMMITTED_OUT (states ${word !== undefined && stated !== undefined ? word : 'none'}, the list has ${uncommitted.length})`);
+}
 
 // --------------------------------------------------------- vocabulary (#471)
 // Named stops + personality traits. The interesting assertions are not "does 'soft' become 1.5" but
@@ -33881,8 +33913,16 @@ arm: {
       // size. A coordinate the set lacks at that size is read at the first size where it exists.
       const excludedAt = (c: Record<string, string>, z: string | undefined) => isExcludedCoordinate(def, { ...c, ...(z === undefined ? {} : { size: z }) });
       const sizeFor = (c: Record<string, string>) => (excludedAt(c, size) ? sizes.find((z) => !excludedAt(c, z)) ?? size : size);
-      const has = (coord: Record<string, string>): boolean =>
-        planPartNames(figmaAnatomyPlan(def, sizeFor(coord), coord as never).root).includes(name);
+      // #3058: a `hiddenWhenAbsent` box stays in the tree where its gate fails, built hidden, so for it "in the tree"
+      // reads as SHOWN: present and not `visible: false`. The excluded values still read absent from view, and the
+      // node's being there at all is the #3058 accordion arm's to pin.
+      type VN = { name: string; visible?: boolean; children?: VN[] };
+      const nodeOf = (n: VN): VN | undefined => (n.name === name ? n : (n.children ?? []).map(nodeOf).find(Boolean));
+      const soft = part.kind === 'box' && part.hiddenWhenAbsent === true;
+      const has = (coord: Record<string, string>): boolean => {
+        const root = figmaAnatomyPlan(def, sizeFor(coord), coord as never).root;
+        return soft ? nodeOf(root as unknown as VN)?.visible !== false && planPartNames(root).includes(name) : planPartNames(root).includes(name);
+      };
       // A SPARSE GRID (`excludeCoordinates`, 2026-09-28) may not have the pinned coordinate at every value of
       // the gated axis — badge has no `type=count, emphasis=subtle` — and the projector refuses a coordinate
       // the set does not have. So each value is read at the FIRST coordinate the set does have, walking the
@@ -35266,6 +35306,50 @@ arm: {
       .filter((r) => r.since !== '' && !contractSince.has(r.since));
     ok(stray.length === 0,
       `#1084 rename-map: every composed row over the shipped map carries '' or a CONTRACT_VERSION from DEPRECATIONS — ${stray.length} do not${stray.length ? `: ${stray.slice(0, 3).map((r) => `${r.from}@${r.since}`).join(', ')}` : ''}`);
+  }
+}
+
+// #4229 — `keysNotDrawn` probes every shared key of a def in ONE projection, not one projection per key. That is the
+// per-key answer only while no projection rule compares two keys' refs, so the two paths are compared here, over every
+// def whose answer is not empty and small enough to probe per key in a test, and over `banner`, whose projection reads
+// a shared key as a value and so must take the per-key path. ORACLE: `keysNotDrawnPerKey`, the exact path the report
+// used before #4229; its answer for divider is also pinned by #3157's literal arm above.
+{
+  const ear = await import('./emit-analysis-reports') as Record<string, unknown>;
+  type Def = Parameters<typeof figmaAnatomySet>[0];
+  const onePass = ear.keysNotDrawn as ((d: Def) => { dropped: Set<string>; via: string }) | undefined;
+  const perKey = ear.keysNotDrawnPerKey as ((d: Def) => Set<string>) | undefined;
+  ok(typeof onePass === 'function' && typeof perKey === 'function', '#4229: emit-analysis-reports exports keysNotDrawn (one pass) and keysNotDrawnPerKey (the oracle)');
+  if (typeof onePass === 'function' && typeof perKey === 'function') {
+    const byId = new Map((componentDefs as Def[]).map((d) => [(d as { id: string }).id, d]));
+    // Every def whose answer is not empty is compared, the button family and the fields included (#4278 review): leaving
+    // one out leaves a ref-comparing rule that moves only its answer to a report diff, which `regen.ts` rewrites and no
+    // gate reads.
+    for (const id of ['divider', 'checkbox-row', 'radio-row', 'icon', 'tag', 'badge', 'wallet-button',
+      'button', 'button-destructive', 'button-neutral', 'link', 'text-field', 'textarea', 'select', 'password-field',
+      'search-field', 'card-number-field', 'banner']) {
+      const def = byId.get(id);
+      if (!def) { ok(false, `#4229: ${id} is a def, so the one-pass probe can be compared on it`); continue; }
+      const want = [...perKey(def)].sort().join(', ');
+      let got: { dropped: Set<string>; via: string };
+      try { got = onePass(def); } catch (err) { ok(false, `#4229: ${id}'s one-pass probe threw instead of answering: ${(err as Error).message.slice(0, 160)}`); continue; }
+      ok([...got.dropped].sort().join(', ') === want,
+        `#4229: ${id}'s keys no plan draws are the same probed in one projection as one key at a time (one pass [${[...got.dropped].sort().join(', ')}] via ${got.via}; per key [${want}])`);
+      if (id === 'banner') ok(got.via === 'per key', `#4229: banner's projection reads a shared key as a value, so it takes the per-key path (via ${got.via})`);
+      else ok(got.via === 'one pass' && want !== '', `#4229: ${id} is answered in one projection, and has keys no plan draws, so the comparison is not of two empty sets (via ${got.via}; per key [${want}])`);
+    }
+    // The fallback's ANSWER, not only that banner takes it (#4278 review): banner's true answer is empty, so a fallback
+    // returning an empty set passed. A key no part binds, sharing a token with banner's `gap`, is not drawn by any
+    // member, and the per-key path must say so.
+    const banner = byId.get('banner') as (Def & { tokens?: Record<string, string> }) | undefined;
+    const gapRef = banner?.tokens?.gap;
+    if (banner && gapRef) {
+      const stub = { ...banner, tokens: { ...banner.tokens, 'zz-unbound': gapRef } } as Def;
+      let got: { dropped: Set<string>; via: string } | undefined;
+      try { got = onePass(stub); } catch (err) { ok(false, `#4229: the banner stub's probe threw instead of answering: ${(err as Error).message.slice(0, 160)}`); }
+      if (got) ok(got.via === 'per key' && got.dropped.has('zz-unbound') && [...got.dropped].sort().join(', ') === [...perKey(stub)].sort().join(', '),
+        `#4229: the per-key fallback answers, not just runs: a banner key no part binds reads as not drawn (via ${got.via}; [${[...got.dropped].sort().join(', ')}])`);
+    } else ok(false, '#4229: banner declares a gap token, so the per-key fallback can be given a key no part binds');
   }
 }
 
@@ -39890,6 +39974,33 @@ arm: {
   ok(sec !== '' && !DATE_WORDS.test(sec + '\n' + check),
     `#3472 prism3-build-ui: the can't-build section and its self-check line name no date, calendar or birth-date control, so they can't teach to the adherence R5 detector (found: ${(sec + '\n' + check).match(DATE_WORDS)?.[0] ?? 'none'})`);
 }
+// #4171: prism3-theme's compile loop sends a failed contrast contract to the input that can cause it. The ENGINE is the
+// oracle: a primary at either end of lightness compiles clean (the action fill takes another step), and a tinted page
+// fails. The skill's Exit 1 advice must name the surfaces, and must not send the author to the primary's lightness.
+{
+  const base = { neutral: { hue: 100, chroma: 0.008 } };
+  const contracts = (input: object) => { const st = buildTree(brandTheme(input as BrandInput)).stats; return { pass: st.modePass, of: st.modeChecks }; };
+  const pale = contracts({ id: 'pale4171', primary: { l: 0.92, c: 0.12, h: 100 }, ...base });
+  const deep = contracts({ id: 'deep4171', primary: { l: 0.15, c: 0.05, h: 285 }, ...base });
+  const tint = contracts({ id: 'tint4171', primary: { l: 0.5, c: 0.18, h: 285 }, ...base, surfaces: { light: { base: 300 } } });
+  ok(pale.pass === pale.of && deep.pass === deep.of,
+    `#4171 a pale (l 0.92) and a deep (l 0.15) primary both hold every mode contract (${pale.pass}/${pale.of}, ${deep.pass}/${deep.of})`);
+  ok(tint.pass < tint.of, `#4171 a page tinted to step 300 fails a mode contract (${tint.pass}/${tint.of})`);
+  // Dark runs the other way (#4273 review): a dark page tinted UP the ramp fails, and the fix is toward black (a higher
+  // step), not toward white. Measured: base 600 fails, 500 fails more, 800 holds every contract.
+  const dark = (step: number) => contracts({ id: `dark${step}4171`, primary: { l: 0.5, c: 0.18, h: 285 }, ...base, surfaces: { dark: { base: step } } });
+  const d500 = dark(500), d600 = dark(600), d800 = dark(800);
+  ok(d600.pass < d600.of && d500.pass < d600.pass && d800.pass === d800.of,
+    `#4171 a dark page tinted toward white fails more the further it goes, and toward black holds (500: ${d500.pass}/${d500.of}, 600: ${d600.pass}/${d600.of}, 800: ${d800.pass}/${d800.of})`);
+  const theme = readFileSync(resolve(HERE, '../../skills/prism3-theme/SKILL.md'), 'utf8');
+  const exit1 = theme.slice(theme.indexOf('**Exit 1**'), theme.indexOf('\n\n', theme.indexOf('**Exit 1**')));
+  ok(exit1.length > 0 && /`surfaces`/.test(exit1) && /`floorStep`/.test(exit1),
+    '#4171 prism3-theme: the Exit 1 advice names `surfaces` and `floorStep` as what to move for a failed contrast contract');
+  ok(/\bblack\b/.test(exit1) && /\bdark\b/.test(exit1),
+    '#4171 prism3-theme: the Exit 1 advice says a tinted dark page moves toward black, not only toward white');
+  ok(!/nudging the primary's lightness/.test(exit1),
+    "#4171 prism3-theme: the Exit 1 advice no longer says a failed contract means nudging the primary's lightness");
+}
 
 // ---- Progress (#2670): the approved calls as literals, and its contrast on every committed brand × mode ----
 // The owner approved the proposal on #2670 with every numbered call at A (2026-10-16). Each arm below holds one call
@@ -40925,8 +41036,21 @@ arm: {
     const g = c.iconPosition === 'leading' ? start : end, other = c.iconPosition === 'leading' ? end : start;
     return !!g && !other && g.nestTarget === '_accordion-indicator' && g.nestVariant?.indicator === c.indicator && g.nestVariant?.expansion === c.expansion && g.nestVariant?.size === c.size && !g.nestExpose;
   }), `#2417 accordion indicator: one nested _accordion-indicator per member, at its position, following the member's indicator (#2878), expansion and size, and not exposed`);
-  ok(plans.every((p) => { const c = coord(p); const panel = find(p.root as PN, 'content'); return c.expansion === 'expanded' ? panel?.type === 'CONTENT_SLOT' : !panel; }),
-    `#2417 accordion panel: a native slot on every expanded member and on no collapsed one (Q182)`);
+  // #3058 (owner decision 2026-11-18 A, superseding Q182's "no panel while collapsed"): a collapsed member keeps the
+  // panel as the SAME native slot, built hidden, so what a designer put in it survives a switch to collapsed and back
+  // (Figma carries an instance's slot content across a variant switch by the slot's name). Shown on every expanded
+  // member, hidden on every collapsed one, and never absent: a collapsed member with no `content` node fails here.
+  const panels = plans.map((p) => ({ c: coord(p), panel: find(p.root as PN, 'content') }));
+  ok(panels.every(({ c, panel }) => panel?.type === 'CONTENT_SLOT' && (c.expansion === 'expanded' ? panel.visible !== false : panel.visible === false)),
+    `#3058 accordion panel: a native slot on every member, shown while expanded and built hidden while collapsed, never left out (got ${panels.filter(({ c, panel }) => !(panel?.type === 'CONTENT_SLOT' && (c.expansion === 'expanded' ? panel.visible !== false : panel.visible === false))).slice(0, 3).map(({ c, panel }) => `${c.expansion}/${c.size}: ${panel ? `${panel.type} visible=${String(panel.visible)}` : 'ABSENT'}`).join('; ') || 'all as expected'})`);
+  // #3058: the flag softens a VARIANT gate, so on a part with none it is refused by name, and the shipped panel is clean.
+  {
+    const parts = acc.anatomy!.parts;
+    const noGate = { ...acc, anatomy: { ...acc.anatomy!, parts: { ...parts, content: { ...parts.content, presentWhen: undefined } as PartDef } } } as ComponentDef;
+    const errs = validateComponentDef(noGate).errors;
+    ok(errs.some((e) => e.includes("part 'content'") && e.includes("'hiddenWhenAbsent' without a variant gate")) && !validateComponentDef(acc).errors.some((e) => e.includes('hiddenWhenAbsent')),
+      `#3058 hiddenWhenAbsent with no variant gate to soften is refused by name, and the shipped accordion panel is not (got ${errs.filter((e) => e.includes('hiddenWhenAbsent')).join(' | ') || 'no hiddenWhenAbsent error'})`);
+  }
   const open = plans.find((p) => coord(p).expansion === 'expanded' && coord(p).size === 'medium')!;
   const panel = find(open.root as PN, 'content')!, ph = find(open.root as PN, 'placeholder')!;
   ok(panel.bound?.paddingTop === 'space/0' && panel.bound?.paddingBottom === 'space/200' && ph.paints?.fills === 'color/text/primary' && !!ph.characters,
@@ -44060,6 +44184,7 @@ const MIN_ASSERTIONS = 1800;
     when: { kinds: ['overlay', 'absolute'], value: 'pressed' },
     children: { kinds: ['box'], value: ['probeChild'] },
     type: { kinds: ['text'], value: 'type.label.{size}.default' },
+    hiddenWhenAbsent: { kinds: ['box'], value: true },
   };
   const KINDS = ['box', 'text', 'slot', 'overlay', 'absolute', 'nest', 'vector'];
   const firstOf = (k: string): [ComponentDef, string] | undefined => {
