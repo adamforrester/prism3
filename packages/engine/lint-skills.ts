@@ -144,6 +144,10 @@ const AI_FIELDS = (() => {
     const t = ai[tier];
     if (t && typeof t === 'object') for (const e of Object.values(t)) if (e && typeof e === 'object') for (const [k, x] of Object.entries(e)) if (k !== 'mode_overrides' && k !== 'resolves_to') sub(x);
   }
+  // A motion preset's fields (#2857): `motion_presets` is keyed by preset name, which is data, so its entries' own keys
+  // (`duration`, `easing`, `reduced_duration`) are the vocabulary, as a tier's entries' keys are above.
+  const presets = ai.motion_presets;
+  if (presets && typeof presets === 'object') for (const e of Object.values(presets)) if (e && typeof e === 'object') Object.keys(e).forEach((n) => out.add(n));
   // Frontmatter keys a skill file declares about itself.
   ['when_to_use', 'disable_model_invocation'].forEach((n) => out.add(n));
   return out;
