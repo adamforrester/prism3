@@ -612,8 +612,9 @@ export const environmentProblems = async (): Promise<string[]> => {
  *  collides. Raise the floor when the set grows, if you like; lower it only on purpose, in the PR that shrinks the set,
  *  and say why. What a floor cannot see: a shrink and a growth of the same size in one PR.
  *
- *  259 since #1119, raised to the set's size when harbor's 29-file Figma emission joined it, so losing it fails here. */
-export const ARTIFACT_FLOOR = 259;
+ *  259 since #1119, raised to the set's size when harbor's 29-file Figma emission joined it, so losing it fails here.
+ *  265 since #4155, the set's size once each brand's web base (`<brand>.web.base.tokens.json`) joined it. */
+export const ARTIFACT_FLOOR = 265;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -1331,6 +1332,19 @@ export const GATES: Gate[] = [
     id: 'lint-test-arms',
     ciStep: 'A registered test arm is still in its suite (#1834)',
     cmd: engine('lint-test-arms.ts'),
+  },
+  {
+    // #2997 gate 3 — reads the role map and the pinned shadcn variable set; needs no build and no `after`.
+    id: 'shadcn-vars',
+    ciStep: 'The shadcn map covers the pinned shadcn variable set (#2997)',
+    cmd: engine('shadcn-vars.ts', '--check'),
+  },
+  {
+    // #2997 gate 4 — renders the uncommitted component-contract export itself and reads the token contract; needs
+    // no build and no `after`.
+    id: 'lint-shadcn-contract',
+    ciStep: 'The shadcn map follows the component contract (#2997)',
+    cmd: engine('lint-shadcn-contract.ts'),
   },
   {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR

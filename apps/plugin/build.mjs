@@ -18,6 +18,7 @@ import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { maintainerProsePlugin } from './strip-maintainer-prose.mjs';
+import { findAbsolutePaths } from './absolute-path.mjs';
 import { chromeCss } from '../studio/chrome/esbuild-plugin.mjs';
 import { NO_GIT, behindCheck, behindStamp, commitStamp, composeBuildId, releaseCheck } from './git-stamp.mjs';
 
@@ -160,18 +161,9 @@ const buildId = () => {
  *     the stamp itself, so this scan is not merely quiet — it was loud before the fix and is silent
  *     after, which is the difference between a check and a decoration.
  */
-const ABSOLUTE_SHAPES = [
-  { label: 'a macOS/Linux home directory', re: /\/(?:Users|home)\/[A-Za-z0-9._-]+\//g },
-  { label: 'a system temp or private path', re: /\/(?:private|tmp|var)\/[A-Za-z0-9._-]+/g },
-];
 const assertNoAbsolutePath = async (name, text) => {
-  const found = [];
-  for (const [label, needle] of [['the building tree', TREE], ['the builder home directory', homedir()]]) {
-    if (needle && text.includes(needle)) found.push(`${label}: ${needle}`);
-  }
-  for (const { label, re } of ABSOLUTE_SHAPES) {
-    for (const m of text.matchAll(re)) found.push(`${label}: ${m[0]}`);
-  }
+  // The scan itself lives in `absolute-path.mjs` (#2028), which blanks base64 `data:` payloads first.
+  const found = findAbsolutePaths(text, [['the building tree', TREE], ['the builder home directory', homedir()]]);
   if (!found.length) return;
   throw new Error(
     `apps/plugin/${outName}/${name}: an absolute filesystem path reached the bundle — ${found.length} ` +

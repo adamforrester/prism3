@@ -60,11 +60,13 @@
     { "file": "test-manifest.ts", "floor": 9 },
     { "file": "test-size-budget.ts", "floor": 21 },
     { "file": "test-git-stamp.ts", "floor": 34 },
+    { "file": "test-absolute-path.ts", "floor": 14 },
     { "file": "test-loose-host.ts", "floor": 14 },
     { "file": "test-file-kind.ts", "floor": 26 },
     { "file": "test-consistency-audit.ts", "floor": 31 },
     { "file": "test-file-facts.ts", "floor": 111 },
-    { "file": "test-report-redaction.ts", "floor": 76 }
+    { "file": "test-report-redaction.ts", "floor": 76 },
+    { "file": "test-file-records.ts", "floor": 7 }
   ],
   "elsewhere": {
     "test-roundtrip.ts": "its own CI step, test:roundtrip (#874)",
