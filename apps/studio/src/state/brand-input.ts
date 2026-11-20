@@ -12,7 +12,7 @@
  * A writer here edits `brandState` and calls nothing, except the name, which syncs the identity itself
  * (it never rebuilds). The caller calls `rebuild()`, which re-resolves and tells the `brand` topic.
  */
-import { TRAITS, ALL_MODES, brandTheme } from '@prism3/engine';
+import { TRAITS, TRAIT_OPPOSITES, ALL_MODES, brandTheme } from '@prism3/engine';
 import { brandState, syncIdentity } from './store';
 import { commitAtomic, modeRemovalEffects, removeMode, renameMode, replaceBrand } from './name-refs';
 
@@ -72,14 +72,23 @@ export const traitLevers = (word: string): readonly [string, string][] =>
 /** `personality` is an authored field (`BrandInputAuthored`): the engine resolves it into lever values, so
  *  the resolved `BrandInput` type does not carry it. The working brand is the authored input. */
 const authored = (): { personality?: string[] } => brandState as unknown as { personality?: string[] };
-/** The personality words the brand sets, in the engine's order. */
-export const personality = (): readonly string[] => PERSONALITY_WORDS.filter((w) => (authored().personality ?? []).includes(w));
+/** The personality words the brand sets, in its own order: the order they were picked, which is the order the engine
+ *  reads them in, first-listed winning a setting two words share (`resolveVocabulary`, #3976). */
+export const personality = (): readonly string[] => (authored().personality ?? []).filter((w) => PERSONALITY_WORDS.includes(w));
+/** A word's direct opposite, as the engine pairs them (`TRAIT_OPPOSITES`, #3976), or null. */
+export const oppositeOf = (word: string): string | null => {
+  const pair = TRAIT_OPPOSITES.find((p) => p.includes(word));
+  return pair ? (pair[0] === word ? pair[1] : pair[0]) : null;
+};
+/** The line under the words (#3976): it says which word wins where two overlap. Copy approved (owner decision 2026-11-18). */
+export const PERSONALITY_ORDER_LINE = 'Where two words fill the same setting, the first one picked wins.';
 
-/** Turn a personality word on or off. An empty set is written as no personality at all. */
+/** Turn a personality word on or off. On, it goes after the words already on, and its opposite goes off: the two pull
+ *  the same settings opposite ways, so only one could take effect (#3976). An empty set is written as no personality. */
 export const setPersonality = (word: string, on: boolean): void => {
-  const cur = new Set(authored().personality ?? []);
-  if (on) cur.add(word); else cur.delete(word);
-  const order = PERSONALITY_WORDS.filter((w) => cur.has(w));
+  const opp = oppositeOf(word);
+  const order = (authored().personality ?? []).filter((w) => w !== word && !(on && w === opp));
+  if (on) order.push(word);
   if (order.length) authored().personality = order;
   else delete authored().personality;
 };

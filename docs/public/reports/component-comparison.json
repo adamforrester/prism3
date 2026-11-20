@@ -233,7 +233,7 @@
     {
       "id": "badge",
       "name": "Badge",
-      "category": "foundations",
+      "category": "feedback",
       "states": [],
       "projectedStates": [],
       "axes": {
@@ -1661,11 +1661,6 @@
           "full",
           "end"
         ],
-        "size": [
-          "medium",
-          "small",
-          "large"
-        ],
         "footer": [
           "inline",
           "stacked",
@@ -1735,11 +1730,7 @@
           ]
         }
       ],
-      "sizes": [
-        "medium",
-        "small",
-        "large"
-      ],
+      "sizes": [],
       "sizeDefault": "medium"
     },
     {
@@ -4982,7 +4973,7 @@
     {
       "id": "tag",
       "name": "Tag",
-      "category": "foundations",
+      "category": "form",
       "states": [
         "rest",
         "hover",
@@ -6409,7 +6400,6 @@
           "checkbox-group",
           "checkbox-row",
           "counter",
-          "dialog",
           "field-label",
           "flush-icon-button",
           "flush-icon-button-destructive",
@@ -10602,7 +10592,6 @@
         "code-input",
         "code-input-cell",
         "counter",
-        "dialog",
         "field-label",
         "flush-icon-button",
         "flush-icon-button-destructive",
@@ -10640,7 +10629,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, skeleton, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, skeleton, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
     },
     {
       "kind": "axis values",
@@ -10849,14 +10838,6 @@
         "counter"
       ],
       "detail": "counter declares its sizes as [medium, small, large], not smallest first"
-    },
-    {
-      "kind": "size order",
-      "subject": "dialog",
-      "components": [
-        "dialog"
-      ],
-      "detail": "dialog declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -11136,7 +11117,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 52 of 53 sized components default to medium"
+      "detail": "field-label defaults size to small; 51 of 52 sized components default to medium"
     },
     {
       "kind": "prop default",
