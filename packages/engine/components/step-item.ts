@@ -338,7 +338,7 @@ export const stepItem: ComponentDef = {
     ],
     evolution: [
       '2026-11-19 (#3055): built from the approved proposal, all nine owner decisions as recommended, on Breadcrumbs\' items-slot shape. No KB brief exists (decision 9).',
-      '2026-11-20 (#4341): every line takes `color.icon.secondary`, a complete step\'s line too, by owner decision (option 3). The proposal named the border role, but every `color.border.*` is scoped to strokes only and the disc already claims the `border` slot, so the line paints the box `indicator` slot, a fill. An icon role is not the ideal type for a line; a dedicated line role is a possible follow-up.',
+      '2026-11-20 (#4341): every line takes `color.icon.secondary`, a complete step\'s line too, by owner decision (option 3). The proposal named the border role, but every `color.border.*` is scoped to strokes only and the disc already claims the `border` slot, so the line paints the box `indicator` slot, a fill. `color.icon.secondary` stays long-term and no dedicated line role is planned (owner decision 2026-11-20, follow-up B), though an icon role is not the ideal type for a line.',
     ],
   },
 };
