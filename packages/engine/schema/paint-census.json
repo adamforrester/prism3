@@ -448,13 +448,13 @@
     "accordion": {
       "set": {
         "members": 48,
-        "assignments": 72,
-        "sha256": "79b4765acbe9f328fe56ff4839f67e29dded84fc669d75855e815d1e2c3bac95"
+        "assignments": 96,
+        "sha256": "29a8364b7253fd476e5abf8f0ad78598ef2b56212367ef9b1d10118082cae5bd"
       },
       "grid": {
         "members": 48,
-        "assignments": 72,
-        "sha256": "f15d8dcc89705f1668d26675318aa5a748fd1e3102c480b1f1e562af8bc409aa"
+        "assignments": 96,
+        "sha256": "044415365edf8368dcf464be70466a05c16b66ebd93f69b2b69b3d1c36bcd9ee"
       }
     },
     "list-item": {
