@@ -622,6 +622,7 @@ const REL = `${repo}/docs/public/releases/9.9.9`;
 const REL_MD = (note: string, after = ''): string => `# What changed\n\n- Plain.\n\n## In detail\n\nPlain intro.\n\n### a-slug (minor)\n\n${note}\n${after}`;
 const RELEASE_SELF_CHECK: { name: string; path: string; text: string; want: 'clean' | 'flagged' | 'blind' }[] = [
   { name: 'a carried note under In detail is the dated record', path: `${REL}.md`, text: REL_MD('It simply the row.'), want: 'clean' },
+  { name: 'a later carried note under In detail is the dated record too', path: `${REL}.md`, text: REL_MD('Plain.', '\n### b-slug (patch)\n\nIt simply the row.\n'), want: 'clean' },
   { name: 'the page above In detail is still read', path: `${REL}.md`, text: '- It simply the row.\n\n## In detail\n\n### a-slug (minor)\n\nPlain.\n', want: 'flagged' },
   { name: "In detail's own intro line is still read", path: `${REL}.md`, text: '- Plain.\n\n## In detail\n\nIt simply the row.\n\n### a-slug (minor)\n\nPlain.\n', want: 'flagged' },
   { name: 'a section after In detail is still read', path: `${REL}.md`, text: REL_MD('Plain.', '\n## Later\n\nIt simply the row.\n'), want: 'flagged' },
