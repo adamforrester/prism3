@@ -560,5 +560,19 @@ ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github
   }
 }
 
+// #3957, the #4393 review's should-fix 2: a brand word that itself holds a placeholder's text is still taken out whole,
+// as before the split. Mutation: `scrub` looking for every word only between placeholders → `#3957/holds …` by name.
+{
+  const cases: [string, string, Parameters<typeof scrub>[1], string][] = [
+    ['a whole word holding "[brand]"', 'Zork [brand] Quux', [{ whole: 'Zork [brand] Quux' }], '[brand]'],
+    ['a plain word holding "[removed]"', 'see Zork [removed] Quux here', ['Zork [removed] Quux'], 'see [brand] here'],
+    ['a word holding "[Brand]" in another case', 'Zork [brand] Quux', ['zork [Brand] quux'], '[brand]'],
+  ];
+  for (const [name, text, words, want] of cases) {
+    const got = scrub(text, words);
+    ok(got === want && !/Zork|Quux/i.test(got), `#3957/holds: ${name} is taken out whole, never kept around the placeholder (${JSON.stringify(got)}, wanted ${JSON.stringify(want)})`);
+  }
+}
+
 console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ report: all checks passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

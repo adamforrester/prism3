@@ -147,12 +147,15 @@ export const scrub = (text: string, words: readonly BrandWord[] = []): string =>
     .replace(/\b(?=[A-Za-z]*[A-Z])(?=[A-Za-z]*[a-z])[A-Za-z]{22}\b/g, REDACTED);
   // #3957: a word is never looked for inside a placeholder the scrub already wrote (`[brand]`, `[removed]`), so a brand
   // word such as `brand` or `remove` cannot wrap one again (`[[brand]]`). The text between placeholders is scrubbed as
-  // before: a placeholder's brackets bound a segment just as the placeholder's own text did.
+  // before: a placeholder's brackets bound a segment just as the placeholder's own text did. A word that itself holds a
+  // placeholder's text (`Zork [brand] Quux`) could never match a split text, so it is looked for in the whole text, as
+  // before the split (#4393 review): its match spans the placeholder, so it cannot wrap one in another.
   for (const bw of words) {
     const w = wordText(bw);
     const re = typeof bw !== 'string' || w.length < SHORT_WORD
       ? new RegExp(`(^|${SEGMENT})${escapeRe(w)}(?=$|${SEGMENT})`, 'giu') : new RegExp(escapeRe(w), 'gi');
-    t = t.split(PLACEHOLDER).map((x, i) => (i % 2 ? x : x.replace(re, (m: string, at?: string) => `${typeof at === 'string' ? at : ''}[brand]`))).join('');
+    const put = (x: string): string => x.replace(re, (m: string, at?: string) => `${typeof at === 'string' ? at : ''}[brand]`);
+    t = new RegExp(PLACEHOLDER.source, 'i').test(w) ? put(t) : t.split(PLACEHOLDER).map((x, i) => (i % 2 ? x : put(x))).join('');
   }
   return t;
 };

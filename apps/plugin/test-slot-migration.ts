@@ -80,7 +80,7 @@
  *   is refused before the loop, above), so the guard is unreachable; `refused/…` pins the refusal that does run.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, type ComponentDef, type PartDef, componentDefs } from '@prism3/engine/components';
-import { COMPONENT_RENAMES, slotMigrationOf } from '@prism3/engine';
+import { COMPONENT_RENAMES, slotMigrationOf, slotTextMigrationOf } from '@prism3/engine';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node, type Page } from './component-shim';
@@ -1034,20 +1034,41 @@ section('report — a placed instance\'s name, page and text stay out of Report 
   // report's rule (`reduceInstance`, studio `report.ts`) can take them out. Mutation: `reduceInstance` dropped from
   // `reduceFailure` → `#4351 report/instance: … the check's line` and the others below, by name.
   const { buildReport } = await import('../studio/src/state/report');
-  const { slotTextLine } = await import('./src/slot-text-migration');
+  const { slotTextLine, fillSlotText } = await import('./src/slot-text-migration');
   const SECRET = /Checkout Hero|Unannounced|Spring Sale|Members only/;
   const report = (lines: string[]): string => buildReport({ stamp: 's', engine: 'e', host: 'figma', includeBrand: false, seen: [], brand: null,
     activity: [{ title: 'Update file', verdict: '⚠ check', lines, agent: false }] });
   const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
   const w = await world(LEGACY['checkbox-group'](), target.plans);
   const medium = memberNamed(w.set(), 'status=default, size=medium');
-  w.put(place('Checkout Hero', medium, w.set(), {}, { row1: { props: { 'Label#1:0': 'Spring Sale' } } }), medium);
-  const check = previewVerdict(await previewUpdate(w.host, [target])).lines;
+  const hero = w.put(place('Checkout Hero', medium, w.set(), {}, { row1: { props: { 'Label#1:0': 'Spring Sale' } } }), medium);
+  const pre = await previewUpdate(w.host, [target]);
+  const check = previewVerdict(pre).lines;
   const named = check.filter((l) => l.includes('Checkout Hero'));
+  // The fills' own misses (#4393 review, should-fix 1): `fillSlots` and `fillSlotText` write their own `<set> instance
+  // "<name>"`, apart from the dry run's, so each comes from the fill itself, never a typed copy of its wording. The rows
+  // fill runs as `kept/edges` does: the next run reads the kept capture, plus one instance gone since, on a host that
+  // finds no row component. The text fill reads back a value the host did not take, and an instance gone since.
+  // Mutation: either fill's `where` copy changed (`instance '${c.name}'`) → `#4351 report/instance: … the rows fill's misses`
+  // or `… the text fill's misses`, by name.
+  await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre));
+  const cap = pre.sets[0].slotMigration!;
+  const gone = { ...cap.instances[0], id: 'GONE:1', name: 'Unannounced' };
+  (w.set().setSharedPluginData as (ns: string, k: string, v: string) => void)('prism3', 'slotCarry', JSON.stringify({ ...cap, instances: [...cap.instances, gone] }));
+  slotOf(hero)?.children.splice(0);
+  const blind = { ...(w.host as object), getNodeByIdAsync: async () => null } as unknown as ApplyHost;
+  const rows = applyVerdict(await applyUpdate(blind, w.api as any, [target], previewHashOf(await previewUpdate(blind, [target])))).lines;
+  const textEntry = slotTextMigrationOf('banner', COMPONENT_RENAMES)!;
+  const bodies = await fillSlotText('banner', textEntry, 'richBody', new Map([['T:1', { id: 'T:1', name: 'Checkout Hero', setProperties: () => {},
+    componentProperties: { 'body text#9:0': { type: 'TEXT', value: 'Members only' } } }]]), { slot: textEntry.slot, property: textEntry.property, show: textEntry.show, hide: textEntry.hide,
+    instances: [{ id: 'T:1', name: 'Checkout Hero', page: 'Unannounced', member: 'm', case: { kind: 'move', characters: 'Spring Sale' } },
+      { id: 'T:2', name: 'Unannounced', page: '', member: 'm', case: { kind: 'empty' } }] });
+  const filled = (lines: string[]): boolean => lines.some((l) => l.includes('instance') && SECRET.test(l));
+  ok(filled(rows) && filled(bodies.misses), `#4351 report/instance premise: each fill names the instance in its own misses (${JSON.stringify([rows.filter((l) => SECRET.test(l)), bodies.misses])})`.slice(0, 600));
   const cases: [string, string[]][] = [
     ['the check\'s line', check],
-    ['a carry miss', [applyVerdict({ outcomes: [{ set: 'checkbox-group', def: 'checkbox-group', updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], identity: [],
-      content: ['checkbox-group instance "Checkout Hero": row1 Label reads "Members only", expected "Spring Sale"'], misses: [], unrecorded: [], kept: [], handEdits: 'keep' }], missing: [], refused: [] } as never).lines.join('\n')]],
+    ['the rows fill\'s misses', rows],
+    ['the text fill\'s misses', bodies.misses],
     ['the slot text\'s line, with its page', [slotTextLine('banner', { property: 'body text', show: 'Show body', hide: 'Hide body' },
       { id: 'T:1', name: 'Checkout Hero', page: 'Unannounced', member: 'm', case: { kind: 'move', characters: 'Spring Sale' } })]],
     ['a name holding a quote and a line break', ['checkbox-group instance "Checkout "Hero"\nUnannounced": no longer in the file']],
@@ -1055,7 +1076,7 @@ section('report — a placed instance\'s name, page and text stay out of Report 
   ok(named.length > 0 && named.some((l) => l.includes('Spring Sale')), `#4351 report/instance premise: the dry run names the instance and its label (${JSON.stringify(named)})`);
   for (const [name, lines] of cases) {
     const text = report(lines);
-    const kept = text.split('\n').filter((l) => l.includes(' instance ') && !/\d instances? in this file/.test(l));
+    const kept = text.split('\n').filter((l) => /\binstance ["'\[]/.test(l));
     ok(lines.some((l) => SECRET.test(l)) && !SECRET.test(text) && kept.length > 0 && kept.every((l) => l.endsWith(' instance [removed]')),
       `#4351 report/instance: the report keeps the set and cuts the instance's name, page and text, ${name} (${JSON.stringify(kept)})`);
   }
