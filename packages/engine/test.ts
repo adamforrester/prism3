@@ -18132,9 +18132,11 @@ arm: {
     // THE SET: exactly the three text buttons; icon-button is outside it and every lever is its identity.
     ok(componentDefs.filter(isButtonFamily).map((d) => d.id).sort().join(',') === 'button,button-destructive,button-neutral',
       `#1667 button levers: the set is button + button-destructive + button-neutral (${componentDefs.filter(isButtonFamily).map((d) => d.id).join(', ')})`);
+    // Every setting but "Outline button border", which reaches the icon buttons by their own opt-in since #576 Q6 (held
+    // in the #576 block); at its default it is the identity here too.
     ok([iconButton, iconButtonDestructive, iconButtonNeutral].every((d) =>
-      applyButtonLayout(d, { icons: 'edges', content: 'smaller', minWidthMultiplier: 4 }, () => 44) === d),
-      '#1667 button levers: icon-button is untouched by every setting — the same object back');
+      applyButtonLayout(d, { icons: 'edges', content: 'smaller', minWidthMultiplier: 4, borderWeight: 'hairline' } as never, () => 44) === d),
+      '#1667 button levers: icon-button is untouched by every setting but Outline button border — the same object back');
 
     // (1) THE PER-SIZE FLOOR — every brand × family × size, at the default 2.25 and at 2.5.
     for (const [bid, t] of BL_BRANDS) for (const def of FAMILY) for (const m of [2.25, 2.5]) {
@@ -22723,6 +22725,32 @@ arm: {
         && itemDef.summary === 'One step in a breadcrumb trail: a link, the current page, or the collapsed steps.'
         && itemDef.accessibility.aria.includes('"Show full path"') && trailDef.accessibility.aria.includes('aria-label="Breadcrumb"') && trailDef.accessibility.aria.includes('aria-current="page"'),
         `#2666 breadcrumbs/code-props: collapse above 5 keeping 1 and 2, expand in place, the small-screen switch on, the nav named "Breadcrumb", the overflow "Show full path", and the approved names and summaries (maxItems ${prop('maxItems')?.default}, before ${prop('itemsBeforeCollapse')?.default}, after ${prop('itemsAfterCollapse')?.default})`);
+
+      // ── #2922 THE COLLAPSE (the wireframe's Q1–Q5 all A, approved 2026-11-18). EXPECTED is typed here from the
+      // wireframe; ACTUAL is the def's code contract and its shipped docs. Q1 A: count now, width with the menu. Q2 A:
+      // expand now, menu the default once it ships (so `collapse` still offers expand alone). Q3 A: "Show full path" in
+      // both modes, no aria-expanded in expand mode. Q4 A: the parent path below 480px, the collapse only at 480px and
+      // wider. Q5 A: the built Figma model, the collapsed and expanded trails written out, one line in the description.
+      {
+        const co = codeOnlyText(trailDef.anatomy!.codeOnly);
+        const collapseLine = co.find((e) => e.startsWith('Collapsing a long trail — ')) ?? '';
+        const expandLine = co.find((e) => e.startsWith('Expanding in place — ')) ?? '';
+        ok(/Collapse by count only, for now: a width-measuring collapse \(ResizeObserver\) arrives with the menu/.test(collapseLine)
+          && /hides middle steps one at a time, from the root side, down to the root, the overflow button, the parent and the current page/.test(collapseLine),
+          `#2922 breadcrumbs/collapse Q1 A: count now; a width collapse arrives with the menu, hiding middle steps from the root side down to root, overflow, parent and current (got ${collapseLine.slice(0, 120)})`);
+        ok(JSON.stringify(prop('collapse')?.values) === '["expand"]' && /a new collapse value, menu, which becomes the default then/.test(expandLine),
+          `#2922 breadcrumbs/collapse Q2 A: expand in place now; menu is a later collapse value that becomes the default (got ${JSON.stringify(prop('collapse')?.values)})`);
+        ok(/no aria-haspopup and no aria-expanded: the button is removed once pressed/.test(expandLine) && /The button is named "Show full path" in both modes/.test(expandLine)
+          && itemDef.accessibility.aria.includes('"Show full path"'),
+          '#2922 breadcrumbs/collapse Q3 A: "Show full path" in both modes, and no aria-expanded in expand mode because the button is removed');
+        ok(/The collapse runs only at 480px and wider; below that the parent path takes over and the collapse never runs/.test(collapseLine) && prop('responsive')?.default === true,
+          '#2922 breadcrumbs/collapse Q4 A: the parent path below 480px, the collapse only at 480px and wider');
+        ok(trailDef.description.includes('To show a collapsed trail, set a middle item to overflow.')
+          && trailDef.docs.do.includes('Show a collapsed trail in a design by setting a middle item to overflow and removing the steps it stands for')
+          && /A trail of six steps collapses to four: Home, the overflow button, the parent and the current page\. Pressing the button shows all six in place/.test(trailDef.docs.usage ?? '')
+          && JSON.stringify(trailDef.variants.path) === '["full","parent"]' && JSON.stringify(itemDef.variants.kind) === '["ancestor","current","overflow"]',
+          '#2922 breadcrumbs/collapse Q5 A: the built Figma model (no new member), the collapse line in the description, and the collapsed and expanded trails written out in the docs');
+      }
 
       // CONTRAST over every committed brand × mode (proposal §5): the roles the projection paints, measured from the
       // committed emission. Link ink is Link's `text.link.*` (the nested instance), held here at 4.5:1 on both page grounds
@@ -30910,18 +30938,32 @@ arm: {
   }
 }
 
-// #576 (owner decision 2026-11-18, A) — ONE OUTLINE BORDER WEIGHT FOR EVERY BUTTON SET ("Outline button border", a DRAFT
-// name). The weight is brand-wide and the color stays per set. ORACLES are literals: the three set ids, the one key and
-// the two rung names are spelled here, never read off the materializer or the def it rebinds.
+// #576 (owner decision 2026-11-18, A) — ONE OUTLINE BORDER WEIGHT FOR EVERY BUTTON SET ("Outline button border").
+// The weight is brand-wide and the color stays per set. Since Q6 (owner decision 2026-11-19) it also reaches the icon
+// buttons: IconButton's outline members and FlushIconButton's round members, in all three families each, opting in with
+// `levers.buttonBorderWeight`. ORACLES are literals: the set ids, the one key and the two rung names are spelled here,
+// never read off the materializer, the def it rebinds or the def's `levers`.
 {
   const thick = { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'thick' as const };
-  const SETS_576 = [button, buttonNeutral, buttonDestructive];
-  // (1) SCOPE: across every def, Thick moves exactly the three text-button sets. Icon buttons keep their own edge.
+  // Each set with the member marker of the members that DRAW the edge: the outline appearance, or Flush's round shape.
+  const SETS_576: Array<[ComponentDef, string]> = [
+    [button, 'appearance=outline'], [buttonNeutral, 'appearance=outline'], [buttonDestructive, 'appearance=outline'],
+    [iconButton, 'appearance=outline'], [iconButtonNeutral, 'appearance=outline'], [iconButtonDestructive, 'appearance=outline'],
+    [flushIconButton, 'shape=round'], [flushIconButtonNeutral, 'shape=round'], [flushIconButtonDestructive, 'shape=round'],
+  ];
+  // (1) SCOPE: across every def, Thick moves exactly the nine sets: the three text-button sets and, since Q6, the six
+  //     icon-button sets. Q6 is asserted on its own, so dropping the icon buttons fails by their names.
   const moved576 = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, thick, () => 44))
-    !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort().join(',');
-  ok(moved576 === 'button,button-destructive,button-neutral',
-    `#576 scope: across all ${componentDefs.length} defs, Outline button border: Thick moves exactly button, button-destructive and button-neutral (got ${moved576 || 'none'})`);
-  for (const def of SETS_576) {
+    !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort();
+  const WANT_576 = ['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive',
+    'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'];
+  ok(moved576.join(',') === WANT_576.join(','),
+    `#576 scope: across all ${componentDefs.length} defs, Outline button border: Thick moves exactly the ${WANT_576.length} button and icon-button sets (got ${moved576.join(',') || 'none'})`);
+  const ICON_576 = WANT_576.filter((id) => id.includes('icon-button'));
+  const iconMissed = ICON_576.filter((id) => !moved576.includes(id));
+  ok(iconMissed.length === 0,
+    `#576 Q6: Outline button border: Thick reaches every icon-button and flush-icon-button set (missed: ${iconMissed.join(', ') || 'none'})`);
+  for (const [def, edgeMarker] of SETS_576) {
     const base = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, () => 44);
     const m = applyButtonLayout(def, thick, () => 44);
     const changed = Object.keys(m.tokens).filter((k) => m.tokens[k] !== base.tokens[k]).sort();
@@ -30935,9 +30977,9 @@ arm: {
     const weights = new Set(thickSet.map((pl) => (pl.root as unknown as { bound?: Record<string, string> }).bound?.strokeWeight ?? 'UNBOUND'));
     const paintsMoved = thickSet.filter((pl, i) => JSON.stringify((pl.root as unknown as { paints?: unknown }).paints)
       !== JSON.stringify((thinSet[i]?.root as unknown as { paints?: unknown } | undefined)?.paints)).map(planComponentName);
-    const outlineMembers = thickSet.filter((pl) => planComponentName(pl).includes('appearance=outline')).length;
+    const outlineMembers = thickSet.filter((pl) => planComponentName(pl).includes(edgeMarker)).length;
     ok(thickSet.length === thinSet.length && outlineMembers > 0 && JSON.stringify([...weights]) === JSON.stringify(['border-width/thick']) && paintsMoved.length === 0,
-      `#576 ${def.id}: projected at Thick, all ${thickSet.length} members (${outlineMembers} outline) bind border-width/thick as their stroke weight, and no member's paints move (weights: ${[...weights].join(', ')}; paints moved: ${paintsMoved.slice(0, 3).join('; ') || 'none'})`);
+      `#576 ${def.id}: projected at Thick, all ${thickSet.length} members (${outlineMembers} ${edgeMarker}) bind border-width/thick as their stroke weight, and no member's paints move (weights: ${[...weights].join(', ')}; paints moved: ${paintsMoved.slice(0, 3).join('; ') || 'none'})`);
     // (4) THIN IS THE IDENTITY: the default and an explicit Thin are the same def back.
     ok(JSON.stringify(applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, borderWeight: 'hairline' }, () => 44)) === JSON.stringify(base),
       `#576 ${def.id}: Outline button border: Thin builds the default def`);
@@ -30947,6 +30989,15 @@ arm: {
   try { applyButtonLayout({ ...button, tokens: { ...button.tokens, 'border-width': 'border-width.heavy' } }, thick, () => 44); } catch (e) { threw576 = (e as Error).message; }
   ok(threw576.includes('button') && threw576.includes('border-width.heavy'),
     `#576 a button whose edge binds another rung is refused by name, not silently kept (${threw576 || 'did NOT throw'})`);
+  let threwIcon576 = '';
+  try { applyButtonLayout({ ...iconButton, tokens: { ...iconButton.tokens, 'border-width': 'border-width.heavy' } }, thick, () => 44); } catch (e) { threwIcon576 = (e as Error).message; }
+  ok(threwIcon576.includes('icon-button') && threwIcon576.includes('border-width.heavy'),
+    `#576 Q6: an icon button whose edge binds another rung is refused by name, not silently kept (${threwIcon576 || 'did NOT throw'})`);
+  // (5b) THE OPT-IN IS VALIDATED: `levers.buttonBorderWeight` on a def with no `border-width` key is refused by name.
+  const { 'border-width': _bw576, ...noEdge } = iconButton.tokens;
+  const edgeless576 = validateComponentDef({ ...iconButton, tokens: noEdge } as ComponentDef).errors.join(' | ');
+  ok(edgeless576.includes('levers.buttonBorderWeight'),
+    `#576 Q6: the schema refuses levers.buttonBorderWeight on a def that binds no border-width key (${edgeless576 || 'accepted'})`);
   // (6) THE RUNG IS 2PX, read off every brand's committed Figma emission, which knows nothing about any def.
   const thickPx = readdirSync(resolve(HERE, './out/figma')).sort().map((brand) => {
     const vars = (JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/border-width.json`), 'utf8')) as { variables: { name: string; value?: unknown }[] }).variables;
@@ -43438,8 +43489,10 @@ arm: {
 
   // (5) NO SHAPE BINDS A TEXT ROLE (owner, 2026-11-03), even where the values match. SUBJECT = every projected member
   // of every def; a node whose part is a `box` may not fill or stroke with a `text` role on either band. The oracle is
-  // the rule, typed here. `TEXT_CARET` is the one known exception, the text cursor drawn in the field's value ink,
-  // held for the owner (#3397), and is a floor: an entry that stops breaching fails as stale.
+  // the rule, typed here. `TEXT_CARET` is the one exception, exempt by owner decision (#3397 A, 2026-11-18): the text
+  // cursor keeps the field's value ink, matching CSS `caret-color: currentColor`, so it is not rebound to a shape role.
+  // It is a floor: an entry that stops breaching fails as stale. The skill states the same exemption, so an agent
+  // authoring a def reads it where it reads the rule (the arm below this one).
   // MUTATION: bind the tab's selected bar to `color.interactive.primary.text.rest` and this arm fails by name.
   const TEXT_ROLE = /^color\/(?:inverse\/)?(?:interactive\/[^/]+\/)?text\//;
   const TEXT_CARET = new Set(['text-field caret', 'text-field caretEnd', 'textarea caret', 'password-field caret', 'password-field caretEnd',
@@ -43461,7 +43514,16 @@ arm: {
   }
   const stale = [...TEXT_CARET].filter((x) => !caretSeen.has(x));
   ok(shapeNodes > 1000 && shapeOnText.size === 0 && stale.length === 0,
-    `#3346 no shape binds a text role: no box part fills or strokes with a text role on either band (${shapeNodes} box nodes; ${shapeOnText.size} off — ${[...shapeOnText].slice(0, 3).join('; ') || 'none'}; ${stale.length} stale caret exemption(s) ${stale.join(', ')})`);
+    `#3346 no shape binds a text role: no box part fills or strokes with a text role on either band, the caret exempt by #3397 A (${shapeNodes} box nodes; ${shapeOnText.size} off — ${[...shapeOnText].slice(0, 3).join('; ') || 'none'}; ${stale.length} stale caret exemption(s) ${stale.join(', ')})`);
+
+  // (6) THE CARET EXEMPTION IS RECORDED WHERE THE RULE IS READ (#3397 A). `TEXT_CARET` above is the code's half; an
+  // agent authoring a def reads the rule in `prism3-build-component`, so the skill names the caret as the exemption,
+  // cites the decision and states the ink it keeps. The oracle is the skill's text, independent of the set.
+  // MUTATION: delete the skill's caret sentence and this arm fails by name.
+  const skillText = readFileSync(resolve(HERE, '../../skills/prism3-build-component/SKILL.md'), 'utf8').replace(/\s+/g, ' ');
+  const caretRule = skillText.match(/The text cursor \(caret\).{0,240}?currentColor/)?.[0] ?? '';
+  ok(/#3397/.test(caretRule) && /color\.text\.primary/.test(caretRule) && /caret-color: currentColor/.test(caretRule),
+    `#3397 the skill records the caret's exemption from "no shape binds a text role": it keeps color.text.primary, matching caret-color: currentColor (${caretRule ? 'found: ' + caretRule.slice(0, 80) : 'no caret sentence in prism3-build-component'})`);
 }
 
 // #3555 C10 — A DERIVED SPEC RULE STATES ITS OWN ARITHMETIC. Tag's Specs rows read "64px (derived: height × 1.5)" while
@@ -44185,14 +44247,40 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
 
 // #3551 — the code input cell's radius ladder (sm, sm, sm, lg) is intended (owner decision A, 2026-11-18): the three
 // smaller cells follow the control corner and the display cell is the exception. So `lint-rung-names` admits the
-// repeat as a DECIDED entry in RUNG_REPEATS citing #3551, and the open-question register no longer holds it. Read from
-// the gate's source, because the gate runs at import and exports nothing.
+// repeat as a DECIDED entry in RUNG_REPEATS citing #3551, and the open-question register no longer holds it. The gate
+// runs at import and exports nothing, so each register is read from its source and EVALUATED, never matched as text:
+// a check that the open register "does not include" a string passed when its regex stopped finding the declaration
+// (#4242). Each declaration is found by name alone (any type annotation), must occur exactly once, and its object
+// literal must evaluate, or the arm fails by name. MUTATIONS VERIFIED (#4242, each fails an arm here by name): the
+// open register re-declared with another annotation, holding code-input-cell · the decided entry's `why` without
+// #3551 · the def's x-large corner moved to radius.sm.
 {
   const src = readFileSync(join(import.meta.dirname, 'lint-rung-names.ts'), 'utf8');
-  const body = (name: string): string => src.match(new RegExp(`const ${name}: Record<[^>]*> = \\{([\\s\\S]*?)\\n?\\};`))?.[1] ?? '';
-  const decided = body('RUNG_REPEATS').split('\n').find((l) => l.includes("'code-input-cell'")) ?? '';
-  ok(decided.includes("'radius.*'") && decided.includes('#3551'), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(decided)})`);
-  ok(!body('RUNG_REPEATS_OPEN').includes("'code-input-cell'"), '#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered');
+  const register = (name: string): { value?: Record<string, { families: string[]; why?: string; issue?: string }>; why: string } => {
+    const decls = [...src.matchAll(new RegExp(`\\b(?:const|let|var)\\s+${name}\\b[^=]*=\\s*\\{`, 'g'))];
+    if (decls.length !== 1) return { why: `${decls.length} declarations of ${name}, not one` };
+    const open = decls[0].index! + decls[0][0].length - 1;
+    let depth = 0, end = -1, quote = '';
+    for (let i = open; i < src.length && end < 0; i++) {
+      const c = src[i];
+      if (quote) { if (c === '\\') i++; else if (c === quote) quote = ''; continue; }
+      if (c === "'" || c === '"' || c === '`') quote = c;
+      else if (c === '{') depth++;
+      else if (c === '}' && --depth === 0) end = i;
+    }
+    if (end < 0) return { why: `${name}'s object literal never closes` };
+    try { return { value: new Function(`return (${src.slice(open, end + 1)});`)() as never, why: '' }; }
+    catch (e) { return { why: `${name}'s object literal does not evaluate: ${(e as Error).message}` }; }
+  };
+  const decided = register('RUNG_REPEATS'), pending = register('RUNG_REPEATS_OPEN');
+  ok(!!decided.value && !!pending.value, `#4242 both rung-repeat registers are read from lint-rung-names.ts as values (${decided.why || 'RUNG_REPEATS ok'}; ${pending.why || 'RUNG_REPEATS_OPEN ok'})`);
+  const entry = decided.value?.['code-input-cell'];
+  ok(!!entry && entry.families.includes('radius.*') && /#3551\b/.test(entry.why ?? ''), `#3551 RUNG_REPEATS admits code-input-cell's radius.* repeat, citing #3551 (got ${JSON.stringify(entry)})`);
+  ok(!!pending.value && !('code-input-cell' in pending.value), `#3551 RUNG_REPEATS_OPEN no longer holds code-input-cell: the question is answered (got ${JSON.stringify(pending.value)})`);
+  // The decided behavior itself, from the def: small, medium and large on the control corner, x-large on radius.lg.
+  const cell = componentDefs.find((d) => d.id === 'code-input-cell');
+  const ladder = ['small', 'medium', 'large', 'x-large'].map((s) => (cell?.tokens as Record<string, string> | undefined)?.[`size.${s}.radius`]);
+  ok(JSON.stringify(ladder) === JSON.stringify(['radius.sm', 'radius.sm', 'radius.sm', 'radius.lg']), `#3551 the code input cell's corner ladder is sm, sm, sm, lg, as decided (got ${JSON.stringify(ladder)})`);
 }
 
 // #4120 (owner decision A, 2026-11-19) — every brand-taking MCP tool takes `{ brand }`. validate_brand took the

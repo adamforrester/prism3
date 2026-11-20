@@ -1937,6 +1937,9 @@ export type ComponentCategory = (typeof COMPONENT_CATEGORIES)[number];
  *   · `buttonLabelWeight` — `labels: true`: "Control label weight" rebinds the def's per-size label type to the rung's
  *     `default` role (`applyButtonLayout`, #2945). The button family takes the setting by being the button family; this
  *     opts in a def outside it (Tag). Until #3786 that reach rode on `tagStyle`'s presence.
+ *   · `buttonBorderWeight` — `edge: true`: "Outline button border" rebinds the def's `border-width` key from
+ *     `border-width.hairline` to the brand's weight (`applyButtonLayout`, #576). The button family takes it by being the
+ *     family; this opts in a def outside it (IconButton and FlushIconButton, owner decision 2026-11-19 Q6).
  *   · `dialogTitleSize` — `titleType`: the key holding the title's `type.label.<rung>.<role>` (`applyDialogTitleSize`).
  *   · `bannerStyle` — `fills`: the `<tone>.fill` keys Outlined rebinds to the page color (`applyBannerStyle`).
  *   · `currentIndicator` — `bar`: the foot bar Partial draws at a share of the title's width (`applyCurrentIndicator`).
@@ -1948,6 +1951,7 @@ export type ComponentLevers = {
   fieldStyle?: { frame: string; setting?: 'searchFieldStyle' };
   tagStyle?: { frame: string; row: string; labelRow: string; slot: string };
   buttonLabelWeight?: { labels: true };
+  buttonBorderWeight?: { edge: true };
   dialogTitleSize?: { titleType: string };
   bannerStyle?: { fills: readonly string[] };
   currentIndicator?: { bar: string };
@@ -4468,7 +4472,7 @@ const visibleGapErrors = (def: ComponentDef): string[] => {
  *  Every materializer is the identity, or throws, on a name that does not resolve, so a wrong name would silently drop
  *  the setting from the def. This refuses it at authoring instead. A def arriving as data meets only this check. */
 const LEVER_KEYS: Record<string, readonly string[]> = {
-  controlShape: ['capsules', 'squares'], fieldStyle: ['frame', 'setting'], tagStyle: ['frame', 'row', 'labelRow', 'slot'], buttonLabelWeight: ['labels'],
+  controlShape: ['capsules', 'squares'], fieldStyle: ['frame', 'setting'], tagStyle: ['frame', 'row', 'labelRow', 'slot'], buttonLabelWeight: ['labels'], buttonBorderWeight: ['edge'],
   dialogTitleSize: ['titleType'], bannerStyle: ['fills'], currentIndicator: ['bar'], outlineInteraction: ['opaqueFill'],
 };
 const leverErrors = (def: ComponentDef): string[] => {
@@ -4533,6 +4537,11 @@ const leverErrors = (def: ComponentDef): string[] => {
     if (setting === 'buttonLabelWeight') {
       if (entry.labels !== true) errors.push(`levers.buttonLabelWeight.labels must be true when set (got ${JSON.stringify(entry.labels)})`);
       else if (!(def.variants?.size ?? []).length) errors.push('levers.buttonLabelWeight needs a size axis: the setting rebinds each size\'s label type');
+    }
+    // The key is restated from `BORDER_WEIGHT_KEY` (anatomy-figma.ts): the schema cannot import the materializer.
+    if (setting === 'buttonBorderWeight') {
+      if (entry.edge !== true) errors.push(`levers.buttonBorderWeight.edge must be true when set (got ${JSON.stringify(entry.edge)})`);
+      else if (def.tokens['border-width'] === undefined) errors.push('levers.buttonBorderWeight needs a border-width key: the setting rebinds the edge it binds');
     }
     if (setting === 'outlineInteraction' && entry.opaqueFill !== true) errors.push(`levers.outlineInteraction.opaqueFill must be true when set (got ${JSON.stringify(entry.opaqueFill)})`);
   }

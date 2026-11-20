@@ -29,6 +29,12 @@
  * default, applied to every step. It is a variant axis here, passed to each default ancestor (`follow`), which shows
  * the matching look of `_breadcrumb-separator`. The current page has no separator, so it does not follow. The parent
  * path has no separator either, so it has no slash member. The overflow item and the parent path stay as built.
+ *
+ * THE COLLAPSE (#2922, the wireframe's Q1–Q5 all A, approved 2026-11-18): the built model stands. By count now, and
+ * by width only when Menu ships, with it (Q1 A); expand in place now, and `collapse: 'menu'` the default once Menu ships
+ * (Q2 A); the button is "Show full path" in both modes (Q3 A); `path=parent` below 480px, the collapse only at 480px and
+ * wider (Q4 A); in Figma a middle item set to `kind=overflow`, with the collapsed and expanded trails written out in the
+ * docs and one line in the description (Q5 A).
  */
 import { ComponentDef } from '../component-schema';
 
@@ -48,7 +54,7 @@ export const breadcrumbs: ComponentDef = {
   status: 'draft',
   summary: 'The path to the current page as links, with the current page last and not a link. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
-    'Shows where the current page sits in the site\'s hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site\'s structure, not the pages a person visited, and supplement the main navigation rather than replace it.',
+    'Shows where the current page sits in the site\'s hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. To show a collapsed trail, set a middle item to overflow. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site\'s structure, not the pages a person visited, and supplement the main navigation rather than replace it.',
 
   props: [
     { name: 'items', type: 'slot', anyOf: ['breadcrumb-item'], minItems: 2, required: true, description: 'The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current="page", its href ignored. At least two.' },
@@ -157,13 +163,13 @@ export const breadcrumbs: ComponentDef = {
         class: 'responsive-layout',
         disposition: 'unsupported',
         description:
-          'Collapsing a long trail — above maxItems (5), keep itemsBeforeCollapse (1) and itemsAfterCollapse (2) and put the middle behind one overflow button. The root and the current page always stay visible. A width-measuring collapse (ResizeObserver) can follow as an enhancement.',
+          'Collapsing a long trail — above maxItems (5), keep itemsBeforeCollapse (1) and itemsAfterCollapse (2) and put the middle behind one overflow button. The root and the current page always stay visible. The collapse runs only at 480px and wider; below that the parent path takes over and the collapse never runs. Collapse by count only, for now: a width-measuring collapse (ResizeObserver) arrives with the menu, because a trail collapsed to fit cannot expand in place without wrapping. When it arrives it hides middle steps one at a time, from the root side, down to the root, the overflow button, the parent and the current page; if that still does not fit, only the current page\'s label truncates.',
       },
       {
         class: 'responsive-layout',
         disposition: 'unsupported',
         description:
-          'Expanding in place — pressed, the overflow button is replaced by the hidden steps as ordinary links, and focus moves to the first revealed link. No popover, no menu keyboard model and no aria-haspopup. When Menu is built, the same button can open a Menu instead (aria-haspopup="menu", aria-expanded, Escape returning focus to it): a new collapse value, with no Figma change.',
+          'Expanding in place — pressed, the overflow button is replaced by the hidden steps as ordinary links, and focus moves to the first revealed link. No popover, no menu keyboard model, no aria-haspopup and no aria-expanded: the button is removed once pressed, so its state would never be read as true. The hidden steps are not rendered until then, so the list count is the visible count, and the trail stays expanded until the next page load. When Menu is built, the same button opens a Menu instead (aria-haspopup="menu", aria-expanded, Escape returning focus to it): a new collapse value, menu, which becomes the default then, with no Figma change. The button is named "Show full path" in both modes.',
       },
       {
         class: 'localization',
@@ -247,12 +253,13 @@ export const breadcrumbs: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use breadcrumbs on a site three or more levels deep, to show where a page sits and to climb back up. They follow the site\'s structure, not the visitor\'s history, and supplement the main navigation. For a one or two level site, use a single link back, or nothing. To go back in history, use the browser\'s Back or a Link. To switch between peers at one level, use Tabs.',
+    usage: 'Use breadcrumbs on a site three or more levels deep, to show where a page sits and to climb back up. They follow the site\'s structure, not the visitor\'s history, and supplement the main navigation. For a one or two level site, use a single link back, or nothing. To go back in history, use the browser\'s Back or a Link. To switch between peers at one level, use Tabs. A trail of six steps collapses to four: Home, the overflow button, the parent and the current page. Pressing the button shows all six in place, and focus moves to the first step it revealed.',
     do: [
       'Start at the root and end at the current page',
       'Use each page\'s own title as its label',
       'Place breadcrumbs above the page heading',
       'Let a long trail collapse its middle rather than wrap',
+      'Show a collapsed trail in a design by setting a middle item to overflow and removing the steps it stands for',
     ],
     dont: [
       'Show the visitor\'s click history',
@@ -292,6 +299,7 @@ export const breadcrumbs: ComponentDef = {
       'The contrast figures (links lowest 4.94:1 on background.primary and 4.56:1 on background.secondary; the current page 15.98:1 and 14.05:1; the back chevron 4.26:1) were measured for the proposal from the committed emission; `test.ts` holds the link and current-page pairs over every committed brand and mode.',
     ],
     evolution: [
+      '2026-11-18 (#2922, the wireframe\'s Q1–Q5 all A): the collapse stands as built. Count now, width with the menu; expand now, the menu the default when it ships; "Show full path" in both modes; the parent path below 480px; in Figma a middle item at kind overflow, with the collapsed and expanded trails written out in the docs and one line in the description.',
       '2026-10-16 (#2666): built from the approved wireframe, every numbered call A, on the items-slot pattern of #2649 (PR #2660, open at the time). Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal\'s small-first order.',
       '2026-10-16 (Q382 A, after QA): one `separator` setting, chevron or slash, chevron by default, for every step, through `_breadcrumb-separator`. The overflow item and the parent path are unchanged.',
     ],
