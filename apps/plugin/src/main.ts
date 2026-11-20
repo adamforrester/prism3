@@ -19,7 +19,7 @@
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
 import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, missesLine, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
-import { ENGINE_VERSION, formerDefIds, serializeBrandInput, resolveAllModes, brandTheme, type BrandInput } from '@prism3/engine';
+import { ENGINE_VERSION, formerDefIds, serializeBrandInput, resolveAllModes, brandTheme, UnrecognizedPersistedInputError, type BrandInput } from '@prism3/engine';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { isIssueUrl } from '../../studio/src/state/report';
 import { onUiMessage, postToUi } from './bridge-main';
@@ -2088,7 +2088,7 @@ const savedContract = (): { contract: SgContract | null; note: string } => {
     const input = restoreInput(figma.root);
     return { contract: input ? resolveAllModes(brandTheme(input)) : null, note: '' };
   } catch (e) {
-    return { contract: null, note: `The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"` };
+    return { contract: null, note: `The saved brand did not resolve (${failureDetail(e)}), so the contrast column reads "—"` };
   }
 };
 
@@ -2208,7 +2208,7 @@ const restoreToUi = (): void => {
     if (input) postToUi({ type: 'restore-input', input });
     else void fileKindToUi();
   } catch (e) {
-    postToUi({ type: 'restore-input-error', message: (e as Error).message });
+    postToUi({ type: 'restore-input-error', message: e instanceof UnrecognizedPersistedInputError ? e.message : failureDetail(e) });   // #4253: a host throw as its class
   }
 };
 
@@ -2375,7 +2375,7 @@ const setOverride = async (changes: readonly OverrideChange[], previewHash: stri
   // The panel's brand as the write starts: an edit the designer makes while it runs must not be reloaded over.
   const asked = panelInput ? canon(panelInput) : null;
   let threw: string | null = null;
-  try { await ACTIONS.applyTheme(plan.input, undefined, inner); } catch (e) { threw = (e as Error)?.message ?? String(e); }
+  try { await ACTIONS.applyTheme(plan.input, undefined, inner); } catch (e) { threw = failureDetail(e); }
   const busy = posts.find((m) => m.type === 'refused');
   if (busy) { sink.post(busy); return; }
   sink.data(overrideData(plan));

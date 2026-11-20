@@ -88,6 +88,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, posix, resolve } from 'node:path';
 import ts from 'typescript';
+import { mergeGroupBase } from '@prism3/engine/harness';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
@@ -315,6 +316,8 @@ interface Options {
   prBase: string | null;
   /** Fetch the PR's base branch from `origin` before reading it — on in CI on a pull request. */
   refresh: boolean;
+  /** The environment the merge-queue rung reads (#4106): `GITHUB_EVENT_NAME` and `MERGE_GROUP_BASE_SHA`. */
+  env?: NodeJS.ProcessEnv;
   git?: Git;
   /** The floor on runtime engine imports; the self-check's small executor imports fewer than the real one. */
   engineFloor?: number;
@@ -330,7 +333,13 @@ const check = (o: Options): string[] => {
   const prBase = o.prBase ? `origin/${o.prBase}` : null;
   let baseRef: string | null = null;
   const tried: string[] = [];
-  if (prBase) {
+  const mg = mergeGroupBase(git, o.env ?? {});
+  if (mg) {
+    // A merge-queue run (#4106): the group's parent commit, authoritative (`packages/engine/comparison-base.ts`).
+    // A group ahead that raised the revision is in that parent, so this PR's raise is read against it.
+    tried.push(mg.tried);
+    baseRef = mg.ref;
+  } else if (prBase) {
     if (o.refresh) {
       // #2551: the checkout's `origin/<base>` is as old as the run's start; a PR that landed since holds
       // a number this branch may also claim. Fetched again here, and a failed fetch does not fall back.
@@ -625,7 +634,7 @@ console.log(`self-check (#2551): ${cases}/${cases} cases of the #2529/#2548 repl
 
 const prBaseEnv = process.env.GITHUB_BASE_REF || null;
 try {
-  for (const l of check({ repo: REPO, prBase: prBaseEnv, refresh: !!prBaseEnv && process.env.GITHUB_ACTIONS === 'true' })) console.log(l);
+  for (const l of check({ repo: REPO, prBase: prBaseEnv, refresh: !!prBaseEnv && process.env.GITHUB_ACTIONS === 'true', env: process.env })) console.log(l);
 } catch (e) {
   if (e instanceof Fail) die(e.lines);
   throw e;
