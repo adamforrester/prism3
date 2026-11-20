@@ -231,6 +231,30 @@ export const referencedDefs = (fragment: unknown, defs: Record<string, unknown>)
   return Object.fromEntries(Object.keys(out).sort().map((k) => [k, out[k]]));
 };
 
+/** #4151: what `theme_brand` returns (and `theme_from_brief`, plus `derivedBrandInput`). Both returned structuredContent
+ *  with no outputSchema, so a client, and the generated reference, read them as untyped. Open, not
+ *  `additionalProperties: false`: a field added to the payload must not make every older client reject it. */
+const THEME_OUTPUT_PROPERTIES = {
+  id: { type: 'string' },
+  modes: { type: 'array', items: { type: 'string' } },
+  contracts: {
+    type: 'object', description: 'Every declared contrast pair across every mode: how many were checked, how many pass, and each failure.',
+    properties: { checks: { type: 'number' }, pass: { type: 'number' }, failures: { type: 'array', items: { type: 'string' } } },
+    required: ['checks', 'pass', 'failures'],
+  },
+  aliases: {
+    type: 'object', description: 'Alias integrity: how many aliases, how many resolve, and each broken one.',
+    properties: { total: { type: 'number' }, resolved: { type: 'number' }, broken: { type: 'array' } },
+    required: ['total', 'resolved', 'broken'],
+  },
+  omitted: { type: 'array', items: { type: 'string' }, description: 'The sections this result leaves out.' },
+  hint: { type: 'string', description: 'How to add the sections it leaves out.' },
+  notes: { type: 'array', items: { type: 'string' }, description: 'With include notes (the default): the decisions log.' },
+  tokens: { type: 'object', description: 'With include tokens: the DTCG token tree.' },
+  aiMetadata: { type: 'object', description: 'With include aiMetadata: the agent metadata.' },
+} as const;
+const THEME_OUTPUT_REQUIRED = ['id', 'modes', 'contracts', 'aliases', 'omitted'];
+
 /** Tool catalogue.
  *
  *  `theme_brand` takes `{ brand, include }` rather than a bare BrandInput. The old shape is still
@@ -289,6 +313,7 @@ export const toolDefs = (brandSchema: unknown) => [
       required: ['brand'],
       additionalProperties: false,
     },
+    outputSchema: { type: 'object', properties: THEME_OUTPUT_PROPERTIES, required: THEME_OUTPUT_REQUIRED },
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   },
   {
@@ -340,6 +365,11 @@ export const toolDefs = (brandSchema: unknown) => [
       },
       required: ['brief'],
       additionalProperties: false,
+    },
+    outputSchema: {
+      type: 'object',
+      properties: { ...THEME_OUTPUT_PROPERTIES, derivedBrandInput: { type: 'object', description: 'The BrandInput the brief was read as.' } },
+      required: [...THEME_OUTPUT_REQUIRED, 'derivedBrandInput'],
     },
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   },
@@ -575,7 +605,45 @@ export const unsafeOutDir = (dir: string): string | undefined => {
   return undefined;
 };
 
+/** #4122: one argument check for every tool. Each inputSchema says `additionalProperties: false`, and `include` is an
+ *  enum, but only `export_theme` enforced either, so a typo such as `include: ["tokenz"]` quietly returned less. Read
+ *  from the declared schemas, so a new argument needs no second list here. It refuses undeclared keys, a present
+ *  array argument that is not an array, and a value outside an array argument's `items.enum` (no top-level scalar
+ *  `enum` is declared today, so none is checked). The one named exception is a call with no `brand` key to a tool
+ *  whose schema requires one (#4120): theme_brand and validate_brand read it as a bare BrandInput for one release,
+ *  whose keys are the brand's and the schema validator's to judge, and export_theme and score_consumption name the
+ *  missing `brand` (`missingBrand`) rather than the keys that were sent in its place.
+ *  Wording is DRAFT; the include message is the one `export_theme` already used. */
+let declaredInputs: Map<string, any> | undefined;
+export const argumentErrors = (name: string, args: unknown): string[] => {
+  declaredInputs ??= new Map(toolDefs({}).map((t) => [t.name, t.inputSchema as any]));
+  const schema = declaredInputs.get(name);
+  if (!schema || schema.additionalProperties !== false || !schema.properties || args == null) return [];
+  if (typeof args !== 'object' || Array.isArray(args)) return [`${name} takes an object of arguments`];
+  if (!('brand' in args) && schema.required?.includes('brand')) return [];
+  const props = schema.properties as Record<string, any>;
+  const errors: string[] = [];
+  const unknown = Object.keys(args).filter((k) => !Object.hasOwn(props, k));
+  if (unknown.length) errors.push(`unknown argument(s): ${unknown.join(', ')}. Valid: ${Object.keys(props).join(', ')}`);
+  for (const [k, p] of Object.entries(props)) {
+    const allowed = p?.items?.enum, given = (args as Record<string, unknown>)[k];
+    // A present argument declared `type: 'array'` that is not one is refused too (#4277 review): `include: "tokens"`
+    // or `include: null` otherwise fell through to the default sections with no error, the #4122 shape, and reached
+    // export_theme's `want.filter` as a throw (#4281).
+    if (p?.type === 'array' && Object.hasOwn(args, k) && !Array.isArray(given)) {
+      errors.push(`${k} must be an array (got ${given === null ? 'null' : typeof given})`);
+      continue;
+    }
+    if (!Array.isArray(allowed) || !Array.isArray(given)) continue;
+    const bad = given.filter((v) => !allowed.includes(v));
+    if (bad.length) errors.push(`unknown ${k} section(s): ${bad.join(', ')}. Valid: ${allowed.join(', ')}`);
+  }
+  return errors;
+};
+
 export const callTool = (name: string, args: any, brandSchema?: unknown, io?: ExportIo): ToolResult => {
+  const argErrors = argumentErrors(name, args);
+  if (argErrors.length) return text({ error: argErrors.join(' '), errors: argErrors }, true);
   if (name === 'export_theme') {
     if (!io) return text({ error: 'export_theme is unavailable: this host did not grant filesystem access.' }, true);
     const { brand, outDir, include } = (args ?? {}) as { brand?: unknown; outDir?: string; include?: string[] };

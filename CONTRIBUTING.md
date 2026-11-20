@@ -1392,6 +1392,10 @@ npx tsx packages/engine/lint-shadcn-contract.ts     # the shadcn map follows the
                                                     # each anchored variable maps to the role Button, Text
                                                     # Field, Select or Focus Ring binds; every row anchored
                                                     # or declared unanchored; every mapped role guaranteed.
+npx tsx packages/engine/lint-spec-supplement.ts     # the spec supplement lines up with Spectacular (#2996):
+                                                    # each element, prop and Figma name against a hand-
+                                                    # copied fixture of Spectacular's own output, each
+                                                    # $token path mapped, each code name in the contract.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one

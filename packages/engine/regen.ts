@@ -49,6 +49,9 @@ const STEPS: Step[] = [
   // #2647 — the Figma conventions file. Reads the def registry, the plugin's taxonomy and the Figma emitter in memory, so
   // it has no ordering dependency either.
   { label: 'emit-figma-conventions (docs/public/reference/figma-conventions.json)', args: ['packages/engine/emit-figma-conventions.ts'] },
+  // #2996 — the spec supplement (out/specs/**): Prism3's additions to Spectacular's spec for its own components. Reads the
+  // def registry and the house brand's Figma emitter in memory, so it has no ordering dependency.
+  { label: 'emit-spec-supplement (out/specs/**)', args: ['packages/engine/emit-spec-supplement.ts'] },
   // #2651 — the analysis reports. Last, because the token report reads `out/prism3.tokens.json`, which emit-dtcg writes.
   { label: 'emit-analysis-reports (docs/public/reports/**)', args: ['packages/engine/emit-analysis-reports.ts'] },
 ];
