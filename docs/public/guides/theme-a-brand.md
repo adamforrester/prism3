@@ -39,6 +39,7 @@ Component settings, such as how buttons place their icons, are in the **Componen
 Some sections start folded. Open them with the "Show N advanced" button under the section list. <!-- src: apps/studio/src/domains/color-palettes.ts:331 -->
 
 **Personality** words fill the settings you have not set yet. Settings you set win. <!-- src: apps/studio/src/shell/pages.ts:159 -->
+Picking a word turns its opposite off: soft and sharp, dense and generous, calm and energetic, bold and restrained. Where two words fill the same setting, the first one picked wins. <!-- src: packages/engine/vocabulary.ts:149-154#26cbcd4d --> <!-- src: apps/studio/src/state/brand-input.ts:79-94#5e35eb13 -->
 On **Palettes**, your colors are pinned as anchors on their ramps and never shifted. <!-- src: apps/studio/src/shell/pages.ts:168 -->
 
 ## Read the preview
@@ -62,7 +63,7 @@ If a stored brand can't be opened, the web studio offers it as a `design.md` dow
 
 ## Import and export a design.md brief
 
-A `design.md` is a brand written as a short document: settings at the top, prose below. <!-- src: packages/engine/mcp.ts:338 -->
+A `design.md` is a brand written as a short document: settings at the top, prose below. <!-- src: packages/engine/mcp.ts:336 -->
 The studio reads both the Prism3 form and the standard design.md form, <!-- src: apps/studio/src/state/start-input.ts:176-190#569bb71c --> which lists colors as a flat `colors:` map. <!-- src: packages/engine/standard-design-md.ts:109-110 -->
 
 - Import: **Import design.md…** in the brand menu, then paste the brief and choose **Load**, or choose **Upload .md**. The **Import a design.md** card in the start window works the same way. <!-- src: apps/studio/src/shell/bar.ts:237-293 -->

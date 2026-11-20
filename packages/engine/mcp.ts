@@ -77,8 +77,6 @@ export const SERVER_INFO = { name: 'prism3-engine', version: BUILD_IDENTITY };
  *  not know, so there is no need to branch the RESPONSE shape on the negotiated version. */
 export const PROTOCOL_VERSIONS = ['2026-07-28', '2024-11-05'] as const;
 export const LATEST_PROTOCOL_VERSION = PROTOCOL_VERSIONS[0];
-/** Retained for the older handshake's reply. */
-export const PROTOCOL_VERSION = LATEST_PROTOCOL_VERSION;
 /** What `initialize` answers when the client asks for a version this server does not speak (#1867).
  *  A client that sends `initialize` is on a pre-2026 revision, because `2026-07-28` removed the
  *  handshake. So the answer is the newest HANDSHAKE revision we speak, never `2026-07-28`: Claude Code
