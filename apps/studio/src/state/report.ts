@@ -207,7 +207,20 @@ const reduceRefused = (l: string): string => {
   }
   return `${l.slice(0, from)}${REDACTED})`;
 };
-const reduceLine = (l: string): string => reduceRefused(l)
+/** A prune that threw after removals began (`PRUNE_COPY.stopped`, `prune-figma.ts`): `Prune stopped — <detail>. <counts>`,
+ *  the detail in `failureDetail` form (#3865). The counts are the part a report needs (a half-pruned file must not read
+ *  as 0 removed, #3697 R6), and they follow the host's message, which can hold `. ` itself. So the report keeps the
+ *  class and the counts and drops the message between them: the counts are matched by their own closed grammar, anchored
+ *  at the line's end, so only digits and the copy's own words can survive in that place, never a host's text. A line
+ *  whose counts do not read that way (the copy changed) keeps the class alone: it loses the counts, never leaks. */
+const STOPPED_HEAD = 'Prune stopped — ';
+const STOPPED_PART = '\\d+ (?:style|mode|variable|collection)s?';
+const STOPPED = new RegExp(`^${STOPPED_HEAD}(${CLASS})(?:: [\\s\\S]*?)?\\. (Removed \\d+ stale items? before it stopped: ${STOPPED_PART}(?:, ${STOPPED_PART})*\\.|Nothing was removed\\.)$`);
+const STOPPED_BARE = new RegExp(`^${STOPPED_HEAD}(${CLASS})(?=[:.]|$)[\\s\\S]*$`);
+const reduceStopped = (l: string): string => l
+  .replace(STOPPED, (_, cls: string, counts: string) => `${STOPPED_HEAD}${cls}. ${counts}`)
+  .replace(STOPPED_BARE, (whole: string, cls: string) => (STOPPED.test(whole) ? whole : `${STOPPED_HEAD}${cls}`));
+const reduceLine = (l: string): string => reduceRefused(reduceStopped(l))
   .replace(HEAD_DETAIL, (_, head: string, cls: string) => `${head}${cls}${head.endsWith('(') ? ')' : ''}`)
   .replace(DETAIL, (_, at: string, cls: string) => `${at}${cls}${at === '(' ? ')' : ''}`);
 
