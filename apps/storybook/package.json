@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "npm run -w @prism3/tokens build && storybook dev -p 6006",
     "build": "npm run -w @prism3/tokens build && storybook build --quiet --output-dir storybook-static",
-    "check:build": "npx tsx check-build.ts && npx tsx check-geometry.ts",
+    "check:build": "npx tsx check-build.ts && npx tsx check-geometry.ts && npx tsx compare-figma-geometry.ts --self-test",
     "check:a11y": "npx tsx check-axe.ts && npx tsx check-aria.ts && npx tsx check-keyboard.ts && npx tsx check-rtl.ts",
     "accept:aria": "npx tsx check-aria.ts --accept"
   },

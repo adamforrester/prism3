@@ -61,7 +61,7 @@ export const PARTS: Record<string, Record<string, string>> = {
 
 export type Box = { x: number; y: number; w: number; h: number };
 export type RootGeometry = { w: number; h: number; padding: number[]; border: number[]; radius: number[] };
-export type Measure = { where: Record<string, string>; root: RootGeometry; parts: Record<string, Box> };
+export type Measure = { where: Record<string, string>; root: RootGeometry; parts: Record<string, Box>; text?: string };
 const DP = 100; // 0.01px
 const round = (n: number) => Math.round(n * DP) / DP;
 
@@ -86,6 +86,7 @@ const MEASURE = `(([component, parts, state, dp]) => {
     if (!b.width && !b.height) continue;
     out[part] = { x: r2(b.left - rb.left), y: r2(b.top - rb.top), w: r2(b.width), h: r2(b.height) };
   }
+  const text = component === 'button' ? root.querySelector(':scope > .p3-button__label')?.textContent?.trim() : undefined;
   if (component === 'button' && state === 'focus-visible' && cs.outlineStyle !== 'none') {
     const o = parseFloat(cs.outlineOffset) + parseFloat(cs.outlineWidth);
     out['container/focusRing'] = { x: r2(-o), y: r2(-o), w: r2(rb.width + 2 * o), h: r2(rb.height + 2 * o) };
@@ -99,6 +100,7 @@ const MEASURE = `(([component, parts, state, dp]) => {
       radius: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius].map(px),
     },
     parts: out,
+    ...(text !== undefined ? { text } : {}),
   };
 })`;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,14 +128,19 @@ export const diff = (where: string, x: Measure, y: Measure, a: string, b: string
 const record: Record<string, Measure & { story: string }> = {};
 /** The props a story leaves at their default write no attribute; the record names them, from the emission's API. */
 const AI = JSON.parse(readFileSync(resolve(import.meta.dirname ?? '', '../../packages/engine/out/components/components.ai.json'), 'utf8')).components;
-const VARIANT_PROPS: Record<string, string[]> = { button: ['appearance', 'size', 'surface', 'inset'], 'text-field': ['size', 'validation'], 'password-field': ['size', 'validation'] };
+const VARIANT_PROPS: Record<string, string[]> = { button: ['appearance', 'size', 'surface', 'inset', 'fullWidth'], 'text-field': ['size', 'validation'], 'password-field': ['size', 'validation'] };
 const fullWhere = (s: Story, m: Measure): Record<string, string> => {
   const out: Record<string, string> = {};
   for (const name of VARIANT_PROPS[s.component]) {
     const p = AI[s.component].props.find((x: { name: string }) => x.name === name);
     out[name] = m.where[name.toLowerCase()] ?? String(p?.default);
   }
-  if (s.component === 'button') { out.leading = String(!!m.parts['container/leadingVisual']); out.trailing = String(!!m.parts['container/trailingVisual']); }
+  // what Figma sets with a boolean property, not a variant: which slots are drawn, and the Show/Hide button's state
+  const slot = (part: string) => String(Object.keys(m.parts).some((p) => p.endsWith(part)));
+  out.leading = slot('/leadingVisual');
+  if (s.component !== 'password-field') out.trailing = slot('/trailingVisual');
+  if (s.component !== 'button') out.message = slot('container/message');
+  if (s.component === 'password-field') out.shown = String(s.case.startsWith('shown'));
   out.state = m.where.state;
   return out;
 };
