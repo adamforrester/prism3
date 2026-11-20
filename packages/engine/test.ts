@@ -1118,6 +1118,16 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
   for (const n of ['eval.ts', 'ai-metadata.ts'])
     ok(engineSrc.includes(n) && /\bfloorRatio\b/.test(readFileSync(resolve(HERE, n), 'utf8')), `#3759 packages/engine/${n} is in the ratio scan and stores its ratios through floorRatio`);
   ok(/\bfloorRatio\b/.test(readFileSync(resolve(APPS, 'plugin/src/set-override.ts'), 'utf8')), '#3759 apps/plugin/src/set-override.ts stores its data ratios through floorRatio');
+  // #3693: a confirm is refused as changes-moved or brand-moved (`confirmMoved`). The committed agent reference names
+  // both, so an agent reading it learns a confirm with other changes is refused on its own, not only a moved brand.
+  {
+    const ref = JSON.parse(readFileSync(resolve(HERE, '../../docs/public/reference/commands.json'), 'utf8')) as { agentLink: { commands: Array<{ name: string; writes?: string }> } };
+    const writes = ref.agentLink.commands.find((c) => c.name === 'set-override')?.writes ?? '';
+    const reasons = [...readFileSync(resolve(APPS, 'plugin/src/set-override.ts'), 'utf8').matchAll(/export const confirmMoved = [^:]*: ([^=]*)=>/g)].flatMap((m) => m[1].match(/'[a-z-]+'/g) ?? []);
+    const named: Record<string, string> = { "'changes-moved'": 'the changes sent are not the ones previewed', "'brand-moved'": "the file's brand moved after the preview" };
+    ok(reasons.length === 2 && reasons.every((r) => named[r]), `#3693 confirmMoved's reasons are changes-moved and brand-moved (got ${reasons.join(', ')})`);
+    for (const r of reasons) ok(writes.includes(named[r] ?? r), `#3693 the agent reference's set-override names the ${r} refusal ("${named[r]}"; got "${writes}")`);
+  }
   // The values, driven at the review's case. Studio's contracts table: the preview stores the RAW ratio, so its floored
   // print is 4.49 beside the failing dot. An eval failure and a stored floor never round up onto the 4.5 they miss.
   ok(floorRatio(4.496) === 4.49 && floorRatio(4.4999) === 4.49 && floorRatio(4.5) === 4.5 && formatRatio(4.496, { bare: true }) === '4.49',
@@ -1231,6 +1241,27 @@ ok(autoPlaceStep(0.9) < autoPlaceStep(0.3), 'autoPlaceStep: lighter < darker');
   // A literal, not a fragment: the note is approved copy (#1883), so a change to it shows up here as a diff.
   ok(mkTheme(oog).notes.includes("anchor 'x' (oklch 0.55 0.32 145) is outside the sRGB gamut — sRGB shows at most 0.173 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.173 ships exactly."), 'M-03: brandTheme surfaces an out-of-gamut anchor in the decisions log (not silent)');
   ok(!mkTheme({ l: 0.5, c: 0.04, h: 200 }).notes.some((n) => n.includes('outside the sRGB gamut')), 'M-03: an all-in-gamut brand produces no gamut warning');
+}
+{
+  // #4211: the ratio floor must not lose a step to float error. `4.6 * 100` is 459.99999999999994, so a bare
+  // `Math.floor(r * 100) / 100` printed an exact 4.6 as 4.59 (141 of the two-decimal values 1.00–21.00 did). The
+  // expected strings are built from the integer step, not from `floorRatio`, so the arm cannot agree with itself.
+  for (const [r, want] of [[4.6, '4.60:1'], [4.35, '4.35:1'], [4.5, '4.50:1'], [7, '7.00:1']] as const)
+    ok(formatRatio(r) === want, `#4211 formatRatio(${r}) prints as itself, ${want} (got ${formatRatio(r)})`);
+  const lost: string[] = [];
+  for (let k = 100; k <= 2100; k++) {
+    const r = k / 100, want = `${Math.floor(k / 100)}.${String(k % 100).padStart(2, '0')}`;
+    if (formatRatio(r, { bare: true }) !== want || floorRatio(floorRatio(r)) !== floorRatio(r)) lost.push(`${want}→${formatRatio(r, { bare: true })}`);
+  }
+  ok(lost.length === 0, `#4211 every two-decimal ratio from 1.00 to 21.00 floors to itself, and re-flooring is a no-op (${lost.length} lose a step: ${lost.slice(0, 6).join(', ')})`);
+  // The tolerance absorbs float error only: a pair that genuinely misses a step still floors down (CR-01's concern).
+  for (const [r, want] of [[4.5 - 1e-8, '4.49:1'], [7 - 1e-8, '6.99:1'], [3 - 1e-6, '2.99:1']] as const)
+    ok(formatRatio(r) === want, `#4211 a ratio just under a step still floors below it: ${r} → ${want} (got ${formatRatio(r)})`);
+  // #4214 item 4: the sidecar schema says the stored ratio is floored (#3759), not just "to two decimals". A literal: the
+  // description is the published contract's prose.
+  const ratioDesc = JSON.parse(readFileSync(resolve(HERE, 'schema/ai-metadata.schema.json'), 'utf8')).$defs?.contrast?.properties?.ratio?.description;
+  ok(ratioDesc === 'The measured ratio in light mode, floored to two decimals, so it never reads at or above a floor it misses.',
+    `#4214 the sidecar schema says contrast_with[].ratio is floored, as floorRatio stores it (got ${JSON.stringify(ratioDesc)})`);
 }
 
 // ------------------------------------------------ extreme white-label brands
@@ -8367,8 +8398,8 @@ arm: {
   // THE CODE-SIDE RULE, as the def states it to whoever builds it: linear and infinite, the reduced-motion
   // substitute a slower turn under `prefers-reduced-motion`, and both tokens named where the motion is.
   const codeOnly = codeOnlyText(spinner.anatomy!.codeOnly).join('\n');
-  ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && /\b800ms\b/.test(spinner.motion?.reduceMotion ?? '') && /\b2600ms\b/.test(spinner.motion?.reduceMotion ?? ''),
-    '#1670 spinner: the motion field names both turn tokens and their values');
+  ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && !/\d\s?ms\b/.test(spinner.motion?.reduceMotion ?? ''),
+    '#1670 spinner: the motion field names both turn tokens and no millisecond value (#4174 a: the token, never its number)');
   ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly),
     '#1670 spinner: the code rule spins linear and infinite and slows under prefers-reduced-motion');
 
@@ -39820,8 +39851,8 @@ arm: {
   ok(committedBrands.length >= 5 && sweepMissing.length === 0,
     `#2670 call 6 motion: every committed brand emits motion.duration.sweep and motion.duration-reduced.sweep (${committedBrands.length} brands${sweepMissing.length ? `; missing in ${sweepMissing.join(', ')}` : ''})`);
   const motionProse = `${progress.motion?.reduceMotion ?? ''}\n${codeOnlyText(progress.anatomy!.codeOnly).join('\n')}`;
-  ok(/motion\.duration-reduced\.sweep/.test(motionProse) && /2600ms/.test(motionProse) && /--motion-duration-sweep/.test(motionProse) && /prefers-reduced-motion: reduce/.test(motionProse) && /never (stopped|removed)/.test(motionProse),
-    '#2670 call 7 progress: the shipped motion and the code rules name the reduced sweep (2600ms), under prefers-reduced-motion, kept and never removed');
+  ok(/motion\.duration-reduced\.sweep/.test(motionProse) && !/\d\s?ms\b/.test(progress.motion?.reduceMotion ?? '') && /--motion-duration-sweep/.test(motionProse) && /prefers-reduced-motion: reduce/.test(motionProse) && /never (stopped|removed)/.test(motionProse),
+    '#2670 call 7 progress: the shipped motion and the code rules name the reduced sweep by its token and no millisecond value (#4174), under prefers-reduced-motion, kept and never removed');
 
   // Call 8: announced at 25, 50 and 75%, and at the end; never from aria-valuenow.
   const aria = `${progress.accessibility.aria}\n${codeOnlyText(progress.anatomy!.codeOnly).join('\n')}`;
@@ -44280,6 +44311,36 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   // The accept side: rising floors, a fractional one among them, still build.
   const rising = refusal(() => brandTheme(withBps([0, 768.5, 1024])));
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
+}
+
+// #3284 (owner decision A, 2026-11-18) — the action note told an unset lever from an explicit `primary` by the
+// RESOLVED name only, so a brand that wrote `actionPalette: 'primary'` read "actionPalette is not set". The explicit
+// case now reads "the primary palette, as the brand sets" (APPROVED wording), under either spelling. And a pin on
+// `actionAnchorStep` is applied on any action palette, so the pin sentence is said for any pin, not only under a
+// brand color.
+{
+  const b3284 = { id: 'a3284', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  const actionLines = (extra: object): string[] => brandTheme({ ...b3284, ...extra } as unknown as BrandInput).notes.filter((n) => n.startsWith('action: '));
+  const unset = actionLines({});
+  ok(JSON.stringify(unset) === JSON.stringify(['action: the primary palette, by default — actionPalette is not set.']),
+    `#3284 an unset action palette still reads "by default — actionPalette is not set" (got ${JSON.stringify(unset)})`);
+  for (const [label, extra] of [['actionPalette', { actionPalette: 'primary' }], ['roleColors.action', { roleColors: { action: 'primary' } }]] as const) {
+    const set = actionLines(extra);
+    ok(JSON.stringify(set) === JSON.stringify(['action: the primary palette, as the brand sets.']),
+      `#3284 an explicit ${label} 'primary' reads "the primary palette, as the brand sets", never "not set" (got ${JSON.stringify(set)})`);
+  }
+  const pin = "by actionAnchorStep — applied exactly, never moved; a miss of 3:1 (7:1 in high contrast) is reported, not corrected.";
+  for (const [label, extra, line] of [
+    ['an explicit primary', { actionPalette: 'primary', actionAnchorStep: 300 }, 'action: the primary palette, as the brand sets.'],
+    ['an unset', { actionAnchorStep: 300 }, 'action: the primary palette, by default — actionPalette is not set.'],
+  ] as const) {
+    const got = actionLines(extra);
+    ok(JSON.stringify(got) === JSON.stringify([line, `action: pinned at 'primary' step 300 ${pin}`]),
+      `#3284 a pin on ${label} action palette gets the pin sentence, naming primary step 300 (got ${JSON.stringify(got)})`);
+  }
+  const neutralPin = actionLines({ actionPalette: 'neutral', actionAnchorStep: 900 });
+  ok(neutralPin.includes(`action: pinned at 'neutral' step 900 ${pin}`),
+    `#3284 a pin on a palette with no brand color (neutral) gets the pin sentence too (got ${JSON.stringify(neutralPin)})`);
 }
 
 // #3375 — List.Item's icon marker stays on `icon.size.sm/md/lg` (owner decision A, 2026-11-18), and the comment that
