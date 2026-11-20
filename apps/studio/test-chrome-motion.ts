@@ -22,6 +22,10 @@
  * themes, with what it read instead. `resolve` (`chrome/tokens.mjs`) not following a member's alias → both arms,
  * the duration reading the alias string itself and the curve the error it threw.
  */
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { loadModes, cssOf } from './chrome/tokens.mjs';
 import { shellRows } from './chrome/esbuild-plugin.mjs';
 
@@ -74,6 +78,28 @@ for (const mode of ['light', 'dark'] as const) {
   const plainDur = css(modes[mode], dur);
   const plainEase = css(modes[mode], ease);
   ok(plainDur !== DUR && plainEase !== EASE, `${mode}: control: over the emission the rows read the engine's own values (${plainDur}, ${plainEase})`);
+}
+
+// #3914: a theme file a running `regen` has truncated, or has half-written, is named with the race and its remedy,
+// not left as a bare JSON error. The fixture copies the real emission, then cuts one file, so the other parses.
+{
+  const realOut = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'packages', 'engine', 'out');
+  const dir = mkdtempSync(join(tmpdir(), 'prism3-3914-'));
+  try {
+    const full = readFileSync(join(realOut, 'prism3.tokens.json'), 'utf8');
+    copyFileSync(join(realOut, 'prism3.dark.overlay.tokens.json'), join(dir, 'prism3.dark.overlay.tokens.json'));
+    for (const [label, text] of [['an empty', ''], ['a half-written', full.slice(0, Math.floor(full.length / 2))]] as const) {
+      writeFileSync(join(dir, 'prism3.tokens.json'), text);
+      let msg = '';
+      try { loadModes(dir); } catch (e) { msg = (e as Error).message; }
+      ok(msg.includes('prism3.tokens.json') && msg.includes('`regen` running in this tree') && msg.includes('run the build again'),
+        `#3914: ${label} prism3.tokens.json is named with the regen race and its remedy (got "${msg.slice(0, 160)}")`);
+    }
+    writeFileSync(join(dir, 'prism3.tokens.json'), full);
+    let threw = '';
+    try { loadModes(dir); } catch (e) { threw = (e as Error).message; }
+    ok(threw === '', `#3914: control: the whole files load from the same directory (threw "${threw.slice(0, 120)}")`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
 console.log(`\n${executed - failed}/${executed} chrome motion assertions passed.`);
