@@ -25,6 +25,13 @@ without `integrationBase` (the #3833 arm) · release-notes walking from HEAD (bo
 fails the new synthetic arm by name (and the 3 arms again in the POC layout); the newest commit taken as the fold fails
 both synthetic arms by name.
 
-**After the refresh.** `main`'s #3996 adds a premise check before the replay that skips it where `origin/main` doesn't
-carry prism3's folds. Once `poc/arm-1` carries #3996, that check needs to read the same `carriedFold` point, or the POC
-repository skips the replay instead of judging it.
+**After the refresh (#4379).** `main`'s #3985 premise block, carried in by refresh 4, found its base as the merge base
+with `origin/main` and SKIPPED the replay (exit 0) wherever that failed. In the POC repository it always fails, so the
+replay would have gone quiet there. Merged in with a real merge commit, the block now reads its base from
+`carriedFold` (`replayPremises`), keeps its anchor and release-notes checks against that fold, and a broken premise
+FAILS by name in every repository: a missing carried fold (a shallow checkout, or no single-parent commit setting the
+version) is CANNOT DETERMINE, never a skip. New synthetic arms run the premises with no ref carrying the tree. Re-proved
+in a simulated POC repository (remote `upstream`, branches `trunk` and `integration/…`, no prism3 `main`, CI's checkout
+the carry merged into the POC's own trunk): before, the replay printed `⊘ SKIPPED` and exited 0; after, the full suite
+passes with every assertion site run, and with the base put back on the merge base it fails by name. A depth-5 clone
+fails `#3985 integration replay: … CANNOT DETERMINE …`.
