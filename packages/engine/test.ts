@@ -226,7 +226,7 @@ if (!import.meta.url.endsWith('?cov')) {
   {
     // #1870 SELF-CHECK, every run: the fixture's four skipped sites read 0 and its four controls read as run —
     // R3 after an unevaluated `x && b` (a nested zero range that is not a continuation), R4 after a skipped
-    // `{ }` then-block. Without the extension, S2 and S4 read as run.
+    // `{ }` then-block. Without the extension, S2, S3 and S4 read as run.
     const fx = result.find((r) => r.url === pathToFileURL(fixtureFile).href);
     const fxSrc = readFileSync(fixtureFile, 'utf8');
     rmSync(fixtureDir, { recursive: true, force: true });
@@ -20679,10 +20679,11 @@ arm: {
       'shop-pay': { minH: 40, minW: 120, logo: 'provider-logo/logo/shop-pay' },
     };
     const harbor = parseDesignMd(readFileSync(new URL('./examples/harbor.design.md', import.meta.url), 'utf8')).input;
+    // #1889: a density the engine refuses records one named failure and reads NaN, so the arms below fail by their own names.
     const builds = (['compact', 'comfortable', 'spacious'] as const).map((density) => {
-      const t = buildTree(brandTheme({ ...harbor, density })).tree as Record<string, unknown>;
-      const r = Object.keys(t)[0];
-      return { density, px: (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
+      const t = exampleTheme(`harbor (density ${density})`, () => buildTree(brandTheme({ ...harbor, density })).tree as Record<string, unknown>);
+      const r = t ? Object.keys(t)[0] : undefined;
+      return { density, px: (v: string | undefined): number => (v && t && r ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
     });
     const comfortable = builds.find((b) => b.density === 'comfortable')!;
     const plans = figmaAnatomySet(wb, {});
@@ -20720,9 +20721,9 @@ arm: {
     // `buttonRadius` to min(radius, height / 2). The lever bounds come from the manifest, the clamp from codeOnly.
     const leverMax = (key: string): number => (leverManifest.find((l) => l.key === key) as { max?: number } | undefined)?.max ?? NaN;
     const softest = (['compact', 'comfortable', 'spacious'] as const).map((density) => {
-      const t = buildTree(brandTheme({ ...harbor, density, radiusScale: leverMax('radiusScale'), baseMd: leverMax('baseMd') })).tree as Record<string, unknown>;
-      const r = Object.keys(t)[0];
-      return { density, px: (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
+      const t = refusable(`#2343 the softest harbor (density ${density})`, () => buildTree(brandTheme({ ...harbor, density, radiusScale: leverMax('radiusScale'), baseMd: leverMax('baseMd') })).tree as Record<string, unknown>); // #1889
+      const r = t ? Object.keys(t)[0] : undefined;
+      return { density, px: (v: string | undefined): number => (v && t && r ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
     });
     const softOver = overHalf(softest);
     const clamped = (codeOnlyText(wb.anatomy.codeOnly) ?? []).some((c) => /Google Pay/.test(c) && /min\(radius, height \/ 2\)/.test(c));
