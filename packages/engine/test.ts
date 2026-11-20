@@ -27217,6 +27217,16 @@ arm: {
         ok(dDefs.length > 0 && dDefs.every((d) => JSON.stringify(d.preferredValues) === '[{"type":"COMPONENT","key":"CK:icon/search"}]') && dMisses.length === dDefs.length
           && dMisses.every((m) => /^property \S.*\.preferred -> 1 icon name\(s\) held by more than one component \(icon\/check; not offered in the swap\. Rename or remove the stale copies, then rebuild\)$/.test(m)),
           `#4164 paste, duplicate: an icon name two components hold is left out of the list and named as a miss (${JSON.stringify(dDefs.map((d) => d.preferredValues))}; ${JSON.stringify(dMisses)})`);
+        // A file whose only `icon/` component is the placeholder: nothing to prefer, so nothing is written, and it is no
+        // miss either, since the file does hold an icon. Mutation: the miss keyed on the filtered list (`if(!by.size)` →
+        // `if(!names.length)`) → `#4164 paste, placeholder only`.
+        const oPage = { children: [] as Record<string, unknown>[] };
+        const oRun = await runPayload(planSetToPluginJs(iconTag), { vars: iconTag.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: iconTag.flatMap((pl) => planTextStyles(pl.root)),
+          comps: ['icon/FPO-default-icon', 'provider-logo/payment/generic'], compKeys: true, page: oPage });
+        const oDefs = Object.values((((oPage.children.find((c) => c.type === 'COMPONENT_SET') ?? {}) as Record<string, unknown>).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+        const oMisses = oRun.misses.filter((m) => /\.preferred ->/.test(m));
+        ok(oDefs.length > 0 && oDefs.every((d) => d.preferredValues === undefined) && oMisses.length === 0,
+          `#4164 paste, placeholder only: a file whose only icon is the placeholder gets no preferred list and no miss (${JSON.stringify(oDefs.map((d) => d.preferredValues))}; ${JSON.stringify(oMisses)})`);
       }
 
       // ---- #2645: PER-INSTANCE OVERRIDES on a nested instance — validator, projection, and the PASTE executor ----

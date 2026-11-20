@@ -254,6 +254,17 @@ console.log('\nicon swaps prefer every core icon (#4164)');
   ok(dup.length > 0 && dup.every((d) => JSON.stringify(d.preferredValues) === want3) && dupMisses.length === dup.length
     && dupMisses.every((m) => /^property \S.*\.preferred -> 1 icon name\(s\) held by more than one component \(icon\/check; not offered in the swap\. Rename or remove the stale copies, then rebuild\)$/.test(m)),
     `#4164 icon swaps/duplicate: an icon name two components hold is left out of the list and named as a miss (${JSON.stringify(dup.map((d) => d.preferredValues))}; ${JSON.stringify(dupMisses)})`);
+  // A file whose only `icon/` component is the placeholder: nothing to prefer, so nothing is written, and it is no miss
+  // either, since the file does hold an icon. Mutation: the miss keyed on the filtered list (`if (!byName.size)` →
+  // `if (!names.length)`) → `#4164 icon swaps/placeholder only`.
+  // Tag's own plan names icon/check and icon/close too; they are kept out of this file, so the placeholder is its only icon.
+  const h4 = host(plans, { comps: [...new Set([...plans.flatMap((p) => planComps(p.root)).filter((n) => !n.startsWith('icon/')), ICON_TARGET, 'provider-logo/payment/generic'])] });
+  const r4 = await applyComponentPlan(plans, h4.api, {});
+  const icons4 = (h4.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as { name: string }[]).map((c) => c.name).filter((n) => n.startsWith('icon/'));
+  const only = Object.values(((setOf(h4.page) as any).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+  const onlyMisses = r4.misses.filter((m) => /\.preferred ->/.test(m));
+  ok(JSON.stringify([...new Set(icons4)]) === JSON.stringify([ICON_TARGET]) && only.length > 0 && only.every((d) => d.preferredValues === undefined) && onlyMisses.length === 0,
+    `#4164 icon swaps/placeholder only: a file whose only icon is the placeholder gets no preferred list and no miss (icons ${JSON.stringify([...new Set(icons4)])}; ${JSON.stringify(only.map((d) => d.preferredValues))}; ${JSON.stringify(onlyMisses)})`);
 }
 
 console.log('\nthe executor searches the file for components with hidden instance children skipped, once per pass (#4160)');
