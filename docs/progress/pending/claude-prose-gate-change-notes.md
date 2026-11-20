@@ -29,7 +29,9 @@ with allow-sets instead: `EN_GB_SLUGS`, `revising`, `nraises`/`notherwise` in `N
 and `FILLER_NOUN_BEFORE` for "note" as a noun. Those stay. They are widenings, so they are harmless beside the carve,
 which blanks the carried notes before any of them is consulted. This PR's own `NOTE_AS_NOUN` was dropped in the
 refresh in favor of `FILLER_NOUN_BEFORE`, so there is one noun context, and its `revising` and `wrote` duplicates went
-with it. What this PR adds that `main` does not have is part 1 of Q181 A: the notes are read in `changes/`, before
+with it. Reading `changes/` then surfaced a note `FILLER_NOUN_BEFORE` missed: "each code-only note that names
+motion" (#4174's note), where a modifier sits between the determiner and "note". `FILLER_NOUN_MODIFIED` widens the
+allow-set for that case only: one modifier word, a lower-case `note`, on the same line. What this PR adds that `main` does not have is part 1 of Q181 A: the notes are read in `changes/`, before
 they merge.
 
 ### Verification
@@ -44,6 +46,9 @@ Mutations, each failing by name in the gate it targets:
 - passing a page with no heading gives `…a release page with no In detail heading is blind, not clean`;
 - dropping the `changes/` walk gives `the gate's SCOPE shrank … the pending change notes`;
 - dropping `pairwise` from `NOT_EN_GB` fails its own self-check sample.
+- dropping `FILLER_NOUN_MODIFIED` gives `"each code-only note that names motion" should NOT be flagged`; letting it
+  cross a newline gives `"the ramp\nnote that it moves" should be flagged as 'filler'`; letting it ignore case gives
+  `"Read the guide Note that it moves." should be flagged as 'filler'`.
 
 Against the real 0.238.0 pages from #3570, placed in the tree: with the carve, both pages pass both gates. Without
 it, #3570 measured 23 and 4 hits on the same pages.
