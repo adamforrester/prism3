@@ -65,7 +65,7 @@ import { REACTIONS_PATH, writeSetReactions } from './reactions';
 // #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
 import { bindGradientStops } from './write-styles';
 import type { VariableAlias, Rgba } from './write-styles';
-import type { PartialWriteFacts } from './apply-summary';
+import type { PartialWriteFacts } from './apply-summary'; import { errorClass, failureDetail } from './host-detail';   // #4253
 
 /** A Figma variable as this lane needs it: a name to index by, an id nothing here reads, and the
  *  consumer-resolver the one unbindable geometry value goes through (`absoluteInset` — `x`/`y` accept
@@ -1450,7 +1450,7 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   const where = n?.name ?? 'set';
   const set = (prop: keyof CompNode, value: unknown): void => {
     try { (node as Record<string, unknown>)[prop as string] = value; }
-    catch (err) { misses.push(`${where}.${String(prop)} -> UNCLAIMED and could not be neutralized (${(err as Error).message}); it keeps Figma's default — #865`); }
+    catch (err) { misses.push(`${where}.${String(prop)} -> UNCLAIMED and could not be neutralized (${failureDetail(err)}); it keeps Figma's default — #865`); }
   };
 
   // AN INSTANCE IS CLAIMED BY ITS NOMINATION, and nothing here may touch one. Its appearance comes from
@@ -1739,10 +1739,10 @@ const markPartialWrite = (api: ComponentsApi, trail: WriteTrail, dest: CompPageT
     // outcome than 648 loose, and the count the verdict reports is the number that actually moved.
     for (const n of nodes) {
       try { frame.appendChild?.(n); facts.parked++; }
-      catch (err) { facts.markError ??= (err as Error)?.message ?? String(err); }
+      catch (err) { facts.markError ??= failureDetail(err); }
     }
   } catch (err) {
-    facts.markError = (err as Error)?.message ?? String(err);
+    facts.markError = failureDetail(err);
   }
   return facts;
 };
@@ -2015,7 +2015,7 @@ const writeComponentSet = async (
       }
       let slot: Wr;
       try { slot = wr(comp.createSlot()); }
-      catch (err) { misses.push(`${member}/${sp.name}.slot -> REFUSED (${(err as Error)?.message ?? String(err)}; built as a plain frame)`); continue; }
+      catch (err) { misses.push(`${member}/${sp.name}.slot -> REFUSED (${failureDetail(err)}; built as a plain frame)`); continue; }
       slot.name = sp.name;
       parent.insertChild?.(((parent.children ?? []) as Wr[]).indexOf(frame), slot);
       // MOVED with `insertChild`, which takes a node out of its old parent, as Figma's own move does.
@@ -2219,7 +2219,7 @@ const writeComponentSet = async (
         }
         if (Object.keys(set).length) {
           try { node.setProperties?.(set); }
-          catch (err) { misses.push(`${n.name}.nestTexts -> REFUSED (${(err as Error)?.message ?? String(err)})`); }
+          catch (err) { misses.push(`${n.name}.nestTexts -> REFUSED (${failureDetail(err)})`); }
         }
       }
     } else if (n.type === 'GLYPH') {
@@ -2345,12 +2345,12 @@ const writeComponentSet = async (
           // brand's typography.
           if (st.fontName) {
             try { await api.loadFontAsync(st.fontName); }
-            catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${refusalOf(err)})`); }
+            catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} REFUSED (${errorClass(err)}: ${refusalOf(err)})`); }
           }
           // A PROPERTY write (#982): refused, it is a miss and the member keeps building. `appliedStyle` stays
           // unset, so the #1567 re-apply below does not try the style a second time.
           try { await node.setTextStyleIdAsync(st.id); appliedStyle = st; }
-          catch (err) { misses.push(`${n.name}.textStyle -> ${n.textStyle} REFUSED (${(err as Error).message})`); }
+          catch (err) { misses.push(`${n.name}.textStyle -> ${n.textStyle} REFUSED (${failureDetail(err)})`); }
         }
       }
       // A LITERAL FONT (#2343 PR 5): the face a provider fixes, in place of a text style. The face first, then its
@@ -2361,14 +2361,14 @@ const writeComponentSet = async (
         let face: { family: string; style: string } | undefined;
         for (const want of [{ family: f.family, style: f.style }, f.fallback]) {
           try { await api.loadFontAsync(want); face = want; break; }
-          catch (err) { misses.push(`${n.name}.font -> ${want.family} ${want.style} (${refusalOf(err)})`); }
+          catch (err) { misses.push(`${n.name}.font -> ${want.family} ${want.style} REFUSED (${errorClass(err)}: ${refusalOf(err)})`); }
         }
         if (face) {
           try {
             node.fontName = { family: face.family, style: face.style };
             node.fontSize = f.size;
             node.lineHeight = { unit: 'PIXELS', value: f.lineHeight };
-          } catch (err) { misses.push(`${n.name}.literalFont -> ${face.family} ${face.style} ${f.size}/${f.lineHeight} (${(err as Error).message})`); }
+          } catch (err) { misses.push(`${n.name}.literalFont -> ${face.family} ${face.style} ${f.size}/${f.lineHeight} REFUSED (${failureDetail(err)})`); }
           const fn = node.fontName, lh = node.lineHeight;
           if (!(fn && typeof fn === 'object' && fn.family === face.family && fn.style === face.style) || node.fontSize !== f.size || !(lh && typeof lh === 'object' && lh.unit === 'PIXELS' && lh.value === f.lineHeight))
             misses.push(`${n.name}.literalFont -> DISCARDED (set ${face.family} ${face.style} ${f.size}/${f.lineHeight})`);
@@ -2395,10 +2395,10 @@ const writeComponentSet = async (
         const fn = node.fontName;
         if (fn && typeof fn === 'object') {
           try { await api.loadFontAsync(fn); }
-          catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} (${refusalOf(err)})`); }
+          catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} REFUSED (${errorClass(err)}: ${refusalOf(err)})`); }
         }
         try { node.characters = n.characters; }
-        catch (err) { misses.push(`${n.name}.characters -> ${JSON.stringify(n.characters)} (${(err as Error).message})`); }
+        catch (err) { misses.push(`${n.name}.characters -> ${JSON.stringify(n.characters)} REFUSED (${failureDetail(err)})`); }
         // READ BACK: a text node that silently kept nothing is the empty-label set #510 shipped.
         if (node.characters !== n.characters)
           misses.push(`${n.name}.characters -> DISCARDED (set ${JSON.stringify(n.characters)}, reads ${JSON.stringify(node.characters)})`);
@@ -2411,25 +2411,25 @@ const writeComponentSet = async (
       // refuses that plan first, and this is the second of the two directions.
       if (n.textAlignVertical) {
         try { node.textAlignVertical = n.textAlignVertical; }
-        catch (err) { misses.push(`${n.name}.textAlignVertical -> ${n.textAlignVertical} (${(err as Error).message})`); }
+        catch (err) { misses.push(`${n.name}.textAlignVertical -> ${n.textAlignVertical} REFUSED (${failureDetail(err)})`); }
         if (node.textAlignVertical !== undefined && node.textAlignVertical !== n.textAlignVertical)
           misses.push(`${n.name}.textAlignVertical -> DISCARDED (set ${n.textAlignVertical}, reads ${String(node.textAlignVertical)})`);
       }
       // IN PLACE, a style the plan no longer names is cleared, so the node does not keep one by default.
       if (ex && !n.textStyle && typeof node.textStyleId === 'string' && node.textStyleId) {
         try { await node.setTextStyleIdAsync?.(''); }
-        catch (err) { misses.push(`${n.name}.textStyle -> could not be cleared (${(err as Error).message})`); }
+        catch (err) { misses.push(`${n.name}.textStyle -> could not be cleared (${failureDetail(err)})`); }
       }
       if (ex && !n.effectStyle && typeof (node as { effectStyleId?: unknown }).effectStyleId === 'string' && (node as { effectStyleId?: string }).effectStyleId) {
         try { await node.setEffectStyleIdAsync?.(''); }
-        catch (err) { misses.push(`${n.name}.effectStyle -> could not be cleared (${(err as Error).message})`); }
+        catch (err) { misses.push(`${n.name}.effectStyle -> could not be cleared (${failureDetail(err)})`); }
       }
       if (n.effectStyle) {
         const ef = effectByName.get(n.effectStyle);
         if (!ef) misses.push(`${n.name}.effectStyle -> ${n.effectStyle}`);
         else {
           try { await node.setEffectStyleIdAsync?.(ef.id); }
-          catch (err) { misses.push(`${n.name}.effectStyle -> ${n.effectStyle} REFUSED (${(err as Error).message})`); }
+          catch (err) { misses.push(`${n.name}.effectStyle -> ${n.effectStyle} REFUSED (${failureDetail(err)})`); }
         }
       }
       if (n.layoutMode) {
@@ -2503,7 +2503,7 @@ const writeComponentSet = async (
         // A PROPERTY write (#982): a refused binding is one miss, not the end of a 648-member build. It is not
         // pushed to `wrote`, so the read-back does not also report a write that never landed.
         try { node.setBoundVariable?.(prop, v); wrote.push(prop); }
-        catch (err) { misses.push(`${n.name}.${prop} -> ${varName} REFUSED (${(err as Error).message})`); }
+        catch (err) { misses.push(`${n.name}.${prop} -> ${varName} REFUSED (${failureDetail(err)})`); }
       }
       // IN PLACE, a binding the plan no longer declares is removed. Paints are bound in their arrays, below, and a
       // bound `strokeWeight` reads back on its four sides (#1332), so neither is a stray here. An INSTANCE's
@@ -2521,7 +2521,7 @@ const writeComponentSet = async (
           if (planned.has(prop) || (prop === 'minWidth' && n.minWidth !== undefined)) continue;
           if (typeof node[prop] !== 'number') continue;
           try { node[prop] = null; }
-          catch (err) { misses.push(`${n.name}.${prop} -> not cleared (${(err as Error).message}); it keeps ${String(node[prop])} from an earlier build`); }
+          catch (err) { misses.push(`${n.name}.${prop} -> not cleared (${failureDetail(err)}); it keeps ${String(node[prop])} from an earlier build`); }
         }
       }
 
@@ -2994,7 +2994,7 @@ const writeComponentSet = async (
       const hv = c.bound.height ? byName.get(c.bound.height) : undefined;
       if (hv) {
         try { kid.setBoundVariable?.('height', hv); }
-        catch (err) { misses.push(`${c.name}.height -> ${c.bound.height} REFUSED after the foot pin's resize (${(err as Error).message})`); }
+        catch (err) { misses.push(`${c.name}.height -> ${c.bound.height} REFUSED after the foot pin's resize (${failureDetail(err)})`); }
       }
       kid.x = (fw - bw) / 2;
       kid.y = (node.height ?? 0) - (kid.height ?? 0);
@@ -3066,7 +3066,7 @@ const writeComponentSet = async (
     // loaded-font state is per RUN.
     if (appliedStyle) {
       try { await node.setTextStyleIdAsync?.(appliedStyle.id); }
-      catch (err) { misses.push(`${n.name}.textStyle -> ${appliedStyle.name} could not be re-applied after the #865 defaults (${(err as Error).message})`); }
+      catch (err) { misses.push(`${n.name}.textStyle -> ${appliedStyle.name} could not be re-applied after the #865 defaults (${failureDetail(err)})`); }
       if (node.textStyleId !== appliedStyle.id)
         misses.push(`${n.name}.textStyle -> DISCARDED (set ${appliedStyle.name} after the #865 defaults, reads ${node.textStyleId ? String(node.textStyleId) : 'no style'})`);
     }
@@ -3231,7 +3231,7 @@ const writeComponentSet = async (
         else if (now.tint?.[p] !== undefined) { const { [p]: _gone, ...rest } = now.tint; now.tint = Object.keys(rest).length ? rest : undefined; }
       }
       m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
-    } catch (err) { return `${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`; }
+    } catch (err) { return `${mName}.asBuilt -> NOT RECORDED (${failureDetail(err)})`; }
     // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.
     m.setSharedPluginData?.(NS, STAMP_KEY, stampByMember.get(mName) ?? '');
     m.setSharedPluginData?.(NS, UPDATING_KEY, '');
@@ -3256,7 +3256,7 @@ const writeComponentSet = async (
       for (const inst of expose) {
         if (inst.isExposedInstance === true) continue;
         try { inst.isExposedInstance = true; }
-        catch (err) { misses.push(`${spec.name}.nestExpose -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+        catch (err) { misses.push(`${spec.name}.nestExpose -> REFUSED (${failureDetail(err)})`); continue; }
         if (inst.isExposedInstance !== true)
           misses.push(`${spec.name}.nestExpose -> DISCARDED (set true, reads ${String(inst.isExposedInstance)}; the nested instance's properties will not surface on the parent)`);
       }
@@ -3311,7 +3311,7 @@ const writeComponentSet = async (
         // silent drop is caught there too — this miss is what says WHICH node and WHY.
         for (const inst of expose) {
           try { inst.isExposedInstance = true; }
-          catch (err) { misses.push(`${spec.name}.nestExpose -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+          catch (err) { misses.push(`${spec.name}.nestExpose -> REFUSED (${failureDetail(err)})`); continue; }
           if (inst.isExposedInstance !== true)
             misses.push(`${spec.name}.nestExpose -> DISCARDED (set true, reads ${String(inst.isExposedInstance)}; the nested instance's properties will not surface on the parent)`);
         }
@@ -3435,7 +3435,7 @@ const writeComponentSet = async (
     // THE "AS BUILT" BASELINE (#2265), as on the set path: after the last write, on this run's members only.
     for (const c of fresh) {
       try { await writeBaseline(c); }
-      catch (err) { misses.push(`${String(c.name)}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
+      catch (err) { misses.push(`${String(c.name)}.asBuilt -> NOT RECORDED (${failureDetail(err)})`); }
     }
     // THE MEMBERS THIS RUN UPDATED IN PLACE (#2296), finished as a set member is: record, stamp last, marker off. Before
     // this the emit branch returned first, so an updated icon would never take its new stamp and would keep its marker.
@@ -3679,7 +3679,7 @@ const writeComponentSet = async (
   let readable = false;
   try { defs = set.componentPropertyDefinitions ?? {}; readable = true; }
   catch (err) {
-    const first = (err as Error).message;
+    const first = failureDetail(err);
     try {
       defs = liveSet().componentPropertyDefinitions ?? {};
       readable = true;
@@ -3721,11 +3721,11 @@ const writeComponentSet = async (
           const r = (n.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
           if (r?.slotContentId === keep) continue;
           try { wr(n).componentPropertyReferences = { ...(r ?? {}), slotContentId: keep }; }
-          catch (err) { misses.push(`${String(m.name)}/${p.name}.slot -> NOT RE-POINTED at ${keep} (${(err as Error)?.message ?? String(err)})`); }
+          catch (err) { misses.push(`${String(m.name)}/${p.name}.slot -> NOT RE-POINTED at ${keep}, REFUSED (${failureDetail(err)})`); }
         }
       for (const k of keys.slice(1)) {
         try { liveSet().deleteComponentProperty?.(k); consolidated = true; }
-        catch (err) { misses.push(`property ${k} -> a second SLOT property named ${p.name}, NOT DELETED (${(err as Error)?.message ?? String(err)})`); }
+        catch (err) { misses.push(`property ${k} -> a second SLOT property named ${p.name}, NOT DELETED (${failureDetail(err)})`); }
       }
     }
     if (consolidated) { try { defs = liveSet().componentPropertyDefinitions ?? defs; } catch { /* the read-back below reports an unreadable set */ } }
@@ -3779,7 +3779,7 @@ const writeComponentSet = async (
       const id = liveSet().addComponentProperty?.(p.name, p.type, def);
       if (id) propIds.set(p.name, id);
     } catch (err) {
-      misses.push(`property ${p.name} -> ${p.type} REFUSED (${(err as Error).message})`);
+      misses.push(`property ${p.name} -> ${p.type} REFUSED (${failureDetail(err)})`);
     }
   }
 
@@ -3830,7 +3830,7 @@ const writeComponentSet = async (
     const edit = liveSet().editComponentProperty;
     if (!edit) { misses.push(`property ${p.name}.slotSettings -> NOT WRITTEN (this host cannot edit a component property)`); continue; }
     try { edit.call(liveSet(), key, { slotSettings, preferredValues }); }
-    catch (err) { misses.push(`property ${p.name}.slotSettings -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+    catch (err) { misses.push(`property ${p.name}.slotSettings -> REFUSED (${failureDetail(err)})`); continue; }
     // READ BACK off the set, so a host that took the write and kept something else is named.
     let back: { slotSettings?: Record<string, unknown>; preferredValues?: readonly { key?: unknown }[] } | undefined;
     try { back = (liveSet().componentPropertyDefinitions ?? {})[key] as typeof back; } catch { back = undefined; }
@@ -4029,7 +4029,7 @@ const writeComponentSet = async (
         // now QUEUED rather than reported, and becomes a miss only if it still fails after a host yield.
         // Carries the property/field ACTUALLY attempted and the ORIGINAL throw (the live-node retry's own
         // failure, if any, is swallowed above — the first cause is the one a reader needs).
-        if (!recovered) deferredRefs.push({ member: String(member.name), part: r.part, field, id, prop: own?.prop ?? r.prop, cause: (err as Error).message });
+        if (!recovered) deferredRefs.push({ member: String(member.name), part: r.part, field, id, prop: own?.prop ?? r.prop, cause: failureDetail(err) });
       }
     }
     if ((i + 1) % chunkSize === 0 || i + 1 === toWire.length) await breathe('wire', i + 1, toWire.length);
@@ -4113,7 +4113,7 @@ const writeComponentSet = async (
     for (const d of list)
       refMiss(d.member, d.part, d.field, d.discarded
         ? `ref ${d.member}/${d.part}.${d.field} -> DISCARDED (${d.cause})`
-        : `ref ${d.member}/${d.part}.${d.field} -> ${d.prop} (${d.cause})`, kind);
+        : `ref ${d.member}/${d.part}.${d.field} -> ${d.prop} REFUSED (${d.cause})`, kind);
 
   // #1567 — HOW MANY DISTINCT CAPTIONS THE PLANS DECLARE AT EACH BOUND PART, and what default each TEXT
   // property was created with. Both feed the collapse report in the read-back loop below; computed here,
@@ -4422,7 +4422,7 @@ const writeComponentSet = async (
       continue;
     }
     try { await writeBaseline(m); }
-    catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
+    catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${failureDetail(err)})`); }
   }
   const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss, reactionMiss, asBuiltMiss);
   const keptMisses = opts.update ? allMisses.filter((x) => keptBoundOf(x, opts.update!.members) !== null) : [];

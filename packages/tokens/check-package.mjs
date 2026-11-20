@@ -67,6 +67,8 @@ const CSS_ORDER = {
   typography: FONT_SHORTHAND,
 };
 
+/** The system-preference query the dark values also apply under (#4140), written here, not read off the build. */
+const SYSTEM_DARK = '@media (prefers-color-scheme: dark)';
 /** The decided prefix (Q98 A): stock Style Dictionary's root-prefixed names. */
 const PREFIX = '--pds3-';
 /**
@@ -77,9 +79,13 @@ const PREFIX = '--pds3-';
 const PROMISED_BLOCKS = [
   [':root', 'base'], ['[data-theme="light"]', 'base'],
   ['[data-theme="dark"]', 'dark'], ['[data-theme="hc-dark"]', 'hc-dark'], ['[data-theme="hc-light"]', 'hc-light'],
+  // #4140 (owner decision A): a page that sets no `data-theme` follows the OS into dark, and `dark.css` carries it.
+  [`${SYSTEM_DARK} :root:not([data-theme])`, 'dark'],
 ];
-/** How many rules the CSS holds: one per mode, since the two light selectors share one rule. */
-const PROMISED_RULES = new Set(PROMISED_BLOCKS.map(([, mode]) => mode)).size;
+/** The rule a promised selector belongs to: a nested `@media` block is a rule of its own; the rest share one per mode. */
+const ruleOf = ([sel, mode]) => (sel.startsWith('@media') ? sel : mode);
+/** How many rules the CSS holds: one per mode, since the two light selectors share one rule, plus each `@media` block. */
+const PROMISED_RULES = new Set(PROMISED_BLOCKS.map(ruleOf)).size;
 /** What `npm pack` may put in the tarball: the shippable CSS, the README, and the manifest npm always adds. */
 const ALLOWED_FILE = /^(package\.json|README\.md|dist\/prism3\.css|dist\/prism3\/[\w-]+\.css)$/;
 /** The DTCG spec's types — this gate's own transcription, as in `check-consumability.mjs` (docs/34). */
@@ -98,7 +104,15 @@ const ok = (cond, label) => { console.log(`  ${cond ? '✓' : '✗'} ${label}`);
 const readBlocks = (css) => {
   const blocks = new Map();
   let rules = 0;
-  const src = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // A nested `@media (…) { sel { … } }` block (#4140) is read as the selector `@media (…) sel`, then cut out, so the
+  // flat pass below never sees its braces.
+  const src = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(@media[^{]+)\{\s*([^{}]+)\{([^}]*)\}\s*\}/g, (_, q, sel, body) => {
+    rules++;
+    const vars = {};
+    for (const d of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) vars[d[1]] = d[2].trim();
+    for (const one of sel.split(',').map((x) => x.trim()).filter(Boolean)) blocks.set(`${q.trim()} ${one}`, vars);
+    return '';
+  });
   for (const m of src.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
     rules++;
     for (const sel of m[1].split(',').map((x) => x.trim()).filter(Boolean)) {
@@ -244,13 +258,15 @@ try {
   // `[data-theme="dark"] {}` with no declarations, and would pass one carrying another mode's values.
   let ownRoot = {};
   for (const mode of new Set(PROMISED_BLOCKS.map(([, m]) => m))) {
-    const sels = PROMISED_BLOCKS.filter(([, m]) => m === mode).map(([s]) => s);
+    const mine = PROMISED_BLOCKS.filter(([, m]) => m === mode);
+    const sels = mine.map(([s]) => s);
+    const nRules = new Set(mine.map(ruleOf)).size;
     const spec = `@prism3/tokens/prism3/${mode}.css`;
     let file;
     try { file = req.resolve(spec); } catch { file = null; }
     const own = file ? readBlocks(readFileSync(file, 'utf8')) : new Map();
-    ok(Boolean(file) && own.rules === 1 && own.size === sels.length && sels.every((s) => own.has(s)),
-      `[OWN FILE] \`${spec}\` resolves and holds exactly one rule, \`${sels.join(', ')}\`${file ? ` (got ${[...own.keys()].join(' · ') || 'none'})` : ''}`);
+    ok(Boolean(file) && own.rules === nRules && own.size === sels.length && sels.every((s) => own.has(s)),
+      `[OWN FILE] \`${spec}\` resolves and holds exactly ${nRules === 1 ? 'one rule' : `${nRules} rules`}, \`${sels.join(', ')}\`${file ? ` (got ${[...own.keys()].join(' · ') || 'none'})` : ''}`);
     for (const sel of sels) {
       const vars = own.get(sel);
       if (!vars) continue;
