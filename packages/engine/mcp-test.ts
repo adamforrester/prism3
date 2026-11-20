@@ -621,6 +621,7 @@ await new Promise((r) => setTimeout(r, 3000));
   const stdBrief = ['---', 'version: alpha', 'name: Lumen Coffee', 'x-prism3:', '  root: lcds', '  density: compact', '  tempo: brisk',
     'colors:', '  primary: "#6B3E26"', '  secondary: "#D9A441"', '  neutral-900: "#2A2522"', '  neutral-100: "#F4F0EC"',
     '  white: "#FFFFFF"', '  error: "#B3261E"', 'typography:', '  body: { fontFamily: Inter, fontSize: 16px, fontWeight: 400 }',
+    '  body-alt: { fontFamily: Georgia, fontSize: 14px, fontWeight: 400 }',
     '---', '# Lumen Coffee'].join('\n');
   const std = await server.callJson('theme_from_brief', { brief: stdBrief });
   ok(!std.isError, `#4118 theme_from_brief generates from a standard-dialect brief (${std.isError ? JSON.stringify(std.payload).slice(0, 200) : 'ok'})`);
@@ -630,6 +631,14 @@ await new Promise((r) => setTimeout(r, 3000));
     '#4118 theme_from_brief applies the x-prism3 levers and lists them in xApplied');
   ok(JSON.stringify(std.payload?.xWarnings ?? []).includes("'tempo'"),
     '#4118 theme_from_brief names the x-prism3 key it skipped in xWarnings, as the CLI does');
+  // #4137 (#4265) put typography faces on the same xWarnings channel. The tool description's xWarnings clause must
+  // name every channel the PAYLOAD carries: CLAIM is the description's own sentence, ACTUAL is each warning's
+  // `<channel>:` prefix as the converter wrote it, so a new channel with no description edit fails here.
+  const channels = [...new Set(((std.payload?.xWarnings ?? []) as string[]).map((w) => w.split(':')[0]))];
+  const fromBrief = (((await server.reply(server.send('tools/list'))).result?.tools ?? []) as any[]).find((t) => t.name === 'theme_from_brief');
+  const xClause = String(fromBrief?.description ?? '').split('For a standard brief')[1]?.split('. ')[0] ?? '';
+  ok(channels.length >= 2 && channels.every((c) => xClause.includes(c)),
+    `#4118 theme_from_brief's description names every kind of skip xWarnings reports (${channels.join(', ')} vs "${xClause.slice(0, 160)}")`);
   ok(Array.isArray(std.payload?.classification) && std.payload.classification.length > 0,
     '#4118 theme_from_brief returns the color classification, so a misread swatch is visible');
   ok(gen.payload.dialect === undefined && gen.payload.xWarnings === undefined,

@@ -10,6 +10,9 @@ follows #4118's suggested fix, which makes #4200 Q2 moot (the lane's call, recor
 - **Test:** `mcp-test.ts` journey ⑦ sends the issue's standard brief over real stdio (6 `#4118` arms). On `main`:
   the 5 standard-brief arms fail (the sixth, an engine-native brief stays off the converter, holds on both). With the fix: 91 passed.
 - **Mutation:** the standard branch removed (always the engine-native parser) fails the `#4118` arms by name.
+- **After #4265:** `xWarnings` also names the typography faces the converter does not read (#4137), so the tool
+  description's clause now names both kinds, and a 7th `#4118` arm holds that clause to the warning prefixes the
+  payload actually carries (a new kind with no description edit fails it by name).
 - **Left for others:** the parse error for a file with no fence still says "standard design.md must open with…"
   for either dialect, as the CLI's does (#4200 E, #4029). The tool's description still says "plus prose", which
   #4200 D holds for the owner.
