@@ -85,7 +85,7 @@ import {
   type VarKey,
 } from './materialization-renames';
 import { deriveVariableRenames } from './rename-map';
-import { comparisonBase } from './comparison-base';
+import { comparisonBase, mergeGroupBase } from './comparison-base';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(HERE, '..', '..');
@@ -175,7 +175,13 @@ const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_R
 let baseRef: string | null = null;
 const tried: string[] = [];
 let baseVia = 'local ladder';
-if (prBase) {
+const mg = mergeGroupBase(git);
+if (mg) {
+  // A merge-queue run (#4106): the group's parent commit, authoritative (`comparison-base.ts`).
+  baseVia = 'merge group';
+  tried.push(mg.tried);
+  baseRef = mg.ref;
+} else if (prBase) {
   baseVia = 'GITHUB_BASE_REF';
   const r = git('rev-parse', '--verify', '--quiet', `${prBase}^{commit}`);
   tried.push(`${prBase} (GITHUB_BASE_REF, authoritative) — ${r.ok ? 'resolves' : 'does not resolve'}`);

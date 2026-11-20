@@ -207,7 +207,7 @@ import type { ButtonLayout } from './anatomy-figma';
 import { componentSizes, sizeRefPx, SPACE_BASE } from './scale';
 import type { AnatomyPlan, WeightAvailability } from './anatomy-figma';
 import type { ComponentDef } from './component-schema';
-import { comparisonBase } from './comparison-base';
+import { comparisonBase, mergeGroupBase } from './comparison-base';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -431,7 +431,13 @@ const resolveBase = (): { base: string; ref: string; via: string } => {
   let ref: string | null = null;
   let via = 'local ladder';
   const tried: string[] = [];
-  if (prBase) {
+  const mg = mergeGroupBase(git);
+  if (mg) {
+    // A merge-queue run (#4106): the group's parent commit, authoritative (`comparison-base.ts`).
+    via = 'merge group';
+    tried.push(mg.tried);
+    ref = mg.ref;
+  } else if (prBase) {
     via = 'GITHUB_BASE_REF';
     const r = git('rev-parse', '--verify', '--quiet', `${prBase}^{commit}`);
     tried.push(`${prBase} (GITHUB_BASE_REF, authoritative) — ${r.ok ? 'resolves' : 'does not resolve'}`);
