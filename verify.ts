@@ -986,9 +986,9 @@ export const GATES: Gate[] = [
     ciStep: 'Voice lint gate (shipped text)',
     cmd: engine('lint-voice.ts'),
     after: ['build-web', 'build-plugin'],
-    // `build-plugin` since #1824: the CLIENT NAMES arm reads apps/plugin/dist (main.js + ui.html) raw.
-    // The voice RULES still do not (#948 is open), so this ordering serves that one arm today.
-    why: 'the voice rules scan apps/studio/dist/*.js, and the client-name arm (#1824) scans both built bundles — run before either build it reads a stale one, or none',
+    // `build-plugin` since #1824: the CLIENT NAMES arm reads apps/plugin/dist (main.js + ui.html) raw, and since
+    // #948 the voice RULES read both files too.
+    why: 'the voice rules and the client-name arm (#1824) scan both built bundles, apps/studio/dist and apps/plugin/dist — run before either build it reads a stale one, or none',
   },
   {
     id: 'lint-doc-gates',
