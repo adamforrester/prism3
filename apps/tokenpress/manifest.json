@@ -11,6 +11,5 @@
   "networkAccess": {
     "allowedDomains": ["none"],
     "reasoning": "This plugin operates entirely client-side with no external network calls"
-  },
-  "permissions": ["currentuser"]
+  }
 }

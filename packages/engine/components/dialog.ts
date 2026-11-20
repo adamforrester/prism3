@@ -68,6 +68,10 @@ export const dialog: ComponentDef = {
     { name: 'open', type: 'boolean', default: false, required: false, description: 'Whether the dialog is showing. Opening it moves focus into it and makes the page behind it inert.' },
     { name: 'onOpenChange', type: 'function', required: false, description: 'Called with false on every attempt to close: the close button, Escape, a backdrop click on a standard dialog, or an action that closes it. Keep open in step with it.' },
     { name: 'title', type: 'node', required: true, description: 'The heading that names the task. It is the dialog\'s accessible name, so make it specific: "Delete this address?", not "Are you sure?". It wraps rather than truncating.' },
+    // #2895 (owner Q692 A; the wireframe's Q1 A, Q4 A and Q5 A, approved 2026-11-18): a boolean, off by default, that
+    // hides the title from view and keeps it as the accessible name. Named `hideTitle` by owner decision B (2026-11-18),
+    // Q-CC7 A's one hidden-label convention (`hideLabel`, #3554); the Figma switch stays `show title`. DRAFT copy.
+    { name: 'hideTitle', type: 'boolean', default: false, required: false, description: 'Hides the title from view and keeps it as the dialog\'s accessible name, for a dialog whose tabs or body name the content, such as a full-screen dialog on a small screen. An alertdialog always shows its title. Never display: none.' },
     { name: 'description', type: 'node', required: false, description: 'One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog\'s accessible description.' },
     { name: 'children', type: 'node', required: true, description: 'The body content. The body is the only part that scrolls; the header and footer stay in place.' },
     { name: 'actions', type: 'slot', anyOf: ['button', 'button-destructive', 'button-neutral'], minItems: 1, maxItems: 3, required: false, description: 'The footer buttons, one to three Button elements, laid out by a Button group. Inline and fill, the main action last (Cancel, then Save); stacked, the main action first. Fill suits two. Name each by what it does.' },
@@ -183,7 +187,9 @@ export const dialog: ComponentDef = {
         kind: 'text',
         type: 'title-type',
         wrap: true,
-        note: 'The title: the dialog\'s accessible name. It wraps onto more lines rather than truncating.',
+        // Optional only so the `show title` switch can hide it (#2895): the title is always in the code, as the name.
+        optional: true,
+        note: 'The title: the dialog\'s accessible name. It wraps onto more lines rather than truncating. Shown by default; when hidden, it keeps its text and style and still names the dialog.',
       },
       description: {
         kind: 'text',
@@ -304,13 +310,19 @@ export const dialog: ComponentDef = {
         class: 'semantics',
         disposition: 'refused',
         description:
-          'labeling — `aria-labelledby` points at the title, made a heading (`<h2>`); `aria-describedby` points at the description when there is one.',
+          'labeling — `aria-labelledby` points at the title, made a heading (`<h2>`); `aria-describedby` points at the description when there is one. With `hideTitle` the `<h2>` stays in the DOM, visually hidden (a 1px clipped box, never `display: none` or `visibility: hidden`), and `aria-labelledby` still points at it, so the labeling path is the same with the title shown or hidden; only a class changes. The hidden `<h2>` keeps its title style class. The description, when shown, takes the header\'s first line beside the close button and stays the accessible description.',
       },
       {
         class: 'keyboard-and-focus',
         disposition: 'refused',
         description:
-          'focus in — on open, focus moves into the dialog: to the first control in the body for a short form; to the title (`tabindex="-1"`) when the body is long reading content, so a screen reader starts at the top; for an alertdialog, to the least destructive action (Cancel). Never to a destructive button.',
+          'focus in — on open, focus moves into the dialog: to the first control in the body for a short form; to the title (`tabindex="-1"`) when the body is long reading content, so a screen reader starts at the top; for an alertdialog, to the least destructive action (Cancel). Never to a destructive button. With `hideTitle`, never to the hidden title, which would show no focus (SC 2.4.7): to the first control in the body instead, the active tab in a full-screen dialog whose tabs name the content.',
+      },
+      {
+        class: 'semantics',
+        disposition: 'refused',
+        description:
+          'the hidden title on an alertdialog — an alertdialog always shows its title, the question the user answers: code ignores `hideTitle` with `role="alertdialog"` and warns in development. In Figma the `show title` switch is on the whole set, so the docs say so.',
       },
       {
         class: 'keyboard-and-focus',
@@ -417,6 +429,11 @@ export const dialog: ComponentDef = {
       description: { part: 'description', default: 'Supporting text', figmaName: 'description text' },
     },
     booleans: {
+      // #2895 (Q1 A): `show title`, on by default, drives the title's visibility at every placement (Q4 A). The `title`
+      // text property stays editable while it is off: it is still the name code reads. Figma-only since owner decision B
+      // (2026-11-18): the code prop is `hideTitle`, which keeps the title in the accessibility tree, and the switch off
+      // stands for it, as Counter's `label` switch stands for `hideLabel` (Q-CC7 A).
+      showTitle: { part: 'title', default: true, figmaName: 'show title', figmaOnly: true },
       description: { part: 'description', default: false },
       close: { part: 'close', default: true, figmaName: 'close', figmaOnly: true },
       dividers: { part: ['headerDivider', 'footerDivider'], default: false, figmaName: 'dividers', figmaOnly: true, together: true },
@@ -439,7 +456,7 @@ export const dialog: ComponentDef = {
     ],
     keyboard: 'Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.',
     focus: 'Moves into the dialog on open (the first control, the title for long content, or Cancel in an alertdialog), stays inside while it is open, and returns to the control that opened it.',
-    aria: 'aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.',
+    aria: 'aria-modal="true"; aria-labelledby pointing at the title, a heading that stays in place, visually hidden, when the title is hidden; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.',
   },
 
   content: {
@@ -448,7 +465,7 @@ export const dialog: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something.',
+    usage: 'Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something. Turn the title off only when tabs or a heading in the body already name the content, most often in a full-screen dialog or a bottom sheet; the title still names the dialog for assistive technology.',
     do: [
       'Name the task in the title, and the action in the main button',
       'Keep the close button on a standard dialog',
@@ -467,6 +484,7 @@ export const dialog: ComponentDef = {
       'Build the backdrop into the panel. It is the page\'s scrim, behind the dialog.',
       'Use an end panel for navigation that stays open beside the page. It is a modal dialog and makes the page inert.',
       'Make an end panel an alertdialog. A confirmation belongs in the center.',
+      'Hide the title of an alertdialog. Its title is the question the user answers.',
     ],
     contentGuidelines: 'Titles are specific and in sentence case. Body text is short and states the consequence of an action, especially one that cannot be undone. Buttons are named by what they do.',
   },
@@ -482,10 +500,10 @@ export const dialog: ComponentDef = {
 
   composition: {
     composesWith: ['flush-icon-button-neutral', 'divider', 'button-group'],
-    alternativeTo: ['accordion', 'toast', 'banner'],
+    alternativeTo: ['accordion', 'toast', 'banner', 'popover'],
     replacesPatterns: ['a div overlay with a z-index and a hand-written focus trap', 'a backdrop built from a veil'],
     supersededBy: [],
-    planned: ['popover', 'menu'],
+    planned: ['menu'],
   },
 
   motion: {
@@ -505,6 +523,7 @@ export const dialog: ComponentDef = {
       'That a real Figma host keeps `clipsContent` and `overflowDirection = VERTICAL` on the body\'s native slot, and that its content then scrolls in a prototype (#3163). The component shim models both writes; no live file has read them back yet.',
     ],
     evolution: [
+      'Owner decision Q692 A (2026-10-25, #2895), the wireframe approved on every call (2026-11-18): a `show title` boolean, on by default, hides the title from view and keeps it as the accessible name (Q1 A); its code prop is `hideTitle`, off by default (owner decision B, 2026-11-18), the one hidden-label convention of Q-CC7 A. The description stays independent and moves up beside the close (Q2 A); the header collapses to its content (Q3 A); every placement takes it, the docs recommending it for full and bottom (Q4 A); an alertdialog always shows its title, code ignoring the prop and warning in development (Q5 A); the header divider is unchanged (Q6 A); the hidden title is a visually hidden `<h2>` that `aria-labelledby` still points at, and focus on open goes to the first body control (Q7 A). It replaces the hand-hidden title layer from the library page rebuild.',
       'Owner decision Q3130.8 A (2026-11-03, #3130; G14, #3163): the body is the scroll region at every placement. It clips and scrolls vertically, so a pinned footer never covers overflowing content; at full and end it takes the height the header and footer leave.',
       'Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording.',
       'Owner decision (2026-10-16, #2609): the close button is always the X. It shows the close icon on every member, and Dialog has no icon swap property; a product that needs another X changes the close glyph in its icon set or edits the component.',

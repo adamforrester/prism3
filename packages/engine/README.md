@@ -102,11 +102,11 @@ ready line on stderr naming the six tools, then waits for JSON-RPC on stdin.
 | Tool | What it does |
 |---|---|
 | `list_levers` | Lists what a brand input can set, with labels, types, options and defaults. Call it first. |
-| `validate_brand` | Checks a brand input against the schema without generating anything. |
+| `validate_brand` | Checks a brand input against the schema without generating anything. It takes `{ brand }`, as `theme_brand` does. |
 | `theme_brand` | Generates a token system from a brand input and verifies it. By default it returns the contrast results and the decisions log. `include` replaces that default: pass `["notes", "tokens"]` to get the token tree and keep the log. |
 | `theme_from_brief` | Does the same from a design.md brief (YAML frontmatter plus prose), and reports the brand input it derived. |
 | `score_consumption` | Scores generated output against a brand's tokens: invented tokens, primitive leaks, and contrast for the pairs you give it. |
-| `export_theme` | Writes `tokens.json`, `ai-metadata.json` and a `figma/` folder, and returns a list of what it wrote. |
+| `export_theme` | Writes the files the CLI writes, under the same names (`<id>.tokens.json`, the `<id>.base.tokens.json` + overlay set, `<id>.ai.json`), and a `figma/` folder, and returns a list of what it wrote. `include: ["componentSpecs"]` writes the component contracts (`<id>.component-contracts.json`). `include` replaces the default, so pass `["tokens", "aiMetadata", "figma", "componentSpecs"]` for everything. For one release it also writes the old unprefixed names (`tokens.json`, `ai-metadata.json`). |
 
 `export_theme` writes relative to the directory the client starts the server in; in Claude Code
 that is the directory you launched `claude` from. Some desktop clients start servers in `/`, where

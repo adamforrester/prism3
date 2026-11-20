@@ -3,7 +3,7 @@
 > An interactive token a user toggles or removes. A static label is a badge.
 
 - **ID:** `tag`
-- **Category:** foundations
+- **Category:** form
 - **Status:** draft
 - **Also known as:** chip, filter-tag, filter-chip, input-tag, input-chip, removable-tag, dismissible-tag, selectable-tag, choice-chip, interaction-tag, checkable-tag, facet
 
@@ -100,7 +100,7 @@ Keep the label to one word where possible. Use the words the data or the user su
 
 - **Built from:** `focus-ring`
 - **Instead, consider:** `badge`, `button`, `checkbox-group`, `radio-group`
-- **Often used with:** `tag-group`, `icon`
+- **Often used with:** `tag-group`, `icon`, `popover`
 - **Replaces:**
   - a removable token list built as a listbox
   - a clickable div styled as a pill

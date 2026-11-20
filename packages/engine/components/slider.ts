@@ -606,7 +606,7 @@ export const slider: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the slide is 0ms; motion.duration-reduced.fast keeps 100ms, so the slider sets 0 itself.',
+          'Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the thumb moves at once; motion.duration-reduced.fast still slides, so the slider turns the transition off itself.',
       },
       {
         class: 'composition',

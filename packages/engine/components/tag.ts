@@ -137,7 +137,10 @@ export const tag: ComponentDef = {
   id: 'tag',
   name: 'Tag',
   aliases: ['chip', 'filter-tag', 'filter-chip', 'input-tag', 'input-chip', 'removable-tag', 'dismissible-tag', 'selectable-tag', 'choice-chip', 'interaction-tag', 'checkable-tag', 'facet'],
-  category: 'foundations',
+  // Not the brief's `foundations`: the owner moved Tag out of it to match the Figma file, which places it under
+  // Components beside Badge (#2092 A, 2026-11-18). `form` is the DRAFT value, held for the owner in the PR; `test.ts`
+  // admits the departure from the brief by name (`OWNER_CATEGORY`).
+  category: 'form',
   status: 'draft',
   summary: 'An interactive token a user toggles or removes. A static label is a badge.',
   description:
@@ -586,7 +589,7 @@ export const tag: ComponentDef = {
     primaryPurpose: 'Render a small interactive token the user toggles or removes in place.',
     whenToUse: 'Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.',
     avoidWhen: 'Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).',
-    commonPartners: ['tag-group', 'badge', 'icon', 'checkbox-group', 'radio-group'],
+    commonPartners: ['tag-group', 'badge', 'icon', 'checkbox-group', 'radio-group', 'popover'],
     triggerKeywords: ['tag', 'chip', 'filter tag', 'filter chip', 'input tag', 'input chip', 'removable tag', 'dismissible tag', 'selectable tag', 'select tag', 'choice chip', 'facet', 'applied filter', 'recipient token'],
     generationPriority: 3,
   },
@@ -595,7 +598,7 @@ export const tag: ComponentDef = {
     // Exactly what the anatomy nests: the ring (an `absolute`). The × is a glyph of the tag's own, not a nest.
     composesWith: ['focus-ring'],
     alternativeTo: ['badge', 'button', 'checkbox-group', 'radio-group'],
-    planned: ['combobox', 'toggle-button', 'avatar', 'popover'],
+    planned: ['combobox', 'toggle-button', 'avatar'],
     replacesPatterns: ['a removable token list built as a listbox', 'a clickable div styled as a pill', 'a bare × glyph with no accessible name'],
   },
 
