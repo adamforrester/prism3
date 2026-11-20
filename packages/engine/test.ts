@@ -153,10 +153,93 @@ if (!import.meta.url.endsWith('?cov')) {
   await session.post('Profiler.enable');
   await session.post('Profiler.startPreciseCoverage', { callCount: false, detailed: true });
   await import(`${import.meta.url}?cov`);
+  // #1870's fixture, measured by the same session: a `break`-skipped block with sites after a nested range.
+  const fixtureDir = mkdtempSync(join(tmpdir(), 'prism3-1870-'));
+  const fixtureFile = join(fixtureDir, 'fixture.mjs');
+  writeFileSync(fixtureFile, [
+    'const chk = () => {};', 'const x = false, a = 1, b = 2, c = 3;',
+    'lab: {', '  if (!x) break lab;', "  chk(a && b, 'S1');", "  chk(c, 'S2');", "  chk(c ? a : b, 'S3');", "  chk(c, 'S4');", '}',
+    "chk(c, 'R1');", "chk(x && b, 'R2');", "chk(c, 'R3');", "if (x) { chk(c, 'T1'); }", "chk(c, 'R4');", '',
+  ].join('\n'));
+  await import(pathToFileURL(fixtureFile).href);
   const { result } = await session.post('Profiler.takePreciseCoverage') as { result: { scriptId: string; url: string; functions: { ranges: { startOffset: number; endOffset: number; count: number }[] }[] }[] };
   const covered = result.find((r) => r.url === `${import.meta.url}?cov`);
   const siteFails: string[] = [];
   let sites = 0; let controls = 0; let controlZeros = 0;
+  type CovRange = { startOffset: number; endOffset: number; count: number };
+  // #1870: V8 CUTS A ZERO-COUNT CONTINUATION SHORT AT THE NEXT NESTED RANGE. In `lab: { if (!x) break lab;
+  // ok(a && b); ok(c) }`, the range after the `if` (count 0, nothing after it ran) ends where `&&`'s right
+  // operand begins, and `ok(c)` falls back to the enclosing function's count, so it reads as run. Only the
+  // first skipped site of a block left by `break` was ever listed. A continuation is a zero-count range that
+  // starts right after a statement (`;` or `}` before it) and not with a token no statement starts with; nothing after it in
+  // the same block ran, so it is extended to the block's closing brace. A site is read as unrun there only
+  // when its count comes from an ANCESTOR of that range, so a nested range that did run still says so.
+  const blockEnd = (src: string, from: number): number => {
+    const stack: ('{' | '${')[] = [];
+    let prev = ';';
+    for (let i = from; i < src.length; i++) {
+      const ch = src[i];
+      if (ch === '/' && src[i + 1] === '/') { i = src.indexOf('\n', i); if (i < 0) return -1; continue; }
+      if (ch === '/' && src[i + 1] === '*') { i = src.indexOf('*/', i + 2) + 1; if (i <= 0) return -1; continue; }
+      if (ch === "'" || ch === '"') { for (i++; i < src.length && src[i] !== ch; i++) if (src[i] === '\\') i++; prev = ch; continue; }
+      if (ch === '/' && (/[(,=:[!&|?{};+\-*%<>~^]/.test(prev) || /\b(?:return|typeof|case|else|in|of|void|yield|await)\s*$/.test(src.slice(Math.max(0, i - 12), i)))) {
+        let cls = false;
+        for (i++; i < src.length; i++) { const c = src[i]; if (c === '\\') i++; else if (c === '[') cls = true; else if (c === ']') cls = false; else if (c === '/' && !cls) break; }
+        prev = 'x'; continue;
+      }
+      if (ch === '`' || (ch === '}' && stack[stack.length - 1] === '${')) {
+        if (ch === '}') stack.pop();
+        for (i++; i < src.length; i++) {
+          if (src[i] === '\\') { i++; continue; }
+          if (src[i] === '`') break;
+          if (src[i] === '$' && src[i + 1] === '{') { stack.push('${'); i++; break; }
+        }
+        prev = 'x'; continue;
+      }
+      if (ch === '{') stack.push('{');
+      else if (ch === '}') { if (!stack.length) return i; stack.pop(); }
+      if (!/\s/.test(ch)) prev = ch;
+    }
+    return -1;
+  };
+  const makeCountAt = (src: string, ranges: CovRange[]): ((off: number) => number) => {
+    const dead: { from: number; to: number; z: CovRange }[] = [];
+    for (const z of ranges) {
+      if (z.count !== 0) continue;
+      // V8 opens a continuation at the very next character, so no whitespace is skipped here. Other ranges open
+      // right after a `}` too, and none of them starts a statement: a block's `{`, an `else`/`catch`/`finally`
+      // clause, and in tsx's compact output a ternary's alternate (`m?{…}:void 0` opens one at the `:`).
+      if (!/[;}]/.test(src[z.startOffset - 1] ?? '')
+        || /^\s*(?:[{:?),.\]=&|<>*%^]|else\b|catch\b|finally\b|while\b)/.test(src.slice(z.startOffset, z.startOffset + 40))) continue;
+      const end = blockEnd(src, z.startOffset);
+      if (end > z.endOffset) dead.push({ from: z.endOffset, to: end, z });
+    }
+    // The innermost range containing an offset carries its count — V8 nests block ranges in functions.
+    return (off: number): number => {
+      let best = Infinity; let hit: CovRange | undefined;
+      for (const r of ranges) if (r.startOffset <= off && off < r.endOffset && r.endOffset - r.startOffset < best) { best = r.endOffset - r.startOffset; hit = r; }
+      if (!hit) return -1;
+      if (hit.count > 0 && dead.some((d) => d.from <= off && off < d.to && hit!.startOffset <= d.z.startOffset && d.z.endOffset <= hit!.endOffset)) return 0;
+      return hit.count;
+    };
+  };
+  {
+    // #1870 SELF-CHECK, every run: the fixture's four skipped sites read 0 and its four controls read as run —
+    // R3 after an unevaluated `x && b` (a nested zero range that is not a continuation), R4 after a skipped
+    // `{ }` then-block. Without the extension, S2, S3 and S4 read as run.
+    const fx = result.find((r) => r.url === pathToFileURL(fixtureFile).href);
+    const fxSrc = readFileSync(fixtureFile, 'utf8');
+    rmSync(fixtureDir, { recursive: true, force: true });
+    if (!fx) siteFails.push('#1870 the coverage fixture reported no coverage — the self-check measured nothing');
+    else {
+      const fxCount = makeCountAt(fxSrc, fx.functions.flatMap((fn) => fn.ranges));
+      const wrong = [...fxSrc.matchAll(/chk\([^']*'(\w+)'\)/g)].flatMap((m) => {
+        const n = fxCount(m.index!); const skipped = /^[ST]/.test(m[1]);
+        return (skipped ? n === 0 : n > 0) ? [] : [`${m[1]} reads ${n}`];
+      });
+      if (wrong.length) siteFails.push(`#1870 the coverage probe misreads the \`break\`-skipped fixture (S* and T1 never ran, R* ran): ${wrong.join(', ')}`);
+    }
+  }
   if (!covered) siteFails.push(`no coverage was reported for ${import.meta.url}?cov — the probe measured nothing`);
   else {
     await session.post('Debugger.enable');
@@ -189,13 +272,7 @@ if (!import.meta.url.endsWith('?cov')) {
           }
         }
       });
-      const ranges = covered.functions.flatMap((fn) => fn.ranges);
-      // The innermost range containing an offset carries its count — V8 nests block ranges in functions.
-      const countAt = (off: number): number => {
-        let best = Infinity; let count = -1;
-        for (const r of ranges) if (r.startOffset <= off && off < r.endOffset && r.endOffset - r.startOffset < best) { best = r.endOffset - r.startOffset; count = r.count; }
-        return count;
-      };
+      const countAt = makeCountAt(scriptSource, covered.functions.flatMap((fn) => fn.ranges));
       const unexecuted: string[] = [];
       const source = readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n');
       // #3985: a span this run SKIPPED (by its label, recorded at runtime by `skip`) is exempt, every site in it
@@ -315,6 +392,15 @@ const exampleTheme = <T = Theme,>(name: string, build: () => T): T | undefined =
     if (!exampleLoadFailed.has(name)) { exampleLoadFailed.add(name); ok(false, `example brand ${name} resolves — the engine threw: ${(e as Error).message}`); }
     return undefined;
   }
+};
+/**
+ * #1889: a build a LEVER-LEVEL refusal can reach, outside the example brands. A throw records one named failure
+ * and yields `undefined`, so the arms after it still run and fail by their own names. Unguarded, one refusal at a
+ * legal input crashed the suite: the uncaught-exception handler names what failed so far, and nothing after the
+ * throw runs. Measured: a radius lever refused at a legal scale stopped the run after 892 assertions, at #1015.
+ */
+const refusable = <T,>(name: string, build: () => T): T | undefined => {
+  try { return build(); } catch (e) { ok(false, `${name} builds — the engine threw: ${(e as Error).message}`); return undefined; }
 };
 /**
  * The contract corpus, which `token-contract.ts` builds itself: aurora, harbor and wendys among the
@@ -535,7 +621,10 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
     const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
     const std = parseStandardDesignMd(text);
     const input: BrandInput = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
-    const steps = brandTheme(input).palettes.find((p) => p.role === 'neutral')!.steps.map((s) => s.num);
+    // #1889: through `exampleTheme`, so a refused brief is one named failure and the next brief still runs.
+    const exampleT = exampleTheme(file.replace(/\.design\.md$/, ''), () => brandTheme(input));
+    if (!exampleT) continue;
+    const steps = exampleT.palettes.find((p) => p.role === 'neutral')!.steps.map((s) => s.num);
     for (const mode of ['light', 'dark'] as const) {
       const thrown: string[] = [], misnamed: string[] = [];
       let built = 0, firstError = '';
@@ -750,7 +839,8 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
     const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
     const std = parseStandardDesignMd(text);
     const input: BrandInput = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
-    const plain = brandTheme(input);
+    const plain = exampleTheme(file.replace(/\.design\.md$/, ''), () => brandTheme(input)); // #1889
+    if (!plain) continue;
     const neutralPal = plain.palettes.find((p) => p.role === 'neutral')!;
     const steps = neutralPal.steps.map((st) => st.num);
     const plainModes = resolveAllModes(plain);
@@ -902,7 +992,7 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
     const t = ['background.secondary', 'background.primary', 'background.tertiary'].find((k) => roles[k]?.path.endsWith(`.${pal}.${step}`));
     return t ? roles[t].hex : null;
   };
-  const brands = [...contractCorpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })), { id: 'prism3', theme: brandTheme(exampleBrands()['prism3'] as BrandInput) }];
+  const brands = [...corpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })), { id: 'prism3', theme: brandTheme(exampleBrands()['prism3'] as BrandInput) }];
   ok(brands.length >= 11, `Q689 floor promise: the corpus and the default example are all swept (found ${brands.length})`);
   for (const { id, theme } of brands) {
     const modes = resolveAllModes(theme).map((m) => m.mode);
@@ -1582,7 +1672,8 @@ for (const b of brands) {
   const misses: string[] = [];
   let checked = 0, pins = 0;
   for (const [id, inp] of brands) {
-    const base = brandTheme(inp);
+    const base = exampleTheme(id, () => brandTheme(inp)); // #1889
+    if (!base) continue;
     const pal = base.linkPalette;
     const steps = base.palettes.find((p) => p.palette === pal)?.steps ?? [];
     for (const mode of ['light', 'dark']) for (const st of steps) {
@@ -4089,8 +4180,8 @@ for (const b of brands) {
     //
     // (b1) `modeLevers: { dark: { radius: 0 } }` — the ramp goes sharp in one mode, so the corner must
     // follow it to 0 there. The clamp's FIRST input moving.
-    const sharp = (buildTree(controlBrand('comfortable', { modeLevers: { dark: { radius: 0 } } })).tree as any).prism.control.size;
-    const notSharp = CONTROL_RUNG_NAMES.filter((n) => sharp[n]?.radius?.$extensions?.prism3?.modes?.dark?.px !== 0);
+    const sharp = refusable('#1015 (b1) a `modeLevers.radius: 0` control brand', () => (buildTree(controlBrand('comfortable', { modeLevers: { dark: { radius: 0 } } })).tree as any).prism.control.size);
+    const notSharp = CONTROL_RUNG_NAMES.filter((n) => sharp?.[n]?.radius?.$extensions?.prism3?.modes?.dark?.px !== 0);
     ok(notSharp.length === 0, '#1015 a `modeLevers.radius: 0` mode re-derives the corner from THAT mode\'s ramp, so the control goes sharp with everything else — a 2px corner in a mode whose every radius is 0 is a wrong value that resolves (#708)'
       + (notSharp.length ? ` — NOT SHARP: ${notSharp.join(', ')}` : ''));
     // (b2) wireframe, which zeroes radius WITHOUT a `modeLevers` entry (it refuses one — see D(c)), so
@@ -5716,7 +5807,8 @@ arm: {
 
       for (const brand of EXAMPLE_IDS) {
         const input = exampleBrands()[brand] as BrandInput;
-        const base = brandTheme(input);
+        const base = exampleTheme(brand, () => brandTheme(input)); // #1889
+        if (!base) continue;
         const baseModes = resolveAllModes(base);
         for (const family of ['light', 'dark'] as const) {
           const baseM = baseModes.find((m) => m.mode === family)!;
@@ -5753,8 +5845,9 @@ arm: {
 
       // HIGH CONTRAST FOLLOWS THE STANDARD FLOOR (owner): HC's page is flat, but its floor is the standard
       // mode's, as it already is for `base`. So hc-light's floor-gated roles measure against LIGHT's tier.
-      {
+      hcFloor: {
         const input = exampleBrands()['aurora'] as BrandInput;
+        if (!exampleTheme('aurora', () => brandTheme(input))) break hcFloor; // #1889
         const baseHc = resolveAllModes(brandTheme(input)).find((m) => m.mode === 'hc-light')!.roles as Roles;
         const baseLight = resolveAllModes(brandTheme(input)).find((m) => m.mode === 'light')!.roles as Roles;
         const floorName = shortPath(baseLight['background.secondary'].path);
@@ -5768,8 +5861,9 @@ arm: {
       }
 
       // AN EXPLICIT floorStep STILL WINS, and may differ from the tier (owner: allowed, not refused).
-      {
+      explicitFloor: {
         const input = exampleBrands()['aurora'] as BrandInput;
+        if (!exampleTheme('aurora', () => brandTheme(input))) break explicitFloor; // #1889
         const theme = brandTheme(withTier(input, 'light', { secondary: 200, floorStep: 100 }));
         const light = resolveAllModes(theme).find((m) => m.mode === 'light')!;
         const r = (light.roles as Roles)['text.secondary'];
@@ -6565,12 +6659,12 @@ arm: {
   //     light's canonical $value is untouched, and radius.none (already 0) carries no override.
   const sharpDark = { ...base, modeLevers: { dark: { radius: 0 } } } as unknown as BrandInput;
   const baseRadius = buildTree(brandTheme(base)).tree[root].radius;
-  const dRadius = buildTree(brandTheme(sharpDark)).tree[root].radius;
-  ok(baseRadius.md.px !== 0 && dRadius.md.$extensions.prism3.modes.dark.$value === `{${root}.core.dimension.0}`,
-    `D(a): dark radius:0 → radius.md carries a modes.dark override aliasing dimension.0 (got ${dRadius.md.$extensions.prism3.modes?.dark?.$value})`);
-  ok(dRadius.md.$extensions.prism3.modes.dark.px === 0, 'D(a): the dark override records px 0');
-  ok(dRadius.md.$value === baseRadius.md.$value, `D(a): light canonical radius.md $value is unchanged by the dark lever (${dRadius.md.$value})`);
-  ok(dRadius.none.$extensions?.prism3?.modes === undefined, 'D(a): radius.none (already 0) carries no override (px equal → no diff)');
+  const dRadius = refusable('D(a) a dark `radius: 0` brand', () => buildTree(brandTheme(sharpDark)).tree[root].radius);
+  ok(baseRadius.md.px !== 0 && dRadius?.md.$extensions.prism3.modes?.dark?.$value === `{${root}.core.dimension.0}`,
+    `D(a): dark radius:0 → radius.md carries a modes.dark override aliasing dimension.0 (got ${dRadius?.md.$extensions.prism3.modes?.dark?.$value})`);
+  ok(dRadius?.md.$extensions.prism3.modes?.dark?.px === 0, 'D(a): the dark override records px 0');
+  ok(dRadius?.md.$value === baseRadius.md.$value, `D(a): light canonical radius.md $value is unchanged by the dark lever (${dRadius?.md.$value})`);
+  ok(!!dRadius && dRadius.none.$extensions?.prism3?.modes === undefined, 'D(a): radius.none (already 0) carries no override (px equal → no diff)');
 
   // (a′) a lever equal to the default scale (radius:1) produces NO leaf override — every rung px equals
   //      light, so the DTCG radius tree is byte-identical to the baseline.
@@ -6580,11 +6674,11 @@ arm: {
 
   // (a″) a custom mode can carry a radius lever too (customizable modes only).
   const custom = { ...base, customModes: [{ name: 'marketing', base: 'light' }], modeLevers: { marketing: { radius: 2 } } } as unknown as BrandInput;
-  const cMd = buildTree(brandTheme(custom)).tree[root].radius.md.$extensions.prism3.modes.marketing;
+  const cMd = refusable('D(a″) a custom-mode radius lever brand', () => buildTree(brandTheme(custom)).tree[root].radius.md.$extensions.prism3.modes.marketing);
   ok(!!cMd && cMd.px === 8, `D(a): a custom mode carries a radius lever (marketing radius:2 → md ${cMd?.px}px)`);
 
   // (b) the Figma radius emit produces a dark radius mode/file with the override materialised.
-  const figRadius = buildFigmaDims(brandTheme(sharpDark)).radius;
+  const figRadius = refusable('D(b) the Figma radius emit of a dark `radius: 0` brand', () => buildFigmaDims(brandTheme(sharpDark)).radius) ?? [];
   const figDark = figRadius.find((f) => f.$mode === 'dark');
   // ROOTED (#1097) — this is an emitted Figma variable, and the alias target on the next line has carried
   // the root for as long as this arm has existed, so an unrooted lookup here would have been the only half
@@ -9126,7 +9220,7 @@ arm: {
     prism3: { xl: 8, '2xl': 12, '3xl': 16 },
   };
   const brands1852 = [
-    ...contractCorpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })),
+    ...corpus().map(({ id, theme }) => ({ id: id.split(' ')[0], theme })),
     { id: 'prism3', theme: brandTheme(exampleBrands()['prism3'] as BrandInput) },
   ];
   ok(brands1852.length === Object.keys(BRAND_1852).length && brands1852.every((b) => b.id in BRAND_1852),
@@ -9157,20 +9251,20 @@ arm: {
 
   // (c) EVERY mode, through the per-mode seams no corpus brand exercises: a `modeLevers` radius on dark
   //     re-derives both rungs there, and wireframe zeroes them — in the DTCG leaf and in each Figma mode file.
-  const modal = brandTheme({ id: 'r1852', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 },
-    modes: ['light', 'dark', 'wireframe'], modeLevers: { dark: { radius: 2 } } } as unknown as BrandInput);
-  const mRadius = (buildTree(modal).tree as any)[modal.root].radius;
+  const modal = refusable('#1852 container rung: the dark `radius: 2` lever brand', () => brandTheme({ id: 'r1852', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 },
+    modes: ['light', 'dark', 'wireframe'], modeLevers: { dark: { radius: 2 } } } as unknown as BrandInput));
+  const mRadius = modal ? (buildTree(modal).tree as any)[modal.root].radius : {};
   const MODE_1852: Record<string, Rungs1852> = { Default: { xl: 8, '2xl': 12, '3xl': 16 }, dark: { xl: 16, '2xl': 24, '3xl': 32 }, wireframe: { xl: 0, '2xl': 0, '3xl': 0 } };
   for (const rung of ['xl', '2xl', '3xl'] as const) {
     const modes = mRadius[rung]?.$extensions?.prism3?.modes ?? {};
     ok(modes.dark?.px === MODE_1852.dark[rung] && modes.wireframe?.px === 0,
       `#1852 container rung: radius.${rung} carries dark ${MODE_1852.dark[rung]}px and wireframe 0px overrides (got dark ${modes.dark?.px}, wireframe ${modes.wireframe?.px})`);
   }
-  const mFiles = buildFigmaDims(modal).radius;
+  const mFiles = modal ? buildFigmaDims(modal).radius : [];
   ok(mFiles.map((f) => f.$mode).sort().join(',') === 'Default,dark,wireframe',
     `#1852 container rung: the lever brand emits Default, dark and wireframe radius modes (got ${mFiles.map((f) => f.$mode).join(',')})`);
   for (const f of mFiles) for (const rung of ['xl', '2xl', '3xl'] as const) {
-    const v = f.variables.find((x) => x.name === `${modal.root}/radius/${rung}`);
+    const v = f.variables.find((x) => x.name === `${modal!.root}/radius/${rung}`);
     ok(v?.value === MODE_1852[f.$mode]?.[rung],
       `#1852 container rung: Figma radius/${rung} in mode ${f.$mode} is ${MODE_1852[f.$mode]?.[rung]}px (got ${v?.value})`);
   }
@@ -12040,7 +12134,7 @@ arm: {
     { re: /^prism\.shadow\./, group: 'shadow', why: '#301 — terminal composite; no consumer resolves nested aliases' },
   ];
   const KNOWN_VIOLATIONS = TERMINAL_COMPOSITE_EXEMPTIONS.map((e) => e.re);
-  const t: any = brandTheme({
+  const t: any = refusable('#301 the every-lever-at-once ledger brand', () => brandTheme({
     id: 'inv', root: 'prism', modes: ['light', 'dark'],
     primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
     // Every per-mode axis engaged at once, so the walk sees the full violation surface.
@@ -12050,8 +12144,8 @@ arm: {
       lineHeights: { normal: 'relaxed' }, letterSpacings: { normal: 'wide' },
       shadow: { softness: 2, tint: { hue: 10, amount: 0.4 } },
     } },
-  } as any);
-  const built: any = buildTree(t);
+  } as any));
+  const built: any = t ? buildTree(t) : { tree: {} };
   const tree = built.tree ?? built;
 
   const offenders: string[] = [];
@@ -12145,7 +12239,7 @@ arm: {
   // And the axes we HAVE tiered must stay TIERED — the real regression risk. Re-walk each one in
   // isolation with the ledger disabled, so a future change that turns an alias back into a literal
   // fails here even though the global check above would have excused nothing.
-  const root = tree.prism;
+  const root = tree.prism ?? {};
   const literalModeLeaves = (sub: any, base: string): string[] => {
     const hits: string[] = [];
     const rec = (node: any, path: string): void => {
@@ -12806,7 +12900,7 @@ arm: {
     'nb-redesign': { light: '#767576 #767576 #828282' },
   };
   const others: Array<[string, Theme | undefined]> = [
-    ...contractCorpus().filter(({ id }) => id.split(' ')[0] !== 'nb').map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
+    ...corpus().filter(({ id }) => id.split(' ')[0] !== 'nb').map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
     ['prism3', exampleTheme('prism3 (Q-TXT1)', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
     ['nb-redesign', exampleTheme('nb-redesign (Q-TXT1)', () => brandTheme(readExampleBrand('./examples/nb-redesign.design.md')))],
   ];
@@ -12847,7 +12941,7 @@ arm: {
 {
   const brands: Array<[string, Theme | undefined]> = [
     ['nb', nbTheme()],
-    ...contractCorpus().filter(({ id }) => id.split(' ')[0] !== 'nb').map(({ id, theme }) => [id, theme] as [string, Theme]),
+    ...corpus().filter(({ id }) => id.split(' ')[0] !== 'nb').map(({ id, theme }) => [id, theme] as [string, Theme]),
     ['prism3', exampleTheme('prism3 (Q3212.5)', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
     ['nb-redesign', exampleTheme('nb-redesign (Q3212.5)', () => brandTheme(readExampleBrand('./examples/nb-redesign.design.md')))],
   ];
@@ -20658,10 +20752,11 @@ arm: {
       'shop-pay': { minH: 40, minW: 120, logo: 'provider-logo/logo/shop-pay' },
     };
     const harbor = parseDesignMd(readFileSync(new URL('./examples/harbor.design.md', import.meta.url), 'utf8')).input;
+    // #1889: a density the engine refuses records one named failure and reads NaN, so the arms below fail by their own names.
     const builds = (['compact', 'comfortable', 'spacious'] as const).map((density) => {
-      const t = buildTree(brandTheme({ ...harbor, density })).tree as Record<string, unknown>;
-      const r = Object.keys(t)[0];
-      return { density, px: (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
+      const t = exampleTheme(`harbor (density ${density})`, () => buildTree(brandTheme({ ...harbor, density })).tree as Record<string, unknown>);
+      const r = t ? Object.keys(t)[0] : undefined;
+      return { density, px: (v: string | undefined): number => (v && t && r ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
     });
     const comfortable = builds.find((b) => b.density === 'comfortable')!;
     const plans = figmaAnatomySet(wb, {});
@@ -20699,9 +20794,9 @@ arm: {
     // `buttonRadius` to min(radius, height / 2). The lever bounds come from the manifest, the clamp from codeOnly.
     const leverMax = (key: string): number => (leverManifest.find((l) => l.key === key) as { max?: number } | undefined)?.max ?? NaN;
     const softest = (['compact', 'comfortable', 'spacious'] as const).map((density) => {
-      const t = buildTree(brandTheme({ ...harbor, density, radiusScale: leverMax('radiusScale'), baseMd: leverMax('baseMd') })).tree as Record<string, unknown>;
-      const r = Object.keys(t)[0];
-      return { density, px: (v: string | undefined): number => (v ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
+      const t = refusable(`#2343 the softest harbor (density ${density})`, () => buildTree(brandTheme({ ...harbor, density, radiusScale: leverMax('radiusScale'), baseMd: leverMax('baseMd') })).tree as Record<string, unknown>); // #1889
+      const r = t ? Object.keys(t)[0] : undefined;
+      return { density, px: (v: string | undefined): number => (v && t && r ? (v.split('/').reduce((n: any, k) => n?.[k], t[r]) as any)?.$extensions?.prism3?.px ?? NaN : NaN) };
     });
     const softOver = overHalf(softest);
     const clamped = (codeOnlyText(wb.anatomy.codeOnly) ?? []).some((c) => /Google Pay/.test(c) && /min\(radius, height \/ 2\)/.test(c));
@@ -35599,7 +35694,8 @@ arm: {
     const std = parseStandardDesignMd(text);
     const input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
     if (!corpus.includes(input.id)) continue;
-    worlds.push({ brand: input.id, density: 'spacious', root: treeOf(buildTree(brandTheme({ ...input, density: 'spacious' })).tree) });
+    const spacious = exampleTheme(`${input.id} (spacious)`, () => buildTree(brandTheme({ ...input, density: 'spacious' })).tree); // #1889
+    if (spacious) worlds.push({ brand: input.id, density: 'spacious', root: treeOf(spacious) });
   }
   const offSize: string[] = [], offCell: string[] = [], offDesc: string[] = [], offStart: string[] = [];
   let measured = 0, grew = 0;
@@ -35787,7 +35883,8 @@ arm: {
     if (!corpus.includes(input.id)) continue;
     rebuilt++;
     for (const density of ['compact', 'spacious'] as const) {
-      const theme = brandTheme({ ...input, density });
+      const theme = exampleTheme(`${input.id} (${density})`, () => brandTheme({ ...input, density })); // #1889
+      if (!theme) continue;
       ok(theme.dims.density === density, `#2894: ${input.id} built at ${density} resolves to that density (got ${theme.dims.density})`);
       worlds.push({ brand: input.id, density, root: treeOf(buildTree(theme).tree) });
     }
@@ -37278,14 +37375,14 @@ arm: {
     const wide = { light: { hover: 'neutral.050' } };
     const same = diff3335(roles3335({ ...base3335, outlineHoverFill: wide }),
       roles3335({ ...base3335, outlineHoverFill: { light: { hover: 'neutral.050', sets: { primary: { hover: 'neutral.050' }, neutral: { hover: 'neutral.050' }, destructive: { hover: 'neutral.050' } } } } }));
-    const light = resolveAllModes({ ...corpus()[0].theme, outlineInteraction: 'overlay-neutral' }).find((m) => m.mode === 'light')!.roles;
+    const light = resolveAllModes({ ...(corpus()[0]?.theme ?? base3335), outlineInteraction: 'overlay-neutral' }).find((m) => m.mode === 'light')!.roles; // #1889: an empty corpus is already red by name
     const alphas = ['hover', 'pressed', 'selected'].map((st) => light[`interactive.primary.overlay.${st}`]?.alpha);
     ok(moved.length === 0 && same.length === 0 && JSON.stringify(alphas) === JSON.stringify([0.1, 0.2, 0.2]),
       `#3335 (B) brands that don't set the new inputs are unchanged: ${built} brand × method builds resolve identically with the default steps given (10/20 neutral, 20/30 tinted, typed here), a restated per-set pick changes nothing, and the unset neutral wash is ${alphas.join(' / ')} (want 0.1 / 0.2 / 0.2)${moved.length ? ` — MOVED: ${moved.slice(0, 3).join('; ')}` : ''}${same.length ? ` — SETS MOVED: ${same.slice(0, 3).join('; ')}` : ''}`);
   }
   // (C)
   {
-    const t0 = { ...corpus()[0].theme, outlineInteraction: 'overlay-neutral' as const };
+    const t0 = { ...(corpus()[0]?.theme ?? base3335), outlineInteraction: 'overlay-neutral' as const };
     const light = resolveAllModes({ ...t0, outlineWash: { hover: 5, pressed: 30 } }).find((m) => m.mode === 'light')!.roles;
     const alphas = ['hover', 'pressed', 'selected'].map((st) => light[`interactive.primary.overlay.${st}`]?.alpha);
     const tint = (w?: { hover: number; pressed: number }) => corpus().flatMap(({ theme }) => resolveAllModes({ ...theme, outlineInteraction: 'solid-tint', ...(w ? { outlineWash: w } : {}) })
@@ -39351,6 +39448,9 @@ arm: {
     }
     if ((skippedSpans.has('integration-replay') || failedSpans.has('integration-replay')) && pass + fails.length !== assertedBefore)
       ok(false, `#3985 integration replay: the span was skipped and still recorded ${pass + fails.length - assertedBefore} assertion(s) — a skip that asserts is not a skip`);
+  } catch (e) {
+    // #1889: a replay step that throws (its regen meets an engine refusal) is one named failure, and the arms after it still run.
+    ok(false, `#3833 integration replay threw, so its remaining arms did not run: ${(e as Error).message.slice(0, 600)}`);
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
@@ -40692,7 +40792,7 @@ arm: {
   const DECLARED = new Set(['nb light background.secondary']);
   const under: string[] = [], declaredSeen: string[] = [];
   const brands: Array<[string, Theme]> = [
-    ...Object.entries(exampleBrands()).map(([id, input]) => [id, brandTheme(input as BrandInput)] as [string, Theme]),
+    ...loadedRows(Object.entries(exampleBrands()).map(([id, input]) => [id, exampleTheme(id, () => brandTheme(input as BrandInput))] as [string, Theme])), // #1889
     ['nb', nbTheme()],
   ];
   for (const [id, th] of brands) {
@@ -42028,7 +42128,10 @@ arm: {
     const std = parseStandardDesignMd(text);
     const input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
     if (!corpus.includes(input.id)) continue;
-    for (const density of ['compact', 'spacious'] as const) worlds.push({ brand: input.id, density, root: treeOf(buildTree(brandTheme({ ...input, density })).tree) });
+    for (const density of ['compact', 'spacious'] as const) { // #1889
+      const tree = exampleTheme(`${input.id} (${density})`, () => buildTree(brandTheme({ ...input, density })).tree);
+      if (tree) worlds.push({ brand: input.id, density, root: treeOf(tree) });
+    }
   }
   const sizeBad: string[] = [], offLadder: string[] = [], offLine: string[] = [], withAction: string[] = [];
   let measured = 0;
@@ -43959,7 +44062,8 @@ arm: {
   const bad: string[] = [];
   let checked = 0;
   for (const id of EXAMPLE_IDS) {
-    const x = exportComponentDefs(componentDefs, { brand: exampleBrands()[id] as BrandInput }) as any;
+    const x = exampleTheme(id, () => exportComponentDefs(componentDefs, { brand: exampleBrands()[id] as BrandInput })) as any; // #1889
+    if (!x) continue;
     for (const [cid, c] of Object.entries<any>(x.components ?? {})) for (const r of c.spec?.redlines ?? []) for (const p of r.parts ?? []) {
       const mw = p.values?.minWidth, h = p.values?.height?.px;
       const m = typeof mw?.rule === 'string' ? /^height × (\d+(?:\.\d+)?)(?:, rounded (to the nearest|up to) 8px)?$/.exec(mw.rule) : null;
@@ -44045,7 +44149,10 @@ arm: {
 {
   const ids = readdirSync(resolve(HERE, './out')).filter((f) => /^[^.]+\.tokens\.json$/.test(f)).map((f) => f.slice(0, -'.tokens.json'.length)).sort();
   const trees: [string, any][] = ids.map((id) => [id, JSON.parse(readFileSync(resolve(HERE, `./out/${id}.tokens.json`), 'utf8'))]);
-  for (const id of EXAMPLE_IDS) trees.push([`${id}@solid-tint`, buildTree(brandTheme({ ...(exampleBrands()[id] as BrandInput), outlineInteraction: 'solid-tint' } as BrandInput)).tree]);
+  for (const id of EXAMPLE_IDS) { // #1889
+    const tinted = exampleTheme(`${id}@solid-tint`, () => buildTree(brandTheme({ ...(exampleBrands()[id] as BrandInput), outlineInteraction: 'solid-tint' } as BrandInput)).tree);
+    if (tinted) trees.push([`${id}@solid-tint`, tinted]);
+  }
   const parse = (v: string): { rgb: RGB; a: number } | undefined => {
     let m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(v);
     if (m) return { rgb: hexToRgb('#' + m[1]), a: m[2] ? parseInt(m[2], 16) / 255 : 1 };
