@@ -22388,7 +22388,7 @@ if (runs('2069')) {
     await page.waitForFunction(() => window.__issues.length > 0, null, WAIT).catch(() => {});
     const posts = await page.evaluate(() => window.__issues);
     const body = posts.length ? decodeURIComponent(String(posts[0].url).split('&body=')[1] ?? '') : '';
-    ok(posts.length === 1 && String(posts[0].url).startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && body === REPORT_PASTE,
+    ok(posts.length === 1 && String(posts[0].url).startsWith('https://github.com/prism-ds/prism3/issues/new?title=Problem%20report&body=') && body === REPORT_PASTE,
       `#2069 ${where}: Open a prefilled issue posts open-issue with the title and the paste line alone (${posts.length} posts, body ${JSON.stringify(body.slice(0, 160))})`);
     const clip = await page.evaluate(() => ({ clip: window.__clip, copy: document.querySelector('[data-p3="report-copy"]')?.textContent ?? null }));
     ok(clip.clip.length === 1 && clip.clip[0] === t1 && clip.copy === 'Copied',
@@ -22434,7 +22434,7 @@ if (runs('2069')) {
       const opened = await page.evaluate(() => window.__opened);
       const body = opened.length ? decodeURIComponent(opened[0].u.split('&body=')[1] ?? '') : '';
       const clip = await page.evaluate(() => window.__clip);
-      ok(opened.length === 1 && opened[0].u.startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && opened[0].t === '_blank' && body === REPORT_PASTE
+      ok(opened.length === 1 && opened[0].u.startsWith('https://github.com/prism-ds/prism3/issues/new?title=Problem%20report&body=') && opened[0].t === '_blank' && body === REPORT_PASTE
         && clip.length === 1 && clip[0] === d0.text,
         `#3524 ${where}: Open a prefilled issue opens the issue form in a new tab with the title and the paste line alone, the report shown on the clipboard (${opened.length} opened, ${clip.length} copies)`);
       step = 'escape';

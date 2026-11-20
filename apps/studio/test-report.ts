@@ -422,7 +422,7 @@ ok(scrub('tidewaters\novernight-watch\tshelf', [...PUNCT, ...ROOT]) === 'tidewat
 // opens with the title and a body that only asks for the report, which travels on the clipboard. The expected URL is
 // typed here whole, so a body built from the report, or any change to the title or the instruction, fails by name.
 // MUTATION: `issueUrl` given the report back as its body → `paste: the issue opens with the title and the instruction alone`.
-const PASTE_URL = 'https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body='
+const PASTE_URL = 'https://github.com/prism-ds/prism3/issues/new?title=Problem%20report&body='
   + 'Paste%20the%20report%20here%20%E2%80%94%20Prism3%20copies%20it%20to%20your%20clipboard%20as%20it%20opens%20this%20page.'
   + '%20Copy%20in%20the%20Report%20a%20problem%20dialog%20copies%20it%20again.';
 const url = issueUrl();
