@@ -121,27 +121,58 @@ const planNames = (n: FigmaNodePlan, out: Set<string>): Set<string> => {
  * lands, so a key sharing its token with a key the plans DO draw reads as drawn too: Divider's `horizontal.line.width`
  * names the hairline, the grow rule drops it (#3143), and `horizontal.line.height` draws the same hairline. Only a
  * key that shares its token can be hidden this way (a key alone on its token is drawn exactly when the token is), so
- * each such key is probed on its own: the def projected again with that one key pointed at a name nothing else binds,
- * and the key is drawn when some member binds that name. Read from the projection, never from the part's binding
- * fields, so a key dropped by any rule (the grow rule, a hug, a size override) reads as dropped.
+ * each such key is probed: pointed at a name nothing else binds, and the key is drawn when some member binds that
+ * name. Read from the projection, never from the part's binding fields, so a key dropped by any rule (the grow rule,
+ * a hug, a size override) reads as dropped.
+ *
+ * ONE PROJECTION PER DEF (#4229). Probing each key in its own projection cost (shared keys) × (members): 152,724
+ * member projections for 4,432 members, 7 s of regen's 18. `keysNotDrawn` points EVERY shared key at its own probe
+ * name in one projection and reads which probes were bound. That is the per-key answer as long as no projection rule
+ * compares two keys' refs for equality, which held for every def when this was written (measured over all of them:
+ * identical sets). Two things keep it honest:
+ *   - A def whose projection READS a shared key as a value (#3225: a gap or padding a hugging text's max width is
+ *     derived from) throws on the probe names, as `banner` does. Such a def takes the per-key path, which skips only
+ *     the key that throws, as before.
+ *   - `test.ts` (#4229) compares the two paths over every def whose answer is not empty (17 when written, the button
+ *     family and the fields included), over `banner`, and over a banner stub whose fallback answer is not empty. A
+ *     rule that compares refs and moves one of their answers fails it by name. A NEW def with a non-empty answer is
+ *     not compared until its id is added to that list: `regen.ts` would rewrite the report with the one-pass answer.
  */
-const keysNotDrawn = (def: ComponentDef): Set<string> => {
+const sharedKeys = (def: ComponentDef): string[] => {
   const byRef = new Map<string, string[]>();
   for (const [k, r] of Object.entries(def.tokens ?? {})) byRef.set(r, [...(byRef.get(r) ?? []), k]);
+  return [...byRef.values()].filter((ks) => ks.length >= 2).flat();
+};
+const PROBE_REFUSED = /is not a step of the space ladder|is not an icon size/;
+
+/** The per-key path: one projection per shared key, the key alone repointed. Exact; the oracle `test.ts` compares the
+ *  one-pass answer with, and the path a def whose projection refuses a probe name takes. */
+export const keysNotDrawnPerKey = (def: ComponentDef): Set<string> => {
   const dropped = new Set<string>();
-  for (const ks of byRef.values()) {
-    if (ks.length < 2) continue;
-    for (const k of ks) {
-      const probe = `zz-report-probe.${k}`;
-      const names = new Set<string>();
-      // A key the projection READS as a value (#3225: a gap or a padding a hugging text's max width is derived from,
-      // in px) refuses the probe's name by throwing: the projection uses it, so it is drawn.
-      try { for (const plan of figmaAnatomySet({ ...def, tokens: { ...def.tokens, [k]: probe } })) planNames(plan.root, names); }
-      catch (err) { if (/is not a step of the space ladder|is not an icon size/.test((err as Error).message)) continue; throw err; }
-      if (![...names].some((n) => n.replace(/\//g, '.') === probe)) dropped.add(k);
-    }
+  for (const k of sharedKeys(def)) {
+    const probe = `zz-report-probe.${k}`;
+    const names = new Set<string>();
+    // A key the projection READS as a value (#3225: a gap or a padding a hugging text's max width is derived from,
+    // in px) refuses the probe's name by throwing: the projection uses it, so it is drawn.
+    try { for (const plan of figmaAnatomySet({ ...def, tokens: { ...def.tokens, [k]: probe } })) planNames(plan.root, names); }
+    catch (err) { if (PROBE_REFUSED.test((err as Error).message)) continue; throw err; }
+    if (![...names].some((n) => n.replace(/\//g, '.') === probe)) dropped.add(k);
   }
   return dropped;
+};
+
+/** Which keys of `def` no member draws: every shared key probed in ONE projection (#4229), or per key when the
+ *  projection refuses a probe name. `via` says which path answered. */
+export const keysNotDrawn = (def: ComponentDef): { dropped: Set<string>; via: 'one pass' | 'per key' } => {
+  const shared = sharedKeys(def);
+  if (!shared.length) return { dropped: new Set(), via: 'one pass' };
+  const tokens = { ...def.tokens };
+  for (const k of shared) tokens[k] = `zz-report-probe.${k}`;
+  const names = new Set<string>();
+  try { for (const plan of figmaAnatomySet({ ...def, tokens })) planNames(plan.root, names); }
+  catch (err) { if (PROBE_REFUSED.test((err as Error).message)) return { dropped: keysNotDrawnPerKey(def), via: 'per key' }; throw err; }
+  const bound = new Set([...names].map((n) => n.replace(/\//g, '.')));
+  return { dropped: new Set(shared.filter((k) => !bound.has(`zz-report-probe.${k}`))), via: 'one pass' };
 };
 
 const tokenUsage = () => {
@@ -163,7 +194,7 @@ const tokenUsage = () => {
   for (const def of defs) {
     for (const [key, ref] of Object.entries(def.tokens ?? {})) at(ref, def.id).keys.add(key);
     const plans = def.anatomy && def.figmaProperties ? figmaAnatomySet(def) : [];
-    if (plans.length) notDrawnKeys.set(def.id, keysNotDrawn(def));
+    if (plans.length) notDrawnKeys.set(def.id, keysNotDrawn(def).dropped);
     const axes = new Map<string, Set<string>>();
     const drawn = new Set<string>();
     for (const plan of plans) {

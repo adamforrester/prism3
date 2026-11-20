@@ -92,7 +92,15 @@ export const setAnchor = (mode: string, col: string, v: number | undefined): voi
   if (mode === 'light') {
     if (col === 'primary') return setPath(brandState, 'actionAnchorStep', v);
     if (col === 'destructive') return setPath(brandState, 'destructiveAnchorStep', v);
-    const i = accentIndex(col);
+    let i = accentIndex(col);
+    // #4294: a brand still on the legacy `accentPalette` field has an `accent` column (the engine's back-compat) but no
+    // entry to hold its anchor. Pinning one folds the field into the list first, in the shape the back-compat is
+    // byte-identical to. Auto with nothing pinned folds nothing, so an untouched brand stays as loaded.
+    if (i < 0 && v !== undefined && col === 'accent' && !brandState.interactivePalettes && brandState.accentPalette !== undefined) {
+      brandState.interactivePalettes = [{ name: 'accent', palette: brandState.accentPalette }];
+      delete brandState.accentPalette;
+      i = 0;
+    }
     if (i >= 0) setPath(brandState, `interactivePalettes.${i}.anchorStep`, v);
     return;
   }
