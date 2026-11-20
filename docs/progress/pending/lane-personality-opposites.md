@@ -4,8 +4,8 @@
 calm/energetic, bold/restrained (owner decision 2026-11-18, Q-PW1 A). Personality stays multi-select. The words are
 stored in `personality` in the order they were picked, which is the order the engine reads them in
 (`resolveVocabulary`: first listed wins a setting two words share, and the later word's note says what it kept). One
-quiet line under the chips says so: "Where two words fill the same setting, the first one picked wins." That wording is
-DRAFT, for the owner. The words-on line under it now lists the words in pick order too.
+quiet line under the chips says so: "Where two words fill the same setting, the first one picked wins." The owner approved that
+wording (owner decision 2026-11-18). The words-on line under it now lists the words in pick order too.
 
 **Where the pairs live.** `TRAIT_OPPOSITES`, beside `TRAITS` in `packages/engine/vocabulary.ts`, exported from
 `@prism3/engine`. Studio reads it (`oppositeOf` in `state/brand-input.ts`) and restates nothing. The engine's

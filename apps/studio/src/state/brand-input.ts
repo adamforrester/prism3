@@ -80,7 +80,7 @@ export const oppositeOf = (word: string): string | null => {
   const pair = TRAIT_OPPOSITES.find((p) => p.includes(word));
   return pair ? (pair[0] === word ? pair[1] : pair[0]) : null;
 };
-/** The line under the words (#3976): it says which word wins where two overlap. DRAFT copy, the owner's to approve. */
+/** The line under the words (#3976): it says which word wins where two overlap. Copy approved (owner decision 2026-11-18). */
 export const PERSONALITY_ORDER_LINE = 'Where two words fill the same setting, the first one picked wins.';
 
 /** Turn a personality word on or off. On, it goes after the words already on, and its opposite goes off: the two pull
