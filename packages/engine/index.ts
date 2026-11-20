@@ -73,6 +73,7 @@ export { colorVariablesOutOfOrder } from './color-order';
 export { buildBase, buildOverlaySet, stripExtensions } from './emit-dtcg-overlay';
 export { BUTTON_SPACING } from './button-spacing';
 export { default as EXAMPLE_BRANDS_JSON } from './schema/example-brands.json';
+export { EXAMPLE_DESCRIPTIONS } from './example-registry';
 export {
   COMPONENT_RENAMES, coordKey, coordPairs, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty,
   slotMigrationOf, slotTextMigrationOf,

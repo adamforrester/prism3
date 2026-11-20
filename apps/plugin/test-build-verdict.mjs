@@ -1988,7 +1988,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
   /** Choose an example from the brand menu, answering the overwrite confirm when edits are at risk. */
   const chooseExample = async (page) => {
     await hooks.click(page.locator('[data-p3="brand-switcher"]'), { timeout: 4000 }).catch(() => {});
-    const name = await page.locator('[data-p3="brand-menu-example"]').first().textContent().catch(() => null);
+    // The name, not the item: since #3977 the item also carries the example's few words under it.
+    const name = await page.locator('[data-p3="brand-menu-example"] .p3-menu-label').first().textContent().catch(() => null);
     await hooks.click(page.locator('[data-p3="brand-menu-example"]').first(), { timeout: 4000 }).catch(() => {});
     // After a demo edit there are edits to lose, so the choice asks first (#1033); answering it is the load.
     if (await page.locator('[data-p3="overwrite-replace"]').count()) await hooks.click(page.locator('[data-p3="overwrite-replace"]'), { timeout: 4000 }).catch(() => {});

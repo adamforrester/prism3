@@ -7,15 +7,15 @@ Everything in this guide works in both places. Writing the brand to a Figma file
 
 ## Start a brand
 
-The first time the studio opens, a start window offers three ways in. <!-- src: apps/studio/src/shell/start.ts:167-218#9e39b78a -->
+The first time the studio opens, a start window offers three ways in. <!-- src: apps/studio/src/shell/start.ts:167-225#de4c818b -->
 
 | Card | What it does |
 |---|---|
 | **Start from your color** | Takes your primary brand color and fills every other setting with a default you can change. **Start blank** begins from a neutral gray instead. <!-- src: apps/studio/src/shell/start.ts:167-181 --> |
-| **Explore an example** | Opens one of the example brands, fully built. <!-- src: apps/studio/src/shell/start.ts:202 --> |
-| **Import a design.md** | Loads a whole brand from a `design.md` brief. Paste it into the box and choose **Import**, or choose **Upload…** to pick a file. <!-- src: apps/studio/src/shell/start.ts:218-230 --> |
+| **Explore an example** | Opens one of the example brands, fully built. A few words under each example say what it is, such as "Muted teal, calm, square." <!-- src: apps/studio/src/shell/start.ts:202 --> <!-- src: packages/engine/example-registry.ts:16-21 --> |
+| **Import a design.md** | Loads a whole brand from a `design.md` brief. Paste it into the box and choose **Import**, or choose **Upload…** to pick a file. <!-- src: apps/studio/src/shell/start.ts:225-237 --> |
 
-To come back to these later, open the brand menu at the left of the top bar and choose **New brand**. The same menu lists the examples and has **Import design.md…**. <!-- src: apps/studio/src/shell/bar.ts:246-250 -->
+To come back to these later, open the brand menu at the left of the top bar and choose **New brand**. The same menu lists the examples, each with its few words, and has **Import design.md…**. <!-- src: apps/studio/src/shell/bar.ts:226-252 -->
 
 *[Screenshot placeholder: the start window with its three cards.]*
 

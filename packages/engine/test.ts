@@ -29,7 +29,7 @@ import { SLIDER_STOPS, TRAITS, TRAIT_OPPOSITES, resolveVocabulary } from './voca
 import { leverManifest, leverGroups, buildLeverManifest, identityFields } from './levers';
 import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
-import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
+import { exampleBrands, exampleBrandsJson, EXAMPLE_DESCRIPTIONS, EXAMPLE_IDS } from './emit-brandinput';
 import { exportComponentDefs } from './component-defs-export';
 import { buildIdentity } from './build-identity';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
@@ -12789,6 +12789,13 @@ arm: {
       rp.modes.filter((m) => c.byMode[m] && !c.byMode[m].pass).map((m) => `${c.component}/${c.variant} ${m}:${c.byMode[m].ratio}<${c.min}`));
     ok(broken.length === 0, `example brand '${id}': every preview contract holds (all 4 modes)` + (broken.length ? ` — FAIL: ${broken.join('; ')}` : ''));
     ok(rp.unresolvedType.length === 0, `example brand '${id}': emits every type style the preview spec binds` + (rp.unresolvedType.length ? ` — UNRESOLVED: ${rp.unresolvedType.join(', ')}` : ''));
+  }
+  // #3977: every example the hosts list (the committed JSON's keys, read from the file, not from the registry) has the
+  // few words the hosts show under its name. The approved copy itself is held in the studio's chrome arm.
+  for (const id of Object.keys(JSON.parse(committed))) {
+    const line = EXAMPLE_DESCRIPTIONS[id];
+    ok(typeof line === 'string' && line.trim().length > 0 && line.length <= 60,
+      `#3977 example brand '${id}' has a description of a few words for the hosts' examples list — has ${JSON.stringify(line ?? null)}`);
   }
 }
 // (10a) #1720 — a type binding the brand does not emit is NAMED, never resolved to a default. The read

@@ -19,7 +19,7 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, type BrandInput, formatRatio, hex, oklchToRgb, resolveAllModes, toDesignMd, buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode, ENGINE_VERSION } from '@prism3/engine';
+import { EXAMPLE_DESCRIPTIONS, brandTheme, type BrandInput, formatRatio, hex, oklchToRgb, resolveAllModes, toDesignMd, buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode, ENGINE_VERSION } from '@prism3/engine';
 import { componentSpecsFileNames, loadComponentSpecsExporter } from './state/component-specs-export';
 import { hostCommit, type CheckedSetView, type HostCommit } from './write-adapter';
 import { AGENT_OP, initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
@@ -1530,7 +1530,7 @@ const barRead = (): BarView => ({
   brand: { name: shownName(brandState), hex: hex(oklchToRgb(brandState.primary)) },
   menuOpen: brandMenuOpen,
   // The Examples marker is computed at render, from `brandState.id` (#1075's subject went with the menu's fields).
-  examples: Object.keys(BRANDS).map((name) => ({ name, hex: hex(oklchToRgb(BRANDS[name].primary)), current: name === brandState.id })),
+  examples: Object.keys(BRANDS).map((name) => ({ name, hex: hex(oklchToRgb(BRANDS[name].primary)), current: name === brandState.id, desc: EXAMPLE_DESCRIPTIONS[name] ?? '' })),
   confirm: pendingLoad && (pendingLoad.origin.kind === 'example' || pendingLoad.origin.kind === 'import')
     ? { at: pendingLoad.origin.kind, text: overwriteText(pendingLoad) } : null,
   importOpen, importText, importErr,
