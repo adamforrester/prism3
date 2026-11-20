@@ -44271,6 +44271,12 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const byNew = light(brandTheme({ ...inp, overrides: { light: { 'text.link.rest': { palette: 'neutral', step: '900' } } } } as never))?.['text.link.rest']?.path;
   ok(!!byNew && byNew !== plain && byOld === byNew,
     `#4165 an override keyed by the retired \`text.link.default\` moves \`text.link.rest\` as the new key does (plain ${plain}, old key ${byOld}, new key ${byNew})`);
+  // Where both keys are set, the new one wins: the old key pins neutral 900, the new key neutral 500, and the resolved
+  // role follows the new key alone. A shim where the old key overwrote the new one would read neutral 900 here.
+  const byNew500 = light(brandTheme({ ...inp, overrides: { light: { 'text.link.rest': { palette: 'neutral', step: '500' } } } } as never))?.['text.link.rest']?.path;
+  const byBoth = light(brandTheme({ ...inp, overrides: { light: { 'text.link.default': { palette: 'neutral', step: '900' }, 'text.link.rest': { palette: 'neutral', step: '500' } } } } as never))?.['text.link.rest']?.path;
+  ok(!!byNew500 && byNew500 !== byNew && byBoth === byNew500,
+    `#4165 where both \`text.link.default\` and \`text.link.rest\` are set, the new key wins (both ${byBoth}, new key alone ${byNew500}, old key alone ${byOld})`);
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
