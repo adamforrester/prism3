@@ -6,7 +6,9 @@ longest, Outline hover, ran to 574.
 
 ### What changed
 - `Lever.tip?` in `levers.ts`, present exactly where the description is over 90 characters, and emitted into
-  `schema/lever-manifest.json` beside the description. All 54 tips are DRAFT copy for the owner.
+  `schema/lever-manifest.json` beside the description. The owner approved the tips on 2026-11-20, and chose Outline
+  hover's to name its four options: "How outline and text controls show hover: a neutral wash, a tinted wash, a fill,
+  or none." A `test.ts` arm holds that tip to the owner's line.
 - Studio's `leverBlock` shows `tip ?? description`; search still reads the full description. The 22 Studio tooltips
   over 90 characters are shortened: the eight that restate a lever take its tip word for word, the rest are DRAFT.
 - #4193 B and C rows in `levers.ts`: "Neutral chroma" → "Neutral tint strength"; the display ceiling options read

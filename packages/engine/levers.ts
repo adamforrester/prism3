@@ -330,7 +330,7 @@ export const leverManifest: Lever[] = [
   { key: 'outlineInteraction', group: 'advanced', kind: 'value', label: 'Outline hover', control: 'enum', default: 'overlay-neutral',
     // #3071: 'opaque-fill' and its chip label are a DRAFT for the owner (on the build PR).
     options: enumOpts(['overlay-neutral', 'Neutral overlay wash'], ['solid-tint', 'Tinted wash'], ['opaque-fill', 'Solid fill'], ['none', 'No hover fill']),
-    tip: 'How outline and text controls show hover, pressed and selected.',
+    tip: 'How outline and text controls show hover: a neutral wash, a tinted wash, a fill, or none.',
     description: 'How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = the control\'s own fill at 20% opacity (30% pressed), stepped down the opacity scale where the label needs more contrast and up where the hover would not show, so a destructive outline hovers red-tinted rather than gray; opaque-fill = a solid palette step you pick (Outline hover fill), with the label and icon kept legible on it, on buttons and icon buttons only, while tags, segmented controls and pagination keep the wash; none = omit.' },
   // #3071 (owner Q824 A): label and description are a DRAFT for the owner (on the build PR). Read only under 'opaque-fill'.
   { key: 'outlineHoverFill', group: 'advanced', kind: 'value', label: 'Outline hover fill', control: 'object', advanced: true,
