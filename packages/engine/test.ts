@@ -44653,6 +44653,29 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
 }
 
+// #3505 — the dependency-advisory register holds each accepted or awaited `npm audit` advisory with a review date,
+// and `lint-advisory-expiry.ts` is what fails on that date. A row worded so the detector misses it would never come
+// due. EXPECTED is the owner decision's four advisories, written here; ACTUAL is the detector's own reading of the
+// register, so each row must be a claim the gate sees, and under the section the decision put it in.
+{
+  const { claimsIn } = await import('./lint-advisory-expiry.ts');
+  const file = 'docs/dependency-advisories.md';
+  const src = readFileSync(resolve(HERE, '..', '..', file), 'utf8');
+  const lines = src.split('\n');
+  const claimLines = new Set(claimsIn(file, src).map((c) => c.line));
+  const sectionOf = (i: number) => lines.slice(0, i).filter((l) => l.startsWith('## ')).at(-1) ?? '';
+  for (const [ghsa, section] of [
+    ['GHSA-gcqx-w48m-w2h4', '## Accepted'], ['GHSA-67mh-4wv8-2f99', '## Accepted'],
+    ['GHSA-3g3m-2fjr-6pw4', '## Waiting on upstream'], ['GHSA-g3hv-75wg-m249', '## Waiting on upstream'],
+  ] as const) {
+    const i = lines.findIndex((l) => l.startsWith(`| ${ghsa} `));
+    ok(i >= 0, `#3505 ${file} has a row for ${ghsa}`);
+    if (i < 0) continue;
+    ok(sectionOf(i).startsWith(section), `#3505 ${ghsa} is under "${section}" in ${file} (got ${JSON.stringify(sectionOf(i))})`);
+    ok(claimLines.has(i + 1), `#3505 lint-advisory-expiry reads a review date on ${ghsa}'s row (${file}:${i + 1}), so the row comes due`);
+  }
+}
+
 // #3284 (owner decision A, 2026-11-18) — the action note told an unset lever from an explicit `primary` by the
 // RESOLVED name only, so a brand that wrote `actionPalette: 'primary'` read "actionPalette is not set". The explicit
 // case now reads "the primary palette, as the brand sets" (APPROVED wording), under either spelling. And a pin on
