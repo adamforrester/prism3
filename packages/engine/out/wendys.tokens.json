@@ -6822,10 +6822,10 @@
           }
         },
         "link": {
-          "default": {
+          "rest": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.550}",
-            "$description": "Link text — default, 4.5:1 on `background.secondary`",
+            "$description": "Link text — rest, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -6847,7 +6847,7 @@
                     "contrast": 8.05,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link text — default, 7:1 on `background.secondary`"
+                    "description": "Link text — rest, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.250}",
@@ -6855,7 +6855,7 @@
                     "contrast": 7.84,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link text — default, 7:1 on `background.secondary`"
+                    "description": "Link text — rest, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -8346,10 +8346,10 @@
           }
         },
         "link": {
-          "default": {
+          "rest": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.550}",
-            "$description": "Link icon — default, 4.5:1 on `background.secondary`",
+            "$description": "Link icon — rest, 4.5:1 on `background.secondary`",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8371,7 +8371,7 @@
                     "contrast": 8.05,
                     "against": "neutral.050",
                     "min": 7,
-                    "description": "Link icon — default, 7:1 on `background.secondary`"
+                    "description": "Link icon — rest, 7:1 on `background.secondary`"
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.primary.250}",
@@ -8379,7 +8379,7 @@
                     "contrast": 7.84,
                     "against": "neutral.900",
                     "min": 7,
-                    "description": "Link icon — default, 7:1 on `background.secondary`"
+                    "description": "Link icon — rest, 7:1 on `background.secondary`"
                   }
                 },
                 "figma": {
@@ -13863,10 +13863,10 @@
             }
           },
           "link": {
-            "default": {
+            "rest": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.400}",
-              "$description": "Link text on an inverse surface — default, 4.5:1 on `inverse.background.secondary`",
+              "$description": "Link text on an inverse surface — rest, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -13888,7 +13888,7 @@
                       "contrast": 7.72,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — default, 7:1 on `inverse.background.secondary`"
+                      "description": "Link text on an inverse surface — rest, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.600}",
@@ -13896,7 +13896,7 @@
                       "contrast": 8.27,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link text on an inverse surface — default, 7:1 on `inverse.background.secondary`"
+                      "description": "Link text on an inverse surface — rest, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {
@@ -15148,10 +15148,10 @@
             }
           },
           "link": {
-            "default": {
+            "rest": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.400}",
-              "$description": "Link icon on an inverse surface — default, 4.5:1 on `inverse.background.secondary`",
+              "$description": "Link icon on an inverse surface — rest, 4.5:1 on `inverse.background.secondary`",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -15173,7 +15173,7 @@
                       "contrast": 7.72,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — default, 7:1 on `inverse.background.secondary`"
+                      "description": "Link icon on an inverse surface — rest, 7:1 on `inverse.background.secondary`"
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.primary.600}",
@@ -15181,7 +15181,7 @@
                       "contrast": 8.27,
                       "against": "inverse.background.secondary",
                       "min": 7,
-                      "description": "Link icon on an inverse surface — default, 7:1 on `inverse.background.secondary`"
+                      "description": "Link icon on an inverse surface — rest, 7:1 on `inverse.background.secondary`"
                     }
                   },
                   "figma": {

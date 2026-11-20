@@ -348,7 +348,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       strip.append(cell);
     }
     const roles = rolesIn(currentMode) as Record<string, IRole | undefined>;
-    const prefix = r.role.slice(0, -'.default'.length);
+    const prefix = r.role.slice(0, -'.rest'.length);
     const follow = hook(h('p', 'p3-linkfollow'), 'link-follow');
     follow.append(h('span', undefined, LINK_COPY.follow));
     for (const st of ['hover', 'visited', 'pressed']) {

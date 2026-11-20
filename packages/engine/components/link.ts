@@ -143,17 +143,17 @@ export const link: ComponentDef = {
     'bar-height': 'border-width.thick',
 
     // The link ink, stepped by state. `focus-visible` takes the `focused` rung.
-    'label': 'color.text.link.default',
+    'label': 'color.text.link.rest',
     'label.hover': 'color.text.link.hover',
     'label.pressed': 'color.text.link.pressed',
     'label.focus-visible': 'color.text.link.focused',
-    'icon': 'color.icon.link.default',
+    'icon': 'color.icon.link.rest',
     'icon.hover': 'color.icon.link.hover',
     'icon.pressed': 'color.icon.link.pressed',
     'icon.focus-visible': 'color.icon.link.focused',
     // The bar's fill: the link icon role, stepped with the label (a non-text mark, so the 3:1 icon role). Keyed on
     // `selected` only; the bar exists on selected members only.
-    'fill.selected.rest': 'color.icon.link.default',
+    'fill.selected.rest': 'color.icon.link.rest',
     'fill.selected.hover': 'color.icon.link.hover',
     'fill.selected.pressed': 'color.icon.link.pressed',
     'fill.selected.focus-visible': 'color.icon.link.focused',

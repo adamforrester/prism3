@@ -1010,13 +1010,13 @@ export const ownerRuleFindings = (rule: OwnerRule, skillText: (name: string) => 
   const r = OWNER_RULES[0];
   const good = '- Over a photo, set it in `inverse.text.primary`, underlined, on `veil.*`.';
   const split = '- Over a photo, set it in `inverse.text.primary`.\n- Keep the underline on `veil.*`.';
-  const ok = { 'text.link.default': { avoid_when: good }, 'inverse.text.link.default': { avoid_when: good } };
+  const ok = { 'text.link.rest': { avoid_when: good }, 'inverse.text.link.rest': { avoid_when: good } };
   const checks: [string, Finding[], number][] = [
     ['one bullet', ownerRuleFindings(r, () => good, ok, TOKEN_PATHS), 0],
     ['split bullets', ownerRuleFindings(r, () => split, ok, TOKEN_PATHS), r.skills.length],
-    ['role without underline', ownerRuleFindings(r, () => good, { ...ok, 'text.link.default': { avoid_when: good.replace('underlined', 'plain') } }, TOKEN_PATHS), 1],
-    ['twin names the ink, not the rule', ownerRuleFindings(r, () => good, { ...ok, 'inverse.text.link.default': { avoid_when: 'Do not use for non-interactive text (use `inverse.text.primary`). Over a photo, keep the underline, on `veil.*`.' } }, TOKEN_PATHS), 1],
-    ['no inverse twin', ownerRuleFindings(r, () => good, { 'text.link.default': { avoid_when: good } }, TOKEN_PATHS), 1],
+    ['role without underline', ownerRuleFindings(r, () => good, { ...ok, 'text.link.rest': { avoid_when: good.replace('underlined', 'plain') } }, TOKEN_PATHS), 1],
+    ['twin names the ink, not the rule', ownerRuleFindings(r, () => good, { ...ok, 'inverse.text.link.rest': { avoid_when: 'Do not use for non-interactive text (use `inverse.text.primary`). Over a photo, keep the underline, on `veil.*`.' } }, TOKEN_PATHS), 1],
+    ['no inverse twin', ownerRuleFindings(r, () => good, { 'text.link.rest': { avoid_when: good } }, TOKEN_PATHS), 1],
     ['no matching role', ownerRuleFindings(r, () => good, { 'text.primary': { avoid_when: good } }, TOKEN_PATHS), r.roles.length],
     ['names not in tree', ownerRuleFindings(r, () => good, ok, new Set()), r.resolve.length],
   ];

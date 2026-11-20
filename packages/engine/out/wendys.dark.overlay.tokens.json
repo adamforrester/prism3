@@ -142,10 +142,10 @@
           "$description": "Text on a solid success fill — 4.5:1"
         },
         "link": {
-          "default": {
+          "rest": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.400}",
-            "$description": "Link text — default, 4.5:1 on `background.secondary`"
+            "$description": "Link text — rest, 4.5:1 on `background.secondary`"
           },
           "hover": {
             "$type": "color",
@@ -283,10 +283,10 @@
           "$description": "Icon on a solid success fill — 4.5:1"
         },
         "link": {
-          "default": {
+          "rest": {
             "$type": "color",
             "$value": "{wds.core.palette.primary.400}",
-            "$description": "Link icon — default, 4.5:1 on `background.secondary`"
+            "$description": "Link icon — rest, 4.5:1 on `background.secondary`"
           },
           "hover": {
             "$type": "color",
@@ -838,10 +838,10 @@
             "$description": "Muted info text — 3:1 on `inverse.background.primary`; large text (≥24px, or ≥18.67px bold) or non-essential text only, below the 4.5:1 body floor"
           },
           "link": {
-            "default": {
+            "rest": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.500}",
-              "$description": "Link text on an inverse surface — default, 4.5:1 on `inverse.background.secondary`"
+              "$description": "Link text on an inverse surface — rest, 4.5:1 on `inverse.background.secondary`"
             },
             "hover": {
               "$type": "color",
@@ -954,10 +954,10 @@
             "$description": "Muted info icon — low-emphasis accent, 3:1 on `inverse.background.primary`"
           },
           "link": {
-            "default": {
+            "rest": {
               "$type": "color",
               "$value": "{wds.core.palette.primary.500}",
-              "$description": "Link icon on an inverse surface — default, 4.5:1 on `inverse.background.secondary`"
+              "$description": "Link icon on an inverse surface — rest, 4.5:1 on `inverse.background.secondary`"
             },
             "hover": {
               "$type": "color",

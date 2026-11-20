@@ -11,11 +11,30 @@ import { resolveVocabulary } from './vocabulary';
 import { type BrandInputAuthored, type Theme, type BrandInput, ALL_MODES, VALID_MODES, validOutlineHoverFill, validOutlineWash, outlineWashSteps, OUTLINE_INTERACTION_VALUES, RAISED_SURFACE_VALUES, SCRIM_STRENGTH_VALUES, SECONDARY_TEXT_GROUND_VALUES, validGlassRoles, n2, n4, type PaletteBuild, type Role, type InteractivePalette, type InverseSurfaceSpec, type SurfaceStep, CORE_TIER } from './theme-types';
 import { PALETTE_NAME_RE, RESERVED_PALETTES, STATUS_DEFAULTS, statusRamp, inRedTerritory, hueDist, RED_CHROMA_FLOOR, normalizeDisabledStrategy, normalizeDisabledMin } from './theme-color';
 import { buildDims } from './theme-dims';
+
 import { buildMotion, type MotionAxis } from './theme-motion';
 import { LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, DISPLAY_VARIANTS, buildTypography, withLabelDefault, WEIGHT_ROLE_DEFAULT, type FontFamilyBinding, type WeightRole, deriveFamilies, WEIGHT_ROLE_ORDER, type TypeGroup, deriveTypefaces, PER_MODE_SIZE_GROUPS, type PerModeSizeGroup, HEADING_SIZE_FLOOR, mobileEndpoint, TYPE_GROUPS } from './theme-type';
 import { buildShadow, type ShadowAxis, type ShadowStep, type ShadowLayer } from './theme-shadow';
 import { buildLayout, gridGapNotes } from './theme-layout';
 import { buildGradient } from './theme-gradient';
+
+/** #4165 (held for the #1421 contract batch): the resting link state was `….link.default` and is `….link.rest`. A brand input saved
+ *  before the rename still names the old role in `overrides`, and an override for a role a mode does not emit is
+ *  skipped without a word (`modes.ts`), so the pinned link would silently fall back to the derived one. The old key is
+ *  read as the new one instead; where both are set, the new one wins. Only these four roles: they are the rename this
+ *  batch carries, and an older retired key is out of scope here. */
+export const withRestLinkKeys = <O extends Partial<Record<string, Record<string, unknown>>>>(overrides: O | undefined): O | undefined => {
+  if (!overrides) return overrides;
+  const out: Partial<Record<string, Record<string, unknown>>> = {};
+  for (const [mode, roles] of Object.entries(overrides)) {
+    if (!roles) { out[mode] = roles; continue; }
+    const next: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(roles)) if (!k.endsWith('.link.default')) next[k] = v;
+    for (const [k, v] of Object.entries(roles)) if (k.endsWith('.link.default')) { const nk = `${k.slice(0, -'default'.length)}rest`; if (!(nk in next)) next[nk] = v; }
+    out[mode] = next;
+  }
+  return out as O;
+};
 
 /** A value the caller has established is present (an in-range index, a key just written); a named throw, not a
  *  silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
@@ -1045,7 +1064,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     roleAnchorStep: { brand: anchorStep, neutral: 500, success: 500, warning: 500, danger: 500, info: 500, action: actionAnchorStep },
     linkPalette, linkAnchorStep,
     surfaces: input.surfaces,
-    overrides: input.overrides,
+    overrides: withRestLinkKeys(input.overrides),
     modeAnchors: input.modeAnchors,
     disabledStrategy: dStrat,
     disabledMin: dMin,

@@ -650,12 +650,12 @@
       }
     },
     {
-      "name": "nbds/color/text/link/default",
+      "name": "nbds/color/text/link/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text, default — 4.5:1 on background/secondary",
+      "description": "Link text, rest — 4.5:1 on background/secondary",
       "value": {
         "r": 0.5411764979362488,
         "g": 0,
@@ -1244,13 +1244,13 @@
       }
     },
     {
-      "name": "nbds/color/icon/link/default",
+      "name": "nbds/color/icon/link/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Link icon, default — 4.5:1 on background/secondary",
+      "description": "Link icon, rest — 4.5:1 on background/secondary",
       "value": {
         "r": 0.5411764979362488,
         "g": 0,
@@ -3581,12 +3581,12 @@
       }
     },
     {
-      "name": "nbds/color/inverse/text/link/default",
+      "name": "nbds/color/inverse/text/link/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text, default — 4.5:1 on inverse/background/secondary",
+      "description": "Link text, rest — 4.5:1 on inverse/background/secondary",
       "value": {
         "r": 0.8823529481887817,
         "g": 0.49803921580314636,
@@ -4080,13 +4080,13 @@
       }
     },
     {
-      "name": "nbds/color/inverse/icon/link/default",
+      "name": "nbds/color/inverse/icon/link/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Link icon, default — 4.5:1 on inverse/background/secondary",
+      "description": "Link icon, rest — 4.5:1 on inverse/background/secondary",
       "value": {
         "r": 0.8823529481887817,
         "g": 0.49803921580314636,

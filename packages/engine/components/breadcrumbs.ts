@@ -91,7 +91,7 @@ export const breadcrumbs: ComponentDef = {
     'back-gap': 'space.050',
     'back-icon': 'icon.size.xs',
     // The back chevron in the link's icon role (#1471), lowest 4.26:1 on background.primary (measured for the proposal).
-    'icon': 'color.icon.link.default',
+    'icon': 'color.icon.link.rest',
   },
 
   anatomy: {

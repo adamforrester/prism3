@@ -34,7 +34,7 @@ export {
   OUTLINE_WASH_DEFAULTS, OUTLINE_WASH_STEPS, PER_MODE_SIZE_GROUPS, REQUIRED_WEIGHT_ROLES, SHIPPED_GLASS_ROLE,
   SPIN_ROLE, TRACKING_SHIFT_KEYS, TYPE_LINK_ALWAYS, TYPE_LINK_DEFAULT, UNDERLINE_BOUNDS, UNDERLINE_ON_DEFAULT,
   brandTheme, defaultTypeMode, derivedRungFor, isReservedPalette, nbThemeFrom, normalizeDisabledStrategy, shiftRung, typefaceSlug,
-  weightAvailability,
+  weightAvailability, withRestLinkKeys,
 } from './theme';
 export type {
   BrandInput, FacePin, GlassRoleInput, GradientInput, LayoutAxis, OutlineHoverFill, OutlineWash, PerModeSizeGroup,

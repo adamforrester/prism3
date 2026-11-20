@@ -46,7 +46,7 @@ const INK_ROLES = [
   ...SEMANTICS.map((s) => `on-${s}`),
   'link', 'focus',
 ];
-const LINK_STATES = ['default', 'hover', 'visited', 'focused', 'pressed'];
+const LINK_STATES = ['rest', 'hover', 'visited', 'focused', 'pressed'];
 const INTERACTIVE_PARTS = ['fill', 'on-fill', 'text', 'icon', 'border', 'indicator', 'overlay', 'hover-fill', 'subtle-fill'];   // `hover-fill` beside the wash it replaces (#3071); `indicator`, the selection mark, beside the edge it sits next to (#3346)
 const INTERACTIVE_STATES = ['rest', 'hover', 'pressed', 'focused', 'selected'];
 

@@ -29,6 +29,6 @@ export type { ShadowLayer, ShadowStep, ShadowAxis } from './theme-shadow';
 export { CONTAINER_MIN_PX, DESKTOP_TYPE_FROM_PX, defaultTypeMode, gridGapLink, gridGapNotes } from './theme-layout';
 export type { Breakpoint, GridStep, LayoutAxis, GapLink, TypeMode } from './theme-layout';
 export type { GradientStopInput, GradientInput, GradientStop, ResolvedGradient, GradientAxis } from './theme-gradient';
-export { brandTheme } from './theme-brand';
+export { brandTheme, withRestLinkKeys } from './theme-brand';
 export { nbSpecsFrom, buildRamp, nbThemeFrom } from './theme-nb';
 export type { RampSpec } from './theme-nb';

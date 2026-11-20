@@ -1609,7 +1609,7 @@ const EXPECT_SECTION_CHIPS = {
   Foreground: ['foreground.primary', 'foreground.secondary', 'foreground.tertiary', 'inverse.foreground.primary', 'inverse.foreground.secondary',
     'inverse.foreground.tertiary', ...SEM5.flatMap((s) => [`foreground.${s}`, `text.on-${s}`]), ...SEM5.flatMap((s) => [`foreground.${s}-subtle`, `text.${s}`])],
   'Text color': ['text.primary', 'text.secondary', 'text.tertiary', ...SEM5.map((s) => `text.${s}`), ...SEM5.map((s) => `text.${s}-subtle`),
-    'text.link.default', 'text.link.hover', 'text.link.pressed', 'text.link.visited', 'text.link.focused'],
+    'text.link.rest', 'text.link.hover', 'text.link.pressed', 'text.link.visited', 'text.link.focused'],
   Border: ['border.primary', 'border.secondary', 'border.tertiary', 'inverse.border.primary', 'border.focus', 'inverse.border.focus',
     ...SEM5.map((s) => `border.${s}`)],
   Icon: ['icon.primary', 'icon.secondary', 'icon.tertiary', ...SEM5.map((s) => `icon.${s}`), ...SEM5.map((s) => `icon.on-${s}`)],
@@ -5373,7 +5373,7 @@ ok(ORACLE_FAMILIES.length === 4,
 ok(ORACLE_FAMILIES.every((f) => emittedLinks[f].size >= 5),
   `every emitted link family carries at least 5 states (${ORACLE_FAMILIES.map((f) => `${f}:${emittedLinks[f].size}`).join(', ')})`);
 const FAMILY_ORDER = ['text', 'icon', 'inverse.text', 'inverse.icon'];
-const PRESENTATION_ORDER = ['default', 'hover', 'pressed', 'visited', 'focused'];
+const PRESENTATION_ORDER = ['rest', 'hover', 'pressed', 'visited', 'focused'];
 ok(new Set(FAMILY_ORDER).size === new Set(ORACLE_FAMILIES).size && FAMILY_ORDER.every((f) => emittedLinks[f]),
   `the four drawn families are exactly the ones the engine emits (drawn ${FAMILY_ORDER.join(', ')}; emitted ${ORACLE_FAMILIES.join(', ')})`);
 /** ACTUAL — the preview's Links section as drawn: each row's family and, per state, the role its specimen
@@ -5401,7 +5401,7 @@ for (const brand of BRANDS) {
   ok(shown !== null, `${brand}: Color › Interactive's preview carries a Links section`);
   if (!shown) { await ctx.close(); continue; }
   ok(JSON.stringify(shown.rows.map((r) => r.family)) === JSON.stringify(FAMILY_ORDER), `${brand}: the Links section draws the families in order (${shown.rows.map((r) => r.family).join(', ')})`);
-  ok(JSON.stringify(shown.levers) === JSON.stringify(['text.link.default', 'inverse.text.link.default', 'icon.link.default', 'inverse.icon.link.default']),
+  ok(JSON.stringify(shown.levers) === JSON.stringify(['text.link.rest', 'inverse.text.link.rest', 'icon.link.rest', 'inverse.icon.link.rest']),
     `${brand}: the levers carry each family's resting link as a row (${shown.levers.join(', ')})`);
   for (const fam of FAMILY_ORDER) {
     const row = shown.rows.find((r) => r.family === fam);
@@ -5415,9 +5415,9 @@ for (const brand of BRANDS) {
     ok(row.states.map((s) => s.name).join(',') === PRESENTATION_ORDER.join(','), `${where}: each cell's label names its state (${row.states.map((s) => s.name).join(', ')})`);
     const cell = Object.fromEntries(row.states.map((s) => [s.role?.split('.').pop(), s.ink]));
     for (const s of row.states) ok(rgbHex(s.ink) === emission?.role(s.role, 'light')?.hex, `${where}: ${s.role} is drawn in its emitted color (${rgbHex(s.ink)}, emitted ${emission?.role(s.role, 'light')?.hex})`);
-    const engaged = ['default', 'hover', 'pressed', 'visited'].map((k) => cell[k]);
-    ok(new Set(engaged).size === 4, `${where}: default/hover/pressed/visited are four distinct colors (${engaged.join(', ')}) (#1486)`);
-    ok(cell.focused === cell.default, `${where}: focused resolves to the same color as default — the ring carries focus, not the ink (${cell.focused}) (#1486)`);
+    const engaged = ['rest', 'hover', 'pressed', 'visited'].map((k) => cell[k]);
+    ok(new Set(engaged).size === 4, `${where}: rest/hover/pressed/visited are four distinct colors (${engaged.join(', ')}) (#1486)`);
+    ok(cell.focused === cell.rest, `${where}: focused resolves to the same color as rest — the ring carries focus, not the ink (${cell.focused}) (#1486)`);
   }
   const errs = drain();
   ok(errs.length === 0, `${brand}: reading the Links section raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
@@ -5445,7 +5445,7 @@ console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
   ok(options[0] === '' && options.includes('neutral') && options.includes('primary'), `${brand}: the Link palette offers Auto first, then 'neutral' and 'primary' (${options.join(', ')})`);
   const read = () => page.evaluate(() => ({
     warn: /1\.4\.1/.test(document.querySelector('[data-p3="link-palette-warning"]')?.textContent ?? ''),
-    ink: (() => { const n = document.querySelector('[data-p3="interactive-style-guide"] [data-sg-role="text.link.default"]'); return n ? getComputedStyle(n).color : null; })(),
+    ink: (() => { const n = document.querySelector('[data-p3="interactive-style-guide"] [data-sg-role="text.link.rest"]'); return n ? getComputedStyle(n).color : null; })(),
   }));
   const before = await read();
   await sel.selectOption('neutral');

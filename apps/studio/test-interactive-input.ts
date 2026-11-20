@@ -22,6 +22,7 @@ import * as store from './src/state/store';
 import * as I from './src/state/interactive-input';
 import * as O from './src/state/outline-hover-input';
 import * as P from './src/state/palette-input';
+import { overrideOf } from './src/state/fills-input';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -141,11 +142,11 @@ console.log('\n3b. #3406: an override row\'s picker offers the palette its overr
 console.log('\n4. Links: the rungs and the family pin');
 reset();
 // The derived walk, from the ENGINE: what the expected pins below are worked out from.
-const walk = (prefix: string, mode: string): string => ['default', 'hover', 'pressed', 'visited', 'focused'].map((s) => resolvedStep(`${prefix}.link.${s}`, mode)).join(' ');
+const walk = (prefix: string, mode: string): string => ['rest', 'hover', 'pressed', 'visited', 'focused'].map((s) => resolvedStep(`${prefix}.link.${s}`, mode)).join(' ');
 ok(walk('text', 'light') === '600 700 800 900 600', `prism3's Light text link walks 600 700 800 900, focused 600 (${walk('text', 'light')})`);
 ok(walk('text', 'dark') === '450 350 250 150 450', `prism3's Dark text link walks 450 350 250 150, focused 450 (${walk('text', 'dark')})`);
 const pins = (prefix: string, mode: string): string =>
-  ['default', 'hover', 'pressed', 'visited', 'focused'].map((s) => { const o = store.brandState.overrides?.[mode]?.[`${prefix}.link.${s}`]; return o ? `${o.palette} ${o.step}` : '-'; }).join(', ');
+  ['rest', 'hover', 'pressed', 'visited', 'focused'].map((s) => { const o = store.brandState.overrides?.[mode]?.[`${prefix}.link.${s}`]; return o ? `${o.palette} ${o.step}` : '-'; }).join(', ');
 I.setLinkFamilyOverride('light', 'text', '500');
 ok(pins('text', 'light') === 'primary 500, primary 600, primary 700, primary 800, primary 500',
   `setLinkFamilyOverride(light, text, 500) writes all five states at the derived distances: ${pins('text', 'light')}`);
@@ -159,10 +160,27 @@ ok(pins('text', 'dark') === 'primary 400, primary 300, primary 200, primary 100,
 I.setLinkFamilyOverride('light', 'text', undefined);
 I.setLinkFamilyOverride('dark', 'text', undefined);
 ok(pristine(), 'Auto clears all five in each mode: the brand is byte-identical to the one loaded');
-I.writeInteractiveRow('light', row('inverse.text.link.default'), '450');
+I.writeInteractiveRow('light', row('inverse.text.link.rest'), '450');
 ok(pins('inverse.text', 'light').split(', ').length === 5 && !pins('inverse.text', 'light').includes('-'), `the Text link · inverse row pins its family's five states (${pins('inverse.text', 'light')})`);
-I.writeInteractiveRow('light', row('inverse.text.link.default'), undefined);
+I.writeInteractiveRow('light', row('inverse.text.link.rest'), undefined);
 ok(pristine(), 'and its Auto clears them');
+// #4165: a brand saved before the link rename names `text.link.default`. The studio reads it as the rest pin, and Auto
+// clears it: before, the row read Auto while the engine still applied the pin, and Auto left the old key in place.
+{
+  const legacy = structuredClone(prism3) as BrandInput;
+  legacy.overrides = { light: { 'text.link.default': { palette: 'primary', step: '900' } } } as BrandInput['overrides'];
+  for (const [how, load] of [
+    ['a restored brand (initSession)', () => store.initSession(structuredClone(legacy), { kind: 'example', id: 'prism3' })],
+    ['a loaded brand (loadInput)', () => store.loadInput(structuredClone(legacy), { kind: 'example', id: 'prism3' })],
+  ] as const) {
+    load();
+    ok(overrideOf('light', 'text.link.rest') === '900', `#4165 ${how}: a saved text.link.default pin reads as the rest row's pin (${overrideOf('light', 'text.link.rest')})`);
+    I.setLinkFamilyOverride('light', 'text', undefined);
+    const keys = Object.keys(store.brandState.overrides?.light ?? {});
+    ok(keys.length === 0, `#4165 ${how}: Auto clears the saved link pin, the old key included (left: ${keys.join(', ') || 'none'})`);
+  }
+  reset();
+}
 I.setLinkRung('hover', 3);
 I.setLinkRung('visited', 1);
 ok(same(store.brandState.linkStateRungs, { hover: 3, visited: 1 }), `setLinkRung writes the rung per state (${JSON.stringify(store.brandState.linkStateRungs)})`);
@@ -204,7 +222,7 @@ for (const col of ['neutral', 'destructive']) {
   const have = I.INTERACTIVE_ROWS.filter((r) => r.column === col).map((r) => r.role);
   ok(same(have, want), `the ${col} column carries the same ${want.length} roles`);
 }
-const LINKS = ['text.link.default', 'inverse.text.link.default', 'icon.link.default', 'inverse.icon.link.default'];
+const LINKS = ['text.link.rest', 'inverse.text.link.rest', 'icon.link.rest', 'inverse.icon.link.rest'];
 ok(same(I.INTERACTIVE_ROWS.filter((r) => r.write === 'link-family').map((r) => r.role), LINKS), 'the four link families, in the Links section\'s order');
 ok(I.INTERACTIVE_ROWS.length === 3 * PRIMARY.length + LINKS.length, `${I.INTERACTIVE_ROWS.length} rows in all (${3 * PRIMARY.length + LINKS.length} expected)`);
 const kind = (role: string): string | undefined => I.INTERACTIVE_ROWS.find((r) => r.role === role)?.write;

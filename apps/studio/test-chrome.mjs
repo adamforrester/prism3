@@ -231,7 +231,7 @@
  *   · Q24: every section container in the preview is the levers panel's gray, EXPECTED from the emission's
  *     `core.palette.neutral.025` (IA-2's light levers ground; the preview's host is pinned light), in both
  *     chrome themes and every mode, and the light levers panel itself renders that value.
- *   · One set of surface controls (Q22); no link row (Q28: a `text.link.default` row is an unlisted row);
+ *   · One set of surface controls (Q22); no link row (Q28: a `text.link.rest` row is an unlisted row);
  *     the Fields rows, one per field role the EMISSION names, page and inverse (Q29).
  *   S4a mutations: a fill row not rendered or rendered twice (`… renders the foreground.info row once — rendered
  *   0 / 2`); the preview following focus (`V1 focus: … color-fills control …`); a section's ground on the
@@ -5339,7 +5339,7 @@ const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'backgr
   'inverse.background.primary', 'inverse.background.secondary', 'inverse.background.tertiary'];
 /** The override rows, by role: concept v6's five bold fills, then what the legacy page carried (the surface
  *  tiers and the text inks). Literal; each must render its row once. No link row (S4c, owner decision Q28:
- *  links are edited on Interactive only), so a `text.link.default` row fails below as an unlisted row. */
+ *  links are edited on Interactive only), so a `text.link.rest` row fails below as an unlisted row. */
 const SEM_FILL = ['brand', 'success', 'warning', 'info', 'danger'];
 const SEM_INK = ['brand', 'success', 'warning', 'danger', 'info'];
 const TIERS3 = ['primary', 'secondary', 'tertiary'];
@@ -6742,7 +6742,7 @@ const COLUMN_ROWS = (c) => [
   `interactive.${c}.overlay.hover`, `interactive.${c}.overlay.pressed`, `interactive.${c}.on-fill`, `inverse.interactive.${c}.on-fill`,
 ];
 const INTERACTIVE_ROW_ROLES = [...INTERACTIVE_COLUMNS.flatMap(([c]) => COLUMN_ROWS(c)),
-  'text.link.default', 'inverse.text.link.default', 'icon.link.default', 'inverse.icon.link.default'];
+  'text.link.rest', 'inverse.text.link.rest', 'icon.link.rest', 'inverse.icon.link.rest'];
 if (runs('19')) ok(INTERACTIVE_ROW_ROLES.length === 3 * 22 + 4, `the literal row list names ${INTERACTIVE_ROW_ROLES.length} rows (3 columns × 22, and 4 link families)`);
 /** THE ORACLE for a role in a mode, from the committed emission, never from the page: its hex (an 8-digit hex
  *  for a wash), the contrast the engine measured, and what it measured it against. */
@@ -7015,7 +7015,7 @@ for (const host of ['web', 'plugin']) {
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
   try {
     await goPlace(page, 'color-interactive');
-    const ROLES = ['text.link.default', 'inverse.text.link.default'];
+    const ROLES = ['text.link.rest', 'inverse.text.link.rest'];
     const lines = await page.evaluate((roles) => roles.map((r) => {
       const wrap = document.querySelector(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${r}"]`)?.closest('.p3-fillrow-wrap');
       return { role: r, modes: wrap ? [...wrap.querySelectorAll('[data-p3="link-mode"]')].map((c) => c.dataset.mode) : null,
@@ -7025,7 +7025,7 @@ for (const host of ['web', 'plugin']) {
     ok(lines.every((l) => l.modes?.length === 4 && l.below === 0 && /hover \d+.*visited \d+.*pressed \d+/.test(l.follow ?? '')),
       `${host} #2990: each text-link row shows its contrast in all four modes, none below floor, and the steps its states follow (${JSON.stringify(lines)})`);
     if (host === 'web') {
-      const role = 'inverse.text.link.default';
+      const role = 'inverse.text.link.rest';
       await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`));
       await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
       const grid = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="step-picker-step"]')]
@@ -7039,8 +7039,8 @@ for (const host of ['web', 'plugin']) {
       ok(before === after, `web #2990: clicking a below-floor link step (${blocked[0].step}) writes nothing (${before} → ${after})`);
       const open1 = grid.find((g) => !g.blocked);
       await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${open1.step}"]`));
-      await page.waitForFunction(() => !!JSON.parse(localStorage.getItem('prism3:brandInput') ?? '{}')?.input?.overrides?.light?.['inverse.text.link.default'], null, { timeout: 5000 }).catch(() => {});
-      const pinned = (await persisted(page))?.overrides?.light?.['inverse.text.link.default']?.step;
+      await page.waitForFunction(() => !!JSON.parse(localStorage.getItem('prism3:brandInput') ?? '{}')?.input?.overrides?.light?.['inverse.text.link.rest'], null, { timeout: 5000 }).catch(() => {});
+      const pinned = (await persisted(page))?.overrides?.light?.['inverse.text.link.rest']?.step;
       // What the engine EMITS, not only what was stored: the row's swatch is painted from the resolved role, so after the
       // rebuild it is the clicked step's own chip color (a clamp would land a different step and a different color).
       const paint = await page.evaluate(([r, st]) => {
@@ -7051,7 +7051,7 @@ for (const host of ['web', 'plugin']) {
       ok(pinned === open1.step && !!paint.row && paint.row === paint.chip, `web #2990: a clearing link step pins exactly, stored and emitted (${open1.step} → stored ${pinned}, row ${paint.row}, step ${paint.chip})`);
       // An icon-link row keeps today's picker (Q2990.5 scope is the two text links): its below-floor steps stay pickable.
       await page.keyboard.press('Escape');
-      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="int-pick"][data-role="icon.link.default"]'));
+      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="int-pick"][data-role="icon.link.rest"]'));
       await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
       const iconBlocked = await page.evaluate(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-disabled="true"]').length);
       ok(iconBlocked === 0, `web #2990: the icon link's picker blocks nothing (${iconBlocked} blocked)`);

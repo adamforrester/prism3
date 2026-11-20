@@ -219,7 +219,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | text.on-warning | white | 4.50 | 4.5 | ✅ |
 | text.on-danger | white | 5.61 | 4.5 | ✅ |
 | text.on-info | white | 4.55 | 4.5 | ✅ |
-| text.link.default | red.600 | 5.63 | 4.5 | ✅ |
+| text.link.rest | red.600 | 5.63 | 4.5 | ✅ |
 | text.link.hover | red.700 | 8.25 | 4.5 | ✅ |
 | text.link.visited | red.900 | 14.98 | 4.5 | ✅ |
 | text.link.focused | red.600 | 5.63 | 4.5 | ✅ |
@@ -242,7 +242,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | icon.on-warning | white | 4.50 | 4.5 | ✅ |
 | icon.on-danger | white | 5.61 | 4.5 | ✅ |
 | icon.on-info | white | 4.55 | 4.5 | ✅ |
-| icon.link.default | red.600 | 5.63 | 4.5 | ✅ |
+| icon.link.rest | red.600 | 5.63 | 4.5 | ✅ |
 | icon.link.hover | red.700 | 8.25 | 4.5 | ✅ |
 | icon.link.visited | red.900 | 14.98 | 4.5 | ✅ |
 | icon.link.focused | red.600 | 5.63 | 4.5 | ✅ |
@@ -260,7 +260,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.text.warning-subtle | amber.550 | 3.57 | 3 | ✅ |
 | inverse.text.danger-subtle | red.550 | 3.46 | 3 | ✅ |
 | inverse.text.info-subtle | info.550 | 3.51 | 3 | ✅ |
-| inverse.text.link.default | red.450 | 4.66 | 4.5 | ✅ |
+| inverse.text.link.rest | red.450 | 4.66 | 4.5 | ✅ |
 | inverse.text.link.hover | red.350 | 6.43 | 4.5 | ✅ |
 | inverse.text.link.visited | red.150 | 11.49 | 4.5 | ✅ |
 | inverse.text.link.focused | red.450 | 4.66 | 4.5 | ✅ |
@@ -278,7 +278,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.icon.warning-subtle | amber.550 | 3.57 | 3 | ✅ |
 | inverse.icon.danger-subtle | red.550 | 3.46 | 3 | ✅ |
 | inverse.icon.info-subtle | info.550 | 3.51 | 3 | ✅ |
-| inverse.icon.link.default | red.450 | 4.66 | 4.5 | ✅ |
+| inverse.icon.link.rest | red.450 | 4.66 | 4.5 | ✅ |
 | inverse.icon.link.hover | red.350 | 6.43 | 4.5 | ✅ |
 | inverse.icon.link.visited | red.150 | 11.49 | 4.5 | ✅ |
 | inverse.icon.link.focused | red.450 | 4.66 | 4.5 | ✅ |
@@ -525,7 +525,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | text.on-warning | black | 4.66 | 4.5 | ✅ |
 | text.on-danger | neutral.025 | 5.23 | 4.5 | ✅ |
 | text.on-info | white | 4.55 | 4.5 | ✅ |
-| text.link.default | red.450 | 4.66 | 4.5 | ✅ |
+| text.link.rest | red.450 | 4.66 | 4.5 | ✅ |
 | text.link.hover | red.350 | 6.43 | 4.5 | ✅ |
 | text.link.visited | red.150 | 11.49 | 4.5 | ✅ |
 | text.link.focused | red.450 | 4.66 | 4.5 | ✅ |
@@ -548,7 +548,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | icon.on-warning | black | 4.66 | 4.5 | ✅ |
 | icon.on-danger | neutral.025 | 5.23 | 4.5 | ✅ |
 | icon.on-info | white | 4.55 | 4.5 | ✅ |
-| icon.link.default | red.450 | 4.66 | 4.5 | ✅ |
+| icon.link.rest | red.450 | 4.66 | 4.5 | ✅ |
 | icon.link.hover | red.350 | 6.43 | 4.5 | ✅ |
 | icon.link.visited | red.150 | 11.49 | 4.5 | ✅ |
 | icon.link.focused | red.450 | 4.66 | 4.5 | ✅ |
@@ -566,7 +566,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.text.warning-subtle | amber.650 | 7.53 | 3 | ✅ |
 | inverse.text.danger-subtle | red.650 | 7.72 | 3 | ✅ |
 | inverse.text.info-subtle | info.650 | 7.58 | 3 | ✅ |
-| inverse.text.link.default | red.550 | 4.62 | 4.5 | ✅ |
+| inverse.text.link.rest | red.550 | 4.62 | 4.5 | ✅ |
 | inverse.text.link.hover | red.650 | 6.81 | 4.5 | ✅ |
 | inverse.text.link.visited | red.850 | 13.42 | 4.5 | ✅ |
 | inverse.text.link.focused | red.550 | 4.62 | 4.5 | ✅ |
@@ -584,7 +584,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.icon.warning-subtle | amber.650 | 7.53 | 3 | ✅ |
 | inverse.icon.danger-subtle | red.650 | 7.72 | 3 | ✅ |
 | inverse.icon.info-subtle | info.650 | 7.58 | 3 | ✅ |
-| inverse.icon.link.default | red.550 | 4.62 | 4.5 | ✅ |
+| inverse.icon.link.rest | red.550 | 4.62 | 4.5 | ✅ |
 | inverse.icon.link.hover | red.650 | 6.81 | 4.5 | ✅ |
 | inverse.icon.link.visited | red.850 | 13.42 | 4.5 | ✅ |
 | inverse.icon.link.focused | red.550 | 4.62 | 4.5 | ✅ |
@@ -831,7 +831,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | text.on-warning | white | 9.78 | 4.5 | ✅ |
 | text.on-danger | white | 10.02 | 4.5 | ✅ |
 | text.on-info | white | 9.77 | 4.5 | ✅ |
-| text.link.default | red.700 | 8.25 | 7 | ✅ |
+| text.link.rest | red.700 | 8.25 | 7 | ✅ |
 | text.link.hover | red.800 | 11.65 | 7 | ✅ |
 | text.link.visited | red.950 | 16.10 | 7 | ✅ |
 | text.link.focused | red.700 | 8.25 | 7 | ✅ |
@@ -854,7 +854,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | icon.on-warning | white | 9.78 | 4.5 | ✅ |
 | icon.on-danger | white | 10.02 | 4.5 | ✅ |
 | icon.on-info | white | 9.77 | 4.5 | ✅ |
-| icon.link.default | red.700 | 8.25 | 7 | ✅ |
+| icon.link.rest | red.700 | 8.25 | 7 | ✅ |
 | icon.link.hover | red.800 | 11.65 | 7 | ✅ |
 | icon.link.visited | red.950 | 16.10 | 7 | ✅ |
 | icon.link.focused | red.700 | 8.25 | 7 | ✅ |
@@ -872,7 +872,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.text.warning-subtle | amber.500 | 4.66 | 4.5 | ✅ |
 | inverse.text.danger-subtle | red.500 | 4.58 | 4.5 | ✅ |
 | inverse.text.info-subtle | info.500 | 4.60 | 4.5 | ✅ |
-| inverse.text.link.default | red.350 | 7.52 | 7 | ✅ |
+| inverse.text.link.rest | red.350 | 7.52 | 7 | ✅ |
 | inverse.text.link.hover | red.250 | 10.17 | 7 | ✅ |
 | inverse.text.link.visited | red.050 | 17.28 | 7 | ✅ |
 | inverse.text.link.focused | red.350 | 7.52 | 7 | ✅ |
@@ -890,7 +890,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.icon.warning-subtle | amber.500 | 4.66 | 4.5 | ✅ |
 | inverse.icon.danger-subtle | red.500 | 4.58 | 4.5 | ✅ |
 | inverse.icon.info-subtle | info.500 | 4.60 | 4.5 | ✅ |
-| inverse.icon.link.default | red.350 | 7.52 | 7 | ✅ |
+| inverse.icon.link.rest | red.350 | 7.52 | 7 | ✅ |
 | inverse.icon.link.hover | red.250 | 10.17 | 7 | ✅ |
 | inverse.icon.link.visited | red.050 | 17.28 | 7 | ✅ |
 | inverse.icon.link.focused | red.350 | 7.52 | 7 | ✅ |
@@ -1137,7 +1137,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | text.on-warning | black | 8.84 | 4.5 | ✅ |
 | text.on-danger | black | 8.76 | 4.5 | ✅ |
 | text.on-info | black | 8.79 | 4.5 | ✅ |
-| text.link.default | red.300 | 7.50 | 7 | ✅ |
+| text.link.rest | red.300 | 7.50 | 7 | ✅ |
 | text.link.hover | red.200 | 10.00 | 7 | ✅ |
 | text.link.visited | red.025 | 16.64 | 7 | ✅ |
 | text.link.focused | red.300 | 7.50 | 7 | ✅ |
@@ -1160,7 +1160,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | icon.on-warning | black | 8.84 | 4.5 | ✅ |
 | icon.on-danger | black | 8.76 | 4.5 | ✅ |
 | icon.on-info | black | 8.79 | 4.5 | ✅ |
-| icon.link.default | red.300 | 7.50 | 7 | ✅ |
+| icon.link.rest | red.300 | 7.50 | 7 | ✅ |
 | icon.link.hover | red.200 | 10.00 | 7 | ✅ |
 | icon.link.visited | red.025 | 16.64 | 7 | ✅ |
 | icon.link.focused | red.300 | 7.50 | 7 | ✅ |
@@ -1178,7 +1178,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.text.warning-subtle | amber.650 | 8.08 | 4.5 | ✅ |
 | inverse.text.danger-subtle | red.650 | 8.28 | 4.5 | ✅ |
 | inverse.text.info-subtle | info.650 | 8.14 | 4.5 | ✅ |
-| inverse.text.link.default | red.650 | 8.28 | 7 | ✅ |
+| inverse.text.link.rest | red.650 | 8.28 | 7 | ✅ |
 | inverse.text.link.hover | red.750 | 12.08 | 7 | ✅ |
 | inverse.text.link.visited | red.950 | 19.58 | 7 | ✅ |
 | inverse.text.link.focused | red.650 | 8.28 | 7 | ✅ |
@@ -1196,7 +1196,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.icon.warning-subtle | amber.650 | 8.08 | 4.5 | ✅ |
 | inverse.icon.danger-subtle | red.650 | 8.28 | 4.5 | ✅ |
 | inverse.icon.info-subtle | info.650 | 8.14 | 4.5 | ✅ |
-| inverse.icon.link.default | red.650 | 8.28 | 7 | ✅ |
+| inverse.icon.link.rest | red.650 | 8.28 | 7 | ✅ |
 | inverse.icon.link.hover | red.750 | 12.08 | 7 | ✅ |
 | inverse.icon.link.visited | red.950 | 19.58 | 7 | ✅ |
 | inverse.icon.link.focused | red.650 | 8.28 | 7 | ✅ |
@@ -1519,7 +1519,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | text.on-warning | white | 4.54 | 4.5 | ✅ |
 | text.on-danger | white | 4.56 | 4.5 | ✅ |
 | text.on-info | white | 4.54 | 4.5 | ✅ |
-| text.link.default | primary.600 | 6.44 | 4.5 | ✅ |
+| text.link.rest | primary.600 | 6.44 | 4.5 | ✅ |
 | text.link.hover | primary.700 | 9.20 | 4.5 | ✅ |
 | text.link.visited | primary.900 | 15.26 | 4.5 | ✅ |
 | text.link.focused | primary.600 | 6.44 | 4.5 | ✅ |
@@ -1542,7 +1542,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | icon.on-warning | white | 4.54 | 4.5 | ✅ |
 | icon.on-danger | white | 4.56 | 4.5 | ✅ |
 | icon.on-info | white | 4.54 | 4.5 | ✅ |
-| icon.link.default | primary.600 | 6.44 | 4.5 | ✅ |
+| icon.link.rest | primary.600 | 6.44 | 4.5 | ✅ |
 | icon.link.hover | primary.700 | 9.20 | 4.5 | ✅ |
 | icon.link.visited | primary.900 | 15.26 | 4.5 | ✅ |
 | icon.link.focused | primary.600 | 6.44 | 4.5 | ✅ |
@@ -1560,7 +1560,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.text.warning-subtle | warning.550 | 3.53 | 3 | ✅ |
 | inverse.text.danger-subtle | danger.550 | 3.50 | 3 | ✅ |
 | inverse.text.info-subtle | info.550 | 3.52 | 3 | ✅ |
-| inverse.text.link.default | primary.450 | 4.64 | 4.5 | ✅ |
+| inverse.text.link.rest | primary.450 | 4.64 | 4.5 | ✅ |
 | inverse.text.link.hover | primary.350 | 6.46 | 4.5 | ✅ |
 | inverse.text.link.visited | primary.150 | 11.48 | 4.5 | ✅ |
 | inverse.text.link.focused | primary.450 | 4.64 | 4.5 | ✅ |
@@ -1578,7 +1578,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.warning-subtle | warning.550 | 3.53 | 3 | ✅ |
 | inverse.icon.danger-subtle | danger.550 | 3.50 | 3 | ✅ |
 | inverse.icon.info-subtle | info.550 | 3.52 | 3 | ✅ |
-| inverse.icon.link.default | primary.450 | 4.64 | 4.5 | ✅ |
+| inverse.icon.link.rest | primary.450 | 4.64 | 4.5 | ✅ |
 | inverse.icon.link.hover | primary.350 | 6.46 | 4.5 | ✅ |
 | inverse.icon.link.visited | primary.150 | 11.48 | 4.5 | ✅ |
 | inverse.icon.link.focused | primary.450 | 4.64 | 4.5 | ✅ |
@@ -1812,7 +1812,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | text.on-warning | black | 4.62 | 4.5 | ✅ |
 | text.on-danger | white | 4.56 | 4.5 | ✅ |
 | text.on-info | black | 4.61 | 4.5 | ✅ |
-| text.link.default | primary.450 | 4.64 | 4.5 | ✅ |
+| text.link.rest | primary.450 | 4.64 | 4.5 | ✅ |
 | text.link.hover | primary.350 | 6.46 | 4.5 | ✅ |
 | text.link.visited | primary.150 | 11.48 | 4.5 | ✅ |
 | text.link.focused | primary.450 | 4.64 | 4.5 | ✅ |
@@ -1835,7 +1835,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | icon.on-warning | black | 4.62 | 4.5 | ✅ |
 | icon.on-danger | white | 4.56 | 4.5 | ✅ |
 | icon.on-info | black | 4.61 | 4.5 | ✅ |
-| icon.link.default | primary.450 | 4.64 | 4.5 | ✅ |
+| icon.link.rest | primary.450 | 4.64 | 4.5 | ✅ |
 | icon.link.hover | primary.350 | 6.46 | 4.5 | ✅ |
 | icon.link.visited | primary.150 | 11.48 | 4.5 | ✅ |
 | icon.link.focused | primary.450 | 4.64 | 4.5 | ✅ |
@@ -1853,7 +1853,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.text.warning-subtle | warning.650 | 7.60 | 3 | ✅ |
 | inverse.text.danger-subtle | danger.650 | 7.72 | 3 | ✅ |
 | inverse.text.info-subtle | info.650 | 7.58 | 3 | ✅ |
-| inverse.text.link.default | primary.600 | 6.44 | 4.5 | ✅ |
+| inverse.text.link.rest | primary.600 | 6.44 | 4.5 | ✅ |
 | inverse.text.link.hover | primary.700 | 9.20 | 4.5 | ✅ |
 | inverse.text.link.visited | primary.900 | 15.26 | 4.5 | ✅ |
 | inverse.text.link.focused | primary.600 | 6.44 | 4.5 | ✅ |
@@ -1871,7 +1871,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.warning-subtle | warning.650 | 7.60 | 3 | ✅ |
 | inverse.icon.danger-subtle | danger.650 | 7.72 | 3 | ✅ |
 | inverse.icon.info-subtle | info.650 | 7.58 | 3 | ✅ |
-| inverse.icon.link.default | primary.600 | 6.44 | 4.5 | ✅ |
+| inverse.icon.link.rest | primary.600 | 6.44 | 4.5 | ✅ |
 | inverse.icon.link.hover | primary.700 | 9.20 | 4.5 | ✅ |
 | inverse.icon.link.visited | primary.900 | 15.26 | 4.5 | ✅ |
 | inverse.icon.link.focused | primary.600 | 6.44 | 4.5 | ✅ |
@@ -2105,7 +2105,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | text.on-warning | white | 9.84 | 4.5 | ✅ |
 | text.on-danger | white | 10.00 | 4.5 | ✅ |
 | text.on-info | white | 9.84 | 4.5 | ✅ |
-| text.link.default | primary.650 | 7.72 | 7 | ✅ |
+| text.link.rest | primary.650 | 7.72 | 7 | ✅ |
 | text.link.hover | primary.750 | 10.79 | 7 | ✅ |
 | text.link.visited | primary.950 | 16.23 | 7 | ✅ |
 | text.link.focused | primary.650 | 7.72 | 7 | ✅ |
@@ -2128,7 +2128,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | icon.on-warning | white | 9.84 | 4.5 | ✅ |
 | icon.on-danger | white | 10.00 | 4.5 | ✅ |
 | icon.on-info | white | 9.84 | 4.5 | ✅ |
-| icon.link.default | primary.650 | 7.72 | 7 | ✅ |
+| icon.link.rest | primary.650 | 7.72 | 7 | ✅ |
 | icon.link.hover | primary.750 | 10.79 | 7 | ✅ |
 | icon.link.visited | primary.950 | 16.23 | 7 | ✅ |
 | icon.link.focused | primary.650 | 7.72 | 7 | ✅ |
@@ -2146,7 +2146,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.text.warning-subtle | warning.500 | 4.62 | 4.5 | ✅ |
 | inverse.text.danger-subtle | danger.500 | 4.59 | 4.5 | ✅ |
 | inverse.text.info-subtle | info.500 | 4.61 | 4.5 | ✅ |
-| inverse.text.link.default | primary.350 | 7.57 | 7 | ✅ |
+| inverse.text.link.rest | primary.350 | 7.57 | 7 | ✅ |
 | inverse.text.link.hover | primary.250 | 10.22 | 7 | ✅ |
 | inverse.text.link.visited | primary.050 | 17.39 | 7 | ✅ |
 | inverse.text.link.focused | primary.350 | 7.57 | 7 | ✅ |
@@ -2164,7 +2164,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.warning-subtle | warning.500 | 4.62 | 4.5 | ✅ |
 | inverse.icon.danger-subtle | danger.500 | 4.59 | 4.5 | ✅ |
 | inverse.icon.info-subtle | info.500 | 4.61 | 4.5 | ✅ |
-| inverse.icon.link.default | primary.350 | 7.57 | 7 | ✅ |
+| inverse.icon.link.rest | primary.350 | 7.57 | 7 | ✅ |
 | inverse.icon.link.hover | primary.250 | 10.22 | 7 | ✅ |
 | inverse.icon.link.visited | primary.050 | 17.39 | 7 | ✅ |
 | inverse.icon.link.focused | primary.350 | 7.57 | 7 | ✅ |
@@ -2398,7 +2398,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | text.on-warning | black | 8.61 | 4.5 | ✅ |
 | text.on-danger | black | 8.74 | 4.5 | ✅ |
 | text.on-info | black | 8.84 | 4.5 | ✅ |
-| text.link.default | primary.300 | 7.57 | 7 | ✅ |
+| text.link.rest | primary.300 | 7.57 | 7 | ✅ |
 | text.link.hover | primary.200 | 10.05 | 7 | ✅ |
 | text.link.visited | primary.025 | 16.68 | 7 | ✅ |
 | text.link.focused | primary.300 | 7.57 | 7 | ✅ |
@@ -2421,7 +2421,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | icon.on-warning | black | 8.61 | 4.5 | ✅ |
 | icon.on-danger | black | 8.74 | 4.5 | ✅ |
 | icon.on-info | black | 8.84 | 4.5 | ✅ |
-| icon.link.default | primary.300 | 7.57 | 7 | ✅ |
+| icon.link.rest | primary.300 | 7.57 | 7 | ✅ |
 | icon.link.hover | primary.200 | 10.05 | 7 | ✅ |
 | icon.link.visited | primary.025 | 16.68 | 7 | ✅ |
 | icon.link.focused | primary.300 | 7.57 | 7 | ✅ |
@@ -2439,7 +2439,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.text.warning-subtle | warning.650 | 8.14 | 4.5 | ✅ |
 | inverse.text.danger-subtle | danger.650 | 8.27 | 4.5 | ✅ |
 | inverse.text.info-subtle | info.650 | 8.12 | 4.5 | ✅ |
-| inverse.text.link.default | primary.600 | 7.82 | 7 | ✅ |
+| inverse.text.link.rest | primary.600 | 7.82 | 7 | ✅ |
 | inverse.text.link.hover | primary.700 | 11.17 | 7 | ✅ |
 | inverse.text.link.visited | primary.900 | 18.53 | 7 | ✅ |
 | inverse.text.link.focused | primary.600 | 7.82 | 7 | ✅ |
@@ -2457,7 +2457,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.warning-subtle | warning.650 | 8.14 | 4.5 | ✅ |
 | inverse.icon.danger-subtle | danger.650 | 8.27 | 4.5 | ✅ |
 | inverse.icon.info-subtle | info.650 | 8.12 | 4.5 | ✅ |
-| inverse.icon.link.default | primary.600 | 7.82 | 7 | ✅ |
+| inverse.icon.link.rest | primary.600 | 7.82 | 7 | ✅ |
 | inverse.icon.link.hover | primary.700 | 11.17 | 7 | ✅ |
 | inverse.icon.link.visited | primary.900 | 18.53 | 7 | ✅ |
 | inverse.icon.link.focused | primary.600 | 7.82 | 7 | ✅ |
@@ -2769,7 +2769,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | text.on-warning | white | 4.58 | 4.5 | ✅ |
 | text.on-danger | white | 4.56 | 4.5 | ✅ |
 | text.on-info | white | 4.55 | 4.5 | ✅ |
-| text.link.default | accent.600 | 5.64 | 4.5 | ✅ |
+| text.link.rest | accent.600 | 5.64 | 4.5 | ✅ |
 | text.link.hover | accent.700 | 8.26 | 4.5 | ✅ |
 | text.link.visited | accent.900 | 14.79 | 4.5 | ✅ |
 | text.link.focused | accent.600 | 5.64 | 4.5 | ✅ |
@@ -2792,7 +2792,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | icon.on-warning | white | 4.58 | 4.5 | ✅ |
 | icon.on-danger | white | 4.56 | 4.5 | ✅ |
 | icon.on-info | white | 4.55 | 4.5 | ✅ |
-| icon.link.default | accent.500 | 3.76 | 3 | ✅ |
+| icon.link.rest | accent.500 | 3.76 | 3 | ✅ |
 | icon.link.hover | accent.600 | 5.64 | 3 | ✅ |
 | icon.link.visited | accent.800 | 11.47 | 3 | ✅ |
 | icon.link.focused | accent.500 | 3.76 | 3 | ✅ |
@@ -2810,7 +2810,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.text.warning-subtle | warning.550 | 3.50 | 3 | ✅ |
 | inverse.text.danger-subtle | danger.550 | 3.49 | 3 | ✅ |
 | inverse.text.info-subtle | info.550 | 3.50 | 3 | ✅ |
-| inverse.text.link.default | accent.400 | 5.34 | 4.5 | ✅ |
+| inverse.text.link.rest | accent.400 | 5.34 | 4.5 | ✅ |
 | inverse.text.link.hover | accent.300 | 7.32 | 4.5 | ✅ |
 | inverse.text.link.visited | accent.100 | 12.95 | 4.5 | ✅ |
 | inverse.text.link.focused | accent.400 | 5.34 | 4.5 | ✅ |
@@ -2828,7 +2828,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.warning-subtle | warning.550 | 3.50 | 3 | ✅ |
 | inverse.icon.danger-subtle | danger.550 | 3.49 | 3 | ✅ |
 | inverse.icon.info-subtle | info.550 | 3.50 | 3 | ✅ |
-| inverse.icon.link.default | accent.500 | 3.92 | 3 | ✅ |
+| inverse.icon.link.rest | accent.500 | 3.92 | 3 | ✅ |
 | inverse.icon.link.hover | accent.400 | 5.34 | 3 | ✅ |
 | inverse.icon.link.visited | accent.200 | 9.81 | 3 | ✅ |
 | inverse.icon.link.focused | accent.500 | 3.92 | 3 | ✅ |
@@ -3062,7 +3062,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | text.on-warning | white | 4.58 | 4.5 | ✅ |
 | text.on-danger | white | 4.56 | 4.5 | ✅ |
 | text.on-info | white | 4.55 | 4.5 | ✅ |
-| text.link.default | accent.400 | 5.34 | 4.5 | ✅ |
+| text.link.rest | accent.400 | 5.34 | 4.5 | ✅ |
 | text.link.hover | accent.300 | 7.32 | 4.5 | ✅ |
 | text.link.visited | accent.100 | 12.95 | 4.5 | ✅ |
 | text.link.focused | accent.400 | 5.34 | 4.5 | ✅ |
@@ -3085,7 +3085,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | icon.on-warning | white | 4.58 | 4.5 | ✅ |
 | icon.on-danger | white | 4.56 | 4.5 | ✅ |
 | icon.on-info | white | 4.55 | 4.5 | ✅ |
-| icon.link.default | accent.500 | 3.92 | 3 | ✅ |
+| icon.link.rest | accent.500 | 3.92 | 3 | ✅ |
 | icon.link.hover | accent.400 | 5.34 | 3 | ✅ |
 | icon.link.visited | accent.200 | 9.81 | 3 | ✅ |
 | icon.link.focused | accent.500 | 3.92 | 3 | ✅ |
@@ -3103,7 +3103,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.text.warning-subtle | warning.650 | 7.60 | 3 | ✅ |
 | inverse.text.danger-subtle | danger.650 | 7.67 | 3 | ✅ |
 | inverse.text.info-subtle | info.650 | 7.60 | 3 | ✅ |
-| inverse.text.link.default | accent.550 | 4.69 | 4.5 | ✅ |
+| inverse.text.link.rest | accent.550 | 4.69 | 4.5 | ✅ |
 | inverse.text.link.hover | accent.650 | 6.84 | 4.5 | ✅ |
 | inverse.text.link.visited | accent.850 | 13.25 | 4.5 | ✅ |
 | inverse.text.link.focused | accent.550 | 4.69 | 4.5 | ✅ |
@@ -3121,7 +3121,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.warning-subtle | warning.650 | 7.60 | 3 | ✅ |
 | inverse.icon.danger-subtle | danger.650 | 7.67 | 3 | ✅ |
 | inverse.icon.info-subtle | info.650 | 7.60 | 3 | ✅ |
-| inverse.icon.link.default | accent.500 | 3.76 | 3 | ✅ |
+| inverse.icon.link.rest | accent.500 | 3.76 | 3 | ✅ |
 | inverse.icon.link.hover | accent.600 | 5.64 | 3 | ✅ |
 | inverse.icon.link.visited | accent.800 | 11.47 | 3 | ✅ |
 | inverse.icon.link.focused | accent.500 | 3.76 | 3 | ✅ |
@@ -3355,7 +3355,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | text.on-warning | white | 9.84 | 4.5 | ✅ |
 | text.on-danger | white | 9.98 | 4.5 | ✅ |
 | text.on-info | white | 9.77 | 4.5 | ✅ |
-| text.link.default | accent.700 | 8.26 | 7 | ✅ |
+| text.link.rest | accent.700 | 8.26 | 7 | ✅ |
 | text.link.hover | accent.800 | 11.47 | 7 | ✅ |
 | text.link.visited | accent.950 | 15.97 | 7 | ✅ |
 | text.link.focused | accent.700 | 8.26 | 7 | ✅ |
@@ -3378,7 +3378,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | icon.on-warning | white | 9.84 | 4.5 | ✅ |
 | icon.on-danger | white | 9.98 | 4.5 | ✅ |
 | icon.on-info | white | 9.77 | 4.5 | ✅ |
-| icon.link.default | accent.600 | 5.64 | 4.5 | ✅ |
+| icon.link.rest | accent.600 | 5.64 | 4.5 | ✅ |
 | icon.link.hover | accent.700 | 8.26 | 4.5 | ✅ |
 | icon.link.visited | accent.900 | 14.79 | 4.5 | ✅ |
 | icon.link.focused | accent.600 | 5.64 | 4.5 | ✅ |
@@ -3396,7 +3396,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.text.warning-subtle | warning.500 | 4.57 | 4.5 | ✅ |
 | inverse.text.danger-subtle | danger.500 | 4.60 | 4.5 | ✅ |
 | inverse.text.info-subtle | info.500 | 4.60 | 4.5 | ✅ |
-| inverse.text.link.default | accent.350 | 7.35 | 7 | ✅ |
+| inverse.text.link.rest | accent.350 | 7.35 | 7 | ✅ |
 | inverse.text.link.hover | accent.250 | 9.97 | 7 | ✅ |
 | inverse.text.link.visited | accent.050 | 17.32 | 7 | ✅ |
 | inverse.text.link.focused | accent.350 | 7.35 | 7 | ✅ |
@@ -3414,7 +3414,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.warning-subtle | warning.500 | 4.57 | 4.5 | ✅ |
 | inverse.icon.danger-subtle | danger.500 | 4.60 | 4.5 | ✅ |
 | inverse.icon.info-subtle | info.500 | 4.60 | 4.5 | ✅ |
-| inverse.icon.link.default | accent.500 | 4.60 | 4.5 | ✅ |
+| inverse.icon.link.rest | accent.500 | 4.60 | 4.5 | ✅ |
 | inverse.icon.link.hover | accent.400 | 6.26 | 4.5 | ✅ |
 | inverse.icon.link.visited | accent.200 | 11.51 | 4.5 | ✅ |
 | inverse.icon.link.focused | accent.500 | 4.60 | 4.5 | ✅ |
@@ -3648,7 +3648,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | text.on-warning | black | 8.60 | 4.5 | ✅ |
 | text.on-danger | black | 8.69 | 4.5 | ✅ |
 | text.on-info | black | 8.79 | 4.5 | ✅ |
-| text.link.default | accent.300 | 7.32 | 7 | ✅ |
+| text.link.rest | accent.300 | 7.32 | 7 | ✅ |
 | text.link.hover | accent.200 | 9.81 | 7 | ✅ |
 | text.link.visited | accent.025 | 16.70 | 7 | ✅ |
 | text.link.focused | accent.300 | 7.32 | 7 | ✅ |
@@ -3671,7 +3671,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | icon.on-warning | black | 8.60 | 4.5 | ✅ |
 | icon.on-danger | black | 8.69 | 4.5 | ✅ |
 | icon.on-info | black | 8.79 | 4.5 | ✅ |
-| icon.link.default | accent.400 | 5.34 | 4.5 | ✅ |
+| icon.link.rest | accent.400 | 5.34 | 4.5 | ✅ |
 | icon.link.hover | accent.300 | 7.32 | 4.5 | ✅ |
 | icon.link.visited | accent.100 | 12.95 | 4.5 | ✅ |
 | icon.link.focused | accent.400 | 5.34 | 4.5 | ✅ |
@@ -3689,7 +3689,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.text.warning-subtle | warning.650 | 8.14 | 4.5 | ✅ |
 | inverse.text.danger-subtle | danger.650 | 8.21 | 4.5 | ✅ |
 | inverse.text.info-subtle | info.650 | 8.14 | 4.5 | ✅ |
-| inverse.text.link.default | accent.650 | 8.30 | 7 | ✅ |
+| inverse.text.link.rest | accent.650 | 8.30 | 7 | ✅ |
 | inverse.text.link.hover | accent.750 | 11.95 | 7 | ✅ |
 | inverse.text.link.visited | accent.950 | 19.38 | 7 | ✅ |
 | inverse.text.link.focused | accent.650 | 8.30 | 7 | ✅ |
@@ -3707,7 +3707,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.icon.warning-subtle | warning.650 | 8.14 | 4.5 | ✅ |
 | inverse.icon.danger-subtle | danger.650 | 8.21 | 4.5 | ✅ |
 | inverse.icon.info-subtle | info.650 | 8.14 | 4.5 | ✅ |
-| inverse.icon.link.default | accent.500 | 4.56 | 4.5 | ✅ |
+| inverse.icon.link.rest | accent.500 | 4.56 | 4.5 | ✅ |
 | inverse.icon.link.hover | accent.600 | 6.85 | 4.5 | ✅ |
 | inverse.icon.link.visited | accent.800 | 13.91 | 4.5 | ✅ |
 | inverse.icon.link.focused | accent.500 | 4.56 | 4.5 | ✅ |
@@ -4018,7 +4018,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | text.on-warning | white | 4.60 | 4.5 | ✅ |
 | text.on-danger | white | 4.56 | 4.5 | ✅ |
 | text.on-info | white | 4.55 | 4.5 | ✅ |
-| text.link.default | primary.600 | 4.91 | 4.5 | ✅ |
+| text.link.rest | primary.600 | 4.91 | 4.5 | ✅ |
 | text.link.hover | primary.700 | 7.20 | 4.5 | ✅ |
 | text.link.visited | primary.900 | 12.95 | 4.5 | ✅ |
 | text.link.focused | primary.600 | 4.91 | 4.5 | ✅ |
@@ -4041,7 +4041,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | icon.on-warning | white | 4.60 | 4.5 | ✅ |
 | icon.on-danger | white | 4.56 | 4.5 | ✅ |
 | icon.on-info | white | 4.55 | 4.5 | ✅ |
-| icon.link.default | primary.600 | 4.91 | 4.5 | ✅ |
+| icon.link.rest | primary.600 | 4.91 | 4.5 | ✅ |
 | icon.link.hover | primary.700 | 7.20 | 4.5 | ✅ |
 | icon.link.visited | primary.900 | 12.95 | 4.5 | ✅ |
 | icon.link.focused | primary.600 | 4.91 | 4.5 | ✅ |
@@ -4059,7 +4059,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.text.warning-subtle | warning.550 | 3.48 | 3 | ✅ |
 | inverse.text.danger-subtle | danger.550 | 3.47 | 3 | ✅ |
 | inverse.text.info-subtle | info.550 | 3.50 | 3 | ✅ |
-| inverse.text.link.default | primary.450 | 4.61 | 4.5 | ✅ |
+| inverse.text.link.rest | primary.450 | 4.61 | 4.5 | ✅ |
 | inverse.text.link.hover | primary.350 | 6.36 | 4.5 | ✅ |
 | inverse.text.link.visited | primary.150 | 11.36 | 4.5 | ✅ |
 | inverse.text.link.focused | primary.450 | 4.61 | 4.5 | ✅ |
@@ -4077,7 +4077,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.icon.warning-subtle | warning.550 | 3.48 | 3 | ✅ |
 | inverse.icon.danger-subtle | danger.550 | 3.47 | 3 | ✅ |
 | inverse.icon.info-subtle | info.550 | 3.50 | 3 | ✅ |
-| inverse.icon.link.default | primary.450 | 4.61 | 4.5 | ✅ |
+| inverse.icon.link.rest | primary.450 | 4.61 | 4.5 | ✅ |
 | inverse.icon.link.hover | primary.350 | 6.36 | 4.5 | ✅ |
 | inverse.icon.link.visited | primary.150 | 11.36 | 4.5 | ✅ |
 | inverse.icon.link.focused | primary.450 | 4.61 | 4.5 | ✅ |
@@ -4311,7 +4311,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | text.on-warning | white | 4.60 | 4.5 | ✅ |
 | text.on-danger | white | 4.56 | 4.5 | ✅ |
 | text.on-info | white | 4.55 | 4.5 | ✅ |
-| text.link.default | primary.450 | 4.61 | 4.5 | ✅ |
+| text.link.rest | primary.450 | 4.61 | 4.5 | ✅ |
 | text.link.hover | primary.350 | 6.36 | 4.5 | ✅ |
 | text.link.visited | primary.150 | 11.36 | 4.5 | ✅ |
 | text.link.focused | primary.450 | 4.61 | 4.5 | ✅ |
@@ -4334,7 +4334,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | icon.on-warning | white | 4.60 | 4.5 | ✅ |
 | icon.on-danger | white | 4.56 | 4.5 | ✅ |
 | icon.on-info | white | 4.55 | 4.5 | ✅ |
-| icon.link.default | primary.450 | 4.61 | 4.5 | ✅ |
+| icon.link.rest | primary.450 | 4.61 | 4.5 | ✅ |
 | icon.link.hover | primary.350 | 6.36 | 4.5 | ✅ |
 | icon.link.visited | primary.150 | 11.36 | 4.5 | ✅ |
 | icon.link.focused | primary.450 | 4.61 | 4.5 | ✅ |
@@ -4352,7 +4352,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.text.warning-subtle | warning.650 | 7.59 | 3 | ✅ |
 | inverse.text.danger-subtle | danger.650 | 7.69 | 3 | ✅ |
 | inverse.text.info-subtle | info.650 | 7.59 | 3 | ✅ |
-| inverse.text.link.default | primary.600 | 5.58 | 4.5 | ✅ |
+| inverse.text.link.rest | primary.600 | 5.58 | 4.5 | ✅ |
 | inverse.text.link.hover | primary.700 | 8.19 | 4.5 | ✅ |
 | inverse.text.link.visited | primary.900 | 14.72 | 4.5 | ✅ |
 | inverse.text.link.focused | primary.600 | 5.58 | 4.5 | ✅ |
@@ -4370,7 +4370,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.icon.warning-subtle | warning.650 | 7.59 | 3 | ✅ |
 | inverse.icon.danger-subtle | danger.650 | 7.69 | 3 | ✅ |
 | inverse.icon.info-subtle | info.650 | 7.59 | 3 | ✅ |
-| inverse.icon.link.default | primary.600 | 5.58 | 4.5 | ✅ |
+| inverse.icon.link.rest | primary.600 | 5.58 | 4.5 | ✅ |
 | inverse.icon.link.hover | primary.700 | 8.19 | 4.5 | ✅ |
 | inverse.icon.link.visited | primary.900 | 14.72 | 4.5 | ✅ |
 | inverse.icon.link.focused | primary.600 | 5.58 | 4.5 | ✅ |
@@ -4604,7 +4604,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | text.on-warning | white | 9.84 | 4.5 | ✅ |
 | text.on-danger | white | 10.00 | 4.5 | ✅ |
 | text.on-info | white | 9.77 | 4.5 | ✅ |
-| text.link.default | primary.700 | 7.20 | 7 | ✅ |
+| text.link.rest | primary.700 | 7.20 | 7 | ✅ |
 | text.link.hover | primary.800 | 10.10 | 7 | ✅ |
 | text.link.visited | primary.950 | 13.96 | 7 | ✅ |
 | text.link.focused | primary.700 | 7.20 | 7 | ✅ |
@@ -4627,7 +4627,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | icon.on-warning | white | 9.84 | 4.5 | ✅ |
 | icon.on-danger | white | 10.00 | 4.5 | ✅ |
 | icon.on-info | white | 9.77 | 4.5 | ✅ |
-| icon.link.default | primary.700 | 7.20 | 7 | ✅ |
+| icon.link.rest | primary.700 | 7.20 | 7 | ✅ |
 | icon.link.hover | primary.800 | 10.10 | 7 | ✅ |
 | icon.link.visited | primary.950 | 13.96 | 7 | ✅ |
 | icon.link.focused | primary.700 | 7.20 | 7 | ✅ |
@@ -4645,7 +4645,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.text.warning-subtle | warning.500 | 4.56 | 4.5 | ✅ |
 | inverse.text.danger-subtle | danger.500 | 4.59 | 4.5 | ✅ |
 | inverse.text.info-subtle | info.500 | 4.60 | 4.5 | ✅ |
-| inverse.text.link.default | primary.350 | 7.46 | 7 | ✅ |
+| inverse.text.link.rest | primary.350 | 7.46 | 7 | ✅ |
 | inverse.text.link.hover | primary.250 | 10.10 | 7 | ✅ |
 | inverse.text.link.visited | primary.050 | 17.25 | 7 | ✅ |
 | inverse.text.link.focused | primary.350 | 7.46 | 7 | ✅ |
@@ -4663,7 +4663,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.icon.warning-subtle | warning.500 | 4.56 | 4.5 | ✅ |
 | inverse.icon.danger-subtle | danger.500 | 4.59 | 4.5 | ✅ |
 | inverse.icon.info-subtle | info.500 | 4.60 | 4.5 | ✅ |
-| inverse.icon.link.default | primary.350 | 7.46 | 7 | ✅ |
+| inverse.icon.link.rest | primary.350 | 7.46 | 7 | ✅ |
 | inverse.icon.link.hover | primary.250 | 10.10 | 7 | ✅ |
 | inverse.icon.link.visited | primary.050 | 17.25 | 7 | ✅ |
 | inverse.icon.link.focused | primary.350 | 7.46 | 7 | ✅ |
@@ -4897,7 +4897,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | text.on-warning | black | 8.60 | 4.5 | ✅ |
 | text.on-danger | black | 8.66 | 4.5 | ✅ |
 | text.on-info | black | 8.79 | 4.5 | ✅ |
-| text.link.default | primary.300 | 7.43 | 7 | ✅ |
+| text.link.rest | primary.300 | 7.43 | 7 | ✅ |
 | text.link.hover | primary.200 | 9.93 | 7 | ✅ |
 | text.link.visited | primary.025 | 16.72 | 7 | ✅ |
 | text.link.focused | primary.300 | 7.43 | 7 | ✅ |
@@ -4920,7 +4920,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | icon.on-warning | black | 8.60 | 4.5 | ✅ |
 | icon.on-danger | black | 8.66 | 4.5 | ✅ |
 | icon.on-info | black | 8.79 | 4.5 | ✅ |
-| icon.link.default | primary.300 | 7.43 | 7 | ✅ |
+| icon.link.rest | primary.300 | 7.43 | 7 | ✅ |
 | icon.link.hover | primary.200 | 9.93 | 7 | ✅ |
 | icon.link.visited | primary.025 | 16.72 | 7 | ✅ |
 | icon.link.focused | primary.300 | 7.43 | 7 | ✅ |
@@ -4938,7 +4938,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.text.warning-subtle | warning.650 | 8.14 | 4.5 | ✅ |
 | inverse.text.danger-subtle | danger.650 | 8.24 | 4.5 | ✅ |
 | inverse.text.info-subtle | info.650 | 8.14 | 4.5 | ✅ |
-| inverse.text.link.default | primary.650 | 8.27 | 7 | ✅ |
+| inverse.text.link.rest | primary.650 | 8.27 | 7 | ✅ |
 | inverse.text.link.hover | primary.750 | 11.77 | 7 | ✅ |
 | inverse.text.link.visited | primary.950 | 19.29 | 7 | ✅ |
 | inverse.text.link.focused | primary.650 | 8.27 | 7 | ✅ |
@@ -4956,7 +4956,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.icon.warning-subtle | warning.650 | 8.14 | 4.5 | ✅ |
 | inverse.icon.danger-subtle | danger.650 | 8.24 | 4.5 | ✅ |
 | inverse.icon.info-subtle | info.650 | 8.14 | 4.5 | ✅ |
-| inverse.icon.link.default | primary.650 | 8.27 | 7 | ✅ |
+| inverse.icon.link.rest | primary.650 | 8.27 | 7 | ✅ |
 | inverse.icon.link.hover | primary.750 | 11.77 | 7 | ✅ |
 | inverse.icon.link.visited | primary.950 | 19.29 | 7 | ✅ |
 | inverse.icon.link.focused | primary.650 | 8.27 | 7 | ✅ |

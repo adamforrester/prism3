@@ -430,6 +430,29 @@ lands without a second bump.
 |---|---|---|
 | 15.1.0 | (#3408, Q-HT1 A) | `space.550`, the 44px step beside the half steps `space.150` and `space.250`: the hit-target floor a medium or large Button binds in code |
 
+### The resting link state is `rest` (#4165, held for the #1421 batch)
+
+Owner decision A on #4165 (2026-11-19). One state had two names. The links called the resting,
+un-hovered state `default`, and every other interactive role calls it `rest`
+(`interactive.*.fill.rest`, `field.border.rest`). `default` is also a weight role, an easing role, a
+transition and a scrim, so a developer typed `--pds3-color-text-link-default` next to
+`--pds3-color-interactive-primary-fill-rest`.
+
+- The four guaranteed `….link.default` leaves are renamed `….link.rest`: `color.text.link`,
+  `color.icon.link`, `color.inverse.text.link` and `color.inverse.icon.link`. 4 removed, 4 added, so
+  MAJOR. The values don't move.
+- Each removal ships a `DEPRECATIONS` entry pointing at its `rest` twin. The eight older entries that
+  pointed at a `….link.default` (from #891, #1140 and #1148) follow it to `rest`, the "renamed out from
+  under them" rule. The Figma variable rename is derived from these entries (`rename-map.ts`), not
+  recorded in `MATERIALIZATION_RENAMES`.
+- A brand input whose `overrides` still name `….link.default` is read as `….link.rest`
+  (`withRestLinkKeys`, `theme-brand.ts`). Otherwise an override for a role no longer emitted would be
+  skipped without a word.
+
+Held for the #1421 batch (owner note, 2026-11-19): this rename and #1421 B ship in one MAJOR bump.
+`CONTRACT_VERSION` is raised, and the baseline accepted with `token-contract.ts --accept`, once, when
+#1421's build joins this one. The `since: '16.0.0'` stamps name that batch's version.
+
 ## Change classification
 
 | change to the guaranteed set | level | why |

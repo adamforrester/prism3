@@ -837,7 +837,7 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
 // that miss; make `resolve()` ignore `cfg.floorStep` → arm 2 names every brand × family whose inks stay put.
 {
   const INKS = ['secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info',
-    'link.default', 'link.hover', 'link.pressed', 'link.visited', 'link.focused'] as const;
+    'link.rest', 'link.hover', 'link.pressed', 'link.visited', 'link.focused'] as const;
   // The bars, by tier: body (4.5:1, 7:1 in HC), large (3:1, 4.5:1 in HC). `iconContrast: '3:1'` puts every
   // non-primary icon at the non-text bar (3:1, 4.5:1 in HC).
   const MODE_OF: Record<string, { family: 'light' | 'dark'; hc: boolean }> = {
@@ -1276,7 +1276,7 @@ for (const b of brands) {
     }
     // #1486: the four DISTINCT-by-design link states (focused == default is intentional) must never
     // collapse onto one another — the L-01 guarantee, now including `pressed`.
-    const [ld, lh, lp, lv] = [path('text.link.default'), path('text.link.hover'), path('text.link.pressed'), path('text.link.visited')];
+    const [ld, lh, lp, lv] = [path('text.link.rest'), path('text.link.hover'), path('text.link.pressed'), path('text.link.visited')];
     if (ld && lh && lp && lv) {
       const set = new Set([ld, lh, lp, lv]);
       ok(set.size === 4, `[${b.id}/${m.mode}] text.link states (default/hover/pressed/visited) are distinct — got ${[ld, lh, lp, lv].map((x) => x.split('.').pop()).join('/')}`);
@@ -1365,7 +1365,7 @@ for (const b of brands) {
   // covers BOTH the four SHIPPING brands (real ramps, where the perceptual promise is meaningful and the
   // owner's QA lives) AND the synthetic stress fixtures (extreme white-labels that pin `linkBase` at a
   // ramp end — the distinct + floor invariants under duress).
-  const LADDER = ['default', 'hover', 'pressed', 'visited'] as const;
+  const LADDER = ['rest', 'hover', 'pressed', 'visited'] as const;
   const LINK_THEMES: Array<[string, ReturnType<typeof brandTheme>]> = [];
   for (const b of brands) { try { LINK_THEMES.push([b.id, brandTheme(b)]); } catch { /* covered elsewhere */ } }
   LINK_THEMES.push(['nb', nbTheme()]);
@@ -1437,7 +1437,7 @@ for (const b of brands) {
   const moveBreaks: string[] = [], floorBreaks: string[] = [], vacuBreaks: string[] = [];
   for (const mode of ['light', 'dark'] as const) {
     const tR = baseRoles(tunedT, mode), oR = baseRoles(ovT, mode);
-    const d0 = stepNum(oR, 'text.link.default');
+    const d0 = stepNum(oR, 'text.link.rest');
     if (!tR || !oR || d0 === undefined) continue;
     const dir = PAGE_DIR[mode];
     for (const [st, rung] of Object.entries(RUNGS)) {
@@ -1492,36 +1492,36 @@ for (const b of brands) {
   const actionPal = base.roleToPalette.action;
   const actSteps = (base.palettes.find((p) => p.palette === actionPal)?.steps ?? []) as Array<{ key: string; rgb: RGB }>;
   const baseLight = rolesOf(base, 'light')!, baseDark = rolesOf(base, 'dark')!;
-  ok(!!baseLight['text.link.default'] && !!baseLight['inverse.text.link.default'],
+  ok(!!baseLight['text.link.rest'] && !!baseLight['inverse.text.link.rest'],
     'L-06: the brand emits both the page and inverse text-link families (precondition)');
-  const pageGround = groundRgbOf(baseLight, 'text.link.default');
+  const pageGround = groundRgbOf(baseLight, 'text.link.rest');
 
   // ----- MOVE (page family, light): pin an EXACT clearing step that DIFFERS from the derived default.
   // A clearing step (≥ 4.5:1 on the light page) makes the guard a no-op, so the emitted step must equal
   // the pinned one. The step is chosen by the gate's OWN contrast math over the action ramp.
-  const derivedDef = stepOf(baseLight, 'text.link.default');
+  const derivedDef = stepOf(baseLight, 'text.link.rest');
   const clearing = actSteps.filter((s) => contrast(s.rgb, pageGround) >= 4.5 && s.key !== derivedDef);
   const pin = clearing[clearing.length - 1];
   ok(!!pin, 'L-06: the action ramp offers a clearing step distinct from the derived default (precondition)');
-  const movT = brandTheme({ ...inp, overrides: { light: { 'text.link.default': { palette: actionPal, step: pin.key } } } } as any);
+  const movT = brandTheme({ ...inp, overrides: { light: { 'text.link.rest': { palette: actionPal, step: pin.key } } } } as any);
   const movLight = rolesOf(movT, 'light')!, movDark = rolesOf(movT, 'dark')!;
-  ok(stepOf(movLight, 'text.link.default') === pin.key,
-    `L-06: a per-mode absolute link override lands the EXACT pinned step in that mode (got ${stepOf(movLight, 'text.link.default')}, pinned ${pin.key})`);
-  ok(stepOf(movDark, 'text.link.default') === stepOf(baseDark, 'text.link.default'),
+  ok(stepOf(movLight, 'text.link.rest') === pin.key,
+    `L-06: a per-mode absolute link override lands the EXACT pinned step in that mode (got ${stepOf(movLight, 'text.link.rest')}, pinned ${pin.key})`);
+  ok(stepOf(movDark, 'text.link.rest') === stepOf(baseDark, 'text.link.rest'),
     'L-06: the OTHER mode keeps its derived link value (a light override leaves dark untouched)');
   ok(pin.key !== derivedDef, 'L-06: the pinned step differs from the derived baseline (non-vacuous)');
 
   // ----- INVERSE family independently settable -----
-  const invGround = groundRgbOf(baseLight, 'inverse.text.link.default');
-  const derivedInv = stepOf(baseLight, 'inverse.text.link.default');
+  const invGround = groundRgbOf(baseLight, 'inverse.text.link.rest');
+  const derivedInv = stepOf(baseLight, 'inverse.text.link.rest');
   const invClearing = actSteps.filter((s) => contrast(s.rgb, invGround) >= 4.5 && s.key !== derivedInv);
   const invPin = invClearing[0];
   ok(!!invPin, 'L-06: the action ramp offers a clearing step for the inverse band (precondition)');
-  const invT = brandTheme({ ...inp, overrides: { light: { 'inverse.text.link.default': { palette: actionPal, step: invPin.key } } } } as any);
+  const invT = brandTheme({ ...inp, overrides: { light: { 'inverse.text.link.rest': { palette: actionPal, step: invPin.key } } } } as any);
   const invLight = rolesOf(invT, 'light')!;
-  ok(stepOf(invLight, 'inverse.text.link.default') === invPin.key,
-    `L-06: an INVERSE link family is independently settable (got ${stepOf(invLight, 'inverse.text.link.default')}, pinned ${invPin.key})`);
-  ok(stepOf(invLight, 'text.link.default') === derivedDef,
+  ok(stepOf(invLight, 'inverse.text.link.rest') === invPin.key,
+    `L-06: an INVERSE link family is independently settable (got ${stepOf(invLight, 'inverse.text.link.rest')}, pinned ${invPin.key})`);
+  ok(stepOf(invLight, 'text.link.rest') === derivedDef,
     'L-06: pinning the inverse family leaves the page family derived (independent)');
 
   // ----- FLOOR GUARD (load-bearing): a sub-floor absolute pick is clamped to clear contrast -----
@@ -1531,10 +1531,10 @@ for (const b of brands) {
     .sort((a, b) => contrast(a.rgb, pageGround) - contrast(b.rgb, pageGround));
   const sub = belowFloor[0];
   ok(!!sub, 'L-06: the action ramp offers a sub-floor step on the light page (precondition)');
-  const guardT = brandTheme({ ...inp, overrides: { light: { 'text.link.default': { palette: actionPal, step: sub.key } } } } as any);
+  const guardT = brandTheme({ ...inp, overrides: { light: { 'text.link.rest': { palette: actionPal, step: sub.key } } } } as any);
   const gLight = rolesOf(guardT, 'light')!;
-  const gStep = stepOf(gLight, 'text.link.default');
-  const gRatio = gLight['text.link.default']?.ratio ?? 0;
+  const gStep = stepOf(gLight, 'text.link.rest');
+  const gRatio = gLight['text.link.rest']?.ratio ?? 0;
   ok(gRatio >= 4.5, `L-06: a sub-floor absolute link override is CLAMPED to clear its 4.5:1 floor (emitted ${gRatio.toFixed(2)}:1 for step ${gStep}, raw pick ${sub.key})`);
   ok(gStep !== sub.key, `L-06: the clamp moves off the raw sub-floor step (${sub.key} → ${gStep})`);
 }
@@ -1552,7 +1552,7 @@ for (const b of brands) {
 // declared `min` where that is higher (HC modes, 7). BY-NAME MUTATION: delete the link floor guard's
 // `if (isLinkRole(rolePath) …)` clamp in modes.ts → this arm fails by name, naming brand, pin and surface.
 {
-  const LINK_ROLES = ['text', 'inverse.text'].flatMap((p) => ['default', 'hover', 'pressed', 'visited', 'focused'].map((s) => `${p}.link.${s}`));
+  const LINK_ROLES = ['text', 'inverse.text'].flatMap((p) => ['rest', 'hover', 'pressed', 'visited', 'focused'].map((s) => `${p}.link.${s}`));
   const SURFACES: Record<string, readonly string[]> = {
     text: ['background.primary', 'background.secondary'],
     'inverse.text': ['inverse.background.primary', 'inverse.background.secondary'],
@@ -1641,9 +1641,9 @@ for (const b of brands) {
   const linkBelowBoth = neutral[0];
   ok(!!linkOnPageOnly && onRgb(linkBelowBoth.hex, PAGE) < 4.5, 'FO-01: the neutral ramp has a link pick clearing 4.5:1 on the page only, and one below it on both (precondition)');
   for (const s of [linkOnPageOnly, linkBelowBoth]) {
-    const l = lightOf(withOv('text.link.default', s.key)).roles['text.link.default'];
+    const l = lightOf(withOv('text.link.rest', s.key)).roles['text.link.rest'];
     ok(l.against === 'neutral.050' && onRgb(l.hex, FLOOR) >= 4.5,
-      `FO-01: a text.link.default override at neutral.${s.key} is clamped to clear 4.5:1 on the floor ${FLOOR} (emitted ${l.hex} at ${onRgb(l.hex, FLOOR).toFixed(2)})`);
+      `FO-01: a text.link.rest override at neutral.${s.key} is clamped to clear 4.5:1 on the floor ${FLOOR} (emitted ${l.hex} at ${onRgb(l.hex, FLOOR).toFixed(2)})`);
   }
 }
 
@@ -2021,7 +2021,7 @@ for (const b of brands) {
 // L-07 (#1496) — the `linkPalette` LEVER. Links may point at a palette INDEPENDENTLY of the action
 // palette. Four promises, each with EXPECTED authored HERE from the palette the lever names — never
 // re-derived from modes.ts's link math (docs/34):
-//   (1) DEFAULT INERT — an unset `linkPalette` resolves `text.link.default` from the ACTION palette, so
+//   (1) DEFAULT INERT — an unset `linkPalette` resolves `text.link.rest` from the ACTION palette, so
 //       the lever's absence is proven to change nothing (the byte-identical floor from decision 1).
 //   (2) NEUTRAL / CUSTOM RESOLUTION — a set `linkPalette` lands the emitted `text.link.*` on the NAMED
 //       palette's ramp (path palette segment == the lever's value), not the action ramp.
@@ -2039,7 +2039,7 @@ for (const b of brands) {
   const base = { id: 'l07', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
   const paletteOf = (path: string | undefined): string | undefined => path?.split('.').slice(-2)[0];
   const linkPaletteOf = (t: ReturnType<typeof brandTheme>): string | undefined =>
-    paletteOf((resolveAllModes(t).find((m) => m.mode === 'light')!.roles as any)['text.link.default']?.path);
+    paletteOf((resolveAllModes(t).find((m) => m.mode === 'light')!.roles as any)['text.link.rest']?.path);
   const has141 = (t: ReturnType<typeof brandTheme>): boolean => t.notes.some((n) => /WCAG 1\.4\.1/.test(n));
 
   // ----- (1) DEFAULT INERT: unset linkPalette → link resolves from the ACTION palette -----
@@ -2085,7 +2085,7 @@ for (const b of brands) {
   // ----- (4) FLOOR HOLDS — a deliberately light/low-contrast custom is rated UP to the link floor -----
   const lightCustom = { name: 'palelink', oklch: { l: 0.92, c: 0.06, h: 95 } };      // very light → raw contrast well below 4.5:1
   const flo = brandTheme({ ...base, brandColors: [lightCustom], linkPalette: 'palelink' } as any);
-  const floLink = (resolveAllModes(flo).find((m) => m.mode === 'light')!.roles as any)['text.link.default'];
+  const floLink = (resolveAllModes(flo).find((m) => m.mode === 'light')!.roles as any)['text.link.rest'];
   ok(paletteOf(floLink?.path) === 'palelink', `L-07: the low-contrast custom link still resolves from its own ramp ('${paletteOf(floLink?.path)}')`);
   ok((floLink?.ratio ?? 0) >= 4.5,
     `L-07: a low-contrast custom link palette is still rated up to the 4.5:1 link floor (emitted ${(floLink?.ratio ?? 0).toFixed(2)}:1 at ${paletteOf(floLink?.path)}.${floLink?.path.split('.').pop()}) — the floor always holds regardless of palette`);
@@ -2104,7 +2104,7 @@ for (const b of brands) {
   const build = (over: Record<string, unknown>) => brandTheme({ ...B, ...over } as unknown as BrandInput);
   const segOf = (path: string | undefined): string | undefined => path?.split('.').slice(-2)[0];
   const linkByMode = (t: ReturnType<typeof brandTheme>) =>
-    resolveAllModes(t).map((m) => ({ mode: m.mode, link: (m.roles as any)['text.link.default'] as { path: string; ratio: number } | undefined }));
+    resolveAllModes(t).map((m) => ({ mode: m.mode, link: (m.roles as any)['text.link.rest'] as { path: string; ratio: number } | undefined }));
   const FLOOR: Record<string, number> = { light: 4.5, dark: 4.5, 'hc-light': 7, 'hc-dark': 7 };
 
   const rc = build({ roleColors: { action: 'accent' } });
@@ -2112,7 +2112,7 @@ for (const b of brands) {
     `#1895: roleColors.action 'accent' with linkPalette unset resolves links to 'accent' (got '${rc.linkPalette}')`);
   const rcLinks = linkByMode(rc);
   ok(rcLinks.length === 4 && rcLinks.every((r) => segOf(r.link?.path) === 'accent'),
-    `#1895: with roleColors.action 'accent', text.link.default sits on the accent ramp in every mode (got ${rcLinks.map((r) => `${r.mode}=${r.link?.path}`).join(', ')})`);
+    `#1895: with roleColors.action 'accent', text.link.rest sits on the accent ramp in every mode (got ${rcLinks.map((r) => `${r.mode}=${r.link?.path}`).join(', ')})`);
   ok(rcLinks.every((r) => FLOOR[r.mode] !== undefined && (r.link?.ratio ?? 0) >= FLOOR[r.mode]),
     `#1895: the accent link clears its floor in every mode (4.5:1, 7:1 in high contrast) (got ${rcLinks.map((r) => `${r.mode}=${r.link?.ratio?.toFixed(2)}`).join(', ')})`);
 
@@ -6150,28 +6150,28 @@ arm: {
   // (a) With the lever OFF both families share a bar, so they must still agree — this is what
   //     makes the change a no-op for every brand that hasn't opted into the looser icon floor.
   const off = linkRoles(nbTheme());
-  ok(stepOf(off['text.link.default']) === stepOf(off['icon.link.default']),
-    `#352: with iconContrast='text' the link families agree (${off['text.link.default'].path.split('.').pop()})`);
+  ok(stepOf(off['text.link.rest']) === stepOf(off['icon.link.rest']),
+    `#352: with iconContrast='text' the link families agree (${off['text.link.rest'].path.split('.').pop()})`);
 
   // (b) With the lever ON they must DIVERGE — the icon link relaxes to its 3:1 floor while the
   //     text link holds 4.5:1. Before the decoupling both rendered the text-gated step and only
   //     the reported `min` moved, which is a gate that says 3 while showing you 4.5.
   const on = linkRoles({ ...nbTheme(), iconContrast: '3:1' });
-  ok(stepOf(on['text.link.default']) === stepOf(off['text.link.default']),
+  ok(stepOf(on['text.link.rest']) === stepOf(off['text.link.rest']),
     '#352: the icon lever does not disturb text link ink');
   // Never DARKER than the text link — a looser floor can only relax, never tighten.
-  ok(stepOf(on['icon.link.default']) <= stepOf(on['text.link.default']),
-    `#352: a looser icon floor never darkens the link (${on['icon.link.default'].path.split('.').pop()} <= ${on['text.link.default'].path.split('.').pop()})`);
+  ok(stepOf(on['icon.link.rest']) <= stepOf(on['text.link.rest']),
+    `#352: a looser icon floor never darkens the link (${on['icon.link.rest'].path.split('.').pop()} <= ${on['text.link.rest'].path.split('.').pop()})`);
   // nb does NOT move, and that is correct rather than a miss: its action anchor (550) already
   // clears BOTH bars, and `pickBrand` keeps a passing anchor. The relaxation is only observable
   // where the anchor is actually constrained — aurora, the one example brand that ships the lever.
   const auroraLinks = exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput));
   if (auroraLinks) {
     const au = linkRoles(auroraLinks);
-    ok(stepOf(au['icon.link.default']) < stepOf(au['text.link.default']),
-      `#352: aurora's icon link genuinely LIGHTENS vs its text link (${au['icon.link.default'].path.split('.').pop()} < ${au['text.link.default'].path.split('.').pop()}) — the lever moves the COLOUR, not just the reported min`);
-    ok(au['icon.link.default'].ratio < 4.5 && au['icon.link.default'].ratio >= au['icon.link.default'].min,
-      `#352: ...landing genuinely below the text bar while clearing its own (${au['icon.link.default'].ratio.toFixed(2)}, min ${au['icon.link.default'].min})`);
+    ok(stepOf(au['icon.link.rest']) < stepOf(au['text.link.rest']),
+      `#352: aurora's icon link genuinely LIGHTENS vs its text link (${au['icon.link.rest'].path.split('.').pop()} < ${au['text.link.rest'].path.split('.').pop()}) — the lever moves the COLOUR, not just the reported min`);
+    ok(au['icon.link.rest'].ratio < 4.5 && au['icon.link.rest'].ratio >= au['icon.link.rest'].min,
+      `#352: ...landing genuinely below the text bar while clearing its own (${au['icon.link.rest'].ratio.toFixed(2)}, min ${au['icon.link.rest'].min})`);
   }
 
   // (c) The invariant that must survive relaxing the FILLS: every link state clears its own floor,
@@ -7484,7 +7484,7 @@ arm: {
         // close to the page (1.08–1.22:1), so the edge is held against the fill too.
         t === 'neutral' ? [edge, fill, 3, `${style}: the ${t} edge against its fill`] : [`icon.${t}`, fill, 3, `${style}: the ${t} glyph on its fill`],
         // #3225 (Q-BN4 all A): the inline link's rest ink on the fill, in every tone.
-        ['text.link.default', fill, 4.5, `${style}: the inline link on the ${t} fill`],
+        ['text.link.rest', fill, 4.5, `${style}: the inline link on the ${t} fill`],
         // The nested neutral text action and dismiss paint their rest ink on the banner's fill.
         ['interactive.neutral.text.rest', fill, 4.5, `${style}: the action label on the ${t} fill`],
         // The fallback when the file has no Button.Neutral: the primary Button's text label, held to 4.5:1 by #2820's surface contract (Q419 A).
@@ -10705,7 +10705,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // RENAME landed, and a prefix would pass on any member appearing under that path.
   ok(L['inverse.text.primary'] !== undefined && L['text.on-emphasis'] === undefined && L['text.on-inverse.primary'] === undefined,
     'text.on-emphasis → on-inverse → inverse.text');
-  ok(L['text.link.default'] !== undefined && L['text.interactive.default'] === undefined, 'links use text.link.*');
+  ok(L['text.link.rest'] !== undefined && L['text.interactive.default'] === undefined, 'links use text.link.*');
   // subtle semantic foreground + ink present (suffix form)
   ok(L['foreground.danger-subtle'] !== undefined && L['text.danger-subtle'] !== undefined, 'subtle semantic foreground + ink present');
   // HC carries elevation by border: raised tiers collapse to the base
@@ -13222,7 +13222,7 @@ arm: {
   const BAR_2817 = 4.5;
   const INKS_2817 = [
     'interactive.primary.text.rest', 'interactive.primary.text.hover', 'interactive.primary.text.pressed',
-    'text.link.default', 'text.link.hover', 'text.link.pressed', 'text.link.visited', 'text.link.focused',
+    'text.link.rest', 'text.link.hover', 'text.link.pressed', 'text.link.visited', 'text.link.focused',
   ];
   const GROUNDS_2817 = [
     // #3049: Dialog's panel is `foreground.raised`, so the card surface left the list (Q419 A: no wider).
@@ -13305,7 +13305,7 @@ arm: {
     }
     // 1c. The icon link clears its brand's icon bar on the same grounds (3:1 under iconContrast '3:1', else the text bar).
     const iconBar = theme.iconContrast === '3:1' ? 3 : BAR_2817;
-    for (const st of ['default', 'hover', 'pressed', 'focused']) for (const g of GROUNDS_2817) {
+    for (const st of ['rest', 'hover', 'pressed', 'focused']) for (const g of GROUNDS_2817) {
       const ih = hexOf(`icon.link.${st}`), gh = hexOf(g);
       if (!ih || !gh) { ok(false, `#2817 ${id}/${m.mode}: icon.link.${st} or ${g} absent`); continue; }
       iconLinkCells++;
@@ -13318,7 +13318,7 @@ arm: {
     const inkPal = paletteOf(m.roles['interactive.primary.text.rest']?.path), fillPal = paletteOf(m.roles['interactive.primary.fill.rest']?.path);
     if (!inkPal || inkPal !== fillPal) offHue.push(`${id}/${m.mode}: interactive.primary.text.rest on '${inkPal}', the primary fill on '${fillPal}'`);
     const linkWant = m.mode === 'wireframe' ? theme.roleToPalette.neutral : theme.linkPalette;
-    for (const st of ['default', 'hover', 'pressed', 'visited', 'focused']) {
+    for (const st of ['rest', 'hover', 'pressed', 'visited', 'focused']) {
       const lp = paletteOf(m.roles[`text.link.${st}`]?.path);
       if (lp !== linkWant) offHue.push(`${id}/${m.mode}: text.link.${st} on '${lp}', the link palette is '${linkWant}'`);
     }
@@ -13329,7 +13329,7 @@ arm: {
     const linkAnchorNum = theme.linkPalette === theme.roleToPalette.action ? (theme.actionAnchorStep ?? theme.roleAnchorStep.action) : theme.linkAnchorStep;
     for (const [ink, anchorNum, extra] of [
       ['interactive.primary.text.rest', theme.roleAnchorStep.action, [] as string[]],
-      ['text.link.default', linkAnchorNum, ['background.secondary']],
+      ['text.link.rest', linkAnchorNum, ['background.secondary']],
     ] as [string, number, string[]][]) {
       const role = m.roles[ink];
       const segs = role?.path.split('.') ?? [];
@@ -13969,6 +13969,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       'color/foreground/inverse/primary': 'color/inverse/foreground/primary',
       'color/foreground/inverse/secondary': 'color/inverse/foreground/secondary',
       'color/foreground/inverse/tertiary': 'color/inverse/foreground/tertiary',
+      // #4165 (CONTRACT 16.0.0) — the resting link state is `rest`, the name every other interactive role uses.
+      'color/text/link/default': 'color/text/link/rest',
+      'color/icon/link/default': 'color/icon/link/rest',
     };
     const renamedTo = new Set(Object.values(NB_KNOWN_RENAMES));
     const missing = [...fixByName.keys()].filter((n) => !outByName.has(n) && !outByName.has(NB_KNOWN_RENAMES[n] ?? '\0'));
@@ -22760,11 +22763,11 @@ arm: {
       const parOff = trailPlans.filter((p) => {
         const g = find(p.root, 'backGlyph'), l = find(p.root, 'parentLink');
         if (p.path !== 'parent') return !!g || !!l;
-        return !(g && l && p.root.children.indexOf(g) === 0 && p.root.children.indexOf(l) === 1 && g.nestTarget === 'icon/chevron-left' && g.descendantFills === 'color/icon/link/default'
+        return !(g && l && p.root.children.indexOf(g) === 0 && p.root.children.indexOf(l) === 1 && g.nestTarget === 'icon/chevron-left' && g.descendantFills === 'color/icon/link/rest'
           && g.bound?.width === 'icon/size/xs' && l.nestTarget === 'link' && JSON.stringify(l.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', selection: 'unselected', state: 'rest' })
           && JSON.stringify(l.nestExpose) === '["state"]' && JSON.stringify(l.nestOverrides) === '[{"property":"label","type":"TEXT","value":"Parent page"}]');
       });
-      ok(parOff.length === 0, `#2666 breadcrumbs/parent (call 11 A): the parent path is a 16px chevron-left in color/icon/link/default before an inline Link reading "Parent page"${parOff.length ? ` — OFF: ${parOff.map((p) => `${p.path}/${p.size}`).join(', ')}` : ''}`);
+      ok(parOff.length === 0, `#2666 breadcrumbs/parent (call 11 A): the parent path is a 16px chevron-left in color/icon/link/rest before an inline Link reading "Parent page"${parOff.length ? ` — OFF: ${parOff.map((p) => `${p.path}/${p.size}`).join(', ')}` : ''}`);
 
       // THE GAPS (the proposal's token table, DRAFT): label to separator and item to item space.050 small / space.100
       // medium; the parent path's chevron to link space.050, Link's own icon gap.
@@ -22832,11 +22835,11 @@ arm: {
         return /^#[0-9a-f]{6}$/i.test(v) ? v : null;
       };
       const PAIRS: [string, string, number][] = [
-        ['color.text.link.default', 'color.background.primary', 4.5], ['color.text.link.default', 'color.background.secondary', 4.5],
+        ['color.text.link.rest', 'color.background.primary', 4.5], ['color.text.link.rest', 'color.background.secondary', 4.5],
         ['color.text.link.hover', 'color.background.primary', 4.5], ['color.text.link.pressed', 'color.background.primary', 4.5],
         ['color.text.link.focused', 'color.background.primary', 4.5],
         ['color.text.primary', 'color.background.primary', 4.5], ['color.text.primary', 'color.background.secondary', 4.5],
-        ['color.icon.link.default', 'color.background.primary', 3],
+        ['color.icon.link.rest', 'color.background.primary', 3],
       ];
       // The roles under test are the ones the projection paints: read back off the plans above, so a rebind moves both.
       const painted = new Set([
@@ -22860,9 +22863,9 @@ arm: {
         }
         if (measured !== CELLS) lows.push(`${fg} on ${bg}: ${measured} of ${CELLS} cells measured`);
       }
-      const unpainted = ['color.text.primary', 'color.icon.link.default'].filter((r) => !painted.has(r));
+      const unpainted = ['color.text.primary', 'color.icon.link.rest'].filter((r) => !painted.has(r));
       ok(lows.length === 0 && unpainted.length === 0 && treeFiles.length === 5,
-        `#2666 breadcrumbs/contrast: link ink 4.5:1 on background.primary at every state and on background.secondary at rest, the current page's text.primary 4.5:1 on both, the back chevron's icon.link.default 3:1 on the page, in all ${CELLS} committed brand × mode cells (${treeFiles.length} brands)${unpainted.length ? ` — the projection no longer paints ${unpainted.join(', ')}` : ''}${lows.length ? ` — LOW: ${lows.slice(0, 6).join('; ')}` : ''}`);
+        `#2666 breadcrumbs/contrast: link ink 4.5:1 on background.primary at every state and on background.secondary at rest, the current page's text.primary 4.5:1 on both, the back chevron's icon.link.rest 3:1 on the page, in all ${CELLS} committed brand × mode cells (${treeFiles.length} brands)${unpainted.length ? ` — the projection no longer paints ${unpainted.join(', ')}` : ''}${lows.length ? ` — LOW: ${lows.slice(0, 6).join('; ')}` : ''}`);
     }
   }
 
@@ -34426,17 +34429,19 @@ arm: {
   // and every one is asserted to project nothing, which is the guard firing rather than a claim that it
   // would. **Neither count is a floor.** `237` pins #1148's own tier-only entries: drop one and this fails
   // by name rather than being absorbed into the 404 below.
-  ok(tierAdding.length === 0 && tierDropping.length === 237 && tierOnlyProjecting.length === 0
+  // #4165: 237 → 233. The four #1148 `color.appearance.{text,icon,inverse.text,inverse.icon}.link.default` entries now
+  // follow their `replacedBy` to `….link.rest`, so they are no longer the tier alone and project the 16.0.0 rename.
+  ok(tierAdding.length === 0 && tierDropping.length === 233 && tierOnlyProjecting.length === 0
       && projectionsOf({ path: 'color.a.b', replacedBy: 'color.appearance.a.b', since: '9.9.9' }).length === 0,
-    `rename-map: the tier-only skip fires in BOTH directions — 0 entries still ADD the tier (found ${tierAdding.length}; asserted on a CONSTRUCTED pair since it has no live case) and ${tierDropping.length} DROP it at #1148 (expected 237, after #1317 took six veil entries into the projecting set) — the contract path moves, the role does not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join(', ')}` : ''}`);
+    `rename-map: the tier-only skip fires in BOTH directions — 0 entries still ADD the tier (found ${tierAdding.length}; asserted on a CONSTRUCTED pair since it has no live case) and ${tierDropping.length} DROP it at #1148 (expected 233, after #1317 took six veil entries into the projecting set) — the contract path moves, the role does not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join(', ')}` : ''}`);
   const noProjection = DEPRECATIONS.filter((d) => projectionsOf(d).length === 0);
   const unaccounted = noProjection.filter((d) => !unprojectedRoot.includes(d) && !tierOnly.includes(d));
   // BOTH DIRECTIONS OF THE CLASP, and the second one is what would have caught the stale predicate above
   // on its own: every accounted entry must ALSO project nothing. Without it the reason-buckets are free to
   // claim entries that do project, and the totals still add up.
   const wronglyAccounted = [...unprojectedRoot, ...tierOnly].filter((d) => projectionsOf(d).length > 0);
-  ok(noProjection.length === 404 && unaccounted.length === 0 && wronglyAccounted.length === 0,
-    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — expected 404 = 167 unprojected root + 237 tier-only + 0 cross-root, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}${wronglyAccounted.length ? ` — CLAIMED BUT PROJECTING: ${wronglyAccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+  ok(noProjection.length === 400 && unaccounted.length === 0 && wronglyAccounted.length === 0,
+    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — expected 400 = 167 unprojected root + 233 tier-only + 0 cross-root, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}${wronglyAccounted.length ? ` — CLAIMED BUT PROJECTING: ${wronglyAccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
   // And the positive half the vacuous arm was mistaken for: every deprecation that DOES project reaches at
   // least one live variable. Its failure mode is a derivation quietly aiming at names the emission stopped
@@ -34462,8 +34467,8 @@ arm: {
   const projecting = DEPRECATIONS.filter((d) => projectionsOf(d).length > 0);
   const multiRow = projecting.filter((d) => projectionsOf(d).length !== 1);
   const projectedButDead = projecting.filter((d) => projectionsOf(d).some((p) => !nbIdx.has(`${NB_ROOT}/${p.to}`)));
-  ok(projecting.length === 278 && multiRow.length === 0 && projectedButDead.length === 0,
-    `rename-map: all ${projecting.length} projecting deprecations reach a live \`nb\` variable (expected 278), each by EXACTLY ONE row since #1148 left one colour collection${multiRow.length ? ` — MULTI-ROW: ${multiRow.slice(0, 3).map((d) => `${d.path} projects ${projectionsOf(d).length}`).join('; ')}` : ''}${projectedButDead.length ? ` — DEAD: ${projectedButDead.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+  ok(projecting.length === 286 && multiRow.length === 0 && projectedButDead.length === 0,
+    `rename-map: all ${projecting.length} projecting deprecations reach a live \`nb\` variable (expected 286), each by EXACTLY ONE row since #1148 left one colour collection${multiRow.length ? ` — MULTI-ROW: ${multiRow.slice(0, 3).map((d) => `${d.path} projects ${projectionsOf(d).length}`).join('; ')}` : ''}${projectedButDead.length ? ` — DEAD: ${projectedButDead.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
   // THE ERA PROBLEM, and the arm that says the derivation is era-INDEPENDENT.
   //
@@ -34508,8 +34513,9 @@ arm: {
     '5.0.0': { n: 2, tiered: false },
     '6.0.0': { n: 113, tiered: false },
     '8.0.0': { n: 113, tiered: true },
-    '9.0.0': { n: 6, tiered: true },
+    '9.0.0': { n: 10, tiered: true },   // #4165: 6 veil rungs + the 4 appearance-tier links that follow `….link.rest`
     '10.0.0': { n: 6, tiered: false },
+    '16.0.0': { n: 4, tiered: false },  // #4165: the resting link state `default` → `rest`
   };
   const spellWrong: string[] = [];
   for (const d of projecting) {
@@ -34568,9 +34574,9 @@ arm: {
       .map((r) => `${r.collection}|${r.from}|${r.to}`)
       .filter((k, i, a) => a.indexOf(k) !== i);
     const once = [...claims.entries()].filter(([, paths]) => paths.length === 1);
-    ok(raw.length === 278 && twice.length === 119 && twice.every(([, p]) => p.length === 2)
-        && once.length === 40 && shippedRows.length === 159 && dupShipped.length === 0,
-      `rename-map: ${twice.length} Figma renames are claimed by exactly two deprecations each (one role, two contract paths) and the map the executor gets collapses them — ${raw.length} projected (expected 278 = 119 × 2 + ${once.length} × 1), ${shippedRows.length} shipped (expected 159)${dupShipped.length ? ` — STILL DUPLICATED: ${dupShipped.slice(0, 3).join(' · ')}` : ''}`);
+    ok(raw.length === 286 && twice.length === 123 && twice.every(([, p]) => p.length === 2)
+        && once.length === 40 && shippedRows.length === 163 && dupShipped.length === 0,
+      `rename-map: ${twice.length} Figma renames are claimed by exactly two deprecations each (one role, two contract paths) and the map the executor gets collapses them — ${raw.length} projected (expected 286 = 123 × 2 + ${once.length} × 1), ${shippedRows.length} shipped (expected 163)${dupShipped.length ? ` — STILL DUPLICATED: ${dupShipped.slice(0, 3).join(' · ')}` : ''}`);
     // And the collapse keeps the NEWEST `since`, because the field answers when the Figma name stopped
     // being written and that is the later of the two claims. Checked on a row this PR created rather than
     // on the rule, so a survivor picked by array order instead of by version fails here. Its spelling moved
@@ -35893,10 +35899,10 @@ const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["l
     'inverse.interactive.primary.text.hover': '350 #9b9a9a', 'inverse.interactive.primary.icon.hover': '350 #9b9a9a', 'inverse.interactive.primary.border.hover': '350 #9b9a9a',
     'inverse.interactive.primary.text.pressed': '250 #b4b3b3', 'inverse.interactive.primary.icon.pressed': '250 #b4b3b3', 'inverse.interactive.primary.border.pressed': '250 #b4b3b3',
     'inverse.interactive.primary.subtle-fill.hover': '025 #f7f7f7', 'inverse.interactive.primary.subtle-fill.pressed': '025 #f7f7f7', 'inverse.interactive.primary.subtle-fill.selected': '025 #f7f7f7',
-    'text.link.default': '950 #0e0d0d', 'text.link.focused': '950 #0e0d0d', 'text.link.hover': '800 #2d2c2c', 'text.link.pressed': '700 #444343', 'text.link.visited': '600 #5d5b5b',
-    'icon.link.default': '950 #0e0d0d', 'icon.link.focused': '950 #0e0d0d', 'icon.link.hover': '800 #2d2c2c', 'icon.link.pressed': '700 #444343', 'icon.link.visited': '600 #5d5b5b',
-    'inverse.text.link.default': '450 #838181', 'inverse.text.link.focused': '450 #838181', 'inverse.text.link.hover': '350 #9b9a9a', 'inverse.text.link.pressed': '250 #b4b3b3', 'inverse.text.link.visited': '100 #dcdbdb',
-    'inverse.icon.link.default': '450 #838181', 'inverse.icon.link.focused': '450 #838181', 'inverse.icon.link.hover': '350 #9b9a9a', 'inverse.icon.link.pressed': '250 #b4b3b3', 'inverse.icon.link.visited': '100 #dcdbdb',
+    'text.link.rest': '950 #0e0d0d', 'text.link.focused': '950 #0e0d0d', 'text.link.hover': '800 #2d2c2c', 'text.link.pressed': '700 #444343', 'text.link.visited': '600 #5d5b5b',
+    'icon.link.rest': '950 #0e0d0d', 'icon.link.focused': '950 #0e0d0d', 'icon.link.hover': '800 #2d2c2c', 'icon.link.pressed': '700 #444343', 'icon.link.visited': '600 #5d5b5b',
+    'inverse.text.link.rest': '450 #838181', 'inverse.text.link.focused': '450 #838181', 'inverse.text.link.hover': '350 #9b9a9a', 'inverse.text.link.pressed': '250 #b4b3b3', 'inverse.text.link.visited': '100 #dcdbdb',
+    'inverse.icon.link.rest': '450 #838181', 'inverse.icon.link.focused': '450 #838181', 'inverse.icon.link.hover': '350 #9b9a9a', 'inverse.icon.link.pressed': '250 #b4b3b3', 'inverse.icon.link.visited': '100 #dcdbdb',
     'border.focus': '950 #0e0d0d', 'inverse.border.focus': '450 #838181',
   };
   type R = { hex: string; path: string; ratio: number; min: number; against?: string };
@@ -43198,7 +43204,7 @@ arm: {
   // the focus-visible rung, and an inverse link takes the inverse ramp. The link box paints nothing.
   const link = componentDefs.find((d) => d.id === 'link')!;
   const linkMembers = figmaAnatomySet(link, { swapTarget: 'FPO-default-icon' });
-  const RUNG: Record<string, string> = { rest: 'default', hover: 'hover', pressed: 'pressed', 'focus-visible': 'focused' };
+  const RUNG: Record<string, string> = { rest: 'rest', hover: 'hover', pressed: 'pressed', 'focus-visible': 'focused' };
   const INK = (surface: string, state: string) => `color/${surface === 'inverse' ? 'inverse/' : ''}text/link/${RUNG[state]}`;
   // THE CURRENT PAGE (#2872, owner decisions Q507): a selected member's bar is FILLED in the link ICON role stepped by
   // state (1 C); the link box paints nothing on any member.
@@ -43220,7 +43226,7 @@ arm: {
       ringOff.push(`${planComponentName(m)}: ${ring ? `${String(ring.nestTarget)} ${JSON.stringify(ring.nestVariant)}` : 'no ring'} (want ${want ? `focus-ring {"surface":"${c.surface}"}` : 'no ring'})`);
   }
   ok(linkMembers.length === 192 && inkOff.length === 0 && boxOff.length === 0,
-    `#2715 link paint: 192 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state; the link box paints nothing, and a current member's bar fills color/[inverse/]icon/link/<state> (#2872) (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} box(es) off — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
+    `#2715 link paint: 192 members; the label takes color/text/link/{rest,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state; the link box paints nothing, and a current member's bar fills color/[inverse/]icon/link/<state> (#2872) (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} box(es) off — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
   ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 48,
     `#2715 link focus ring: a nested focus-ring on the 48 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
 
@@ -43308,7 +43314,7 @@ arm: {
   const stepCells: string[] = [];
   let stepLo = Infinity;
   for (const { cell, vars } of exportsOf()) for (const inv of ['', 'inverse/']) for (const role of ['text', 'icon']) {
-    const r = vars?.get(`color/${inv}${role}/link/default`), h = vars?.get(`color/${inv}${role}/link/hover`);
+    const r = vars?.get(`color/${inv}${role}/link/rest`), h = vars?.get(`color/${inv}${role}/link/hover`);
     if (!r || !h) { stepCells.push(`${cell} ${inv}${role}: missing`); continue; }
     stepLo = Math.min(stepLo, contrast(solid(h), solid(r)));
   }
@@ -44440,6 +44446,38 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(files.get('./e/acme.base.tokens.json') === JSON.stringify(projected.base, null, 2) + '\n'
     && files.get('./e/acme.dark.overlay.tokens.json') === JSON.stringify(projected.overlays.find((o) => o.mode === 'dark')?.tree, null, 2) + '\n',
     '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
+}
+
+// #4165 (owner decision A, 2026-11-19) — the resting link state is `rest`, the name every other interactive role gives
+// it (`interactive.*.fill.rest`, `field.border.rest`). The four link families' `default` leaf became `rest`, MAJOR, with
+// a DEPRECATIONS pointer from each retired path, and an override still keyed by the old name moves the new role, so a
+// saved brand input keeps its pinned link. EXPECTED is literal here, never read from `modes.ts`'s LINK_STATES.
+{
+  const tree = JSON.parse(readFileSync(join(import.meta.dirname, 'out/prism3.base.tokens.json'), 'utf8'));
+  const color = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!].color;
+  const fams: [string, Record<string, unknown> | undefined][] = [['text.link', color.text?.link], ['icon.link', color.icon?.link], ['inverse.text.link', color.inverse?.text?.link], ['inverse.icon.link', color.inverse?.icon?.link]];
+  const keys = fams.map(([f, n]) => `${f}: ${Object.keys(n ?? {}).filter((k) => !k.startsWith('$')).join(',')}`);
+  ok(fams.every(([, n]) => !!n && 'rest' in n && !('default' in n)),
+    `#4165 every link family's resting leaf is \`rest\` and none keeps \`default\` (${keys.join('; ')})`);
+  const RETIRED = ['color.text.link', 'color.icon.link', 'color.inverse.text.link', 'color.inverse.icon.link'];
+  const missing = RETIRED.filter((p) => !DEPRECATIONS.some((d) => d.path === `${p}.default` && d.replacedBy === `${p}.rest` && d.since === '16.0.0'));
+  ok(missing.length === 0, `#4165 each of the 4 retired \`….link.default\` paths has a DEPRECATIONS entry pointing at \`….link.rest\`, since 16.0.0 (missing: ${missing.join(', ') || 'none'})`);
+  const stale = DEPRECATIONS.filter((d) => RETIRED.some((p) => d.replacedBy === `${p}.default`)).map((d) => d.path);
+  const followed = DEPRECATIONS.filter((d) => d.since !== '16.0.0' && RETIRED.some((p) => d.replacedBy === `${p}.rest`)).length;
+  ok(stale.length === 0 && followed === 8, `#4165 no deprecation points at a retired \`….link.default\`, and the 8 older ones that did now point at \`….link.rest\` (still stale: ${stale.join(', ') || 'none'}; followed: ${followed})`);
+  const inp = { id: 'l4165', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const light = (t: ReturnType<typeof brandTheme>) => resolveAllModes(t).find((x) => x.mode === 'light')?.roles as Record<string, { path?: string } | undefined> | undefined;
+  const plain = light(brandTheme(inp as never))?.['text.link.rest']?.path;
+  const byOld = light(brandTheme({ ...inp, overrides: { light: { 'text.link.default': { palette: 'neutral', step: '900' } } } } as never))?.['text.link.rest']?.path;
+  const byNew = light(brandTheme({ ...inp, overrides: { light: { 'text.link.rest': { palette: 'neutral', step: '900' } } } } as never))?.['text.link.rest']?.path;
+  ok(!!byNew && byNew !== plain && byOld === byNew,
+    `#4165 an override keyed by the retired \`text.link.default\` moves \`text.link.rest\` as the new key does (plain ${plain}, old key ${byOld}, new key ${byNew})`);
+  // Where both keys are set, the new one wins: the old key pins neutral 900, the new key neutral 500, and the resolved
+  // role follows the new key alone. A shim where the old key overwrote the new one would read neutral 900 here.
+  const byNew500 = light(brandTheme({ ...inp, overrides: { light: { 'text.link.rest': { palette: 'neutral', step: '500' } } } } as never))?.['text.link.rest']?.path;
+  const byBoth = light(brandTheme({ ...inp, overrides: { light: { 'text.link.default': { palette: 'neutral', step: '900' }, 'text.link.rest': { palette: 'neutral', step: '500' } } } } as never))?.['text.link.rest']?.path;
+  ok(!!byNew500 && byNew500 !== byNew && byBoth === byNew500,
+    `#4165 where both \`text.link.default\` and \`text.link.rest\` are set, the new key wins (both ${byBoth}, new key alone ${byNew500}, old key alone ${byOld})`);
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
