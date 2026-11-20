@@ -2900,7 +2900,8 @@ ok(nothingPage.children.length === 0, `#913 ...and nothing was put on that page 
 // combine and marking were both refused: the members are loose on it, read off the page alone, and they number what
 // the plans asked for (that arm held before #971 too: the executor itself puts each member on its page before the
 // combine, so it pins the page read rather than the change). Mutations: `created` not pushing onto the page →
-// `#971 created on the page`; the set's `appendChild` keeping a page parent → `test-reactions.ts`'s `replaced/apply`.
+// `#971 created on the page`; the set's `appendChild` keeping a page parent → `test-reactions.ts`'s `replaced/apply`;
+// `combineAsVariants` not detaching its members → `#971 combined off the page` and `#971 combined out of a frame`.
 {
   const pg: Page = { children: [] };
   const api = makeShim({ ...full(), page: pg }) as unknown as { createFrame(): Node; createText(): Node; createNodeFromSvg(s: string): Node; currentPage: unknown };
@@ -2913,6 +2914,21 @@ ok(nothingPage.children.length === 0, `#913 ...and nothing was put on that page 
   const looseOnPage = cannotMarkPage.children.filter((c) => c.type === 'COMPONENT');
   ok(looseOnPage.length === grid.length && new Set(looseOnPage.map((c) => String(c.name))).size === grid.length,
     `#971 left on the page: a run whose combine and marking were refused leaves the ${grid.length} members loose on the page itself, read off the page (${looseOnPage.length} components on it)`);
+  // THE COMBINE TAKES ITS MEMBERS OFF THE PAGE (#971's control row: "1 (the set)"). A clean build on a fresh page
+  // leaves exactly one top-level node, the set, holding every member the plans asked for, each parented to it and
+  // none of them also loose beside it. Expected from the plans (`grid.length`), read off the page alone.
+  const top = cleanPage.children;
+  const set = top[0];
+  ok(top.length === 1 && set.type === 'COMPONENT_SET' && (set.children as Node[]).length === grid.length
+      && (set.children as Node[]).every((m) => m.parent === set && !top.includes(m)),
+    `#971 combined off the page: a clean build leaves exactly one top-level node, the set, with its ${grid.length} members inside it and none loose (${top.length} on the page: ${JSON.stringify(top.map((c) => c.type))})`);
+  // ...and off any other parent: a member that sits in a frame when it is combined leaves that frame for the set.
+  const holder = api.createFrame();
+  const member = api.createFrame();
+  (holder.appendChild as (c: Node) => void)(member);
+  const combined = (api as unknown as { combineAsVariants(m: Node[], p: unknown): Node }).combineAsVariants([member], api.currentPage);
+  ok(!(holder.children as Node[]).includes(member) && member.parent === combined && !pg.children.includes(member),
+    `#971 combined out of a frame: a member combined from inside a frame leaves it for the set (${(holder.children as Node[]).length} left in the frame)`);
 }
 
 // =============================================================================================

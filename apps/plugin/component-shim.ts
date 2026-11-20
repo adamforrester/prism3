@@ -2030,7 +2030,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // finds a set by its id, re-read the first set and failed a set it had updated correctly.
       if (!opts.identities) set.id = `SET:${++setSeq}`;
       giveKey(set);
-      // #971: the members leave wherever they were (the page a created node starts on) for the set, as on the host.
+      // #971: the members leave wherever they were (the page a created node starts on, or a frame) for the set, as on
+      // the host. `detach` takes a node off the page too, so it is the one place the members leave the page.
       for (const m of members) detach(m);
       set.children = members;
       // #1430 — HOST TRUTH, AS PROBED LIVE (2026-09-27, a scratch file and the owner's master file agree):
@@ -2047,7 +2048,6 @@ export const makeShim = (opts: ShimOpts = {}) => {
       set.strokeAlign = 'INSIDE';
       set.dashPattern = [10, 5];
       for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) (set as Record<string, unknown>)[c] = 5;
-      takeFromPage(members);
       // A member's parent is its set, as on the host: a native slot made on it later finds the set this way (#2417),
       // and a reaction's destination is resolved among its siblings this way (#2466). ALWAYS the set: a member built
       // onto a page that records parents (`file-shim.ts`) arrived with the page as its parent, which the host's

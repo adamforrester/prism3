@@ -538,6 +538,20 @@ console.log('3d. the #2597 file: update, file-setup and builds move only the com
       const want = [...HEAD, '--- 1:674', 'Components', ...COMPONENT_PAGES, ...TAIL];
       ok(JSON.stringify(plain(f.label())) === JSON.stringify(want),
         `first header/kept pages, ${run}, ${reading} reading: Foundations comes back on its own divider, ahead of its pages (${JSON.stringify(plain(f.label()).slice(0, 8))})`);
+
+      // A DESIGNER'S PAGE after the divider that follows Cover, Foundations deleted: the divider stays with the
+      // designer's page, and the created header goes before it on a divider of its own, so it never takes `My notes`
+      // into Foundations' span. The same rule as `created header/designer …` for later sections. Mutation: `coverAnchor`
+      // anchoring on any divider after Cover, dropping the `ownIn` check → `first header/designer …` (Foundations on
+      // `--- 1:669`, then `My notes` with no divider between).
+      const pages = ORIGINAL.filter(([, id]) => id !== '1:668');
+      pages.splice(pages.findIndex(([, id]) => id === '1:669') + 1, 0, ['My notes', '7:4']);
+      const d = fixture(pages, reading);
+      if (run === 'build') await resolveComponentPage(d.api, 'icon', TAXONOMY); else await scaffoldSkeleton(d.api, TAXONOMY);
+      const wantD = ['Cover', '--- new', 'Foundations', '--- 1:669', 'My notes', '↳ Primitive tokens', '↳ Semantic tokens', '↳ Icons & assets',
+        '--- 1:674', 'Components', ...COMPONENT_PAGES, ...TAIL];
+      ok(JSON.stringify(plain(d.label())) === JSON.stringify(wantD),
+        `first header/designer My notes, ${run}, ${reading} reading: Foundations on its own divider, the designer's page kept behind theirs (${JSON.stringify(plain(d.label()).slice(0, 6))})`);
     }
   }
 }
