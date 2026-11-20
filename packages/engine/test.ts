@@ -32405,6 +32405,16 @@ arm: {
       && m['spring-duration'][k].$type === 'duration'
       && m['spring-easing'][k].$value === springLinearEasing(shipped[k].$value) && m['spring-easing'][k].$type === 'linearEasing');
     ok(paired, '#3510: every motion.spring.<name> has a spring-duration (DTCG duration) and a spring-easing (linearEasing) of the same name');
+    // The description's spacing claim is a ceiling, not an exact step (owner decision 2026-11-20): the stops are evenly
+    // spaced at settle / n, which is under 5ms for snappy (317 / 64). So each description states "at most every Nms",
+    // and the stops it describes are never further apart than N.
+    const spacing = Object.keys(shipped).map((k) => {
+      const claim = /sampled at most every (\d+)ms/.exec(m['spring-easing'][k].$description ?? '');
+      const gap = springSettleMs(shipped[k].$value) / (springEasingStops(shipped[k].$value).length - 1);
+      return { k, claimed: claim ? Number(claim[1]) : NaN, gap };
+    });
+    ok(spacing.every(({ claimed, gap }) => claimed === SPRING_SAMPLE_MS && gap <= claimed),
+      `#3510: each spring-easing description says its stops are "sampled at most every ${SPRING_SAMPLE_MS}ms", and they are (${spacing.map(({ k, claimed, gap }) => `${k} claims ${claimed}, gap ${gap.toFixed(2)}ms`).join('; ')})`);
     // The CSS-only source carries exactly the linearEasing leaves; the projection carries none of them.
     const cssOnly = buildCssOnly(buildTree(nbTheme()).tree) as any;
     const projected = buildOverlaySet(buildTree(nbTheme()).tree).base as any;

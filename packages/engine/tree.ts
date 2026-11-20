@@ -1153,7 +1153,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const [k, v] of Object.entries(m.spring)) {
     const ms = springSettleMs(v);
     motion['spring-duration'][k] = durLeaf(ms, `spring ${k} settle time — ${ms}ms, the time the ${k} spring takes to settle on its target; play spring-easing ${k} over it`);
-    motion['spring-easing'][k] = springEasingLeaf(springLinearEasing(v), `spring ${k} as a CSS linear() curve, sampled every 5ms — play it over spring-duration ${k} (${ms}ms); the damping and stiffness stay in spring ${k}`);
+    motion['spring-easing'][k] = springEasingLeaf(springLinearEasing(v), `spring ${k} as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration ${k} (${ms}ms); the damping and stiffness stay in spring ${k}`);
   }
   // The ROLE tier (#522) — `easing-role.<role> → {motion.easing.<curve>}`. It exists so a mode can
   // re-point an intent at a different curve without redefining the curve, exactly as

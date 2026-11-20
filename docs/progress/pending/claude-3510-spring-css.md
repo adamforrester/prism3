@@ -20,6 +20,9 @@ mass 1), starting at rest:
   **0.005 of the travel**. `test.ts` measures it against the analytic spring densely: the shipped springs
   come in at 0.0013–0.0021, and the worst of a 30-spring sweep (ζ 0.1–1, k 50–1000) stays under it. A
   spring outside that domain throws rather than ship an unbounded curve.
+- **The description says "sampled at most every 5ms"** (owner decision 2026-11-20). The stops are evenly spaced
+  at settle / n, so the gap is a ceiling, not an exact step: 317 / 64 ≈ 4.95ms for snappy. A `test.ts` arm reads
+  the number back out of each description and holds every shipped spring's gap to it.
 
 ### Why the curves are not DTCG leaves
 
