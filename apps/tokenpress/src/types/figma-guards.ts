@@ -40,3 +40,24 @@ export const isComposedColor = (value: unknown): value is ComposedColor =>
   'opacity' in value &&
   typeof (value as ComposedColor).color === 'object' &&
   (value as ComposedColor).color !== null;
+
+/**
+ * The variable ids a mode value points at: a bare alias's target, or each half of a composed color that is an alias
+ * (prism3 #2365). The scanner and the validator read alias targets through this, so a tinted wash's color and opacity
+ * are resolved and checked as any other alias is.
+ */
+export const aliasTargetIds = (value: unknown): string[] => {
+  if (isVariableAlias(value)) {
+    return [value.id];
+  }
+  const ids: string[] = [];
+  if (isComposedColor(value)) {
+    if (isVariableAlias(value.color)) {
+      ids.push(value.color.id);
+    }
+    if (isVariableAlias(value.opacity)) {
+      ids.push(value.opacity.id);
+    }
+  }
+  return ids;
+};

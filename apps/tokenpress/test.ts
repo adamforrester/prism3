@@ -113,6 +113,9 @@ const ADDED: Record<string, number> = {
   // prism3 #4121 — the manifest asks for no `currentuser` permission, and no source reads `figma.currentUser`,
   // which throws once the permission is gone.
   'tests/unit/manifest-permissions.test.ts': 3,
+  // prism3 #2365 × #4166 — a tinted wash over a team-library variable resolves, through the library collection's
+  // default mode, and a wash over an id nothing resolves is a broken alias, as a bare alias is.
+  'tests/unit/tinted-wash-library.test.ts': 5,
 };
 
 // ---- the harness checks itself first -------------------------------------------------------

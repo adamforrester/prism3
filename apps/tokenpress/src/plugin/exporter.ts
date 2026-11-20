@@ -87,6 +87,9 @@ export class TokenExporter {
    */
   private externalVariables: Map<string, Variable> = new Map();
   private externalCollectionNames: Record<string, string> = {};
+  /** Each external collection's default mode, by collection id: a tinted wash over a library variable resolves
+   *  through it (prism3 #2365), as an alias into any other collection does. */
+  private externalCollectionDefaultModes: Record<string, string> = {};
 
   constructor(protected options: ExportOptions) {
     this.scanner = new TokenScanner();
@@ -268,6 +271,7 @@ export class TokenExporter {
   protected setExternalAliasTargets(targets: ExternalAliasTargets): void {
     this.externalVariables = new Map(targets.variables.map(v => [v.id, v]));
     this.externalCollectionNames = targets.collectionNames;
+    this.externalCollectionDefaultModes = targets.collectionDefaultModes || {};
   }
 
   /** An id → variable map over `variables` and the external alias targets. */
@@ -835,7 +839,8 @@ export class TokenExporter {
   // on #2365, A) `$value` is the color the alias resolves to in THIS mode, its alpha multiplied by the opacity, and
   // with Figma extensions on, both aliases are kept in `$extensions.figma.aliasOf` so the reference can be rebuilt.
   // If either half does not resolve to a literal, the color half is written as the alias it is, and the validator
-  // reports a broken target as it does for any other alias.
+  // reports a broken target as it does for any other alias. A half that aliases a team-library variable resolves like
+  // a bare library alias (prism3 #4166): the scanner reads both halves as alias targets.
   private convertComposedColorToDTCG(
     variable: Variable,
     value: { color: VariableAlias | RGB | RGBA; opacity: number | VariableAlias },
@@ -908,7 +913,9 @@ export class TokenExporter {
       }
       if (target.variableCollectionId !== currentCollection) {
         currentCollection = target.variableCollectionId;
-        currentMode = this.collectionDefaultModes.get(currentCollection);
+        currentMode =
+          this.collectionDefaultModes.get(currentCollection) ||
+          this.externalCollectionDefaultModes[currentCollection];
       }
       const modeIds = Object.keys(target.valuesByMode);
       if (modeIds.length === 0) {

@@ -22,7 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `$extensions.figma.aliasOf` (`{ "color": "{…}", "opacity": "{…}" }`), so a
   tool can rebuild the reference. Before, the value exported with `null`
   components, which is not valid DTCG. An alias into another collection
-  resolves through that collection's default mode, as Figma resolves it.
+  resolves through that collection's default mode, as Figma resolves it. A
+  wash over a team-library variable resolves the same way, and a wash over a
+  variable that no longer exists is reported as a broken alias.
 - **An alias to a team-library variable exports as a reference.** A local
   variable that aliases a variable from an enabled team library now exports
   as a reference by the target's name, such as `{brand.primary}`. The token's

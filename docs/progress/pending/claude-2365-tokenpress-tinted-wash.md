@@ -24,3 +24,10 @@ alpha, floored at 4 washes per brand. The exporter gate's value differences are 
 the 4 exports as the emission's color at its opacity` (with the null components printed); the opacity not applied fails
 both; the mode ignored fails the unit test's dark arm and the same read-back arm; the adapter dropping the opacity again
 fails `<brand> export: VALUE — 4`.
+
+**After #4166 (delta review, 2026-11-20).** The merge put the wash next to #4166's team-library aliases, and both the
+scanner's library lookup and the validator's broken-alias check read only a bare alias. A wash over a library variable
+exported `{VariableID:…}` and a wash over a dangling id passed validation, against the fallback's own comment. One
+helper, `aliasTargetIds` (`figma-guards.ts`), now gives both halves of a wash to the scanner and the validator, and the
+scanner records each library collection's default mode, which the wash's walk reads as it does a local collection's.
+`tests/unit/tinted-wash-library.test.ts` (5) holds it, by hand-typed values; each arm failed before the fix.
