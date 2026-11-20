@@ -194,6 +194,18 @@ export const run = async (browser: any, src: Sources): Promise<{ failures: strin
     await page.waitForFunction(`document.querySelector('[data-p3-announcer]')?.textContent === 'Your password is hidden'`, null, { timeout: 2000 }).then(() => ok(true, ''), () => ok(false, 'toggle Enter: the live region did not say "Your password is hidden"'));
     await page.keyboard.press('Space');
     ok(await page.evaluate(`document.getElementById('pw').type`) === 'text', 'toggle Space: the input is not shown');
+    // #3947: the delayed caret restore only undoes Chromium's reset. A value or caret written after the press, in the
+    // same task and so before that restore runs, is kept; the same test as @prism3/css's (#3945), so both forms agree.
+    const later = (sel: number[], value: string | null) => page.evaluate(`(() => { const i = document.getElementById('pw'); document.querySelector('p3-password-field:has(#pw) .p3-password-field__toggle').click(); ${value === null ? '' : `i.value = ${JSON.stringify(value)};`} i.setSelectionRange(${sel[0]}, ${sel[1]}); })()`);
+    const read = () => page.evaluate(`(() => { const i = document.getElementById('pw'); return { type: i.type, caret: [i.selectionStart, i.selectionEnd].join() }; })()`);
+    await later([1, 4], 'typed early');
+    await page.waitForTimeout(50);
+    let late = await read();
+    ok(late.type === 'password' && late.caret === '1,4', `toggle: a value and caret 1,4 set after pressing Hide were overwritten (type ${late.type}, caret ${late.caret}) (#3947)`);
+    await later([3, 6], null);
+    await page.waitForTimeout(50);
+    late = await read();
+    ok(late.type === 'text' && late.caret === '3,6', `toggle: a caret 3,6 set after pressing Show was overwritten (type ${late.type}, caret ${late.caret}) (#3947)`);
     ok(await page.evaluate(`document.querySelectorAll('[data-p3-announcer]').length`) === 1, 'announcer: more than one live region');
     await page.click('#go');
     ok(await page.evaluate(`window.__typeAtSubmit`) === 'password', `submit: the input was ${await page.evaluate(`window.__typeAtSubmit`)} when the form submitted, not password (Q301.7 A)`);
