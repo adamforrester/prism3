@@ -58,6 +58,7 @@ import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice,
 import { ENGINE_VERSION, coordKey } from '@prism3/engine';
 import { tailOf } from '@prism3/engine/figma';
 import { NS } from './persist-figma';
+import { searchComponents } from './component-search';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { labelColumns, readLabelColumn } from './label-columns';
 import { BASELINE_KEY, UPDATING_KEY, baselineOf, builtByPrism3, mainOf, readBaseline, snapshotMember, writeBaseline, type OwnershipRead } from './member-baseline';
@@ -147,7 +148,7 @@ export interface CompNode {
   readonly id?: string;
   name?: string;
   /** A COMPONENT / COMPONENT_SET's Figma description — the def's `summary` (#1623 sign-off). Read back
-   *  on an existing set so a designer's own description is never overwritten. */
+   *  on an existing set, so one a designer changed after Prism3's record is kept (#2865). */
   description?: string;
   x?: number;
   y?: number;
@@ -641,7 +642,7 @@ export type ComponentApplyOptions = {
   /** THE FIGMA DESCRIPTION (#1623 sign-off) — the def's one-line `summary`, which the plugin reads off
    *  the def and passes here. Written on a set this run creates (or on each component, in
    *  `emitAsComponents` mode), and on a set the file already had only while that set's description is
-   *  empty: a designer's own description is theirs. A write-time option like `emitAsComponents`, so it
+   *  Prism3's (`descriptionIsOurs`, #2865): a designer's own description is theirs. Each write records itself. A write-time option like `emitAsComponents`, so it
    *  stays off the plan and out of `planStamp`. */
   description?: string;
   /** WHERE THE SET IS PLACED (#1554) — the `↳ <family>` section page the page-aware build resolved,
@@ -892,6 +893,27 @@ export const relayOldGrid = (
  */
 export const STAMP_KEY = 'memberStamp';
 export const memberStamp = (plan: AnatomyPlan): string => `${ENGINE_VERSION}|${planStamp(plan)}|${EXECUTOR_REVISION}`;
+
+/**
+ * THE DESCRIPTION RECORD (#2865, owner decision A). The description Prism3 last wrote on a set (or on a component of a
+ * single-component def), kept in shared plugin data beside it. It tells a description Prism3 wrote from one a designer
+ * wrote: the description is Prism3's to replace while it still equals its record, and while it has no record at all
+ * (a file built before the record existed, the posture Q113 A takes for a member with no record). A description a
+ * designer changed after the record is theirs, and is kept.
+ */
+export const DESCRIPTION_KEY = 'description';
+export type Described = { description?: unknown; getSharedPluginData?(ns: string, key: string): string; setSharedPluginData?(ns: string, key: string, value: string): void };
+/** Whether the node's description is Prism3's to replace: empty, unrecorded, or still what Prism3 last wrote. */
+export const descriptionIsOurs = (node: Described): boolean => {
+  const now = String(node.description ?? '');
+  const rec = node.getSharedPluginData?.(NS, DESCRIPTION_KEY) ?? '';
+  return !now || !rec || now === rec;
+};
+/** Write the description and its record together. */
+export const writeDescription = (node: Described, text: string): void => {
+  node.description = text;
+  node.setSharedPluginData?.(NS, DESCRIPTION_KEY, text);
+};
 
 /** The plan-stamp half — the only half the staleness decision reads. `''` for an unstamped member, which
  *  is what an empty `getSharedPluginData` and a host with no plugin-data surface both produce, and which
@@ -1953,7 +1975,8 @@ const writeComponentSet = async (
   await api.loadAllPagesAsync();
   // The cast lives HERE, next to the criteria that make it true: `types: ['COMPONENT']` is what
   // guarantees every result is a `CompRef` (see the port's note on why the port itself cannot say so).
-  const comps = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
+  // #4160 (owner decision C): with Figma skipping hidden instance children, which no component can sit inside.
+  const comps = searchComponents(['COMPONENT'], () => api.root.findAllWithCriteria({ types: ['COMPONENT'] })) as readonly CompRef[];
   const compByName = new Map(comps.map((c) => [c.name, c] as const));
   // HOW MANY plain components carry each name (#1796). A nest or swap target resolves only when exactly ONE does:
   // `compByName` keeps the last of several, which is document order picking, so the targets read `oneComp`, and
@@ -1971,7 +1994,7 @@ const writeComponentSet = async (
   // silently, which is the one fact a nest must not lose: two sets under the exact name a def targets is
   // an ambiguity to report, not a tie to break by document order. `resolveNestMember` filters it by exact
   // name per nest, so a set renamed aside (`__old__checkbox-row`) never answers for `checkbox-row`.
-  const compSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[];
+  const compSets = searchComponents(['COMPONENT_SET'], () => api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] })) as readonly CompSetRef[];
 
   /** WHAT THE FILE HOLDS under a name `compByName` came back empty for (#1280 PR-C). The same second
    *  search the nest path runs, and on the same terms: by name, every type, on the FAILURE PATH ONLY —
@@ -2197,7 +2220,9 @@ const writeComponentSet = async (
       // The preference that did not resolve (#2661), named once per instance: `toSlots` visits a slot's items twice.
       if (node && firstVisit && pre && pre.miss !== undefined) misses.push(`${n.name}.nestPrefer -> ${n.nestPrefer} (in this file, but it did not resolve: ${pre.miss.slice(1)}; made from ${n.nestTarget} instead)`);
       if (node && firstVisit && n.nestOverrides && !kept)
-        for (const m of applyNestOverrides(node as Parameters<typeof applyNestOverrides>[0], n.nestOverrides, (name) => { const c = compByName.get(name); return c?.id ? String(c.id) : null; }))
+        // #3828: the swap value read through `oneComp`, as the nest and swap targets are (#1796), and a name two plain
+        // components hold named in the shared AMBIGUOUS words, never picked by document order.
+        for (const m of applyNestOverrides(node as Parameters<typeof applyNestOverrides>[0], n.nestOverrides, (name) => { const c = oneComp(name); return c?.id ? String(c.id) : null; }, (name) => (twice(name) ? nestMissAdvice('AMBIGUOUS', name) : null)))
           misses.push(`${n.name}${m}`);
       // THE HOST'S PREFERENCE FOR THE NESTED COMPONENT'S DEFAULT ITEMS (#2661, owner decision Q418): Dialog's group has its
       // Cancel swapped to Button.Neutral when the file has it. Once per instance like the overrides, and not onto an
@@ -3239,6 +3264,12 @@ const writeComponentSet = async (
   };
   for (let i = 0; i < cells.length; i++) {
     const spec = cells[i];
+    // #3828: AN EMITTED COMPONENT'S NAME HELD BY TWO OR MORE plain components (the #1796 policy). Neither is read as the
+    // existing member, and no third is added beside them: named, and left for the designer to resolve.
+    if (opts.emitAsComponents && twice(`${component}/${emitCoordValue(spec.name)}`)) {
+      misses.push(`member ${component}/${emitCoordValue(spec.name)} -> AMBIGUOUS (${nestMissAdvice('AMBIGUOUS')})`);
+      continue;
+    }
     const existing = have.get(spec.name);
     const inPlace = existing ? opts.update?.members.get(spec.name) : undefined;
     if (existing && inPlace) {
@@ -3419,7 +3450,7 @@ const writeComponentSet = async (
     fresh.forEach((c, i) => {
       const newName = `${component}/${emitCoordValue(String(c.name))}`;
       wr(c).name = newName;
-      if (opts.description) wr(c).description = opts.description;
+      if (opts.description) writeDescription(c as unknown as Described, opts.description);
       emitted.push(newName);
       // Placed, not litter: drop it from the partial-write trail so a later throw does not try to park a
       // component that is exactly where it belongs.
@@ -3490,7 +3521,7 @@ const writeComponentSet = async (
     for (const c of fresh) trail.loose.delete(c);
     trail.loose.add(set);
     wr(set).name = component;
-    if (opts.description) wr(set).description = opts.description;
+    if (opts.description) writeDescription(set as unknown as Described, opts.description);
     // #865 ON THE SET, which is the half a per-node fix cannot reach. `combineAsVariants` returns a
     // container carrying a 5px corner radius and a 10/5 dash rhythm but NO stroke paint (probed live
     // 2026-09-27 — see `SET_BORDER`), none of which any def mentions. `null` — there is no plan node for a
@@ -3505,9 +3536,10 @@ const writeComponentSet = async (
     // executor reaching outside what it built to normalize someone else's work.
     claimDefaults(wr(set), null, misses, 'created');
   } else {
-    // AN EXISTING SET gets the description only while it has none — the fill and radius below are the
-    // designer's on this branch, and a description they wrote is too.
-    if (opts.description && !wr(set).description) wr(set).description = opts.description;
+    // AN EXISTING SET gets the description only while it is Prism3's (#2865, owner decision A): empty, with no record,
+    // or still the one Prism3 last wrote. The fill and radius below are the designer's on this branch, and a
+    // description they changed after Prism3's record is too.
+    if (opts.description && descriptionIsOurs(set as unknown as Described)) writeDescription(set as unknown as Described, opts.description);
   }
   if (!createdSet) for (const c of fresh) {
     set.appendChild?.(c);
@@ -3789,6 +3821,13 @@ const writeComponentSet = async (
   // preferred def id resolves to the set built under its name, found fresh because the set's key is what Figma
   // stores; a def not built in this file is a named miss and the rest are written. A preferred-only slot with none
   // of its preferred sets built is written open, since preferred-only with nothing preferred flags every child.
+  // #4160 (owner decision C): the file's sets and components, searched ONCE for every slot property, and only when one
+  // names a preferred def. They were two whole-file searches per SLOT property; nothing in this loop adds a component.
+  let slotFound: { sets: readonly CompSetRef[]; singles: readonly CompRef[] } | null = null;
+  const slotSearch = (): { sets: readonly CompSetRef[]; singles: readonly CompRef[] } => (slotFound ??= {
+    sets: searchComponents(['COMPONENT_SET'], () => api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] })) as readonly CompSetRef[],
+    singles: searchComponents(['COMPONENT'], () => api.root.findAllWithCriteria({ types: ['COMPONENT'] })) as readonly CompRef[],
+  });
   for (const p of readable ? props : []) {
     if (p.type !== 'SLOT') continue;
     const key = propIds.get(p.name);
@@ -3804,8 +3843,7 @@ const writeComponentSet = async (
     const ids = [...(p.preferred ?? []), ...optional];
     if (ids.length) {
       // A def with variants builds a set under its id; a single-component def (#2296) builds one component under it.
-      const sets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[];
-      const singles = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
+      const { sets, singles } = slotSearch();
       for (const id of ids) {
         const asSet = sets.filter((x) => x.name === id);
         const named: { key?: string }[] = asSet.length ? asSet : singles.filter((x) => x.name === id);

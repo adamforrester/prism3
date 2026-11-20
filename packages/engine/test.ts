@@ -27256,6 +27256,22 @@ arm: {
           ok(calls === 1 && misses.length === 1 && misses[0] === '.nestOverrides -> number DISCARDED (set "2.", reads "1.")',
             `#2645 discarded write: a host that accepts the override and keeps its default is a named miss (calls ${calls}; misses ${JSON.stringify(misses)})`);
         }
+        // #3828: A SWAP VALUE TWO PLAIN COMPONENTS HOLD, on the paste path, as #1796 refuses a nest or swap target: named
+        // in the shared AMBIGUOUS words, and neither id is written. The plugin executor against the same host says the
+        // same (parity). Mutation: the payload's resolver back on `compByName` → `#3828 paste override`.
+        {
+          const dPage = { children: [] as Record<string, unknown>[] };
+          const dRun = await runPayload(planSetToPluginJs(sg2), { ...lOpts(true, ['list-item', 'icon/check', 'icon/check']), page: dPage });
+          const dMembers = ((dPage.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined)?.children as Record<string, unknown>[] | undefined) ?? [];
+          const dSwaps = [...new Set(dMembers.map((m) => (find(m, 'item1')?.componentProperties as Record<string, { value: unknown }> | undefined)?.[SWAP]?.value))];
+          const dWant = 'item1.nestOverrides -> swap icon (icon/check: found more than one COMPONENT of that name; neither is used. Rename or remove one, then rebuild; the nested instance keeps its default)';
+          ok(dMembers.length === 12 && dRun.misses.includes(dWant) && JSON.stringify(dSwaps) === '["73:37"]',
+            `#3828 paste override: a swap value two plain components hold is named, and every item keeps its default (${JSON.stringify(dSwaps)}; ${JSON.stringify(dRun.misses.filter((m) => /nestOverrides/.test(m)).slice(0, 1))})`);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+          const dPlug = await applyComponentPlan(sg2, makeFigmaStub({ ...lOpts(true, ['list-item', 'icon/check', 'icon/check']), page: { children: [] } }) as any);
+          ok(ovr(dPlug.misses) === ovr(dRun.misses) && dPlug.misses.includes(dWant),
+            `#3828 parity: the plugin executor names the same ambiguous swap value as the payload (${JSON.stringify(dPlug.misses.filter((m) => /nestOverrides/.test(m)).slice(0, 1))})`);
+        }
       }
 
       // ---- #1393: the PASTE executor leaves no Figma white default on an unclaimed or unresolvable fill ----

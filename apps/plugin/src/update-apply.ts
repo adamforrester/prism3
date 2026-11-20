@@ -50,7 +50,7 @@
 import { failureDetail } from './apply-summary';
 import { diffAnatomy, type HostNode, planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/engine/components';
 import { coordKey, partRenames, type ComponentRename, slotMigrationOf, slotTextMigrationOf } from '@prism3/engine';
-import { applyComponentPlan, emitCoordValue, keptBoundOf, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
+import { applyComponentPlan, descriptionIsOurs, emitCoordValue, keptBoundOf, memberStamp, STAMP_KEY, writeDescription, type ComponentApplyResult, type Described, type ComponentsApi, type CompPageTarget } from './write-components';
 import { NS } from './persist-figma';
 import { UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, snapshotMember, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultAt, faultLine, varsById } from './drawn';
@@ -150,6 +150,9 @@ export type SetOutcome = {
   /** #2956 — this run turned the set's updates off by itself: it skipped a member whose hand edits the update could not
    *  apply around (`aroundEdits`). The rest of the set was written as usual. Absent otherwise. */
   turnedOff?: true;
+  /** #2865 — how many nodes (the set, or a single-component def's components) took the def's summary as their
+   *  description in this run. Absent when none. */
+  described?: number;
   /** Members updated with no as-built record, so with no hand-edit check (`choices.noBaseline`, default `update`). */
   unrecorded: string[];
   /** Of `unrecorded`, those whose record was from an earlier format (#2379 review). */
@@ -281,6 +284,21 @@ const liveFor = async (host: ApplyHost, t: UpdateTarget, name: string, ledger?: 
   const now = (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => String(s.name ?? '') === name);
   // #2759 — before its rename, the set is under an earlier def id (the dry run's `setRename`).
   return now ?? (locateSets(host, t, ledger).found[0] as unknown as LiveSet | undefined);
+};
+/** #2865 (owner decision A): the summary the check planned, on each node whose description is still Prism3's: the set,
+ *  or a single-component def's stamped components. The build's pass has already written it on a set it applied, which
+ *  reads here as done. A node a designer changed since the check is left, and a write the host refuses is a miss. */
+const describe = (live: LiveSet, t: UpdateTarget, p: SetPreview, o: SetOutcome): void => {
+  if (!p.description) return;
+  const to = p.description.to;
+  const nodes = (t.single ? kidsOf(live).filter((k) => !!(k as { getSharedPluginData?(a: string, b: string): string }).getSharedPluginData?.(NS, STAMP_KEY)) : [live]) as unknown as Described[];
+  let k = 0;
+  for (const d of nodes) {
+    if (String(d.description ?? '') === to) { k++; continue; }
+    if (!descriptionIsOurs(d)) continue;
+    try { writeDescription(d, to); k++; } catch (e) { o.misses.push(`description -> REFUSED (${failureDetail(e)})`); }
+  }
+  if (k) o.described = Math.min(k, p.description.nodes);
 };
 /** The page a target's components sit on, for the build's placement: the set's, or the first single component's. */
 const pageFor = (t: UpdateTarget, live: LiveSet): CompPageTarget | undefined => pageOf(t.single ? kidsOf(live)[0] : live);
@@ -971,7 +989,7 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
   }
   // With no version, no set changed: the library has nothing new to publish, and the description has no title.
   if (!res.version) return;
-  const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length)).map((o) => o.set);
+  const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length || o.described)).map((o) => o.set);
   res.publish = publishDescription({
     title: res.version, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
     consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.filter(breaksConsumers).length ?? 0), 0),   // #3711 (Q-UF1 A): a retired member is not breaking
@@ -1018,7 +1036,7 @@ export const applyUpdate = async (
   }
   // PREFLIGHT EVERY SET, before anything is written anywhere.
   const ordered = nestedFirst(targets);
-  const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet; stampOnly?: boolean; carryOnly?: boolean }[] = [];
+  const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet; stampOnly?: boolean; carryOnly?: boolean; descOnly?: boolean }[] = [];
   const furnishing: (SetPreview & { def: string })[] = [];
   for (const t of ordered) {
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
@@ -1039,6 +1057,8 @@ export const applyUpdate = async (
     // writes no member: its fills run alone.
     if (nothing && carryDue(p)) { ready.push({ t, p, live, carryOnly: true }); continue; }
     if (nothing && p.counts.revisionUnknown) { ready.push({ t, p, live, stampOnly: true }); continue; }
+    // #2865: a set whose only other work is its description writes no member: the description alone is written.
+    if (nothing && p.description) { ready.push({ t, p, live, descOnly: true }); continue; }
     // A set whose only work is its canvas furniture (#2803) touches no member: it takes an outcome naming the furniture,
     // which `settle` draws through `opts.furnish` once the apply is done, and the named version below covers it.
     if (nothing && furnitureDueCount(p.furniture)) {
@@ -1149,7 +1169,7 @@ export const applyUpdate = async (
     if (done.length) res.headers = done.map(({ outcome: _o, ...d }) => d);
     if (h.emptied.length) res.emptied = [...(res.emptied ?? []), ...h.emptied];
   }
-  for (const [i, { t, p, live, stampOnly, carryOnly }] of ready.entries()) {
+  for (const [i, { t, p, live, stampOnly, carryOnly, descOnly }] of ready.entries()) {
     // #3170 Q3170.4 A: "Stop after <set>" is read at each boundary, so the set before it is finished and this one untouched.
     if (i > 0 && opts.stop?.()) { halt(i); break; }
     opts.progress?.({ phase: 'work', item: t.def, done: i, total: ready.length });
@@ -1162,6 +1182,14 @@ export const applyUpdate = async (
       const w = plan(p, choiceFor(opts.choices, p.set), noRecordFor(opts.choices, p.set));
       await restampMembers(fresh, w.restamp, new Map(t.plans.map((x) => [planComponentName(x), x] as const)), o, namesFor(t).hostOf);
       if (p.furniture) o.furniture = p.furniture;
+      describe(fresh, t, p, o);
+      res.outcomes.push(o);
+      continue;
+    }
+    if (descOnly) {
+      const o: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] };
+      if (p.furniture) o.furniture = p.furniture;
+      describe(fresh, t, p, o);
       res.outcomes.push(o);
       continue;
     }
@@ -1185,6 +1213,7 @@ export const applyUpdate = async (
     const o = carryOnly ? { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] } as SetOutcome : await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, chunk: opts.chunk, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set), ledger: opts.ledger });
     // Kept as soon as the set's write returns (#3697 L1), so a throw in its fill below still reports what was written.
     res.outcomes.push(o);
+    if (!o.refused && !o.stopped) describe(fresh, t, p, o);
     // UPDATES OFF, BY ITSELF (#2956, owner decision 2026-11-17): only when this update could not apply around the set's
     // hand edits, so it skipped a member whole for them. The rest of the set is written as usual; the mark stops later
     // runs. A refused or stopped set is not marked: its next run meets the same members and decides then.
@@ -1354,6 +1383,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
       o.moved ? `${o.moved} moved` : '',
       // Wording approved, Q246 A (#2542, Q245.2 A), the dry run's "moves to its place on the page" as done.
       o.setMoved ? 'the set moved to its place on the page' : '',
+      // DRAFT wording for the owner (#2865), the dry run's "description to update" as done.
+      o.described ? (o.described > 1 ? `${o.described} descriptions updated` : 'description updated') : '',
       ...furnitureParts(o.furniture, 'drawn', 'cleared'),
       o.kept.length ? `${n(o.kept.length, 'hand edit')} ${o.handEdits === 'overwrite' ? 'overwritten' : o.handEdits === 'accept' ? 'accepted as built' : 'kept'}${keptProps(o)}` : '',
       o.unrecorded.length - (o.earlierRecord?.length ?? 0) ? `${o.unrecorded.length - (o.earlierRecord?.length ?? 0)} of them without an as-built record` : '',
