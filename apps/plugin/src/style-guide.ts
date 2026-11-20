@@ -114,7 +114,7 @@ export type SgContract = readonly {
 }[];
 
 export type { SwatchType, ValueFormat, StyleGuideOptions, DimensionDisplay, FontDisplay } from './messages';
-import type { SwatchType, StyleGuideOptions, ValueFormat, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideKind } from './messages';
+import type { SwatchType, StyleGuideOptions, ValueFormat, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideKind } from './messages'; import { failureDetail } from './host-detail';   // #4253
 
 /** The types phases 1 and 2 document: `color`; `dimension` (spacing, size, radius and icon-size variables); `borderWidth`
  *  and `opacity` (#2353 batch 1); the five font-variable kinds, one table each; `typography`, the file's text styles;
@@ -2980,7 +2980,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       const o = out[out.length - 1];
       run.onTable?.(o?.key === t.key && o.status === 'skipped' ? { index: i, status: 'failed', reason: SKIP_REASON(t, o.reason) } : { index: i, status: 'done' });
     } catch (e) {
-      const reason = (e as Error)?.message ?? String(e);
+      const reason = failureDetail(e);
       out.push({ key: t.key, title: t.title, page: t.page, status: 'failed', reason });
       run.onTable?.({ index: i, status: 'failed', reason });
     }

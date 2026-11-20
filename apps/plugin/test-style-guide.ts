@@ -3077,13 +3077,13 @@ const main = async (): Promise<void> => {
     }
     const accent = 3;
     const failedT = r.tables.filter((t) => t.status === 'failed');
-    ok(failedT.length === 1 && failedT[0].title === 'Accent' && (failedT[0] as Extract<TableOutcome, { status: 'failed' }>).reason === 'Accent refused'
+    ok(failedT.length === 1 && failedT[0].title === 'Accent' && (failedT[0] as Extract<TableOutcome, { status: 'failed' }>).reason === 'Error: Accent refused'
       && r.tables.filter((t) => t.status === 'created').length === 29,
       `28: the Accent table fails with the host's words, and the run goes on to draw the other 29 (${r.tables.map((t) => t.status).filter((x) => x !== 'created').join(', ')}; ${r.tables.filter((t) => t.status === 'created').length} created)`);
-    ok(events[accent * 2] === '3:drawing' && events[accent * 2 + 1] === '3:failed(Accent refused)' && events[accent * 2 + 2] === '4:drawing' && events.length === 60,
+    ok(events[accent * 2] === '3:drawing' && events[accent * 2 + 1] === '3:failed(Error: Accent refused)' && events[accent * 2 + 2] === '4:drawing' && events.length === 60,
       `28: the Accent table's moves read drawing, then failed with its reason, and the next table starts (${events.slice(6, 9).join(', ')})`);
     const v = styleGuideSummary(r);
-    ok(!v.ok && v.headline === '⚠ 29 drawn, 1 failed' && v.summary.startsWith('Accent: Accent refused. '),
+    ok(!v.ok && v.headline === '⚠ 29 drawn, 1 failed' && v.summary.startsWith('Accent: Error: Accent refused. '),
       `28: the verdict is "⚠ 29 drawn, 1 failed", not a pass, and the summary opens on the failed table and its reason (${v.headline}; ${v.summary.slice(0, 40)}…)`);
     // DRAW IT AGAIN: the host now takes the binding, and the page redraws the one table by its key.
     refuse = false;
