@@ -2,7 +2,7 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the rail's areas and Update file for #3264). -->
 
-The studio is the same app on the web and inside the Figma plugin: the plugin's panel loads the web studio whole and adds its Figma controls. <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d --> <!-- src: apps/plugin/build.mjs:256#184e229f -->
+The studio is the same app on the web and inside the Figma plugin: the plugin's panel loads the web studio whole and adds its Figma controls. <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d --> <!-- src: apps/plugin/build.mjs:259#184e229f -->
 Everything in this guide works in both places. Writing the brand to a Figma file is covered in [Write the theme to a Figma file](apply-a-theme.md).
 
 ## Start a brand
