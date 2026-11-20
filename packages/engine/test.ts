@@ -44584,6 +44584,10 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     const help = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), '--help'], { cwd: HERE, encoding: 'utf8' }).stdout ?? '';
     ok(help.includes('<id>.base.tokens.json') && help.includes('<id>.<mode>.overlay.tokens.json'),
       `#4153 --help names the base and per-mode overlay files beside <id>.tokens.json (got ${JSON.stringify(help.split('\n').find((l) => l.includes('--out')))})`);
+    // #3510 follow-up (owner decision 2026-11-20 on #3998): --help also names the CSS-only source the run writes, and
+    // the run really writes it, so the help line and the directory agree.
+    ok(/<id>\.css-only\.json/.test(help) && onDisk.includes('harbor.css-only.json'),
+      `#3510 --help names <id>.css-only.json, the CSS-only source the CLI writes (help ${help.includes('css-only') ? 'names it' : 'does not name it'}; on disk ${onDisk.includes('harbor.css-only.json') ? 'written' : 'missing'})`);
     // #4170: a failed contrast contract printed only a count. The issue's brief (a dark tinted light page) fails some;
     // each failure must be listed with its mode, pair, ratio and floor, and the listing must account for the whole count.
     const brief4170 = join(dir, 'fernway.design.md');
