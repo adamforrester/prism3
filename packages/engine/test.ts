@@ -44512,6 +44512,13 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const defined = strings(three[0]?.docs).some((t) => t.startsWith('Use isInactive for a control the user can still unblock'));
   ok(three.every(Boolean) && said.length === 0 && defined,
     `#4204 Button defines inactive and disabled, and Counter and Pagination.Item say "inactive", never "unavailable" (${said.join(' | ') || 'none'}; defined ${defined})`);
+  // Owner decision on #4363 (2026-11-20, A): the definition takes a semicolon, as the issue's DRAFT did, not a colon.
+  // The decided line is typed here, not read from the def, and checked in the def and in each emitted Button page.
+  const DECIDED = 'Use isInactive for a control the user can still unblock, such as Submit on an unfinished form; it stays focusable and says why. Use disabled only when the control doesn\'t apply right now';
+  const inDef = strings(three[0]?.docs).includes(DECIDED);
+  const pages = ['button', 'button-neutral', 'button-destructive'].filter((p) => !readFileSync(resolve(HERE, `out/components/${p}.md`), 'utf8').includes(`- ${DECIDED}\n`));
+  ok(inDef && pages.length === 0,
+    `#4204 Button's inactive/disabled definition reads as decided, with the semicolon (def ${inDef}; pages without it: ${pages.join(', ') || 'none'})`);
   // Review of #4363: "inactive" is the code-side word. A Counter anatomy note that tells the designer which state to set
   // names the Figma state, so it must be a value on the nested button's exposed state axis, read from the nested def
   // itself (not a list typed here). Both stepper notes are required to be represented. Mutation: "inactive" put back

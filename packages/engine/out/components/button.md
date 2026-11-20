@@ -60,7 +60,7 @@ Use for an immediate action in the current context — submit/save/reset a form,
 - On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it
 - Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and, at medium and large sizes, extend its hit area to at least 44×44px with a transparent `::before` inset outward and centered on the label, so the target clears 44px while the box stays label-width; extend it the same way to at least 24×24px at small
 - Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding the fill would hug the label; only its label and icon colors change
-- Use isInactive for a control the user can still unblock, such as Submit on an unfinished form: it stays focusable and says why. Use disabled only when the control doesn't apply right now
+- Use isInactive for a control the user can still unblock, such as Submit on an unfinished form; it stays focusable and says why. Use disabled only when the control doesn't apply right now
 
 ### Don't
 
