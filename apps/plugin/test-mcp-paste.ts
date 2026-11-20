@@ -51,7 +51,7 @@ import { materializeForBrand } from './src/brand-def';
 import type { BrandInput } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { runApplyTheme, themePlans } from './src/apply-theme';
-import { pack, unpack, componentFigma } from './src/mcp-steps';
+import { pack, unpack, componentFigma, runComponentEmit } from './src/mcp-steps';
 import { themeDue, emissionOf, EMISSION_KEY } from './src/theme-emission';
 import { NS } from './src/persist-figma';
 import { fixHostMethods } from './component-shim';
@@ -627,6 +627,52 @@ await section('size/one member', async () => {
   ok(budget < alone && alone < CEILING, `size/one member: premise — budget < alone < ceiling: ${budget} < ${alone} < ${CEILING}, so only the budget catches the smallest badge member`);
   ok(/^badge components: member '[^']*type=status[^']*' alone makes a \d+-character chunk, over its \d+-character budget \(the 32000 ceiling less the script's own \d+\), and a member cannot be split$/.test(thrown),
     `size/one member: a member that will not fit alone throws, naming the def and the member (${thrown ? `"${thrown.slice(0, 220)}"` : 'no throw'})`);
+});
+
+/* ── emit/brand marks (#3139) ────────────────────────────────────────────────────────────────────────── */
+// A standalone-component def (`emitAsComponents`) pasted through the MCP path lays out on a grid, sliced across several
+// `runComponentEmit` scripts. Its pitch was a fixed 48, which fit the 24px icons and put each wider brand mark over its
+// neighbor. This drives `runComponentEmit` itself, slice by slice, with the data each emitted script carries (`__D`), on a
+// page stub. Each member's payload is stood in by a node at that member's own artboard (`glyphViewBox`), so the boxes are
+// the plans' and never the pitch the scripts carry. The expectation is geometric, read off the placed nodes: no two
+// overlap, and every member was placed, so an empty page cannot pass. Mutation: the 48 put back in `runComponentEmit` →
+// `emit/brand marks: no two marks overlap`.
+await section('emit/brand marks', async () => {
+  const input = PARITY[1][1];
+  const plans = figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === 'provider-logo')!, input), { swapTarget: SWAP_TARGET });
+  const emits = number(componentScripts(input, ['provider-logo'])).filter((s) => s.kind === 'component-emit');
+  const page: { name: string; type: string; children: any[] } = { name: 'marks', type: 'PAGE', children: [] };
+  const byId = new Map<string, any>();
+  const host: any = {
+    root: { children: [page], findAllWithCriteria: () => [], findAll: () => [], insertChild(i: number, n: any) { const c = host.root.children; const at = c.indexOf(n); if (at >= 0) c.splice(at, 1); c.splice(i, 0, n); } },
+    currentPage: Object.assign(page, { findChild: (fn: (n: any) => boolean) => page.children.find(fn) ?? null }),
+    createPage: () => { const pg: any = { name: '', type: 'PAGE', children: [] }; host.root.children.push(pg); return pg; },
+    createPageDivider: (n?: string) => { const pg: any = { name: n ?? '', type: 'PAGE_DIVIDER', children: [] }; host.root.children.push(pg); return pg; },
+    setCurrentPageAsync: async () => {}, loadAllPagesAsync: async () => {},
+    getNodeByIdAsync: async (id: string) => byId.get(id) ?? null,
+  };
+  (globalThis as any).figma = host;
+  const reports: StepReport[] = [];
+  for (const s of emits) {
+    const d = JSON.parse(/^const __D=(.*);$/m.exec(s.js)![1]);
+    const members = (unpack(d) as { members: { index: number }[] }).members;
+    const payloads = members.map((m) => async () => {
+      const [width, height] = plans[m.index].root.glyphViewBox ?? [0, 0];
+      const node = { id: `n${m.index}`, type: 'COMPONENT', name: '', x: 0, y: 0, width, height };
+      page.children.push(node);
+      byId.set(node.id, node);
+      return { id: node.id, misses: [] };
+    });
+    reports.push(await runComponentEmit(d, payloads as never));
+  }
+  const marks = page.children.filter((n) => n.type === 'COMPONENT' && String(n.name).startsWith('provider-logo/'));
+  ok(emits.length > 1 && marks.length === plans.length && reports.every((r) => !r.threw),
+    `emit/brand marks: the def is pasted in ${emits.length} slices and every one of its ${plans.length} marks is placed (${marks.length} placed; ${reports.filter((r) => r.threw).map((r) => r.threw).join('; ') || 'nothing threw'})`);
+  const over: string[] = [];
+  marks.forEach((a, i) => marks.slice(i + 1).forEach((b) => {
+    if (a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height) over.push(`${a.name} × ${b.name}`);
+  }));
+  ok(over.length === 0, `emit/brand marks: no two marks overlap (${over.length} overlapping pair(s)${over.length ? `, first ${over[0]}` : ''})`);
 });
 
 console.log(`${failed ? `\n${failed} FAILED` : '\nmcp-paste: all assertions pass'} — ${executed} assertions executed`);
