@@ -21,7 +21,9 @@ change note. Carries #4315 through a normal merge, because the themes it measure
 All 618 property checks match the handoff, in both modes, for every brand. Dark mode switches. The observations and
 the defects filed from them are on #4382.
 
-### Mutation
+### Mutations, each failing by name
 
-One registry item's light `--primary` changed: `shadcn prism3 light button-default background-color` fails by name,
-along with every other check on a primary-filled part.
+- One registry item's light `--primary` changed → `shadcn prism3 light button-default background-color`, along with
+  every other primary-filled part.
+- `radius-xl` dropped from that item's `cssVars.theme`, so the skeleton's derived value wins →
+  `shadcn prism3 light card border-top-left-radius: renders 10px, want 8px (radius.xl)`.

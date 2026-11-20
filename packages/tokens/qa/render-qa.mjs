@@ -29,8 +29,9 @@
  * classes never reach each fails here by name.
  *
  * MUTATIONS THIS FAILS BY NAME: `--primary` in a registry item's `cssVars.light` changed → `shadcn <brand> light
- * button-default background-color`; `radius-md` dropped from `cssVars.theme` (the skeleton's derived value wins) →
- * `shadcn <brand> light button-default border-radius`; `.dark` stripped from the page → every dark `background-color`.
+ * button-default background-color`; `radius-xl` dropped from `cssVars.theme`, so the skeleton's derived
+ * `calc(var(--radius) + 4px)` wins → `shadcn prism3 light card border-top-left-radius: renders 10px, want 8px`. (Dropping
+ * `radius-md` passes for prism3, and rightly: its derived 6 − 2 = 4px is the handoff's `radius.md`.)
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
