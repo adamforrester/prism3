@@ -44236,6 +44236,32 @@ arm: {
   }
 }
 
+// ------------------------------------------------------------------- #4161 / #4163: the tree says which leaves are which
+// #4163 (owner decision A): no rename, so the `.ai.json` note names the primitive families, and a family outside `core.*`
+// reads as a primitive. Oracle: the literal families the issue is about, plus this file's own read of the `primitives`
+// keys. #4161 (owner decision A): the two pill radii each say which one a pill control binds. Mutations: drop the
+// families sentence from the note, or empty `PILL_USE` in tree.ts → the rows fail by name.
+{
+  for (const [id, input] of Object.entries(exampleBrands())) {
+    const t = exampleTheme(`${id} (#4161/#4163)`, () => brandTheme(input as BrandInput));
+    if (!t) { ok(false, `#4163 ${id}: the brand loads`); continue; }
+    const tree = (buildTree(t) as any).tree;
+    const ai = buildAiMetadata(t, tree) as any;
+    const m = /The primitive families are (.*?)\. Not every one/.exec(ai.note ?? '');
+    const named = m ? [...m[1].matchAll(/`([^`]+)`/g)].map((x) => x[1]) : [];
+    const keys = Object.keys(ai.primitives ?? {});
+    const uncovered = keys.filter((k) => !named.some((f) => k === f || k.startsWith(`${f}.`)));
+    const empty = named.filter((f) => !keys.some((k) => k === f || k.startsWith(`${f}.`)));
+    ok(m !== null && uncovered.length === 0 && empty.length === 0 && ['opacity', 'motion.duration-ms', 'motion.easing', 'core.palette'].every((f) => named.includes(f)),
+      `#4163 ${id}: the .ai.json note names every primitive family, opacity and motion.duration-ms among them (named: ${named.join(', ') || 'none'}; uncovered: ${uncovered.slice(0, 3).join(', ') || 'none'}; empty: ${empty.join(', ') || 'none'})`);
+    const base = buildBase(tree) as any;
+    const round = String(base?.[t.root]?.radius?.round?.$description ?? '');
+    const capsule = String(base?.[t.root]?.radius?.capsule?.$description ?? '');
+    ok(round.includes('`radius.capsule`') && capsule.includes('`radius.round`') && capsule.includes('`controlShape: pill`'),
+      `#4161 ${id}: radius.round and radius.capsule each say which pill a pill control binds (round: "${round}"; capsule: "${capsule}")`);
+  }
+}
+
 // ------------------------------------------------------------------- #4131: hc-dark takes the reduced dark shadow
 // Owner decision A: every dark-appearance mode follows the shadow model, full in light and reduced in dark. Read through
 // the overlay a consumer installs (base + hc-dark), not the theme, so a seed that never reaches the projection fails too.
