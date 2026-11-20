@@ -161,7 +161,8 @@ const NOT_EN_GB = new Set([
   // A JSON `\n` escape runs into the next word, so `\nraises` reads as `nraises` (the 0.238.0 release notes' `.json`,
   // which carries each folded note verbatim, line breaks included). The word after the escape is still checked alone
   // wherever it is not glued to an escape, so these hide no en-GB spelling.
-  'nraises', 'notherwise',
+  'nraises', 'notherwise', 'npairwise',
+  'pairwise', // `-wise` as in `otherwise` and `likewise`, not an `-ise` verb (first shipped in the 0.239.0 release notes)
 ]);
 // The ONE place either regex is applied. `scan()` (real files) and SELF_CHECK (samples) both drive
 // this, and that sharing is load-bearing — the exact opposite of the DRY trap, because here the two
@@ -221,6 +222,11 @@ const FILLER = /\b(please\s+note|note\s+that)\b/gi;
 // notes, carried verbatim into the 0.238.0 release notes). The allow-set is the word directly before "note"; a false
 // positive here is fixed by widening it, never by dropping "note that" from FILLER.
 const FILLER_NOUN_BEFORE = /\b(?:a|an|the|its|their|this|each|every|part)\s+$/i;
+// One modifier word may sit between the determiner and a LOWER-CASE `note`, on the same line: "each code-only note
+// that names motion" (#4174's change note, read in packages/engine/changes/ since Q181 A). A capital `Note` after a
+// modifier ("the guide Note that …") opens a run-in sentence and stays the filler, and the modifier never crosses a
+// newline, so a line-initial `note that` is still flagged.
+const FILLER_NOUN_MODIFIED = /\b(?:a|an|the|its|their|this|each|every|part)[ \t]+[\w-]+[ \t]+$/i;
 
 // ---- Rule 4: apology copy — §2's "Oops, Sorry" row.
 const APOLOGY = /\b(oops|sorry)\b/gi;
@@ -250,6 +256,7 @@ export const voiceHits = (txt: string): RawHit[] => {
   for (const m of txt.matchAll(FILLER)) {
     const idx = m.index ?? 0;
     if (/^note/i.test(m[0]) && FILLER_NOUN_BEFORE.test(txt.slice(Math.max(0, idx - 24), idx))) continue; // "its note that" — a noun
+    if (/^note/.test(m[0]) && FILLER_NOUN_MODIFIED.test(txt.slice(Math.max(0, idx - 40), idx))) continue; // "each code-only note that" — a noun
     found.push({ rule: 'filler', match: m[0], index: idx });
   }
   for (const m of txt.matchAll(APOLOGY)) found.push({ rule: 'apology', match: m[0], index: m.index ?? 0 });

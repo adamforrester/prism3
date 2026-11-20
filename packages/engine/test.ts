@@ -39175,10 +39175,13 @@ arm: {
           const v = /^\+export const ENGINE_VERSION = '(\d+\.\d+\.\d+)'/m.exec(rec)?.[1];
           if (sha && parents.length === 1 && v) set.add(v);
         }
-        const releases = join(REPO, 'docs/public/releases');
+        // The versions named AT THE BASE, not in the working tree (the 0.239.0 fold): a fold PR's tree names the version it
+        // is minting, which no commit of main can set until that PR merges, so reading the tree failed every fold in CI.
+        // Every version main's own record names must still be set by a single-parent commit in its history.
         const named = [
-          ...(existsSync(releases) ? readdirSync(releases).filter((f) => /^\d+\.\d+\.\d+\.json$/.test(f)).map((f) => f.slice(0, -5)) : []),
-          /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(readFileSync(join(REPO, 'packages/engine/version.ts'), 'utf8'))?.[1] ?? 'the working tree\'s ENGINE_VERSION (unreadable)',
+          ...raw(['ls-tree', '--name-only', base, 'docs/public/releases/']).stdout.split('\n')
+            .map((f) => /\/(\d+\.\d+\.\d+)\.json$/.exec(f.trim())?.[1]).filter((v): v is string => !!v),
+          /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(raw(['show', `${base}:packages/engine/version.ts`]).stdout)?.[1] ?? `the ENGINE_VERSION at ${base.slice(0, 8)} (unreadable)`,
         ];
         const unset = [...new Set(named)].filter((v) => !set.has(v));
         if (unset.length) premiseBroken.push(`no single-parent commit in the history of ${at} sets ${unset.slice(0, 5).join(', ')}${unset.length > 5 ? ` and ${unset.length - 5} more` : ''}, so the folds the tree's release notes name are not in it`);
