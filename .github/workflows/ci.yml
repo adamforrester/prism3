@@ -22,14 +22,21 @@ on:
   # `main`), which only the owner can change; the steps are in the PR that added this trigger (#3698 R3). Until it is
   # on, this trigger never fires and changes nothing.
   #
-  # How the gates read a merge-group run, checked against each ladder when this was added: `GITHUB_EVENT_NAME` is
-  # `merge_group`, `GITHUB_BASE_REF` is empty, and the checkout (`fetch-depth: 0`) is the queue's commit, whose first
-  # parent is `main` (or the group ahead of it). Every git-history gate's ladder then falls to `origin/main`, whose merge
-  # base with HEAD is `main`'s tip, so each compares the queued result with `main`: the PR's diff, plus any group ahead
-  # of it in the queue. `lint-progress-order.ts` treats it as a PR run (only `push` skips its CARRIES AN ENTRY arm), so
-  # the queued PR's fragment is still required.
+  # How the gates read a merge-group run (#4106): `GITHUB_EVENT_NAME` is `merge_group`, `GITHUB_BASE_REF` is empty, and
+  # the checkout (`fetch-depth: 0`) is the queue's commit, built on the group's parent: `main`, or the group ahead of it
+  # in the queue. That parent is the base, passed to every job as `MERGE_GROUP_BASE_SHA` (the `env:` below). Every
+  # git-history gate tries it first, as authoritative as `GITHUB_BASE_REF` on a PR (`mergeGroupBase` in
+  # `packages/engine/comparison-base.ts`), so each judges this PR's own diff on top of the PRs ahead of it. Before #4106
+  # the ladders fell to `origin/main` here, and the diff held the groups ahead too: a PR passed on the change note,
+  # progress entry or executor revision of the PR ahead. A merge-group run whose base is unset or wrong CANNOT RUN; it
+  # never falls back. `lint-push-base.ts` replays both, and `lint-doc-gates.ts` holds this trigger and the `env:` line.
+  # Every job runs: `docs-only.sh` never exempts a merge group, and no `if:` here reads the event.
   merge_group:
     types: [checks_requested]
+
+# #4106: the merge group's parent commit, empty on every other event. Workflow-level, so no job can miss it.
+env:
+  MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
 
 # A force-push to a PR supersedes the previous run; don't burn minutes finishing a stale one. A push
 # run on main is never cancelled (#2617): it is the only run that compares a squash with its parent
@@ -198,7 +205,9 @@ jobs:
       # with itself and passed (#2556, the #2551 gap). `comparison-base.ts` gives them the first parent
       # there. This replays main's push run against each real gate in a `$TMPDIR` clone and requires a
       # squash that breaks the gate's rule to fail by the gate's own assertion, and one that keeps it to pass.
-      - name: "On main's push run each git-history gate compares a squash with its parent (#2556)"
+      # It also replays a merge-group run (#4106): a group ahead on `main`, the queued PR on it, the base set to the
+      # group ahead. A queued PR that breaks a rule against it fails by name, and so does every gate with no base.
+      - name: "On main's push run and a merge-group run each git-history gate reads the right base (#2556, #4106)"
         run: npx tsx packages/engine/lint-push-base.ts
 
       # The dry run reports a member written by an older executor as needing a re-apply, by comparing

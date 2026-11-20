@@ -117,6 +117,8 @@
 .p3-textarea::placeholder { color: var(--p3-text-2); opacity: 1; }
 .p3-textarea:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-field-edge-hover); }
 .p3-textarea:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
+/* #4223: a preview table's scroll wrapper (`.mtbl-scroll`, `preview/sections/kit.ts` `scrollBox`) is a Tab stop, so it draws the chrome's ring. */
+.mtbl-scroll:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-field-err { margin: 0; color: var(--p3-bad-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
 .p3-import-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
 .p3-upload { cursor: pointer; }
@@ -1115,6 +1117,8 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-rhythm-la
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14);
 }
 .p3-text-input.p3-value { font-family: var(--p3-font-mono); }
+/* #4220: the field's hint in the chrome's secondary ink, as the other fields' are, not the browser's default gray. */
+.p3-text-input::placeholder { color: var(--p3-text-2); opacity: 1; }
 /* No hover on a disabled field: it cannot be edited, so nothing answers the pointer (owner, 2026-10-05; Q28 a). */
 .p3-text-input:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-field-edge-hover); }
 .p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }

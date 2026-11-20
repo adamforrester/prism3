@@ -662,7 +662,16 @@ export const pinGaps = (tree: YamlValue, pkgJson: string, nodeVersion: string): 
  *  a push to `main`, and on a merge-queue group (`merge_group`, with `checks_requested`): a queue whose required check
  *  never reports holds every PR forever, and one whose workflow lost the trigger would wait on a check nothing starts.
  *  The `gates` job must also run in a merge-group run, so it may carry no `if:` other than `always()`, which
- *  `aggregatorGaps` already holds. Empty when sound. */
+ *  `aggregatorGaps` already holds.
+ *  #4106 — THE MERGE-GROUP BASE. The top-level `env:` sets `MERGE_GROUP_BASE_SHA` to the group's parent, exactly
+ *  `${{ github.event.merge_group.base_sha }}`, and no job or step sets it again: every git-history gate reads it as its
+ *  base in a merge-group run, and fails closed without it (`mergeGroupBase` in `comparison-base.ts`). And no job or
+ *  step `if:` reads the event or a base or head ref: an `if:` like that is how a gate stops running in one kind of run,
+ *  merge groups included, with nothing in the step list showing it. The docs-only exemption reads a job output, and
+ *  `docs-only.sh` never exempts a merge group (`test-docs-only.sh`). Empty when sound. */
+export const MERGE_GROUP_BASE_ENV = 'MERGE_GROUP_BASE_SHA';
+export const MERGE_GROUP_BASE_VALUE = '${{ github.event.merge_group.base_sha }}';
+const EVENT_IN_IF = /github\.event_name|github\.base_ref|github\.head_ref|github\.event\.(pull_request|merge_group)|GITHUB_EVENT_NAME|GITHUB_BASE_REF/;
 export const triggerGaps = (tree: YamlValue): string[] => {
   const on = (tree as { on?: YamlValue }).on;
   const problems: string[] = [];
@@ -674,6 +683,20 @@ export const triggerGaps = (tree: YamlValue): string[] => {
   const mg = o.merge_group as { types?: YamlValue } | undefined;
   if (!mg || typeof mg !== 'object') problems.push('ci.yml does not run on `merge_group`, so a merge queue on `main` would wait on a `gates` check nothing starts (#3698 R3)');
   else if (!Array.isArray(mg.types) || !mg.types.includes('checks_requested')) problems.push('ci.yml\'s `merge_group` trigger does not list `checks_requested`, the one type GitHub sends (#3698 R3)');
+  const env = (tree as { env?: Record<string, YamlValue> }).env;
+  const val = env && typeof env === 'object' ? env[MERGE_GROUP_BASE_ENV] : undefined;
+  if (typeof val !== 'string' || val.trim() !== MERGE_GROUP_BASE_VALUE)
+    problems.push(`ci.yml's top-level \`env:\` does not set \`${MERGE_GROUP_BASE_ENV}: ${MERGE_GROUP_BASE_VALUE}\`, so every git-history gate in a merge-group run has no base and CANNOT RUN (#4106)`);
+  const jobs = (tree as { jobs?: Record<string, { if?: YamlValue; env?: Record<string, YamlValue>; steps?: { name?: YamlValue; if?: YamlValue; env?: Record<string, YamlValue> }[] }> }).jobs ?? {};
+  for (const [k, j] of Object.entries(jobs)) {
+    if (typeof j.if === 'string' && EVENT_IN_IF.test(j.if)) problems.push(`job \`${k}\` runs \`if: ${j.if.trim()}\`, which reads the event or a base or head ref, so it can skip in a merge-group run (#4106)`);
+    if (j.env && typeof j.env === 'object' && MERGE_GROUP_BASE_ENV in j.env) problems.push(`job \`${k}\` sets \`${MERGE_GROUP_BASE_ENV}\` again, over the workflow's (#4106)`);
+    for (const st of j.steps ?? []) {
+      const name = typeof st.name === 'string' ? st.name : '(unnamed)';
+      if (typeof st.if === 'string' && EVENT_IN_IF.test(st.if)) problems.push(`\`${k}\` step "${name}" runs \`if: ${st.if.trim()}\`, which reads the event or a base or head ref, so it can skip in a merge-group run (#4106)`);
+      if (st.env && typeof st.env === 'object' && MERGE_GROUP_BASE_ENV in st.env) problems.push(`\`${k}\` step "${name}" sets \`${MERGE_GROUP_BASE_ENV}\` again, over the workflow's (#4106)`);
+    }
+  }
   return problems;
 };
 
@@ -1439,11 +1462,15 @@ if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: ha
     branches: [main]
   merge_group:
     types: [checks_requested]
+env:
+  MERGE_GROUP_BASE_SHA: \${{ github.event.merge_group.base_sha }}
 jobs:
   a:
     runs-on: ubuntu-latest
+    if: \${{ needs.changes.outputs.docs_only != 'true' }}
     steps:
-      - run: true
+      - name: s
+        run: true
 `;
   const gaps = (yaml: string): string[] => triggerGaps(parseYamlSubset(yaml));
   if (gaps(ON).length) selfFails.push(`the trigger check flags a sound workflow: ${gaps(ON).join('; ')}`);
@@ -1451,6 +1478,12 @@ jobs:
   if (!gaps(ON.replace('[checks_requested]', '[other]')).some((p) => p.includes('checks_requested'))) selfFails.push('the trigger check misses a `merge_group` without `checks_requested`');
   if (!gaps(ON.replace('  pull_request:\n', '')).some((p) => p.includes('`pull_request`'))) selfFails.push('the trigger check misses a dropped `pull_request` trigger');
   if (!gaps(ON.replace('[main]', '[dev]')).some((p) => p.includes('push to `main`'))) selfFails.push('the trigger check misses a push trigger that no longer names `main`');
+  // #4106 — the merge-group base and the event-reading `if:`.
+  if (!gaps(ON.replace(/env:\n {2}MERGE_GROUP_BASE_SHA: .*\n/, '')).some((p) => p.includes('does not set `MERGE_GROUP_BASE_SHA'))) selfFails.push('the trigger check misses a dropped `MERGE_GROUP_BASE_SHA` env');
+  if (!gaps(ON.replace('merge_group.base_sha', 'merge_group.head_sha')).some((p) => p.includes('does not set `MERGE_GROUP_BASE_SHA'))) selfFails.push('the trigger check misses `MERGE_GROUP_BASE_SHA` set to the wrong field');
+  if (!gaps(ON.replace("needs.changes.outputs.docs_only != 'true'", "github.event_name == 'pull_request'")).some((p) => p.includes('job `a` runs'))) selfFails.push('the trigger check misses a job `if:` that reads the event');
+  if (!gaps(ON.replace('        run: true\n', "        if: github.base_ref == 'main'\n        run: true\n")).some((p) => p.includes('step "s" runs'))) selfFails.push('the trigger check misses a step `if:` that reads a base ref');
+  if (!gaps(ON.replace('        run: true\n', '        env:\n          MERGE_GROUP_BASE_SHA: x\n        run: true\n')).some((p) => p.includes('step "s" sets'))) selfFails.push('the trigger check misses a step that sets `MERGE_GROUP_BASE_SHA` again');
 }
 
 // 6f. THE FOLD BOT (#3698 R1), through the shipped `foldWorkflowGaps` over mutations of the real file.
@@ -1670,7 +1703,7 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
 // THE TRIGGERS (#3698 R3), on the real file: pull request, push to main, and the merge queue.
 {
   const problems = triggerGaps(ciTree);
-  console.log('    triggers: pull_request, push to main and merge_group checked');
+  console.log('    triggers: pull_request, push to main and merge_group checked; MERGE_GROUP_BASE_SHA set once, no `if:` reads the event (#4106)');
   if (problems.length) {
     console.error('\n❌ ci.yml does not start on every event the merge rule needs (#3698 R3):\n');
     for (const p of problems) console.error(`    ${p}`);

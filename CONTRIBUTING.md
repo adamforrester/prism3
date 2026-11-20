@@ -128,6 +128,13 @@ of it. Two clean merges that would leave `out/` stale, or two notes that collide
 on `main`. Until the setting is on, the trigger never fires and the fold PR stays the net described above.
 `lint-doc-gates.ts` fails if the trigger is dropped.
 
+**In the queue, each git-history gate reads the group's parent as its base (#4106).** That parent is `main` with the
+PRs ahead already in it, `merge_group.base_sha`, which `ci.yml` passes to every job as `MERGE_GROUP_BASE_SHA`. Read
+against `origin/main` instead, a queued PR would pass on the change note, progress entry or executor revision of a PR
+ahead of it. A merge-group run without that base fails rather than falling back. `lint-push-base.ts` replays both
+cases, and `lint-doc-gates.ts` fails if the `env:` line goes or an `if:` starts reading the event. With the queue on,
+a PR needs one green `gates` run before it joins the queue, and the queue's run is the one that decides the merge.
+
 What to check before you push the fold:
 
 - **`token-contract.ts --check` needs nothing from a fold.** The contract baseline records no engine
@@ -408,7 +415,10 @@ npx tsx packages/engine/lint-push-base.ts      # on main's push run the merge ba
                                                     # HEAD's first parent there; this replays main's
                                                     # push run in a $TMPDIR clone against each real
                                                     # gate: a squash breaking the gate's rule must
-                                                    # fail by its own assertion, one keeping it pass
+                                                    # fail by its own assertion, one keeping it pass.
+                                                    # It also replays a merge-group run (#4106): each
+                                                    # gate, progress-order and executor-revision too,
+                                                    # reads the group's parent and fails without it
 npx tsx apps/plugin/lint-executor-revision.ts
                                                     # the component executor's code (write-components
                                                     # and every file it reaches by a value import,
@@ -1490,7 +1500,8 @@ npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` b
 npm run build:release -w @prism3/plugin  # THE RELEASE BUILD (#2530, owner Q239 A): release/, with PRISM3_DEV
                                           # false so every dev-only branch is dropped (the agent link's
                                           # desktop bridge relay, any dev command; minifySyntax, so a dead
-                                          # branch leaves no text), and a manifest.json with no
+                                          # branch leaves no text; minifyWhitespace since #4232, names kept),
+                                          # and a manifest.json with no
                                           # devAllowedDomains. Run after `build`; dist/ is untouched.
 npm run test:start -w @prism3/plugin     # the plugin's START MOMENT (#1197): "+ New brand" and a
                                         # fresh file both surface the same start screen the web does —
@@ -1836,6 +1847,34 @@ The reviewer-facing half: **duplication between a gate and its subject is usuall
 Routing both through one helper is the obvious cleanup and it silently deletes the gate, leaving
 no failing test and a diff that looks like an improvement. If you're about to suggest that
 cleanup, check for a comment explaining why the duplication is there.
+
+### A new gate fails from day one: no probation inside a required job (#888)
+
+Owner decision #888 A (2026-11-18). **A new gate fails builds from the PR that adds it.** Almost every
+gate here is deterministic, so an advisory week buys nothing: if it fails, the failure is real.
+
+**If a gate genuinely needs probation** (its failures might not be real: a browser, network or external
+service it depends on), **run it as a separate job that branch protection does not require.** Its
+conclusion is honest, it shows in the PR's checks list, and the evidence reads straight off the run
+conclusions, with no clock, flag or summary workaround. The cost is a red X on PRs while probation runs.
+That is chosen on purpose: the invisible alternative is what made #775's evidence almost unreadable.
+Today that job cannot sit in `ci.yml`: `lint-doc-gates.ts` holds every `ci.yml` job to `gates`' `needs`
+(Q503 A), so a job there is required whether you mean it to be or not.
+
+**A required gate step never carries `continue-on-error`, or a step-level `if:` that skips it.** With
+`continue-on-error: true`, GitHub reports the step's own conclusion as `success` when its command exits
+non-zero, not only the job's. Measured on #775, not assumed. So the step leaves no evidence in any
+status check or API read, only an `##[error]` inside its log, which is the opposite of what a probation
+period is for. `lint-doc-gates.ts` fails a gate step carrying either, or a job-level `continue-on-error` over one
+(#3881, #3958).
+
+Two rules hold whichever route a gate takes:
+
+- **Any dated promise gets `lint-advisory-expiry.ts`.** Its oracle is the clock, which the repo cannot
+  edit.
+- **If probation finds flakiness, fix the flake.** Don't extend the window: an extension is how advisory
+  becomes forever. A gate whose browser download fails on a CDN blip gets the browser cached, never the
+  flag back.
 
 ### The `out/*` discipline
 
