@@ -37,8 +37,9 @@ export function* leaves(node, path = []) {
 }
 /** One emitted tree. `regen` rewrites `out/` files in place (truncate, then write), so a build started while a regen
  *  runs in the same tree can read one empty or half-written. Said by name, with the remedy, because "Unexpected end of
- *  JSON input" alone sends a reader looking for a broken emitter (#3914). */
-const readTree = (file) => {
+ *  JSON input" alone sends a reader looking for a broken emitter (#3914). Every chrome-build read of an `out/` tree goes
+ *  through it: `loadModes` here and `chromeTexts` (`glyphs.mjs`), which the `[glyphs]` check runs first. */
+export const readTree = (file) => {
   const text = readFileSync(file, 'utf8');
   const race = 'a `regen` running in this tree rewrites out/ in place, so wait for it to finish and run the build again (#3914)';
   if (!text.trim()) throw new Error(`${file} is empty — ${race}`);
