@@ -7,9 +7,6 @@ interface ValidationData {
   variables: Variable[];
   textStyles: TextStyle[];
   effectStyles: EffectStyle[];
-  /** Alias targets outside the local variables, resolved through the Plugin API (prism3 #4166). An
-   *  alias to one of these is not broken: it points at a team-library variable the file imports. */
-  externalVariables?: Variable[];
 }
 
 export class TokenValidator {
@@ -22,7 +19,7 @@ export class TokenValidator {
 
     // Build collection and variable lookup maps
     this.collectionMap = this.buildCollectionMap(data.collections);
-    const variableMap = this.buildVariableMap(data.variables.concat(data.externalVariables || []));
+    const variableMap = this.buildVariableMap(data.variables);
     const aliasGraph = this.buildAliasGraph(data.variables, variableMap);
 
     // Critical validations (block export)

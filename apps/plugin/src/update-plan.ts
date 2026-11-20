@@ -53,7 +53,7 @@ import { ENGINE_VERSION, colorVariablesOutOfOrder, COMPONENT_RENAMES, coordKey, 
 import { EXECUTOR_REVISION } from './executor-revision';
 import { PACE_MS } from './pace';
 import { reaches } from './executor-reach';
-import { adoptions, emitCoordValue, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
+import { adoptions, emitCoordValue, engineHalf, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { FURNITURE_KEY, FURNITURE_NS, furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
@@ -211,6 +211,11 @@ export type SetPreview = {
    *  would rebuild it without the edit. Always a conflict. Under Keep and Accept the apply skips the member. Absent
    *  otherwise. */
   handEdits: { member: string; path: string; conflict: boolean; structural: boolean; lost?: true }[];
+  /** #2882 (owner decision A) — the engine half of every member stamp the check read, each once: the engines this set
+   *  was last written or checked by (`restampMembers` rewrites the half on unchanged members, #2379). The publish
+   *  description's range for the set starts at the oldest. Outside the set's `previewHash`: the stamps are in its
+   *  fingerprint already. Absent when no member is stamped. */
+  engines?: string[];
   /** #2265 PR 2 — every matched member that is not current, with how it reads; what an apply acts on. Current
    *  members are left out, so a set with nothing to do carries an empty list. Never capped: an apply must see all. */
   states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true;
@@ -224,7 +229,12 @@ export type SetPreview = {
      *  the plan adds, removes, replaces or moves into a new frame. Under Keep and Accept the apply skips it whole and
      *  names it; Overwrite writes it. Absent otherwise, and on a member whose layer was added or removed by hand, which
      *  every choice skips. */
-    restructured?: true }[];
+    restructured?: true;
+    /** #3907 — the member is behind today's plan apart from any hand edit: its plan or a revision reaching it moved, or
+     *  it draws or reacts other than its plan, or an update stopped on it. An apply that skips such a member leaves it
+     *  out of date, so the as-built ledger does not record its set as built from today's def (`ledgerAfter`). Absent
+     *  for a member whose only difference is the designer's own edit. */
+    behind?: true }[];
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
@@ -647,13 +657,16 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const unfinished = m.updating != null;
     // A LAYER ADDED BY HAND OUTRANKS DANGLING REACTIONS TOO (#2674), as it does drawn damage (#2413): the apply skips the
     // member, so it counts as edited by hand, and its state says the reactions are left dangling.
+    // #3101: a member stamped under another revision is to update only when a revision since reaches this set.
+    const drifted = unfinished || planMoved || (revField !== null && revField !== rev && reaches(defId, Number(revField), EXECUTOR_REVISION)) || rxv.differs || nested.length > 0;
     const state: MemberState = (damaged.length || rxv.dangling) && !structural ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
-      // #3101: a member stamped under another revision is to update only when a revision since reaches this set.
-      : unfinished || planMoved || (revField !== null && revField !== rev && reaches(defId, Number(revField), EXECUTOR_REVISION)) || rxv.differs || nested.length ? 'update'
+      : drifted ? 'update'
       : revField === null ? 'revisionUnknown'
       : 'current';
+    // #3907: behind today's plan whatever the hand edits, so a skip leaves it out of date.
+    const behind = drifted || damaged.length > 0 || rxv.dangling;
     counts[state]++;
     const earlier = state === 'noBaseline' && !!m.earlierRecord;
     if (earlier) counts.earlierRecord = (counts.earlierRecord ?? 0) + 1;
@@ -662,7 +675,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       ...(rxv.dangling ? { dangling: true as const } : {}),
     } : {};
     const at = states.length;
-    if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}), ...hurt });
+    if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}), ...hurt, ...(behind ? { behind: true as const } : {}) });
     if (state === 'current' || state === 'revisionUnknown') continue;
 
     // The field changes, from the host's snapshot. `member` divergences are the set-level match's own
@@ -892,7 +905,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   // the preview even where the preview's own text would not have changed.
   const fingerprint = read.members.map((m) => { const b = baselineOf(m.snap); return [m.id, m.name, m.stamp, b.nodes, b.reactions ?? null]; });
   const previewHash = fnv(JSON.stringify([body, fingerprint]));
-  return { ...body, previewHash };
+  const engines = [...new Set(read.members.filter((m) => m.stamp).map((m) => engineHalf(m.stamp)))].sort();
+  return { ...body, previewHash, ...(engines.length ? { engines } : {}) };
 };
 
 // ---- reading the host --------------------------------------------------------------------------------------

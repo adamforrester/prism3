@@ -339,6 +339,7 @@ apps/plugin/test-update-apply.ts #3364
 apps/plugin/test-update-apply.ts #3399
 apps/plugin/test-update-apply.ts #3474
 apps/plugin/test-update-apply.ts #3554
+apps/plugin/test-update-apply.ts #3907
 apps/plugin/test-update-apply.ts #4070
 apps/plugin/test-update-components.ts #1098
 apps/plugin/test-update-components.ts #2265
@@ -1231,7 +1232,6 @@ packages/engine/test.ts #324
 packages/engine/test.ts #325
 packages/engine/test.ts #326
 packages/engine/test.ts #328
-packages/engine/test.ts #3284
 packages/engine/test.ts #331
 packages/engine/test.ts #332
 packages/engine/test.ts #3328

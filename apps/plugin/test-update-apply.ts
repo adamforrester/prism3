@@ -7364,6 +7364,59 @@ section('updates off — a set whose updates are off is left as it is, reported 
     `updates off/due: the mark reads over current, due and kept edits, and nothing else moves (${JSON.stringify(due)})`);
 }
 
+section('behind — a set whose run skipped a member still behind its plan is not recorded as current (#3907)');
+{
+  // A member edited by hand, then an update that changes its structure: under Keep the member is skipped whole and the
+  // run turns the set's updates off by itself (#2956). The skipped member is still behind its plan, so the as-built
+  // ledger must not record the set as built from today's def: once the designer turns updates back on, the due read
+  // has to offer it again. Expected values typed here. Mutations: `ledgerAfter`'s `behind` filter dropped →
+  // `behind/ledger`, `behind/back on`; the dry run's `behind` flag dropped → the same two and `behind/flag`; the flag set
+  // on every state → `behind/control`.
+  const NAME = 'type=select, selection=unselected, size=medium, state=rest';
+  const RED = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 0, b: 0 } }];
+  const e = { engine: 'e1', def: 'today', rev: 1 } as never;
+  const old = { engine: 'e1', def: 'earlier', rev: 1 } as never;
+  {
+    const w = await world(TAG, plansOf(TAG), { extraVars: ['color/keep/changed'] });
+    membersOf(w.set()).find((m) => m.name === NAME)!.fills = JSON.parse(JSON.stringify(RED));
+    const next = w.plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; planChild(q.root, 'content').children!.push({ name: 'extra', type: 'FRAME', bound: {}, children: [] } as unknown as PlanNode); return q; });
+    const targets = [{ def: TAG, plans: next }];
+    const pre = await previewUpdate(w.host, targets);
+    const st = pre.sets[0].states.find((x) => x.member === NAME);
+    ok(st?.behind === true, `behind/flag: the dry run reads the restructured, hand-edited member as behind its plan (${JSON.stringify(st)})`);
+    const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre), { choices: { handEdits: 'keep' } });
+    const o = res.outcomes[0];
+    const ledger = ledgerAfter(res.outcomes, () => e, { [TAG]: old } as never);
+    ok(o.turnedOff === true && o.updated.length === 44 && JSON.stringify(o.behind) === JSON.stringify([NAME]) && !(TAG in ledger),
+      `behind/ledger: the run skips the member, turns updates off, and records no entry for the set (${o.turnedOff}; ${o.updated.length} updated; ${JSON.stringify(o.behind)}; ${JSON.stringify(Object.keys(ledger))})`);
+    // The old entry stands. Turned back on (no off mark), the due read offers the set again; off, it reads `off`.
+    const merged = { [TAG]: old, ...ledger } as never;
+    const offRead = dueOf(merged, [TAG], () => e, undefined, { [TAG]: 'auto' });
+    const backOn = dueOf(merged, [TAG], () => e);
+    ok(offRead[TAG].state === 'off' && backOn[TAG].state === 'due',
+      `behind/back on: with updates off it reads off, and turned back on it reads due, never current (${JSON.stringify(offRead[TAG])}; ${JSON.stringify(backOn[TAG])})`);
+  }
+  {
+    // CONTROL: a member Prism3 built, with a layer added by hand, whose own plan this update leaves alone. It is skipped
+    // (its paths can't be trusted) but not behind anything, so the set is recorded as usual. A member Prism3 did not
+    // build is skipped too, and is never behind.
+    const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+    const [unstamped, structural] = [membersOf(w.set())[5], membersOf(w.set())[7]];
+    (unstamped.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, '');
+    const extra = (w.api.createFrame as () => Node)();
+    extra.name = 'designer note';
+    (structural.appendChild as (c: Node) => void)(extra);
+    const targets: UpdateTarget[] = [{ def: TAG, plans: w.plans.map((p) => planComponentName(p) === structural.name ? p : moveGap([p])[0]) }];
+    const { pre, res } = await confirm(w, targets);
+    const o = res.outcomes[0];
+    const st = pre.sets[0].states.find((x) => x.member === structural.name);
+    const ledger = ledgerAfter(res.outcomes, () => e, { [TAG]: old } as never);
+    ok(st?.state === 'handEdited' && !st.behind && JSON.stringify(o.skipped.map((x) => x.reason).sort()) === JSON.stringify(['a layer was added or removed by hand', 'not built by Prism3'])
+      && !o.behind && JSON.stringify(ledger[TAG]) === JSON.stringify(e),
+      `behind/control: a member skipped for a layer added by hand, its plan unchanged, and one not built by Prism3 leave the set recorded as built from today's def (${JSON.stringify(st)}; ${JSON.stringify(o.skipped)}; ${JSON.stringify(ledger[TAG])})`);
+  }
+}
+
 // #3326 PR 1 review S2: THE INVARIANT, over every verdict this suite read. A verdict that is not ok says why: at least one
 // cause, and each subject is a def id (one of the engine's, or one a hand-written outcome names), or null for the run's
 // own cause. Never a set's name in the file. Mutations: any writer path's cause dropped, or a subject taken from a set's

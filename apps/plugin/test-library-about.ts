@@ -32,10 +32,13 @@
  *   - the fingerprint check dropped (every old frame removed) → `redraw/edited kept`;
  *   - `aboutDue` ignoring the engine → `redraw/stale`;
  *   - the apply not drawing the frame → `update/drawn`;
- *   - the frame left out of the preview hash → `update/hash`.
+ *   - the frame left out of the preview hash → `update/hash`;
+ *   - #2882: a set's range starting at its newest stamp → `publish/own stamp`; the apply not passing the stamps, or the
+ *     check reading them off unstamped members → `update/own stamp`.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, componentDefs } from '@prism3/engine/components';
-import { applyComponentPlan } from './src/write-components';
+import { applyComponentPlan, STAMP_KEY } from './src/write-components';
+import { NS } from './src/persist-figma';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
 import { previewUpdate, previewVerdict } from './src/update-plan';
@@ -137,6 +140,14 @@ section('publish — the description offered after an Update');
   const noSet = publishDescription({ title: pageOrder, sets: [], from: null, engine: '0.237.0', contract: '14.7.0' });
   ok(pageOrder === `${MARKER} updated the page order` && noSet.split('\n')[0] === `${pageOrder}. Engine 0.237.0. Token contract 14.7.0.`,
     `publish/no set changed: the head is the version title word for word (#2914) (${JSON.stringify(noSet.split('\n')[0])})`);
+  // #2882 (owner decision A): the issue's own case. The file's About frame records 0.237.0 (an Update that touched only
+  // tag); `button` was last built at 0.235.0. Its range starts at its own stamp, so 0.236.0 and 0.237.0's items are listed
+  // with 0.238.0's. A set with no readable stamp falls back to the file's `from`. Index and expected lines typed here.
+  const rix: ReleaseIndex = { releases: ['0.236.0', '0.237.0', '0.238.0'].map((v, i) => ({ version: v, from: i ? `0.23${5 + i}.0` : '0.235.0', date: '2026-10-1' + i, counts: { breaking: 0, new: 0, fix: 1 },
+    items: [{ class: 'fix', area: 'figma', kind: 'builds-differently', component: 'button', text: `\`button\` fix ${v}.` }, { class: 'fix', area: 'figma', kind: 'builds-differently', component: 'tag', text: `\`tag\` fix ${v}.` }] })) };
+  const per = publishDescription({ title: 'T', sets: ['button', 'tag'], from: '0.237.0', engine: '0.238.0', contract: '1.0.0', ix: rix, stampedBy: { button: ['0.237.0', '0.235.0'], tag: ['unknown'] } });
+  ok(per === 'Prism3 updated button, tag. Engine 0.238.0, from 0.237.0. Token contract 1.0.0.\nbutton: fix 0.238.0.\nbutton: fix 0.237.0.\nbutton: fix 0.236.0.\ntag: fix 0.238.0.\nNo breaking changes.',
+    `publish/own stamp: each set's range starts at its oldest stamped engine, else the file's (${JSON.stringify(per)})`);
 }
 
 /* ── the shim as a file with a Cover page ────────────────────────────────────────────────────────────── */
@@ -316,6 +327,21 @@ section('update — through a real Update in the component shim');
   const res4 = await applyUpdate(host, api as never, t4, previewHashOf(pre4), { today: '2026-10-24' });
   ok(eq(api._versions.slice(1), ['Saved before Prism3 updated tag']) && / About frame\.$/.test(api._versionNotes[1]) && res4.about?.drawn && !res4.aboutOnly,
     `update/set change and frame due: still saves a version, naming both (${JSON.stringify(api._versions)}; ${JSON.stringify(api._versionNotes)})`);
+  // #2882 (owner decision A): A SET'S RANGE STARTS AT ITS OWN STAMP. The About frame now records today's engine, so the
+  // file's `from` alone crosses no release. Every member stamped as last written by 0.235.0, the set's range runs from
+  // there: each `tag` item the bundled notes hold after 0.235.0, counted here from the index itself.
+  const setNode = page.children.find((n) => n.type === 'COMPONENT_SET')!;
+  for (const m of (setNode.children as Node[])) {
+    const was = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, ['0.235.0', ...was.split('|').slice(1)].join('|'));
+  }
+  const pre5 = await previewUpdate(host, t2);
+  const res5 = await applyUpdate(host, api as never, t2, previewHashOf(pre5), { today: '2026-10-25' });
+  const want = (RELEASES as ReleaseIndex).releases.filter((r) => { const [x, y, z] = r.version.split('.').map(Number); return x > 0 || y > 235 || (y === 235 && z > 0); })
+    .flatMap((r) => (r.items ?? []).filter((i) => i.area === 'figma' && i.component === 'tag')).length;
+  const listed = (res5.publish ?? '').split('\n').filter((l) => l.startsWith('tag: ')).length;
+  ok(eq(pre5.sets[0]?.engines, ['0.235.0']) && want > 0 && listed === want,
+    `update/own stamp: the set's range starts at its members' 0.235.0, not the file's engine (${JSON.stringify(pre5.sets[0]?.engines)}; ${listed} of ${want} tag items; ${JSON.stringify(res5.publish)})`);
 }
 
 /* ── the index the plugin bundles ────────────────────────────────────────────────────────────────────── */
