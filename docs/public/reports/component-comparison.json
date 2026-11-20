@@ -233,7 +233,7 @@
     {
       "id": "badge",
       "name": "Badge",
-      "category": "foundations",
+      "category": "feedback",
       "states": [],
       "projectedStates": [],
       "axes": {
@@ -4920,7 +4920,7 @@
     {
       "id": "tag",
       "name": "Tag",
-      "category": "foundations",
+      "category": "form",
       "states": [
         "rest",
         "hover",
