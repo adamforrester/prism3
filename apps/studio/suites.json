@@ -35,6 +35,7 @@
     { "file": "test-prod-bundle.ts", "floor": 10 },
     { "file": "test-chrome-motion.ts", "floor": 10 },
     { "file": "test-docs-route.ts", "floor": 187 },
+    { "file": "test-shadcn-registry.ts", "floor": 15 },
     { "file": "test-status-order.ts", "floor": 43 },
     { "file": "test-run-time.ts", "floor": 11 },
     { "file": "test-report.ts", "floor": 114 },
