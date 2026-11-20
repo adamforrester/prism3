@@ -5470,8 +5470,8 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
   };
   for (const [size, want] of [[undefined, 'label/lg/emphasis'], ['medium', 'label/md/emphasis'], ['small', 'label/sm/emphasis']] as const) {
     const got = await titles(size ? { ...aurora, dialogTitleSize: size } as BrandInput : aurora);
-    ok(got.read === 24 && JSON.stringify(got.styles) === JSON.stringify([want]) && got.misses.length === 0,
-      `#2958 dialog title reads back: at ${size ?? 'unset (Large)'}, all ${got.read} of 24 members bind the title to ${want}, a style the brand emits (${got.styles.join(', ')}; misses: ${got.misses.slice(0, 2).join('; ') || 'none'})`);
+    ok(got.read === 16 && JSON.stringify(got.styles) === JSON.stringify([want]) && got.misses.length === 0,
+      `#2958 dialog title reads back: at ${size ?? 'unset (Large)'}, all ${got.read} of 16 members (#3392 A) bind the title to ${want}, a style the brand emits (${got.styles.join(', ')}; misses: ${got.misses.slice(0, 2).join('; ') || 'none'})`);
   }
 }
 
