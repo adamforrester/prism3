@@ -414,6 +414,32 @@
       "docs": "docs/41-internal-and-ejected.md"
     },
     {
+      "id": "reports-reference",
+      "label": "Reports and agent reference",
+      "role": "output",
+      "kind": "artifact",
+      "status": "shipped",
+      "column": "outputs",
+      "purpose": "Generated from the code and checked against it in CI. Four reports cover token usage, component dependencies, a side-by-side comparison of components, and icon usage. The agent reference lists every MCP tool, agent link command and command-line entry point, and llms.txt points an agent to both.",
+      "inputs": [
+        "Component definitions",
+        "The generated token tree",
+        "The engine's tools and commands"
+      ],
+      "outputs": [
+        "Reports for people, with a JSON twin for agents",
+        "A command reference for agents"
+      ],
+      "sources": [
+        "packages/engine/emit-analysis-reports.ts",
+        "packages/engine/emit-agent-reference.ts",
+        "docs/public/reports/",
+        "docs/public/reference/commands.json",
+        "docs/public/llms.txt"
+      ],
+      "docs": "docs/public/reports/index.md"
+    },
+    {
       "id": "figma-file",
       "label": "The Figma file",
       "role": "output",
@@ -770,6 +796,12 @@
       "from": "component-defs",
       "to": "component-docs",
       "what": "One page and one JSON entry per component",
+      "status": "shipped"
+    },
+    {
+      "from": "engine",
+      "to": "reports-reference",
+      "what": "Reports read off the definitions and the emission, and the reference read off the code",
       "status": "shipped"
     },
     {

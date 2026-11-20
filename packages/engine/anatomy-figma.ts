@@ -1699,6 +1699,9 @@ export const figmaAnatomyPlan = (
     if (name === 'leadingVisual') return leading;
     if (name === 'trailingVisual') return trailing;
     const p = a.parts[name];
+    // A part BUILT HIDDEN where its variant gate fails (#3058) is in the tree at every member, as a boolean part is;
+    // `gatedHidden` says where it is hidden, and its state gate (if any) still applies below.
+    const soft = p?.kind === 'box' && p.hiddenWhenAbsent === true;
     // VARIANT-GATED PRESENCE (#910), the first presence rule keyed on a coordinate that is not a state.
     // AND across axes, and an axis the caller did not supply reads as ABSENT rather than present — the
     // same answer the `absolute` line below gives when `state` is undefined, and the conservative one:
@@ -1711,6 +1714,7 @@ export const figmaAnatomyPlan = (
         // axis, a state HAS a resting value, and an unsupplied state IS rest everywhere else in this builder
         // (the paint grammar resolves the bare `{slot}` key there, and `lint-paint`'s grid census enumerates
         // rest that way), so the gate reads it as `rest` rather than as absent.
+        if (soft && axis !== STATE_GATE) continue;
         const v = axis === STATE_GATE ? (state ?? 'rest') : axisValue(axis);
         if (v === undefined || !values.includes(v)) return false;
       }
@@ -1722,6 +1726,19 @@ export const figmaAnatomyPlan = (
     // A list since #2318: the field's ring is present at `focus-visible` and at `focus-visible-filled`.
     if (p?.kind === 'absolute') return state !== undefined && whenStates(p).includes(state);
     return !p?.optional;
+  };
+
+  /* #3058: is this part BUILT HIDDEN at this coordinate? A `hiddenWhenAbsent` box whose VARIANT gate fails here, read
+   * by `presentWhen`'s own rule (AND across axes, an unsupplied axis reads as absent). `present()` keeps it in the tree;
+   * this hides it, and the layout reads it as absent (`shown`), as Figma's auto layout does a hidden child. */
+  const gatedHidden = (name: string): boolean => {
+    const p = a.parts[name];
+    if (p?.kind !== 'box' || p.hiddenWhenAbsent !== true) return false;
+    return Object.entries(p.presentWhen ?? {}).some(([axis, values]) => {
+      if (axis === STATE_GATE) return false;
+      const v = axisValue(axis);
+      return v === undefined || !values.includes(v);
+    });
   };
 
   /* WHERE A TRAVELING CHILD PUTS ITS PARENT'S DISTRIBUTION (#990). A switch's thumb declares
@@ -1876,7 +1893,7 @@ export const figmaAnatomyPlan = (
     const uq = up ? a.parts[up] : undefined;
     if (!up || !uq?.layout) throw new Error(`${def.id}: part '${name}' has no laid-out parent to derive its width from`);
     if (uq.layout.direction === 'column') return nestedRowWidth(up) - inlinePadPx(q);
-    const shown = (uq.children ?? []).filter((c) => c !== name && a.parts[c]?.kind !== 'overlay' && a.parts[c]?.kind !== 'absolute' && present(c) && booleanParts.get(c)?.visible !== false);
+    const shown = (uq.children ?? []).filter((c) => c !== name && a.parts[c]?.kind !== 'overlay' && a.parts[c]?.kind !== 'absolute' && present(c) && booleanParts.get(c)?.visible !== false && !gatedHidden(c));
     const gap = shown.length && uq.gap ? spacePx(resolveKey(uq.gap, 'gap')) : 0;
     return nestedRowWidth(up) - shown.reduce((s, c) => s + shownFlowWidth(c), 0) - shown.length * gap - inlinePadPx(q);
   };
@@ -2473,7 +2490,7 @@ export const figmaAnatomyPlan = (
       // `n.visible ?? true`). A boolean part is present at every member (see `present()`), so this rides
       // the tree, not a variant coordinate.
       ...(booleanParts.has(name) ? { visibleProp: booleanParts.get(name)!.prop } : {}),
-      ...(booleanParts.get(name)?.visible === false ? { visible: false as const } : {}),
+      ...(booleanParts.get(name)?.visible === false || gatedHidden(name) ? { visible: false as const } : {}),
       ...(textStyle ? { textStyle } : {}),
       ...(literalFont ? { literalFont } : {}),
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
@@ -3005,6 +3022,15 @@ export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content:
  *  at `hairline`, the default. The setting rebinds that one key to `border-width.<weight>`; no token is added. */
 export const BORDER_WEIGHT_KEY = 'border-width';
 const BORDER_WEIGHT_DEFAULT_REF = 'border-width.hairline';
+/** Step 6 of `applyButtonLayout` (#576), shared by the button family and the defs that opt in (`levers.buttonBorderWeight`,
+ *  Q6). `hairline` is the identity. THROWS when the def's edge is not bound to the default rung: a def that moved its
+ *  border onto another key or rung would otherwise keep it while this reported the weight applied. */
+const withBorderWeight = (def: ComponentDef, tokens: Record<string, string>, weight: ButtonBorderWeight): Record<string, string> => {
+  if (weight === 'hairline') return tokens;
+  if (tokens[BORDER_WEIGHT_KEY] !== BORDER_WEIGHT_DEFAULT_REF)
+    throw new Error(`${def.id}: "Outline button border" rebinds ${BORDER_WEIGHT_KEY} from ${BORDER_WEIGHT_DEFAULT_REF} to border-width.${weight}, and the def binds ${tokens[BORDER_WEIGHT_KEY] ?? 'nothing'} there`);
+  return { ...tokens, [BORDER_WEIGHT_KEY]: `border-width.${weight}` };
+};
 
 /** "One step smaller" (#1667): the ONE size whose content moves, and the size it borrows from. Medium only,
  *  and deliberately: New Balance's 44px button (our `size.md.height`) carries a 12px label and a 16px icon,
@@ -3074,7 +3100,9 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  *      `border-width.thick` instead of `border-width.hairline`, in every button set at once: one brand-wide weight
  *      (owner decision 2026-11-18, A). The key sits on the shared container, so filled and text members carry it too
  *      and paint no stroke, exactly as they carry the hairline today. The border's COLOR is untouched: it stays the
- *      set's own `outline.border.*`. `hairline`, the default, is the identity. Icon buttons are outside the family.
+ *      set's own `outline.border.*`. `hairline`, the default, is the identity. The one other setting that reaches
+ *      past the family: a def opting in with `levers.buttonBorderWeight` (IconButton and FlushIconButton, owner decision
+ *      2026-11-19 Q6) moves the same key the same way, so a Thick brand's outline icon buttons match its text buttons.
  *
  * THROWS when a size's number does not resolve: a button with no floor, or a pinned icon with no reserve,
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
@@ -3083,8 +3111,13 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   // "Control label weight" reaches a def outside the family that opts in with `levers.buttonLabelWeight` (Tag: #2945,
   // Q591 A; its own entry since #3786); the other button settings do not. Badge and every other def that binds a label
   // style keep their own.
-  if (!isButtonFamily(def))
-    return layout.labelWeight === 'default' && def.levers?.buttonLabelWeight ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
+  // "Outline button border" likewise reaches a def that opts in with `levers.buttonBorderWeight` (#576 Q6).
+  if (!isButtonFamily(def)) {
+    let tokens = def.tokens;
+    if (layout.labelWeight === 'default' && def.levers?.buttonLabelWeight) tokens = withDefaultLabels(def, tokens);
+    if (def.levers?.buttonBorderWeight) tokens = withBorderWeight(def, tokens, layout.borderWeight);
+    return tokens === def.tokens ? def : { ...def, tokens };
+  }
   const a = def.anatomy!;
   const root = must(a.parts[a.root], `${def.id}: root part '${a.root}'`);
   if (!root.layout || !root.height)
@@ -3118,13 +3151,8 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
       if (wash) tokens[`text.overlay.${st}`] = wash;
     }
   }
-  // 6. "Outline button border" (#576). THROWS when the def's edge is not bound to the default rung: a def that moved
-  //    its border onto another key or rung would otherwise keep it while this reported the weight applied.
-  if (layout.borderWeight !== 'hairline') {
-    if (tokens[BORDER_WEIGHT_KEY] !== BORDER_WEIGHT_DEFAULT_REF)
-      throw new Error(`${def.id}: "Outline button border" rebinds ${BORDER_WEIGHT_KEY} from ${BORDER_WEIGHT_DEFAULT_REF} to border-width.${layout.borderWeight}, and the def binds ${tokens[BORDER_WEIGHT_KEY] ?? 'nothing'} there`);
-    tokens = { ...tokens, [BORDER_WEIGHT_KEY]: `border-width.${layout.borderWeight}` };
-  }
+  // 6. "Outline button border" (#576).
+  tokens = withBorderWeight(def, tokens, layout.borderWeight);
   // A def key (`size.{size}.gap`) at one size → px, through the (possibly rebound) token map.
   const at = (key: string, v: string, what: string): number => {
     const ref = tokens[key.replace('{size}', v)];

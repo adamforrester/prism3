@@ -3144,10 +3144,11 @@ const READ_OVERLAY_ROWS = () => {
     swatch: readSwatch(row?.querySelector('.p3-fill-sw')),
   });
   return [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fillrow[data-role$=".overlay.hover"]')].map((row) => {
-    // #3335 (the owner's amendment): a wash group has no rest row, so its Pressed is the hover row's sibling, at the
-    // group's own level; nothing is nested under a wash.
+    // #3116 (the owner's Q3116.3 A): the wash is the Hover and Pressed of the "Outline & text hover" group, inset together
+    // under its Rest row, so its Pressed is the hover row's sibling in the group's states column.
+    const states = row.closest('[data-p3="int-row-states"]');
     const group = row.closest('[data-p3="int-row-group"]');
-    return { ...readRow(row), nested: !!group?.querySelector('[data-p3="int-row-states"]'), states: [...(group?.querySelectorAll(':scope > .p3-fillrow-wrap > .p3-fillrow') ?? [])].filter((n) => n !== row).map(readRow) };
+    return { ...readRow(row), nested: !!states, group: group?.dataset.group ?? null, states: [...(states?.querySelectorAll(':scope > .p3-fillrow-wrap > .p3-fillrow') ?? [])].filter((n) => n !== row).map(readRow) };
   });
 };
 /** The preview's Outline row in one column, as drawn: per state, the ink and the ground of its button. */
@@ -3255,7 +3256,8 @@ s5aArm: for (const brand of BRANDS) {
       ok(row.swatch?.underOpaque === true, `${where}: the swatch layer sits on an opaque underlay (${row.swatch?.underColor}) instead of on whatever chrome is behind it (#1210b)`);
       ok(rgbHex(row.swatch?.underColor) === ground, `${where}: the swatch's underlay is the ground the wash is measured on, the emitted background.primary ${ground} (drew ${row.swatch?.underColor})`);
       ok((row.swatch?.deltaLum ?? 0) > 0.005, `${where}: the composited wash is visible against that ground (Δluminance ${row.swatch?.deltaLum?.toFixed(4)}) — a wash pinned to the wrong polarity's ground would read 0`);
-      ok(row.states.length === 1 && !row.nested && row.states[0].role === row.role.replace(/\.hover$/, '.pressed'), `${where}: its Pressed row sits beside it, at the group's level (#3335) (${row.states.map((s) => s.role).join(', ')}, nested ${row.nested})`);
+      ok(row.states.length === 1 && row.nested && row.group === 'Outline & text hover' && row.states[0].role === row.role.replace(/\.hover$/, '.pressed'),
+        `${where}: its Pressed row sits beside it, both inset under the Outline & text hover group's Rest (#3116) (${row.states.map((s) => s.role).join(', ')}, nested ${row.nested}, group ${row.group})`);
       for (const st of row.states) {
         hooks.absent(ok, { seen: st.text !== null, state: 'the Pressed row\'s read-out' }, st.pickers === 0, `${where} / Pressed: offers no ramp-step picker (#1210a)`);
         ok(st.text === `${expectPal} ${OVERLAY_STEPS.pressed ?? '?'}`, `${where} / Pressed: reads "${expectPal} ${OVERLAY_STEPS.pressed}" — got "${st.text}" (#1210a)`);
@@ -3870,10 +3872,17 @@ const persistedAt = (page, key) => page.evaluate((k) => {
 // contrast switch is off (S5.3, the owner's QA-I8). Since S5.3 the disabled contrast is that switch, not chips, and
 // the icon contrast chips left the page (QA-I10), so two enum levers are chips here.
 console.log(`\nLever chips on Color › Interactive (S5.2)\n${'='.repeat(78)}`);
+// Since #3116 (the owner's Q3116.2 A) the outline hover method is not one chip per option: it is two short choices,
+// held below (OUTLINE_METHOD_PAIRS), so it left this list.
 const INTERACTIVE_CHIPS = [
-  { key: 'outlineInteraction', group: '[data-p3="lever-outline-interaction"]' },
   { key: 'neutralEmphasis', group: '[data-p3="lever-neutral-emphasis"]' },
 ];
+// #3116 (Q3116.2 A): "Hover fill" (Wash · Solid · None), then, only under Wash, "Wash color" (Neutral · Tinted). Each
+// manifest value of `outlineInteraction` (the oracle: the committed manifest's options) must be reached by exactly the
+// pair typed here, and the pair must write it. A value the manifest gains that this map does not name fails by name.
+const OUTLINE_METHOD_PAIRS = {
+  'overlay-neutral': ['wash', 'neutral'], 'solid-tint': ['wash', 'tinted'], 'opaque-fill': ['solid', null], none: ['none', null],
+};
 const DISABLED_MIN_CHIPS = [['3', '3:1'], ['3.5', '3.5:1'], ['4', '4:1'], ['4.5', '4.5:1']];
 const readNewChips = (sel) => {
   const all = document.querySelectorAll(sel);
@@ -3917,6 +3926,34 @@ const readNewChips = (sel) => {
     await page.keyboard.press('ArrowRight');
     await page.waitForFunction(([s, w]) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === w, [c.group, next], { timeout: 5000 }).catch(() => {});
     ok(String(await persistedAt(page, c.key)) === next, `${where}: ArrowRight writes ${next} to the brand, and focus stays in the group (${await page.evaluate((s) => !!document.activeElement?.closest(s), c.group)})`);
+  }
+  {
+    const key = 'outlineInteraction';
+    const lever = leverOf(key);
+    const where = `${brand} / Interactive / ${key}`;
+    const LV = '[data-p3="lever-outline-interaction"]';
+    const FILL = `${LV} [data-p3="outline-method-chips"]`, WASH = `${LV} [data-p3="outline-wash-color-chips"]`;
+    const head = await page.evaluate((s) => { const fs = document.querySelector(s); return fs ? { tag: fs.tagName, legend: fs.querySelector(':scope > legend .p3-lever-name')?.textContent?.trim() ?? null } : null; }, LV);
+    ok(head?.tag === 'FIELDSET' && head?.legend === 'Hover fill', `${where}: one fieldset whose legend is "Hover fill" (${JSON.stringify(head)})`);
+    for (const o of lever.options) {
+      const v = String(o.value);
+      const pair = OUTLINE_METHOD_PAIRS[v];
+      if (!pair) { ok(false, `${where}: the manifest's "${v}" is reached by a Hover fill and Wash color pair`); continue; }
+      await hooks.click(page.locator(`${FILL} button[role="radio"][data-value="${pair[0]}"]`));
+      await page.waitForFunction((s) => !!document.querySelector(s), `${FILL} button[aria-checked="true"][data-value="${pair[0]}"]`, { timeout: 5000 }).catch(() => {});
+      if (pair[1]) {
+        await hooks.click(page.locator(`${WASH} button[role="radio"][data-value="${pair[1]}"]`));
+        await page.waitForFunction((s) => !!document.querySelector(s), `${WASH} button[aria-checked="true"][data-value="${pair[1]}"]`, { timeout: 5000 }).catch(() => {});
+      }
+      const f = await page.evaluate(readNewChips, FILL), w = await page.evaluate(readNewChips, WASH);
+      ok(String((await persistedAt(page, key)) ?? lever.default) === v && f.checked[0] === pair[0] && (pair[1] ? w.checked[0] === pair[1] : w.found === 0) && f.small === 0 && (w.small ?? 0) === 0,
+        `${where}: ${pair.filter(Boolean).join(' + ')} writes ${v}, with Wash color ${pair[1] ? 'shown' : 'not drawn'} and every chip a >= 24px target (wrote ${await persistedAt(page, key)}, ${JSON.stringify({ fill: f.checked, wash: w.found ? w.checked : null })})`);
+    }
+    await page.locator(`${FILL} button[aria-checked="true"]`).focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction((s) => document.querySelector(`${s} button[aria-checked="true"]`)?.dataset.value === 'wash', FILL, { timeout: 5000 }).catch(() => {});
+    // The pairs ran in the manifest's order, so the last wash shown was Tinted: Wash comes back to it.
+    ok(String(await persistedAt(page, key)) === 'solid-tint', `${where}: ArrowRight from None moves Hover fill to Wash, back on the wash color last shown, and writes solid-tint (wrote ${await persistedAt(page, key)})`);
   }
   // The reduced floor (Q37): four chips, written as numbers, drawn while the Full contrast switch is off (QA-I8),
   // and not drawn while it is on.
@@ -5572,7 +5609,9 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   // default export leaves out since #2552, so "Include build metadata" is switched On to read it.
   await hooks.click(page.locator('[data-p3="rail-export"]'));
   await hooks.need(page, '[data-p3="export-page"]');
-  await hooks.click(page.locator('[data-p3="export-setting"][aria-label="Include build metadata: On"]'));
+  // #4221: the setting is a radio group named by its label, so its option is found by its row and its own word.
+  await hooks.click(page.locator('.p3-export-set').filter({ has: page.locator('.p3-export-lab', { hasText: 'Include build metadata' }) })
+    .locator('[data-p3="export-setting"]').filter({ hasText: /^On$/ }));
   let emitted = null;
   try {
     const set = await downloadSet(page, brand.toLowerCase());

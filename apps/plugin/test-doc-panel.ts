@@ -1955,7 +1955,9 @@ section('due/… — the dry run reads the panel as the draw would draw it');
 }
 
 /* ── last changed: the "Last changed in" block (#2889) ──────────────────────────────────────────────────── */
-section('last changed/… — "Last changed in <version> · <date>" under the header, above Overview (#2889, #2858 piece 2, Q479.3 A)');
+// #2889 and #2858 (piece 2) ride in each assertion's label, not in this heading (#4241): `section()` only prints, so a
+// tag here kept both arms registered with every assertion under it deleted.
+section('last changed/… — "Last changed in <version> · <date>" under the header, above Overview (Q479.3 A)');
 {
   // The notes as the approved wireframe read them: every release up to 0.237.0, so a later fold does not move these arms.
   const num = (v: string) => v.split('.').map(Number);
@@ -1978,41 +1980,41 @@ section('last changed/… — "Last changed in <version> · <date>" under the he
   ] as const) {
     const { panel } = await drawWith(id, base);
     const lc = panel && blockOf(panel);
-    ok(!!lc && JSON.stringify(texts(lc)) === JSON.stringify(want), `last changed/${id}: the block reads the wireframe's release`, JSON.stringify(lc ? texts(lc) : null));
+    ok(!!lc && JSON.stringify(texts(lc)) === JSON.stringify(want), `#2858 last changed/${id}: the block reads the wireframe's release`, JSON.stringify(lc ? texts(lc) : null));
     // Under the header, above Overview: the header first, the block next, and Overview the first section after it.
     const kids = panel?.children ?? [];
     const at = lc ? kids.indexOf(lc) : -1;
     const next = kids.slice(at + 1).map((c) => c.getSharedPluginData!('prism3', 'docSection')).find(Boolean);
-    ok(at === 1 && kids[0].name === 'header' && next === 'overview', `last changed/${id} placed: under the header, above Overview`, `at ${at}, next section ${next}`);
+    ok(at === 1 && kids[0].name === 'header' && next === 'overview', `#2889 last changed/${id} placed: under the header, above Overview`, `at ${at}, next section ${next}`);
     // The items as a bulleted list, as the wireframe draws them.
     const items = lc?.children[1] && walk(lc.children[1]).find((c) => c.type === 'TEXT');
-    if (want.length > 1) ok(!!items && JSON.stringify(items._lists) === `[{"s":0,"e":${String(items.characters).length},"o":{"type":"UNORDERED"}}]`, `last changed/${id} bullets: the items bulleted`);
+    if (want.length > 1) ok(!!items && JSON.stringify(items._lists) === `[{"s":0,"e":${String(items.characters).length},"o":{"type":"UNORDERED"}}]`, `#2858 last changed/${id} bullets: the items bulleted, as the wireframe draws them`);
   }
   // A FOLD THAT LEAVES A PANEL'S BLOCK ALONE LEAVES THE PANEL CURRENT (owner decision A on #2889); one that moves it makes
   // the panel due. Read twice: the dry run's own check (`docPanelDue`) and the as-built ledger's (`dueOf`).
   const tagDef = componentDefs.find((d) => d.id === 'tag')!, dividerDef = componentDefs.find((d) => d.id === 'divider')!;
   const t = await drawWith('tag', base), dv = await drawWith('divider', base);
   ok(docPanelDue(t.api, t.set, planDocPanel(tagDef, { modes: ['light', 'dark'], names, releases: fold as never })) === 0,
-    'fold/unmoved panel not due: the fold names no Tag item, so Tag\'s panel stays current');
+    '#2889 fold/unmoved panel not due: the fold names no Tag item, so Tag\'s panel stays current');
   ok(docPanelDue(dv.api, dv.set, planDocPanel(dividerDef, { modes: ['light', 'dark'], names, releases: fold as never })) === 1,
-    'fold/moved panel due: the fold names Divider, so Divider\'s panel is due');
+    '#2889 fold/moved panel due: the fold names Divider, so Divider\'s panel is due');
   const entry = (id: string, r: unknown): LedgerEntry => ({ def: `d:${id}`, rev: EXECUTOR_REVISION, engine: ENGINE_VERSION, panel: PANEL_FORMAT, changed: lastChangedKey(id, r as never) });
   const ledger = { tag: entry('tag', base), divider: entry('divider', base) };
   const read = dueOf(ledger, ['tag', 'divider'], (id) => entry(id, fold));
   ok(read.tag.state === 'current' && read.divider.state === 'due' && (read.divider as { reason?: string }).reason === 'panel',
-    `fold/ledger: Tag current, Divider due for its panel (${JSON.stringify(read)})`);
-  ok(dueOf(ledger, ['tag', 'divider'], (id) => entry(id, base)).divider.state === 'current', 'fold/ledger unchanged: no fold, nothing due');
+    `#2889 fold/ledger: Tag current, Divider due for its panel (${JSON.stringify(read)})`);
+  ok(dueOf(ledger, ['tag', 'divider'], (id) => entry(id, base)).divider.state === 'current', '#2889 fold/ledger unchanged: no fold, nothing due');
   // A write with the panels off keeps the block's record, as it keeps the panel format (#3205).
   const root = (() => { const d: Record<string, string> = {}; return { getPluginData: (k: string) => d[k] ?? '', setPluginData: (k: string, v: string) => { d[k] = v; } }; })();
   recordSets(root, ledger);
   recordSets(root, { divider: { def: 'd:divider', rev: EXECUTOR_REVISION, engine: ENGINE_VERSION } });
-  ok(readLedger(root).divider?.changed === ledger.divider.changed, 'fold/record keeps: a write with the panels off keeps the block\'s record');
+  ok(readLedger(root).divider?.changed === ledger.divider.changed, '#2889 fold/record keeps: a write with the panels off keeps the block\'s record');
   // The print covers the block: its line rewritten by hand keeps the panel aside on the next draw.
   const line = t.panel && blockOf(t.panel) && walk(blockOf(t.panel)!).find((c) => c.type === 'TEXT');
   if (line) line.characters = 'Last changed when we said so';
   await drawDocPanel(t.api, t.set, tagDef, { names, releases: base as never });
   const kept = panelsOn(t.p).find((n) => tagOf(n).state === 'kept');
-  ok(kept === t.panel && texts(kept).includes('Last changed when we said so') && panelsOn(t.p).length === 2, 'last changed/hand edit: an edited block keeps its panel aside');
+  ok(kept === t.panel && texts(kept).includes('Last changed when we said so') && panelsOn(t.p).length === 2, '#2889 last changed/hand edit: an edited block keeps its panel aside');
 }
 
 /* ── room: the update spaces sets past the panel ───────────────────────────────────────────────────────── */

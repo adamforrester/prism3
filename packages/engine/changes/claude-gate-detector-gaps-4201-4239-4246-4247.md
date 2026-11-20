@@ -1,0 +1,4 @@
+---
+engine: patch
+---
+Four gates see what they missed (#4201, #4246, #4247), and one header says what its gate holds (#4239). `lint-doc-gates.ts` arm 10 fails a gate step whose `shell:` (or a job's or the workflow's `defaults.run.shell`) is anything but `bash` or `sh`. `lint-locale-order.ts` flags `localeCompare` reached by name in code (a bracket key, a property passed as a value), with a planted self-check. The tokens no-custom-code rule reads shorthand object keys (`{ transformGroup: 'css', actions }`), with a planted self-check. `lint-theme-split.ts` resolves each import specifier, so an import of the barrel through the parent directory or with a `.js` extension is seen. `lint-ratio-truth.ts` pins `contrast()` to literal WCAG ratios, so a wrong formula fails it by name. `lint-hit-target.ts`'s header no longer claims that lowering `AAA_TARGET_PX` fails it. Gates only; no committed artifact moves.

@@ -233,7 +233,7 @@
     {
       "id": "badge",
       "name": "Badge",
-      "category": "foundations",
+      "category": "feedback",
       "states": [],
       "projectedStates": [],
       "axes": {
@@ -1683,6 +1683,10 @@
         },
         {
           "name": "title"
+        },
+        {
+          "name": "hideTitle",
+          "default": false
         },
         {
           "name": "description"
@@ -5077,7 +5081,7 @@
     {
       "id": "tag",
       "name": "Tag",
-      "category": "foundations",
+      "category": "form",
       "states": [
         "rest",
         "hover",
@@ -7670,6 +7674,12 @@
       },
       {
         "id": "slider",
+        "default": false
+      }
+    ],
+    "hideTitle": [
+      {
+        "id": "dialog",
         "default": false
       }
     ],

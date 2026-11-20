@@ -2051,7 +2051,7 @@ Type: color. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `body` | placeholder | expansion: expanded (24 of 48) |
+| accordion | `body` | placeholder | every member (48 of 48) |
 | badge | `danger.status.inline.subtle.label`, `info.status.inline.subtle.label`, `neutral.status.contained.subtle.label`, `neutral.status.contained.surface.label`, `neutral.status.inline.subtle.label`, `success.status.inline.subtle.label`, `warning.status.inline.subtle.label` | label | emphasis: subtle, surface · type: status (14 of 50) |
 | banner | `body`, `label` | bodyText | every member (10 of 10) |
 |  |  | title | every member (10 of 10) |
@@ -3060,7 +3060,7 @@ Type: dimension. Bound by 26 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | expansion: expanded (24 of 48) |
+| accordion | `size.large.panel-pad-top`, `size.medium.panel-pad-top`, `size.small.panel-pad-top` | content | every member (48 of 48) |
 | badge | `size.medium.contained.dot.pad-x`, `size.medium.contained.dot.pad-y`, `size.medium.contained.gap`, `size.medium.inline.count.pad-x` (not drawn), `size.medium.inline.count.pad-y` (not drawn), `size.medium.inline.dot.pad-x` (not drawn), `size.medium.inline.dot.pad-y` (not drawn), `size.medium.inline.status.pad-x`, `size.medium.inline.status.pad-y`, `size.small.contained.dot.pad-x` (not drawn), `size.small.contained.dot.pad-y` (not drawn), `size.small.contained.gap`, `size.small.inline.count.pad-x` (not drawn), `size.small.inline.count.pad-y` (not drawn), `size.small.inline.dot.pad-x` (not drawn), `size.small.inline.dot.pad-y` (not drawn), `size.small.inline.status.pad-x`, `size.small.inline.status.pad-y` | surface | every member (50 of 50) |
 | button | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-destructive | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
@@ -3249,7 +3249,7 @@ Type: dimension. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.medium.gap`, `size.medium.pad-y`, `size.small.pad-x`, `size.small.panel-pad-end` | content | expansion: expanded · size: small (8 of 48) |
+| accordion | `size.medium.gap`, `size.medium.pad-y`, `size.small.pad-x`, `size.small.panel-pad-end` | content | size: small (16 of 48) |
 |  |  | header | size: medium, small (32 of 48) |
 |  |  | titleRow | size: medium (16 of 48) |
 | badge | `size.medium.contained.status.pad-x` | surface | size: medium · style: contained · type: status (15 of 50) |
@@ -3285,7 +3285,7 @@ Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.gap`, `size.large.pad-y`, `size.medium.pad-x`, `size.medium.panel-pad-end` | content | expansion: expanded · size: medium (8 of 48) |
+| accordion | `size.large.gap`, `size.large.pad-y`, `size.medium.pad-x`, `size.medium.panel-pad-end` | content | size: medium (16 of 48) |
 |  |  | header | size: large, medium (32 of 48) |
 |  |  | titleRow | size: large (16 of 48) |
 | banner | `pad` | container | every member (10 of 10) |
@@ -3321,7 +3321,7 @@ Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.pad-x` | content | expansion: expanded · size: large (8 of 48) |
+| accordion | `size.large.pad-x` | content | size: large (16 of 48) |
 |  |  | header | size: large (16 of 48) |
 | list | `size.large.gap` | container | size: large (3 of 12) |
 |  |  | items | size: large (3 of 12) |
@@ -3335,7 +3335,7 @@ Type: dimension. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.panel-pad-end` | content | expansion: expanded · size: large (8 of 48) |
+| accordion | `size.large.panel-pad-end` | content | size: large (16 of 48) |
 | button | `size.large.padding-x`, `size.small.hit-target` (not drawn) | container | inset: default · size: large (108 of 576) |
 | button-destructive | `size.large.padding-x`, `size.small.hit-target` (not drawn) | container | inset: default · size: large (108 of 576) |
 | button-neutral | `size.large.padding-x`, `size.small.hit-target` (not drawn) | container | inset: default · size: large (108 of 576) |
@@ -3394,7 +3394,7 @@ Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.large.panel-type` | placeholder | expansion: expanded · size: large (8 of 48) |
+| accordion | `size.large.panel-type` | placeholder | size: large (16 of 48) |
 | card-number-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
 | counter | `size.large.type` | value | size: large (6 of 18) |
@@ -3442,7 +3442,7 @@ Type: typography. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (8 of 48) |
+| accordion | `size.medium.panel-type` | placeholder | size: medium (16 of 48) |
 | banner | `body-type` | bodyText | every member (10 of 10) |
 | breadcrumb-item | `size.medium.type` | label | kind: current · separator: chevron · size: medium (1 of 10) |
 | card-number-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3510,7 +3510,7 @@ Type: typography. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (8 of 48) |
+| accordion | `size.small.panel-type` | placeholder | size: small (16 of 48) |
 | breadcrumb-item | `size.small.type` | label | kind: current · separator: chevron · size: small (1 of 10) |
 | card-number-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |

@@ -109,7 +109,9 @@ export const listItem: ComponentDef = {
     'size.medium.bullet': 'space.100',
     'size.large.bullet': 'space.100',
 
-    // THE ICON MARKER (owner decision Q280.5 A, noted): the icon ladder at the item's rung, 16/20/24, inside the 21/24/27 line box.
+    // THE ICON MARKER (owner decision #3375 A, 2026-11-18): the icon ladder at the item's rung, 20/24/32
+    // (`icon.size.sm/md/lg`), inside the 21/24/27 line box, so large's 32px icon is taller than its 27px line. Q280.5 A's
+    // note recorded "16/20/24" beside these same bindings; the owner kept the bindings and the note was corrected.
     // The proposal's one-rung-smaller 16/16/20 would be an `ICON_OFFSET_DEFS` exception, which is the owner's to grant.
     'size.x-small.icon': 'icon.size.xs',
     'size.small.icon': 'icon.size.sm',

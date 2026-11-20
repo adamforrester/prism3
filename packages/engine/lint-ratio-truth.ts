@@ -24,6 +24,17 @@
  * shape 1. The independence here is concrete — `contrast()` over two `hex` strings, never `r.ratio`
  * as an input to anything it concludes.
  *
+ * ── WHAT IT SHARES WITH ITS SUBJECT, AND WHAT PINS THAT (#4246) ─────────────────────────────────
+ *
+ * `contrast()` is imported from `./color`, the same function the solver uses to choose every ink. So
+ * the gate is independent of the RECORDED ratio, not of the FORMULA: a wrong WCAG formula would make
+ * the solver and this recomputation agree, and arm A would read clean. Arm G holds the formula
+ * itself, before any sweep: `contrast()` over literal hex pairs whose WCAG 2.x ratios are typed below
+ * (worked out by hand from the spec, not by calling the engine), including the AA and AAA pivots
+ * `#767676`/`#777777` and `#595959`, and CR-01's `#007ea1` on black at 4.499. It is the one arm that
+ * does not trust `contrast()`. `test.ts` holds literal arms of its own (white on black is 21), but
+ * those are another suite's; this gate no longer borrows them (docs/34 shape 18).
+ *
  * ── WHY IT SWEEPS DECLARED SURFACES AND NOT JUST THE CORPUS ─────────────────────────────────────
  *
  * The corpus builds every brand at its declared defaults, and at defaults every brand is clean — the
@@ -92,6 +103,8 @@
  *                  `scrim.default` carries `alpha: 0.4` and is genuinely `ink-on-surface`, so the
  *                  inference would misclassify a real role on day one — which is exactly why the
  *                  model is declared at the `put` site instead of being read off the data.
+ *   G. FORMULA   — `contrast()` returns the WCAG ratio for literal pairs (#4246). Runs first, and
+ *                  is the only arm whose expected values come from outside the engine.
  *   F. SECOND PAIR — a role's `alsoAgainst` (#1745) names a role that exists, and a pair below its
  *                  bar is named by a warning carrying that partner in `against`. Measured from the
  *                  two hex values; the engine stores no ratio for the pair, so arm A has nothing to
@@ -207,6 +220,25 @@ const OVERRIDE_CASES = (): Array<{ label: string; ground: string; input: BrandIn
 
 const failures: string[] = [];
 let checked = 0, confessions = 0, alsoChecked = 0, alsoConfessions = 0;
+
+// ARM G — the formula (#4246). Every other arm recomputes ratios with the engine's own `contrast()`, so a wrong WCAG
+// formula (an offset other than 0.05, a swapped coefficient, a wrong linearization threshold) would leave them all
+// clean. These ratios are WCAG 2.x's, worked out from the spec for each pair and typed here, never computed by the
+// engine. The pairs straddle the floors the engine solves to: 4.5 (`#767676` passes, `#777777` fails), 7 (`#595959`),
+// and CR-01's `#007ea1` on black, which a rounding contrast() once lifted to 4.50.
+const FORMULA_PINS: ReadonlyArray<readonly [string, string, number]> = [
+  ['#ffffff', '#000000', 21],
+  ['#000000', '#ffffff', 21],
+  ['#ffffff', '#ffffff', 1],
+  ['#767676', '#ffffff', 4.5422],
+  ['#777777', '#ffffff', 4.4781],
+  ['#595959', '#ffffff', 7.0047],
+  ['#007ea1', '#000000', 4.4990],
+];
+for (const [a, b, want] of FORMULA_PINS) {
+  const got = contrast(hexToRgb(a), hexToRgb(b));
+  if (!(Math.abs(got - want) < 0.0001)) failures.push(`FORMULA: contrast(${a}, ${b}) = ${got.toFixed(4)}, but WCAG 2.x gives ${want.toFixed(4)} — the engine's contrast formula is wrong, so every ratio below would agree with it`);
+}
 // Of `checked`, the rows whose ground is a palette STEP (#1986), and of those, the corpus's. Counted apart
 // so the floor below can hold the resolution itself, not just the total it is folded into.
 let checkedOnStep = 0, corpusOnStep = 0;

@@ -205,7 +205,7 @@ console.log('\na host that cannot take them');
   const combine = api.combineAsVariants;
   api.combineAsVariants = (...args: unknown[]) => { const s = combine(...args); s.editComponentProperty = () => { throw new Error('in editComponentProperty: slotSettings is not supported'); }; return s; };
   const res = await applyComponentPlan(plans, api, {});
-  ok(res.misses.some((m) => m === 'property dismiss.slotSettings -> REFUSED (in editComponentProperty: slotSettings is not supported)') && slotDef(page)?.slotSettings === undefined,
+  ok(res.misses.some((m) => m === 'property dismiss.slotSettings -> REFUSED (Error: in editComponentProperty: slotSettings is not supported)') && slotDef(page)?.slotSettings === undefined,
     `constraints/refusal named: a host that refuses the edit is named, not passed (${JSON.stringify(res.misses.filter((m) => /slotSettings/.test(m)))})`);
 }
 

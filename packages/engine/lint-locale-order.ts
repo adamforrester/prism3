@@ -18,6 +18,12 @@
  *                  or `planVariableRenames` (which restates the comparator for the paste payload) orders a
  *                  case-split pair differently from the literal folded order typed below.
  *   REPRESENTED    the scan did not reach each emitter the defect was found in, or reached too few files.
+ *   SELF-CHECK     the banned spellings, run on planted lines typed below, do not flag exactly the planted calls.
+ *
+ * SPELLINGS (#4201). The method is matched as called (`.localeCompare(`, `.call`/`.apply`/`.bind`), and also by NAME
+ * anywhere in code outside a comment: `a["localeCompare"](b)` and `fn.bind(String.prototype.localeCompare)` reach the
+ * same method without either spelling, and both read clean before. Prose in a comment that names the method stays
+ * clean; a line is read as code after its comment is cut (`//` to the end, a line inside a block comment).
  *
  * INDEPENDENCE (docs/34). The SUBJECT is the engine's source text. The REFERENCE is the banned spellings and the
  * emitter list, both typed here, and the probe's expected order, a literal, never computed by the comparator it
@@ -55,13 +61,48 @@ const failures: string[] = [];
 
 // The banned spellings. A regex source never contains the dotted, called form it matches, so these lines do not
 // trip the scan; the self-skip is for the probe below, which has to call the method.
-const BANNED: { what: string; re: RegExp }[] = [
+const BANNED: { what: string; re: RegExp; code?: true }[] = [
   // The called form and the reached-through forms (`String.prototype.localeCompare.call(…)`, `.apply`, `.bind`).
   // Prose that names the method bare, with neither after it, stays clean.
   { what: 'locale-dependent string comparison', re: /\blocaleCompare\b\s*(?:\(|\.\s*(?:call|apply|bind)\b)/ },
   { what: 'ICU collator', re: /\bIntl\s*\.\s*Collator\b/ },
   { what: 'locale-aware case fold', re: /\.\s*toLocale(?:Lower|Upper)Case\s*\(/ },
+  // #4201: the method reached by NAME, in code, in any other spelling: a bracket key, a property passed as a value.
+  // Read on the line with its comment cut (`code`), so prose naming the method stays clean.
+  { what: 'locale-dependent string comparison, reached by name', re: /\blocaleCompare\b(?!\s*(?:\(|\.\s*(?:call|apply|bind)\b))/, code: true },
 ];
+
+/** A line as code: empty inside a block comment or JSDoc, and cut at a `//` comment. Coarse on purpose (a `//` inside a
+ *  string cuts the line early), since it only decides what the by-name spelling reads. */
+const codeOf = (line: string): string => {
+  const t = line.trim();
+  if (t.startsWith('*') || t.startsWith('/*') || t.startsWith('//')) return '';
+  return line.replace(/\/\*.*?\*\//g, '').replace(/\/\/.*$/, '');
+};
+/** The banned spellings a line holds. */
+const bannedIn = (line: string): { what: string }[] => BANNED.filter((b) => b.re.test(b.code ? codeOf(line) : line));
+
+// ── SELF-CHECK: each planted call is flagged, each planted mention is not (#4201) ─────────────────────────────
+{
+  const flagged = [
+    'names.sort((a, b) => a.localeCompare(b));',
+    'rows.sort(([a], [b]) => a["localeCompare"](b));',
+    "rows.sort(([a], [b]) => a['localeCompare'](b));",
+    'rows.sort(([a], [b]) => Function.prototype.call.bind(String.prototype.localeCompare)(a, b));',
+    'const cmp = String.prototype.localeCompare; rows.sort((a, b) => cmp.call(a, b));',
+    'String.prototype.localeCompare.call(a, b);',
+    "const c = new Intl.Collator('en');",
+    's.toLocaleLowerCase();',
+  ];
+  const clean = [
+    '// Code-unit order everywhere, never `localeCompare`: a locale-dependent sort would differ by machine.',
+    ' *   the findings sorted with `localeCompare` again → fails by name',
+    'names.sort(localeFreeCompare); // not localeCompare',
+    '/* localeCompare */ names.sort();',
+  ];
+  for (const l of flagged) if (!bannedIn(l).length) failures.push(`SELF-CHECK: the scan does not flag a planted call: ${l}`);
+  for (const l of clean) if (bannedIn(l).length) failures.push(`SELF-CHECK: the scan flags a planted mention that calls nothing: ${l}`);
+}
 
 // The emitters #3698 found the defect in, plus the ones that already sorted locale-free. Typed, never listed from
 // the tree: the scan must reach each of them.
@@ -144,12 +185,10 @@ let hits = 0;
 for (const f of [...files, ...outside]) {
   const lines = readFileSync(resolve(repo, f), 'utf8').split('\n');
   lines.forEach((line, i) => {
-    for (const b of BANNED) {
-      if (b.re.test(line)) {
-        hits++;
-        const fix = f.startsWith('apps/') || f.startsWith('skills/') ? 'sort by code unit inline (a surface test may not deep-import the engine, and a skill script has no import)' : 'use localeFreeCompare from locale-free-order.ts';
-        failures.push(`LOCALE ORDER: ${f}:${i + 1} — ${b.what}; ${fix}\n      ${line.trim().slice(0, 160)}`);
-      }
+    for (const b of bannedIn(line)) {
+      hits++;
+      const fix = f.startsWith('apps/') || f.startsWith('skills/') ? 'sort by code unit inline (a surface test may not deep-import the engine, and a skill script has no import)' : 'use localeFreeCompare from locale-free-order.ts';
+      failures.push(`LOCALE ORDER: ${f}:${i + 1} — ${b.what}; ${fix}\n      ${line.trim().slice(0, 160)}`);
     }
   });
 }
