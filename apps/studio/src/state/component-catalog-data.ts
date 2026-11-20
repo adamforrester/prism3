@@ -696,7 +696,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "radio-control",
     "name": "Radio.Control",
     "category": "form",
-    "summary": "Outlined radio ring; dot and primary action color on select. Nested by a radio row; no label.",
+    "summary": "Outlined radio ring; dot and action color on select. Nested by a radio row; no label.",
     "unit": "variants",
     "spacing": [],
     "page": "Radio",

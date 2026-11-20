@@ -118,9 +118,9 @@ export const radioControl: ComponentDef = {
   aliases: ['radio-circle', 'radio-disc', 'radio-atom'],
   category: 'form',
   status: 'draft',
-  summary: 'Outlined radio ring; dot and primary action color on select. Nested by a radio row; no label.',
+  summary: 'Outlined radio ring; dot and action color on select. Nested by a radio row; no label.',
   description:
-    'The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the primary action color when checked — with an inner filled circle, half the ring\'s diameter unless the brand sets a larger radio dot, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.',
+    'The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the action color when checked — with an inner filled circle, half the ring\'s diameter unless the brand sets a larger radio dot, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.',
 
   // The atom's surface, not the field's. No `label`, no `description`, no form wiring — those are the
   // Row's and the Group's. What it exposes is the visual state a host drives through the nest.
@@ -390,14 +390,14 @@ export const radioControl: ComponentDef = {
     do: [
       'Nest this from Radio.Row rather than redrawing the circle per host',
       'Let the host row expose selection and state and follow its size, so the nested control tracks the row',
-      'Let the inner circle and the ring recolor carry the selection; the ring border stays constant in weight across states, taking the primary action color (not a thicker stroke) on select',
+      'Let the inner circle and the ring recolor carry the selection; the ring border stays constant in weight across states, taking the action color (not a thicker stroke) on select',
       'Supply an external aria-label only when using the control genuinely alone',
     ],
     dont: [
       'Place a bare circle as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target',
       'Double-label a nested control — the host row already provides the accessible name',
       'Fill the disc on select — the ring stays outlined and an inner circle shows the selection',
-      'Thicken the border to signal selection — the border weight is constant across states; selection recolors the ring to the primary action color and adds the inner dot',
+      'Thicken the border to signal selection — the border weight is constant across states; selection recolors the ring to the action color and adds the inner dot',
     ],
     contentGuidelines: 'The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it.',
   },
