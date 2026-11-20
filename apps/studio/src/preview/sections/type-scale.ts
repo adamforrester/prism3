@@ -15,7 +15,7 @@
 import type { Theme, TypeComposite } from '@prism3/engine';
 import { TYPE_GROUP_ORDER } from '../../state/type-input';
 import { drawFace, faceDraw, type HostFonts } from '../../ui/fonts';
-import { el, hook, palSection, specimen, tokenPillSpan, type SgCtx } from './kit';
+import { el, hook, palSection, scrollBox, specimen, tokenPillSpan, type SgCtx } from './kit';
 
 /** The largest a row's sample is drawn (v6's cap). */
 export const SCALE_SAMPLE_CAP = 44;
@@ -42,7 +42,7 @@ export const typeScaleSection = (c: SgCtx, ty: Theme['typography'], mode: string
     }
   }
   const box = el('div', 'mtbl');
-  const scroll = el('div', 'mtbl-scroll');
+  const scroll = scrollBox(copy.title);
   const t = el('table', 'mtbl-tbl');
   const head = el('thead'), htr = el('tr');
   ['Style', 'Sample', 'Desktop', 'Mobile', 'Line height', 'Letter spacing', 'Weights'].forEach((x, i) =>

@@ -709,8 +709,8 @@ section('kept/bound — a capture too large to keep, or one the host refuses, ca
   ok(wrongRef.length === 0, `kept/refused filled: every instance is filled from the in-memory capture (${ref.placed.length - wrongRef.length}/${ref.placed.length})`);
   const oRef = resRef?.outcomes[0];
   const vRef = resRef ? applyVerdict(resRef) : null;
-  ok(oRef?.unkept?.[0]?.refused === 'plugin data too large'
-    && !!vRef?.lines.includes('checkbox-group: Figma refused to save its placed instances\' slot content on the set (plugin data too large), so only this run carries it.'),
+  ok(oRef?.unkept?.[0]?.refused === 'Error: plugin data too large'
+    && !!vRef?.lines.includes('checkbox-group: Figma refused to save its placed instances\' slot content on the set (Error: plugin data too large), so only this run carries it.'),
     `kept/refused named: the set's outcome names the refusal and that only this run carried it (${JSON.stringify(oRef?.unkept)})`);
   const settled = await previewUpdate(ref.w.host, [target]);
   ok(setUpToDate(settled.sets[0]), `kept/refused settles: the next dry run reads the set up to date (${JSON.stringify(settled.sets[0].counts)})`);
@@ -721,7 +721,7 @@ section('kept/bound — a capture too large to keep, or one the host refuses, ca
   const cap = { slot: 'items', instances: [{ id: 'I:1', name: 'x', page: '', member: '', rows: [], hidden: [], lost: [] }] };
   let u: ReturnType<typeof keepCarry> = null, threwDirect = '';
   try { u = keepCarry(node, 'rows', cap); } catch (e) { threwDirect = (e as Error).message; }
-  ok(!threwDirect && u?.refused === 'refused' && calls.at(-1) === '', `kept/refused direct: a refused write is caught, reported and the entry cleared (${threwDirect || JSON.stringify(u)}; ${JSON.stringify(calls.map((c) => c.length))})`);
+  ok(!threwDirect && u?.refused === 'Error: refused' && calls.at(-1) === '', `kept/refused direct: a refused write is caught, reported and the entry cleared (${threwDirect || JSON.stringify(u)}; ${JSON.stringify(calls.map((c) => c.length))})`);
 }
 
 section('kept/malformed — an entry this version can\'t read is ignored, named, and cleared by the set\'s next write (#3796 review B2)');
