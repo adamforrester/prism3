@@ -44670,6 +44670,24 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(JSON.stringify(ladder) === JSON.stringify(['radius.sm', 'radius.sm', 'radius.sm', 'radius.lg']), `#3551 the code input cell's corner ladder is sm, sm, sm, lg, as decided (got ${JSON.stringify(ladder)})`);
 }
 
+// #4207 (owner decision A, 2026-11-19) — `actionPalette` and `roleColors.action` are schema aliases. Two that name
+// different palettes are refused, naming both; before, `roleColors.action` won silently and the action note said
+// "actionPalette is not set" about a brand that set it. Neither, one or the other, or both equal still build.
+{
+  const b4207 = { id: 'a4207', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 },
+    brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }] };
+  const refusal = (extra: object): string => { try { brandTheme({ ...b4207, ...extra } as unknown as BrandInput); return ''; } catch (e) { return (e as Error).message; } };
+  for (const [label, extra] of [
+    ['neither', {}], ['actionPalette only', { actionPalette: 'accent' }], ['roleColors.action only', { roleColors: { action: 'accent' } }],
+    ['both the same', { actionPalette: 'accent', roleColors: { action: 'accent' } }],
+  ] as const) ok(refusal(extra) === '', `#4207 ${label} builds (got ${JSON.stringify(refusal(extra))})`);
+  for (const [lever, role] of [['accent', 'primary'], ['primary', 'accent']] as const) {
+    const msg = refusal({ actionPalette: lever, roleColors: { action: role } });
+    ok(msg.includes(`actionPalette is '${lever}'`) && msg.includes(`roleColors.action is '${role}'`),
+      `#4207 actionPalette '${lever}' with roleColors.action '${role}' is refused, naming both (got ${JSON.stringify(msg)})`);
+  }
+}
+
 // #4120 (owner decision A, 2026-11-19) — every brand-taking MCP tool takes `{ brand }`. validate_brand took the
 // BrandInput bare, so the documented pre-flight (validate_brand, then theme_brand, one object) failed its first call;
 // the bare form is still read for one release. A missing `brand` is named, not reported as "(root): expected object".
