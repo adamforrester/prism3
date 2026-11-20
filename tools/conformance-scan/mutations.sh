@@ -449,6 +449,15 @@ mutate "$E" "the report NAMES the config it was built at" \
   "$SELFTEST_EXPECTED" have \
   "FAIL  arm 2 aurora: the two sources disagree only about which source they are"
 
+# #4212 review: a brand whose emission disappears (an emitter that stops writing it) must fail by name. The disk is
+# what goes missing, so the mutation hides one brand from the disk read; arm 2 walks the design files in examples/,
+# which do not come from the disk, and names it.
+mutate "$E" "a design-file brand whose emission disappears fails by name" \
+  "return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();" \
+  "return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).filter((n) => n !== 'wendys').sort();" \
+  "$SELFTEST_EXPECTED" have \
+  "FAIL  arm 2 wendys: an emission is on disk to compare against"
+
 echo
 echo "MUTATING THE FIX PLAN — the two safe ops, and the guards that keep everything else out of it"
 echo

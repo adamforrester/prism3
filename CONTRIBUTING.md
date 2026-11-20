@@ -128,6 +128,13 @@ of it. Two clean merges that would leave `out/` stale, or two notes that collide
 on `main`. Until the setting is on, the trigger never fires and the fold PR stays the net described above.
 `lint-doc-gates.ts` fails if the trigger is dropped.
 
+**In the queue, each git-history gate reads the group's parent as its base (#4106).** That parent is `main` with the
+PRs ahead already in it, `merge_group.base_sha`, which `ci.yml` passes to every job as `MERGE_GROUP_BASE_SHA`. Read
+against `origin/main` instead, a queued PR would pass on the change note, progress entry or executor revision of a PR
+ahead of it. A merge-group run without that base fails rather than falling back. `lint-push-base.ts` replays both
+cases, and `lint-doc-gates.ts` fails if the `env:` line goes or an `if:` starts reading the event. With the queue on,
+a PR needs one green `gates` run before it joins the queue, and the queue's run is the one that decides the merge.
+
 What to check before you push the fold:
 
 - **`token-contract.ts --check` needs nothing from a fold.** The contract baseline records no engine
@@ -416,7 +423,10 @@ npx tsx packages/engine/lint-push-base.ts      # on main's push run the merge ba
                                                     # HEAD's first parent there; this replays main's
                                                     # push run in a $TMPDIR clone against each real
                                                     # gate: a squash breaking the gate's rule must
-                                                    # fail by its own assertion, one keeping it pass
+                                                    # fail by its own assertion, one keeping it pass.
+                                                    # It also replays a merge-group run (#4106): each
+                                                    # gate, progress-order and executor-revision too,
+                                                    # reads the group's parent and fails without it
 npx tsx apps/plugin/lint-executor-revision.ts
                                                     # the component executor's code (write-components
                                                     # and every file it reaches by a value import,
@@ -1498,7 +1508,8 @@ npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` b
 npm run build:release -w @prism3/plugin  # THE RELEASE BUILD (#2530, owner Q239 A): release/, with PRISM3_DEV
                                           # false so every dev-only branch is dropped (the agent link's
                                           # desktop bridge relay, any dev command; minifySyntax, so a dead
-                                          # branch leaves no text), and a manifest.json with no
+                                          # branch leaves no text; minifyWhitespace since #4232, names kept),
+                                          # and a manifest.json with no
                                           # devAllowedDomains. Run after `build`; dist/ is untouched.
 npm run test:start -w @prism3/plugin     # the plugin's START MOMENT (#1197): "+ New brand" and a
                                         # fresh file both surface the same start screen the web does —
