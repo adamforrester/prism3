@@ -20,7 +20,8 @@
     "build": "node sd.ship.mjs",
     "prepack": "node sd.ship.mjs",
     "build:consumer": "node sd.consumer.mjs",
-    "check:shadcn": "node check-shadcn.mjs"
+    "check:shadcn": "node check-shadcn.mjs",
+    "qa:render": "node qa/render-qa.mjs"
   },
   "devDependencies": {
     "@directededges/specs-schema": "0.39.0",
