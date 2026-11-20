@@ -1,5 +1,6 @@
 /**
- * THE ARM INPUT CONTRACT (#3408): what an arm supplies so the KPI 2 and KPI 3 checks run on its Storybook unchanged.
+ * THE ARM INPUT CONTRACT (#3408): what an arm supplies so the KPI 2 and KPI 3 checks can run on its Storybook. Which
+ * checks read it today, and which pieces still read arm 1 directly: `ARM-CONTRACT.md`.
  *
  * An arm's contract is one JSON file (`arm-1.contract.json` is arm 1's; `ARM-CONTRACT.md` says how to fill one in).
  * It names, for each component the arm covers:

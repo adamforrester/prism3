@@ -78,8 +78,8 @@ const MEASURE = `(([component, rootSel, parts, state, dp]) => {
   };
 })`;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const measure = async (page: any, s: Story): Promise<Measure | string> =>
-  page.evaluate(`${MEASURE}(${JSON.stringify([s.component, ROOTS[s.component], PARTS[s.component], STATES.has(s.case) ? s.case : 'rest', DP])})`);
+export const measure = async (page: any, s: Story, parts = PARTS): Promise<Measure | string> =>
+  page.evaluate(`${MEASURE}(${JSON.stringify([s.component, ROOTS[s.component], parts[s.component], STATES.has(s.case) ? s.case : 'rest', DP])})`);
 
 /** Every difference between two records of one case, by name, to 0.01px. `a` and `b` name the two sides. */
 export const diff = (where: string, x: Measure, y: Measure, a: string, b: string): string[] => {
@@ -119,8 +119,12 @@ const fullWhere = (s: Story, m: Measure): Record<string, string> => {
   return out;
 };
 
-export const run = async (browser: unknown, origin: string, plant: Plant = {}, only: (s: Story) => boolean = () => true): Promise<Result> => {
+/** A plant may also replace the contract's part selectors (a mutant's typo), so the represented-part rule is tested. */
+type GeoPlant = Plant & { parts?: Record<string, Record<string, string>> };
+export const run = async (browser: unknown, origin: string, plant: GeoPlant = {}, only: (s: Story) => boolean = () => true): Promise<Result> => {
   const r = result();
+  const parts = plant.parts ?? PARTS;
+  const drawn = new Map<string, Set<string>>();
   const ctx = await context(browser, plant);
   const page = await ctx.newPage();
   const seen = new Map<string, Measure>();
@@ -129,12 +133,13 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
       const where = at(s, dir);
       try { await open(page, origin, s, 'light', plant, dir); }
       catch (e) { r.failures.push(`${where}: did not settle: ${(e as Error).message.split('\n')[0]}`); continue; }
-      const m = await measure(page, s);
+      const m = await measure(page, s, parts);
       if (typeof m === 'string') { r.failures.push(`${where}: ${m}`); continue; }
+      for (const p of Object.keys(m.parts)) (drawn.get(s.component) ?? drawn.set(s.component, new Set()).get(s.component)!).add(p);
       r.checked.add(where);
       r.passed++;
       seen.set(`${s.component}--${s.case}|${dir}|${s.form}`, m);
-      if (s.form === 'html' && dir === 'ltr' && !plant.init && !plant.css && !plant.after) record[`${s.component}--${s.case}`] = { story: s.id, ...m, where: fullWhere(s, m) };
+      if (s.form === 'html' && dir === 'ltr' && !plant.init && !plant.css && !plant.after && !plant.parts) record[`${s.component}--${s.case}`] = { story: s.id, ...m, where: fullWhere(s, m) };
     }
     for (const [key, el] of seen) {
       const [c, dir, form] = key.split('|');
@@ -143,6 +148,15 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
       if (!html) continue; // represented() names a case checked in one form only
       const d = diff(`${c}${(dir as Dir) === 'ltr' ? '' : ' (rtl)'}`, el, html, 'element form', 'HTML form');
       if (d.length) r.failures.push(...d); else r.passed++;
+    }
+    // every part the contract maps to a selector is drawn by some story, in either form (`docs/34`: a promised surface is
+    // represented). Otherwise a selector that matches nothing drops its part from both forms alike, and from the record.
+    // Held for each component whose every story this run visited.
+    const visited = stories(plant);
+    for (const [component, sel] of Object.entries(parts)) {
+      const mine = visited.filter((s) => s.component === component);
+      if (!mine.length || !mine.every(only)) continue;
+      for (const [part, selector] of Object.entries(sel)) if (!drawn.get(component)?.has(part)) r.failures.push(`${component}: ${part} is mapped to ${JSON.stringify(selector)} and no story drew it`);
     }
   } finally {
     await ctx.close();
@@ -162,6 +176,8 @@ const MUTANTS = [
     only: only('password-field', 'rest'), mustName: /^password-field--rest: container\/labelRow\/toggle is drawn in the HTML form only/ },
   { name: 'the element form\'s focus ring offset 1px further out', plant: { css: '#storybook-root p3-button > .p3-button { outline-offset: calc(var(--pds3-focus-ring-offset) + 1px) !important; }' },
     only: only('button', 'focus-visible'), mustName: /^button--focus-visible: container\/focusRing (x|width) is .* in the element form/ },
+  { name: 'a contract selector with a typo, so the text field\'s message is never drawn', plant: { parts: { ...PARTS, 'text-field': { ...PARTS['text-field'], 'container/message': ':scope > .p3-field-mesage' } } },
+    only: (s: Story) => s.component === 'text-field', mustName: /^text-field: container\/message is mapped to ":scope > \.p3-field-mesage" and no story drew it/ },
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.dirname ?? '', 'check-geometry.ts')) {

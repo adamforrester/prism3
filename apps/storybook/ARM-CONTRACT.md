@@ -52,7 +52,23 @@ npx tsx apps/storybook/check-arm-contract.ts --contract <your-contract.json> --s
 
 ## What reads it
 
-- `check-geometry.ts` takes its roots and part selectors from arm 1's contract.
+- `check-geometry.ts` takes its roots and part selectors from arm 1's contract. A part the contract maps to a
+  selector that no story drew, in either form, fails by name, so a selector that matches nothing can't drop its part.
 - `compare-figma-geometry.ts` compares exactly the contract's boxed parts. A Figma layer for a part the contract maps
   fails when no code case drew it. It no longer drops out because the code never drew it. `--contract <file>` points it
   at another arm's contract.
+- `check-arm-contract.ts` validates every field, but no check consumes `forms`, `focusRing` or `tokens` yet.
+
+## Still arm 1's
+
+The contract doesn't yet make the scripts run on another arm's Storybook unchanged. These pieces still read arm 1, and
+each needs changing on the day arm 2's repo is readable:
+
+- `check-geometry.ts` has no `--contract`: it loads `arm-1.contract.json`.
+- It visits arm 1's story list (`a11y-harness.ts`'s `stories()`, held to `expected-stories.ts`), not the contract's
+  `forms`, and story ids must match `components-<component>-<form>--<case>`.
+- It reads each case's variant from arm 1's `data-prop-*` attributes on the root.
+- It measures the focus ring as an outline on the button's root, and the button's text from `.p3-button__label`. No
+  check reads `focusRing`.
+- Token parity (`check-token-parity.ts`) writes arm 1's probes and doesn't read `tokens`.
+

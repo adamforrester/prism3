@@ -2401,3 +2401,10 @@ container/message is in the anatomy and neither mapped nor declared unboxed`.
 - **Errors hit:** 2, both mine. I looked for the anatomy in `component-defs.json` first; the part paths are in
   `specs.json`. And a one-line `sed` for the hand mutation couldn't span lines, so the mutation was done with a short
   script instead.
+
+**Review fixes, same PR.** The independent review found the self-test case for the comparison fix passed with the fix
+reverted: it worked out the part list once, from the unplanted record. `compare()` now takes its part list as an
+argument, and the self-test passes each planted record through `partList`, the derivation the real run uses. A second
+assertion shows the old record-derived list misses the planted case. `check-geometry.ts` now fails by name for a part
+the contract maps that no story drew, with a typo'd selector as its mutant. `ARM-CONTRACT.md` lists what still reads arm
+1 directly, so "runs unchanged" isn't claimed beyond what the code does.
