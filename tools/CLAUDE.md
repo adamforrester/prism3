@@ -380,6 +380,19 @@ so it is gate-shaped, but it is not wired into `ci.yml`:** #1050 asked for the h
 way #1123 wired `claude-md-freshness/` is a separate decision. The hook itself is live: #4064 added its entry to
 `.claude/settings.json`, and agents never edit that file.
 
+## `tools/stash-guard/`
+
+`mutations.sh` — the mutation battery for `.claude/hooks/pre-tool-use-stash-guard.mjs` (#923, owner decision
+2026-11-18, A). The hook denies a `git stash pop`, `apply` or `drop` that names no explicit entry (`stash@{n}`, a bare
+index or a SHA), because the stash stack is shared by every worktree and session and `stash@{0}` may be someone
+else's. Its reason prints the stack and the `git show 'stash@{n}:<path>'` remedy. The battery builds a fresh repo with
+two named entries per arm in `$TMPDIR`, with no remote and no network. Denied arms cover each bare form, including
+`stash` and `refs/stash` as the ref, `cd`, `git -C` and `bash -c`; allowed arms cover every explicit form and the
+look-alikes, and A1 runs the allowed command to show git applies the entry it names. Seven mutants of the hook must
+each fail one named arm for one named reason. Like `restore-autostash/`, it is gate-shaped and not wired into
+`ci.yml`. **The hook is not live until the owner adds its entry to `.claude/settings.json`** (agents never edit that
+file); the entry is in #923's PR.
+
 ## `tools/component-roundtrip/`
 
 This is the real-host component round trip (#1218, owner decision of 2026-11-18, B). `roundtrip.ts scripts` writes
