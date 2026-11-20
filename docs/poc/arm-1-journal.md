@@ -2113,3 +2113,75 @@ the last refresh (`77f4ced5`, 2026-11-17). Merged with a merge commit (`eb87f6b2
 mattered sat in a gap each: a new default (the OS's color scheme) the checks never varied, and a new binding the
 generator wasn't strict about. Both were found by reading what arrived, not by running anything. A consumer's
 checks need to vary the environment the update changes, not only the inputs it already reads.
+
+---
+
+## Fix #3947 and #3946 — `<p3-password-field>`'s caret restore, and the upgrade check that passed by timing
+
+Started 06:11 UTC on 2026-11-20, stacked on refresh 4 (`poc/arm-1-refresh-4`, #4379).
+
+### #3947: the element's delayed restore
+
+**The defect.** `<p3-password-field>`'s Show/Hide handler puts the caret back twice: once at the press, and again one
+task later, because Chromium resets a blurred input's caret a task after its type changes. The second restore was
+unconditional, so a caret written since the press was overwritten. `@prism3/css`'s script had the same line until
+#3945 guarded it. Until now the two delivery forms differed by that one guard.
+
+**The fix.** `generate-fields.ts` writes the same guard: the delayed restore runs only while the caret sits at
+Chromium's reset, `0,0`. `p3-password-field.js` and `custom-elements.json` are regenerated.
+
+**The test.** This is #3945's test, applied to the element (`check-browser-fields.ts`, stage 3). Press the button
+and, in the same task, write a value and `1,4`. Then press again and write `3,6`. Read each 50 ms later. It doesn't
+depend on timing, because both writes land before the delayed restore can run.
+- Before the fix: `toggle: a value and caret 1,4 set after pressing Hide were overwritten (type password, caret
+  2,5) (#3947)`, and the same for `3,6` after Show.
+- After the fix: 1,413 checks pass, up from 1,411.
+
+**Mutations.**
+- **Self-test mutant**, run on every check: the guard dropped. It fails by name on the line above.
+- **Hand mutation, after the commit:** the guard dropped in `generate-fields.ts`, then regenerated. Both new checks
+  fail by name. The mutant's anchor is gone, so it fails its own self-test as designed. Restored with
+  `git show HEAD:<path> > <path>`.
+
+### #3946: the upgrade check
+
+**What the issue reported.** On #3945's head (`b8af7e3b`), the upgrade check failed:
+`upgrade: focus and the caret did not carry over … sel:[0,0]`. The issue suspected the element's single synchronous
+restore in `updated()` and called the failure intermittent.
+
+**What it was.** The S5 journal's "The CI hold" had already traced it: `@prism3/css`'s script, unguarded on that head,
+restored a caret captured on the empty input (`0,0`) after the check's later fill and selection. #3945's fix-to-the-fix
+guarded the script. So the failure was a real defect, not the element and not a flake. I reproduced it here,
+against `b8af7e3b`'s script:
+
+| Script | The check as it was | Stage 4 alone, as written (20 runs, CPU ×6) | Stage 4 alone, one task (10 runs) |
+|---|---|---|---|
+| `b8af7e3b`'s (unguarded) | fails, 4 of 4 full runs | **0 of 20** lose the caret | 10 of 10 lose the caret |
+| current (guarded) | passes | 0 of 20 | 0 of 10 |
+
+**What was wrong with the check.** Run alone, it never saw the defect. The press, the `fill` and the selection were
+separate Playwright steps, so the zero-delay timer almost always ran first. In the full check it was caught, because
+the earlier stages loaded the runner. Whether the check saw the defect depended on how busy the page was. That's the
+"intermittent" the issue saw from the other side.
+
+**The fix.** Stage 4 writes the press, the value and the caret in one task, so the script's delayed restore always
+runs after them, which is the order the slow runner hit. The read now waits 50 ms after the upgrade, so a restore or
+reset that lands a task later shows too. With that wait, the element's own restore holds `1,4`, so the issue's
+suspect (a Chromium reset after the adopted input is focused) isn't seen.
+
+**Mutation.** A new self-test mutant drops `@prism3/css`'s #3945 guard and must fail as
+`upgrade: focus and the caret did not carry over`. It does, on every run. With `b8af7e3b`'s script on disk, the new
+check failed 4 of 4 runs by that name. Restored with `git show`.
+
+### Effort
+
+- **Wall clock:** 06:11 to about 06:25 UTC, including the reproduction. The gate run is extra.
+- **Hand edits:** `generate-fields.ts` (the guard and a comment), `check-browser-fields.ts` (one new arm, stage 4
+  rewritten, two mutants), this entry and the progress entry. `p3-password-field.js` and `custom-elements.json`
+  were regenerated.
+- **Errors hit:** 2.
+  - The manifest analyzer cut a JSDoc description at `@prism3`, reading it as a tag. I reworded the comment.
+  - My first reproduction script crashed: tsx compiled it as CommonJS, and importing `run-suites.ts` runs its main.
+
+**Learning.** A check that passes on a defect when run alone, and fails on it only under load, is a timing test. The
+fix is to write the hostile order in, not to retry or wait longer.
