@@ -2688,6 +2688,578 @@ checkbox-group build — the next free ENGINE above it (never lower).
 
 ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
 
+0.239.0 — folded 2026-11-20 from 123 change notes, newest merge first.
+
+[feat-2996-button-supplement · minor · cc3a40db] A new emitted artifact, the spec supplement (#2996, owner decision Q2996.1, the hybrid A; first slice Q2996.4, Button
+only). Spectacular is the base spec for every component. `out/specs/button.supplement.yaml` adds what the design file
+cannot hold, keyed to Spectacular's own element and prop names for the same Button: accessibility (role, keyboard, focus,
+ARIA, WCAG, and the hit target per size), the code-only props, states and axes, motion, each element's RTL rule, and the
+shipped token names for each element, keyed by the exact Figma path Spectacular prints as `$token`. Everything Prism3
+adds sits under `$extensions["com.prism3"]`. It is written by a new regen step, `emit-spec-supplement.ts`, and held to a
+trimmed copy of Spectacular's real output for Button by a new gate, `lint-spec-supplement.ts`. Field names, the file
+path and the namespace are DRAFT, for the owner.
+
+[fix-hc-dark-shadow · minor · c18e33e2] hc-dark now takes the reduced dark shadows (#4131, owner decision A). It is a dark-appearance mode, but only `dark` and
+dark-based custom modes were seeded (in every brand, the regression brand nb included), so `<brand>.hc-dark.overlay.tokens.json` carried no shadow and a consumer reading
+base + hc-dark got the light shadows on a near-black surface. Every hc-dark overlay now carries `shadow.*` (xs–2xl and
+inset) equal to dark's, and each brand's Figma shadow styles gain the `shadow-hc-dark/*` set beside `shadow-dark/*`.
+No name in the token contract moves.
+
+[fix-preview-chrome-frames · patch · e753943c] The preview pane's controls are the chrome's (#4188): the style guide's ground select and Slow motion at the levers' select size, Play as a page button, and one table header in the preview, the uppercase tracked band on the chrome's 10px. Components draws no empty preview header, and Export lays its grounds out in Theme's order, settings left on the levers ground and the result right on the page ground (#4192). No committed artifact changes.
+
+[shadcn-theme-s1-map · minor · 87da176c] A shadcn/ui theme projector (#2997, PR 1 of 4). `projections/shadcn.ts` maps shadcn's theme variables onto Prism3 roles and holds no values; `emit-shadcn.ts` reads each brand's emitted handoff and writes the theme as plain CSS (`:root` and `.dark`) and as a `registry:theme` item, in `oklch()`. `schema/shadcn-vars.json` pins shadcn's variable set at `SHADCN_MAP_VERSION` 1.0.0. Two new gates: `shadcn-vars.ts --check` (the map covers the pinned set) and `lint-shadcn-contract.ts` (the map follows the component contract). Nothing is committed under `out/` yet: the delivery lands in its own PR.
+
+[claude-keys-not-drawn-one-pass-4229 · patch · 9152c9ed] The token-usage report finds the keys no plan draws in one projection per component, not one per key (#4229). Every key that shares its token is pointed at its own probe name in a single projection, and a key is drawn when some member binds its probe. A component whose projection reads a shared key as a value (Banner) keeps the per-key path. `emit-analysis-reports.ts` drops from about 13.5 s to about 1.5 s on this machine, and every report is byte-identical.
+
+[fix-engine-hygiene-4145-4214 · patch · a4b8e7a2] Hygiene, no emitted file changes (#4145, #4214). `mcp.ts` no longer exports `PROTOCOL_VERSION`, an alias of
+`LATEST_PROTOCOL_VERSION` that no handshake read. `lint-code-only-classes.ts` prints each disposition's meaning
+(`DISPOSITION_MEANINGS`) under its counts. `SPECS_SCHEMA_VERSION` is held equal to the Specs schema pin in
+`packages/tokens/package.json` by `test.ts`. The action and link anchor steps in `theme-brand.ts` call
+`interactiveStepFor` instead of repeating its three cases; every brand resolves to the same steps.
+
+[fix-apply-theme-cut-spelling-and-gradient-angle · minor · 77f39ab7] Two Apply Theme writes now read the file as the plugin's own path does (#3861, #1908). The agent paste's font step writes each font-cut variable in its family's own spelling before it writes, from the text plan's cut-to-family pairing it now carries, as the plugin has since #1728. A paste stopped between its font and text steps no longer leaves a cut naming a style its family lacks. And a gradient style whose angle is negative or prints with an exponent (`-45°`, `1e-7°`) is recognized as Prism3's by its description in a file applied before the ownership mark, so the next apply no longer refuses it. No engine output changes.
+
+[fix-3058-accordion-hidden-panel · minor · c3b98d25] A collapsed Accordion member keeps its panel slot, built hidden, so content a designer puts in the slot survives a switch to collapsed and back (#3058, owner decision 2026-11-18 A). Before, the collapsed members had no `content` node, and expanding an instance again showed the default placeholder. The new part field `hiddenWhenAbsent: true` makes this possible. On a box gated by `presentWhen` on a variant axis, it builds the part hidden (`visible: false`) wherever the gate fails, instead of leaving it out. The hidden part lays out as absent, so the collapsed member's footprint is unchanged. The validator refuses the field on any other kind, and on a part with no variant gate to soften. Files built before this change show their Accordion as due, and Update file adds the hidden slot in place.
+
+[fix-2092-summaries-categories · minor · aaec6635] Badge and Tag leave the `foundations` category to match the Figma file, which places both under Components (#2092). Badge is now `feedback` and Tag is `form`; both values are DRAFT, held for the owner. Spinner's summary reads "in the icon sizes" in place of "on the icon ladder". The emitted component docs and `components.ai.json` carry the new values; no token name moves.
+
+[claude-4155-web-font-stack · minor · dd081bf3] The engine emits a new per-brand artifact, `<brand>.web.base.tokens.json`: the conforming base with each typeface primitive's `$value` written as its full fallback stack, in the DTCG array form, primary family first and ending in a CSS generic family. `@prism3/tokens` builds its CSS from it, so `--pds3-core-font-typeface-inter` reads `Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif` instead of `Inter`, and a face that fails to load falls back to its kind instead of the browser default. The platform-neutral `<brand>.base.tokens.json` and the overlays don't change: each typeface stays one family there, so Android and the other platforms read what they read before (#4155).
+
+[lane-personality-opposites · minor · 7361269e] The personality vocabulary names its direct opposites (#3976, owner decision Q-PW1 A): `TRAIT_OPPOSITES` in `vocabulary.ts`, exported from `@prism3/engine`, holds the four pairs (soft/sharp, dense/generous, calm/energetic, bold/restrained) whose shared settings pull opposite ways, so only the first-listed of a pair can take effect. Resolution is unchanged: the engine still takes both and notes what the second kept. The studio reads the pairs to turn a word's opposite off when the word is picked, and now stores `personality` in pick order, the order the engine reads it in. No committed artifact moves.
+
+[fix-floor-ratio-epsilon-4211 · patch · f7a0dc07] `floorRatio`, and so `formatRatio`, no longer loses a step to float error (#4211). `4.6 * 100` is 459.99999999999994, so
+an exact 4.6 printed as 4.59:1 and 4.35 as 4.34:1; 141 of the two-decimal values from 1.00 to 21.00 did. The floor now
+adds a 1e-9 tolerance on the hundredths scale before it floors: enough for float error, far too small to lift a real
+miss, so a pair at 4.5 - 1e-8 still prints 4.49:1. Re-flooring a floored value is now a no-op. No emitted file changes:
+regen over every brand writes the same bytes, and no pass or fail moves, since those read the raw ratio.
+The sidecar schema's `ratio` description now says the ratio is floored to two decimals (#4214 item 4).
+
+[claude-3284-explicit-primary-note · patch · b763f0da] The decisions log's action line tells an explicit `actionPalette: 'primary'` (or `roleColors.action: 'primary'`) from an unset one: the explicit case reads "action: the primary palette, as the brand sets." instead of "actionPalette is not set" (#3284). The `actionAnchorStep` pin line is said for any pin, on primary or neutral too, not only under a brand color.
+
+[fix-4174-motion-literals-defs · minor · dc42621e] Component motion prose names motion tokens only, never their milliseconds (#4174, owner decision (a)). Spinner, Progress and Slider no longer print a duration beside the token they name, because the number was right only at the standard tempo: Slider's note said `motion.duration-reduced.fast` "keeps 100ms", and two shipped brands emit 80ms and 50ms. Progress's anti-flash timings now name their props, `delay` and `minDisplay`. Each brand's `<brand>.ai.json` prints a token's resolved value. `lint-motion-literals.ts` now runs its literal scan over every def's `motion` fields and each code-only note that names motion.
+
+[claude-3693-changes-moved · patch · 394dc4c5] The agent link's `set-override` tells a confirm whose changes differ from its preview apart from one whose file's brand
+moved (#3693). The `previewHash` is now 16 hex digits, the stored brand's 8 then the changes' 8. A confirm that echoes a
+hash whose changes half differs from the changes it sends is refused as `changes-moved`, "Not saved — these changes
+aren't the ones previewed. Preview them first." (draft copy). Only a moved brand half still reads `brand-moved`. When
+both moved, the confirm reads `changes-moved`. Before, every mismatch read `brand-moved` and sent the agent to look at
+the file when the fault was in its own request. The agent reference (`docs/public/reference/commands.json`) names the
+new refusal in `set-override`'s description (draft copy).
+
+[perf-integration-replay-4236 · patch · 10549e34] `test.ts`'s #3833/#3863 integration replay runs in about 22 s instead of about 50 s (#4236). Inside its throwaway
+clone, the fold's regen runs only the token and Figma emitters. The five release-notes runs go side by side, in
+two groups. Tests only; no committed artifact moves, and a real fold still runs the whole of regen.
+
+[claude-4008-popover · minor · 68a55aa4] A new component, Popover (#4008): a non-modal panel anchored to the control that opened it, with a header (a title and a small flush close button), a body slot that scrolls when the screen is short, and an optional Button group footer. One member, on the raised surface (`color.foreground.raised`, a hairline `color.border.secondary` edge, `shadow.lg`, `radius.lg`). Dialog's `alternativeTo` gains Popover, and Button, IconButton and Tag list it as a common partner instead of a planned component.
+
+[claude-3397-caret-exemption · patch · 68b85a65] The text cursor's exemption from "no shape binds a text role" is recorded as the owner's decision (#3397): it keeps the field's value ink, `color.text.primary`, matching CSS `caret-color: currentColor`. `prism3-build-component` states it beside the rule. No value moves.
+
+[feat-breadcrumbs-collapse-docs · minor · 1d3f3a4a] Breadcrumbs' collapse stands as built, and its contract and docs now say what the owner decided (#2922): collapse by count now and by width only with the menu, expand in place now with the menu the default once it ships, "Show full path" in both modes and no `aria-expanded` in expand mode, the parent path below 480px with the collapse only at 480px and wider. The description gains one line on showing a collapsed trail in a design, and the docs write out the collapsed and expanded trails. No member, axis or token moves.
+
+[fix-plugin-arm-proof-4241-4245 · patch · d311b51e] Two plugin test arms now carry their own proof (#4241, #4245). `test-doc-panel.ts`'s #2889 and #2858 tags are on the
+"Last changed in" block's assertions instead of only its section heading. `test-start-screen.mjs`'s #1037 "no Undo
+load" check goes through `hooks.absent` and waits for the switcher, with a designer-chosen load in the same panel as
+its positive control. Tests only; no committed artifact moves.
+
+[claude-576-icon-buttons-border · minor · 8b407238] "Outline button border" (`buttonBorderWeight`, #576) now reaches the icon buttons too, per the owner's decision on Q6. At `thick`, icon-button, icon-button-neutral and icon-button-destructive, and flush-icon-button and its two siblings, bind `border-width.thick` (2px) on their `border-width` key instead of `border-width.hairline`. So a brand's outline icon buttons and round flush icon buttons match its outline text buttons. Each set keeps its own border color, and `hairline`, the default, changes nothing. A def opts in with the new `levers.buttonBorderWeight: { edge: true }`, which the schema refuses on a def with no `border-width` key. This supersedes the #4074 note's "icon buttons are unchanged". No token is added, so the token contract does not move.
+
+[fix-source-read-arms-4242-4243-4244 · patch · 536fbe31] Three test arms that read a source file's spelling now read its value or its parsed form (#4242, #4243, #4244): the
+`test.ts` #3551 arm evaluates `lint-rung-names.ts`' two repeat registers and checks the code input cell's corner
+ladder, `test-write-typography.ts` #1090 parses the plugin's `main.ts`, and `test-report.ts` #3883 checks every
+brand-carrying post in Studio's `main.ts` by its parsed argument. Tests only; no committed artifact moves.
+
+[claude-regen-step-failure-4198-4199-4240 · patch · 7b92fc37] `regen --check` puts the tree back when a step fails (#4199). A failed step used to exit from inside the check, before the restore ran, so it left committed artifacts rewritten, their timestamps at the epoch, and its temp directory behind. The restore now runs in `finally`, and the check returns its report so the CLI sets the exit code after the tree is back. `check(steps)` is exported, so `test.ts` drives the stopped-emission detector (#1059) with stub steps (#4198). Each step now starts with node and tsx's loader instead of `npx tsx` (#4240), which saves about 3 s a regen. No committed artifact changes.
+
+[fix-cli-report-output · patch · fad2ca96] `cli.ts` prints a `[written]` line for every token file it writes, the base and per-mode overlay files included, and `--help` names them (#4153). When contrast contracts fail, it lists each one, with its mode, role, ratio, ground and floor (the first ten, then "… and N more"), above the count it printed before (#4170).
+
+[fix-mcp-tool-arguments · minor · 6f76ae8e] The MCP brand-taking tools agree on their arguments and their file names (#4120, #4141, #4144; owner decisions A,
+2026-11-19). validate_brand takes { brand }, as theme_brand, export_theme and score_consumption do; a bare BrandInput
+is still read for one release. A call with no brand now says "<tool> requires `brand`: a BrandInput object" instead of
+"(root): expected object" (DRAFT wording). export_theme writes the names the CLI writes: <id>.tokens.json, the
+<id>.base.tokens.json + <id>.<mode>.overlay.tokens.json set it did not write before, <id>.ai.json (which names
+<id>.tokens.json as its tree) and <id>.component-contracts.json with its compatibility copy and Specs projection. For one
+release it also writes the old unprefixed names. Its description and its include property now say that include
+replaces the default; the semantics are unchanged. No token path moves, so CONTRACT is unchanged.
+
+[feat-dialog-show-title · minor · d6372fad] Dialog gains a `show title` boolean in Figma, default on, and a `hideTitle` code prop, default off. Off hides the title from view and keeps it as the dialog's accessible name, for a dialog whose tabs or body name the content (#2895). Existing instances keep their visible title; the set stays at 24 members and no token moves. The code contract gains the visually hidden `<h2>` that `aria-labelledby` still points at, focus on the first body control while the title is hidden, and an alertdialog that always shows its title.
+
+[claude-gate-detector-gaps-4201-4239-4246-4247 · patch · 511a6392] Four gates see what they missed (#4201, #4246, #4247), and one header says what its gate holds (#4239). `lint-doc-gates.ts` arm 10 fails a gate step whose `shell:` (or a job's or the workflow's `defaults.run.shell`) is anything but `bash` or `sh`. `lint-locale-order.ts` flags `localeCompare` reached by name in code (a bracket key, a property passed as a value), with a planted self-check. The tokens no-custom-code rule reads shorthand object keys (`{ transformGroup: 'css', actions }`), with a planted self-check. `lint-theme-split.ts` resolves each import specifier, so an import of the barrel through the parent directory or with a `.js` extension is seen. `lint-ratio-truth.ts` pins `contrast()` to literal WCAG ratios, so a wrong formula fails it by name. `lint-hit-target.ts`'s header no longer claims that lowering `AAA_TARGET_PX` fails it. Gates only; no committed artifact moves.
+
+[claude-576-outline-border-weight · minor · 6b51f3ea] New brand setting `buttonBorderWeight` (#576): one border weight for every outline button set. `hairline`, the default, keeps today's 1px edge (`border-width.hairline`). `thick` binds `border-width.thick`, 2px, on button, button-neutral and button-destructive at once. Each set keeps its own border color, and icon buttons are unchanged. No token is added, so the token contract does not move. The component-defs export's format moves to `prism3-component-defs/1.5` (`settings.button.borderWeight`). The key, values and labels are a draft for the owner.
+
+[claude-3984-design-md-round-trip · patch · 913b1045] design.md keeps a line break and a quoted key's own spaces through an export and an import (#3984). The serializer wrote a line break inside a double-quoted value as it was, so the value's second line became a frontmatter line of its own and the export would not import; it now writes YAML's `\n` (and `\r`) escape, which the parser decodes, and never writes a value holding one bare. A quoted key was trimmed after it was decoded, so a key with a space at an end, or one that was a line break, came back without it; the raw text is trimmed instead. A new gate, `lint-design-md-round-trip.ts`, builds brand inputs from `theme-schema.json` that set every property, branch, enum value and boolean the schema allows, and fails by path on any that does not survive the round trip. No committed artifact changes.
+
+[claude-3986-rtl-mirror · minor · 5dbcb631] Right-to-left behavior is part of the component contract (#3986 parts 1 and 3, owner decision Q-RTL1 A). A part can now say what it does in right-to-left text with a `mirror` field: `reverses` (a box's row), `mirrors` (a glyph, or what a slot or nest holds, flips), `never` (it stays as drawn, or keeps left-to-right order) or `per-glyph` (an icon, by which glyph it is). Every def that describes right-to-left behavior now states it in the field too: 46 on their own parts, and the checkbox and radio groups through the rows they nest. The icon set lists which glyphs mirror (`RTL_MIRRORED_GLYPHS`: the left and right chevrons and arrows, the diagonal arrows and the external-link arrow). Each component's usage section, docs page and Figma usage panel shows a short "In RTL" note generated from the fields (DRAFT wording). RadioControl's and Spinner's right-to-left notes are reworded so they describe the component itself rather than the layout around it.
+
+[claude-owner-decisions-1775-1043-1863 · minor · 90d7003d] Badge's accessibility lines cite the #1745 mode contracts (#1775, owner decision A). The bold neutral label
+(`color.inverse.text.primary` on `color.inverse.foreground.tertiary`, 4.5:1), the neutral dot's fill against the page and
+the subtle label's neutral edge (`color.border.tertiary`), both at the non-text bar, are mode contracts the engine checks
+for every brand in every mode. The bold tone fills' separation from the page is still described as measured, not
+contracted. The `restrained` personality trait no longer targets `neutral.chroma` (#1863, option 1): the schema requires
+that lever, so the trait's value could never apply. It still moves `neutralEmphasis` and `shadow.softness`.
+
+[claude-2814-lining-figures · minor · 94255a81] Code input's cell states lining figures for code (#2814, owner decision A): its `codeOnly` entry sets `font-variant-numeric: tabular-nums lining-nums`, one declaration, so every digit is one width and stands at cap height and the cell centers it whatever figures the brand's title font draws by default. The digit's caption says so. Figma's plugin API exposes OpenType features read-only, so the Figma cell keeps the font's default figures, and the entry says that too. No token or emission change.
+
+[feat-1739-tag-group · minor · e3ca0dfc] Tag.Group (`tag-group`), a new component: a wrapping row of tags in a native `items` slot, three by default (#1739, owner decision A, A, A). Any number of select tags can be pressed, each a toggle button with `aria-pressed`; the row wraps, with `space.100` between tags across and down; the Figma set has a `size` axis (3 members) that follows into the tags. The anatomy schema gains `rowGap`, the line gap of a wrapping row, projected as a bound `counterAxisSpacing`. Tag's `planned` list drops `tag-group`, its `ai.commonPartners` gains it, and its group `codeOnly` entry names the new component.
+
+[lane-plugin-run-signals · patch · 5e444d3a] Style guides: a dimension or font-variable table whose title matches a color table's title on the same page takes its
+collection in parentheses, the way two phase-2 tables that share a title do (#2729, owner decision A). A semantic
+dimension collection named `border` draws "Border (border)" beside the border colors' "Border", so a tables filter for
+"Border" draws the colors alone.
+
+An agent's command that writes the file is announced (#2368, owner decision A): a busy mark beside the Agent switch from
+its start until its result is written, a host notice at the start that says closing Prism3 stops the run and stays up
+until the finish, and a finish notice with the command's headline. Reads, `status` and previews show nothing.
+Plugin only; no committed artifact moves.
+
+[feat-2454-behavior-contract-note · minor · 26c10eb2] Interactive components state how their behavior ships (#2454, Q-BH1 A): plain HTML/CSS ships a written behavior contract the developer wires up in their framework, and the web component includes the behavior. Thirteen defs' code notes replace "code delivery pending: behavior layer" with that wording.
+
+[lane-chrome-held-choice-pills · patch · 0c5ca94e] Studio and plugin chrome: a segmented choice a derived mode holds (Type's scale, Shape's density, Depth & motion's tempo
+and the rest) draws Prism3's disabled skin by the mode control's mapping, the checked segment outline and the others
+text (#2366, owner decision A); it drew exactly like a live one. The Style guides run's verdict pill is one step down the
+chrome's type scale, 12px to 10px, with 8px sides instead of 12px (#2561, owner decision A), still a 24px button. Chrome
+only; no committed artifact moves.
+
+[fix-2678-xprism3-unknown-keys · minor · 76f3f333] A standard-dialect design.md's `x-prism3:` block now names each key it does not read, and the file keeps compiling (#2678, owner decision Q-XP1 A). The CLI prints one line per skipped key, `x-prism3: ignored unknown setting '<key>'`, under the applied list. Before this, a key such as `linkPalette` or `controlShape` was dropped silently. `standardToBrandInput` returns the lines as `xWarnings`. The wording is DRAFT, waiting on the owner's voice pass. No committed artifact changes.
+
+[fix-4045-veil-divider-categories · minor · 11ca1e4e] Veil and Divider leave the `foundations` category to match the Figma file, which places both under Components (#4045 A). Veil is now `overlay` and Divider is `layout`. The emitted component docs and `components.ai.json` carry the new values; no token name moves.
+
+[fix-hand-edit-false-positive · patch · cbf3f0a1] Update file no longer reports hand edits on a file nobody edited when a component nested in a set changes its properties
+(#4070). A member's record now reads a nested instance's properties by their id, and only the values set on the instance:
+a property added to the nested set, renamed there or given a new default is no longer a hand edit on every member that
+nests it. Usage panels no longer read as edited when Update redraws the root of the member a specimen shows: a specimen
+is read only through what is set on it. A real hand edit is still kept and reported. Sets and panels written before
+this change can still report one false edit until Update rewrites them. Plugin only; no committed artifact moves.
+
+[claude-3874-shadow-tint-max · minor · 9dfdb893] The global shadow tint amount must be in [0, 1] (#3874). The tint's lightness and chroma both scale with the amount, so `shadow.tint.amount: 50` used to compile cleanly into white shadows, invisible on a white page, and anything above 1 pushed the tint's chroma out of gamut. `brandTheme` now refuses an amount outside [0, 1] by name, as it already did for the per-mode tint, and the schema gains the same maximum. Every committed brand's emission is unchanged.
+
+[claude-2750-disabled-border · minor · 60653296] `color.disabled.border` and `color.inverse.disabled.border` now clear the disabled levers' contrast floor (#2750: the owner decision lettered A, whose text is option B's): 4.5:1 under `disabledStrategy: full`, the `disabledMin` dial (3–4.5) under `reduced`, and at least 4.5:1 in high contrast, against the same worst-case surface as the disabled inks. They were a fixed muted neutral rated `min: 0`, so no lever moved them and a disabled outlined control measured 1.5–1.8:1. The border no longer matches `disabled.fill`. Every control that binds the role moves (Button, IconButton, Tag, text field, select, textarea, the selection controls, Counter, Code input, Slider, Tab's disabled bar). Switch's disabled glyph now binds `color.disabled.fill`, the track value it was drawn to repeat, so it looks the same as before. No token names change.
+
+[claude-2935-default-type-mode · minor · aed9c067] Each breakpoint names the type mode its frames start from (#2935, owner decision 2026-11-18, A). A new engine rule, `defaultTypeMode`, gives mobile type to a breakpoint below 1024px and desktop type from 1024px up, for any breakpoint count. With fluid type, each `breakpoint/<name>` Figma variable's description now ends "A frame at this breakpoint uses mobile type by default" (or desktop), and Studio's Layout preview shows the same beside each breakpoint's width. With static type, `type-sets` has no modes and nothing changes. No token name, value or mode moves; the five fluid brands' `layout.*.json` Figma descriptions change.
+
+[claude-2076-4019-control-shape-follow-links · minor · 8f827f1f] `controlShape`'s schema description, which the MCP serves through `list_levers`, takes the lever manifest's wording and keeps the token names (#2076): it no longer says Hairline "implies the hairline rung", false since `radius.hairline` ships for every brand, nor uses "pill-able" or "rung". Link's usage gains a social follow-link example, a standalone Link around a one-color social mark (#4019), so the emitted `link.md` and `components.ai.json` change. No token value or name moves.
+
+[claude-icon-swap-kept-3076 · patch · 6279e6eb] A designer's icon swap inside a generated component is a kept hand edit, and the dry run lists the swap as a conflict on any later update that moves its member (#3076, owner decision 2026-11-18: A, both). Swapping the icon in a Tag, a Checkbox or a Search field's clear slot to the brand's own icon already read as a hand edit (the as-built record names an instance's main component) and Keep already held it. The hand-edit survival suite now proves that for each of the three shapes. One defect is fixed: where the update moves a slot's default icon, the dry run listed a designer's swap in that slot as conflicting with nothing, because a slot was compared only for being an instance. It is now a conflict. Plugin only; no committed artifact moves.
+
+[claude-3873-anchor-on-ramp · minor · ca24fbf3] An authored interactive anchor must name a step on its column's ramp (#3873). `actionAnchorStep`, `destructiveAnchorStep`, `interactivePalettes[].anchorStep` and each `modeAnchors` step are now refused off the ramp, naming the nearest real step, as surface steps already are. Each is applied exactly, and an off-ramp step used to fall back to 500 without a word, so a typo shipped a step nobody chose, uncorrected, and the build blamed contrast. A `modeAnchors` column other than primary, destructive or a declared interactive column is refused instead of ignored. The resolver also refuses an exact anchor off the ramp rather than falling back. Every committed brand's emission is unchanged.
+
+[claude-3490-reduced-motion-prose · minor · 30432d20] Accordion, Tab, Tabs and Banner describe reduced motion as the `prism3-motion` recipes do (#3490, #3543, owner decision A): under `prefers-reduced-motion` the movement becomes a fade instead of being removed. Accordion: the height changes at once and the panel fades on `motion.duration-reduced.normal`, opening and closing; the indicator swaps without turning. Tab and Tabs: the underline snaps and the incoming panel fades in on `motion.duration-reduced.fast`. Banner: it fades only, on `motion.duration-reduced.normal`, appearing and going, and its height changes at once. The emitted component catalog and the accordion and banner code-only motion notes move with them. `lint-motion-literals.ts` gains a half that holds each def a recipe governs to that recipe's reduced roles and its fade.
+
+[claude-3707-links-min-items · patch · 853e952b] An empty `typography.links` is refused (#3707): the schema says `minItems: 1`, and `brandTheme` refuses an in-memory empty list. It used to build without the body and caption link styles the token contract guarantees and Link binds.
+
+[claude-1090-brand-font-count · patch · a63436a8] The plugin's Apply Theme summary counts the brand's own fonts in `type N fonts loaded` (#1090). It used to count every face loaded ahead of the write, including faces for the styles the file already held, so one brand reported 4 on an empty file and 6 on a themed one. The agent data's `fontsLoaded` reads the same number. No engine output changes.
+
+[claude-1325-component-contract-wording · minor · df93f537] The component-defs export is published as component contracts (#1325, owner decision Q-CC1 A). Every writer of
+`component-defs.json` now also writes `component-contracts.json`, with the same bytes: regen under `out/components/`,
+`cli.ts --component-specs` and MCP `export_theme` (`<id>.component-contracts.json` beside `<id>.component-defs.json`),
+and the plugin's Export. `component-defs.json` stays as a compatibility copy for one release; its Specs projection keeps
+its name. The Studio's Export says "Component contracts" (DRAFT wording). The `ComponentDef` type is unchanged.
+
+[claude-1040-style-rename-line · patch · 266afd89] Apply Theme says which styles it renamed in place (#1040, owner decision A). The style rename pass already moved a text,
+effect or gradient style the engine renamed onto its new name, keeping its id, layers and library consumers, but it
+returned the result as data only. The apply summary now prints one line beside the variable rename line: "N renamed
+styles migrated in place (layers kept: old→new, …)", capped at three pairs (copy DRAFT). Only applied renames count. A
+refused rename or a client's style prints nothing. The register ships empty, so no apply prints the line yet. Plugin
+only; no committed artifact moves.
+
+[claude-1119-harbor-figma · minor · 0ba43381] harbor ships a committed Figma emission, `out/figma/harbor/` (#1119): the 29 files every other example brand ships. The studio and the plugin offer harbor, so every Figma-side check now covers it. Nothing changes in any other brand's output.
+
+[plugin-updates-off · patch · 6ed0aa6d] Update file has an "Updates off" state for a component set (#2956, owner decisions 2026-11-17). A set whose updates are
+off is left as it is by Update file and reported calmly ("left as it is. Updates off."), and its hand edits stay where the
+designer left them. Updates turn off by themselves only when an update could not apply around the set's hand edits (it
+skipped a member whole for them), with the quiet reason line "Turned off when an update couldn't apply around your
+edits."; otherwise only the designer turns them off ("Turn off updates") or back on ("Turn updates back on"). The state is
+kept as plugin data on the set, so it survives reopening the file. Plugin only; no committed artifact moves.
+
+[claude-3875-brand-id-path · minor · 4cda6917] A brand id can no longer write outside the CLI's output directory (#3875, a security fix). The id names every file the CLI writes, and nothing checked it: `id: "../escaped"` wrote six files one level above `--out`, an id holding a slash crashed mid-write with a raw stack trace, and an empty id wrote hidden dotfiles. `brandTheme` now refuses an id that is empty or blank, holds a slash, backslash or NUL, or is `.` or `..`, and the schema refuses the same ids. `emitTheme` refuses to write any file outside its directory, checked before anything is written. The CLI reports a failed write as a readable error. An id that is a safe file name but not a slug still builds. Every committed brand's emission is unchanged.
+
+[claude-3876-quote-round-trip · minor · d9078034] A brand name with a double quote survives a design.md round trip (#3876). The serializer wrote a quote inside a double-quoted string as `\"`, and the parser never decoded it, so every export and import added a backslash before each quote. The parser now decodes `\"` and `\\` in a double-quoted string, the serializer escapes a backslash as well as a quote (keys included), and the comment, key and flow scanners no longer end a string at an escaped quote. A double-quoted string that holds neither escape reads exactly as before. Every committed brand's emission is unchanged.
+
+[claude-2927-parts-list-discs · patch · c03d4486] Each entry in the usage panel's anatomy parts list now draws the same disc as its specimen marker (#2927, owner
+decision Q2927-R1 A): a filled #9747FF disc with its numeral, the one drawing #3773's markers use, before the entry's
+label. The label no longer carries the number as text ("Caret", not "3  Caret"), so the number has one source. A run
+of repeated parts keeps its one entry and one disc ("Tabs 2–3"). `PANEL_FORMAT` is 9, so every drawn panel is due once
+on the next Update. Plugin only; no committed artifact moves.
+
+[claude-3872-breakpoints-rise · minor · db7831d1] A brand's breakpoints must rise (#3872). Each floor in `layout.breakpoints` must now be above the one before, as the schema's description already said. Out-of-order floors (`[0, 1024, 768]`) used to emit `lg` below `md`, a repeated floor named one width twice, and a negative floor sat below the first; each built cleanly. `brandTheme` now refuses them, naming the floor and the one it follows. A fractional floor is still allowed. Every committed brand's emission is unchanged.
+
+[claude-3871-weight-roles · minor · 3e9872fe] A brand's weight roles must be whole numbers in [1, 1000] (#3871). A fractional weight such as 450.5 used to emit an alias that resolved nowhere, because a DTCG alias reads the `.` as a path separator, and a weight outside DTCG's fontWeight range of 1–1000 shipped a value the spec rejects. `brandTheme` now refuses both by role name, and the schema types each `typography.weightRoles` value as an integer in [1, 1000]. Per-mode weights (`modeLevers.<mode>.weights`) keep their [100, 900] range and must also be whole. Every committed brand's emission is unchanged.
+
+[fix-3883-report-scrub-session · patch · 3420381f] Studio and plugin: Report a problem now scrubs the words of every brand the session has held, not only the brand on
+screen when the report opens (#3883). An Activity line is an operation's latest result, and it stays across a brand
+load, a rename and a failed restore, so a client brand's root, palette, mode and typeface names could reach a report
+opened on another brand. With "Include the brand's settings" ticked after a failed restore, the report now includes
+the file's brand, not the boot demo. No committed artifact moves.
+
+[fix-3881-doc-gates-step-keys · patch · 2389c8ea] `lint-doc-gates.ts` fails a gate step in `ci.yml` that cannot fail (#3881): a step with a `run:` that carries
+`continue-on-error` (anything but a literal `false`) or a step-level `if:`, and a job holding such steps that carries
+`continue-on-error`. Either key left the gate listed, documented and run by `verify.ts` while CI stayed green whatever
+it said. Gates only; no committed artifact moves.
+
+[fix-3878-clear-prunes · patch · cbf808a1] Studio: putting a setting back to Auto now leaves the brand exactly as it was before the edit (#3878). A clear used to
+leave an empty group behind (`typography: {}`, `shadow: {}`, `surfaces: { light: {} }`, `layout: {}`, or an empty
+typeface library), so an unedited brand read as edited and the replace guard asked to discard "0 edits". The empty
+group also reached Export design.md and the web's saved brand. Studio and plugin only: no committed artifact moves.
+
+[fix-update-panel-read-once · patch · 5a904d35] Update file records a set's usage-panel format only when its run checked the panel (#3870). The run reads
+Documentation's Usage panels switch once, when it plans its targets, and the as-built ledger uses that reading. Before,
+it read the switch again after the apply. Turning the panels on while an update ran recorded a set as panel-checked
+when its panel was never drawn, so the set read current and its panel was never offered. Plugin only; no committed
+artifact moves.
+
+[fix-3882-icon-count-detector · patch · 10536ac5] `lint-icon-count.ts` reads a glyph or mark count with up to two words between the number and its noun
+("One of 99 named glyphs", "all 99 of its glyphs", "99 SVG icons"), a count before `set of` ("a 99-strong set of
+glyphs"), and spelled-out numbers from two to ninety-nine (#3882). Before, only a number directly beside its noun was
+read. Gates only; no committed artifact moves.
+
+[chore-1182-nuia-tree · patch · ba00006f] `tree.ts`, `design-md.ts` and `emit-figma-color.ts` typecheck clean under `noUncheckedIndexedAccess` (#1182). No behavior change. Every emitted artifact is unchanged, and the design.md parser reads the same lines the same way.
+
+[fix-field-message-no-live-region · minor · 7362f215] FieldMessage's accessibility guidance follows its brief (#1712): on error the host sets aria-invalid="true" and
+aria-describedby, and focus moves to the invalid field or the form's error summary. The message is never a live
+region, and the form's error summary is the only region that announces, because a live region on the field reads
+the error twice while focus moves to it. The def's aria, its announcement code-only entry, its 4.1.3 line and its
+don't change, and TextField's aria drops "announce politely". Component docs and components.ai.json move.
+
+[studio-alias-path-segmented · patch · edee72c9] The token list's Alias path control (Inspect › Token list › Semantics, Full / Short) is the shared segmented control
+(#3911). It was built from the legacy `.seg` classes, whose selected segment drew a 2px underline no other segmented
+control draws. It is now a radio group like every other choice: one Tab stop, arrow keys between Full and Short. Studio
+and plugin only; no committed artifact moves.
+
+[lane-2075-seed-interpreter · minor · 6b508902] `file-seed.ts` (#2075 part 2, Q-FS1 A): `seedFromFacts` reads a file facts report and proposes a starting brand input. It picks a primary, an accent, type families, density, `radiusScale` and the action palette (Q-BK7 A), each with a confidence and the evidence behind it, plus the neutral cast a compiling input needs. `seedDesignMd` writes the seed as a `design.md` that `cli.ts` already compiles. It's new and nothing calls it yet: no plugin UI, no start-screen entry. Every committed artifact is unchanged.
+
+[claude-3773-anatomy-leaders · patch · 8c9e2b70] The usage panel's anatomy markers take `_Label`'s ink (#3773, owner decision B). Each part gets one direct leader in
+#9747FF ending in a 4px dot on the part's edge, never over its content; a container's leader comes in from the left
+gutter to its left edge, the outermost near its bottom corner and an inner one at its middle. There are no brackets,
+so a nested container no longer takes a bracket tier of the panel's width. Each marker is a filled #9747FF disc with a
+white numeral, drawn by the panel itself, no longer an instance of the brand's Badge. `PANEL_FORMAT` is 8, so every
+drawn panel is due once on the next Update. Plugin only; no committed artifact moves.
+
+[fix-3845-action-note-resolved · patch · 83dfce4a] Owner-decided (#3845 Q-BK1 A, option A). The action line in the decisions log is now worded from the
+palette action resolves to, so a brand that sets `roleColors.action` reads the line `actionPalette` gives it
+("action: uses the '<name>' palette instead of primary, as the brand sets."), not "action: the primary palette, by
+default — actionPalette is not set." No new wording: the line is the existing one. No corpus brand sets
+`roleColors.action`, so no committed artifact moves.
+
+[chore-1182-nuia-engine-graph · patch · ea7bd61c] `modes.ts` and `ramp.ts` typecheck clean under `noUncheckedIndexedAccess` (#1182). Fixes a solid-tint wash that reads past the top of the opacity ladder: when a brand's fill is invisible against its ground at every step, hover climbs to opacity.100, and pressed and selected used to get `alpha: NaN` and "opacity.undefined". They now stay on the top step. No committed artifact changes.
+
+[fix-3857-paste-core-unowned · patch · 2644641d] The agent paste path now sees every variable in the `core` collection, as Apply Theme does since #1109 (#3857). The
+`migrate` pass reads slice membership on the name the rename rules carry a variable to, so a pre-#1097 name with no
+brand root (`palette/…`) is renamed in place there too. The `verify` pass reports the `core` variables in a group no
+plan writes, under `orphans['core/other']`, the plugin's label for the same report. Nothing is deleted. The membership
+rule moves into the engine as `sliceGroupOf` (`rename-map.ts`), which the plugin imports and the paste payload ships,
+so the two paths read one definition. No committed artifact moves.
+
+[studio-export-drop-import · patch · fb5ca5d7] Export no longer offers Import (#3910, owner direction 2026-11-17). Importing a design.md brief is the brand menu's, where
+it already was, in Studio and in the plugin, whose Export page draws the same area. The unbuilt Figma-file import slot
+(#677) went with it, since Export was its only home. Studio and plugin only; no committed artifact moves.
+
+[claude-2889-last-changed-in · patch · c4c1b117] Each family's usage panel now shows a "Last changed in <version> · <date>" block under its header, above Overview (#2889, #2858 piece 2): the lead set's newest release in the bundled release notes, no newer than the plugin's engine, and that release's items for the set; a set no release names reads "Unchanged since" the oldest notes. The block is in the panel's plan hash and in the as-built ledger (`changed`), so after a fold Update file makes due only the panels whose block reads differently (owner decision A). Every lead panel is due once, on the first Update after this, to draw the block. Plugin only; no committed artifact moves.
+
+[claude-calm-report-2956 · patch · 7b12b675] Update file no longer reads a hand edit it kept as a part to check (#2956 point 4). The build measures and reads back
+around the nodes it leaves, so a designer's unbound padding on one member made the footprint check report that member
+as differing from its siblings, and the run read "⚠ … to check". Under Keep and Accept, a build miss that names a member
+the run kept hand edits on now goes to its own line, "not written because the member is hand-edited", and the run reads
+✓. A member whose record could not be written stays a miss. Plugin only; no committed artifact moves.
+
+[fix-update-check-renamed-provider · patch · d599993d] Update file: a set the file holds under an id its def was renamed from (`brand-mark/…` for Provider logo, #3148; `tab` for Tab item, #2759) now reads as in the file and due, so the update renames it in place in the same run as the sets that nest it. Before, it read as absent and was never checked, and Wallet button, Sign-in button and Card number field read "needs Provider logo, which this file doesn't have" in a file that holds it (#3770).
+
+[claude-structural-skip-2956 · patch · 0332d09a] Update file skips a hand-edited member whose update changes its structure (#2956 point 2, owner decision 2026-10-23). When
+the plan adds a layer to a member that has hand edits, removes one, changes one's type or moves one into a new frame,
+Keep and Accept now leave the whole member as it is and name it ("hand-edited, and the update changes its structure"),
+wherever on the member the edits are. Before, the structure was written around the kept paths, and an edit's survival
+depended on where it sat. Overwrite still writes the plan. Plugin only; no committed artifact moves.
+
+[chore-1182-nuia-anatomy · patch · 3e5b2ade] `anatomy-figma.ts` and `anatomy-readback.ts` typecheck clean under `noUncheckedIndexedAccess` (#1182). No behavior change: every plan, every def object and the source shipped to both executors are identical. A missing anatomy part, plan entry or token now fails with a named error instead of a bare TypeError.
+
+[claude-3552-code-backticks · minor · f5026f0f] The component definitions mark the code in their usage prose with backticks (#3552, owner decision Q-UG2b A): HTML elements (`<button>`), attributes with values (`type="number"`), ARIA attributes (`aria-checked`), selectors (`div[role=button]`), focus pseudo-classes (`:focus-visible`), prop names (`htmlFor`, `onChange`) and literal values. 127 prose strings in the fields a usage panel draws change, and only by backticks: no wording moved. The Markdown pages (`out/components/*.md`) now print these as code spans instead of escaped text, and `components.ai.json` carries the same spans. Summaries, anatomy notes and prop descriptions are unchanged, so Figma descriptions and anatomy captions are too. The component-register test now allows a code span in those fields when it holds code, and still refuses one in a summary, a description or a prop description.
+
+[claude-3774-wrap-calibration · patch · 53eead02] The usage-panel test host lays a member out with the default brand's padding, spacing and text sizes, and wraps a fixed-width text as Figma does, so the owner's 120px Accordion fails the wrap clause by name (#3774). Tests only; no committed artifact moves.
+
+[claude-rebuilt-hand-edit-2673 · patch · befe0af8] Update file no longer reports a hand edit as kept when it rebuilds the layer that holds it (#2673). A hand edit on a layer
+the update removes or replaces (a title moved into a row the plan adds, a part renamed, a layer whose type changed) was
+lost with the old node while the verdict counted it kept. The dry run now reads such an edit as a conflict the update
+would lose, and under Keep and Accept the update skips that member whole and names it, as it skips a layer added by
+hand. Overwrite still rebuilds it. Plugin only; no committed artifact moves.
+
+[chore-1182-nuia-engine-rest · patch · 1e3408a6] The last 96 errors in the engine tsconfig's import graph now typecheck under `noUncheckedIndexedAccess` (#1182), across 12 files: scale, theme-brand, theme-gradient, theme-shadow, theme-type, theme-layout, vocabulary, figma-description, and the sign-in-button, code-input, provider-logo and card-number-field defs. No behavior change. A mark vocabulary with no sign-in glyph at all now fails with a named error instead of a bare TypeError.
+
+[claude-report-issue-paste · patch · 7db84930] Report a problem's "Open a prefilled issue" now opens GitHub's form with the title and a one-line instruction to paste
+the report, which it copies to the clipboard first. Before, it put the report in the link and cut a long one to fit.
+The report and its scrubbing are unchanged. Studio and plugin only: no committed artifact moves.
+
+[fix-1834-test-arms · patch · 968ec08d] A new gate, `lint-test-arms.ts`, fails when a named test arm disappears from its suite (#1834). Every issue tag (`#NNNN`)
+in a test suite's string or template literals is a named arm, registered in the authored `test-arms.txt`. An arm gone
+from its suite fails by name. A new one fails until `--accept` adds it, and only deleting its registry line by hand
+retires one. Tests only; no committed artifact moves.
+
+[claude-3408-button-motion · minor · 64702854] Button, Button.Destructive and Button.Neutral bind their state transition and their press to motion tokens (#3408, owner
+Q146 A), instead of naming them only in prose: `motion.state` / `motion.press` → `motion.duration.fast`, both easings →
+`motion.easing-role.default`, and `motion.state-reduced` → `motion.duration-reduced.fast`. The press's 0.98 scale is not
+a timing and no token holds it, so it stays in the def's motion prose, which now says the press runs on the same
+duration and curve. The `notes.unverified` line saying no motion token is bound is removed.
+
+[chore-1182-nuia-component-schema · patch · d8bea209] `component-schema.ts` now typechecks clean under `noUncheckedIndexedAccess` (#1182, first of a staged rollout). No behavior change: the validator returns the same results for every registered def, and every emitted artifact is unchanged. `typecheck-components.ts` now holds it clean: it fails on any `noUncheckedIndexedAccess` error in a file on its clean list.
+
+[fix-1066-suite-floors · patch · 82f9c889] The Studio and plugin unit-test chains now fail a suite that runs fewer assertions than its written floor, or prints no
+count (#1066). Both apps' `test` scripts run through `run-suites.ts`, which reads each app's `suites.json`. The
+export-settings mutation battery now drives the shipped predicates instead of local copies of them. Tests only; no
+committed artifact moves.
+
+[fix-3845-accent-guard-resolved · patch · 3eb0bca7] The accent≠action guard now reads the palette action resolves to, so `roleColors.action` behaves as its alias
+`actionPalette` does (#3845, the #1895 shape). `roleColors: { action: 'accent' }` with `accentPalette: 'accent'` is now
+refused, where it shipped an accent column identical to action. `roleColors: { action: 'accent' }` with
+`accentPalette: 'primary'` is now accepted, where it was refused against the unset lever's `primary` default. No
+corpus brand sets either, so no committed artifact moves.
+
+[claude-report-entry-quiet · patch · 5854047e] Report a problem in the plugin's Activity drawer is now a small icon button at the end of the drawer's last line, in
+place of a full-width button. It is named and titled "Report a problem" and draws the glyph the web rail uses. Studio
+chrome only: no committed artifact moves.
+
+[claude-update-inset-lighter · patch · 77f4ced5] Update file's group insets (Due, To add, Kept edits) are one step lighter in the light theme, neutral 025 in place of
+050, and the status chips on them take the tag's own fill in place of a white pill. The dark theme keeps its step. Studio
+chrome only: no committed artifact moves.
+
+[fix-1059-regen-unwritten · patch · 14e08d77] `regen --check` now sees a stopped emission (#1059). Before it regenerates, it ages every committed artifact to the
+epoch, and afterwards it fails, by name, on any committed artifact no step wrote (`stale`) and on any step that exited 0
+having written nothing (`silent`). Regeneration is in place and the named schema and engine artifacts are compared
+pairwise, so an emitter that stopped writing used to leave its old copy on disk, byte-identical, and the check passed.
+A plain `regen` also fails on a silent step, and its step log reports how many files each step wrote. No committed
+artifact moves.
+
+[claude-keep-reorder-2956 · patch · 7fe2e96b] Update file with Keep now keeps two more kinds of hand edit it reported as kept (#2956 point 1). A layer's children that
+a designer reordered stayed in the designer's order only until the parent's child loop put the plan's order back, and a
+property link a designer removed (a label unlinked from its text property) was linked again by the set's property wiring.
+A node kept as a hand edit now keeps its children's order and its links; a property the run adds is still wired on it.
+Overwrite restores both, as before. `EXECUTOR_REVISION` 64, which redraws no set that has no hand edits. Plugin only;
+no committed artifact moves.
+
+[claude-3506-emission-bindings · minor · 22959eac] The component emission carries four bindings it left out (#3506, owner Q142 A on #3408), so a code generator reads
+`specs.json` and `component-defs.json` only. Redlines gain each part's corner (`radius`, or one per corner when they
+differ) and stroke (`strokeWidth`, or one per side), read from the same plan that builds the set; a row's key grows
+where they move (a stroke on `state`, a corner on `shape`). A spec gains `focusRing` (each part nesting the shared ring:
+the host's offset token, and the ring's width and style) and `motion` (each `tokens` binding to a `motion.*` token).
+Spinner binds its five motion tokens, which it named only in prose. The Specs projection maps the corner and stroke to
+`cornerRadius` and `strokeWeight`. Formats: `prism3-component-specs/1.1`, `prism3-component-defs/1.4`. The component pages'
+Specs tables show the corner and stroke under Other.
+
+[fix-1142-fan-in-relocation · patch · cbe651d0] A variable rename no longer loses its bindings when an unrelated dedupe names the same target (#1142). The rename
+planner refused every source in a group that two old names shared, so a plain relocation (`border/inverse/primary` to
+`inverse/border/primary`) stayed behind, holding its bindings, while the write created the new name empty beside it,
+because #1140's dedupe of `border/inverse/default` named the same target. Now, when exactly one source in such a group
+keeps the target's last segment, that source is renamed and the others are reported as target occupied, so the designer
+still picks the survivor between the two. A group with no such source, or several, is refused as before. In the plugin
+and the agent paste alike; no committed artifact moves.
+
+[fix-1728-font-cut-resolve · patch · 711f47c9] Apply Theme writes each font-cut variable in its family's own spelling from the start (#1728). The engine names a
+cut one way per weight ("Semi Bold Italic"), and a family can spell it its own way (Playfair's "SemiBold Italic"). The
+text-style stage corrected the variable, but the variable stage ran first and wrote the engine's spelling on every
+apply. So a run stopped between the two stages left the variable naming a style its family doesn't have, and every
+re-apply put the wrong spelling back before correcting it. Apply now resolves each cut against the family the text
+plan pairs it with, per mode, using the same resolver, before the variable stage writes. A cut the family lacks
+under every spelling keeps the engine's name and is still reported. The text-style stage's correction stays as the
+second reader. The font preload's false "typeface unavailable" warning, the issue's second item, was already fixed
+by #1793. Plugin only; the agent paste path's font step is unchanged. No committed artifact moves.
+
+[fix-1896-action-anchor-resolved · minor · d9871e7a] `roleColors.action` now anchors the action fill where its alias `actionPalette` does: at the resolved palette's own
+shade, not at primary's step (#1896). For a brand color that is the color's own step; for neutral or a status palette
+it is the 500 mid step. Both spellings now resolve every role to the same step in every mode, and the "anchored at"
+decisions-log note appears for either spelling. No committed brand sets `roleColors.action`, so no committed artifact
+moves; a brand that rebases action through `roleColors` sees its action fills, and the links that follow them, move.
+
+[fix-1779-requirement-per-mode-floor · minor · db53f06a] A `.ai.json` contrast `requirement` now states the floor each mode holds where the modes differ (#1779). For example,
+`border.brand` reads "MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and
+hc-dark modes." It used to say "3:1 … in every mode", so an agent checked high-contrast pairs against the light floor. A
+floor that holds in every mode still says "in every mode". Only `requirement` strings change, in every brand's
+sidecar: no token, `min` or `ratio` moves. The sidecar schema's descriptions of `min` and `requirement` say the same.
+
+[fix-1737-orphan-styles-report · patch · bb10c736] Apply Theme reports the styles the brand does not plan (#1737). A style the plan doesn't write is never touched, so an
+earlier brand's text, effect, paint or grid styles stayed in the picker beside the new brand's, and the apply result said
+nothing about them, while it already reported the same drift among variables. Apply now adds a warning line beside the
+orphan-variable one: "⚠ N orphaned styles not in the plan (text: 12, effect: 2) — likely from an earlier brand; nothing
+was deleted" (copy DRAFT). The rule is the one Prune uses (`orphanStyles`, extracted from `computePrunePlan`):
+a style inside a group the brand's plan emits, or carrying the engine's own description. A hand-made style group is
+not named. A style a collision Rename wrote counts as planned, which Prune does not yet do (#3860). Nothing is deleted, and Prune remains the delete path. Agents get the per-kind lists as `orphanStyles` in
+the apply data. Plugin only; no committed artifact moves.
+
+[fix-3843-files-listing-cut-off · patch · a40fd5d3] A `--files` listing arrives whole, and its reader names one that did not (#3843). `lint-us-english.ts --files` and
+`lint-voice.ts --files` wrote one line at a time and then exited, which drops any write the reader had not yet taken,
+still with exit 0; on a busy CI runner `lint-schema-classification.ts` read "listed 0 schema file(s)". Both now print
+through `printListing` (`files-listing.ts`): one write, awaited, then a `--files: N line(s) listed, complete` line on
+stderr. The classification gate reads the listing with `readListing`, which compares that count with the lines that
+arrived: a short delivery is LISTING CUT OFF, a non-zero exit, signal or spawn error is LISTING FAILED, and SCANNED BLIND
+is kept for a whole listing that names no schema file. Gates only; no committed artifact moves.
+
+[fix-1109-core-unowned · patch · 23ef3100] Apply Theme now sees every variable in the `core` collection (#1109). Three writers share `core`, each narrowed to its
+own group, so a variable outside all three groups reached no orphan report and no rename. A pre-#1097 name with no brand
+root (`palette/…`) now belongs to the group the rename rules carry it to, so it is renamed in place or reported with that
+group. A variable in a group no writer owns is reported in the Apply Theme summary under its own label. Nothing is
+deleted. Plugin only: the agent paste path is unchanged. `composeVariableRenames` joins the `@prism3/engine/figma`
+facade, which the plugin reads it from. No committed artifact moves.
+
+[fix-3759-report-ratio-floor · minor · c0f3c6c3] The contrast column of `modes-report.md` and the ratios in the regression report now print floored to two places, the
+same way every studio and plugin surface prints a ratio (#3759, #3697 L3). A pair measuring 4.496 against a 4.5 floor
+reads 4.49 beside its failing mark, not 4.50. Every ratio the engine stores for someone to read is floored too, through
+the new `floorRatio`: `.ai.json`'s `contrast_with[].ratio` (588 of 1,263 entries drop by 0.01, none crosses its floor),
+a gradient's worst-case ratio and its `avoid_when` sentence (Prism3 `glow`, 1.88 to 1.87), and an eval failure's
+`ratio` over MCP. So is the DTCG emission's own `$extensions.prism3.contrast` on every semantic color and
+`contrastOnWhite` on every primitive (2,409 and 326 values across the five `tokens.json` drop by 0.01), and Prism3
+`glow`'s `worstOnBlack` in its gradient token and Figma gradient style. The resolved preview now stores each contract's raw ratio, so Studio's contrast-contracts table no
+longer prints a rounded-up 4.50 beside a failing dot. No token value, pass or fail result moves.
+
+[fix-release-notes-integration-branch · patch · 002cc19f] `lint-release-notes.ts` now reads each release's fold from the `main` a tree carries when the PR's base is a
+branch other than `main` (#3863). An integration branch refreshed from `main` by a squash holds a single-parent
+commit setting `main`'s version, and the gate took that commit as the version's fold, so it judged `main`'s
+release notes against a diff they never had. On `main` and on PRs to `main` the gate reads HEAD's own history, as
+before. Gates and tests only; no committed artifact moves.
+
+[fix-2485-prune-moved-furniture · patch · 1891a7a1] Prune removes the canvas labels and backdrop a moved set left behind (#2485, Q294 A). Furniture is drawn on its set's
+parent, and since #2485's first half a Build or Update of the set clears a copy left on another parent. Prune kept such
+a copy for as long as the set was alive anywhere, so a moved set nobody rebuilt left its labels on the old page for
+good. Prune now treats tagged furniture whose set is alive but on another parent as stale, as it already did furniture
+whose set is gone. Untagged nodes are still never touched. Its preview and applied sentences now name both causes: "N
+canvas labels or backdrops belong to a set that was deleted or moved. Deleting them touches no component." and
+"Removed N canvas labels or backdrops left from a set that was deleted or moved." Plugin only; no committed artifact
+moves.
+
+[fix-replay-integration-tree · patch · 27d67654] `test.ts`'s replay of an integration-branch refresh (#3833) now passes on that branch's own tree (#3842). It
+committed the working tree on top of HEAD and ran the real `fold.ts` there, so on an integration branch the fold
+read that branch's own pending entries as landing on its first-parent chain, older than `main`'s newest folded
+entry, and refused. The working tree now goes on top of the `main` the tree carries, as one commit, and the clone
+keeps no ref of the source but `main`, so a local `poc/…` branch no longer blocks the fixture's `poc`. Tests only;
+no committed artifact moves.
+
+[fix-1084-compose-since · patch · b65e9188] A composed variable rename no longer records an engine version where a contract version belongs (#1084). When only a
+materialization rule renamed a variable, `composeVariableRenames` filled the row's `since` with the rule's
+`ENGINE_VERSION`, in a field that holds the `CONTRACT_VERSION` that retired the old name. Such a row now carries an empty
+`since`, the field's own not-known value, because the contract never retired that name. Nothing reads the field today,
+so no outcome or report changes, and no committed artifact moves.
+
+[fix-1796-duplicate-plain-component · patch · 8a014b5c] Two or more plain components under the exact name a component nests or swaps in are reported by name, and neither is
+used (#1796). Both component executors used to keep whichever one the file search returned last, so the build nested or
+swapped in one of them and reported success. Now the nest is not built, the swap slot is the placeholder frame, and its
+swap property is not created, each with the miss "found more than one COMPONENT of that name; neither is used. Rename or
+remove one, then rebuild", as #1781 already does for two component sets under one name. Plugin and paste alike; no
+committed artifact moves.
+
+[claude-integration-base-refresh · patch · ec576220] A pull request into a branch other than `main` that merges `main` in is now judged from the newest `main` it carries
+(#3833). `lint-emission-version.ts`, `lint-progress-order.ts` and `lint-executor-reach.ts` read such a refresh from
+its base branch's merge base, so `main`'s own change notes, folds and executor revisions, each already judged by its
+own run, failed again: patch notes over `main`'s folded emission, `main`'s folds read as this diff's fold, and five of
+`main`'s executor revisions measured as one. The shared `integrationBase` in `comparison-base.ts` picks the newer
+base; an ordinary pull request into the branch, and every pull request into `main`, keeps its merge base. Gates only;
+no committed artifact moves.
+
+[claude-3408-space-550 · minor · cd0b95a1] `space.550` (44px) joins the spacing scale beside the half steps `space.150` and `space.250` (#3408, owner Q-HT1 A), in
+every brand's DTCG tokens, Figma space variables, `.ai.json` and reports. It is a step of the scale, not of the density
+ladder, so no component's compact or spacious spacing moves. Button, Button.Destructive and Button.Neutral state their
+code-side hit-target floor per size as a spacing token, `size.<size>.hit-target`: `space.300` at small and `space.550` at
+medium and large (owner Q141 revised). New Balance's medium grid margin (44px) now aliases `space.550` instead of
+`core.dimension.44`, by the existing rule that a layout value aliases a spacing step when one has its value; its px is
+unchanged. `CONTRACT_VERSION` 15.0.0 → 15.1.0.
+
+[claude-2944-member-order · patch · a9ccfe0b] Update file no longer adds a second member to a set whose member lists its properties in another order (#2944). Figma
+rewrites a member's segment order when an axis is renamed in its UI; the dry run matched that member by coordinate, but
+the build's pass looked it up by its exact name, missed it, and built another member on the same coordinate, a variant
+conflict. The update now renames such a member to the plan's order before the build's pass (not counted as a rename),
+and the executor matches existing members by coordinate, so a Build skips it as present (`EXECUTOR_REVISION` 62, which
+redraws no set). Plugin only; no committed artifact moves.
+
+[fix-1904-binding-scope · patch · 9dd8b6e5] Apply Theme binds its styles inside the collections it writes (#1904). The text styles' font bindings, the gradient
+stops, the glass blur radius and the tinted washes' opacity used to resolve their variables by name across the whole
+file, the last one listed winning, so a same-named variable in a collection Prism3 does not write (a foreign one, or one
+left by an earlier version) could take the binding. They now resolve in the collections the pre-flight checks, in the
+plugin and in the agent paste alike. Plugin only; no committed artifact moves.
+
+[claude-3764-needed-again · patch · 513a95a4] When an agent-link pairing fails and the plugin forgets the code (#3764), the prompt now says why, under the code field:
+"The connection closed before pairing finished. Ask your agent for a new code." (the owner's Q-PC1 B). A first prompt
+still shows only its plain line. The line clears when the next code is submitted, as the wrong-code line does. Plugin
+only; no committed artifact moves.
+
+[fix-3072-wash-override-refusal · patch · d7be95ea] An `overrides` entry on a translucent wash or a subtle fill is refused, naming the role (#3072). A wash override
+(`interactive.<c>.overlay.<state>`, page or inverse) used to be applied as an opaque palette step: the tree aliased the
+new step, so the wash emitted opaque, and its ratio was that step against the page rather than its ink on the
+composite. A subtle-fill override (`interactive.<c>.subtle-fill.<state>`) was dropped without a warning, because the
+subtle fills are settled after the override layer. The subtle-fill message points at the fill to override instead. No
+corpus or example brand sets either, so no committed artifact moves.
+
+[fix-2674-dangling-hand-layer · patch · d1e20743] Update file's check and its apply agree on a member whose prototype reactions dangle and that has a layer added, removed
+or renamed by hand (#2674). The check read such a member "to update", and the apply left it as it was, as it does any
+member with a layer edited by hand. The check now counts it with the members edited by hand, as it does one that draws
+wrong (#2413), and the apply's skip says its prototype reactions point at a member no longer in the set. Plugin only; no
+committed artifact moves.
+
+[fix-update-clear-unreadable-carry · patch · 483f63c2] Update file clears a kept slot carry it can't read on a set that has no other work (#3803). Such an entry was cleared
+only by a write to its set, so on a set already up to date the check named it every time and nothing removed it. The
+apply now clears it on every set it is given that reaches no write and was not refused, as the dry run's line already
+says ("The set's next update clears it"). Clearing it alone saves no named version. Plugin only; no committed artifact
+moves.
+
+[claude-3765-cs5-pill-levers · patch · b2761dc6] All of Control shape's reach now lives in a def's `levers.controlShape` (#3765, owner decision Q-CS5 B). A new `capsules` list names the corner refs every shape but Rounded repoints: Pill to `radius.capsule`, Boxed to `radius.none`, Hairline to `radius.hairline`. Button, Icon button (its square shape), Wallet button and Sign-in button name `capsules: ['radius.md']`. `squares` keeps the refs Boxed and Hairline alone square, and is now optional. A `pill-radius` line in a def's `derived` block no longer makes it pill-able: a def that arrives as data names `capsules` instead. The validator refuses a `capsules` list that is empty, is not a token ref, names a corner the def does not bind, or repeats a `squares` ref. No plan, token or emission changes under any Control shape or Field style; Google Pay's half-height clamp is unchanged. `CONTRACT_VERSION` unchanged: no token name moves.
+
+[fix-2386-added-member-order · patch · 7566c301] Update file puts a set's members in plan order (#2386). A member an Update adds was appended after the members the set
+already held, and a variant property lists its values in the order members first use them, so a value an axis gained read
+last in the property's list on an updated file and in its plan place on a fresh build. After its member pass the Update
+now moves each planned member, keeping its id, into the slots planned members hold, in plan order. A member off the plan
+(kept and marked deprecated, or a designer's own) keeps its slot. Plugin only; no committed artifact moves.
+
+[claude-3764-forget-pairing-code · patch · a74f5453] The agent link forgets a pairing code once the connection that carried it closes without a confirmed pairing (#3764,
+option b of D3728.5). Whatever held the bridge port saw the code's proof and could search the code space offline, so the
+plugin asks for a fresh code instead of sending the old one again. The bridge's `paired` must also arrive within 250 ms of the
+code, or the connection is dropped and the code forgotten the same way, so an impostor cannot hold the connection open
+while it searches. Plugin only; no committed artifact moves.
+
+[claude-3025-breaking-replacements · patch · a16e3ffa] Update file's "Files that use this library" list counts a replaced layer only on members the update changes (#3025). A
+member the update skips (a layer added or removed by hand) or refuses (the member itself would need replacing) no longer
+has its layer replacements listed as breaking, and the list is no longer cut at 500 on a large set. Plugin only; no
+committed artifact moves.
+
+[fix-hand-pass-rerun-after-write · patch · 18226194] The plugin's background hand-edit pass runs again when the write that made it stale ends (#3804). A pass that finds a
+write holding the file stops where it is and posts nothing (#3737), and only the load and the end of an Update file run
+asked for it again, so the sets it had not reached stayed "Checking" in the panel until a reload. Now the pass records
+that it is owed, and the write's end (`guarded`) asks for it again over the file the write left. Plugin only; no committed
+artifact moves.
+
+[fix-update-mark-before-set-writes · patch · 3836d267] Update file marks every member it will configure as in progress before the set's first write (#3797, #3594). The set's
+own writes (layer renames, property removals and retypes) land before the executor reaches a member, so a close or a
+stop after them left the unreached members differing from their records and unmarked: the next check read the update's
+own writes as hand edits, and Keep held them on every later run. Marked first, they read as to update, and the marker
+comes off only in the executor's finish. A stopped set's count now reads "marker off, planned stamp", so it counts a
+member the pass finished whose stamp did not move (drawn damage, a nested-instance fault, reactions). Plugin only; no
+executor file changes and no committed artifact moves.
+
+[fix-2563-verify-added-members · patch · f620d62d] Update file verifies the members it adds (#2563). The apply's content check (the plan's anatomy, paints it does not
+give, nested members, what the host draws, reactions) read only the members it configured in place, so a member it
+added was never checked, and a translucent wash the host left at 100% on it would ship under a success. Every planned
+member that is in the set after the run and was not before is now held to its whole plan the same way, and a fault on it
+fails the verdict by name. Plugin only; no committed artifact moves.
+
+[fix-2795-glyph-layer-part-name · patch · 936dd17c] A glyph's own layers are never taken for a part (#2795). The component executor re-finds a part by name after the
+combine to read back and repair its bindings and property references, and that search ran depth first, so a glyph's
+imported layer named like a later sibling part was found first: the part's size bindings were written onto the glyph's
+vector on a build, and the next Update re-imported that glyph under new ids, which detaches overrides on placed
+instances. The search now skips imported geometry (a vector, group or boolean layer, or anything inside one), which the
+executor never builds as a part. Executor revision 60, which redraws no shipped set. Plugin only; no committed artifact moves.
+
+[fix-hand-pass-stale-any-write · patch · fed7f94d] The plugin's background hand-edit pass stops reading while any write holds the file (#3737). Its staleness check named
+four writes and left out prune, so a pass asked for while a prune's delete ran read on and reported; it now asks the run
+guard whether anything holds the file (`guard.busy()`), which covers every write under #3697 R7's single hold. Plugin
+only; no committed artifact moves.
+
+[fix-update-carry-persist · patch · 2d59673c] Update file keeps a slot carry's capture on the set until it is filled (#3761, #3762; #3697 H1's second fix). Before a set
+is written, the placed instances read for the rows-into-a-slot carry (#2649) and the slot-text carry (#3225) go into the
+set's shared plugin data; the next run's capture reads them back for every instance its own read no longer finds, and the
+entry is narrowed after each fill and removed once empty. A Banner set that stops inside its member pass, or any carrying
+set the plugin is closed in, no longer loses the content of the instances it reached: the next run carries it. A set whose
+only work left is a kept carry (closed after its write, before its fill) reads as not up to date, and its fills run with no
+member written. Plugin only; no committed artifact moves. The kept capture is bounded (90 kB): one too large, or refused by the host, carries in
+memory for that run as before and is named in the set's outcome, and the run goes on. A kept entry this version can't
+read is ignored, named in the dry run and cleared by the set's next write.
+
+[fix-paste-clears-print · patch · a6ca8f29] The agent paste clears the emission print in every write step and stamps it again in its last (#3742, the paste's half of
+#3697 M3). A paste that stops part-way (an agent session ending, a step that throws, the file closed between steps) no
+longer leaves the old print beside the half-written variables, so the recount reads the file as due rather than as
+matching the brand it held before, and Theme opens ticked. Plugin only; no committed artifact moves.
+
 0.238.0 — folded 2026-11-15 from 337 change notes, newest merge first.
 
 [claude-3765-cs3-cs4 · minor · 3390e274] Control shape now reaches the Wallet and Sign-in buttons, as it reaches Button (#3765, owner decision Q-CS3 A). Under Pill their corner binds `radius.capsule`, under Boxed `radius.none` and under Hairline `radius.hairline`; Rounded keeps their own `radius.md`. Google Pay's corner stays at most half its height under every shape: the code passes min(radius, height / 2), so under Pill it is a capsule at exactly half the height. No sign-in provider forbids a square or a capsule corner, so none is clamped. The outline Counter is not a field for Control shape (Q-CS4 B) and keeps `radius.sm` under every shape. No other def's plan changes under any Control shape or Field style, and Rounded plans are unchanged. No token or emission moves except Wallet button's maintainer note on the corner; the Studio's used-by index lists both buttons under each shape's rung. `CONTRACT_VERSION` unchanged: no token name moves.
