@@ -179,12 +179,15 @@ async function handleScan(): Promise<void> {
       };
     });
 
-    // Run validation
+    // Run validation. An alias to a team-library variable the file imports is not broken: resolve those
+    // targets first (prism3 #4166).
+    const external = await scanner.resolveExternalAliasTargets(variables);
     const issues = await validator.validateAll({
       collections,
       variables,
       textStyles,
       effectStyles,
+      externalVariables: external.variables,
     });
 
     // Build alias edges so the UI can compute "alias into excluded collection"
