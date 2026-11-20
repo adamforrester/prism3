@@ -9,7 +9,7 @@
  *  reads the session. */
 import { LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, type Theme } from '@prism3/engine';
 import { emToPercentLabel } from '../../em-percent';
-import { el, hook, palSection, specimen, subHead, type SgCtx } from './kit';
+import { el, hook, palSection, scrollBox, specimen, subHead, type SgCtx } from './kit';
 
 export const buildingBlocksSection = (c: SgCtx, ty: Theme['typography'], mode: string, copy: { title: string; desc: string }): HTMLElement => {
   const sec = palSection(copy.title, copy.desc);
@@ -19,7 +19,7 @@ export const buildingBlocksSection = (c: SgCtx, ty: Theme['typography'], mode: s
   const table = (caption: string, hk: string, rows: { name: string; who: string; paint: (e: HTMLElement) => void }[]): void => {
     sec.append(subHead(caption));
     const box = el('div', 'mtbl');
-    const scroll = el('div', 'mtbl-scroll');
+    const scroll = scrollBox(caption);
     const t = el('table', 'mtbl-tbl');
     const head = el('thead'), htr = el('tr');
     ['Step', 'Used by', 'Specimen'].forEach((x, i) => htr.append(el('th', i === 0 ? 'mtbl-stick' : i === 2 ? 'mtbl-fill mtbl-spec' : 'mtbl-mode', x)));

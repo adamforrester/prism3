@@ -56,6 +56,8 @@ The Activity drawer's bar shows the link's state in a word: "Listening · bridge
 
 Every write an agent asks for passes the same checks as Update file, and is refused for the same reasons. <!-- src: apps/plugin/src/run-guard.ts:1-20#802b70d3 -->
 
+A color override's confirm is refused as `changes-moved` when its changes aren't the ones it previewed, and as `brand-moved` when the file's brand changed after the preview. Either way, nothing is written: preview again. <!-- src: apps/plugin/src/set-override.ts:143-144 -->
+
 ## Safety
 
 - **Off by default, never saved.** The link starts off at every launch and is not remembered between sessions. <!-- src: apps/plugin/src/agent-link.ts:5-8#e3a1fc8c -->

@@ -33,7 +33,8 @@
  *
  * ── THE BASE ────────────────────────────────────────────────────────────────────────────────────────────────────────
  *
- * The merge base of HEAD and the base branch (`GITHUB_BASE_REF`, else `origin/main`, else `main`); on the base branch
+ * In a merge-group run, the group's parent (`MERGE_GROUP_BASE_SHA`, `mergeGroupBase`, #4106), and nothing else.
+ * Otherwise the merge base of HEAD and the base branch (`GITHUB_BASE_REF`, else `origin/main`, else `main`); on the base branch
  * itself, HEAD's first parent (`packages/engine/comparison-base.ts`, #2556); on a PR that merges `main` into another
  * base branch, the newest `main` it carries (`integrationBase`, #3833). No base is a failure, not a pass.
  * The exported base tree gets one symlink, `node_modules/@prism3/engine` → this tree's engine, so its executor draws
@@ -48,7 +49,7 @@ import { availableParallelism, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { componentDefs } from '@prism3/engine/components';
-import { comparisonBase, integrationBase } from '@prism3/engine/harness';
+import { comparisonBase, integrationBase, mergeGroupBase } from '@prism3/engine/harness';
 import type { ReachTable } from './src/executor-reach';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -79,9 +80,11 @@ console.log('executor reach — each EXECUTOR_REVISION names every set it redraw
 
 // ---- the base -------------------------------------------------------------------------------------------------------
 const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : null;
-const candidates = prBase ? [prBase] : ['origin/main', 'main'];
+// A merge-queue run (#4106) reads the group's parent commit, and only it (`mergeGroupBase`); a lost one CANNOT RUN.
+const mg = mergeGroupBase(git);
+const candidates = mg ? (mg.ref ? [mg.ref] : []) : prBase ? [prBase] : ['origin/main', 'main'];
 const baseRef = candidates.find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
-if (!baseRef) die([`no base ref — this check CANNOT RUN, which is not the same as finding nothing to check.`, `    tried: ${candidates.join(', ')}`]);
+if (!baseRef) die([`no base ref — this check CANNOT RUN, which is not the same as finding nothing to check.`, `    tried: ${mg ? mg.tried : candidates.join(', ')}`]);
 const mb = git('merge-base', 'HEAD', baseRef!);
 if (!mb.ok || !mb.out.trim()) die([`no merge base between HEAD and ${baseRef} — this check CANNOT RUN.`, `    ${mb.err}`]);
 // A PR that merges `main` into another base branch is read from the newest `main` it carries (#3833): `main`'s

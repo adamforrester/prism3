@@ -56,6 +56,37 @@ export const comparisonBase = (git: Git, mergeBase: string, die: (lines: string[
 };
 
 /**
+ * THE BASE OF A MERGE-QUEUE RUN (#4106). Under `merge_group` GitHub checks out the queue's own commit: `main`, plus
+ * every group ahead of this one in the queue, plus this PR. `GITHUB_BASE_REF` is empty there, so before this every
+ * ladder fell to `origin/main`, and its merge base with HEAD is `main`'s tip. The diff then held the groups ahead too.
+ * Two queued PRs that each raised `EXECUTOR_REVISION` from N to N+1 read as one raise and both passed, and a PR with no
+ * progress entry passed on the entry of the PR ahead of it. That is the semantic staleness the queue exists to catch.
+ *
+ * The right before is the merge group's parent commit, `github.event.merge_group.base_sha` ("The SHA of the merge
+ * group's parent commit", GitHub's REST description): `main` with the groups ahead already in it. `ci.yml` passes it
+ * as `MERGE_GROUP_BASE_SHA` at the workflow level, so every job and every gate sees it.
+ *
+ * Null outside a merge-group run (`GITHUB_EVENT_NAME` is not `merge_group`), and the caller's ladder runs as before.
+ * Inside one, this rung is AUTHORITATIVE and never falls through to `origin/main`: `ref` is the SHA only when it is set,
+ * names a commit, is an ancestor of HEAD and is not HEAD. Otherwise `ref` is null, and the caller's "no base ref" path
+ * fails the gate, so a merge-group run whose base was lost CANNOT RUN rather than passes against the wrong diff.
+ * `tried` is the one line the caller adds to its report.
+ */
+export const mergeGroupBase = (git: Git, env: NodeJS.ProcessEnv = process.env): { ref: string | null; tried: string } | null => {
+  if (env.GITHUB_EVENT_NAME !== 'merge_group') return null;
+  const sha = (env.MERGE_GROUP_BASE_SHA ?? '').trim();
+  const say = (why: string) => `MERGE_GROUP_BASE_SHA (merge group, authoritative) — ${why}`;
+  if (!sha) return { ref: null, tried: say('unset or empty, so this run has no base. `ci.yml` sets it from `github.event.merge_group.base_sha`') };
+  const r = git('rev-parse', '--verify', '--quiet', `${sha}^{commit}`);
+  if (!r.ok || !r.out.trim()) return { ref: null, tried: say(`${sha} does not resolve to a commit`) };
+  const base = r.out.trim();
+  const head = git('rev-parse', 'HEAD');
+  if (!head.ok || head.out.trim() === base) return { ref: null, tried: say(`${sha.slice(0, 8)} is HEAD itself, so there is no queued diff to read`) };
+  if (!git('merge-base', '--is-ancestor', base, 'HEAD').ok) return { ref: null, tried: say(`${sha.slice(0, 8)} is not an ancestor of HEAD, so it is not this group's parent`) };
+  return { ref: base, tried: say(`${base.slice(0, 8)} resolves, an ancestor of HEAD`) };
+};
+
+/**
  * THE BASE WHEN HEAD CARRIES `main` THAT ITS BASE BRANCH LACKS (#3833) — a long-lived integration branch
  * refreshed from `main`.
  *
@@ -107,6 +138,9 @@ export const integrationBase = (git: Git, baseRef: string, mergeBase: string): C
  */
 export const carriedMain = (git: Git, baseRef: string): { mainRef: string; point: string } | null => {
   if (baseRef === 'origin/main' || baseRef === 'main') return null;
+  // A merge-group run's base is the group's parent, which is `main` or a group the queue lands on `main` next
+  // (`mergeGroupBase`, #4106). It carries no `main` its base lacks, and `origin/main` may already be behind it.
+  if (process.env.GITHUB_EVENT_NAME === 'merge_group') return null;
   const mainRef = ['origin/main', 'main'].find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
   if (!mainRef) return null;
   const mp = git('merge-base', 'HEAD', mainRef);

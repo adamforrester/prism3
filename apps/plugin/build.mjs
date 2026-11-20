@@ -237,9 +237,12 @@ const mainOpts = (id) => ({
   // plumbing drops with the relay it serves.
   define: { PRISM3_BUILD: JSON.stringify(id), PRISM3_DEV: String(!release), PRISM3_NETWORK: String(!offline) },
   // The release build folds `if (false)` away (#2530). Without minification esbuild keeps a dead branch's TEXT, and
-  // a branch's text keeps its imports alive, so the dev code would ship unreachable instead of absent. Syntax only:
-  // no renaming, no whitespace change, so a release stack trace still reads like the dev build's.
+  // a branch's text keeps its imports alive, so the dev code would ship unreachable instead of absent.
+  // Whitespace too since #4232: about a fifth of the bytes Figma parses on every launch. Still no renaming, so a
+  // release stack trace names the same functions as the dev build's; its line and column no longer match `dist/`.
+  // `test-size-budget.ts` holds the release files to their ceilings.
   minifySyntax: release,
+  minifyWhitespace: release,
   // #1623 sign-off — a component def's `notes` and `codeOnly` prose are maintainer-only and stay out of
   // `dist/`; see `strip-maintainer-prose.mjs`, and `lint-bundle-prose.ts` for the check.
   plugins: [maintainerProsePlugin],
@@ -270,6 +273,7 @@ const buildUiHtml = async (id) => {
     // PRISM3_NETWORK (#3138): false only in the offline variant, where every network branch (the web-font loader) drops.
     define: { PRISM3_HOST: '"figma"', PRISM3_BUILD: JSON.stringify(id), PRISM3_TEST_HOOKS: 'false', PRISM3_DEV: String(!release), PRISM3_NETWORK: String(!offline) },
     minifySyntax: release,   // as `mainOpts` (#2530): a dead dev branch is dropped, not kept as text
+    minifyWhitespace: release,   // as `mainOpts` (#4232): names kept, whitespace gone
     // The studio chrome stylesheet is a real .css file since #769, imported by the studio's entry.ts as TEXT.
     // This loader is what keeps the UI a SINGLE self-contained document: esbuild's default `.css`
     // loader emits a separate stylesheet, which an iframe shipping `allowedDomains:["none"]` has no
