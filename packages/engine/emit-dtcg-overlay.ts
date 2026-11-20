@@ -301,7 +301,9 @@ export const buildWebBase = (tree: unknown): unknown => {
     for (const [k, v] of Object.entries(n as Node)) out[k] = k.startsWith('$') ? v : stack(v);
     return out;
   };
-  return stripExtensions(stack(buildBase(tree)));
+  // The same projection as the base in `buildOverlaySet` (tracking in px, #4128; DTCG 2025.10 value forms, #4123),
+  // so the web base still differs from the base only in its typefaces.
+  return conformValues(stripExtensions(stack(buildBase(trackingInPx(tree)))));
 };
 
 /**

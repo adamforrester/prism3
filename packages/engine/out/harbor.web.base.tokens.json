@@ -4,737 +4,1911 @@
       "palette": {
         "white": {
           "$type": "color",
-          "$value": "#ffffff",
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              1,
+              1,
+              1
+            ],
+            "hex": "#ffffff"
+          },
           "$description": "Pure white — Highlight base / default surface"
         },
         "black": {
           "$type": "color",
-          "$value": "#000000",
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0,
+              0,
+              0
+            ],
+            "hex": "#000000"
+          },
           "$description": "Pure black — Shadow base"
         },
         "transparent": {
           "$type": "color",
-          "$value": "#00000000",
+          "$value": {
+            "colorSpace": "srgb",
+            "components": [
+              0,
+              0,
+              0
+            ],
+            "alpha": 0,
+            "hex": "#000000"
+          },
           "$description": "Transparent — alpha 0, no paint. `field.fill` aliases it, so a field is framed by its border on any ground"
         },
         "primary": {
           "100": {
             "$type": "color",
-            "$value": "#d3dedd",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8275,
+                0.8706,
+                0.8667
+              ],
+              "hex": "#d3dedd"
+            },
             "$description": "Brand primary 100 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "150": {
             "$type": "color",
-            "$value": "#c2d1d1",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.7608,
+                0.8196,
+                0.8196
+              ],
+              "hex": "#c2d1d1"
+            },
             "$description": "Brand primary 150 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "200": {
             "$type": "color",
-            "$value": "#b1c5c4",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.6941,
+                0.7725,
+                0.7686
+              ],
+              "hex": "#b1c5c4"
+            },
             "$description": "Brand primary 200 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "250": {
             "$type": "color",
-            "$value": "#9fb9b8",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.6235,
+                0.7255,
+                0.7216
+              ],
+              "hex": "#9fb9b8"
+            },
             "$description": "Brand primary 250 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "300": {
             "$type": "color",
-            "$value": "#8eadac",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.5569,
+                0.6784,
+                0.6745
+              ],
+              "hex": "#8eadac"
+            },
             "$description": "Brand primary 300 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "350": {
             "$type": "color",
-            "$value": "#7ca1a1",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.4863,
+                0.6314,
+                0.6314
+              ],
+              "hex": "#7ca1a1"
+            },
             "$description": "Brand primary 350 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "400": {
             "$type": "color",
-            "$value": "#6a9695",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.4157,
+                0.5882,
+                0.5843
+              ],
+              "hex": "#6a9695"
+            },
             "$description": "Brand primary 400 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "450": {
             "$type": "color",
-            "$value": "#578a8a",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.3412,
+                0.5412,
+                0.5412
+              ],
+              "hex": "#578a8a"
+            },
             "$description": "Brand primary 450 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "500": {
             "$type": "color",
-            "$value": "#437f7f",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2627,
+                0.498,
+                0.498
+              ],
+              "hex": "#437f7f"
+            },
             "$description": "Brand primary 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)"
           },
           "550": {
             "$type": "color",
-            "$value": "#297272",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1608,
+                0.4471,
+                0.4471
+              ],
+              "hex": "#297272"
+            },
             "$description": "Brand primary 550 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "600": {
             "$type": "color",
-            "$value": "#006666",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.4,
+                0.4
+              ],
+              "hex": "#006666"
+            },
             "$description": "Brand primary 600 — Mid-Tone band (mid tones, steps 400–600) — brand anchor (exact, pinned)"
           },
           "650": {
             "$type": "color",
-            "$value": "#005858",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.3451,
+                0.3451
+              ],
+              "hex": "#005858"
+            },
             "$description": "Brand primary 650 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "700": {
             "$type": "color",
-            "$value": "#004b4b",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.2941,
+                0.2941
+              ],
+              "hex": "#004b4b"
+            },
             "$description": "Brand primary 700 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "750": {
             "$type": "color",
-            "$value": "#003f3f",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.2471,
+                0.2471
+              ],
+              "hex": "#003f3f"
+            },
             "$description": "Brand primary 750 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "800": {
             "$type": "color",
-            "$value": "#003233",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.1961,
+                0.2
+              ],
+              "hex": "#003233"
+            },
             "$description": "Brand primary 800 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "850": {
             "$type": "color",
-            "$value": "#002727",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.1529,
+                0.1529
+              ],
+              "hex": "#002727"
+            },
             "$description": "Brand primary 850 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "900": {
             "$type": "color",
-            "$value": "#001b1c",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.1059,
+                0.1098
+              ],
+              "hex": "#001b1c"
+            },
             "$description": "Brand primary 900 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "950": {
             "$type": "color",
-            "$value": "#001111",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.0667,
+                0.0667
+              ],
+              "hex": "#001111"
+            },
             "$description": "Brand primary 950 — Shadow band (near-black shade, step 950)"
           },
           "025": {
             "$type": "color",
-            "$value": "#f4f8f7",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9569,
+                0.9725,
+                0.9686
+              ],
+              "hex": "#f4f8f7"
+            },
             "$description": "Brand primary 025 — Highlight band (near-white tints, steps 025–050)"
           },
           "050": {
             "$type": "color",
-            "$value": "#e4eaea",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8941,
+                0.9176,
+                0.9176
+              ],
+              "hex": "#e4eaea"
+            },
             "$description": "Brand primary 050 — Highlight band (near-white tints, steps 025–050)"
           }
         },
         "neutral": {
           "100": {
             "$type": "color",
-            "$value": "#dcdbdb",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8627,
+                0.8588,
+                0.8588
+              ],
+              "hex": "#dcdbdb"
+            },
             "$description": "Neutral 100 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "150": {
             "$type": "color",
-            "$value": "#cfcecd",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8118,
+                0.8078,
+                0.8039
+              ],
+              "hex": "#cfcecd"
+            },
             "$description": "Neutral 150 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "200": {
             "$type": "color",
-            "$value": "#c2c1bf",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.7608,
+                0.7569,
+                0.749
+              ],
+              "hex": "#c2c1bf"
+            },
             "$description": "Neutral 200 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "250": {
             "$type": "color",
-            "$value": "#b5b3b2",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.7098,
+                0.702,
+                0.698
+              ],
+              "hex": "#b5b3b2"
+            },
             "$description": "Neutral 250 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "300": {
             "$type": "color",
-            "$value": "#a8a6a5",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.6588,
+                0.651,
+                0.6471
+              ],
+              "hex": "#a8a6a5"
+            },
             "$description": "Neutral 300 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "350": {
             "$type": "color",
-            "$value": "#9c9a98",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.6118,
+                0.6039,
+                0.5961
+              ],
+              "hex": "#9c9a98"
+            },
             "$description": "Neutral 350 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "400": {
             "$type": "color",
-            "$value": "#908d8b",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.5647,
+                0.5529,
+                0.5451
+              ],
+              "hex": "#908d8b"
+            },
             "$description": "Neutral 400 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "450": {
             "$type": "color",
-            "$value": "#83817e",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.5137,
+                0.5059,
+                0.4941
+              ],
+              "hex": "#83817e"
+            },
             "$description": "Neutral 450 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "500": {
             "$type": "color",
-            "$value": "#777572",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.4667,
+                0.4588,
+                0.4471
+              ],
+              "hex": "#777572"
+            },
             "$description": "Neutral 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)"
           },
           "550": {
             "$type": "color",
-            "$value": "#6b6865",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.4196,
+                0.4078,
+                0.3961
+              ],
+              "hex": "#6b6865"
+            },
             "$description": "Neutral 550 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "600": {
             "$type": "color",
-            "$value": "#5e5b58",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.3686,
+                0.3569,
+                0.3451
+              ],
+              "hex": "#5e5b58"
+            },
             "$description": "Neutral 600 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "650": {
             "$type": "color",
-            "$value": "#514f4c",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.3176,
+                0.3098,
+                0.298
+              ],
+              "hex": "#514f4c"
+            },
             "$description": "Neutral 650 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "700": {
             "$type": "color",
-            "$value": "#454341",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2706,
+                0.2627,
+                0.2549
+              ],
+              "hex": "#454341"
+            },
             "$description": "Neutral 700 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "750": {
             "$type": "color",
-            "$value": "#393735",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2235,
+                0.2157,
+                0.2078
+              ],
+              "hex": "#393735"
+            },
             "$description": "Neutral 750 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "800": {
             "$type": "color",
-            "$value": "#2e2c2b",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1804,
+                0.1725,
+                0.1686
+              ],
+              "hex": "#2e2c2b"
+            },
             "$description": "Neutral 800 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "850": {
             "$type": "color",
-            "$value": "#232120",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1373,
+                0.1294,
+                0.1255
+              ],
+              "hex": "#232120"
+            },
             "$description": "Neutral 850 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "900": {
             "$type": "color",
-            "$value": "#181716",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0941,
+                0.0902,
+                0.0863
+              ],
+              "hex": "#181716"
+            },
             "$description": "Neutral 900 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "950": {
             "$type": "color",
-            "$value": "#0e0d0c",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.051,
+                0.0471
+              ],
+              "hex": "#0e0d0c"
+            },
             "$description": "Neutral 950 — Shadow band (near-black shade, step 950)"
           },
           "025": {
             "$type": "color",
-            "$value": "#f7f7f6",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9686,
+                0.9686,
+                0.9647
+              ],
+              "hex": "#f7f7f6"
+            },
             "$description": "Neutral 025 — Highlight band (near-white tints, steps 025–050)"
           },
           "050": {
             "$type": "color",
-            "$value": "#e9e9e8",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9137,
+                0.9137,
+                0.9098
+              ],
+              "hex": "#e9e9e8"
+            },
             "$description": "Neutral 050 — Highlight band (near-white tints, steps 025–050)"
           }
         },
         "success": {
           "100": {
             "$type": "color",
-            "$value": "#abeeb8",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.6706,
+                0.9333,
+                0.7216
+              ],
+              "hex": "#abeeb8"
+            },
             "$description": "success status 100 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "150": {
             "$type": "color",
-            "$value": "#8de5a0",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.5529,
+                0.898,
+                0.6275
+              ],
+              "hex": "#8de5a0"
+            },
             "$description": "success status 150 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "200": {
             "$type": "color",
-            "$value": "#82d695",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.5098,
+                0.8392,
+                0.5843
+              ],
+              "hex": "#82d695"
+            },
             "$description": "success status 200 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "250": {
             "$type": "color",
-            "$value": "#78c88a",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.4706,
+                0.7843,
+                0.5412
+              ],
+              "hex": "#78c88a"
+            },
             "$description": "success status 250 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "300": {
             "$type": "color",
-            "$value": "#6dba7e",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.4275,
+                0.7294,
+                0.4941
+              ],
+              "hex": "#6dba7e"
+            },
             "$description": "success status 300 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "350": {
             "$type": "color",
-            "$value": "#62ab73",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.3843,
+                0.6706,
+                0.451
+              ],
+              "hex": "#62ab73"
+            },
             "$description": "success status 350 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "400": {
             "$type": "color",
-            "$value": "#589e68",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.3451,
+                0.6196,
+                0.4078
+              ],
+              "hex": "#589e68"
+            },
             "$description": "success status 400 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "450": {
             "$type": "color",
-            "$value": "#4e905e",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.3059,
+                0.5647,
+                0.3686
+              ],
+              "hex": "#4e905e"
+            },
             "$description": "success status 450 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "500": {
             "$type": "color",
-            "$value": "#448253",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2667,
+                0.5098,
+                0.3255
+              ],
+              "hex": "#448253"
+            },
             "$description": "success status 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)"
           },
           "550": {
             "$type": "color",
-            "$value": "#3a7548",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2275,
+                0.4588,
+                0.2824
+              ],
+              "hex": "#3a7548"
+            },
             "$description": "success status 550 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "600": {
             "$type": "color",
-            "$value": "#30673e",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1882,
+                0.4039,
+                0.2431
+              ],
+              "hex": "#30673e"
+            },
             "$description": "success status 600 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "650": {
             "$type": "color",
-            "$value": "#265a34",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.149,
+                0.3529,
+                0.2039
+              ],
+              "hex": "#265a34"
+            },
             "$description": "success status 650 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "700": {
             "$type": "color",
-            "$value": "#1c4e2a",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1098,
+                0.3059,
+                0.1647
+              ],
+              "hex": "#1c4e2a"
+            },
             "$description": "success status 700 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "750": {
             "$type": "color",
-            "$value": "#124120",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0706,
+                0.2549,
+                0.1255
+              ],
+              "hex": "#124120"
+            },
             "$description": "success status 750 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "800": {
             "$type": "color",
-            "$value": "#083517",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0314,
+                0.2078,
+                0.0902
+              ],
+              "hex": "#083517"
+            },
             "$description": "success status 800 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "850": {
             "$type": "color",
-            "$value": "#01290e",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0039,
+                0.1608,
+                0.0549
+              ],
+              "hex": "#01290e"
+            },
             "$description": "success status 850 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "900": {
             "$type": "color",
-            "$value": "#001e08",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.1176,
+                0.0314
+              ],
+              "hex": "#001e08"
+            },
             "$description": "success status 900 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "950": {
             "$type": "color",
-            "$value": "#001204",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.0706,
+                0.0157
+              ],
+              "hex": "#001204"
+            },
             "$description": "success status 950 — Shadow band (near-black shade, step 950)"
           },
           "025": {
             "$type": "color",
-            "$value": "#f4f8f4",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9569,
+                0.9725,
+                0.9569
+              ],
+              "hex": "#f4f8f4"
+            },
             "$description": "success status 025 — Highlight band (near-white tints, steps 025–050)"
           },
           "050": {
             "$type": "color",
-            "$value": "#d5f2da",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8353,
+                0.949,
+                0.8549
+              ],
+              "hex": "#d5f2da"
+            },
             "$description": "success status 050 — Highlight band (near-white tints, steps 025–050)"
           }
         },
         "warning": {
           "100": {
             "$type": "color",
-            "$value": "#f5d6b4",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9608,
+                0.8392,
+                0.7059
+              ],
+              "hex": "#f5d6b4"
+            },
             "$description": "warning status 100 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "150": {
             "$type": "color",
-            "$value": "#f5c58e",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9608,
+                0.7725,
+                0.5569
+              ],
+              "hex": "#f5c58e"
+            },
             "$description": "warning status 150 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "200": {
             "$type": "color",
-            "$value": "#f6b35f",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9647,
+                0.702,
+                0.3725
+              ],
+              "hex": "#f6b35f"
+            },
             "$description": "warning status 200 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "250": {
             "$type": "color",
-            "$value": "#f0a238",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9412,
+                0.6353,
+                0.2196
+              ],
+              "hex": "#f0a238"
+            },
             "$description": "warning status 250 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "300": {
             "$type": "color",
-            "$value": "#e1962f",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8824,
+                0.5882,
+                0.1843
+              ],
+              "hex": "#e1962f"
+            },
             "$description": "warning status 300 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "350": {
             "$type": "color",
-            "$value": "#d18b27",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8196,
+                0.5451,
+                0.1529
+              ],
+              "hex": "#d18b27"
+            },
             "$description": "warning status 350 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "400": {
             "$type": "color",
-            "$value": "#c27f1e",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.7608,
+                0.498,
+                0.1176
+              ],
+              "hex": "#c27f1e"
+            },
             "$description": "warning status 400 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "450": {
             "$type": "color",
-            "$value": "#b37414",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.702,
+                0.4549,
+                0.0784
+              ],
+              "hex": "#b37414"
+            },
             "$description": "warning status 450 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "500": {
             "$type": "color",
-            "$value": "#a46808",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.6431,
+                0.4078,
+                0.0314
+              ],
+              "hex": "#a46808"
+            },
             "$description": "warning status 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)"
           },
           "550": {
             "$type": "color",
-            "$value": "#935c00",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.5765,
+                0.3608,
+                0
+              ],
+              "hex": "#935c00"
+            },
             "$description": "warning status 550 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "600": {
             "$type": "color",
-            "$value": "#825100",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.5098,
+                0.3176,
+                0
+              ],
+              "hex": "#825100"
+            },
             "$description": "warning status 600 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "650": {
             "$type": "color",
-            "$value": "#714600",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.4431,
+                0.2745,
+                0
+              ],
+              "hex": "#714600"
+            },
             "$description": "warning status 650 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "700": {
             "$type": "color",
-            "$value": "#613b00",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.3804,
+                0.2314,
+                0
+              ],
+              "hex": "#613b00"
+            },
             "$description": "warning status 700 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "750": {
             "$type": "color",
-            "$value": "#513000",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.3176,
+                0.1882,
+                0
+              ],
+              "hex": "#513000"
+            },
             "$description": "warning status 750 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "800": {
             "$type": "color",
-            "$value": "#412600",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2549,
+                0.149,
+                0
+              ],
+              "hex": "#412600"
+            },
             "$description": "warning status 800 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "850": {
             "$type": "color",
-            "$value": "#321c00",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1961,
+                0.1098,
+                0
+              ],
+              "hex": "#321c00"
+            },
             "$description": "warning status 850 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "900": {
             "$type": "color",
-            "$value": "#241300",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1412,
+                0.0745,
+                0
+              ],
+              "hex": "#241300"
+            },
             "$description": "warning status 900 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "950": {
             "$type": "color",
-            "$value": "#170a00",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0902,
+                0.0392,
+                0
+              ],
+              "hex": "#170a00"
+            },
             "$description": "warning status 950 — Shadow band (near-black shade, step 950)"
           },
           "025": {
             "$type": "color",
-            "$value": "#faf6f1",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9804,
+                0.9647,
+                0.9451
+              ],
+              "hex": "#faf6f1"
+            },
             "$description": "warning status 025 — Highlight band (near-white tints, steps 025–050)"
           },
           "050": {
             "$type": "color",
-            "$value": "#f6e7d6",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9647,
+                0.9059,
+                0.8392
+              ],
+              "hex": "#f6e7d6"
+            },
             "$description": "warning status 050 — Highlight band (near-white tints, steps 025–050)"
           }
         },
         "info": {
           "100": {
             "$type": "color",
-            "$value": "#cbdeef",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.7961,
+                0.8706,
+                0.9373
+              ],
+              "hex": "#cbdeef"
+            },
             "$description": "info status 100 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "150": {
             "$type": "color",
-            "$value": "#b5d2ec",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.7098,
+                0.8235,
+                0.9255
+              ],
+              "hex": "#b5d2ec"
+            },
             "$description": "info status 150 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "200": {
             "$type": "color",
-            "$value": "#9dc6ea",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.6157,
+                0.7765,
+                0.9176
+              ],
+              "hex": "#9dc6ea"
+            },
             "$description": "info status 200 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "250": {
             "$type": "color",
-            "$value": "#84bae8",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.5176,
+                0.7294,
+                0.9098
+              ],
+              "hex": "#84bae8"
+            },
             "$description": "info status 250 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "300": {
             "$type": "color",
-            "$value": "#68aee7",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.4078,
+                0.6824,
+                0.9059
+              ],
+              "hex": "#68aee7"
+            },
             "$description": "info status 300 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "350": {
             "$type": "color",
-            "$value": "#4ba1e4",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2941,
+                0.6314,
+                0.8941
+              ],
+              "hex": "#4ba1e4"
+            },
             "$description": "info status 350 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "400": {
             "$type": "color",
-            "$value": "#4294d3",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2588,
+                0.5804,
+                0.8275
+              ],
+              "hex": "#4294d3"
+            },
             "$description": "info status 400 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "450": {
             "$type": "color",
-            "$value": "#3a87c3",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2275,
+                0.5294,
+                0.7647
+              ],
+              "hex": "#3a87c3"
+            },
             "$description": "info status 450 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "500": {
             "$type": "color",
-            "$value": "#317bb2",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1922,
+                0.4824,
+                0.698
+              ],
+              "hex": "#317bb2"
+            },
             "$description": "info status 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)"
           },
           "550": {
             "$type": "color",
-            "$value": "#286da1",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1569,
+                0.4275,
+                0.6314
+              ],
+              "hex": "#286da1"
+            },
             "$description": "info status 550 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "600": {
             "$type": "color",
-            "$value": "#1f6090",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1216,
+                0.3765,
+                0.5647
+              ],
+              "hex": "#1f6090"
+            },
             "$description": "info status 600 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "650": {
             "$type": "color",
-            "$value": "#16537f",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0863,
+                0.3255,
+                0.498
+              ],
+              "hex": "#16537f"
+            },
             "$description": "info status 650 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "700": {
             "$type": "color",
-            "$value": "#0d476f",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.051,
+                0.2784,
+                0.4353
+              ],
+              "hex": "#0d476f"
+            },
             "$description": "info status 700 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "750": {
             "$type": "color",
-            "$value": "#033a5f",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0118,
+                0.2275,
+                0.3725
+              ],
+              "hex": "#033a5f"
+            },
             "$description": "info status 750 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "800": {
             "$type": "color",
-            "$value": "#002f4e",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.1843,
+                0.3059
+              ],
+              "hex": "#002f4e"
+            },
             "$description": "info status 800 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "850": {
             "$type": "color",
-            "$value": "#00233d",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.1373,
+                0.2392
+              ],
+              "hex": "#00233d"
+            },
             "$description": "info status 850 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "900": {
             "$type": "color",
-            "$value": "#00192d",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.098,
+                0.1765
+              ],
+              "hex": "#00192d"
+            },
             "$description": "info status 900 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "950": {
             "$type": "color",
-            "$value": "#000e1e",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0.0549,
+                0.1176
+              ],
+              "hex": "#000e1e"
+            },
             "$description": "info status 950 — Shadow band (near-black shade, step 950)"
           },
           "025": {
             "$type": "color",
-            "$value": "#f3f7fb",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9529,
+                0.9686,
+                0.9843
+              ],
+              "hex": "#f3f7fb"
+            },
             "$description": "info status 025 — Highlight band (near-white tints, steps 025–050)"
           },
           "050": {
             "$type": "color",
-            "$value": "#e0ebf4",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8784,
+                0.9216,
+                0.9569
+              ],
+              "hex": "#e0ebf4"
+            },
             "$description": "info status 050 — Highlight band (near-white tints, steps 025–050)"
           }
         },
         "danger": {
           "100": {
             "$type": "color",
-            "$value": "#f3d5d1",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9529,
+                0.8353,
+                0.8196
+              ],
+              "hex": "#f3d5d1"
+            },
             "$description": "danger status (brand-supplied) 100 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "150": {
             "$type": "color",
-            "$value": "#f0c4be",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9412,
+                0.7686,
+                0.7451
+              ],
+              "hex": "#f0c4be"
+            },
             "$description": "danger status (brand-supplied) 150 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "200": {
             "$type": "color",
-            "$value": "#eeb3ab",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9333,
+                0.702,
+                0.6706
+              ],
+              "hex": "#eeb3ab"
+            },
             "$description": "danger status (brand-supplied) 200 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "250": {
             "$type": "color",
-            "$value": "#eca198",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9255,
+                0.6314,
+                0.5961
+              ],
+              "hex": "#eca198"
+            },
             "$description": "danger status (brand-supplied) 250 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "300": {
             "$type": "color",
-            "$value": "#e98e84",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9137,
+                0.5569,
+                0.5176
+              ],
+              "hex": "#e98e84"
+            },
             "$description": "danger status (brand-supplied) 300 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "350": {
             "$type": "color",
-            "$value": "#e77b70",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9059,
+                0.4824,
+                0.4392
+              ],
+              "hex": "#e77b70"
+            },
             "$description": "danger status (brand-supplied) 350 — Quarter-Tone band (light tints, steps 100–350)"
           },
           "400": {
             "$type": "color",
-            "$value": "#e4655b",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8941,
+                0.3961,
+                0.3569
+              ],
+              "hex": "#e4655b"
+            },
             "$description": "danger status (brand-supplied) 400 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "450": {
             "$type": "color",
-            "$value": "#de5048",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8706,
+                0.3137,
+                0.2824
+              ],
+              "hex": "#de5048"
+            },
             "$description": "danger status (brand-supplied) 450 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "500": {
             "$type": "color",
-            "$value": "#cd4840",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.8039,
+                0.2824,
+                0.251
+              ],
+              "hex": "#cd4840"
+            },
             "$description": "danger status (brand-supplied) 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)"
           },
           "550": {
             "$type": "color",
-            "$value": "#b83d36",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.7216,
+                0.2392,
+                0.2118
+              ],
+              "hex": "#b83d36"
+            },
             "$description": "danger status (brand-supplied) 550 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "600": {
             "$type": "color",
-            "$value": "#a4332d",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.6431,
+                0.2,
+                0.1765
+              ],
+              "hex": "#a4332d"
+            },
             "$description": "danger status (brand-supplied) 600 — Mid-Tone band (mid tones, steps 400–600)"
           },
           "650": {
             "$type": "color",
-            "$value": "#912924",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.5686,
+                0.1608,
+                0.1412
+              ],
+              "hex": "#912924"
+            },
             "$description": "danger status (brand-supplied) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "700": {
             "$type": "color",
-            "$value": "#7e1f1b",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.4941,
+                0.1216,
+                0.1059
+              ],
+              "hex": "#7e1f1b"
+            },
             "$description": "danger status (brand-supplied) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "750": {
             "$type": "color",
-            "$value": "#6b1513",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.4196,
+                0.0824,
+                0.0745
+              ],
+              "hex": "#6b1513"
+            },
             "$description": "danger status (brand-supplied) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "800": {
             "$type": "color",
-            "$value": "#590a0a",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.349,
+                0.0392,
+                0.0392
+              ],
+              "hex": "#590a0a"
+            },
             "$description": "danger status (brand-supplied) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "850": {
             "$type": "color",
-            "$value": "#480204",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2824,
+                0.0078,
+                0.0157
+              ],
+              "hex": "#480204"
+            },
             "$description": "danger status (brand-supplied) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "900": {
             "$type": "color",
-            "$value": "#350001",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.2078,
+                0,
+                0.0039
+              ],
+              "hex": "#350001"
+            },
             "$description": "danger status (brand-supplied) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)"
           },
           "950": {
             "$type": "color",
-            "$value": "#230001",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.1373,
+                0,
+                0.0039
+              ],
+              "hex": "#230001"
+            },
             "$description": "danger status (brand-supplied) 950 — Shadow band (near-black shade, step 950)"
           },
           "025": {
             "$type": "color",
-            "$value": "#fdf5f3",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9922,
+                0.9608,
+                0.9529
+              ],
+              "hex": "#fdf5f3"
+            },
             "$description": "danger status (brand-supplied) 025 — Highlight band (near-white tints, steps 025–050)"
           },
           "050": {
             "$type": "color",
-            "$value": "#f6e5e3",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0.9647,
+                0.898,
+                0.8902
+              ],
+              "hex": "#f6e5e3"
+            },
             "$description": "danger status (brand-supplied) 050 — Highlight band (near-white tints, steps 025–050)"
           }
         },
         "black-alpha": {
           "5": {
             "$type": "color",
-            "$value": "#0000000d",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.051,
+              "hex": "#000000"
+            },
             "$description": "Black alpha 5% — alpha, composites over any surface"
           },
           "10": {
             "$type": "color",
-            "$value": "#0000001a",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.102,
+              "hex": "#000000"
+            },
             "$description": "Black alpha 10% — alpha, composites over any surface"
           },
           "20": {
             "$type": "color",
-            "$value": "#00000033",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.2,
+              "hex": "#000000"
+            },
             "$description": "Black alpha 20% — alpha, composites over any surface"
           },
           "30": {
             "$type": "color",
-            "$value": "#0000004d",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.302,
+              "hex": "#000000"
+            },
             "$description": "Black alpha 30% — alpha, composites over any surface"
           },
           "40": {
             "$type": "color",
-            "$value": "#00000066",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.4,
+              "hex": "#000000"
+            },
             "$description": "Black alpha 40% — alpha, composites over any surface"
           },
           "50": {
             "$type": "color",
-            "$value": "#00000080",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.502,
+              "hex": "#000000"
+            },
             "$description": "Black alpha 50% — alpha, composites over any surface"
           },
           "60": {
             "$type": "color",
-            "$value": "#00000099",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.6,
+              "hex": "#000000"
+            },
             "$description": "Black alpha 60% — alpha, composites over any surface"
           },
           "70": {
             "$type": "color",
-            "$value": "#000000b3",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.702,
+              "hex": "#000000"
+            },
             "$description": "Black alpha 70% — alpha, composites over any surface"
           },
           "80": {
             "$type": "color",
-            "$value": "#000000cc",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.8,
+              "hex": "#000000"
+            },
             "$description": "Black alpha 80% — alpha, composites over any surface"
           },
           "90": {
             "$type": "color",
-            "$value": "#000000e6",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.902,
+              "hex": "#000000"
+            },
             "$description": "Black alpha 90% — alpha, composites over any surface"
           }
         },
         "white-alpha": {
           "0": {
             "$type": "color",
-            "$value": "#ffffff00",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 0% — clear white, the end a light veil fades to"
           },
           "5": {
             "$type": "color",
-            "$value": "#ffffff0d",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0.051,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 5% — alpha, composites over any surface"
           },
           "10": {
             "$type": "color",
-            "$value": "#ffffff1a",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0.102,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 10% — alpha, composites over any surface"
           },
           "20": {
             "$type": "color",
-            "$value": "#ffffff33",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0.2,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 20% — alpha, composites over any surface"
           },
           "30": {
             "$type": "color",
-            "$value": "#ffffff4d",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0.302,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 30% — alpha, composites over any surface"
           },
           "40": {
             "$type": "color",
-            "$value": "#ffffff66",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0.4,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 40% — alpha, composites over any surface"
           },
           "50": {
             "$type": "color",
-            "$value": "#ffffff80",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0.502,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 50% — alpha, composites over any surface"
           },
           "60": {
             "$type": "color",
-            "$value": "#ffffff99",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0.6,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 60% — alpha, composites over any surface"
           },
           "70": {
             "$type": "color",
-            "$value": "#ffffffb3",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0.702,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 70% — alpha, composites over any surface"
           },
           "80": {
             "$type": "color",
-            "$value": "#ffffffcc",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0.8,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 80% — alpha, composites over any surface"
           },
           "90": {
             "$type": "color",
-            "$value": "#ffffffe6",
+            "$value": {
+              "colorSpace": "srgb",
+              "components": [
+                1,
+                1,
+                1
+              ],
+              "alpha": 0.902,
+              "hex": "#ffffff"
+            },
             "$description": "White alpha 90% — alpha, composites over any surface"
           }
         }
@@ -742,207 +1916,330 @@
       "dimension": {
         "0": {
           "$type": "dimension",
-          "$value": "0px",
+          "$value": {
+            "value": 0,
+            "unit": "px"
+          },
           "$description": "0px — dimension primitive"
         },
         "1": {
           "$type": "dimension",
-          "$value": "1px",
+          "$value": {
+            "value": 1,
+            "unit": "px"
+          },
           "$description": "1px — dimension primitive"
         },
         "2": {
           "$type": "dimension",
-          "$value": "2px",
+          "$value": {
+            "value": 2,
+            "unit": "px"
+          },
           "$description": "2px — dimension primitive"
         },
         "3": {
           "$type": "dimension",
-          "$value": "3px",
+          "$value": {
+            "value": 3,
+            "unit": "px"
+          },
           "$description": "3px — dimension primitive"
         },
         "4": {
           "$type": "dimension",
-          "$value": "4px",
+          "$value": {
+            "value": 4,
+            "unit": "px"
+          },
           "$description": "4px — dimension primitive"
         },
         "5": {
           "$type": "dimension",
-          "$value": "5px",
+          "$value": {
+            "value": 5,
+            "unit": "px"
+          },
           "$description": "5px — dimension primitive"
         },
         "6": {
           "$type": "dimension",
-          "$value": "6px",
+          "$value": {
+            "value": 6,
+            "unit": "px"
+          },
           "$description": "6px — dimension primitive"
         },
         "8": {
           "$type": "dimension",
-          "$value": "8px",
+          "$value": {
+            "value": 8,
+            "unit": "px"
+          },
           "$description": "8px — dimension primitive"
         },
         "10": {
           "$type": "dimension",
-          "$value": "10px",
+          "$value": {
+            "value": 10,
+            "unit": "px"
+          },
           "$description": "10px — dimension primitive"
         },
         "12": {
           "$type": "dimension",
-          "$value": "12px",
+          "$value": {
+            "value": 12,
+            "unit": "px"
+          },
           "$description": "12px — dimension primitive"
         },
         "16": {
           "$type": "dimension",
-          "$value": "16px",
+          "$value": {
+            "value": 16,
+            "unit": "px"
+          },
           "$description": "16px — dimension primitive"
         },
         "18": {
           "$type": "dimension",
-          "$value": "18px",
+          "$value": {
+            "value": 18,
+            "unit": "px"
+          },
           "$description": "18px — dimension primitive"
         },
         "20": {
           "$type": "dimension",
-          "$value": "20px",
+          "$value": {
+            "value": 20,
+            "unit": "px"
+          },
           "$description": "20px — dimension primitive"
         },
         "24": {
           "$type": "dimension",
-          "$value": "24px",
+          "$value": {
+            "value": 24,
+            "unit": "px"
+          },
           "$description": "24px — dimension primitive"
         },
         "28": {
           "$type": "dimension",
-          "$value": "28px",
+          "$value": {
+            "value": 28,
+            "unit": "px"
+          },
           "$description": "28px — dimension primitive"
         },
         "30": {
           "$type": "dimension",
-          "$value": "30px",
+          "$value": {
+            "value": 30,
+            "unit": "px"
+          },
           "$description": "30px — dimension primitive"
         },
         "32": {
           "$type": "dimension",
-          "$value": "32px",
+          "$value": {
+            "value": 32,
+            "unit": "px"
+          },
           "$description": "32px — dimension primitive"
         },
         "36": {
           "$type": "dimension",
-          "$value": "36px",
+          "$value": {
+            "value": 36,
+            "unit": "px"
+          },
           "$description": "36px — dimension primitive"
         },
         "40": {
           "$type": "dimension",
-          "$value": "40px",
+          "$value": {
+            "value": 40,
+            "unit": "px"
+          },
           "$description": "40px — dimension primitive"
         },
         "44": {
           "$type": "dimension",
-          "$value": "44px",
+          "$value": {
+            "value": 44,
+            "unit": "px"
+          },
           "$description": "44px — dimension primitive"
         },
         "48": {
           "$type": "dimension",
-          "$value": "48px",
+          "$value": {
+            "value": 48,
+            "unit": "px"
+          },
           "$description": "48px — dimension primitive"
         },
         "52": {
           "$type": "dimension",
-          "$value": "52px",
+          "$value": {
+            "value": 52,
+            "unit": "px"
+          },
           "$description": "52px — dimension primitive"
         },
         "56": {
           "$type": "dimension",
-          "$value": "56px",
+          "$value": {
+            "value": 56,
+            "unit": "px"
+          },
           "$description": "56px — dimension primitive"
         },
         "60": {
           "$type": "dimension",
-          "$value": "60px",
+          "$value": {
+            "value": 60,
+            "unit": "px"
+          },
           "$description": "60px — dimension primitive"
         },
         "64": {
           "$type": "dimension",
-          "$value": "64px",
+          "$value": {
+            "value": 64,
+            "unit": "px"
+          },
           "$description": "64px — dimension primitive"
         },
         "68": {
           "$type": "dimension",
-          "$value": "68px",
+          "$value": {
+            "value": 68,
+            "unit": "px"
+          },
           "$description": "68px — dimension primitive"
         },
         "72": {
           "$type": "dimension",
-          "$value": "72px",
+          "$value": {
+            "value": 72,
+            "unit": "px"
+          },
           "$description": "72px — dimension primitive"
         },
         "76": {
           "$type": "dimension",
-          "$value": "76px",
+          "$value": {
+            "value": 76,
+            "unit": "px"
+          },
           "$description": "76px — dimension primitive"
         },
         "80": {
           "$type": "dimension",
-          "$value": "80px",
+          "$value": {
+            "value": 80,
+            "unit": "px"
+          },
           "$description": "80px — dimension primitive"
         },
         "84": {
           "$type": "dimension",
-          "$value": "84px",
+          "$value": {
+            "value": 84,
+            "unit": "px"
+          },
           "$description": "84px — dimension primitive"
         },
         "88": {
           "$type": "dimension",
-          "$value": "88px",
+          "$value": {
+            "value": 88,
+            "unit": "px"
+          },
           "$description": "88px — dimension primitive"
         },
         "92": {
           "$type": "dimension",
-          "$value": "92px",
+          "$value": {
+            "value": 92,
+            "unit": "px"
+          },
           "$description": "92px — dimension primitive"
         },
         "96": {
           "$type": "dimension",
-          "$value": "96px",
+          "$value": {
+            "value": 96,
+            "unit": "px"
+          },
           "$description": "96px — dimension primitive"
         },
         "100": {
           "$type": "dimension",
-          "$value": "100px",
+          "$value": {
+            "value": 100,
+            "unit": "px"
+          },
           "$description": "100px — dimension primitive"
         },
         "104": {
           "$type": "dimension",
-          "$value": "104px",
+          "$value": {
+            "value": 104,
+            "unit": "px"
+          },
           "$description": "104px — dimension primitive"
         },
         "108": {
           "$type": "dimension",
-          "$value": "108px",
+          "$value": {
+            "value": 108,
+            "unit": "px"
+          },
           "$description": "108px — dimension primitive"
         },
         "112": {
           "$type": "dimension",
-          "$value": "112px",
+          "$value": {
+            "value": 112,
+            "unit": "px"
+          },
           "$description": "112px — dimension primitive"
         },
         "116": {
           "$type": "dimension",
-          "$value": "116px",
+          "$value": {
+            "value": 116,
+            "unit": "px"
+          },
           "$description": "116px — dimension primitive"
         },
         "120": {
           "$type": "dimension",
-          "$value": "120px",
+          "$value": {
+            "value": 120,
+            "unit": "px"
+          },
           "$description": "120px — dimension primitive"
         },
         "124": {
           "$type": "dimension",
-          "$value": "124px",
+          "$value": {
+            "value": 124,
+            "unit": "px"
+          },
           "$description": "124px — dimension primitive"
         },
         "128": {
           "$type": "dimension",
-          "$value": "128px",
+          "$value": {
+            "value": 128,
+            "unit": "px"
+          },
           "$description": "128px — dimension primitive"
         }
       },
@@ -1016,112 +2313,178 @@
         "size": {
           "10": {
             "$type": "dimension",
-            "$value": "0.625rem",
+            "$value": {
+              "value": 0.625,
+              "unit": "rem"
+            },
             "$description": "font size 10px (0.625rem) — curated ladder primitive"
           },
           "11": {
             "$type": "dimension",
-            "$value": "0.6875rem",
+            "$value": {
+              "value": 0.6875,
+              "unit": "rem"
+            },
             "$description": "font size 11px (0.6875rem) — curated ladder primitive"
           },
           "12": {
             "$type": "dimension",
-            "$value": "0.75rem",
+            "$value": {
+              "value": 0.75,
+              "unit": "rem"
+            },
             "$description": "font size 12px (0.75rem) — curated ladder primitive"
           },
           "14": {
             "$type": "dimension",
-            "$value": "0.875rem",
+            "$value": {
+              "value": 0.875,
+              "unit": "rem"
+            },
             "$description": "font size 14px (0.875rem) — curated ladder primitive"
           },
           "16": {
             "$type": "dimension",
-            "$value": "1rem",
+            "$value": {
+              "value": 1,
+              "unit": "rem"
+            },
             "$description": "font size 16px (1rem) — curated ladder primitive"
           },
           "18": {
             "$type": "dimension",
-            "$value": "1.125rem",
+            "$value": {
+              "value": 1.125,
+              "unit": "rem"
+            },
             "$description": "font size 18px (1.125rem) — curated ladder primitive"
           },
           "20": {
             "$type": "dimension",
-            "$value": "1.25rem",
+            "$value": {
+              "value": 1.25,
+              "unit": "rem"
+            },
             "$description": "font size 20px (1.25rem) — curated ladder primitive"
           },
           "24": {
             "$type": "dimension",
-            "$value": "1.5rem",
+            "$value": {
+              "value": 1.5,
+              "unit": "rem"
+            },
             "$description": "font size 24px (1.5rem) — curated ladder primitive"
           },
           "28": {
             "$type": "dimension",
-            "$value": "1.75rem",
+            "$value": {
+              "value": 1.75,
+              "unit": "rem"
+            },
             "$description": "font size 28px (1.75rem) — curated ladder primitive"
           },
           "32": {
             "$type": "dimension",
-            "$value": "2rem",
+            "$value": {
+              "value": 2,
+              "unit": "rem"
+            },
             "$description": "font size 32px (2rem) — curated ladder primitive"
           },
           "36": {
             "$type": "dimension",
-            "$value": "2.25rem",
+            "$value": {
+              "value": 2.25,
+              "unit": "rem"
+            },
             "$description": "font size 36px (2.25rem) — curated ladder primitive"
           },
           "40": {
             "$type": "dimension",
-            "$value": "2.5rem",
+            "$value": {
+              "value": 2.5,
+              "unit": "rem"
+            },
             "$description": "font size 40px (2.5rem) — curated ladder primitive"
           },
           "48": {
             "$type": "dimension",
-            "$value": "3rem",
+            "$value": {
+              "value": 3,
+              "unit": "rem"
+            },
             "$description": "font size 48px (3rem) — curated ladder primitive"
           },
           "56": {
             "$type": "dimension",
-            "$value": "3.5rem",
+            "$value": {
+              "value": 3.5,
+              "unit": "rem"
+            },
             "$description": "font size 56px (3.5rem) — curated ladder primitive"
           },
           "64": {
             "$type": "dimension",
-            "$value": "4rem",
+            "$value": {
+              "value": 4,
+              "unit": "rem"
+            },
             "$description": "font size 64px (4rem) — curated ladder primitive"
           },
           "72": {
             "$type": "dimension",
-            "$value": "4.5rem",
+            "$value": {
+              "value": 4.5,
+              "unit": "rem"
+            },
             "$description": "font size 72px (4.5rem) — curated ladder primitive"
           },
           "80": {
             "$type": "dimension",
-            "$value": "5rem",
+            "$value": {
+              "value": 5,
+              "unit": "rem"
+            },
             "$description": "font size 80px (5rem) — curated ladder primitive"
           },
           "96": {
             "$type": "dimension",
-            "$value": "6rem",
+            "$value": {
+              "value": 6,
+              "unit": "rem"
+            },
             "$description": "font size 96px (6rem) — curated ladder primitive"
           },
           "112": {
             "$type": "dimension",
-            "$value": "7rem",
+            "$value": {
+              "value": 7,
+              "unit": "rem"
+            },
             "$description": "font size 112px (7rem) — curated ladder primitive"
           },
           "128": {
             "$type": "dimension",
-            "$value": "8rem",
+            "$value": {
+              "value": 8,
+              "unit": "rem"
+            },
             "$description": "font size 128px (8rem) — curated ladder primitive"
           },
           "144": {
             "$type": "dimension",
-            "$value": "9rem",
+            "$value": {
+              "value": 9,
+              "unit": "rem"
+            },
             "$description": "font size 144px (9rem) — curated ladder primitive"
           },
           "160": {
             "$type": "dimension",
-            "$value": "10rem",
+            "$value": {
+              "value": 10,
+              "unit": "rem"
+            },
             "$description": "font size 160px (10rem) — curated ladder primitive"
           }
         },
@@ -1846,7 +3209,16 @@
           "subtle-fill": {
             "selected": {
               "$type": "color",
-              "$value": "#0066664d",
+              "$value": {
+                "colorSpace": "srgb",
+                "components": [
+                  0,
+                  0.4,
+                  0.4
+                ],
+                "alpha": 0.302,
+                "hex": "#006666"
+              },
               "$description": "primary interactive subtle fill — selected (the primary fill at `opacity.30`; translucent, the selected background of a selectable control or an outline/text control)"
             }
           }
@@ -3275,7 +4647,10 @@
               "fontSize": "{hds.core.font.size.40}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.tight}"
+              "letterSpacing": {
+                "value": -0.8,
+                "unit": "px"
+              }
             },
             "$description": "display sm strong — 32→40px fluid Inter, snug line-height, strong weight, tight tracking"
           }
@@ -3288,7 +4663,10 @@
               "fontSize": "{hds.core.font.size.56}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.tight}"
+              "letterSpacing": {
+                "value": -1.12,
+                "unit": "px"
+              }
             },
             "$description": "display md strong — 40→56px fluid Inter, snug line-height, strong weight, tight tracking"
           }
@@ -3301,7 +4679,10 @@
               "fontSize": "{hds.core.font.size.72}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.tight}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.tight}"
+              "letterSpacing": {
+                "value": -1.44,
+                "unit": "px"
+              }
             },
             "$description": "display lg strong — 40→72px fluid Inter, tight line-height, strong weight, tight tracking"
           }
@@ -3314,7 +4695,10 @@
               "fontSize": "{hds.core.font.size.80}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.tight}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.tight}"
+              "letterSpacing": {
+                "value": -1.6,
+                "unit": "px"
+              }
             },
             "$description": "display xl strong — 40→80px fluid Inter, tight line-height, strong weight, tight tracking"
           }
@@ -3327,7 +4711,10 @@
               "fontSize": "{hds.core.font.size.112}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.tight}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.tighter}"
+              "letterSpacing": {
+                "value": -3.36,
+                "unit": "px"
+              }
             },
             "$description": "display 2xl strong — 48→112px fluid Inter, tight line-height, strong weight, tighter tracking"
           }
@@ -3340,7 +4727,10 @@
               "fontSize": "{hds.core.font.size.144}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.tight}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.tighter}"
+              "letterSpacing": {
+                "value": -4.32,
+                "unit": "px"
+              }
             },
             "$description": "display 3xl strong — 48→144px fluid Inter, tight line-height, strong weight, tighter tracking"
           }
@@ -3355,7 +4745,10 @@
               "fontSize": "{hds.core.font.size.16}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.compact}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": {
+                "value": -0.16,
+                "unit": "px"
+              }
             },
             "$description": "title xs strong — 16px Inter, compact line-height, strong weight, snug tracking"
           }
@@ -3368,7 +4761,10 @@
               "fontSize": "{hds.core.font.size.18}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.compact}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": {
+                "value": -0.18,
+                "unit": "px"
+              }
             },
             "$description": "title sm strong — 18px Inter, compact line-height, strong weight, snug tracking"
           }
@@ -3381,7 +4777,10 @@
               "fontSize": "{hds.core.font.size.20}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.compact}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": {
+                "value": -0.2,
+                "unit": "px"
+              }
             },
             "$description": "title md strong — 20px Inter, compact line-height, strong weight, snug tracking"
           }
@@ -3394,7 +4793,10 @@
               "fontSize": "{hds.core.font.size.24}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.compact}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": {
+                "value": -0.24,
+                "unit": "px"
+              }
             },
             "$description": "title lg strong — 20→24px fluid Inter, compact line-height, strong weight, snug tracking"
           }
@@ -3407,7 +4809,10 @@
               "fontSize": "{hds.core.font.size.28}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": {
+                "value": -0.28,
+                "unit": "px"
+              }
             },
             "$description": "title xl strong — 24→28px fluid Inter, snug line-height, strong weight, snug tracking"
           }
@@ -3420,7 +4825,10 @@
               "fontSize": "{hds.core.font.size.36}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
+              "letterSpacing": {
+                "value": -0.36,
+                "unit": "px"
+              }
             },
             "$description": "title 2xl strong — 32→36px fluid Inter, snug line-height, strong weight, snug tracking"
           }
@@ -3435,7 +4843,10 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text."
           },
@@ -3446,7 +4857,10 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with `text.link.*` color)."
@@ -3458,7 +4872,10 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text."
           },
@@ -3469,14 +4886,20 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with `text.link.*` color)."
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "18px",
+            "$value": {
+              "value": 18,
+              "unit": "px"
+            },
             "$description": "`type.body.xs` line-box — 18px, the height of one line of the `type.body.xs` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps."
           }
         },
@@ -3488,7 +4911,10 @@
               "fontSize": "{hds.core.font.size.14}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "body sm default — 14px Inter, normal line-height, default weight, normal tracking"
           },
@@ -3499,7 +4925,10 @@
               "fontSize": "{hds.core.font.size.14}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "body sm default link — 14px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)"
@@ -3511,7 +4940,10 @@
               "fontSize": "{hds.core.font.size.14}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "body sm strong — 14px Inter, normal line-height, strong weight, normal tracking"
           },
@@ -3522,14 +4954,20 @@
               "fontSize": "{hds.core.font.size.14}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "body sm strong link — 14px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)"
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "21px",
+            "$value": {
+              "value": 21,
+              "unit": "px"
+            },
             "$description": "`type.body.sm` line-box — 21px, the height of one line of the `type.body.sm` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps."
           }
         },
@@ -3541,7 +4979,10 @@
               "fontSize": "{hds.core.font.size.16}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "body md default — 16px Inter, normal line-height, default weight, normal tracking"
           },
@@ -3552,7 +4993,10 @@
               "fontSize": "{hds.core.font.size.16}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "body md default link — 16px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)"
@@ -3564,7 +5008,10 @@
               "fontSize": "{hds.core.font.size.16}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "body md strong — 16px Inter, normal line-height, strong weight, normal tracking"
           },
@@ -3575,14 +5022,20 @@
               "fontSize": "{hds.core.font.size.16}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "body md strong link — 16px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)"
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "24px",
+            "$value": {
+              "value": 24,
+              "unit": "px"
+            },
             "$description": "`type.body.md` line-box — 24px, the height of one line of the `type.body.md` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps."
           }
         },
@@ -3594,7 +5047,10 @@
               "fontSize": "{hds.core.font.size.18}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "body lg default — 18px Inter, normal line-height, default weight, normal tracking"
           },
@@ -3605,7 +5061,10 @@
               "fontSize": "{hds.core.font.size.18}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "body lg default link — 18px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)"
@@ -3617,7 +5076,10 @@
               "fontSize": "{hds.core.font.size.18}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "body lg strong — 18px Inter, normal line-height, strong weight, normal tracking"
           },
@@ -3628,14 +5090,20 @@
               "fontSize": "{hds.core.font.size.18}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "body lg strong link — 18px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)"
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "27px",
+            "$value": {
+              "value": 27,
+              "unit": "px"
+            },
             "$description": "`type.body.lg` line-box — 27px, the height of one line of the `type.body.lg` type (font size × line height). A control beside a body label sits in a box at least this tall, so it stays on the label's first line when the label wraps."
           }
         }
@@ -3649,7 +5117,10 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "label sm default — 12px Inter, snug line-height, default weight, normal tracking"
           },
@@ -3660,7 +5131,10 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "label sm default link — 12px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)"
@@ -3672,7 +5146,10 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.emphasis}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "label sm emphasis — 12px Inter, snug line-height, emphasis weight, normal tracking"
           },
@@ -3683,14 +5160,20 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.emphasis}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "label sm emphasis link — 12px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)"
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "14px",
+            "$value": {
+              "value": 14,
+              "unit": "px"
+            },
             "$description": "`type.label.sm` line-box — 14px, the height of one line of the `type.label.sm` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps."
           }
         },
@@ -3702,7 +5185,10 @@
               "fontSize": "{hds.core.font.size.14}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "label md default — 14px Inter, snug line-height, default weight, normal tracking"
           },
@@ -3713,7 +5199,10 @@
               "fontSize": "{hds.core.font.size.14}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "label md default link — 14px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)"
@@ -3725,7 +5214,10 @@
               "fontSize": "{hds.core.font.size.14}",
               "fontWeight": "{hds.core.font.weight-role.emphasis}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "label md emphasis — 14px Inter, snug line-height, emphasis weight, normal tracking"
           },
@@ -3736,14 +5228,20 @@
               "fontSize": "{hds.core.font.size.14}",
               "fontWeight": "{hds.core.font.weight-role.emphasis}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "label md emphasis link — 14px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)"
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "16px",
+            "$value": {
+              "value": 16,
+              "unit": "px"
+            },
             "$description": "`type.label.md` line-box — 16px, the height of one line of the `type.label.md` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps."
           }
         },
@@ -3755,7 +5253,10 @@
               "fontSize": "{hds.core.font.size.18}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "label lg default — 18px Inter, snug line-height, default weight, normal tracking"
           },
@@ -3766,7 +5267,10 @@
               "fontSize": "{hds.core.font.size.18}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "label lg default link — 18px Inter, snug line-height, default weight, normal tracking, underlined (a text button's label)"
@@ -3778,7 +5282,10 @@
               "fontSize": "{hds.core.font.size.18}",
               "fontWeight": "{hds.core.font.weight-role.emphasis}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "label lg emphasis — 18px Inter, snug line-height, emphasis weight, normal tracking"
           },
@@ -3789,14 +5296,20 @@
               "fontSize": "{hds.core.font.size.18}",
               "fontWeight": "{hds.core.font.weight-role.emphasis}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "label lg emphasis link — 18px Inter, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)"
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "21px",
+            "$value": {
+              "value": 21,
+              "unit": "px"
+            },
             "$description": "`type.label.lg` line-box — 21px, the height of one line of the `type.label.lg` type (font size × line height). A glyph beside a title sits in a box this tall and centers within it, so it stays on the title's first line when the title wraps."
           }
         }
@@ -3810,7 +5323,10 @@
               "fontSize": "{hds.core.font.size.11}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "caption md default — 11px Inter, cozy line-height, default weight, normal tracking"
           },
@@ -3821,7 +5337,10 @@
               "fontSize": "{hds.core.font.size.11}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "caption md default link — 11px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)"
@@ -3833,7 +5352,10 @@
               "fontSize": "{hds.core.font.size.11}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "caption md strong — 11px Inter, cozy line-height, strong weight, normal tracking"
           },
@@ -3844,14 +5366,20 @@
               "fontSize": "{hds.core.font.size.11}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "caption md strong link — 11px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)"
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "15px",
+            "$value": {
+              "value": 15,
+              "unit": "px"
+            },
             "$description": "`type.caption.md` line-box — 15px, the height of one line of the `type.caption.md` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps."
           }
         },
@@ -3863,7 +5391,10 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "caption lg default — 12px Inter, cozy line-height, default weight, normal tracking"
           },
@@ -3874,7 +5405,10 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "caption lg default link — 12px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with `text.link.*` color)"
@@ -3886,7 +5420,10 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "caption lg strong — 12px Inter, cozy line-height, strong weight, normal tracking"
           },
@@ -3897,14 +5434,20 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.strong}",
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              },
               "textDecoration": "underline"
             },
             "$description": "caption lg strong link — 12px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with `text.link.*` color)"
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "17px",
+            "$value": {
+              "value": 17,
+              "unit": "px"
+            },
             "$description": "`type.caption.lg` line-box — 17px, the height of one line of the `type.caption.lg` type (font size × line height). A mark beside a caption sits in a box this tall and centers within it, so it stays on the caption's first line when the caption wraps."
           }
         }
@@ -3918,7 +5461,10 @@
               "fontSize": "{hds.core.font.size.11}",
               "fontWeight": "{hds.core.font.weight-role.emphasis}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.wider}",
+              "letterSpacing": {
+                "value": 0.55,
+                "unit": "px"
+              },
               "textCase": "uppercase"
             },
             "$description": "eyebrow sm emphasis — 11px Inter, snug line-height, emphasis weight, wider tracking, uppercase"
@@ -3932,7 +5478,10 @@
               "fontSize": "{hds.core.font.size.12}",
               "fontWeight": "{hds.core.font.weight-role.emphasis}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.wider}",
+              "letterSpacing": {
+                "value": 0.6,
+                "unit": "px"
+              },
               "textCase": "uppercase"
             },
             "$description": "eyebrow md emphasis — 12px Inter, snug line-height, emphasis weight, wider tracking, uppercase"
@@ -3946,7 +5495,10 @@
               "fontSize": "{hds.core.font.size.18}",
               "fontWeight": "{hds.core.font.weight-role.emphasis}",
               "lineHeight": "{hds.core.font.line-height-role.snug}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.wider}",
+              "letterSpacing": {
+                "value": 0.9,
+                "unit": "px"
+              },
               "textCase": "uppercase"
             },
             "$description": "eyebrow lg emphasis — 16→18px fluid Inter, snug line-height, emphasis weight, wider tracking, uppercase"
@@ -3962,7 +5514,10 @@
               "fontSize": "{hds.core.font.size.14}",
               "fontWeight": "{hds.core.font.weight-role.default}",
               "lineHeight": "{hds.core.font.line-height-role.normal}",
-              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+              "letterSpacing": {
+                "value": 0,
+                "unit": "px"
+              }
             },
             "$description": "code inline default — 14px JetBrains Mono, normal line-height, default weight, normal tracking"
           }
@@ -3974,18 +5529,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a1a",
-            "offsetX": "0px",
-            "offsetY": "1px",
-            "blur": "2px",
-            "spread": "0px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.102,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 2,
+              "unit": "px"
+            },
+            "spread": {
+              "value": 0,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a0f",
-            "offsetX": "0px",
-            "offsetY": "1px",
-            "blur": "3px",
-            "spread": "0px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0588,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 3,
+              "unit": "px"
+            },
+            "spread": {
+              "value": 0,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow xs — elevation 1 of 6, 2-layer (key+ambient)"
@@ -3994,18 +5591,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a1a",
-            "offsetX": "0px",
-            "offsetY": "1px",
-            "blur": "2px",
-            "spread": "-1px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.102,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 2,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -1,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a12",
-            "offsetX": "0px",
-            "offsetY": "2px",
-            "blur": "6px",
-            "spread": "-1px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0706,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 2,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 6,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -1,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow sm — elevation 2 of 6, 2-layer (key+ambient)"
@@ -4014,18 +5653,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a1f",
-            "offsetX": "0px",
-            "offsetY": "2px",
-            "blur": "4px",
-            "spread": "-2px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.1216,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 2,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 4,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -2,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a14",
-            "offsetX": "0px",
-            "offsetY": "4px",
-            "blur": "12px",
-            "spread": "-3px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0784,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 4,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 12,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -3,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow md — elevation 3 of 6, 2-layer (key+ambient)"
@@ -4034,18 +5715,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a1f",
-            "offsetX": "0px",
-            "offsetY": "3px",
-            "blur": "6px",
-            "spread": "-3px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.1216,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 3,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 6,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -3,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a14",
-            "offsetX": "0px",
-            "offsetY": "8px",
-            "blur": "20px",
-            "spread": "-5px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0784,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 8,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 20,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -5,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow lg — elevation 4 of 6, 2-layer (key+ambient)"
@@ -4054,18 +5777,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a24",
-            "offsetX": "0px",
-            "offsetY": "4px",
-            "blur": "8px",
-            "spread": "-4px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.1412,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 4,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 8,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -4,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a1a",
-            "offsetX": "0px",
-            "offsetY": "14px",
-            "blur": "32px",
-            "spread": "-8px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.102,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 14,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 32,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -8,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow xl — elevation 5 of 6, 2-layer (key+ambient)"
@@ -4074,18 +5839,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a24",
-            "offsetX": "0px",
-            "offsetY": "6px",
-            "blur": "12px",
-            "spread": "-6px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.1412,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 6,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 12,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -6,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a1f",
-            "offsetX": "0px",
-            "offsetY": "22px",
-            "blur": "52px",
-            "spread": "-12px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.1216,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 22,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 52,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -12,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow 2xl — elevation 6 of 6, 2-layer (key+ambient)"
@@ -4094,11 +5901,32 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a14",
-            "offsetX": "0px",
-            "offsetY": "2px",
-            "blur": "4px",
-            "spread": "0px",
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0784,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 2,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 4,
+              "unit": "px"
+            },
+            "spread": {
+              "value": 0,
+              "unit": "px"
+            },
             "inset": true
           }
         ],
@@ -4108,7 +5936,10 @@
     "blur": {
       "glass": {
         "$type": "dimension",
-        "$value": "32px",
+        "$value": {
+          "value": 32,
+          "unit": "px"
+        },
         "$description": "blur glass — 32px background blur behind a glass band over a photograph; pair it with `color.glass.surface`"
       }
     },
@@ -4144,27 +5975,42 @@
     "breakpoint": {
       "sm": {
         "$type": "dimension",
-        "$value": "0px",
+        "$value": {
+          "value": 0,
+          "unit": "px"
+        },
         "$description": "breakpoint sm — min-width 0px (mobile-first)"
       },
       "md": {
         "$type": "dimension",
-        "$value": "768px",
+        "$value": {
+          "value": 768,
+          "unit": "px"
+        },
         "$description": "breakpoint md — min-width 768px (mobile-first)"
       },
       "lg": {
         "$type": "dimension",
-        "$value": "1024px",
+        "$value": {
+          "value": 1024,
+          "unit": "px"
+        },
         "$description": "breakpoint lg — min-width 1024px (mobile-first)"
       },
       "xl": {
         "$type": "dimension",
-        "$value": "1440px",
+        "$value": {
+          "value": 1440,
+          "unit": "px"
+        },
         "$description": "breakpoint xl — min-width 1440px (mobile-first)"
       },
       "2xl": {
         "$type": "dimension",
-        "$value": "1920px",
+        "$value": {
+          "value": 1920,
+          "unit": "px"
+        },
         "$description": "breakpoint 2xl — min-width 1920px (mobile-first)"
       }
     },
@@ -4258,17 +6104,26 @@
     "container": {
       "max": {
         "$type": "dimension",
-        "$value": "1440px",
+        "$value": {
+          "value": 1440,
+          "unit": "px"
+        },
         "$description": "container max — 1440px content cap (fluid below it)"
       },
       "narrow": {
         "$type": "dimension",
-        "$value": "720px",
+        "$value": {
+          "value": 720,
+          "unit": "px"
+        },
         "$description": "container narrow — 720px reading measure"
       },
       "min": {
         "$type": "dimension",
-        "$value": "320px",
+        "$value": {
+          "value": 320,
+          "unit": "px"
+        },
         "$description": "container min — 320px narrowest column (the WCAG 1.4.10 reflow width)"
       }
     },
@@ -4412,7 +6267,10 @@
       },
       "capsule": {
         "$type": "dimension",
-        "$value": "999px",
+        "$value": {
+          "value": 999,
+          "unit": "px"
+        },
         "$description": "radius capsule — 999px (off-grid literal)"
       },
       "hairline": {
@@ -4554,12 +6412,18 @@
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "21px",
+            "$value": {
+              "value": 21,
+              "unit": "px"
+            },
             "$description": "`control.size.sm` line-box — 21px, the height of one line of the `type.body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph."
           },
           "label-inset": {
             "$type": "dimension",
-            "$value": "0px",
+            "$value": {
+              "value": 0,
+              "unit": "px"
+            },
             "$description": "`control.size.sm` label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 16px box less the 18px `type.body.xs` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line."
           }
         },
@@ -4601,12 +6465,18 @@
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "24px",
+            "$value": {
+              "value": 24,
+              "unit": "px"
+            },
             "$description": "`control.size.md` line-box — 24px, the height of one line of the `type.body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph."
           },
           "label-inset": {
             "$type": "dimension",
-            "$value": "0px",
+            "$value": {
+              "value": 0,
+              "unit": "px"
+            },
             "$description": "`control.size.md` label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 20px box less the 21px `type.body.sm` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line."
           }
         },
@@ -4648,12 +6518,18 @@
           },
           "line-box": {
             "$type": "dimension",
-            "$value": "27px",
+            "$value": {
+              "value": 27,
+              "unit": "px"
+            },
             "$description": "`control.size.lg` line-box — 27px, the height of one line of the `type.body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph."
           },
           "label-inset": {
             "$type": "dimension",
-            "$value": "0px",
+            "$value": {
+              "value": 0,
+              "unit": "px"
+            },
             "$description": "`control.size.lg` label-inset — 0px, how far an option row's label starts below the top of its control cell: half of the 24px box less the 24px `type.body.md` line, and 0 when the line is the taller. Keeps the label's first line centered on the box when the box outgrows the line."
           }
         }
