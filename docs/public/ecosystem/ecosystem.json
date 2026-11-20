@@ -342,7 +342,8 @@
           "code-input-cell",
           "code-input",
           "page-nav-item",
-          "page-nav"
+          "page-nav",
+          "popover"
         ]
       }
     },
