@@ -19,6 +19,9 @@
  *      `CONTRACT_VERSION`: a name added since needs a MINOR raise over the base's `mapVersion`, a dropped name a MAJOR
  *      one, and with no name moved the number stays the base's. `PIN MOVED WITHOUT A … RAISE`, `MAP VERSION BELOW THE
  *      BASE`, `MAP VERSION RAISED WITH NO NAME MOVED`. Its rule runs first against literal cases (`BASE_SELF_CHECK`).
+ *      The base comes by `lint-contract-version.ts`'s ladder: the merge group's parent first (`MERGE_GROUP_BASE_SHA`,
+ *      #4106; lost, it CANNOT RUN), then `GITHUB_BASE_REF` fetched again in CI, then `origin/main`. `lint-push-base.ts`
+ *      replays main's push run and the merge-queue run against this arm.
  *   3. PIN ↔ UPSTREAM, when an upstream file is given: a shadcn `registry:theme` item's `cssVars.light` and
  *      `cssVars.dark` names against the pin, `UPSTREAM ADDED <name> (<mode>)` and `UPSTREAM DROPPED <name> (<mode>)`.
  *      The arm runs every time against a planted stand-in (the pin plus one name, less one name), so it is proven to
@@ -44,7 +47,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { comparisonBase } from './comparison-base.ts';
+import { comparisonBase, mergeGroupBase } from './comparison-base.ts';
 import { PROJECTION_TARGETS, type ProjectionTarget } from './projections/targets.ts';
 import { satisfiesBump } from './version.ts';
 
@@ -153,16 +156,43 @@ const cannotRun = (lines: string[]): never => {
   for (const l of lines.slice(1)) console.error(l);
   process.exit(1);
 };
-/** The commit to read the base's pin at: the merge base with the PR's base branch (or `origin/main`, `main`), or
- *  HEAD's first parent on the base branch itself (#2556). It cannot run without one; it does not pass over nothing. */
+/** The commit to read the base's pin at, by the ladder `lint-contract-version.ts` uses: in a merge-group run the group's
+ *  parent (`MERGE_GROUP_BASE_SHA`, `mergeGroupBase`, #4106), authoritative, with no fallback when it is lost; on a pull
+ *  request `origin/<GITHUB_BASE_REF>`, fetched again in CI because the checkout's copy is as old as the run's start;
+ *  otherwise `origin/main`, then `main`. Then the merge base with it, or HEAD's first parent on the base branch itself
+ *  (#2556). It cannot run without a base; it does not pass over nothing. */
 const resolveBase = (): { rev: string; label: string } => {
-  const cands = process.env.GITHUB_BASE_REF ? [`origin/${process.env.GITHUB_BASE_REF}`] : ['origin/main', 'main'];
-  const ref = cands.find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
-  if (!ref) return cannotRun([`no base ref (tried ${cands.join(', ')}) — the base arm CANNOT RUN.`, '  Locally, `git fetch origin main`.']);
+  const tried: string[] = [];
+  let ref: string | null = null;
+  const mg = mergeGroupBase(git);
+  const prRef = process.env.GITHUB_BASE_REF;
+  if (mg) {
+    // A merge-queue run: `GITHUB_BASE_REF` is empty, and `origin/main` would read the groups ahead as this PR's diff.
+    tried.push(mg.tried);
+    ref = mg.ref;
+  } else if (prRef) {
+    const pr = `origin/${prRef}`;
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      // Two PRs that each raise the map version for different names make the identical edit to the number; the
+      // stale ref would read a raise taken on the base branch since the checkout as free. A failed fetch does not fall back.
+      const f = git('fetch', '--no-tags', '--quiet', 'origin', `+refs/heads/${prRef}:refs/remotes/${pr}`);
+      if (!f.ok) return cannotRun([`could not refresh ${pr} from origin — the base arm CANNOT RUN against the current base.`, `    ${f.err || '(git printed nothing)'}`]);
+    }
+    const r = git('rev-parse', '--verify', '--quiet', `${pr}^{commit}`);
+    tried.push(`${pr} (GITHUB_BASE_REF, authoritative) — ${r.ok ? 'resolves' : 'does not resolve'}`);
+    if (r.ok) ref = pr;
+  } else {
+    for (const c of ['origin/main', 'main']) {
+      const r = git('rev-parse', '--verify', '--quiet', `${c}^{commit}`);
+      tried.push(`${c} — ${r.ok ? 'resolves' : 'does not resolve'}`);
+      if (r.ok) { ref = c; break; }
+    }
+  }
+  if (!ref) return cannotRun(['no base ref — the base arm CANNOT RUN.', `    tried: ${tried.join(' · ')}`, '  Locally, `git fetch origin main`.']);
   const mb = git('merge-base', 'HEAD', ref);
   if (!mb.ok || !mb.out.trim()) return cannotRun([`no merge base between HEAD and ${ref} — the base arm CANNOT RUN.`, '  A shallow clone is the usual cause: `git fetch --unshallow`.']);
   const { base, label } = comparisonBase(git, mb.out.trim(), cannotRun);
-  return { rev: base, label: `${base.slice(0, 8)} (${ref}, ${label})` };
+  return { rev: base, label: `${base.slice(0, 8)} (${mg ? 'merge group' : ref}, ${label})` };
 };
 const pinAt = (rev: string, t: ProjectionTarget): Pin | null => {
   const r = git('show', `${rev}:${t.pinPath}`);

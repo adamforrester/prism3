@@ -2942,12 +2942,12 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite` (800ms per turn), a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here."
+          "description": "rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite`, one turn per `motion.duration.spin`, a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here."
         },
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "reduced motion — under `@media (prefers-reduced-motion: reduce)` the turn SLOWS to `var(--motion-duration-reduced-spin)` (2600ms per turn), still linear and infinite. Not a pulse and not a static ring: the turn is what tells a sighted user work is continuing, so reduced motion keeps it and takes the speed out of it."
+          "description": "reduced motion — under `@media (prefers-reduced-motion: reduce)` the turn SLOWS to `var(--motion-duration-reduced-spin)` per turn, still linear and infinite. Not a pulse and not a static ring: the turn is what tells a sighted user work is continuing, so reduced motion keeps it and takes the speed out of it."
         },
         {
           "class": "visual-treatment",
@@ -4728,7 +4728,8 @@
           "Owner decision Q483 A (2026-10-20, #2877), amending Q303.1: a side placement, as a value of `placement` and not a new component, for a sign-in or filter panel that slides in from the edge. Q488 A: it is `end`, the writing direction's end edge. Q489 A: one width, 480px, and no size, so 18 members. Q490 A: every corner square. Q491 A: reduced motion stays instant at every placement, and the contract no longer calls it a fade. Q492 A: the existing footers (an equal-width footer is #2880). Q493 A: the aliases side-sheet and drawer. Still a modal dialog with the scrim behind it.",
           "Owner decision Q-M5 A (2026-11-07, #3413; #3488), amending Q491 A: under reduced motion every placement and the backdrop fade only, on `motion.duration-reduced.normal`, instead of opening and closing at once. A fade is not vestibular motion, and an instant swap of a full-screen layer loses the cue that a new layer opened. The movement is substituted, not deleted (`prism3-motion` R7), as Toast already does.",
           "Owner decision Q721 A (2026-10-27, #3049; Q3049.1 C, Q3049.2 A, Q3049.3 A, Q3049.4): the panel fills with its own role, `color.foreground.raised`, not the card surface. It holds the card surface unless the brand sets `raisedSurface` to `page` or `white`, which acts in light and hc-light only, so every dialog keeps its lift in dark.",
-          "Owner decision Q492 B (2026-10-20, on #2877), built on #2880 with every recommendation accepted (2026-10-21): a fourth footer, `fill`, in the order inline, stacked, fill, none, that nests the Button group at `layout=fill` on every placement. The halves stay equal at every width and a long label wraps inside its button; nothing switches to stacked by itself, and the docs say to pick stacked for long labels. One to three buttons, as the `actions` slot allows, two being the case it is for. The defaults are Cancel then Save, with Cancel a Button.Neutral where the file has it."
+          "Owner decision Q492 B (2026-10-20, on #2877), built on #2880 with every recommendation accepted (2026-10-21): a fourth footer, `fill`, in the order inline, stacked, fill, none, that nests the Button group at `layout=fill` on every placement. The halves stay equal at every width and a long label wraps inside its button; nothing switches to stacked by itself, and the docs say to pick stacked for long labels. One to three buttons, as the `actions` slot allows, two being the case it is for. The defaults are Cancel then Save, with Cancel a Button.Neutral where the file has it.",
+          "Owner decision #3392 A (2026-11-18), superseding Q303/Q489 for the axis: `size` is not a variant. It changed only the centered panel's built width, so Dialog is one set of 16 members, the designer or the container sets the width, and 400, 560 and 720px are the recommended sizes. The code prop stays. An Update file moves each existing `size=medium` member off the axis in place and removes the `size=small` and `size=large` members."
         ],
         "projection": []
       },
@@ -5726,12 +5727,12 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)` (1600ms), on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it."
+          "description": "the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)`, on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)`: slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it."
         },
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, which is 0ms, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`."
+          "description": "the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`."
         },
         {
           "class": "implementation",
@@ -5741,7 +5742,7 @@
         {
           "class": "runtime-behavior",
           "disposition": "LOWERED",
-          "description": "the indeterminate ring — the same `<svg>` with the arc's `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) linear infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (1600ms per turn, Progress's own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o'clock. In right-to-left the arc turns counterclockwise."
+          "description": "the indeterminate ring — the same `<svg>` with the arc's `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) linear infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (one turn per `motion.duration.sweep`, Progress's own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)`: slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o'clock. In right-to-left the arc turns counterclockwise."
         },
         {
           "class": "right-to-left",
@@ -6373,7 +6374,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the slide is 0ms; motion.duration-reduced.fast keeps 100ms, so the slider sets 0 itself."
+          "description": "Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the thumb moves at once; motion.duration-reduced.fast still slides, so the slider turns the transition off itself."
         },
         {
           "class": "composition",

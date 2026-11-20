@@ -1398,6 +1398,10 @@ npx tsx packages/engine/lint-shadcn-contrast.ts     # the shadcn theme clears it
                                                     # own min. Needs Chromium (CI: the studio job).
 npx tsx packages/engine/lint-shadcn-roundtrip.ts    # every shadcn oklch() lands on its emitted 8-bit color
                                                     # (#2997), parsed by Chromium, against the full tree.
+npx tsx packages/engine/lint-spec-supplement.ts     # the spec supplement lines up with Spectacular (#2996):
+                                                    # each element, prop and Figma name against a hand-
+                                                    # copied fixture of Spectacular's own output, each
+                                                    # $token path mapped, each code name in the contract.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
@@ -1790,9 +1794,9 @@ npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds
                                           # apps/plugin/dist (main.js + ui.html), where the component
                                           # defs' description/note/aria prose actually ships
 npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here.
-                                          # NOT the same scope any more: it still has the
-                                          # apps/plugin/dist hole #937 closed above (3 violations
-                                          # measured in main.js), filed as #948 not folded in
+                                          # Same bundle scope since #948: it reads
+                                          # apps/plugin/dist (main.js + ui.html) too, the hole
+                                          # #937 closed above for the US-English gate
 sh tools/claude-md-freshness/mutations.sh  # the mutation battery for the CLAUDE.md-freshness
                                           # SessionStart hook (#1110), wired into CI as #1123 — the
                                           # one tools/ battery that is a gate. NAMED FOR THE
@@ -1863,6 +1867,34 @@ The reviewer-facing half: **duplication between a gate and its subject is usuall
 Routing both through one helper is the obvious cleanup and it silently deletes the gate, leaving
 no failing test and a diff that looks like an improvement. If you're about to suggest that
 cleanup, check for a comment explaining why the duplication is there.
+
+### A new gate fails from day one: no probation inside a required job (#888)
+
+Owner decision #888 A (2026-11-18). **A new gate fails builds from the PR that adds it.** Almost every
+gate here is deterministic, so an advisory week buys nothing: if it fails, the failure is real.
+
+**If a gate genuinely needs probation** (its failures might not be real: a browser, network or external
+service it depends on), **run it as a separate job that branch protection does not require.** Its
+conclusion is honest, it shows in the PR's checks list, and the evidence reads straight off the run
+conclusions, with no clock, flag or summary workaround. The cost is a red X on PRs while probation runs.
+That is chosen on purpose: the invisible alternative is what made #775's evidence almost unreadable.
+Today that job cannot sit in `ci.yml`: `lint-doc-gates.ts` holds every `ci.yml` job to `gates`' `needs`
+(Q503 A), so a job there is required whether you mean it to be or not.
+
+**A required gate step never carries `continue-on-error`, or a step-level `if:` that skips it.** With
+`continue-on-error: true`, GitHub reports the step's own conclusion as `success` when its command exits
+non-zero, not only the job's. Measured on #775, not assumed. So the step leaves no evidence in any
+status check or API read, only an `##[error]` inside its log, which is the opposite of what a probation
+period is for. `lint-doc-gates.ts` fails a gate step carrying either, or a job-level `continue-on-error` over one
+(#3881, #3958).
+
+Two rules hold whichever route a gate takes:
+
+- **Any dated promise gets `lint-advisory-expiry.ts`.** Its oracle is the clock, which the repo cannot
+  edit.
+- **If probation finds flakiness, fix the flake.** Don't extend the window: an extension is how advisory
+  becomes forever. A gate whose browser download fails on a CDN blip gets the browser cached, never the
+  flag back.
 
 ### The `out/*` discipline
 

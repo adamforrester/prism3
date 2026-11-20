@@ -12,7 +12,10 @@ rule that restores a full-strength ring (Q2997.17 B). It is not a regen step yet
 `SHADCN_MAP_VERSION`; only `--accept` writes the pin, and it refuses without a version raise. Since the review on #4286 it
 also holds the pin to the base's pin, read from git at the merge base as `lint-contract-version.ts` reads its number: a
 name added needs a MINOR raise over the base's map version, a dropped one a MAJOR raise, and with no name moved the number
-stays the base's. Before, a hand edit that added a name to the map and the pin at the old number passed every gate. `lint-shadcn-contract.ts`
+stays the base's. Before, a hand edit that added a name to the map and the pin at the old number passed every gate. The
+base comes by `lint-contract-version.ts`'s ladder: in a merge-group run the group's parent (`MERGE_GROUP_BASE_SHA`, #4106),
+with no fallback, so two queued PRs that each add a name and each raise the map version to the same number no longer read
+as one raise; `lint-push-base.ts` replays main's push run and the merge-queue run against it. `lint-shadcn-contract.ts`
 (gate 4) holds the anchored rows (primary, secondary, destructive and their foregrounds, input, ring) to the bindings in the
 published contract export, which it renders itself because it is never committed. Every row is anchored or declared
 unanchored, and every mapped role is in the guaranteed set. The anchors are typed in the gate, never read from the map.
@@ -37,6 +40,8 @@ Button filled.fill (color.interactive.primary.fill.rest)`; `accent` → `color.i
 `NOT GUARANTEED`; dropping `sidebar-ring` fails `UNMAPPED sidebar-ring` (and gate 4's `STALE UNANCHORED`); an upstream item
 with an added name fails `UPSTREAM ADDED sidebar-glow (light)`; a raised map version with no accept fails `MAP VERSION`; a name added to the map and the pin at `1.0.0`, over a base
 that has the pin, fails `PIN MOVED WITHOUT A MINOR RAISE 1.0.0 → 1.0.0 since the base: ADDED sidebar-glow (dark), …`; a
-second target in the registry with no anchors fails `NO ANCHORS FOR TARGET second`.
+second target in the registry with no anchors fails `NO ANCHORS FOR TARGET second`. In `lint-push-base.ts`, the base arm
+with its `mergeGroupBase` call removed fails the queued shadcn case (`PIN MOVED WITHOUT A MINOR RAISE`) and the fail-closed
+case (`MERGE_GROUP_BASE_SHA`), and with its `comparisonBase` call removed fails both shadcn push cases.
 Every emitted `oklch()` converts back to its emitted 8-bit color through `color.ts` (320 of 320); PR 2 proves it through
 Chromium's parser, which shares no code with the projector.

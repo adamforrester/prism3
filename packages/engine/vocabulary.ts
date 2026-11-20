@@ -139,6 +139,20 @@ export const TRAITS: Record<string, Trait> = {
   },
 };
 
+/**
+ * The direct opposites among the traits (#3976, owner decision Q-PW1 A): each pair pulls a lever it shares in opposite
+ * directions (soft and sharp both set the corner radius and the shadow softness), so listing both only ever applies the
+ * first one's settings on what they share. The engine still takes both, and notes what the second one kept, by the
+ * first-listed-wins rule below; a host that offers the words as choices reads this to turn a word's opposite off when
+ * the word is picked, rather than restating the pairs. `test.ts` holds each pair to a lever the two set differently.
+ */
+export const TRAIT_OPPOSITES: readonly (readonly [string, string])[] = [
+  ['soft', 'sharp'],
+  ['dense', 'generous'],
+  ['calm', 'energetic'],
+  ['bold', 'restrained'],
+];
+
 export type Resolution = { input: unknown; notes: string[] };
 
 const getPath = (obj: any, path: string): unknown => {
