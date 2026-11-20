@@ -12,24 +12,20 @@ unchanged.
   touches the staged load or the menu, so the confirm stays open and nothing loads until the designer answers it.
 - **The browser's leave-page prompt (web).** `state/leave-guard.ts` adds a `beforeunload` listener while the brand has
   unsaved edits and removes it when it has none. "Unsaved edits" is the confirm's own rule, `needsOverwriteConfirm`,
-  re-read on the store's `brand`, `identity` and `origin` topics, so the prompt and the confirm cannot disagree. The
+  re-read on the store's `brand`, `identity` and `origin` topics, and once at boot: `entry.ts` calls `syncLeaving()`
+  straight after `initSession`, which publishes no topic, so a reload that restored unsaved edits (#3880) asks
+  before leaving with no further edit. The prompt and the confirm cannot disagree. The
   listener is removed rather than left on and deciding inside, because a page holding a `beforeunload` listener can
   be kept out of the back/forward cache. The plugin gets no prompt: its panel is not a page the designer leaves.
 - **Guide:** `theme-a-brand.md` says the question asks first, offers the two downloads, and that the web browser asks
   before leaving. Ten citations in five guides re-pointed to where `main.ts` and `bar.ts` lines moved.
 
-### Owner decisions (OPEN)
+### Owner decision (2026-11-18): approved as built
 
-1. **Labels (DRAFT):** "Download design.md" and "Download tokens", the issue's own words. Recommendation: keep them.
-   "design.md" matches **Import design.md…** in the same menu, the name the designer loads it back by; the Export
-   area's "Download brief" names the same file in that area's own terms.
-2. **No new line.** The sentence already says the edits "are not saved anywhere else", which is why the downloads are
-   there. Recommendation: no line.
-3. **Placement:** the downloads sit in their own row, under the sentence and above Replace brand and Cancel, as
-   secondary buttons with the download icon, so the order reads save, then answer.
-4. **Scope:** built on the brand menu's confirm (an example, a design.md import). Not on the start window's guard
-   (New brand › a path over edits), which asks with its own Discard dialog, nor on the plugin's held-restore confirm
-   in the error strip. Recommendation: the start window's guard next, if wanted, as its own change.
+The labels are "Download design.md" and "Download tokens", with no new line. They sit on their own row, under the
+sentence and above Replace brand and Cancel. The scope is the brand menu's confirm only (an example, a design.md
+import): not the start window's guard, which asks with its own Discard dialog, and not the plugin's held-restore
+confirm in the error strip.
 
 ### Verification
 
@@ -37,7 +33,8 @@ unchanged.
 store's real states, and the wiring read from `main.ts`. `test-smoke.mjs` §5 E drives the built web bundle: no prompt on
 a just-opened example, a prompt after an edit, each download writes its file and leaves the confirm open, and Replace
 brand disarms the prompt. `test-chrome.mjs` measures the two new buttons as chrome in the confirm and reads the prompt
-before and after an edit. On `main`'s source, smoke fails `#3982 leaving after an edit asks first` by name, and the
+before and after an edit. Smoke case C reloads with unsaved edits and reads `#3982 after a reload with unsaved
+edits, leaving asks first, before any further edit` (#3880's restore). On `main`'s source, smoke fails `#3982 leaving after an edit asks first` by name, and the
 unit suite fails four of its wiring arms. Mutations, each after a `wip:` commit, failing by name: a guard that never
 disarms → `#3982 after Replace brand loads an untouched example, leaving no longer asks`; a download that drops the
 staged load → `#3982 Download tokens leaves the confirm open`; `sync` without its no-change return → `#3982 arming
