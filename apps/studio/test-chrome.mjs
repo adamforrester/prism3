@@ -3050,8 +3050,11 @@ for (const theme of ['light', 'dark']) {
   const onDisk = (() => { try { return statSync(join(REPO, 'docs/public/index.html')).isFile(); } catch { return false; } })();
   ok(onDisk, `the Docs target ${LANDING} names a file on disk (docs/public/index.html)`);
   for (const host of ['web', 'figma']) {
-    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
-    if (host === 'figma') await page.evaluate(() => { window.__docsPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && m.type !== 'ui-ready') window.__docsPosts.push(m); }); });
+    // #3340: the plugin's posts are recorded from boot, so the example pick's own recount (`due-request`, posted
+    // `DUE_DEBOUNCE_MS` after the pick, #3081) is seen landing before Docs is clicked. Listened for only after `open`, it
+    // could land inside the click's read window on a slow machine and read as a post the click made.
+    const listenFromBoot = (pg) => pg.addInitScript(() => { window.__docsPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && m.type !== 'ui-ready') window.__docsPosts.push(m); }); });
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, prep: host === 'figma' ? listenFromBoot : undefined });
     // #2909: Docs is the rail foot's Help, just before Appearance: after the Agent tile in the plugin, on both hosts since
     // Q2909.9 A.
     const tileOf = await page.evaluate(() => {
@@ -3075,8 +3078,12 @@ for (const theme of ['light', 'dark']) {
       const before = page.url();
       const opened = [];
       ctx.on('page', (pg) => opened.push(pg.url()));
+      // #3340: wait for the pick's recount to land, then read only what is posted after the click.
+      const settled = await page.waitForFunction(() => window.__docsPosts.some((m) => m.type === 'due-request'), null, { timeout: 10000 }).then(() => true, () => false);
+      ok(settled, `#3340 figma: the example pick's recount (due-request) lands before Docs is clicked (posted ${JSON.stringify(await page.evaluate(() => window.__docsPosts.map((m) => m.type)))})`);
+      const mark = await page.evaluate(() => window.__docsPosts.length);
       await hooks.click(page.locator('[data-p3="docs-open"]'));
-      const posts = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__docsPosts.slice()), 50)));
+      const posts = await page.evaluate((k) => new Promise((r) => setTimeout(() => r(window.__docsPosts.slice(k)), 50)), mark);
       ok(JSON.stringify(posts) === JSON.stringify([{ type: 'open-docs' }]) && opened.length === 0 && page.url() === before,
         `figma: Docs posts {"type":"open-docs"} to the main thread and opens nothing in the panel (posted ${JSON.stringify(posts)}; opened ${JSON.stringify(opened)})`);
     }
@@ -18038,6 +18045,48 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// #2641 / #2745: a drag that holds still mid-gesture for longer than the store's quiet window (`QUIET_MS`, 400 ms in
+// `lever-kit.ts`) still stores ONE write. The pause stands in for a frame that runs long under load: before the fix,
+// the quiet timer released the hold mid-drag (one write) and the pointer's release wrote again (two), which is the
+// "2 written" the arm above caught once in a loaded run. The pause is a forced delay on purpose (it reproduces the
+// race on any machine); EXPECTED, one write and the stored value equal to the drawn one, is typed here.
+// MUTATION: `perFrame` arming the quiet timer while the pointer is pressed (`if (!pressed)` removed) → this arm fails.
+{
+  const where = '§46 web light 1280';
+  const PAUSE_MS = 900;
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  let step = 'install the counters';
+  try {
+    await page.evaluate(COUNT);
+    step = 'drag Shape\'s softness with a pause mid-gesture';
+    await goPlace(page, 'shape');
+    const sel = '[data-p3="radius-scale-slider"]';
+    await hooks.need(page, sel, BOUND);
+    const el = page.locator(sel);
+    await el.scrollIntoViewIfNeeded();
+    const g = await el.evaluate((n) => { const r = n.getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width, v: Number(n.value), min: Number(n.min), max: Number(n.max), step: Number(n.step) || 1 }; });
+    const at = g.x + ((g.v - g.min) / (g.max - g.min)) * g.w;
+    const to = at + (g.x + g.w - at) * 0.75;
+    await zero(page);
+    await page.mouse.move(at, g.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 12; i++) {
+      await page.mouse.move(at + ((to - at) * i) / 12, g.y);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+      if (i === 6) await page.waitForTimeout(PAUSE_MS);   // the pointer held still, pressed, past the quiet window
+    }
+    await page.mouse.up();
+    await settle(page);
+    const after = await el.evaluate((n) => Number(n.value));
+    const w = await writes(page);
+    const stored = (await persisted(page))?.radiusScale ?? null;
+    ok(after - g.v > g.step * 1.5 && w === 1 && stored === after,
+      `${where} Shape: a drag that pauses mid-gesture past the quiet window stores one write, where it ends (#2641: ${w} written; ${g.v} → ${after}, stored ${stored})`);
+    ok(errors.length === 0, `${where} #2641: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where} #2641: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 }
