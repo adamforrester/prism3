@@ -31880,6 +31880,38 @@ arm: {
   ok(stamped.$extensions?.generator?.version === ENGINE_VERSION,
     'version: every emitted tree carries the engine version, so a suspect value can be traced to the code that produced it');
 }
+{
+  // #4145: three exports had no reader and a comment claiming one. Each claim is now true or gone.
+  // 1. SPECS_SCHEMA_VERSION is held equal to the Specs pin `packages/tokens/package.json` installs (the pin
+  //    `check-specs.mjs` [PIN] reads). Two authored copies of one version, compared here, so a bump of either alone fails.
+  const specsMod = await import('./component-defs-export') as Record<string, unknown>;
+  const specsPin = JSON.parse(readFileSync(resolve(HERE, '../tokens/package.json'), 'utf8')).devDependencies?.['@directededges/specs-schema'];
+  ok(typeof specsMod.SPECS_SCHEMA_VERSION === 'string' && specsMod.SPECS_SCHEMA_VERSION === specsPin,
+    `#4145 SPECS_SCHEMA_VERSION is the Specs schema pin in packages/tokens/package.json (engine ${String(specsMod.SPECS_SCHEMA_VERSION)}, pin ${specsPin})`);
+  // 2. DISPOSITION_MEANINGS is read by lint-code-only-classes.ts's report: every meaning is printed beside its name.
+  const reg = await import('./code-only-register') as { DISPOSITION_MEANINGS?: Record<string, string>; DISPOSITION_NAMES: Record<string, string> };
+  const report = spawnSync('npx', ['tsx', resolve(HERE, 'lint-code-only-classes.ts')], { cwd: HERE, encoding: 'utf8' }).stdout ?? '';
+  const unprinted = Object.entries(reg.DISPOSITION_NAMES).filter(([k, n]) => !reg.DISPOSITION_MEANINGS?.[k] || !report.includes(`${n}: ${reg.DISPOSITION_MEANINGS[k]}`)).map(([, n]) => n);
+  ok(unprinted.length === 0, `#4145 lint-code-only-classes.ts prints each disposition's meaning beside its name (not printed: ${unprinted.join(', ') || 'none'})`);
+  // 3. PROTOCOL_VERSION ("retained for the older handshake's reply") was read by nothing: `initialize` answers through
+  //    negotiateHandshakeVersion. It is gone, so no second name for LATEST_PROTOCOL_VERSION can drift from it.
+  ok(!('PROTOCOL_VERSION' in (await import('./mcp'))), '#4145 mcp.ts exports no PROTOCOL_VERSION alias, which no handshake reads');
+  // #4214 item 2: the action anchor step is the interactive palettes' own helper, not a line-for-line copy of it that
+  // can drift. Read from the source: the two computed the same number, so no output can tell them apart.
+  const brandSrc = readFileSync(resolve(HERE, 'theme-brand.ts'), 'utf8');
+  for (const [name, pal] of [['actionAnchorStep', 'resolvedAction'], ['linkAnchorStep', 'linkPalette']])
+    ok(new RegExp(`const ${name} = interactiveStepFor\\(${pal}\\);`).test(brandSrc),
+      `#4214 theme-brand.ts computes ${name} through interactiveStepFor, not a copy of its three cases`);
+  // #4214 item 1: CLAUDE.md counted the uncommitted exports ("Three") after #3992 made them four. A count it states must
+  // be the list's length; the fix states none, as the file's own rule asks (#1110).
+  const { UNCOMMITTED_OUT: uncommitted } = await import('./regen') as { UNCOMMITTED_OUT: string[] };
+  const WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  // A count may be a word ("Three") or a digit ("4"); either one is read, so a digit can't slip past (#4214 review nit).
+  const word = readFileSync(resolve(HERE, '../../CLAUDE.md'), 'utf8').match(/\b(\w+) whole-catalog component exports/i)?.[1]?.toLowerCase();
+  const stated = word === undefined ? undefined : /^\d+$/.test(word) ? Number(word) : WORDS.includes(word) ? WORDS.indexOf(word) + 1 : undefined;
+  ok(stated === undefined || stated === uncommitted.length,
+    `#4214 CLAUDE.md states no count of the uncommitted exports that disagrees with UNCOMMITTED_OUT (states ${word !== undefined && stated !== undefined ? word : 'none'}, the list has ${uncommitted.length})`);
+}
 
 // --------------------------------------------------------- vocabulary (#471)
 // Named stops + personality traits. The interesting assertions are not "does 'soft' become 1.5" but
@@ -35143,6 +35175,50 @@ arm: {
       .filter((r) => r.since !== '' && !contractSince.has(r.since));
     ok(stray.length === 0,
       `#1084 rename-map: every composed row over the shipped map carries '' or a CONTRACT_VERSION from DEPRECATIONS — ${stray.length} do not${stray.length ? `: ${stray.slice(0, 3).map((r) => `${r.from}@${r.since}`).join(', ')}` : ''}`);
+  }
+}
+
+// #4229 — `keysNotDrawn` probes every shared key of a def in ONE projection, not one projection per key. That is the
+// per-key answer only while no projection rule compares two keys' refs, so the two paths are compared here, over every
+// def whose answer is not empty and small enough to probe per key in a test, and over `banner`, whose projection reads
+// a shared key as a value and so must take the per-key path. ORACLE: `keysNotDrawnPerKey`, the exact path the report
+// used before #4229; its answer for divider is also pinned by #3157's literal arm above.
+{
+  const ear = await import('./emit-analysis-reports') as Record<string, unknown>;
+  type Def = Parameters<typeof figmaAnatomySet>[0];
+  const onePass = ear.keysNotDrawn as ((d: Def) => { dropped: Set<string>; via: string }) | undefined;
+  const perKey = ear.keysNotDrawnPerKey as ((d: Def) => Set<string>) | undefined;
+  ok(typeof onePass === 'function' && typeof perKey === 'function', '#4229: emit-analysis-reports exports keysNotDrawn (one pass) and keysNotDrawnPerKey (the oracle)');
+  if (typeof onePass === 'function' && typeof perKey === 'function') {
+    const byId = new Map((componentDefs as Def[]).map((d) => [(d as { id: string }).id, d]));
+    // Every def whose answer is not empty is compared, the button family and the fields included (#4278 review): leaving
+    // one out leaves a ref-comparing rule that moves only its answer to a report diff, which `regen.ts` rewrites and no
+    // gate reads.
+    for (const id of ['divider', 'checkbox-row', 'radio-row', 'icon', 'tag', 'badge', 'wallet-button',
+      'button', 'button-destructive', 'button-neutral', 'link', 'text-field', 'textarea', 'select', 'password-field',
+      'search-field', 'card-number-field', 'banner']) {
+      const def = byId.get(id);
+      if (!def) { ok(false, `#4229: ${id} is a def, so the one-pass probe can be compared on it`); continue; }
+      const want = [...perKey(def)].sort().join(', ');
+      let got: { dropped: Set<string>; via: string };
+      try { got = onePass(def); } catch (err) { ok(false, `#4229: ${id}'s one-pass probe threw instead of answering: ${(err as Error).message.slice(0, 160)}`); continue; }
+      ok([...got.dropped].sort().join(', ') === want,
+        `#4229: ${id}'s keys no plan draws are the same probed in one projection as one key at a time (one pass [${[...got.dropped].sort().join(', ')}] via ${got.via}; per key [${want}])`);
+      if (id === 'banner') ok(got.via === 'per key', `#4229: banner's projection reads a shared key as a value, so it takes the per-key path (via ${got.via})`);
+      else ok(got.via === 'one pass' && want !== '', `#4229: ${id} is answered in one projection, and has keys no plan draws, so the comparison is not of two empty sets (via ${got.via}; per key [${want}])`);
+    }
+    // The fallback's ANSWER, not only that banner takes it (#4278 review): banner's true answer is empty, so a fallback
+    // returning an empty set passed. A key no part binds, sharing a token with banner's `gap`, is not drawn by any
+    // member, and the per-key path must say so.
+    const banner = byId.get('banner') as (Def & { tokens?: Record<string, string> }) | undefined;
+    const gapRef = banner?.tokens?.gap;
+    if (banner && gapRef) {
+      const stub = { ...banner, tokens: { ...banner.tokens, 'zz-unbound': gapRef } } as Def;
+      let got: { dropped: Set<string>; via: string } | undefined;
+      try { got = onePass(stub); } catch (err) { ok(false, `#4229: the banner stub's probe threw instead of answering: ${(err as Error).message.slice(0, 160)}`); }
+      if (got) ok(got.via === 'per key' && got.dropped.has('zz-unbound') && [...got.dropped].sort().join(', ') === [...perKey(stub)].sort().join(', '),
+        `#4229: the per-key fallback answers, not just runs: a banner key no part binds reads as not drawn (via ${got.via}; [${[...got.dropped].sort().join(', ')}])`);
+    } else ok(false, '#4229: banner declares a gap token, so the per-key fallback can be given a key no part binds');
   }
 }
 

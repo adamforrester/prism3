@@ -631,5 +631,44 @@ await section('size/one member', async () => {
     `size/one member: a member that will not fit alone throws, naming the def and the member (${thrown ? `"${thrown.slice(0, 220)}"` : 'no throw'})`);
 });
 
+/* ── font cut spelling: the paste's font step writes each cut in its family's spelling (#3861) ─────────── */
+await section('font cut spelling', async () => {
+  // A host whose families spell a multi-word cut without its space (`SemiBold`, as Playfair does) where the engine
+  // writes `Semi Bold`. Apply Theme resolves the cut variables before its variable stage (#1728); the paste's font step
+  // now does too, from the cut → family pairing it carries. A paste stopped right after its font step must leave no cut
+  // variable naming a style its family lacks. THE ORACLE is the host: each value is looked up in the shim's own face
+  // list for that cut's family, never through `resolveCutPlan`. Mutations: `runFont` writing `d.plans` as built, or the font step shipped without `cutPairs` →
+  // `font cut spelling/after the font step`.
+  const brand = PARITY[0][1];
+  const tp = themePlans(brand).textPlan;
+  const respell = (style: string): string => style.replace(/ /g, '');
+  const faces = FACES.map((f) => ({ family: f.family, style: respell(f.style) }));
+  const B = new FileShim({});
+  B.faces = faces;
+  const all = writes(brand);
+  const fontAt = all.findIndex((s) => s.kind === 'font');
+  await runAll(all.slice(0, fontAt + 1), B);
+  const pairs = new Map(tp.filter((r) => r.fontStyleVar && r.fontFamilyVar).map((r) => [r.fontStyleVar!, r.fontFamilyVar!] as const));
+  const byName = new Map(B.vars.map((v) => [v.name, v] as const));
+  const lit = (v: any, mode: string): string | null => { const x = v?.valuesByMode?.[mode]; return typeof x === 'string' ? x : null; };
+  const has = (family: string, style: string): boolean => faces.some((f) => f.family === family && f.style === style);
+  const read: string[] = [];
+  const wrong: string[] = [];
+  for (const [cutName, famName] of pairs) {
+    const cv = byName.get(cutName), fv = byName.get(famName);
+    if (!cv || !fv) continue;
+    for (const mode of Object.keys(cv.valuesByMode)) {
+      const cut = lit(cv, mode), fam = lit(fv, mode);
+      if (cut === null || fam === null) continue;
+      read.push(`${cutName}=${cut}`);
+      if (!has(fam, cut)) wrong.push(`${cutName}: ${fam} ${cut}`);
+    }
+  }
+  // The premise: the engine plans multi-word cuts this host spells without the space, so the arm is not vacuous.
+  const planned = themePlans(brand).fontPlan.flatMap((c) => c.rows.filter((r) => pairs.has(r.name)).flatMap((r) => r.valuesByMode)).filter((v) => typeof v === 'string' && / /.test(v)).length;
+  ok(read.length > 0 && planned > 0, `font cut spelling: premise — the engine plans ${planned} multi-word cut values, which this host spells without the space (${read.length} cut values read)`);
+  ok(read.length > 0 && wrong.length === 0, `font cut spelling/after the font step: every cut variable names a style its family has (${wrong.length} not: ${JSON.stringify(wrong.slice(0, 3))})`);
+});
+
 console.log(`${failed ? `\n${failed} FAILED` : '\nmcp-paste: all assertions pass'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);
