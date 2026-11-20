@@ -33,6 +33,11 @@ literal's `}` (`m?{…}:void 0`). The first version of the rule read both as con
 sites that ran. The rule is narrow on purpose: a range it does not recognize keeps V8's count, which is the
 behavior before this change.
 
-**Not covered.** M3 and the aurora refusal are the two refusals measured. Another lever's refusal can still
-reach an unguarded `brandTheme(` among the ~540 calls. The uncaught-exception handler still names what failed
-before it.
+**A density refusal too.** The #2343 wallet arm's two harbor density builds were the last unguarded
+`brandTheme({ ...x, density })` sites: harbor refused at `spacious` crashed main after 730060 assertions. The
+plain sweep now goes through `exampleTheme`, the softest-corner build through `refusable`. A refused row reads
+NaN, so the run completes at `735768 passed, 9 failed`, each failure named.
+
+**Not covered, filed as #4407.** M3, aurora and the harbor density refusal are the refusals measured. Another
+lever's refusal can still reach an unguarded `brandTheme(` among the ~540 calls, and nothing stops a new arm
+from adding one. The uncaught-exception handler still names what failed before it.
