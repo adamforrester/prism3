@@ -44472,6 +44472,25 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
 }
 
+// #1716 — `notes.contested` refuses a decided entry by the verbs decided entries USE, not by four opening words.
+// #1700's check read Settled/Resolved/RESOLVED/CLOSED and broke at colons, so it refused argued prose and passed
+// "Decided: …" and "Chosen: …". The literals below are the issue's own examples, in both directions; the corpus arm
+// names the three entries the issue found decided in `contested`, read off the defs themselves.
+{
+  const contestedErrs = (entry: string) => validateComponentDef({ ...focusRing, notes: { contested: [entry] } } as ComponentDef).errors
+    .filter((e) => /notes\.contested/.test(e));
+  for (const entry of ['Where the ring is drawn — on the edge or outside it. Decided as the offset sibling.', 'A or B. Chosen: B, for reach.',
+    'error as a border swap vs a set — settled as text-field settles it.'])
+    ok(contestedErrs(entry).length === 1, `#1716 contested refuses a decided entry: "${entry}" (got ${contestedErrs(entry).length} refusal(s))`);
+  for (const entry of ['Brief §4: Settled in the brief, argued here.', 'Whether the dot reads at 6px, e.g. Resolved later? Unmeasured.',
+    'Legacy icon fonts are settled as dead; the font model is not.'])
+    ok(contestedErrs(entry).length === 0, `#1716 contested keeps an argued entry: "${entry}" (got ${contestedErrs(entry).join(' | ') || 'no refusal'})`);
+  const contestedOf = (id: string) => componentDefs.find((d) => d.id === id)?.notes?.contested ?? [];
+  const stillContested = [['text-field', /ship both/], ['checkbox-row', /BORDER AND FILL AT ONE COORDINATE/], ['select', /settled as text-field settles it/]]
+    .filter(([id, re]) => contestedOf(id as string).some((e) => (re as RegExp).test(e))).map(([id]) => id);
+  ok(stillContested.length === 0, `#1716 the three entries that describe themselves as decided are out of contested (still there: ${stillContested.join(', ') || 'none'})`);
+}
+
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
   process.exitCode = 1;

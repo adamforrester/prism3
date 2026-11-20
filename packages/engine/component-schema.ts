@@ -2264,8 +2264,8 @@ export type ComponentDef = {
    *
    *  `contested` HOLDS ONLY OPEN OR ARGUED ITEMS (#1700). A decision this def has settled moves to
    *  `evolution`, which is where "why is it like this now" is answered. `validateComponentDef` refuses a
-   *  `contested` entry with a sentence that opens `Settled` / `Resolved` / `RESOLVED` / `CLOSED`, and an
-   *  `unverified` entry with one that opens `Resolved` / `RESOLVED`. It reads every sentence, not only the entry's
+   *  `contested` entry with a sentence that opens with a verdict (`DECIDED_VERBS`: settled, resolved, closed,
+   *  decided, chosen, in any case; #1716), and an `unverified` entry with one that opens `resolved`. It reads every sentence, not only the entry's
    *  first word: the entries this rule was written for lead with the question and settle it in the
    *  second sentence ("Where the ring is drawn — … Settled here as the offset sibling"), so a first-word
    *  check passes the very case it exists for (`docs/34` shape 14).
@@ -2314,6 +2314,28 @@ export const SUMMARY_MAX = 100;
  *  host's size reaches its items. The cap grows by that sentence, so the host's own line keeps the room every
  *  other summary has. `lint-component-docs.ts` holds the sentence itself, as its own literal. */
 export const ITEMS_SIZE_NOTE_LENGTH = " Size applies to the items you haven't edited. After editing an item, select the items and set their size.".length;
+/** #1716 — the verbs a decided `notes` entry opens a sentence with, matched in any case. `contested` refuses
+ *  all of them; `unverified` refuses `resolved` alone (#1700). */
+export const DECIDED_VERBS = ['settled', 'resolved', 'closed', 'decided', 'chosen'] as const;
+export const RESOLVED_VERBS = ['resolved'] as const;
+/** A period that ends one of these is not a sentence break ("e.g. Resolved later?" is one sentence). */
+const ABBREVIATION_END = /\b(?:e\.g|i\.e|vs|cf|etc|approx|incl|viz)\.$/i;
+/** #1716 — the first verb of `verbs` that OPENS a clause of `entry`, as written, or null. A clause opens at the
+ *  entry's start, after `.` `!` `?` or `;` and a space (not after an abbreviation's period), or after an em dash
+ *  and a space. A colon is not a break: "Brief §4: Settled in the brief, argued here" is one argued sentence. A
+ *  verb inside a clause is prose, not a verdict ("fonts are settled as dead; the font model is not"). */
+export const verdictOpening = (entry: string, verbs: readonly string[]): string | null => {
+  const opener = new RegExp(`^(${verbs.join('|')})\\b`, 'i');
+  const starts = [0];
+  const breaks = /([.!?;])\s+|—\s+/g;
+  for (let m = breaks.exec(entry); m; m = breaks.exec(entry)) {
+    if (m[1] === '.' && ABBREVIATION_END.test(entry.slice(0, m.index + 1))) continue;
+    starts.push(m.index + m[0].length);
+  }
+  for (const at of starts) { const w = entry.slice(at).match(opener); if (w) return w[1]!; }
+  return null;
+};
+
 export const summaryMaxOf = (def: Pick<ComponentDef, 'props'>): number =>
   def.props?.some((p) => p.name === 'items' && p.type === 'slot') && def.props.some((p) => p.name === 'size') ? SUMMARY_MAX + ITEMS_SIZE_NOTE_LENGTH : SUMMARY_MAX;
 
@@ -2358,16 +2380,16 @@ export const validateComponentDef = (
     if (!/^[a-z][a-z0-9-]*$/.test(a)) errors.push(`alias '${a}' is not kebab-case — an alias is a name (\`loading-indicator\`); a phrase belongs in ai.triggerKeywords (#1700)`);
   // #1700 — `contested` holds only open or argued items; a settled one belongs in `evolution`. Every
   // sentence is read, not only the first word: the entries this was written for put the question first
-  // and "Settled here as …" second (see `notes` on `ComponentDef`).
-  const SETTLED_OPENING = /(?:^|[.;:!?]\s+|—\s+)(Settled|Resolved|RESOLVED|CLOSED)\b/;
-  const RESOLVED_OPENING = /(?:^|[.;:!?]\s+|—\s+)(Resolved|RESOLVED)\b/;
+  // and "Settled here as …" second (see `notes` on `ComponentDef`). #1716 widened the verbs to the ones
+  // decided entries actually used ("Decided:", "Chosen:", "— settled as …"), and made the split respect
+  // abbreviations and colons ("e.g. Resolved later?", "Brief §4: Settled in the brief, argued here").
   (def.notes?.contested ?? []).forEach((e, i) => {
-    const m = e.match(SETTLED_OPENING);
-    if (m) errors.push(`notes.contested[${i}] has a sentence opening '${m[1]}' — contested holds only open or argued items; a settled decision moves to notes.evolution (#1700)`);
+    const w = verdictOpening(e, DECIDED_VERBS);
+    if (w) errors.push(`notes.contested[${i}] has a sentence opening '${w}' — contested holds only open or argued items; a settled decision moves to notes.evolution (#1700, #1716)`);
   });
   (def.notes?.unverified ?? []).forEach((e, i) => {
-    const m = e.match(RESOLVED_OPENING);
-    if (m) errors.push(`notes.unverified[${i}] has a sentence opening '${m[1]}' — a resolved item is no longer unverified; it moves to notes.evolution (#1700)`);
+    const w = verdictOpening(e, RESOLVED_VERBS);
+    if (w) errors.push(`notes.unverified[${i}] has a sentence opening '${w}' — a resolved item is no longer unverified; it moves to notes.evolution (#1700)`);
   });
   req(!!def.description, 'description is required');
   req(typeof def.summary === 'string' && def.summary.length > 0, 'summary is required — the one-line Figma description');
