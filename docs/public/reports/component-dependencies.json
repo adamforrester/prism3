@@ -1325,6 +1325,29 @@
       ]
     },
     {
+      "from": "popover",
+      "to": "flush-icon-button-neutral",
+      "part": "close",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "shape": "flush",
+        "size": "small",
+        "surface": "default",
+        "state": "rest"
+      }
+    },
+    {
+      "from": "popover",
+      "to": "button-group",
+      "part": "footer",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "layout": "inline"
+      }
+    },
+    {
       "from": "progress",
       "to": "field-message",
       "part": "messageComplete",
@@ -2133,6 +2156,7 @@
         "button-group",
         "dialog",
         "password-field",
+        "popover",
         "toast"
       ],
       "inheritedBy": [
@@ -2164,10 +2188,12 @@
         "spinner"
       ],
       "nestedBy": [
-        "dialog"
+        "dialog",
+        "popover"
       ],
       "affectedByChange": [
-        "dialog"
+        "dialog",
+        "popover"
       ],
       "inheritedBy": []
     },
@@ -2428,6 +2454,7 @@
         "breadcrumb-item",
         "counter",
         "dialog",
+        "popover",
         "toast"
       ],
       "affectedByChange": [
@@ -2436,6 +2463,7 @@
         "breadcrumbs",
         "counter",
         "dialog",
+        "popover",
         "toast"
       ],
       "inherits": "icon-button-neutral",
@@ -2495,6 +2523,7 @@
         "pagination",
         "pagination-item",
         "password-field",
+        "popover",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -2692,6 +2721,22 @@
       "affectedByChange": [],
       "inheritedBy": []
     },
+    "popover": {
+      "nests": [
+        "button-group",
+        "flush-icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button",
+        "button-group",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "progress": {
       "nests": [
         "field-message"
@@ -2874,6 +2919,7 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "password-field",
+        "popover",
         "toast"
       ],
       "inheritedBy": []
@@ -3075,6 +3121,7 @@
     "pagination": 2,
     "pagination-item": 1,
     "password-field": 2,
+    "popover": 3,
     "progress": 1,
     "provider-logo": 0,
     "radio-control": 1,

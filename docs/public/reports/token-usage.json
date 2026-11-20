@@ -12,7 +12,7 @@
     "used": 291,
     "unusedSemantic": 252,
     "unusedPrimitive": 280,
-    "components": 64
+    "components": 65
   },
   "tokens": {
     "border-width.hairline": {
@@ -342,6 +342,17 @@
                   "rest"
                 ]
               }
+            }
+          }
+        },
+        "popover": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "panel": {
+              "members": 1,
+              "where": {}
             }
           }
         },
@@ -2015,6 +2026,17 @@
                   "page"
                 ]
               }
+            }
+          }
+        },
+        "popover": {
+          "keys": [
+            "border"
+          ],
+          "parts": {
+            "panel": {
+              "members": 1,
+              "where": {}
             }
           }
         },
@@ -5261,6 +5283,17 @@
           "parts": {
             "panel": {
               "members": 24,
+              "where": {}
+            }
+          }
+        },
+        "popover": {
+          "keys": [
+            "fill"
+          ],
+          "parts": {
+            "panel": {
+              "members": 1,
               "where": {}
             }
           }
@@ -15962,6 +15995,22 @@
             }
           }
         },
+        "popover": {
+          "keys": [
+            "body",
+            "label"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 1,
+              "where": {}
+            },
+            "title": {
+              "members": 1,
+              "where": {}
+            }
+          }
+        },
         "progress": {
           "keys": [
             "label"
@@ -21740,6 +21789,17 @@
               }
             }
           }
+        },
+        "popover": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "panel": {
+              "members": 1,
+              "where": {}
+            }
+          }
         }
       }
     },
@@ -22475,6 +22535,17 @@
     "shadow.lg": {
       "type": "shadow",
       "components": {
+        "popover": {
+          "keys": [
+            "shadow"
+          ],
+          "parts": {
+            "panel": {
+              "members": 1,
+              "where": {}
+            }
+          }
+        },
         "toast": {
           "keys": [
             "shadow"
@@ -25904,6 +25975,21 @@
             }
           }
         },
+        "popover": {
+          "keys": [
+            "gap"
+          ],
+          "parts": {
+            "header": {
+              "members": 1,
+              "where": {}
+            },
+            "panel": {
+              "members": 1,
+              "where": {}
+            }
+          }
+        },
         "radio-row": {
           "keys": [
             "size.large.gap",
@@ -26320,6 +26406,17 @@
                   "small"
                 ]
               }
+            }
+          }
+        },
+        "popover": {
+          "keys": [
+            "pad"
+          ],
+          "parts": {
+            "panel": {
+              "members": 1,
+              "where": {}
             }
           }
         },
@@ -28211,6 +28308,17 @@
             }
           }
         },
+        "popover": {
+          "keys": [
+            "body-type"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 1,
+              "where": {}
+            }
+          }
+        },
         "progress": {
           "keys": [
             "value-type"
@@ -30000,6 +30108,17 @@
                   "page"
                 ]
               }
+            }
+          }
+        },
+        "popover": {
+          "keys": [
+            "title-type"
+          ],
+          "parts": {
+            "title": {
+              "members": 1,
+              "where": {}
             }
           }
         },
@@ -33013,6 +33132,28 @@
         "type.body.lg.default",
         "type.body.md.default",
         "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "popover": {
+      "members": 1,
+      "axes": {
+        "placement": [
+          "bottom"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.border.secondary",
+        "color.foreground.raised",
+        "color.text.primary",
+        "radius.lg",
+        "shadow.lg",
+        "space.150",
+        "space.200",
+        "type.body.sm.default",
+        "type.label.md.emphasis"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
