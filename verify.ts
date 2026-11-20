@@ -1347,6 +1347,13 @@ export const GATES: Gate[] = [
     cmd: engine('lint-shadcn-contract.ts'),
   },
   {
+    // #2996 — reads the committed supplement, its Spectacular fixture and the token contract; needs no build and no
+    // `after`. `drift` holds the committed supplement to the emitter, so this reads what ships.
+    id: 'lint-spec-supplement',
+    ciStep: "The spec supplement lines up with Spectacular's output (#2996)",
+    cmd: engine('lint-spec-supplement.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject
