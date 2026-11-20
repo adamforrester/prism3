@@ -352,8 +352,29 @@ console.log('\n3b. a late restore-input after the designer acted is offered, not
       `#3697 R9 confirm-replace: Replace brand loads the file's brand and the strip clears — brand "${after.brandSel}", ${JSON.stringify(gone)}`);
     // Undo load's scope (#1037 Q-BK2 A): every load the designer chooses, NOT the file's own brand arriving. This is
     // that arrival, over unsaved edits, so it must offer nothing. Mutation: `loadReplacing` for every origin fails it.
-    { const u = await page.locator('[data-p3="undo-load"]').count();
-      ok(u === 0, `#1037 the file's own brand arriving offers no Undo load (undo-load drawn: ${u})`); }
+    // An ABSENCE, so it goes through `hooks.absent` with a proof from this same panel (#4245): the read waits until the
+    // switcher names the loaded brand (the bar paints the switcher and the offer in one pass, `shell/bar.ts`), and then
+    // a designer-chosen load over edits, read the same way, must draw the offer. Without that control a renamed hook or
+    // a late draw read as "no offer". Mutations (#4245, each fails by name): the hook renamed in `bar.ts` · the offer
+    // never drawn (`v.undo ? undo : null` → `null`).
+    const switcherReads = (want) => page.waitForFunction((w) => (document.querySelector('[data-p3="brand-switcher"]')?.textContent ?? '').toLowerCase().includes(w.toLowerCase()), want, { timeout: 4000 }).then(() => true, () => false);
+    const undoDrawn = () => page.evaluate(() => document.querySelectorAll('[data-p3="undo-load"]').length);
+    const settled = await switcherReads('restored-brand');
+    const u = await undoDrawn();
+    await hooks.click(page.locator('[data-p3="tab-shape"]'));
+    const lever = page.locator('[data-p3="shape-levers"] input[type="range"]:not([disabled])').first();
+    await lever.focus();
+    for (let i = 0; i < 5; i++) await lever.press('ArrowRight');
+    await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+    const pick = page.locator('[data-p3="brand-menu-example"]').first();
+    const pickName = ((await pick.textContent()) ?? '').trim();
+    await hooks.click(pick);
+    await hooks.click(page.locator('[data-p3="overwrite-replace"]').first());
+    const chosenLoaded = pickName !== '' && await switcherReads(pickName);
+    const control = await undoDrawn();
+    ok(chosenLoaded && control === 1, `#4245 control: a load the designer chooses over edits draws Undo load once the switcher names it ("${pickName}" loaded: ${chosenLoaded}, undo-load drawn: ${control})`);
+    hooks.absent(ok, { seen: settled && chosenLoaded && control === 1, state: 'Undo load drawn after a chosen load, in this same panel' },
+      u === 0, `#1037 the file's own brand arriving offers no Undo load (undo-load drawn: ${u})`);
     ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
     await page.close();
   }
