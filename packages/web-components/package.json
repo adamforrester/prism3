@@ -27,7 +27,7 @@
     "generate": "npx tsx generate.ts && npm run manifest",
     "manifest": "cem analyze --outdir .",
     "check:generated": "npx tsx generate.ts --check && npx tsx check-manifest.ts",
-    "check:parity": "npx tsx check-parity.ts && npx tsx check-parity-fields.ts",
+    "check:parity": "npx tsx check-parity.ts && npx tsx check-parity-fields.ts && npx tsx check-token-parity.ts",
     "test:browser": "npm run -w @prism3/tokens build && npx tsx check-browser.ts && npx tsx check-browser-fields.ts && npx tsx check-entries.ts"
   },
   "dependencies": {

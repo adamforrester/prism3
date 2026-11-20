@@ -360,8 +360,10 @@ export const runParity = async (browser: any, css: Css, contracts: { field: Reco
     if (STATE[probes[i].state]?.focus) await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
   }
   let checked = 0;
+  const perKind: Record<string, number> = {};
   probes.forEach((pr, i) => pr.checks.forEach((c, j) => {
     checked++;
+    perKind[pr.kind] = (perKind[pr.kind] ?? 0) + 1;
     const got = reads[i][j];
     let gotName: string;
     if (c.want.startsWith('(px ')) gotName = `(px ${got.replace(/px$/, '')})`;
@@ -370,13 +372,13 @@ export const runParity = async (browser: any, css: Css, contracts: { field: Reco
     if (gotName !== c.want) failures.push(`${pr.where}${pr.where.includes(' state=') ? '' : ` state=${pr.state}`}: ${c.what} binds ${gotName}, the spec names ${c.want}`);
   }));
   await page.close();
-  return { failures, checked, skipped, probes: probes.length };
+  return { failures, checked, skipped, probes: probes.length, perKind };
 };
 
 // ------------------------------------------------------------------------------------------------ mutants
 const dropRules = (css: string, test: (sel: string) => boolean) =>
   css.replace(/^( +)([^\n{}@][^\n{}]*) \{\n[\s\S]*?^\1\}\n/gm, (all, _i, sel) => (test(sel) ? '' : all));
-const CONTRACTS = { field: FIELD, label: LABEL, message: MESSAGE };
+export const CONTRACTS = { field: FIELD, label: LABEL, message: MESSAGE };
 const withFile = (file: string, text: string): Css => ({ ...SHIPPED, [file]: text });
 const withoutValue = (kind: string, prop: string, val: string) => {
   const copy = JSON.parse(JSON.stringify(FIELD));
