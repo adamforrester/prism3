@@ -7448,6 +7448,11 @@ section('description — a def summary that moved reaches a set whose members ar
       && v.lines.some((l) => l.endsWith(' description to update.')) && v.lines.includes(`${p.set} · description: edited by hand, so it's kept.`)
       && ours.description === icSummary && rec(ours) === icSummary && theirs.description === 'Our team draws these by hand.' && rec(theirs) === OLD && res.outcomes[0]?.described === 1,
       `description/single: of two icons, the one still Prism3's takes the summary and the one a designer changed is kept (${JSON.stringify(p.description)}, kept ${p.descriptionKept}; ${JSON.stringify(ours.description)} / ${JSON.stringify(theirs.description)})`);
+    // #2865 delta review should-fix 3: a set whose only write was its description is named in the publish description's
+    // set list, beside #4091's merge-only arm. Mutation: `|| o.described` dropped from `changedSets` → `description/publish`.
+    const descOnly = { ...res.outcomes[0]!, updated: [], added: 0, renamed: 0, deprecated: [], merged: [], described: 1 };
+    const listed = changedSets([descOnly]);
+    ok(listed.length === 1 && listed[0] === descOnly.set, `description/publish: a set whose only write was its description is listed as changed in the publish description (${JSON.stringify(listed)})`);
   }
 }
 

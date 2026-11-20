@@ -3986,6 +3986,40 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
   const hand = await unrecorded(true);
   ok(hand.desc === DESIGNER && hand.stamps.length > 0 && hand.stamps.every((x) => x === ''),
     `#2865 hand-made set kept: a set with no stamped member keeps its description on a build, record or not ("${hand.desc}"; stamps ${JSON.stringify(hand.stamps)})`);
+
+  // #2865 delta review should-fix 1: a build that adds a member to a hand-made set stamps it, so the next build reads the
+  // set as built. The designer's unrecorded description is marked theirs on the first build and kept on the second.
+  // Mutation: the `DESCRIPTION_THEIRS` mark not written → `#2865 hand-made set kept twice`.
+  {
+    const pg: Page = { children: [] };
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    const set = setOf(pg)!;
+    const kids = (set.children ?? []) as Record<string, unknown>[];
+    const put = (n: Record<string, unknown>, k: string, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', k, v);
+    for (const c of kids) put(c, 'memberStamp', '');
+    (kids[kids.length - 1].remove as () => void)();
+    set.description = DESIGNER;
+    put(set, 'description', '');
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    const d1 = setOf(pg)?.description;
+    const st = ((setOf(pg)!.children ?? []) as Record<string, unknown>[]).map((c) => ((c.getSharedPluginData as (a: string, b: string) => string)('prism3', 'memberStamp') ? 'S' : '-')).join('');
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    const d2 = setOf(pg)?.description;
+    ok(d1 === DESIGNER && st.includes('S') && d2 === DESIGNER,
+      `#2865 hand-made set kept twice: a designer's description on a set Prism3 never built survives the build that adds a member, and the one after (${JSON.stringify({ d1, st, d2 })})`);
+  }
+
+  // #2865 delta review should-fix 2: an EMPTY description on a set with no stamped member is still filled, as #1623 did
+  // on main. It has no designer text to protect. Mutation: the empty-fill term dropped → `#1623 empty filled on a hand-made set`.
+  {
+    const pg: Page = { children: [] };
+    await run(fmPlans, { ...fmVars, page: pg });
+    const set = setOf(pg)!;
+    for (const c of (set.children ?? []) as Record<string, unknown>[]) (c.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'memberStamp', '');
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    ok(setOf(pg)?.description === fm.summary && recOf(setOf(pg)) === fm.summary,
+      `#1623 empty filled on a hand-made set: a set with no stamped member and no description takes the summary, recorded ("${setOf(pg)?.description}")`);
+  }
 }
 
 // ---- #1611: THE FOOTPRINT HOLDS ACROSS RUNTIME AXES, NOT AUTHORING AXES --------------------

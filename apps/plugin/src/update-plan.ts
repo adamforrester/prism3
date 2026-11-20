@@ -1914,7 +1914,7 @@ const descriptionDue = (t: UpdateTarget, set: LiveSet, p: SetPreview): { due: Se
   const ours = differ.filter((n) => descriptionIsOurs(n));
   return { due: ours.length ? { to, from: [...new Set(ours.map((n) => String(n.description ?? '')))], nodes: ours.length } : null, kept: differ.length - ours.length };
 };
-/** DRAFT wording for the owner (#2865): the description's change as a named difference, and a kept one. */
+/** The wording the owner approved (#2865, 2026-11-20): the description's change as a named difference, and a kept one. */
 export const descriptionLines = (p: Pick<SetPreview, 'set' | 'description' | 'descriptionKept' | 'blockers'>): string[] => p.blockers.length ? [] : [
   ...(p.description ? [`${p.set} · description: the summary says "${p.description.to}", the file has ${p.description.from.map((f) => `"${f}"`).join(' or ')}${p.description.nodes > 1 ? ` (${p.description.nodes} components)` : ''}.`] : []),
   ...(p.descriptionKept ? [`${p.set} · description: edited by hand, so it's kept${p.descriptionKept > 1 ? ` (${p.descriptionKept} components)` : ''}.`] : []),

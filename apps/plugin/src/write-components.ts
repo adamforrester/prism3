@@ -642,8 +642,9 @@ export type ComponentApplyOptions = {
   /** THE FIGMA DESCRIPTION (#1623 sign-off) — the def's one-line `summary`, which the plugin reads off
    *  the def and passes here. Written on a set this run creates (or on each component, in
    *  `emitAsComponents` mode), and on a set the file already had only while that set's description is
-   *  Prism3's (`descriptionIsOurs`, #2865) and some member carries a stamp: a designer's own description, or any on a set
-   *  Prism3 never built, is theirs. Each write records itself. A write-time option like `emitAsComponents`, so it
+   *  Prism3's (`descriptionIsOurs`, #2865) and some member carries a stamp, or while it is empty: a designer's own
+   *  description, or any non-empty one on a set Prism3 never built, is theirs, and is marked so (`DESCRIPTION_THEIRS`).
+   *  Each write records itself. A write-time option like `emitAsComponents`, so it
    *  stays off the plan and out of `planStamp`. */
   description?: string;
   /** WHERE THE SET IS PLACED (#1554) — the `↳ <family>` section page the page-aware build resolved,
@@ -910,6 +911,12 @@ export const descriptionIsOurs = (node: Described): boolean => {
   const rec = node.getSharedPluginData?.(NS, DESCRIPTION_KEY) ?? '';
   return !now || !rec || now === rec;
 };
+/** THE DESIGNER'S MARK (#2865 delta review should-fix 1): the record a build leaves on a set Prism3 never built whose
+ *  description is non-empty and unrecorded. A build that adds a member to such a set stamps that member, and from the
+ *  next build on the set reads as Prism3-built; without this mark, the designer's unrecorded description would then
+ *  read as Prism3's and be replaced. The mark starts with a control character, so it equals no summary and no
+ *  description, and `descriptionIsOurs` reads the description as edited from then on. */
+export const DESCRIPTION_THEIRS = '\u0001theirs';
 /** Write the description and its record together. */
 export const writeDescription = (node: Described, text: string): void => {
   node.description = text;
@@ -3545,7 +3552,13 @@ const writeComponentSet = async (
     // or still the one Prism3 last wrote, and only on a set Prism3 built (`setBuiltByUs`). The fill and radius below are
     // the designer's on this branch, and so is the description of a set Prism3 never built, or one they changed after
     // Prism3's record.
-    if (opts.description && setBuiltByUs && descriptionIsOurs(set as unknown as Described)) writeDescription(set as unknown as Described, opts.description);
+    // An EMPTY description has no designer text to protect, so it is filled on any existing set, as before #2865 (#1623).
+    // A non-empty one with no record, on a set Prism3 never built, is marked as the designer's before this run stamps a
+    // member into the set (`DESCRIPTION_THEIRS`), so the next build, which reads the set as built, still keeps it.
+    const d = set as unknown as Described;
+    const now = String(d.description ?? '');
+    if (opts.description && (!now || (setBuiltByUs && descriptionIsOurs(d)))) writeDescription(d, opts.description);
+    else if (!setBuiltByUs && now && !(d.getSharedPluginData?.(NS, DESCRIPTION_KEY) ?? '')) d.setSharedPluginData?.(NS, DESCRIPTION_KEY, DESCRIPTION_THEIRS);
   }
   if (!createdSet) for (const c of fresh) {
     set.appendChild?.(c);
