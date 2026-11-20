@@ -959,6 +959,23 @@ jobs:
       - name: A registered test arm is still in its suite (#1834)
         run: npx tsx packages/engine/lint-test-arms.ts
 
+      # #2997 gate 3 — shadcn/ui's theme variable names are an external contract. The role map's keys are held to the
+      # pinned set in schema/shadcn-vars.json both ways (UNMAPPED / UNPINNED by name), and the pin to SHADCN_MAP_VERSION;
+      # only `--accept` rewrites the pin, after a version raise.
+      - name: The shadcn map covers the pinned shadcn variable set (#2997)
+        run: npx tsx packages/engine/shadcn-vars.ts --check
+
+      # #2997 gate 4 — each shadcn variable whose job a Prism3 component contract binds (Button, Text Field, Select,
+      # Focus Ring) maps to that binding in the published contract export; every mapped role is guaranteed.
+      - name: The shadcn map follows the component contract (#2997)
+        run: npx tsx packages/engine/lint-shadcn-contract.ts
+
+      # #2996 — the spec supplement (out/specs/*.supplement.yaml) is keyed to Spectacular's own output for the same
+      # component. Against a hand-copied fixture of that output and the authored token contract (never the emitter),
+      # fails by arm when an element, prop, Figma name or $token path stops lining up, or a code name leaves the contract.
+      - name: The spec supplement lines up with Spectacular's output (#2996)
+        run: npx tsx packages/engine/lint-spec-supplement.ts
+
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because
       # docs/34 shape 17 is explicit that a stale checkout is internally consistent — nothing running
