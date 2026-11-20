@@ -138,12 +138,12 @@ Generated from the plan that builds the design-file component: 48 members. Value
 | `container/header/titleRow/leadingIndicator/leadingGlyph` | instance | iconPosition=leading |
 | `container/header/titleRow/titleBox` | frame | every member |
 | `container/header/titleRow/titleBox/label` | text | every member |
+| `container/content` | slot | every member |
+| `container/content/placeholder` | text | every member |
 | `container/divider` | instance | every member |
 | `container/header/focusRing` | instance | state=focus-visible |
 | `container/header/titleRow/trailingIndicator` | frame | iconPosition=trailing |
 | `container/header/titleRow/trailingIndicator/trailingGlyph` | instance | iconPosition=trailing |
-| `container/content` | slot | expansion=expanded |
-| `container/content/placeholder` | text | expansion=expanded |
 
 ### Spacing and size
 
@@ -203,48 +203,56 @@ Keyed by `expansion`, `iconPosition`, `indicator`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
 
 **expansion=collapsed, iconPosition=leading, indicator=chevron, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
 
 **expansion=collapsed, iconPosition=leading, indicator=plus-minus, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
 
 **expansion=collapsed, iconPosition=leading, indicator=plus-minus, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
 
 **expansion=collapsed, iconPosition=trailing, indicator=chevron, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
 
 **expansion=collapsed, iconPosition=trailing, indicator=chevron, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
 
 **expansion=collapsed, iconPosition=trailing, indicator=plus-minus, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
 
 **expansion=collapsed, iconPosition=trailing, indicator=plus-minus, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
 
 **expansion=expanded, iconPosition=leading, indicator=chevron, state=rest**
 
@@ -305,10 +313,10 @@ Keyed by `expansion`, `iconPosition`, `indicator`, `state`.
 ### Nesting and properties
 
 - `container/header/titleRow/leadingIndicator/leadingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `indicator`, `expansion`, `size`
+- `container/content` is a slot
 - `container/divider` nests `divider` at `orientation=horizontal, inset=none, labeled=false, emphasis=subtle`
 - `container/header/focusRing` nests `focus-ring` at `surface=default`
 - `container/header/titleRow/trailingIndicator/trailingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `indicator`, `expansion`, `size`
-- `container/content` is a slot
 
 | Property | Type | Default |
 | --- | --- | --- |

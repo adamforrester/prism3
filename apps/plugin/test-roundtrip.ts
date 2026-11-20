@@ -861,11 +861,11 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       if (!b || b.overflowDirection !== 'VERTICAL') noScroll.push(`${String(m.name)} (${b ? `overflowDirection ${String(b.overflowDirection)}` : 'no body'})`);
     }
     // SCOPE FLOOR: every member of the set was read, so a dropped member is not a quieter pass.
-    ok(members.length === 24, `roundtrip/dialog body: every member was read (${members.length} of 24)`);
+    ok(members.length === 16, `roundtrip/dialog body: every member was read (${members.length} of 16, #3392 A)`);
     ok(noClip.length === 0, `roundtrip/dialog body clips: the body crops its overflow at every placement (Q3130.8 A)${noClip.length ? ` — ${noClip.join(', ')}` : ''}`);
     ok(noScroll.length === 0, `roundtrip/dialog body scrolls: the body scrolls vertically at every placement (Q3130.8 A)${noScroll.length ? ` — ${noScroll.join(', ')}` : ''}`);
     for (const placement of ['full', 'end'] as const) {
-      const m = members.find((x) => String(x.name) === `placement=${placement}, footer=inline, size=medium`);
+      const m = members.find((x) => String(x.name) === `placement=${placement}, footer=inline`);
       const b = m && bodyOf(m);
       if (!m || !b) { ok(false, `roundtrip/dialog body clips: the ${placement} member with an inline footer was built (scope floor)`); continue; }
       // 1,200px of content in the body, as #3163's long form: a FIXED frame a designer dropped into the slot.
@@ -1144,9 +1144,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
         }
       }
     }
-    // 48 accordion rules; 24 dialog header rules and 18 footer rules (none on the footer=none members).
-    ok(misses.length === 0 && seen === 90 && off.length === 0,
-      `#3476 nested divider as built: every Accordion and Dialog divider instances the built divider member at emphasis=subtle, whose rule strokes color/border/primary (owner Q72 B) (${seen} instances, want 90; ${misses.length} misses${off.length ? `; OFF: ${off.slice(0, 3).join(' | ')}` : ''})`);
+    // 48 accordion rules; 16 dialog header rules and 12 footer rules (none on the footer=none members; #3392 A).
+    ok(misses.length === 0 && seen === 76 && off.length === 0,
+      `#3476 nested divider as built: every Accordion and Dialog divider instances the built divider member at emphasis=subtle, whose rule strokes color/border/primary (owner Q72 B) (${seen} instances, want 76; ${misses.length} misses${off.length ? `; OFF: ${off.slice(0, 3).join(' | ')}` : ''})`);
   }
 
   // NON-VACUITY (docs/34) — the pre-fix state, reproduced explicitly: a built text node whose `textStyleId`

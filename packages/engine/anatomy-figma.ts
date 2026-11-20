@@ -1702,6 +1702,9 @@ export const figmaAnatomyPlan = (
     if (name === 'leadingVisual') return leading;
     if (name === 'trailingVisual') return trailing;
     const p = a.parts[name];
+    // A part BUILT HIDDEN where its variant gate fails (#3058) is in the tree at every member, as a boolean part is;
+    // `gatedHidden` says where it is hidden, and its state gate (if any) still applies below.
+    const soft = p?.kind === 'box' && p.hiddenWhenAbsent === true;
     // VARIANT-GATED PRESENCE (#910), the first presence rule keyed on a coordinate that is not a state.
     // AND across axes, and an axis the caller did not supply reads as ABSENT rather than present — the
     // same answer the `absolute` line below gives when `state` is undefined, and the conservative one:
@@ -1714,6 +1717,7 @@ export const figmaAnatomyPlan = (
         // axis, a state HAS a resting value, and an unsupplied state IS rest everywhere else in this builder
         // (the paint grammar resolves the bare `{slot}` key there, and `lint-paint`'s grid census enumerates
         // rest that way), so the gate reads it as `rest` rather than as absent.
+        if (soft && axis !== STATE_GATE) continue;
         const v = axis === STATE_GATE ? (state ?? 'rest') : axisValue(axis);
         if (v === undefined || !values.includes(v)) return false;
       }
@@ -1725,6 +1729,19 @@ export const figmaAnatomyPlan = (
     // A list since #2318: the field's ring is present at `focus-visible` and at `focus-visible-filled`.
     if (p?.kind === 'absolute') return state !== undefined && whenStates(p).includes(state);
     return !p?.optional;
+  };
+
+  /* #3058: is this part BUILT HIDDEN at this coordinate? A `hiddenWhenAbsent` box whose VARIANT gate fails here, read
+   * by `presentWhen`'s own rule (AND across axes, an unsupplied axis reads as absent). `present()` keeps it in the tree;
+   * this hides it, and the layout reads it as absent (`shown`), as Figma's auto layout does a hidden child. */
+  const gatedHidden = (name: string): boolean => {
+    const p = a.parts[name];
+    if (p?.kind !== 'box' || p.hiddenWhenAbsent !== true) return false;
+    return Object.entries(p.presentWhen ?? {}).some(([axis, values]) => {
+      if (axis === STATE_GATE) return false;
+      const v = axisValue(axis);
+      return v === undefined || !values.includes(v);
+    });
   };
 
   /* WHERE A TRAVELING CHILD PUTS ITS PARENT'S DISTRIBUTION (#990). A switch's thumb declares
@@ -1879,7 +1896,7 @@ export const figmaAnatomyPlan = (
     const uq = up ? a.parts[up] : undefined;
     if (!up || !uq?.layout) throw new Error(`${def.id}: part '${name}' has no laid-out parent to derive its width from`);
     if (uq.layout.direction === 'column') return nestedRowWidth(up) - inlinePadPx(q);
-    const shown = (uq.children ?? []).filter((c) => c !== name && a.parts[c]?.kind !== 'overlay' && a.parts[c]?.kind !== 'absolute' && present(c) && booleanParts.get(c)?.visible !== false);
+    const shown = (uq.children ?? []).filter((c) => c !== name && a.parts[c]?.kind !== 'overlay' && a.parts[c]?.kind !== 'absolute' && present(c) && booleanParts.get(c)?.visible !== false && !gatedHidden(c));
     const gap = shown.length && uq.gap ? spacePx(resolveKey(uq.gap, 'gap')) : 0;
     return nestedRowWidth(up) - shown.reduce((s, c) => s + shownFlowWidth(c), 0) - shown.length * gap - inlinePadPx(q);
   };
@@ -2476,7 +2493,7 @@ export const figmaAnatomyPlan = (
       // `n.visible ?? true`). A boolean part is present at every member (see `present()`), so this rides
       // the tree, not a variant coordinate.
       ...(booleanParts.has(name) ? { visibleProp: booleanParts.get(name)!.prop } : {}),
-      ...(booleanParts.get(name)?.visible === false ? { visible: false as const } : {}),
+      ...(booleanParts.get(name)?.visible === false || gatedHidden(name) ? { visible: false as const } : {}),
       ...(textStyle ? { textStyle } : {}),
       ...(literalFont ? { literalFont } : {}),
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives

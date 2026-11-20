@@ -2,8 +2,8 @@
  * THE GIT-HISTORY GATES SEE A SQUASH ON MAIN'S PUSH RUN (#2556).
  *
  * `lint-emission-version.ts`, `lint-component-surface.ts`, `lint-component-renames.ts`,
- * `lint-materialization-renames.ts` and `lint-contract-version.ts` (#2334) each read a "before" out of
- * git at the merge base of HEAD and the base branch. On main's push run that merge base is HEAD itself, so each compared a squash commit with
+ * `lint-materialization-renames.ts`, `lint-contract-version.ts` (#2334) and `shadcn-vars.ts`'s base arm (#2997)
+ * each read a "before" out of git at the merge base of HEAD and the base branch. On main's push run that merge base is HEAD itself, so each compared a squash commit with
  * itself and passed. A squash whose own diff breaks a gate's rule — two PRs that each passed against a
  * base that no longer exists, merged with no git conflict, as #2529 and #2548 were for the executor
  * revision (#2551) — landed green, and GitHub does not re-run a PR's CI when its base moves.
@@ -32,10 +32,10 @@
  * ── WHAT IT DOES NOT COVER ───────────────────────────────────────────────────────────────────────────
  *
  * The pull-request side. On a PR the merge base is not HEAD and `comparison-base.ts` returns it
- * unchanged; that path is what every PR's own run of the five gates exercises. Nor does any gate re-check
+ * unchanged; that path is what every PR's own run of the six gates exercises. Nor does any gate re-check
  * a stale PR run after its base moves: nothing in a gate can. The push run is where that is caught.
  *
- * A push run that does not complete. The push-run arm holds only for a run that reaches the five
+ * A push run that does not complete. The push-run arm holds only for a run that reaches the six
  * gates: a cancelled run compares its squash with nothing, and the next run compares only its own
  * squash with its own parent. `ci.yml` therefore gives each push run on main its own concurrency
  * group and cancels in-progress runs on pull requests only; nothing here checks that setting.
@@ -60,6 +60,8 @@
  *
  * `lint-progress-order.ts` and `apps/plugin/lint-executor-revision.ts` join the replay for these cases: the two
  * whose queue failure is the one #4106 names (an entry carried by the PR ahead, two PRs raising the same revision).
+ * `shadcn-vars.ts` has a queue case of the same shape: two queued PRs that each add a shadcn name and each raise the
+ * map version to the same number.
  * The executor gate imports `typescript`, so the clone gets one symlink, `node_modules` → this checkout's, read only:
  * it is a scratch clone, not a worktree, and no package manager touches it. `apps/plugin/lint-executor-reach.ts` joins
  * for the unset fail-closed case only: that case dies at base resolution, in about two seconds, before any measuring.
@@ -113,6 +115,10 @@ const QUEUED_FILE = 'replay-queued.txt';
 const EXECUTOR_ROOT = 'apps/plugin/src/write-components.ts';
 const EXECUTOR_REVISION = 'apps/plugin/src/executor-revision.ts';
 const REVISION_RE = /^export const EXECUTOR_REVISION = (\d+);/m;
+const SHADCN_MAP = 'packages/engine/projections/shadcn.ts';
+const SHADCN_PIN = 'packages/engine/schema/shadcn-vars.json';
+const SHADCN_MAP_RE = /^export const SHADCN_MAP_VERSION = '(\d+)\.(\d+)\.(\d+)';/m;
+const SHADCN_ANCHOR_ROW = "  'sidebar-ring': 'color.border.focus',\n";
 
 type Edit = (dir: string) => void;
 const edit = (path: string, f: (text: string) => string): Edit => (dir) => {
@@ -139,6 +145,27 @@ const raiseRevision: Edit = edit(EXECUTOR_REVISION, (t) => {
 });
 /** A line of executor CODE, not a comment: the gate strips comments before it compares. */
 const executorCode = (name: string): Edit => edit(EXECUTOR_ROOT, (t) => `${t}\nexport const ${name} = 1;\n`);
+/** The shadcn map version moved in the map and the pin together, so gate 3's arm 2 holds and only the base arm answers. */
+const shadcnVersion = (f: (v: [number, number, number]) => [number, number, number]): Edit[] => {
+  let next = '';
+  return [
+    edit(SHADCN_MAP, (t) => {
+      const m = SHADCN_MAP_RE.exec(t);
+      if (!m) return die([`${SHADCN_MAP} has no \`export const SHADCN_MAP_VERSION = 'M.m.p';\` — this check CANNOT RUN.`]);
+      next = f([Number(m[1]), Number(m[2]), Number(m[3])]).join('.');
+      return t.replace(SHADCN_MAP_RE, `export const SHADCN_MAP_VERSION = '${next}';`);
+    }),
+    json(SHADCN_PIN, (v) => { v.mapVersion = next; }),
+  ];
+};
+/** A shadcn name added to the map and to both of the pin's modes: a name the pin gained. */
+const shadcnName = (name: string): Edit[] => [
+  edit(SHADCN_MAP, (t) => {
+    if (!t.includes(SHADCN_ANCHOR_ROW)) return die([`${SHADCN_MAP} has no \`'sidebar-ring'\` row to add a name after — this check CANNOT RUN.`]);
+    return t.replace(SHADCN_ANCHOR_ROW, `${SHADCN_ANCHOR_ROW}  '${name}': 'color.border.focus',\n`);
+  }),
+  json(SHADCN_PIN, (v) => { v.light.push(name); v.dark.push(name); }),
+];
 const write = (path: string, text: string): Edit => (dir) => { mkdirSync(dirname(join(dir, path)), { recursive: true }); writeFileSync(join(dir, path), text); };
 
 /** The first def in the surface baseline that projects a set. */
@@ -229,6 +256,21 @@ const CASES: Case[] = [
     parent: [json(CONTRACT, (v) => { v.guaranteed[GHOST_PATH] = 'color'; })], squash: [restore(CONTRACT), contractMajor(1)],
     expect: 'passes',
   },
+  {
+    gate: 'shadcn-vars', label: 'a squash lowers the shadcn map version with no name moved',
+    parent: [], squash: shadcnVersion(([a, i, p]) => [a - 1, i, p]),
+    expect: { fails: 'MAP VERSION BELOW THE BASE' },
+  },
+  {
+    gate: 'shadcn-vars', label: 'a squash drops a pinned shadcn name at the parent\'s number',
+    parent: shadcnName('replay-ghost'), squash: [restore(SHADCN_MAP), restore(SHADCN_PIN)],
+    expect: { fails: 'PIN MOVED WITHOUT A MAJOR RAISE' },
+  },
+  {
+    gate: 'shadcn-vars', label: 'a squash drops a pinned shadcn name with a MAJOR raise',
+    parent: shadcnName('replay-ghost'), squash: [restore(SHADCN_MAP), restore(SHADCN_PIN), ...shadcnVersion(([a]) => [a + 1, 0, 0])],
+    expect: 'passes',
+  },
 ];
 
 // #4106 — THE MERGE-QUEUE RUN. A group ahead (A) on `main`, the queued PR (Q) on A, `origin/main` left at `main`.
@@ -250,8 +292,12 @@ queued('lint-progress-order', 'carries no progress entry while the group ahead c
 queued('lint-executor-revision', 'changes the executor at the revision the group ahead already raised to',
   [executorCode('replayQueueAhead'), raiseRevision], [executorCode('replayQueueQueued')], [executorCode('replayQueueQueued'), raiseRevision],
   'EXECUTOR_REVISION did not rise');
+queued('shadcn-vars', 'adds a shadcn name at the map version the group ahead already raised to',
+  [...shadcnName('replay-ahead'), ...shadcnVersion(([a, i]) => [a, i + 1, 0])], shadcnName('replay-queued'),
+  [...shadcnName('replay-queued'), ...shadcnVersion(([a, i]) => [a, i + 1, 0])],
+  'PIN MOVED WITHOUT A MINOR RAISE');
 const QUEUE_GATES = ['lint-emission-version', 'lint-component-surface', 'lint-component-renames', 'lint-materialization-renames',
-  'lint-contract-version', 'lint-progress-order', 'lint-executor-revision', 'lint-executor-reach'];
+  'lint-contract-version', 'lint-progress-order', 'lint-executor-revision', 'lint-executor-reach', 'shadcn-vars'];
 for (const gate of QUEUE_GATES)
   QUEUE_CASES.push({ gate, label: 'fail closed: a merge-group run with MERGE_GROUP_BASE_SHA unset', parent: [], squash: [write(QUEUED_FILE, 'queued\n')], expect: { fails: 'MERGE_GROUP_BASE_SHA' }, queue: 'unset' });
 QUEUE_CASES.push(
@@ -268,9 +314,10 @@ function restore(path: string): Edit {
 }
 
 /** Hand-counted, not derived: a replay that lost a case would otherwise report its smaller count as whole. */
-const EXPECTED_CASES = 11;
-const EXPECTED_QUEUE_CASES = 20;
-const GATES = ['lint-emission-version', 'lint-component-surface', 'lint-component-renames', 'lint-materialization-renames', 'lint-contract-version'];
+const EXPECTED_CASES = 14;
+const EXPECTED_QUEUE_CASES = 24;
+const GATES = ['lint-emission-version', 'lint-component-surface', 'lint-component-renames', 'lint-materialization-renames', 'lint-contract-version',
+  'shadcn-vars'];
 
 // ---- the clone -------------------------------------------------------------------------------------------
 

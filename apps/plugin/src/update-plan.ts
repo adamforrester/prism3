@@ -140,6 +140,8 @@ export const isPublished = (s: PublishStatus | undefined): boolean => s === 'CUR
  */
 export type Breaking =
   | { kind: 'drop'; member: string }
+  /** #3392 — a member merged into another and removed: instances of it in files that use the library stop updating. */
+  | { kind: 'merge'; member: string; into: string }
   | { kind: 'replace'; member: string; path: string; reason: string }
   | { kind: 'private'; from: string; to: string }
   | { kind: 'property'; name: string; change: 'removed' | 'retyped'; from?: string; to?: string }
@@ -193,6 +195,9 @@ export type SetPreview = {
   replacements: { member: string; path: string; reason: string }[];
   adds: string[];
   drops: string[];
+  /** #3392 — the members an axis the ledger merges collapses, each with the member it merges into: an update swaps its
+   *  placed instances onto that member at the width they had, then removes it. Absent when there are none. */
+  merges?: { member: string; into: string }[];
   /** Every coordinate member with no stamp, by name: skipped by the update, never a drop (#2283). */
   unstamped: string[];
   /** The unstamped members Adopt may claim: each is the match for a planned coordinate (renames and axis changes
@@ -533,7 +538,10 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const hostDefault = new Map(firstHost ? coordPairs(firstHost) : []);
 
   // ---- where each lands -----------------------------------------------------------------------------------
-  type Landing = { m: HostMember; from: string; target: string; exact: boolean };
+  type Landing = { m: HostMember; from: string; target: string; exact: boolean; merged: boolean };
+  // #3392: an axis the ledger declares merged into one value. Its `into` member is the exact one, whatever the set's
+  // default, and every other member it collapses merges into it rather than blocking the set.
+  const mergeInto = new Map(ledger.filter((r): r is Extract<ComponentRename, { kind: 'merge' }> => r.def === defId && r.kind === 'merge').map((r) => [r.axis, r.into] as const));
   const landings: Landing[] = [];
   const axisRenames = ledger.filter((r) => r.def === defId && r.kind === 'axis' && hostAxes.includes((r as { from: string }).from)).map((r) => ({ from: (r as { from: string }).from, to: (r as { to: string }).to }));
   for (const [k, ms] of byKey) {
@@ -545,8 +553,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     pairs = pairs.filter(([a]) => planAxes.includes(a));
     for (const a of planAxes) if (!pairs.some(([x]) => x === a) && planDefault.has(a)) pairs.push([a, planDefault.get(a)!]);
     // A removed axis keeps the member on the set's default value of it; the rest collapse (§4).
-    const exact = removed.every(([a, v]) => hostDefault.get(a) === v);
-    landings.push({ m: ms[0], from: k, target: keyOf(pairs), exact });
+    const exact = removed.every(([a, v]) => (mergeInto.get(a) ?? hostDefault.get(a)) === v);
+    landings.push({ m: ms[0], from: k, target: keyOf(pairs), exact, merged: removed.length > 0 && removed.every(([a]) => mergeInto.has(a)) });
   }
   const byTarget = new Map<string, Landing[]>();
   for (const l of landings) byTarget.set(l.target, [...(byTarget.get(l.target) ?? []), l]);
@@ -554,6 +562,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const matched: Landing[] = [];
   const drops: string[] = [];
   const collapse: string[] = [];
+  const merges: { member: string; into: string }[] = [];
   const unstamped: string[] = [];
   const adoptable: string[] = [];
   const held: SetPreview['held'] = [];
@@ -567,7 +576,9 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     matched.push(keep);
     if (!keep.m.stamp) adoptable.push(keep.m.name);
     for (const l of ls) if (!l.m.stamp && l !== keep) held.push({ member: l.m.name, byPrism3: !!keep.m.stamp });
-    for (const l of ours) if (l !== keep) collapse.push(l.m.name);
+    for (const l of ours) if (l !== keep) {
+      if (l.merged && keep.m.stamp) merges.push({ member: l.m.name, into: keep.m.name }); else collapse.push(l.m.name);
+    }
   }
   const adds = [...planned.keys()].filter((k) => !byTarget.has(k)).map((k) => planComponentName(planned.get(k)!));
   const renames = matched.filter((l) => l.m.stamp && l.target !== l.from).map((l) => ({ from: l.m.name, to: planComponentName(planned.get(l.target)!) }));
@@ -871,6 +882,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     replacements: cap('replacements', replacements),
     adds: cap('adds', adds),
     drops: cap('drops', [...drops, ...collapse]),
+    ...(merges.length ? { merges } : {}),
     unstamped: cap('unstamped', unstamped),
     adoptable,
     held,
@@ -1942,6 +1954,9 @@ export const previewLine = (p: SetPreview): string => {
     c.add ? `${c.add} to add` : '',
     c.drop ? `${c.drop} to mark deprecated` : '',
     c.rename ? `${c.rename} to rename` : '',
+    // DRAFT wording for the owner (#3392): members an axis the ledger merges collapses, removed once their placed
+    // instances move onto the member they merge into.
+    p.merges?.length ? `${p.merges.length} to merge into another member, its instances moved` : '',
     // DRAFT wording for the owner (#2188 Q173): the moves an update makes, in the line's "N to …" form.
     c.move ? `${c.move} to move` : '',
     c.handEdited ? `${n(c.handEdited, 'member')} edited by hand` : '',
@@ -1979,6 +1994,7 @@ export const breakingOf = (p: SetPreview): Breaking[] => {
     ...p.properties.remove.map((x) => ({ kind: 'property' as const, name: x.name, change: 'removed' as const })),
     ...p.properties.retype.map((x) => ({ kind: 'property' as const, name: x.name, change: 'retyped' as const, from: x.from, to: x.to })),
     ...p.drops.map((member) => ({ kind: 'drop' as const, member })),
+    ...(p.merges ?? []).map((x) => ({ kind: 'merge' as const, ...x })),
     ...(p.replacedLayers ?? []).filter((r) => r.path !== '.').map((r) => ({ kind: 'replace' as const, ...r })),
     ...removedLayers(p),
   ];
@@ -2001,11 +2017,12 @@ const removedLayers = (p: SetPreview): Breaking[] => {
 /** #3711 (Q-UF1 A): whether a change breaks files that use the library, the word "breaks" reserved for these: a property
  *  removed or retyped, a layer replaced or removed. A member retired (kept and marked deprecated) and a set renamed out
  *  of the library affect those files without breaking them, and are named by what they do. */
-export const breaksConsumers = (b: Breaking): boolean => b.kind === 'property' || b.kind === 'replace' || b.kind === 'layer';
+export const breaksConsumers = (b: Breaking): boolean => b.kind === 'property' || b.kind === 'replace' || b.kind === 'layer' || b.kind === 'merge';
 
 /** One change that affects files using the library, as a line. DRAFT wording for the owner (#2831, #3711 Q-UF1 A). */
 export const breakingLine = (set: string, b: Breaking): string =>
   b.kind === 'drop' ? `${set} · ${b.member} · retired — its instances in files that use this library keep working and show as deprecated.`
+    : b.kind === 'merge' ? `${set} · ${b.member} · merged into ${b.into} and removed — breaks files that use this library: their instances of it stop updating until swapped to ${b.into}.`
     : b.kind === 'replace' ? `${set} · ${b.member} / ${b.path} · replaced, not updated in place (${b.reason}) — breaks files that use this library: overrides on it are lost.`
       : b.kind === 'private' ? `${set} · renamed ${b.from} → ${b.to} — a name starting with _ or . is not published, so the set leaves the library.`
         : b.kind === 'layer' ? `${set} · ${b.path} · removed from ${n(b.members, 'member')} — breaks files that use this library: overrides on it are lost.${b.added ? ` If ${b.added.join(' or ')} is this layer renamed, declare the rename and the update renames it in place.` : ''}`
@@ -2030,6 +2047,7 @@ export const breakingSummary = (breaking: readonly Breaking[] | undefined, set =
   const sentences = [
     k('private') ? `${set || 'The set'} is renamed to a name Figma does not publish, so it leaves the library.` : '',
     k('drop') ? `${k('drop')} ${name}${k('drop') === 1 ? 'member' : 'members'} retired. ${k('drop') === 1 ? 'Its instances keep' : 'Their instances keep'} working and show as deprecated.` : '',
+    k('merge') ? `${n(k('merge'), 'member')} merged into another and removed, which breaks those files: ${k('merge') === 1 ? 'its instances stop' : 'their instances stop'} updating until swapped.` : '',
     props.length ? `${n(props.length, 'property', 'properties')} removed or retyped, which breaks those files: overrides of ${props.length === 1 ? 'it' : 'them'} are dropped.` : '',
     replaced ? `${n(replaced, 'layer')} replaced, not updated in place, which breaks those files: overrides on ${replaced === 1 ? 'it' : 'them'} are lost.` : '',
     layers.length ? `${n(layers.length, 'layer')} removed, which breaks those files: overrides on ${layers.length === 1 ? 'it' : 'them'} are lost.${layers.some((l) => l.added) ? ' A declared rename keeps a renamed layer in place.' : ''}` : '',
