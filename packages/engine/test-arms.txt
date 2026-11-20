@@ -27,6 +27,7 @@ apps/plugin/test-agent-link.ts #3326
 apps/plugin/test-agent-link.ts #3327
 apps/plugin/test-agent-link.ts #3394
 apps/plugin/test-agent-link.ts #3416
+apps/plugin/test-agent-link.ts #3693
 apps/plugin/test-apply-interrupted.ts #1728
 apps/plugin/test-apply-summary.ts #1679
 apps/plugin/test-apply-summary.ts #2177
@@ -1259,6 +1260,7 @@ packages/engine/test.ts #3555
 packages/engine/test.ts #3575
 packages/engine/test.ts #3595
 packages/engine/test.ts #3603
+packages/engine/test.ts #3693
 packages/engine/test.ts #3697
 packages/engine/test.ts #3698
 packages/engine/test.ts #3707
