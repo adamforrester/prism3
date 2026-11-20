@@ -42,7 +42,8 @@
  *   · #3865: `reduceStopped` dropped from `reduceLine` (`report.ts`) → `#3865 Prune stopped, a TypeError: the report keeps
  *     the class and the counts, not the host's message` (and the others); the `$` anchor dropped from `STOPPED` → `#3865
  *     Prune stopped, a message that imitates the counts: …`; `STOPPED_BARE` dropped → `#3865 Prune stopped, counts the
- *     report cannot read: …`.
+ *     report cannot read: …`; `STOPPED`'s singular `items?` made plural only → `#3865 Prune stopped, one style: …`; a noun
+ *     dropped from `STOPPED_PART` → `#3865 Prune stopped, every kind: …` (and `one style`, `two collections`).
  *   · #3854: Draw specs' catch put back to `(e as Error)?.message` (`main.ts`) → `#3702 D3703.1 B #3854 Draw specs, a
  *     TypeError: the drawer line keeps the host's message, its class in front`.
  */
@@ -531,6 +532,14 @@ const RAW_READS: [file: string, needle: string, cls: 'data' | 'engine' | 'helper
       'Prune stopped — Error. Removed 4 stale items before it stopped: 1 mode, 3 variables.', FAKE],
     ['a Refusal, nothing removed', PRUNE_COPY.stopped(none, fd(Object.assign(new Error(HOST_SECRET), { name: 'Refusal' }))),
       'Prune stopped — Refusal. Nothing was removed.', HOST_SECRET],
+    // The whole counts grammar the report keeps (#4378 review S1): the singular total and noun, and every noun the
+    // copy can name. A drift here falls to the class alone and loses the counts #3697 R6 needs.
+    ['one style', PRUNE_COPY.stopped({ variables: 0, collections: 0, modes: 0, styles: 1 } as never, fd(new Error(HOST_SECRET))),
+      'Prune stopped — Error. Removed 1 stale item before it stopped: 1 style.', HOST_SECRET],
+    ['every kind', PRUNE_COPY.stopped({ variables: 3, collections: 1, modes: 1, styles: 2 } as never, fd(new Error(HOST_SECRET))),
+      'Prune stopped — Error. Removed 7 stale items before it stopped: 2 styles, 1 mode, 3 variables, 1 collection.', HOST_SECRET],
+    ['two collections', PRUNE_COPY.stopped({ variables: 0, collections: 2, modes: 0, styles: 0 } as never, fd(new Error(HOST_SECRET))),
+      'Prune stopped — Error. Removed 2 stale items before it stopped: 2 collections.', HOST_SECRET],
     // Counts in a shape the report does not know (the copy changed): the class alone, never the message.
     ['counts the report cannot read', `Prune stopped — ${fd(new Error(HOST_SECRET))}. Removed some items.`, 'Prune stopped — Error', HOST_SECRET],
   ];

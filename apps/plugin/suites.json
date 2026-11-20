@@ -64,7 +64,7 @@
     { "file": "test-file-kind.ts", "floor": 26 },
     { "file": "test-consistency-audit.ts", "floor": 31 },
     { "file": "test-file-facts.ts", "floor": 111 },
-    { "file": "test-report-redaction.ts", "floor": 125 },
+    { "file": "test-report-redaction.ts", "floor": 128 },
     { "file": "test-file-records.ts", "floor": 7 }
   ],
   "elsewhere": {
