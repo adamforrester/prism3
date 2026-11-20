@@ -41,6 +41,8 @@ Shown on the default member: appearance `ghost`, size `medium`, shape `square`, 
 
 Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.
 
+**In RTL.** The icon flips only if it points a direction, such as an arrow.
+
 ### Do
 
 - Always give it an accessible name (a verb)
@@ -51,13 +53,13 @@ Use for a self-evident action where space is tight and a text label would be red
 
 - Ship it without an accessible name ("button, unlabeled")
 - Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button
-- Tooltip a natively-disabled icon button (the tooltip can't be reached) — use isInactive
+- Tooltip a natively-disabled icon button (the tooltip can't be reached) — use `isInactive`
 
 ## Accessibility
 
-- **Keyboard:** Native \<button> — Enter on keydown, Space on keyup. Identical to Button.
-- **Focus:** Same offset :focus-visible ring as Button; retained through pending/inactive.
-- **Screen readers:** button (native \<button>)
+- **Keyboard:** Native `<button>` — Enter on keydown, Space on keyup. Identical to Button.
+- **Focus:** Same offset `:focus-visible` ring as Button; retained through pending/inactive.
+- **Screen readers:** button (native `<button>`)
 
   aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron).
 
@@ -88,10 +90,10 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 
 - **Built from:** `focus-ring`, `spinner`
 - **Instead, consider:** `button`, `flush-icon-button`
-- **Often used with:** `icon`
+- **Often used with:** `icon`, `popover`
 - **Replaces:**
-  - div[role=button] wrapping an icon
-  - a \<button> holding only an \<svg> and no accessible name
+  - `div[role=button]` wrapping an icon
+  - a `<button>` holding only an `<svg>` and no accessible name
 
 ## Building it in code
 

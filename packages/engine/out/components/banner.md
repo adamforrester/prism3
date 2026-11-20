@@ -46,6 +46,8 @@ Shown on the default member: tone `info`, edge `contained`.
 
 Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Use the neutral tone for a message with no status, such as an announcement or a membership offer. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one. Give it one action at most: an inline link at the end of a one-line message that goes somewhere, or a text button under a longer message, or one that does something ("Retry"). The brand's Banner style sets the surface for every banner: Tinted fills it with the tone's tint, Outlined with the page color, and both keep the edge in the tone. It is a brand setting, not a prop.
 
+**In RTL.** The layout mirrors: the start edge is on the right. The info, success, warning and danger glyphs do not mirror.
+
 ### Do
 
 - Match the tone to how serious the message is
@@ -69,7 +71,7 @@ Use a Banner for an important message the user should see and may need to act on
 
 - **Keyboard:** The action or the inline link, then the close button, are ordinary Tab stops in reading order. The banner itself takes no focus.
 - **Focus:** No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.
-- **Screen readers:** A banner present when the page loads is a region (\<section aria-labelledby> pointing at the title) and has no live role. A banner inserted after an action is announced through the page's live region: role="alert" for danger, role="status" for the other tones.
+- **Screen readers:** A banner present when the page loads is a region (`<section aria-labelledby>` pointing at the title) and has no live role. A banner inserted after an action is announced through the page's live region: `role="alert"` for danger, `role="status"` for the other tones.
 
   The glyph is aria-hidden. The inline link is a real link inside the body paragraph, read as part of the sentence. A banner present at load: a section with aria-labelledby pointing at the title, and no role="alert". An inserted banner: announced through a live region that already exists, role="alert" for danger and role="status" otherwise. The close button's accessible name names what it dismisses ("Dismiss error message"), and is translated.
 
@@ -89,7 +91,7 @@ Use a Banner for an important message the user should see and may need to act on
 
 - **Enter:** Fades in. A banner inserted at the top of a page reserves its space, so the content below does not jump.
 - **Exit:** Collapses its height and fades on motion.transition.exit, so the content below moves up smoothly.
-- **Reduced motion:** Under prefers-reduced-motion it appears and goes instantly.
+- **Reduced motion:** Under prefers-reduced-motion it fades only, on motion.duration-reduced.normal to appear and to go, and its height changes at once when it is dismissed.
 
 ## Content guidelines
 
@@ -104,7 +106,7 @@ Titles are short, specific and in sentence case, with no period. The body states
 - **Instead, consider:** `dialog`, `field-message`, `badge`, `toast`
 - **Often used with:** `list`, `button-neutral`
 - **Replaces:**
-  - a colored div with an icon and role="alert" on a message present at load
+  - a colored div with an icon and `role="alert"` on a message present at load
   - an error shown as a toast that disappears
 
 ## Building it in code

@@ -11,12 +11,13 @@
  * settings are not in the report`; `brandWords` left out of the scrub → `Q116 opt-in: off, the brand's prefix and name
  * are replaced`; the hex rule dropped from `scrub` → `no keys: a long hex run is removed`; the token rule dropped →
  * `no keys: a token-shaped run is removed`; the Figma URL rule dropped → `no file names: a Figma file link is removed`;
- * `issueUrl` not cutting → `link: a long report is cut to fit`; `isIssueUrl` accepting any https URL → `link: the
- * plugin opens nothing but the issue form`.
+ * `isIssueUrl` accepting any https URL → `link: the plugin opens nothing but the issue form`. Since the owner's
+ * 2026-11-17 direction the link carries the title and a paste instruction alone: the report given back to `issueUrl`
+ * as its body → `paste: the issue opens with the title and the instruction alone`.
  *
  * The review at 03d62700 (findings 1, 2, 3, 5, 6), each fixture the reviewer's: short words matched by substring, or
- * not at all → `#3522 R1 …`; the cut not backing off a high surrogate → `#3522 R2 link: a cut inside an emoji …`;
- * `URL_LIMIT` raised past the literal 7000 → `#3522 R3 link: a long report is cut to at most 7000`; `isIssueUrl`'s
+ * not at all → `#3522 R1 …`; `URL_LIMIT` raised past the literal 7000 → `#3522 R3 link: the main thread opens no issue
+ * URL over 7000` (the cut and its #3522 R2 surrogate arm went with the 2026-11-17 change: the link holds no report); `isIssueUrl`'s
  * length bound dropped → `#3522 R3 link: an issue URL over 7000 is not opened`; a scrub rule dropped → its `#3522 R5`
  * arm; the verdict left unscrubbed → `#3522 R6 …`.
  *
@@ -50,12 +51,17 @@
  * `#3702 second review, U+2028 in a DOMException's message: …` (and CR, U+2029); `DETAIL` ending in `.*$` again → `#3702
  * second review, U+2028 in a Error's message: …` (and TypeError; CR, U+2029), through its headless `Run stopped (` line.
  */
+import * as reportModule from './src/state/report';
 import { ENGINE_VOCABULARY, brandWords, buildReport, isIssueUrl, issueUrl, scrub, ISSUE_BASE, URL_LIMIT, type ReportInput } from './src/state/report';
-import { brandTheme, type BrandInput, buildTree } from '@prism3/engine';
+import { brandTheme, type BrandInput, buildTree, EXAMPLE_BRANDS_JSON } from '@prism3/engine';
+import * as store from './src/state/store';
 import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -63,7 +69,7 @@ const ok = (cond: boolean, label: string): void => {
 // A brand with an id, a display name and a token root, as a client's would carry. Fictional.
 const BRAND = { id: 'harbor', name: 'Harbor Fleet', root: 'hbr', primary: 'oklch(0.55 0.2 250)' };
 const BASE: ReportInput = {
-  stamp: '2026-11-07T21:00:00Z tree-a59be505 0899c2d5', engine: '0.237.0', host: 'figma', brand: BRAND, includeBrand: false,
+  stamp: '2026-11-07T21:00:00Z tree-a59be505 0899c2d5', engine: '0.237.0', host: 'figma', brand: BRAND, includeBrand: false, seen: [],
   activity: [
     { title: 'Apply Theme', verdict: '✗ 1 conflict', lines: ['Nothing was written. 1 conflict with existing content: variable "hbr/color/background/primary" is STRING in "color"'], agent: false },
     { title: 'Build', verdict: '✓ built', lines: ['button: 24 members, Harbor Fleet look'], agent: true },
@@ -300,6 +306,26 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
   }
 }
 
+// ── #4257 review: a bare line, no head in front, thrown as a class that is not an `…Error` ──
+// Update file's four `main.ts` catches (the check or apply, Record as built, Adopt, Draw specs) post `failureDetail(e)`
+// as the whole line. With no head, only `DETAIL`'s class rule cuts it, so a host's `…Exception` must be a class there
+// too; an ordinary `Word: …` line is not a class and stays whole.
+{
+  const SECRET = 'in get_name: node "SecretLayer" on page "SecretPage"';
+  const bad: string[] = [];
+  for (const cls of ['DOMException', 'FigmaException', 'Exception', 'TypeError']) {
+    for (const [posted, reported] of [[`${cls}: ${SECRET}`, cls], [`Run stopped (${cls}: ${SECRET})`, `Run stopped (${cls})`]]) {
+      const rep = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✗ check failed', lines: [posted], agent: false }] });
+      const line = rep.split('\n').find((l) => l.startsWith('  - ')) ?? '';
+      if (line !== `  - ${reported}` || /Secret/.test(rep)) bad.push(line);
+    }
+  }
+  ok(bad.length === 0, `#4257 review: a bare line thrown as an …Exception keeps the class, not the host's message (${JSON.stringify(bad)})`);
+  const plain = buildReport({ ...BASE, includeBrand: false, activity: [{ title: 'Run', verdict: '✓ done', lines: ['Note: keep this line', 'Exceptions: none', 'Exception counts: 0 (button)'], agent: false }] });
+  ok(plain.includes('  - Note: keep this line\n') && plain.includes('  - Exceptions: none\n') && plain.includes('  - Exception counts: 0 (button)'),
+    '#4257 review: a line that is not a class and its message is left as it is');
+}
+
 // ── #3702 second review: a line terminator inside a line, after every head a site posts ──
 // JS's `.` matches none of CR, U+2028 or U+2029, so a detail cut with `.*$` stopped short of them and the line went
 // through whole. `failureDetail` collapses them at the source; the report holds the cut whatever the producer does.
@@ -392,30 +418,127 @@ ok(scrub('ends hf\nhf starts\tthen hf', ROOT) === 'ends [brand]\n[brand] starts\
 ok(scrub('tidewaters\novernight-watch\tshelf', [...PUNCT, ...ROOT]) === 'tidewaters\novernight-watch\tshelf', '#3560 an ordinary word holding a name stays whole next to a newline or a tab');
 
 // ── the link ──
-const url = issueUrl(off);
-ok(url.startsWith(`${ISSUE_BASE}?title=Problem%20report&body=`) && decodeURIComponent(url.split('&body=')[1]) === off, 'link: the issue form, prefilled with the whole report');
+// The owner (2026-11-17): "prepopulate with the title, but then the body has instructions to paste the rest". The issue
+// opens with the title and a body that only asks for the report, which travels on the clipboard. The expected URL is
+// typed here whole, so a body built from the report, or any change to the title or the instruction, fails by name.
+// MUTATION: `issueUrl` given the report back as its body → `paste: the issue opens with the title and the instruction alone`.
+const PASTE_URL = 'https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body='
+  + 'Paste%20the%20report%20here%20%E2%80%94%20Prism3%20copies%20it%20to%20your%20clipboard%20as%20it%20opens%20this%20page.'
+  + '%20Copy%20in%20the%20Report%20a%20problem%20dialog%20copies%20it%20again.';
+const url = issueUrl();
+ok(url === PASTE_URL, `paste: the issue opens with the title and the instruction alone (${url})`);
 const long = buildReport({ ...BASE, activity: [{ title: 'Build', verdict: '✗ failed', lines: Array.from({ length: 400 }, (_, i) => `member ${i} failed to bind its fill`), agent: false }] });
-const cut = issueUrl(long);
+ok(!decodeURIComponent(url).includes('### Diagnostics') && !decodeURIComponent(url).includes(long.slice(0, 40)) && url.length < 400,
+  `paste: the link carries nothing from the report, whatever its length (${url.length} characters)`);
 // GitHub refuses a prefilled issue URL past roughly 8 KB (observed; GitHub does not document the figure), so the
 // ceiling is typed here as a literal, 7000, and never read from the module under test (docs/34).
 const GITHUB_SAFE = 7000;
-ok(URL_LIMIT <= GITHUB_SAFE && cut.length <= GITHUB_SAFE, `#3522 R3 link: a long report is cut to at most 7000 characters (${cut.length})`);
-ok(cut.length <= URL_LIMIT && decodeURIComponent(cut.split('&body=')[1]).endsWith('The full report is on your clipboard: paste it here.)'), `link: a long report is cut to fit (${cut.length} ≤ ${URL_LIMIT}) and says where the rest is`);
-ok(isIssueUrl(url) && isIssueUrl(cut), 'link: the plugin opens the issue form it built');
+ok(URL_LIMIT <= GITHUB_SAFE, `#3522 R3 link: the main thread opens no issue URL over 7000 characters (${URL_LIMIT})`);
+ok(isIssueUrl(url), 'link: the plugin opens the issue form it built');
 const over = `${ISSUE_BASE}?body=`.padEnd(7001, 'x');
 const atLimit = `${ISSUE_BASE}?body=`.padEnd(7000, 'x');
 ok(over.length === 7001 && !isIssueUrl(over), '#3522 R3 link: an issue URL over 7000 characters is not opened');
 ok(atLimit.length === 7000 && isIssueUrl(atLimit), '#3522 R3 link: an issue URL of exactly 7000 characters is opened');
-// #3522 review R2: a cut that lands inside an emoji (a surrogate pair) backs off it, and does not throw.
-const emoji = buildReport({ ...BASE, activity: [{ title: 'Build', verdict: '✗ failed', lines: Array.from({ length: 400 }, (_, i) => `member ${i} on page "🎨 Components"`), agent: false }] });
-let emojiCuts = 0;
-let emojiErr = '';
-for (let pad = 0; pad < 12; pad++) {
-  try { const u = issueUrl('x'.repeat(pad) + emoji); decodeURIComponent(u); if (u.length <= 7000) emojiCuts++; } catch (e) { emojiErr = String(e); }
-}
-ok(emojiCuts === 12 && !emojiErr, `#3522 R2 link: a cut inside an emoji backs off it, and the link still opens (${emojiCuts}/12 cut${emojiErr ? `, ${emojiErr}` : ''})`);
 ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github.com/someone-else/repo/issues/new?body=x') && !isIssueUrl(`${ISSUE_BASE}x?body=1`) && !isIssueUrl(42),
   'link: the plugin opens nothing but the issue form');
 
-console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ report: all checks passed');
+// ── #3883: the words of every brand the session held, not only the one on screen ──
+// The Activity lines are each operation's latest result, which stays across a brand load, a rename and a failed
+// restore. A fictional client's run, then the report opened on a shipped example: before #3883 the scrub list came
+// from the example alone, and every client word went into the report.
+{
+  // Read through the namespace, so a tree without these (main before #3883) fails the arms by name, not at import.
+  const mergeWords = (reportModule as { mergeWords?: typeof reportModule.mergeWords }).mergeWords ?? ((...l: unknown[][]) => l.flat());
+  const sessionBrandWords = (store as { sessionBrandWords?: () => readonly unknown[] }).sessionBrandWords ?? (() => []);
+  const CLIENT = { id: 'acme', name: 'Acme Corp', root: 'acme', brandColors: [{ name: 'acmeblue', oklch: { l: 0.5, c: 0.1, h: 250 } }], customModes: [{ name: 'acme-night', base: 'dark' }], typography: { families: { body: 'Quillmark Sans Pro' } } };
+  const RUN = { title: 'Apply Theme', verdict: '✓ applied, mode acme-night', lines: ['wrote acme/core/palette/acmeblue/500', 'typefaces unavailable (Quillmark Sans Pro)'], agent: false };
+  const leaks = (t: string): string[] => ['acme', 'Acme', 'acmeblue', 'acme-night', 'Quillmark'].filter((w) => t.includes(w));
+  const example = (EXAMPLE_BRANDS_JSON as Record<string, Record<string, unknown>>).harbor!;
+  const later = buildReport({ ...BASE, brand: example, seen: brandWords(CLIENT), activity: [RUN] });
+  ok(leaks(later).length === 0 && later.includes('mode [brand]') && later.includes('[brand]/core/palette/[brand]/500'),
+    `#3883: a report on another brand scrubs the words of the brand the activity ran on (leaked: ${JSON.stringify(leaks(later))})`);
+  const later_on = buildReport({ ...BASE, brand: example, includeBrand: true, seen: brandWords(CLIENT), activity: [RUN] });
+  ok(leaks(later_on).length === 0 && later_on.includes('"id": "harbor"'),
+    `#3883: including the brand on screen includes it, and still scrubs an earlier brand's words (leaked: ${JSON.stringify(leaks(later_on))})`);
+  const same_on = buildReport({ ...BASE, brand: CLIENT, includeBrand: true, seen: brandWords(CLIENT), activity: [RUN] });
+  ok(same_on.includes('wrote acme/core/palette/acmeblue/500'),
+    '#3883: the included brand keeps its own words in the lines, though the session list holds them');
+  ok(JSON.stringify(mergeWords([{ whole: 'Acme' }], ['acme', 'b'], [{ whole: 'zz' }])) === JSON.stringify(['acme', { whole: 'zz' }, 'b']),
+    '#3883: mergeWords keeps one entry per word ignoring case, a plain string over { whole }, longest first');
+
+  // The session list, as the store collects it: the brand the session started on, a rename that resolved, and a load.
+  // A brand that resolves: the harbor example under the client's identity and typeface.
+  const client = { ...structuredClone(example), id: 'acme', name: 'Acme Corp', root: 'acme' } as Record<string, any>;
+  client.typography = { ...(client.typography ?? {}), families: { ...(client.typography?.families ?? {}), body: 'Quillmark Sans Pro' } };
+  store.initSession(client as unknown as BrandInput, { kind: 'file' });
+  store.brandState.root = 'acmeco';
+  store.rebuild();
+  store.loadInput(structuredClone((EXAMPLE_BRANDS_JSON as Record<string, unknown>).aurora) as BrandInput, { kind: 'example', id: 'aurora' });
+  const seen = sessionBrandWords() as ReturnType<typeof brandWords>;
+  const has = (w: string): boolean => seen.some((x) => (typeof x === 'string' ? x : x.whole).toLowerCase() === w);
+  const want = ['acme', 'acme corp', 'acmeco', 'quillmark sans pro', 'aurora'];
+  ok(want.every(has),
+    `#3883: the store keeps the words of every brand the session resolved: the first, a renamed root, a loaded example (missing: ${want.filter((w) => !has(w)).join(', ') || 'none'})`);
+  const viaStore = buildReport({ ...BASE, brand: store.lastGoodInput as unknown as Record<string, unknown>, seen, activity: [{ ...RUN, verdict: '✓ applied', lines: ['wrote acme/color/text/primary', 'wrote acmeco/color/text/primary', 'typefaces unavailable (Quillmark Sans Pro)'] }] });
+  ok(leaks(viaStore).length === 0, `#3883: a report built from the store's session list leaks no earlier brand's words (leaked: ${JSON.stringify(leaks(viaStore))})`);
+
+  // A rename skips `rebuild()`, so the post records its words (`postedInput`, review of #3961): rename the root the way
+  // Brand › Identity does (`syncIdentity`), post, then load another brand. The renamed root must still be on the list.
+  const postedInput = (store as { postedInput?: () => BrandInput }).postedInput ?? (() => store.lastGoodInput);
+  store.initSession(structuredClone(client) as unknown as BrandInput, { kind: 'file' });
+  store.brandState.root = 'acmezed';
+  store.syncIdentity();
+  const carried = postedInput();
+  store.loadInput(structuredClone((EXAMPLE_BRANDS_JSON as Record<string, unknown>).aurora) as BrandInput, { kind: 'example', id: 'aurora' });
+  ok(carried.root === 'acmezed' && (sessionBrandWords() as ReturnType<typeof brandWords>).some((x) => (typeof x === 'string' ? x : x.whole) === 'acmezed'),
+    '#3883: a renamed root that was posted without a rebuild stays on the session list after another brand loads');
+  // The brand the session starts on is noted by `initSession` itself, with no rebuild after it.
+  store.initSession(structuredClone(client) as unknown as BrandInput, { kind: 'file' });
+  ok((sessionBrandWords() as ReturnType<typeof brandWords>).some((x) => (typeof x === 'string' ? x : x.whole).toLowerCase() === 'quillmark sans pro'),
+    '#3883: initSession puts the starting brand\'s words on the session list before any rebuild');
+
+  // main.ts touches the DOM at import, so its wiring is read as source: every post that carries the brand records it
+  // first (a rename skips the rebuild, so a post is the one moment its words are known), and the report reads the list.
+  // The claim is POSITIVE and PARSED (#4244): a grep for one bad spelling, `commit.x(lastGoodInput`, passed
+  // `const brief = lastGoodInput; commit.postTheme(brief)`. The brand-carrying methods are the `HostCommit` methods with
+  // an `input` parameter (`write-adapter.ts`, the contract main.ts posts through), and at that position every call in
+  // main.ts must pass `posted()` or `panelBrand(…)`, whose body must be `brandFor(theme, posted())`. MUTATIONS VERIFIED
+  // (#4244, each fails the arm by name): the issue's alias above · `panelBrand` returning `lastGoodInput`.
+  const main = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+  const parse = (name: string, text: string) => ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true);
+  const adapter = parse('write-adapter.ts', readFileSync(new URL('./src/write-adapter.ts', import.meta.url), 'utf8'));
+  const inputAt = new Map<string, number>();
+  adapter.forEachChild((n) => {
+    if (ts.isInterfaceDeclaration(n) && n.name.text === 'HostCommit')
+      for (const m of n.members) if (ts.isMethodSignature(m)) {
+        const at = m.parameters.findIndex((p) => p.name.getText(adapter) === 'input');
+        if (at >= 0) inputAt.set(m.name.getText(adapter), at);
+      }
+  });
+  const sf = parse('main.ts', main);
+  const viaSession: string[] = [], bare: string[] = [];
+  let panelBody = '', postedInit = '';
+  const visit = (n: ts.Node): void => {
+    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && inputAt.has(n.expression.name.text)) {
+      const arg = n.arguments[inputAt.get(n.expression.name.text)!];
+      const text = arg ? arg.getText(sf) : '(none)';
+      const viaPosted = !!arg && ts.isCallExpression(arg) && ts.isIdentifier(arg.expression) && (arg.expression.text === 'posted' ? arg.arguments.length === 0 : arg.expression.text === 'panelBrand');
+      (viaPosted ? viaSession : bare).push(`${n.expression.getText(sf)}(${text})`);
+    }
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer) {
+      if (n.name.text === 'panelBrand' && ts.isArrowFunction(n.initializer)) panelBody = n.initializer.body.getText(sf);
+      if (n.name.text === 'posted') postedInit = n.initializer.getText(sf);
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  ok(inputAt.size >= 4 && viaSession.length >= 4 && bare.length === 0 && panelBody === 'brandFor(theme, posted())',
+    `#3883: every post to the host that carries the brand passes posted() or panelBrand(), which adds its words to the session (${inputAt.size} brand-carrying methods, ${viaSession.length} posts; bare: ${JSON.stringify(bare)}; panelBrand: ${JSON.stringify(panelBody)})`);
+  ok(/seen: mergeWords\(sessionBrandWords\(\)/.test(main) && /brand: briefInput\(\)/.test(main),
+    '#3883: the report reads the session list, and includes the failed restore\'s brand, not the boot demo');
+  ok(postedInit === 'postedInput' && /restoreFailure\?\.brand, heldRestore\]/.test(main),
+    '#3883: every post goes through the store\'s postedInput, and the scrub list takes a held restore\'s brand');
+}
+
+console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ report: all checks passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

@@ -86,6 +86,7 @@ minimal — read both, they are the reference; the directory also holds a standa
 | `buttonContentSize` | `match` \| `smaller` | `smaller` (Small) gives a **medium** button the small label and icon (`type.label.sm.emphasis`, `icon.size.xs`) at medium height and padding — a 44px button with a 12px label; `match` (Medium, default) leaves every size its own |
 | `buttonLabelWeight` | `emphasis` \| `default` | Control label weight. `default` (Default) sets every button and tag label in its label style's **default** weight role instead of emphasis, and the brand then ships that weight for the label styles; with `smaller`, a medium button takes the small label at that weight. Buttons and tags only: badges keep emphasis. `emphasis` (default) leaves the labels as they are |
 | `buttonTextHover` | `text` \| `fill` | What a button at the text appearance does on hover and when pressed. `text` (Text & icon only, the default) changes its label and icon colors; `fill` also gives it the outline appearance's wash. A text button is never filled at rest, and its label is always underlined (fixed, not a setting). Buttons only |
+| `buttonBorderWeight` | `hairline` \| `thick` | The border of an outline button, in every button set at once. `thick` (Thick) binds `border-width.thick`, 2px; `hairline` (Thin, default) binds `border-width.hairline`, 1px. Each set keeps its own border color. Icon buttons follow too: the outline icon button's edge and the round flush icon button's edge |
 | `radiusHairline` | `true` \| `false` | **retired — do not set it.** The fixed 1px `radius.hairline` rung now ships for every brand, so this changes nothing; it is accepted only so older brand files still load. For 1px-cornered controls, use `controlShape: hairline` |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed }` | brand energy → motion pace |
@@ -173,6 +174,31 @@ Loop until it exits 0 with all contracts passing. That closing loop **is** the
 deliverable — a `design.md` that compiles clean is a brand the engine can carry to every
 platform.
 
+## Starting from a file facts report
+
+A file facts report (`format` reads `prism3-file-facts/0.x`) is a read-only scan of an existing Figma file: its
+variables with every mode's value and alias chain, its styles, and how often each color, font, radius and padding
+is used, by layer role. When a report is your brief, read it in this order and write one `#` comment per pick
+saying which facts drove it.
+
+1. **Primary.** Look for a chromatic color that roles named for the brand or for actions point at
+   (`brand`, `primary`, `action`, `cta`), in the collection's default mode, at rest. Without names, use the most
+   button-like fills in the report's paint usage. A status color (success, warning, danger, error, info) or a focus ring
+   is not the primary unless nothing else is chromatic. Pin it in OKLCH as above.
+2. **Accent.** A second brand hue that roles call `accent` or `secondary` goes in `brandColors` as `name: accent`.
+   If there's no second brand hue, leave `brandColors` out.
+3. **Action palette.** Read where the main action's roles point at rest (`action`, `interactive`, `button` or `cta`
+   in the name, not a secondary, ghost or destructive one, and not the white ink on the fill). On the accent, set
+   `actionPalette: accent`; on a near-black or gray, `actionPalette: neutral`. On the primary, leave it out.
+4. **Families.** Display and title take the family the heading or display roles use; body, label and caption
+   take the body family. Skip icon fonts.
+5. **Density and radius.** A medium control height near 36px is `compact`, near 44px `comfortable`, near 56px
+   `spacious`. `radiusScale` is the medium control corner divided by 4px. Read button and field corners, not
+   checkbox or switch corners. Without variables, use the most-used padding and corner in `usage`.
+6. **Neutral.** Use the hue and chroma of the grays the file uses.
+
+Then run the compile loop. Say in the prose which picks the report left open, so a reviewer knows what to check.
+
 ## Two dialects (know which you're writing)
 
 - **Engine-native** (this skill) — frontmatter that maps 1:1 to the engine's input, as
@@ -186,8 +212,9 @@ platform.
   **The block reads ten keys only**: `root`, `personality`, `radiusScale`, `typeScale`, `density`,
   `motionTempo`, `actionPalette`, `iconContrast`, `surfaces`, `gradients`. Two of them are spelled
   differently from the engine-native field: `typeScale` sets `typography.typeScale` and `motionTempo`
-  sets `motionPersonality.tempo`. **Any other key is dropped without a warning**, so check the
-  applied list the CLI prints. A lever outside these ten needs the engine-native dialect.
+  sets `motionPersonality.tempo`. **Any other key is skipped**, and the CLI names each one it
+  skipped (`x-prism3: ignored unknown setting '<key>'`) while the file still compiles. A lever
+  outside these ten needs the engine-native dialect.
 
 ## If you have the MCP surface
 

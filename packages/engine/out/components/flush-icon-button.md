@@ -13,7 +13,7 @@
 An icon-only button in the brand's primary color, made to sit inside another component where the action carries the brand, such as the add on a list row. It has two shapes. Flush has no padding, no fill and no border: the glyph is the whole visible control, so it lines up with the content edge around it, and hover and press change the glyph color only. Round draws a circle around the glyph with a light edge, and hover and press add a soft fill; its diameter matches the height of a counter at the same size. The flush box is the glyph, 20 or 24px, so in code the hit area extends past it to at least 44×44px. Because there is no visible text, an accessible name is required.
 
 - **Purpose:** Trigger a brand action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.
-- **Use when:** Any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.
+- **Use when:** Any icon action inside a component. `shape=flush` where the glyph must line up with the content edge; `shape=round` where the buttons stand on their own beside a value.
 - **Avoid when:** The action deletes or removes something (use FlushIconButton.Destructive). It carries no brand emphasis, such as the minus and plus of a counter or the close on a card (use FlushIconButton.Neutral). It stands on its own in a toolbar or a header (use IconButton, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.
 
 ## Anatomy
@@ -40,10 +40,12 @@ Shown on the default member: shape `flush`, size `medium`, surface `default`.
 
 Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.
 
+**In RTL.** The icon flips only if it points a direction, such as an arrow.
+
 ### Do
 
 - Always give it an accessible name (a verb)
-- Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized
+- Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized
 - Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap
 
 ### Don't
@@ -54,9 +56,9 @@ Use inside another component where the icon is itself the control: the minus and
 
 ## Accessibility
 
-- **Keyboard:** Native \<button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex="-1") where its own keys do the same job, as a counter's arrow keys do.
-- **Focus:** An offset :focus-visible ring around the glyph square, or around the circle on the round shape.
-- **Screen readers:** button (native \<button>)
+- **Keyboard:** Native `<button>`: Enter on keydown, Space on keyup. A host may take it out of the tab order (`tabindex="-1"`) where its own keys do the same job, as a counter's arrow keys do.
+- **Focus:** An offset `:focus-visible` ring around the glyph square, or around the circle on the round shape.
+- **Screen readers:** button (native `<button>`)
 
   aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled="true", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips.
 
@@ -86,7 +88,7 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 - **Instead, consider:** `icon-button`
 - **Often used with:** `icon`, `counter`
 - **Replaces:**
-  - an \<svg> with a click handler and no button
+  - an `<svg>` with a click handler and no button
   - an IconButton with its padding overridden to zero
 
 ## Building it in code

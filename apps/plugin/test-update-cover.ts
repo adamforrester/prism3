@@ -38,7 +38,9 @@ import { persistInput } from './src/persist-figma';
 import { themePlans } from './src/apply-theme';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -174,5 +176,5 @@ ok(fixedOn(shim, 'getNodeByIdAsync') && fixedOn(root, 'findAllWithCriteria'), 'f
     `run: the run ends with the cover and About this library on the Cover page (${(coverPage()?.children ?? []).map((n) => n.name).join(', ') || 'empty'})`);
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

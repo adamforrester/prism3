@@ -5,6 +5,13 @@
  */
 import { genericClassOf, SERIF_FALLBACK } from './font-class';
 
+/** A value the caller has established is present (an in-range index, a key just written); a named throw, not a
+ *  silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`theme-type: ${what} is missing`);
+  return x;
+};
+
 // ---------------------------------------------------------------------------
 // Typography axis (Phase 1 — primitive tier). Grounded in 23-typography-
 // tokenisation + the Prism2 reference scale. Deliberate deviation from the KB's
@@ -614,7 +621,7 @@ export type DisplayVariant = typeof DISPLAY_VARIANTS[number];
 // 120px (≈3 chars/line on a 360px phone) instead of ~48px (≈9–11 chars/line).
 const oneRungDown = (ladder: number[], px: number): number => {
   const i = ladder.indexOf(px);
-  return i > 0 ? ladder[i - 1] : px;
+  return i > 0 ? must(ladder[i - 1], `ladder rung ${i - 1}`) : px;
 };
 // Display mobile endpoints, anchored to Carbon's fluid-display curve (floor ~40–48px).
 // Keyed by desktop px (always a ladder value); fallback ≈ one rung down.
@@ -694,7 +701,8 @@ export const derivedRungFor = (field: 'leadingShift' | 'trackingShift', group: T
 export const shiftRung = (keys: readonly string[], key: string, by: number): string => {
   if (!by) return key;
   const i = keys.indexOf(key);
-  return i < 0 ? key : keys[Math.max(0, Math.min(keys.length - 1, i + by))];
+  const j = Math.max(0, Math.min(keys.length - 1, i + by)); // clamped into `keys`, which holds `key`
+  return i < 0 ? key : must(keys[j], `rung ${j}`);
 };
 
 const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, families: FontFamilyBinding[]): TypeComposite[] => {
@@ -722,7 +730,8 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
   const shiftPx = (px: number): number => {
     const i = ladder.indexOf(px);
     if (i < 0) return px;
-    return ladder[Math.max(0, Math.min(ladder.length - 1, i + shift))];
+    const j = Math.max(0, Math.min(ladder.length - 1, i + shift)); // clamped into `ladder`, which holds `px`
+    return must(ladder[j], `ladder rung ${j}`);
   };
   // Brand-level per-size overrides. Until now a size could be pinned per MODE but not at the baseline,
   // so a single-mode brand — the common case — could not tune its ramp at all while a multi-mode one
@@ -792,6 +801,11 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     if (req && !roles.includes(req.role))
       throw new Error(`typography.weights.${g}: the '${g}' category must include '${req.role}', because ${req.why}. Add '${req.role}' back (the set given is ${roles.join('/')}).`);
   }
+  // #3707 (owner decision A, 2026-11-18): an empty `links` is refused, as the schema's `minItems: 1` refuses it, so an
+  // in-memory brief cannot ship without the body and caption link styles the contract guarantees and Link binds.
+  // Wording follows Q-RF1 A's pattern; DRAFT for the owner.
+  if (Array.isArray(t.links) && t.links.length === 0)
+    throw new Error('Link styles must name at least one text type: typography.links is empty.');
   const linkGroups = new Set([...(t.links ?? TYPE_LINK_DEFAULT), ...TYPE_LINK_ALWAYS]);
   const italicGroups = new Set(t.italics ?? []);   // default none — italics are opt-in per role
   // #1296 — categories whose DEFAULT cut is italic (default none). Each is a refusal-checked choice: an
@@ -1049,7 +1063,7 @@ export const deriveTypefaces = (library: string[] = [], ...bindingSets: FontFami
   const out: Typeface[] = [];
   for (const bindings of bindingSets) {
     for (const f of bindings) {
-      const name = f.stack[0];
+      const name = must(f.stack[0], `the first family of a font stack`);
       const slug = typefaceSlug(name);
       const hit = out.find((t) => t.slug === slug);
       if (hit) { hit.variable = hit.variable || f.variable; continue; }
@@ -1099,9 +1113,11 @@ export const buildTypography = (t: TypographyInput = {}): Typography => {
   for (const [k, v] of Object.entries(t.letterSpacings ?? {}))
     if (v !== undefined) onLadder('letterSpacings', LETTER_SPACING_LADDER, k, v);
   const ordered = (field: string, keys: readonly string[], resolved: number[]): void => {
-    for (let i = 1; i < resolved.length; i++)
-      if (resolved[i] < resolved[i - 1])
-        throw new Error(`typography.${field}: '${keys[i]}' (${resolved[i]}) resolves below '${keys[i - 1]}' (${resolved[i - 1]}) — the rung names are a relative-emphasis ramp, so they must stay in order. Re-point the roles instead of crossing them.`);
+    for (const [i, cur] of resolved.entries()) {
+      const prev = resolved[i - 1];
+      if (prev !== undefined && cur < prev)
+        throw new Error(`typography.${field}: '${keys[i]}' (${cur}) resolves below '${keys[i - 1]}' (${prev}) — the rung names are a relative-emphasis ramp, so they must stay in order. Re-point the roles instead of crossing them.`);
+    }
   };
   ordered('lineHeights', LINE_HEIGHT_KEYS, LINE_HEIGHTS.map((l) => t.lineHeights?.[l.key] ?? l.value));
   ordered('letterSpacings', LETTER_SPACING_KEYS, resolveLetterSpacings(t).map((l) => l.em));

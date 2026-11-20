@@ -355,7 +355,7 @@
     },
     "field-message": {
       "members": 4,
-      "sha256": "b8241dcf6c95e8e2218786a88165c84bcb2e31eaef43518ebf7b43c42fa00261",
+      "sha256": "4a04dc24adf03e113bafaf52d205403d43363c9a9a3438a12833a4b30fa6d384",
       "properties": [
         "message:TEXT"
       ]
@@ -406,7 +406,7 @@
     },
     "radio-control": {
       "members": 60,
-      "sha256": "c87e86164b8ad1510fab85f50d40f753fa6ee49f26d18ec635857d28f492a20f",
+      "sha256": "7c75c47dd1d146bb93bf5aa4906c7f408df68e02045c705f783fc80d02db33da",
       "properties": []
     },
     "radio-row": {
@@ -427,7 +427,7 @@
     },
     "switch-control": {
       "members": 40,
-      "sha256": "5089cf41bee2b6662614ec1bfc8ce6dd2cdaba89ef33a21654efd1897dc75221",
+      "sha256": "d51e42e38d80b75c8c2261c1fabdd7db695fd93859805776d7db7bbb05cd9308",
       "properties": [
         "state icon:BOOLEAN"
       ]
@@ -463,7 +463,7 @@
     },
     "spinner": {
       "members": 4,
-      "sha256": "e9cb349f1064b8dc2115cb071f2f012b6b9908ed78cbe6752bc6e7321352fdf2",
+      "sha256": "ea89c251f0a29b2686e2f4ed1bbec1c6668f189c8ddaa13f69ac16442f6849cc",
       "properties": []
     },
     "badge": {
@@ -476,7 +476,7 @@
     },
     "tag": {
       "members": 45,
-      "sha256": "ed5c56d7108c8e62efd0efcffb50bf78f39f4bd542eec1c2b9ab30692f9b1aee",
+      "sha256": "fa53bac75c53bb65fc4699e45dee03f803b52020b436cc81db619ee10d66023b",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -485,7 +485,7 @@
     },
     "tag@outline-solid-tint": {
       "members": 45,
-      "sha256": "3f307649da89c4a70ceb1acdf9aa1526ebb6cb38be962b9a83363708aedfa3f0",
+      "sha256": "f914c0832d5bc202cd61700b20044c3587993527080be440db82b5ac488a2aec",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -494,7 +494,7 @@
     },
     "tag@outline-none": {
       "members": 45,
-      "sha256": "7f1abac61d9a25afda815565187f026cfcde085a6ac59e51f32db70c85b0e83a",
+      "sha256": "c1ce7c1936035226b85b70acb850793f028a1c0c389c8bdf0f978fc1de98e7ee",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -503,7 +503,7 @@
     },
     "tag@button-label-default": {
       "members": 45,
-      "sha256": "33b67a8d0cc652d452e31b6a30471e46f87c10267f7f25d7f8fd138817b0fa70",
+      "sha256": "3aef594525c4d8c24c5393b7fc1082f3ebbf3041d8f9a27f32527ee05fec2a66",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -512,7 +512,7 @@
     },
     "tag@button-smaller-label-default": {
       "members": 45,
-      "sha256": "33b67a8d0cc652d452e31b6a30471e46f87c10267f7f25d7f8fd138817b0fa70",
+      "sha256": "3aef594525c4d8c24c5393b7fc1082f3ebbf3041d8f9a27f32527ee05fec2a66",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -521,7 +521,7 @@
     },
     "tag@button-text-fill-label-default": {
       "members": 45,
-      "sha256": "33b67a8d0cc652d452e31b6a30471e46f87c10267f7f25d7f8fd138817b0fa70",
+      "sha256": "3aef594525c4d8c24c5393b7fc1082f3ebbf3041d8f9a27f32527ee05fec2a66",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
@@ -530,16 +530,23 @@
     },
     "tag@tag-underline": {
       "members": 45,
-      "sha256": "c0b2be87d93a67c013d3488f02da2cc74b68ffd07011644cbd8982b0174b4132",
+      "sha256": "f85fda203eaaa518a0b0e5e2c7685f20edbf6befa5e8cffe6c42cbcd6e6c8b3d",
       "properties": [
         "check icon:BOOLEAN",
         "label:TEXT",
         "leading icon:BOOLEAN"
       ]
     },
+    "tag-group": {
+      "members": 3,
+      "sha256": "d55ae4558ff42dd067318b338b468d3dd7665a00a1402d2353e9fceffface248",
+      "properties": [
+        "items:SLOT"
+      ]
+    },
     "tab-item": {
       "members": 30,
-      "sha256": "44874f0a382628c9eaae50322ea5a2dadad95b10b8c372aa4ae3dd23e02dd114",
+      "sha256": "1b75c0f1acfba9d8414359ed3f685fa6df13e5bc21edbecabba2bbb4aa27e172",
       "properties": [
         "count:BOOLEAN",
         "label:TEXT",
@@ -548,7 +555,7 @@
     },
     "tabs": {
       "members": 6,
-      "sha256": "d1e92696600f7b19898c74ada4c07732f58193c445d00a2968fcdca5b8274f67",
+      "sha256": "cc803ed7eb347a0d251d8f16b205f13182e911f9f3e14cfbb10091cbb0fd8c49",
       "properties": [
         "items:SLOT"
       ]
@@ -567,7 +574,7 @@
     },
     "accordion": {
       "members": 48,
-      "sha256": "dc52c7ff7338b6e649934b6a35a1e2c6213803c11419942a047e499cd09e9ea9",
+      "sha256": "63e36ce6da8f3bd8f7c029d7c9573ff85ecf1307cafe25844cbed14c5277534a",
       "properties": [
         "content:SLOT",
         "divider:BOOLEAN",
@@ -592,7 +599,7 @@
     },
     "segmented-control-segment": {
       "members": 30,
-      "sha256": "25f8d04cd82d2967cd32fc27c03230cfd33939839896389e543e5fba5e3cf846",
+      "sha256": "51615eceaac7850a4bc590db8c816542e35440a9a095b7f24511d970f6c1668d",
       "properties": [
         "label:TEXT",
         "leading icon:BOOLEAN"
@@ -600,7 +607,7 @@
     },
     "segmented-control-segment@outline-solid-tint": {
       "members": 30,
-      "sha256": "faab78240c8f57caae1082729b52dc563f70d8922ed0403d094815c9f8024f12",
+      "sha256": "7db4e531136d0e5599586f6b9e1f1bbd76a8aaabfa91ad388eb8000121896b48",
       "properties": [
         "label:TEXT",
         "leading icon:BOOLEAN"
@@ -608,7 +615,7 @@
     },
     "segmented-control-segment@outline-none": {
       "members": 30,
-      "sha256": "63b15ae4c3f17e47f1d0a536b993029e42f53e7a427557d957de96880e2c092e",
+      "sha256": "0156c49d605bcf9f26472eb15c14b5b33c142cdbe474f35b6e8da672f4f31b0c",
       "properties": [
         "label:TEXT",
         "leading icon:BOOLEAN"
@@ -616,7 +623,7 @@
     },
     "segmented-control": {
       "members": 3,
-      "sha256": "3eb17870f7d7fd8fabc686b9029a853f09a66aadefd9f547e710499de9715802",
+      "sha256": "0cc4ec11b56fc0b6f3449d7c632b35c748c3d5d4d886879661039ab59e63dbb7",
       "properties": [
         "items:SLOT",
         "label:BOOLEAN"
@@ -624,7 +631,7 @@
     },
     "link": {
       "members": 192,
-      "sha256": "dfd413bad965169026aa118c5acdaaedf17726ec0015f0cae5bd9fc3a25854e7",
+      "sha256": "16e0073c231e814b5caf1bd67a98b1d88077f5c3b80389e53330431184e18069",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -632,7 +639,7 @@
     },
     "link@body-emphasis": {
       "members": 192,
-      "sha256": "919d220d64965738e1343881093e64f9804bad9e0c2726a4d919f629f422ddbf",
+      "sha256": "ab7f1a7e59cfad55c61f662598bf18f02ad14738720410945bfc6feee22d7cfa",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -640,7 +647,7 @@
     },
     "link@body-single": {
       "members": 96,
-      "sha256": "82d8068ff726ae475e2fae280084bea413c2d5ea0cfb3bdfcca7641332a44259",
+      "sha256": "ecb43650436f4586e713190576b245a2bef582f45d8cb75b4a098847048f5411",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -655,13 +662,14 @@
     },
     "dialog": {
       "members": 24,
-      "sha256": "17ff3a9bc563e28edab062aade0801e5c05e76b4a5b36a62e7bf52071c073e7e",
+      "sha256": "529ad20a03c8de6f3621ef34f4f9219e4af1b6873cbbe3aea9c5bd8028e1e14f",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",
         "description text:TEXT",
         "description:BOOLEAN",
         "dividers:BOOLEAN",
+        "show title:BOOLEAN",
         "title:TEXT"
       ]
     },
@@ -691,14 +699,14 @@
     },
     "breadcrumb-item": {
       "members": 10,
-      "sha256": "6f6de712ac8235cf5e54b2d35a634afb1f8985749d03772b559f8b6913c6008d",
+      "sha256": "3673e9babe01ef5f50443456baa7cc76c2bae9b9386f8c41a41049298e63b678",
       "properties": [
         "label:TEXT"
       ]
     },
     "breadcrumbs": {
       "members": 6,
-      "sha256": "975963e0cb466b987f8793b63f86de21c4b61953e6faec8a026f0ddaed6686bb",
+      "sha256": "4a971cb0c9c6dc3698fc0773ee6fed033e8d80f2fd1a6caac521c89a31123203",
       "properties": [
         "items:SLOT"
       ]
@@ -741,7 +749,7 @@
     },
     "pagination": {
       "members": 12,
-      "sha256": "bfdf79c68efb94d86b460d5f24ada87625edb3ad2d7af57b3bcbee3478e7fe68",
+      "sha256": "fec6d7c6f2d0046c562d54b88672d05cfe877df067d321a07aa6faca7532bef4",
       "properties": [
         "items:SLOT",
         "status text:TEXT"
@@ -749,7 +757,7 @@
     },
     "progress": {
       "members": 12,
-      "sha256": "868c163ffa5e3799c951c79a9a33312f8345ecdfb844fde3dbf76897d6599745",
+      "sha256": "d339572d714207b5a327577167f258b404f4f3bfbd0506ef621947c01b2a0835",
       "properties": [
         "complete value text:TEXT",
         "label text:TEXT",
@@ -787,7 +795,7 @@
     },
     "banner": {
       "members": 10,
-      "sha256": "98b213e4a4b838c344273c80ccfd8db7525c0e15c93024e6dba36e76679543a8",
+      "sha256": "eacee8f04e6becd490b764e9ba5d48065aa8220fd16c9d15873739002a06b8bd",
       "properties": [
         "actions:BOOLEAN",
         "body text:TEXT",
@@ -808,7 +816,7 @@
     },
     "slider": {
       "members": 30,
-      "sha256": "75d3ac70fb1cf7972899867c641d98dae8ac99777b3275c8b08623632d52ec5e",
+      "sha256": "eafd14313e9d7a0fba3f15bc73b6f1aa994421aed8dfeafc8dff008cb3c9de3a",
       "properties": [
         "inputs:BOOLEAN",
         "label:BOOLEAN",
@@ -824,14 +832,14 @@
     },
     "code-input-cell": {
       "members": 48,
-      "sha256": "1d4306a7cb8f25c8b25ec5e13d96466d61e7cddcbc5435be3879295ecfe7cc0c",
+      "sha256": "5e167da17299b91fb721d2f9736445ee87d9135dba7ba83cdfd92b8d3b22a26b",
       "properties": [
         "digit:TEXT"
       ]
     },
     "code-input": {
       "members": 48,
-      "sha256": "7da228b7c56cefda252d54222bb3fd2113ca0f3a179ef10344d94ec02d382ea9",
+      "sha256": "b2bdb6186f016d823af98cf5d1a1a88f3bb1d40bf25f2a21ad9e23f86900cc4b",
       "properties": [
         "items:SLOT",
         "message:BOOLEAN"
@@ -839,14 +847,25 @@
     },
     "page-nav-item": {
       "members": 4,
-      "sha256": "f8a4a46b369e05e769ba0780fe72571565ac529888852729652e391ca4a9683f",
+      "sha256": "9f08e7f9ebb880c46a1cfc15f7cc22a4dcd2d23c4de7e22433ee2ab5b11e56d5",
       "properties": []
     },
     "page-nav": {
       "members": 2,
-      "sha256": "ea176c9df67998801a2098da45006d93fa5dffec96302160ec0bb42986a1d19b",
+      "sha256": "d8a5d12737425abaf5b2cbc8e2645d4d575ed561da5559242c9b7576cff6091e",
       "properties": [
         "items:SLOT"
+      ]
+    },
+    "popover": {
+      "members": 1,
+      "sha256": "f52139a7c315b16de3bd467183303b65e6c32f9aae441da4b4395e105ef9a4b5",
+      "properties": [
+        "body:SLOT",
+        "close:BOOLEAN",
+        "footer:BOOLEAN",
+        "title text:TEXT",
+        "title:BOOLEAN"
       ]
     }
   }

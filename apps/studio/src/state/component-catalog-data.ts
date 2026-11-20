@@ -875,7 +875,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
   {
     "id": "veil",
     "name": "Veil",
-    "category": "foundations",
+    "category": "overlay",
     "summary": "Wash over media so text stays legible, solid or fading from one edge. Verify contrast.",
     "unit": "variants",
     "spacing": [],
@@ -1009,6 +1009,22 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "tag-group",
+    "name": "Tag.Group",
+    "category": "foundations",
+    "summary": "A wrapping row of Tags. The group owns which tags are pressed, arrow keys and removal. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Tag",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 3,
+    "nests": [
+      "tag"
+    ]
+  },
+  {
     "id": "tab-item",
     "name": "Tab.Item",
     "category": "navigation",
@@ -1070,7 +1086,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
   {
     "id": "divider",
     "name": "Divider",
-    "category": "foundations",
+    "category": "layout",
     "summary": "A thin rule between groups of content. Horizontal or vertical, or broken by a short centered label.",
     "unit": "variants",
     "spacing": [
@@ -1838,6 +1854,24 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 2,
     "nests": [
       "page-nav-item"
+    ]
+  },
+  {
+    "id": "popover",
+    "name": "Popover",
+    "category": "overlay",
+    "summary": "A panel beside the control that opened it, for detail or a short task. The page stays usable.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Popover",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 1,
+    "nests": [
+      "flush-icon-button-neutral",
+      "icon",
+      "button-group"
     ]
   }
 ];

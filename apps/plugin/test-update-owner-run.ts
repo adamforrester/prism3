@@ -48,7 +48,9 @@ import { startRun, record, runVerdict } from '../studio/src/state/build-queue';
 import { leafForDef } from './src/file-taxonomy';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -210,5 +212,5 @@ u = stepDone(u, verdict.ok, verdict.headline, answers.length === order.length &&
 ok(!u.done && stepOf(u) === 'guides' && u.results[1]?.ok === true && u.results[1]?.warn !== true,
   `run/goes on: the owner's run moves on from To add to the style guides, its sets step clean (${JSON.stringify({ done: u.done, next: stepOf(u), sets: u.results[1] })})`);
 
-console.log(failed ? `\n${failed} failed` : '\nall passed');
+console.log(`${failed ? `\n${failed} failed` : '\nall passed'} — ${executed} assertions executed`);
 process.exit(failed ? 1 : 0);

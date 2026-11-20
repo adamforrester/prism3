@@ -11,9 +11,9 @@
 
 Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. In a navigation, the standalone link to the page the user is on is current: it shows a 2px bar under the text, and at hover only its color changes. A link inside a paragraph is a text range with that text's own link style rather than this component.
 
-- **Purpose:** Navigate from text to a URL, a fragment or a file, rendered as a real \<a href>.
+- **Purpose:** Navigate from text to a URL, a fragment or a file, rendered as a real `<a href>`.
 - **Use when:** The interaction changes the address or the place on the page: a page, an in-page anchor, a document, another site. Standalone for a link on its own line (below a form, in a footer, beside a control); inline for a link that sits in body copy.
-- **Avoid when:** The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button's weight, such as "Continue to checkout", is a Button given an href, which renders an \<a>. Switching panels in place is Tabs.
+- **Avoid when:** The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button's weight, such as "Continue to checkout", is a Button given an `href`, which renders an `<a>`. Switching panels in place is Tabs.
 
 ## Anatomy
 
@@ -41,7 +41,9 @@ Shown on the default member: style `standalone`, weight `emphasis`, size `medium
 
 ## Usage guidelines
 
-Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style.
+Use a link to go somewhere: another page, a place on the page, a file or another site. Use standalone on its own line and inline in body copy. For an action in place, such as submit, open a dialog or toggle, use Button. Keep x-small for dense metadata, such as an order row or a legal line, not running body text. A link inside small print is a text range with that text's own link style. A social follow link, such as a footer row of networks, is a link too, not a sign-in or wallet button: a standalone Link around the network's one-color mark (ProviderLogo, such as social/instagram-mono, at 24px) with a 44 by 44 target. The link carries the name in aria-label ("Instagram", plus "opens in new tab" when it does), and the mark is aria-hidden. The link's ink, hover and focus ring are the theme's; the mark keeps the provider's drawing.
+
+**In RTL.** The layout mirrors: the start edge is on the right. The trailing visual flips to point the other way.
 
 ### Do
 
@@ -64,8 +66,8 @@ Use a link to go somewhere: another page, a place on the page, a file or another
 ## Accessibility
 
 - **Keyboard:** Tab moves to the link; Enter follows it. Space does not activate a link: it scrolls the page.
-- **Focus:** The shared focus ring at :focus-visible, so a mouse click leaves no ring behind.
-- **Screen readers:** link (a real \<a href>, with the label text inside the anchor)
+- **Focus:** The shared focus ring at `:focus-visible`, so a mouse click leaves no ring behind.
+- **Screen readers:** link (a real `<a href>`, with the label text inside the anchor)
 
   Usually none: the anchor and its text carry the role and the name. aria-current="page" marks the current page in a navigation, set by current; the bar shows it. A link that opens a new tab adds visually hidden "(opens in new tab)" text; the icons are aria-hidden. Where space forces generic text such as "Read more", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror.
 
@@ -100,8 +102,8 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 - **Often used with:** `icon`, `text-field`, `page-nav`
 - **Replaces:**
   - a click handler on a div or span styled as a link
-  - an \<a> with no href, href="#" or javascript:void(0)
-  - a[role=button] used for navigation
+  - an `<a>` with no `href`, `href="#"` or `javascript:void(0)`
+  - `a[role=button]` used for navigation
 
 ## Building it in code
 

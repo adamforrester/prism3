@@ -26,14 +26,17 @@ Today that is the Figma component shell, the docs and the `.ai.json` metadata. C
 and Code Connect are planned, not built: no emitter for them exists yet, and the code proof of
 concept (#3408) is where the first one is being built, as web components plus vanilla HTML/CSS.
 A definition binds visual properties to **locked token names, never values**, which is what makes it brand- and mode-invariant:
-brands and modes are value-columns the engine already supplies. The schema and its
+brands and modes are value-columns the engine already supplies. Published, a definition is that
+component's **component contract**, one entry of `out/components/component-contracts.json`, and the
+model it is written in is the **component schema**. Say "component contract" or "token contract", never
+a bare "contract". The type and its
 runtime validator are `packages/engine/component-schema.ts`; the definitions live one file
 per component under `packages/engine/components/` (read `packages/engine/components/button.ts`
 as the worked substrate). Register a new def in `packages/engine/components/index.ts` — import
 it, add it to `componentDefs`, and re-export it; `typecheck-components` fails by name if a
 tracked def file is missing from the set, or the set names a file git does not track.
 
-> **The contract:** every binding resolves against a real generated tree, every factual
+> **The bar:** every binding resolves against a real generated tree, every factual
 > claim in the def's prose is checked by `lint-skills`/`lint-us-english`/`lint-voice`, and
 > a change to what the def projects must make a **surface gate fail by name** under a
 > mutation. A green suite that does not name your gate is silence, not a pass.
@@ -162,8 +165,12 @@ maintainer channels, a part's `note` included, is also in the plugin bundle a de
 - US English, and `docs/voice-standard.md` — its banned words, and the recessive voice;
 - a WCAG criterion the gates do not check is stated as intent ("targets SC 2.5.5"), never as a
   guarantee;
-- no code spans: write a prop, a value, an attribute or a token path as plain text (inverse,
-  color.text.primary);
+- code in backticks, and only code (owner Q-UG2b A, #3552): an element (`<button>`), an attribute or
+  prop with its value (`type="number"`, `surface=inverse`), an ARIA attribute, a selector, a prop name
+  (`htmlFor`), a token path or a literal value, so the usage panel draws it in the code style. An English
+  word stays plain, even one that is also code (the role button, required, checked). `summary`,
+  `description` and prop descriptions carry no span: the summary is the Figma description, which prints
+  backticks as they are;
 - Button's implementation `do` items are held as they are (owner Q362); the register gate exempts
   them by name until the owner decides where they belong.
 
@@ -173,7 +180,8 @@ the common case. On its own only when …". The host named is a registered compo
 
 `packages/engine/test.ts` (`component-refs`, `component-names`, `component-prose`), `lint-us-english`
 and `lint-voice` catch Prism 2, dangling names, en-GB spellings and banned words. The `#2714 component
-register` block in `packages/engine/test.ts` refuses code spans, all-caps words outside its acronym list, "brief §N",
+register` block in `packages/engine/test.ts` refuses a code span that does not hold code (and any span in `summary`,
+`description` or a prop description), all-caps words outside its acronym list, "brief §N",
 "def" and issue numbers in the consumer fields (summary, description, prop descriptions, accessibility,
 content, docs and ai's three decision fields), and `#2714 child-only whenToUse` holds the two templates.
 Motion and a part's `note` ship too but are not gated yet (#2773), so hold them to the same rules by hand.
@@ -456,6 +464,8 @@ whose actual value comes from the host, not from the plan.
   is fill-colored (`interactive.<c>.fill.selected`). One named exception: Link's current-page bar, which PageNav.Item
   inherits, binds `color.icon.link.*`, because link roles have no indicator twin and the edge setting does not reach
   `icon.link.*` (Q-CC12 A). No shape binds `interactive.<c>.text.*`, even where the values match.
+  The text cursor (caret) is the one shape exempt from that rule, by owner decision (#3397 A): it keeps the field's
+  value ink, `color.text.primary`, matching CSS `caret-color: currentColor`.
 
   **The one exception to the constant weight: a choice between peers in a row** (Tab, the Segmented control's
   segment, and Pagination.Item's current page, Q381; owner decisions). There the selected label takes the emphasis
@@ -732,6 +742,7 @@ above; `lint-skills` fails if a row is missing or disagrees with the manifest. A
 | `buttonContentSize` | value | a medium button reads the small label style and icon size |
 | `buttonLabelWeight` | value |  |
 | `buttonTextHover` | value | Fill only keys the text button's overlay token on hover and pressed; the overlay slot and the states are the same under both options |
+| `buttonBorderWeight` | value | an outline button's edge binds `border-width.thick` instead of `border-width.hairline`; the stroke and its color tokens are the same under both options |
 | `buttonMinWidthMultiplier` | value |  |
 | `baseMd` | value |  |
 | `typography.typeScale` | value |  |
@@ -892,7 +903,7 @@ one until that arc builds it.
    brand setting declares its `kind`, and a structural one has the owner's explicit OK in that wireframe.
 2. The def is authored from its KB brief: the header cites it exactly once, `category` is the brief's,
    and every brief section has landed in its field (§0) or is recorded as an omission in `notes`.
-3. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps, code spans or Prism 2 —
+3. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps, a code span around anything but code, or Prism 2 —
    and `summary` is one line under 100 characters. Provenance lives in `notes`, `codeOnly` and comments.
 4. `composesWith` equals what the anatomy nests; hosts and slot content are in `ai.commonPartners`;
    siblings differ in keywords, `ai.avoidWhen` and priority; `status` is `draft`.

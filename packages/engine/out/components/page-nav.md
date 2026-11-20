@@ -11,7 +11,7 @@
 
 A navigation between two to six related pages, such as Log in and Create account, or the pages of an account. Each item is a link to its own address; the link to the page the user is on carries a 2px bar and is marked as the current page for assistive technology. The bar's width is the brand's Current page indicator: the title's width, or half of it centered. The other links are plain and show their underline at hover and keyboard focus. Tab moves from link to link, and the browser's back button and bookmarks work as they do for any link. Use Tabs instead when the content switches in place on one page.
 
-- **Purpose:** Move between sibling pages: a navigation of links, each to its own address, with the current page marked by a bar and aria-current="page".
+- **Purpose:** Move between sibling pages: a navigation of links, each to its own address, with the current page marked by a bar and `aria-current="page"`.
 - **Use when:** Two to about six sibling pages of one area, such as Log in and Create account, or an account's Overview, Orders and Profile, where each page has its own address and the current one is marked.
 - **Avoid when:** The content switches in place without changing the address (use Tabs), the links are the site's main navigation, the path is a hierarchy (use Breadcrumbs), or the pages are a required sequence (a stepper, not built yet).
 
@@ -34,6 +34,8 @@ Shown on the default member: size `medium`.
 ## Usage guidelines
 
 Use page navigation to move between two to six sibling pages that share a heading area, such as Log in and Create account, or an account's Overview, Orders and Profile pages. Each item is a link to its own page, so the browser's back button and bookmarks work. Use Tabs when the content switches in place on one page, and Breadcrumbs to show where a page sits in a hierarchy.
+
+**In RTL.** The layout mirrors: the start edge is on the right.
 
 ### Do
 

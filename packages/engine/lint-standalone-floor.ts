@@ -230,13 +230,14 @@ const MUST_PROJECT = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'select', 'password-field',
   'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row',
-  'veil', 'image-placeholder', 'spinner', 'badge', 'tag', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',
+  'veil', 'image-placeholder', 'spinner', 'badge', 'tag', 'tag-group', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',
   'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'counter', 'progress', 'search-field', 'card-number-field', 'banner', 'toast',
   'pagination-item', 'pagination',
   '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
   'page-nav-item', 'page-nav',
   '_slider-thumb', 'slider',
   'code-input', 'code-input-cell',
+  'popover',
 ];
 
 /** Whether the def declares the floor. Read here, ONCE, off the def — the EXPECTED half. */

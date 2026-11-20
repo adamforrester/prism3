@@ -22,7 +22,7 @@ Shown on the default member: placement `center`, size `medium`, footer `inline`.
 1. **Panel** — The panel: the surface, its shadow and its corners. It pads the top and bottom; the header, body and footer pad their own sides, so a divider runs edge to edge.
 2. **Header** — The header: the title and description, then the close button at the end edge.
 3. **Title box** — The title and the description under it. It fills the header beside the close button.
-4. **Title** — The title: the dialog's accessible name. It wraps onto more lines rather than truncating.
+4. **Title** (optional) — The title: the dialog's accessible name. It wraps onto more lines rather than truncating. Shown by default; when hidden, it keeps its text and style and still names the dialog.
 5. **Description** (optional) — The optional description under the title, in secondary text. Hidden by default.
 6. **Close** (optional) — The close button: a FlushIconButton.Neutral, flush, medium, labeled "Close", always showing the close icon. Shown by default; an alertdialog hides it.
 7. **Header divider** (optional) — The rule under the header, edge to edge. Off by default; in code it shows only while the body scrolls.
@@ -44,7 +44,9 @@ Shown on the default member: placement `center`, size `medium`, footer `inline`.
 
 ## Usage guidelines
 
-Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something.
+Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something. Turn the title off only when tabs or a heading in the body already name the content, most often in a full-screen dialog or a bottom sheet; the title still names the dialog for assistive technology.
+
+**In RTL.** The layout mirrors: the start edge is on the right.
 
 ### Do
 
@@ -64,14 +66,15 @@ Use a Dialog when the user must make a decision or finish a short task before go
 - Build the backdrop into the panel. It is the page's scrim, behind the dialog.
 - Use an end panel for navigation that stays open beside the page. It is a modal dialog and makes the page inert.
 - Make an end panel an alertdialog. A confirmation belongs in the center.
+- Hide the title of an alertdialog. Its title is the question the user answers.
 
 ## Accessibility
 
 - **Keyboard:** Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.
 - **Focus:** Moves into the dialog on open (the first control, the title for long content, or Cancel in an alertdialog), stays inside while it is open, and returns to the control that opened it.
-- **Screen readers:** role="dialog" with aria-modal="true", or role="alertdialog" for a confirmation that needs an answer. A native \<dialog> opened with showModal() provides the dialog role, the modal state, the top layer and an inert page.
+- **Screen readers:** `role="dialog"` with `aria-modal="true"`, or `role="alertdialog"` for a confirmation that needs an answer. A native `<dialog>` opened with `showModal()` provides the dialog role, the modal state, the top layer and an inert page.
 
-  aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button's accessible name is "Close". Hide the dividers from assistive technology.
+  aria-modal="true"; aria-labelledby pointing at the title, a heading that stays in place, visually hidden, when the title is hidden; aria-describedby pointing at the description when there is one. The close button's accessible name is "Close". Hide the dividers from assistive technology.
 
 ### WCAG
 
@@ -102,7 +105,7 @@ Titles are specific and in sentence case. Body text is short and states the cons
 ## Related components
 
 - **Built from:** `flush-icon-button-neutral`, `divider`, `button-group`
-- **Instead, consider:** `accordion`, `toast`, `banner`
+- **Instead, consider:** `accordion`, `toast`, `banner`, `popover`
 - **Often used with:** `button`, `button-neutral`, `button-destructive`, `text-field`, `select`, `checkbox-group`, `radio-group`
 - **Replaces:**
   - a div overlay with a z-index and a hand-written focus trap
@@ -117,6 +120,7 @@ Titles are specific and in sentence case. Body text is short and states the cons
 | `open` | boolean | `false` | no | Whether the dialog is showing. Opening it moves focus into it and makes the page behind it inert. |
 | `onOpenChange` | function | — | no | Called with false on every attempt to close: the close button, Escape, a backdrop click on a standard dialog, or an action that closes it. Keep open in step with it. |
 | `title` | node | — | yes | The heading that names the task. It is the dialog's accessible name, so make it specific: "Delete this address?", not "Are you sure?". It wraps rather than truncating. |
+| `hideTitle` | boolean | `false` | no | Hides the title from view and keeps it as the dialog's accessible name, for a dialog whose tabs or body name the content, such as a full-screen dialog on a small screen. An alertdialog always shows its title. Never display: none. |
 | `description` | node | — | no | One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog's accessible description. |
 | `children` | node | — | yes | The body content. The body is the only part that scrolls; the header and footer stay in place. |
 | `actions` | slot of `button` or `button-destructive` or `button-neutral`, 1 to 3 | — | no | The footer buttons, one to three Button elements, laid out by a Button group. Inline and fill, the main action last (Cancel, then Save); stacked, the main action first. Fill suits two. Name each by what it does. |
@@ -392,6 +396,7 @@ Keyed by `placement`, `footer`.
 | --- | --- | --- |
 | `title` | text | `Dialog title` |
 | `description text` | text | `Supporting text` |
+| `show title` | boolean | `true` |
 | `description` | boolean | `false` |
 | `close` | boolean | `true` |
 | `dividers` | boolean | `false` |

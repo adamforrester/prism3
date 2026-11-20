@@ -70,6 +70,7 @@ import { imagePlaceholder } from './image-placeholder';
 import { spinner } from './spinner';
 import { badge } from './badge';
 import { tag } from './tag';
+import { tagGroup } from './tag-group';
 import { tab } from './tab';
 import { tabs } from './tabs';
 import { pageNavItem } from './page-nav-item';
@@ -96,6 +97,7 @@ import { counter } from './counter';
 import { sliderThumb, slider } from './slider';
 import { codeInputCell, codeInput } from './code-input';
 import { progress } from './progress';
+import { popover } from './popover';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -103,7 +105,7 @@ import { progress } from './progress';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, providerLogo, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton, signInButton, pageNavItem, pageNav };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, providerLogo, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tagGroup, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton, signInButton, pageNavItem, pageNav, popover };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -208,6 +210,8 @@ export const componentDefs: readonly ComponentDef[] = [
   // `tag` — the interactive counterpart to `badge`. It nests `icon-button-neutral` (its remove button) and
   // `focus-ring`, both above it; nothing reads this array's order (see the header).
   tag,
+  // `tag-group` (#1739) — the set of tags: a wrapping row in a native `items` slot, three tags by default.
+  tagGroup,
   // `tab` and `tabs` (#2416) — the tab trigger and the tab list. Tabs nests Tab (size-followed) and
   // `focus-ring` reaches Tab through its absolute ring; nothing reads this array's order.
   tab,
@@ -277,4 +281,7 @@ export const componentDefs: readonly ComponentDef[] = [
   // The item nests `link`, above; the row nests the item in its items slot, so it comes after it.
   pageNavItem,
   pageNav,
+  // `popover` (#4008, owner Q-FL2) — a non-modal panel anchored to its trigger. Nests the neutral flush icon button
+  // (close) and the button group (footer), both above.
+  popover,
 ];

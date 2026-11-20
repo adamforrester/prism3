@@ -16,7 +16,7 @@
     {
       "id": "planned",
       "label": "Planned",
-      "meaning": "Decided or described in the design record, not built."
+      "meaning": "Decided or described in the design record, not on main. A proof of concept may exist on a branch."
     }
   ],
   "roles": [
@@ -263,7 +263,7 @@
       "kind": "content",
       "status": "shipped",
       "column": "engine",
-      "purpose": "One TypeScript definition per component: anatomy, variants, states, token bindings, accessibility and usage prose. Figma sets, component docs and the planned coded components are projections of these.",
+      "purpose": "One TypeScript definition per component: anatomy, variants, states, token bindings, accessibility and usage prose. Figma sets, component docs and the planned coded components are projections of these. A versioned component contract over them is decided and planned (#1325), with a structured RTL mirror field (#3986).",
       "inputs": [
         "Authored with the prism3-build-component skill"
       ],
@@ -312,6 +312,7 @@
           "spinner",
           "badge",
           "tag",
+          "tag-group",
           "tab-item",
           "tabs",
           "divider",
@@ -341,7 +342,8 @@
           "code-input-cell",
           "code-input",
           "page-nav-item",
-          "page-nav"
+          "page-nav",
+          "popover"
         ]
       }
     },
@@ -409,6 +411,32 @@
       "docs": "docs/41-internal-and-ejected.md"
     },
     {
+      "id": "reports-reference",
+      "label": "Reports and agent reference",
+      "role": "output",
+      "kind": "artifact",
+      "status": "shipped",
+      "column": "outputs",
+      "purpose": "Generated from the code and checked against it in CI. Four reports cover token usage, component dependencies, a side-by-side comparison of components, and icon usage. The agent reference lists every MCP tool, agent link command and command-line entry point, and llms.txt points an agent to both.",
+      "inputs": [
+        "Component definitions",
+        "The generated token tree",
+        "The engine's tools and commands"
+      ],
+      "outputs": [
+        "Reports for people, with a JSON twin for agents",
+        "A command reference for agents"
+      ],
+      "sources": [
+        "packages/engine/emit-analysis-reports.ts",
+        "packages/engine/emit-agent-reference.ts",
+        "docs/public/reports/",
+        "docs/public/reference/commands.json",
+        "docs/public/llms.txt"
+      ],
+      "docs": "docs/public/reports/index.md"
+    },
+    {
       "id": "figma-file",
       "label": "The Figma file",
       "role": "output",
@@ -462,7 +490,7 @@
       "status": "shipped",
       "column": "outputs",
       "parent": "figma-file",
-      "purpose": "Durations reach Figma as TIMING variables in seconds; curves, easing roles and springs as EASING variables. A transition has no Figma form, so its duration and its easing role are written instead.",
+      "purpose": "Durations reach Figma as TIMING variables in seconds; curves, easing roles and springs as EASING variables. A transition has no Figma form, so its duration and its easing role are written instead. Animation styles bound to these variables are decided and planned (#2857).",
       "inputs": [
         "Apply theme"
       ],
@@ -484,7 +512,7 @@
       "status": "shipped",
       "column": "outputs",
       "parent": "figma-file",
-      "purpose": "A component set per definition, with each family on its own page, bound to the variables. An update checks first and writes nothing, then applies after the agent confirms. Prune previews before it deletes. Labels and inverse backdrops are drawn around each set as canvas furniture, and a scrim behind the centered and bottom-sheet Dialog examples.",
+      "purpose": "A component set per definition, with each family on its own page, bound to the variables. An update checks first and writes nothing, then applies after the agent confirms. Prune previews before it deletes. Labels and inverse backdrops are drawn around each set as canvas furniture, and a scrim behind the centered and bottom-sheet Dialog examples. Each set carrying its component contract is decided and planned (#3980).",
       "inputs": [
         "Component plans, through the plugin or the MCP scripts"
       ],
@@ -550,7 +578,7 @@
       "kind": "group",
       "status": "partial",
       "column": "outputs",
-      "purpose": "The path from tokens to coded components. The token build runs in CI today; the components and their stories are planned.",
+      "purpose": "The path from tokens to coded components. The token build runs in CI and builds the token CSS a product can install. Coded components and their stories are in a proof of concept on a branch, not on main.",
       "inputs": [
         "The consumer token set",
         "Component definitions"
@@ -571,7 +599,7 @@
       "status": "partial",
       "column": "outputs",
       "parent": "code-library",
-      "purpose": "A stock Style Dictionary, with no custom code, builds every brand to CSS, SCSS, JavaScript, iOS and Android in CI. It proves the tokens are consumable. No package is published yet.",
+      "purpose": "A stock Style Dictionary, with no custom code, builds every brand to CSS, SCSS, JavaScript, iOS and Android in CI. It proves the tokens are consumable, and it builds the token CSS package. Nothing is on a registry yet.",
       "inputs": [
         "The consumer token set"
       ],
@@ -581,7 +609,8 @@
       "sources": [
         "packages/tokens/check-consumability.mjs",
         "packages/tokens/check-platforms.mjs",
-        "packages/tokens/sd.platforms.mjs"
+        "packages/tokens/sd.platforms.mjs",
+        "packages/tokens/sd.ship.mjs"
       ],
       "docs": "packages/tokens/README.md"
     },
@@ -593,7 +622,7 @@
       "status": "partial",
       "column": "outputs",
       "parent": "code-library",
-      "purpose": "CSS custom properties. Built and checked in CI; not yet shipped as a package a product can install.",
+      "purpose": "CSS custom properties under --pds3-, the light values in :root and each theme mode in its own [data-theme] block. A product installs them from the package tarball, and CI installs that tarball and checks every contract name in every mode. Not on a registry yet.",
       "inputs": [
         "Style Dictionary"
       ],
@@ -601,8 +630,28 @@
         "Variables coded components bind to"
       ],
       "sources": [
-        "packages/tokens/sd.consumer.mjs"
+        "packages/tokens/sd.consumer.mjs",
+        "packages/tokens/sd.ship.mjs",
+        "packages/tokens/check-package.mjs"
       ],
+      "docs": "packages/tokens/README.md"
+    },
+    {
+      "id": "shadcn-theme",
+      "label": "shadcn/ui and Tailwind themes",
+      "role": "code",
+      "kind": "artifact",
+      "status": "planned",
+      "column": "outputs",
+      "parent": "code-library",
+      "purpose": "A shadcn/ui theme and a Tailwind v4 @theme block, projected from the brand's roles, so stock shadcn components take the brand. A theme only: no generated shadcn components.",
+      "inputs": [
+        "DTCG tokens"
+      ],
+      "outputs": [
+        "A theme a shadcn or Tailwind project installs"
+      ],
+      "sources": [],
       "docs": "docs/19-code-library-and-dx.md"
     },
     {
@@ -613,7 +662,7 @@
       "status": "planned",
       "column": "outputs",
       "parent": "code-library",
-      "purpose": "Web components and React components projected from the same definitions as the Figma sets, vanilla HTML and CSS first. Not built.",
+      "purpose": "Web components projected from the same definitions as the Figma sets, over a generated CSS layer. A proof of concept on the poc/arm-1 branch builds the button, the text field and the password field as Lit 3 elements; none of it is on main.",
       "inputs": [
         "The component contract",
         "CSS variables"
@@ -632,7 +681,7 @@
       "status": "planned",
       "column": "outputs",
       "parent": "code-library",
-      "purpose": "Generated stories for each coded component. Not built.",
+      "purpose": "Stories for each coded component. The proof of concept on the poc/arm-1 branch has stories for its three components; none of it is on main.",
       "inputs": [
         "Coded components"
       ],
@@ -748,6 +797,12 @@
     },
     {
       "from": "engine",
+      "to": "reports-reference",
+      "what": "Reports read off the definitions and the emission, and the reference read off the code",
+      "status": "shipped"
+    },
+    {
+      "from": "engine",
       "to": "figma-file",
       "what": "Write plans for variables, styles and style guides, run by the plugin",
       "status": "shipped"
@@ -781,6 +836,12 @@
       "to": "css",
       "what": "CSS custom properties",
       "status": "partial"
+    },
+    {
+      "from": "dtcg",
+      "to": "shadcn-theme",
+      "what": "Brand roles mapped onto shadcn and Tailwind names",
+      "status": "planned"
     },
     {
       "from": "css",
@@ -1024,17 +1085,19 @@
       "lanes": {
         "web": {
           "status": "shipped",
-          "via": "Paste or upload on the start screen",
+          "via": "Paste or upload on the start screen, or Import design.md in the brand menu",
           "sources": [
             "apps/studio/src/shell/start.ts",
+            "apps/studio/src/shell/bar.ts",
             "packages/engine/design-md.ts"
           ]
         },
         "figma": {
           "status": "shipped",
-          "via": "Paste or upload on the start screen",
+          "via": "Paste or upload on the start screen, or Import design.md in the brand menu",
           "sources": [
             "apps/studio/src/shell/start.ts",
+            "apps/studio/src/shell/bar.ts",
             "packages/engine/design-md.ts"
           ]
         },
@@ -1099,15 +1162,51 @@
       }
     },
     {
+      "id": "undo-load",
+      "label": "Undo a load that replaced your edits",
+      "group": "Set the brand",
+      "lanes": {
+        "web": {
+          "status": "shipped",
+          "via": "Undo load, beside the brand switcher until the next edit",
+          "sources": [
+            "apps/studio/src/state/undo-load.ts",
+            "apps/studio/src/shell/bar.ts"
+          ]
+        },
+        "figma": {
+          "status": "shipped",
+          "via": "Undo load, beside the brand switcher until the next edit",
+          "sources": [
+            "apps/studio/src/state/undo-load.ts",
+            "apps/studio/src/shell/bar.ts"
+          ]
+        }
+      }
+    },
+    {
       "id": "load-from-figma",
       "label": "Load a brand from an existing Figma file",
       "group": "Set the brand",
       "lanes": {
         "figma": {
           "status": "planned",
-          "via": "Planned in #677: rebuilding a brand from its tokens is not yet decided",
+          "via": "The plugin carries the file facts scan, and the engine proposes a brand from its report (#2075). Where the panel offers it is not yet decided",
           "sources": [
-            "apps/studio/src/export-settings.ts"
+            "apps/plugin/src/file-facts-figma.ts",
+            "packages/engine/file-seed.ts"
+          ]
+        },
+        "agent": {
+          "status": "partial",
+          "via": "The prism3-theme skill reads a file facts report into a design.md, and the command line compiles it. The scan runs from the command line over a file snapshot",
+          "sources": [
+            "skills/prism3-theme/SKILL.md",
+            "packages/engine/file-facts-cli.ts",
+            "packages/engine/file-facts.ts"
+          ],
+          "connections": [
+            "cli"
           ]
         }
       }
@@ -1415,9 +1514,10 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Update file: the sets the file lacks, listed in its checklist",
+          "via": "Update file: the sets the file lacks, listed in its checklist. Each family gets a usage panel with numbered anatomy markers, a parts list and the release it last changed in",
           "sources": [
-            "apps/plugin/src/write-components.ts"
+            "apps/plugin/src/write-components.ts",
+            "apps/plugin/src/doc-panel.ts"
           ],
           "messages": [
             "build-components"
@@ -1448,7 +1548,7 @@
       "lanes": {
         "agent": {
           "status": "shipped",
-          "via": "update-components: check first, then confirm",
+          "via": "update-components: check first, then confirm, with hand edits kept, overwritten or accepted per set",
           "sources": [
             "apps/plugin/src/update-apply.ts",
             "apps/plugin/src/update-plan.ts"
@@ -1470,7 +1570,7 @@
       "lanes": {
         "figma": {
           "status": "shipped",
-          "via": "Update file: the as-built ledger flags the due sets, the button's badge recounts them live with Theme's unapplied changes as one item, a background pass reads hand edits, and the checklist checks and updates the due sets in place",
+          "via": "Update file: the as-built ledger flags the due sets, the button's badge recounts them live with Theme's unapplied changes as one item, and the checklist checks and updates the due sets in place",
           "sources": [
             "apps/plugin/src/as-built-ledger.ts",
             "apps/plugin/src/update-plan.ts",
@@ -1481,8 +1581,27 @@
             "update-sets",
             "update-stop",
             "update-check-request",
-            "hand-edits-request",
             "due-request"
+          ]
+        }
+      }
+    },
+    {
+      "id": "keep-hand-edits",
+      "label": "Keep hand edits through an update",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Update file: a background pass reads each set's hand edits. Keep leaves an edited member as it is and reports what it stopped writing; Overwrite and Accept are the other choices",
+          "sources": [
+            "apps/plugin/src/update-plan.ts",
+            "apps/plugin/src/update-apply.ts",
+            "apps/plugin/src/member-views.ts",
+            "apps/studio/src/shell/update-file.ts"
+          ],
+          "messages": [
+            "hand-edits-request"
           ]
         }
       }
@@ -1502,6 +1621,25 @@
           ],
           "messages": [
             "add-queue"
+          ]
+        }
+      }
+    },
+    {
+      "id": "updates-off",
+      "label": "Updates off",
+      "group": "Write to Figma",
+      "lanes": {
+        "figma": {
+          "status": "shipped",
+          "via": "Update file: Turn off updates on a due set, and Turn updates back on under Updates off. A set whose updates are off is left as it is and reported calmly; updates turn off by themselves only when an update can't apply around the set's hand edits. Kept as plugin data on the set",
+          "sources": [
+            "apps/plugin/src/updates-off.ts",
+            "apps/plugin/src/update-apply.ts",
+            "apps/studio/src/shell/update-file.ts"
+          ],
+          "messages": [
+            "updates-off"
           ]
         }
       }
@@ -1962,15 +2100,15 @@
         },
         {
           "edge": "style-dictionary>css",
-          "caption": "It builds CSS variables, checked in CI but not yet published."
+          "caption": "It builds CSS variables a product installs from a tarball, checked in CI, not yet on a registry."
         },
         {
           "edge": "css>coded-components",
-          "caption": "Planned: coded components bind to those variables."
+          "caption": "Planned: coded components bind to those variables. A proof of concept is on a branch."
         },
         {
           "edge": "coded-components>storybook",
-          "caption": "Planned: stories are generated for each component."
+          "caption": "Planned: stories for each component. A proof of concept is on a branch."
         }
       ]
     }

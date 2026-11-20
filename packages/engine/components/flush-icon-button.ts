@@ -146,7 +146,9 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   paintKeys: ['{shape}.{slot}.{state}', '{shape}.{slot}'],
 
   // The brand style settings that reach this def, and where (#3698 R5: `ComponentLevers` in `component-schema.ts`).
-  levers: { outlineInteraction: { opaqueFill: true } },
+  // #576 Q6 (owner decision 2026-11-19): "Outline button border" reaches the round shape's edge, as it does IconButton's
+  // outline edge. Flush members bind the key and draw no stroke, so they don't move.
+  levers: { outlineInteraction: { opaqueFill: true }, buttonBorderWeight: { edge: true } },
 
   tokens: {
     // THE GLYPH, both shapes. Q283.13 A: 20 / 20 / 24.
@@ -199,7 +201,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
         note: 'Flush: the glyph square, with no padding, fill or border; in code, an invisible overlay extends the hit area to at least 44×44px around it. Round: a circle with a light edge, the glyph centered in it.',
       },
       icon: {
-        kind: 'slot',
+        kind: 'slot', mirror: 'per-glyph',
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
         note: 'The single icon, and the entire visible control. Rendered aria-hidden; the button owns the accessible name.',
@@ -269,7 +271,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   },
 
   accessibility: {
-    role: 'button (native <button>)',
+    role: 'button (native `<button>`)',
     wcag: [
       '4.1.2 Name/Role/Value (the required accessible name)',
       '1.4.11 Non-text Contrast (the glyph and the focus ring at 3:1 against the page; the round edge is decorative and is not held to it, since the glyph identifies the control)',
@@ -277,8 +279,8 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
       '2.5.8 Target Size (Minimum) (24×24, as intent — through the code-side hit area, since the flush glyph box alone is 20 or 24px)',
       '2.5.5 Target Size (Enhanced) (44×44, as intent — through the code-side hit area at every size; the flush glyph box alone is 20 or 24px, and the small round circle 36px)',
     ],
-    keyboard: 'Native <button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex="-1") where its own keys do the same job, as a counter\'s arrow keys do.',
-    focus: 'An offset :focus-visible ring around the glyph square, or around the circle on the round shape.',
+    keyboard: 'Native `<button>`: Enter on keydown, Space on keyup. A host may take it out of the tab order (`tabindex="-1"`) where its own keys do the same job, as a counter\'s arrow keys do.',
+    focus: 'An offset `:focus-visible` ring around the glyph square, or around the circle on the round shape.',
     aria: 'aria-label is the accessible name (required), a verb naming the action. Inside a host that blocks it at a limit, set isInactive, which carries aria-disabled="true", so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips.',
   },
 
@@ -290,7 +292,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
     usage: 'Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.',
     do: [
       'Always give it an accessible name (a verb)',
-      'Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized',
+      'Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized',
       'Space two flush icon buttons at least 44px apart, center to center, so their tap areas don\'t overlap',
       ...sibling.do,
     ],
@@ -304,7 +306,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
 
   ai: {
     primaryPurpose: `Trigger ${{ primary: 'a brand action', destructive: 'a destructive action', neutral: 'an action with no brand emphasis' }[family]} inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.`,
-    whenToUse: `${sibling.whenToUse ?? 'Any icon action inside a component.'} shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.`,
+    whenToUse: `${sibling.whenToUse ?? 'Any icon action inside a component.'} \`shape=flush\` where the glyph must line up with the content edge; \`shape=round\` where the buttons stand on their own beside a value.`,
     avoidWhen: `${sibling.avoidWhen} ${AVOID_WHEN}`,
     commonPartners: ['icon', 'focus-ring', 'counter'],
     triggerKeywords: sibling.triggerKeywords,
@@ -315,7 +317,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
     composesWith: ['focus-ring'],
     alternativeTo: [sibling.iconButton],
     planned: ['number-field', 'card'],
-    replacesPatterns: ['an <svg> with a click handler and no button', 'an IconButton with its padding overridden to zero'],
+    replacesPatterns: ['an `<svg>` with a click handler and no button', 'an IconButton with its padding overridden to zero'],
   },
 
   motion: {

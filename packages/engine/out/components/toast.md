@@ -38,6 +38,8 @@ Shown on the default member: intent `neutral`.
 
 Use a Toast to confirm something the user did, when the page already shows the change: "Added to bag", "Address saved", "Code copied". If missing the message would cost the user something, use Banner. A decision before going on is a dialog; a message about one field is a field message.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Confirm the user's own action in a few words
@@ -58,7 +60,7 @@ Use a Toast to confirm something the user did, when the page already shows the c
 
 - **Keyboard:** F6 moves focus into the notifications region, to the newest toast's first control. Tab moves between the action and the close button. Escape or Shift+F6 returns focus to where it was. Enter and Space act on the focused button.
 - **Focus:** Showing a toast never moves focus. Focus enters only by F6, and Escape returns it.
-- **Screen readers:** The toast sits in one shared role="status" live region (polite, aria-atomic="true"), inside a landmark labeled "Notifications". The toast itself takes no role and never takes focus.
+- **Screen readers:** The toast sits in one shared `role="status"` live region (polite, `aria-atomic="true"`), inside a landmark labeled "Notifications". The toast itself takes no role and never takes focus.
 
   The live region is role="status" with aria-atomic="true", present and empty from app start. The success glyph is aria-hidden. The close button's accessible name is "Dismiss" and the region's label is "Notifications"; both are translatable. Nothing mirrors in motion.
 
@@ -91,7 +93,7 @@ Short and factual: the outcome, not a conversation. The glyph carries the tone, 
 - **Built from:** `button`, `flush-icon-button-neutral`
 - **Instead, consider:** `dialog`, `field-message`, `banner`
 - **Replaces:**
-  - an alert() after a save
+  - an `alert()` after a save
   - a status message that moves focus
   - a timed message with no pause
 

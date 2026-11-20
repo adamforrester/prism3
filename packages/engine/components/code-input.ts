@@ -104,6 +104,9 @@ export const codeInputCell: ComponentDef = {
   tokens: {
     // ── GEOMETRY ───────────────────────────────────────────────────────────────────────────────────────────
     // The x-large cell's corner (as-built wireframe): a 6px corner on the 68×72 display cell, 2px on the others.
+    // Intended, owner decision #3551 A: the three smaller cells follow the control corner
+    // (`control.size.{sm,md,lg}.radius` = `radius.sm`), so they match a same-size text field, and the display cell is
+    // the deliberate exception at `radius.lg`. `lint-rung-names` admits the repeat by name in RUNG_REPEATS.
     'size.medium.radius': 'radius.sm',
     'size.small.radius': 'radius.sm',
     'size.large.radius': 'radius.sm',
@@ -190,7 +193,7 @@ export const codeInputCell: ComponentDef = {
         // style's line box, centered on both axes. Code trims the box to the cap height (`text-box`, in `codeOnly`).
         type: 'size.{size}.type',
         presentWhen: { state: ['filled', 'focus-visible-filled'] },
-        note: 'The character, in its size\'s text style, centered in the cell. Tabular figures in code, so every digit is one width.',
+        note: 'The character, in its size\'s text style, centered in the cell. Tabular lining figures in code, so every digit is one width and stands at cap height.',
       },
     },
     codeOnly: [
@@ -216,7 +219,7 @@ export const codeInputCell: ComponentDef = {
         class: 'visual-treatment',
         disposition: 'unsupported',
         description:
-          'tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.',
+          'tabular lining figures — the character sets `font-variant-numeric: tabular-nums lining-nums`, so every digit is one width and the code does not shimmer as it fills, and every digit stands at cap height, so the cell centers it whatever figures the brand font draws by default. In Figma the cell shows the font\'s default figures: a plugin cannot turn on an OpenType feature.',
       },
       {
         class: 'live-geometry',
@@ -317,7 +320,7 @@ export const codeInputCell: ComponentDef = {
 // THE DEFAULT CELLS (owner decision Q329 A): six, each following the field's size and status (Q-CC1 A), its character
 // set by override and its state set from the field's state, so each member opens on a picture of that state. A designer then sets each
 // placed cell themselves; the field's status and state never reach a placed instance's cells (the accepted trade-off).
-const CODE = ['4', '8', '1', '9', '0', '2'];
+const CODE = '481902';
 const cell = (n: number) => {
   // focus-visible: the first cell active. focus-visible-filled: three characters in, the fourth cell active.
   const partial = n < 3 ? 'filled' : n === 3 ? 'focus-visible' : 'rest';
@@ -340,7 +343,7 @@ const cell = (n: number) => {
         },
       },
     },
-    overrides: { texts: { digit: CODE[n] } },
+    overrides: { texts: { digit: CODE.charAt(n) } },
     note: `Cell ${n + 1} of the default six.`,
   };
 };
@@ -416,7 +419,7 @@ export const codeInput: ComponentDef = {
       },
       // THE ITEMS SLOT (owner decision Q329 A, #2649's pattern): a native slot of cells, six by default, four to eight.
       items: {
-        kind: 'box',
+        kind: 'box', mirror: 'never',
         role: 'target',
         contentSlot: true,
         slotSettings: { minChildren: 4, maxChildren: 8, allowPreferredValuesOnly: true },
@@ -449,7 +452,7 @@ export const codeInput: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454). The entries below are a framework-neutral behavior contract.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'semantics',
@@ -537,7 +540,7 @@ export const codeInput: ComponentDef = {
   },
 
   accessibility: {
-    role: 'textbox (one native <input>); the cells are aria-hidden',
+    role: 'textbox (one native `<input>`); the cells are `aria-hidden`',
     wcag: [
       '1.3.1 Info and Relationships (one labeled input, the helper and error in aria-describedby)',
       '1.3.5 Identify Input Purpose (autocomplete one-time-code)',
@@ -561,7 +564,7 @@ export const codeInput: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with one-time-code autocomplete.',
+    usage: 'Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with `one-time-code` `autocomplete`.',
     do: [
       'Accept a pasted or autofilled code in full, ignoring spaces and hyphens',
       'Say which error it is: too few digits, wrong code or expired code',
@@ -578,7 +581,7 @@ export const codeInput: ComponentDef = {
   ai: {
     primaryPurpose: 'Capture a short one-time code in one input, drawn as a row of cells.',
     whenToUse: 'A step whose job is a fixed-length code of four to eight characters sent by text message, email or an authenticator app.',
-    avoidWhen: 'The code length is unknown or the code sits inside a longer form (TextField with one-time-code autocomplete), the value is a password or a kept PIN (PasswordField), or it is a quantity (Counter).',
+    avoidWhen: 'The code length is unknown or the code sits inside a longer form (TextField with `one-time-code` `autocomplete`), the value is a password or a kept PIN (PasswordField), or it is a quantity (Counter).',
     commonPartners: ['code-input-cell', 'field-label', 'field-message', 'button', 'link'],
     triggerKeywords: ['code input', 'otp input', 'one-time code', 'verification code', 'pin input', '2fa code'],
     generationPriority: 2,

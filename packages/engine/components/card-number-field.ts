@@ -39,10 +39,11 @@ import { ComponentDef } from '../component-schema';
 import { PROVIDER_LOGO_NAMES } from '../provider-logo-glyphs';
 import { PROVIDER_LOGO_KINDS } from '../provider-logo-set';
 import { FOCUS_EDGE_DEFAULT_NOTE, FOCUS_EDGE_STATUS_NOTE, makeTextField } from './text-field';
+import { withMirrors } from '../rtl-mirror';
 
 /** The payment tiles: every mark the set draws on the tile artboard, by kind, so a kind renamed in the set (`card/` →
  *  `payment/`, PR 3) reaches this field without an edit. */
-const TILES = PROVIDER_LOGO_NAMES.filter((n) => PROVIDER_LOGO_KINDS[n.split('/')[0]] === 'tile');
+const TILES = PROVIDER_LOGO_NAMES.filter((n) => { const [family = ''] = n.split('/'); return PROVIDER_LOGO_KINDS[family] === 'tile'; });
 /** The tile kind, the first segment every tile shares. */
 const TILE_KIND = TILES[0]?.split('/')[0];
 if (!TILE_KIND || TILES.some((n) => !n.startsWith(`${TILE_KIND}/`)))
@@ -58,7 +59,8 @@ const tileless = CARD_NETWORKS.filter((n) => !(TILES as readonly string[]).inclu
 if (tileless.length)
   throw new Error(`card-number-field: the card networks ${JSON.stringify(tileless)} have no tile in the mark set's ${TILE_KIND}/ kind; the field shows each network's own tile`);
 
-export const cardNumberField: ComponentDef = makeTextField({
+// #3986: what the def's right-to-left entry says, as `mirror` fields.
+export const cardNumberField: ComponentDef = withMirrors(makeTextField({
   id: 'card-number-field',
   levers: { controlShape: { squares: ['radius.sm'] }, fieldStyle: { frame: 'control' } },
   name: 'CardNumberField',
@@ -183,7 +185,7 @@ export const cardNumberField: ComponentDef = makeTextField({
   ],
 
   accessibility: {
-    role: 'textbox (a native <input inputmode="numeric">, or the payment provider\'s hosted input inside its frame)',
+    role: 'textbox (a native `<input inputmode="numeric">`, or the payment provider\'s hosted input inside its frame)',
     wcag: [
       '1.3.5 Identify Input Purpose (autocomplete cc-number, never off)',
       '1.3.1 Info and Relationships (label, describedby and the hidden network name)',
@@ -206,19 +208,19 @@ export const cardNumberField: ComponentDef = makeTextField({
   },
 
   docs: {
-    usage: 'Use for a payment card\'s number in a checkout or a saved-card form. The field nests FieldLabel above, the input box with the card network\'s tile at its trailing edge, and FieldMessage below. Set brand from the card-type detection, or from the payment provider\'s brand event, and brandName to the network\'s name, so the network is stated in text as well as shown. Ask for the expiration date and the security code in their own text fields, with autocomplete cc-exp and cc-csc. When the payment provider hosts the input, pass its mount point with renderInput and let the field draw everything around it.',
+    usage: 'Use for a payment card\'s number in a checkout or a saved-card form. The field nests FieldLabel above, the input box with the card network\'s tile at its trailing edge, and FieldMessage below. Set brand from the card-type detection, or from the payment provider\'s brand event, and `brandName` to the network\'s name, so the network is stated in text as well as shown. Ask for the expiration date and the security code in their own text fields, with `autocomplete` `cc-exp` and `cc-csc`. When the payment provider hosts the input, pass its mount point with `renderInput` and let the field draw everything around it.',
     do: [
       'Let the leading digits set the network, and swap the tile in place',
-      'State the detected network in text with brandName, not by the tile alone',
+      'State the detected network in text with `brandName`, not by the tile alone',
       'Group the digits as the user types, and keep the value digits only',
-      'Use the payment provider\'s hosted input in production, with renderInput',
+      'Use the payment provider\'s hosted input in production, with `renderInput`',
       'Warn, rather than block, when the number fails the checksum',
     ],
     dont: [
       'Recolor, dim or redraw the tile, at any state',
       'Add a card-type select: the digits tell the network',
       'Put the expiration date or the security code in this box',
-      'Use type="number" or turn off autocomplete',
+      'Use `type="number"` or turn off autocomplete',
       'Move focus to the next field when the number is complete',
     ],
     contentGuidelines: 'Label = "Card number", sentence case, no trailing colon. Placeholder = a format example only. Helper = "The card type shows when you start typing." Error says what is wrong and how to fix it.',
@@ -227,7 +229,7 @@ export const cardNumberField: ComponentDef = makeTextField({
   ai: {
     primaryPurpose: 'Capture a payment card\'s number, showing the detected card network\'s tile and stating the network in text.',
     whenToUse: 'The card number in a checkout or a saved-card form, beside text fields for the expiration date and the security code.',
-    avoidWhen: 'The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (WalletButton). Never for the expiration date or the security code (TextField with autocomplete cc-exp or cc-csc).',
+    avoidWhen: 'The value is not a card number (TextField), the card is already saved (show its last four digits as text), or the payment is a wallet or express checkout (WalletButton). Never for the expiration date or the security code (TextField with `autocomplete` `cc-exp` or `cc-csc`).',
     commonPartners: ['text-field', 'provider-logo', 'field-label', 'field-message', 'button', 'wallet-button'],
     triggerKeywords: ['card number', 'credit card field', 'payment card', 'card details', 'checkout card'],
     generationPriority: 2,
@@ -236,7 +238,7 @@ export const cardNumberField: ComponentDef = makeTextField({
   composition: {
     composesWith: ['field-label', 'field-message'],
     alternativeTo: ['text-field'],
-    replacesPatterns: ['a card number in a plain text input with no card type', 'a manual card-type select', 'number, expiration and security code packed into one box', 'type="number" on a card number'],
+    replacesPatterns: ['a card number in a plain text input with no card type', 'a manual card-type select', 'number, expiration and security code packed into one box', '`type="number"` on a card number'],
     planned: ['payment-field'],
   },
 
@@ -266,4 +268,4 @@ export const cardNumberField: ComponentDef = makeTextField({
       'In Figma the tile is a swap that starts at the generic payment tile; a designer picks the detected card network\'s tile with the swap card mark property. Its height is bound and its width follows the tile\'s proportion; it takes no ink from the field.',
     ],
   },
-});
+}), { content: 'reverses', value: 'never', cardMark: 'never' });

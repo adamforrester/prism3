@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, LiteralEntry, LiteralFont, NestVariantWhen, NestVariantWhere, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, CurrentIndicator, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, DialogTitleSize, BannerStyle, CurrentIndicator, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, ButtonBorderWeight, Density } from './scale';
 import { buttonMinWidth, CURRENT_INDICATOR_PARTIAL_SHARE, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ICON_SIZES, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -47,6 +47,14 @@ import { componentDefs } from './components';
 // `write-plan.ts`), so a component gradient and a brand gradient read one angle the same way.
 import { gradientTransformFor, type GradientTransform } from './gradient-transform';
 import { codeOnlyText } from './code-only-register';
+
+/** A value the caller has established is present: a part the anatomy declares, an entry inside its bounds. A miss
+ *  is a named throw, never the silent `undefined` an unchecked index reads as (#1182, `noUncheckedIndexedAccess`).
+ *  Not for the functions shipped as SOURCE (`…Src`): those close over nothing in this module. */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`anatomy-figma: ${what} is missing`);
+  return x;
+};
 
 /** A node in the materialization plan. Property names are Figma Plugin API property names
  *  deliberately — this is the projection's whole job, and naming them anything else would put a
@@ -1233,7 +1241,7 @@ const builtSizeAt = (def: ComponentDef, size: string | undefined, slots: PlanSlo
   // (Code input's cell, #2428) reads it there.
   const value = b ? (b.axis === 'size' ? size : slots[b.axis]) : undefined;
   if (!a || !root || !b || !root.layout || typeof value !== 'string' || !(value in b.widths)) return def;
-  const w = b.widths[value];
+  const w = must(b.widths[value], `${def.id}: builtSize width at '${value}'`); // `value in b.widths`, checked above
   const width = typeof w === 'number' ? w : size !== undefined ? w[size] : undefined;
   const height = b.heights?.[value];
   const parts = { ...a.parts };
@@ -1262,7 +1270,7 @@ const directionAt = (def: ComponentDef, slots: PlanSlots): ComponentDef => {
     const value = dw ? slots[dw.axis] : undefined;
     if (!dw || !p.layout || typeof value !== 'string' || !(value in dw.values) || dw.values[value] === p.layout.direction) continue;
     parts ??= { ...a.parts };
-    parts[n] = { ...p, layout: { ...p.layout, direction: dw.values[value] } };
+    parts[n] = { ...p, layout: { ...p.layout, direction: must(dw.values[value], `${def.id}: '${n}' direction at '${value}'`) } }; // `value in dw.values`, checked above
   }
   return parts ? { ...def, anatomy: { ...a, parts } } : def;
 };
@@ -1587,7 +1595,7 @@ export const figmaAnatomyPlan = (
   // The def KEY a slot resolves to at this coordinate, and `paintOf` the variable it names.
   const paintOf = (slot: string): string | undefined => {
     const key = paintKeyOf(slot);
-    return key ? paintVarName(def.tokens[key]) : undefined;
+    return key ? paintVarName(must(def.tokens[key], `${def.id}: token '${key}'`)) : undefined; // `paintKeyOf` returns only a bound key
   };
   const paintKeyOf = (slot: string): string | undefined => {
     if (!def.paintKeys?.length) return undefined;
@@ -1859,7 +1867,7 @@ export const figmaAnatomyPlan = (
     throw new Error(`${def.id}: part '${sib}' sits in a row a hugging text derives its width from, shown by default, with no width the engine can state in px`);
   };
   const nestedRowWidth = (name: string): number => {
-    const q = a.parts[name];
+    const q = must(a.parts[name], `${def.id}: part '${name}'`);
     if (name === a.root) {
       if (q.placementWidth === undefined) throw new Error(`${def.id}: a hugging text derives its width from the root '${name}', which has no build width at this coordinate`);
       return q.placementWidth - inlinePadPx(q);
@@ -1884,8 +1892,8 @@ export const figmaAnatomyPlan = (
       const nested = componentDefs.find((d) => d.id === p.nests);
       if (!nested?.figmaProperties?.emitAsComponents) return undefined;
       const axis = nested.figmaProperties.variantAxes[0];
-      const value = nestVariantOf(p.nesting)[axis];
-      if (value === undefined || !((nested.variants as Record<string, readonly string[] | undefined>)[axis] ?? []).includes(value))
+      const value = axis === undefined ? undefined : nestVariantOf(p.nesting)[axis];
+      if (axis === undefined || value === undefined || !((nested.variants as Record<string, readonly string[] | undefined>)[axis] ?? []).includes(value))
         throw new Error(`${def.id}: anatomy part '${name}' nests '${p.nests}' at ${axis}='${String(value)}', which is not one of its members — a standalone component is nested by its own name, <id>/<value>`);
       return `${p.nests}/${value}`;
     })();
@@ -1914,7 +1922,7 @@ export const figmaAnatomyPlan = (
       replacedByOverlay && c === replacedByOverlay && activeOverlay ? [activeOverlay[0]]
         : present(c) ? (overlaidPart && c === overlaidPart && activeOverlay ? [c, activeOverlay[0]] : [c])
         : []);
-    const kids = childNames.map((c) => node(c, a.parts[c]));
+    const kids = childNames.map((c) => node(c, must(a.parts[c], `${def.id}: part '${c}'`)));
 
     // THE TILE EDGE (#2343, Q720 A), at the coordinates its gate names: `PartDef.tileEdge`.
     const tileEdge = p.kind === 'vector' && p.tileEdge && Object.entries(p.tileEdge.when).every(([ax, vs]) => vs.includes(String(axisValue(ax))))
@@ -1926,6 +1934,8 @@ export const figmaAnatomyPlan = (
     if (p.kind === 'nest' && p.nestPaddingBlock) { bound.paddingTop = varOf(p.nestPaddingBlock); bound.paddingBottom = varOf(p.nestPaddingBlock); }
     if (p.kind === 'box') {
       if (p.gap) bound.itemSpacing = varOf(p.gap);
+      // THE LINE GAP of a wrapping row (#1739, `PartDef.rowGap`). Both executors bind `bound` after `layoutWrap`.
+      if (p.rowGap) bound.counterAxisSpacing = varOf(p.rowGap);
       if (p.height) bound.height = varOf(p.height);
       // A token-bound height FLOOR: the row still hugs, and measures max(floor, tallest child).
       if (p.minHeight) bound.minHeight = varOf(p.minHeight);
@@ -2366,7 +2376,7 @@ export const figmaAnatomyPlan = (
       // throws are the backstop for a caller that skipped validation.
       ...(p.kind === 'text' && p.wrap === 'hug'
         ? (() => {
-            const root = a.parts[a.root];
+            const root = must(a.parts[a.root], `${def.id}: root part '${a.root}'`);
             // A NESTED WRAPPING ROW (#3225): the text may take the row's whole width, and what follows it wraps.
             if (parentName !== undefined && parentName !== a.root) return { maxWidth: nestedRowWidth(parentName) };
             if (parentName !== a.root || root.placementWidth === undefined)
@@ -2534,7 +2544,7 @@ export const figmaAnatomyPlan = (
     coord,
     // Declaration order, `size` removed — it has its own fixed position in the name. See the field's note.
     gridAxisOrder: (def.figmaProperties?.variantAxes ?? []).filter((a) => a !== 'size'),
-    root: node(a.root, a.parts[a.root]),
+    root: node(a.root, must(a.parts[a.root], `${def.id}: root part '${a.root}'`)),
     // The plan carries the prose only (#3441): the class and disposition are the def's and the export's, and
     // keeping the plan's shape keeps every plan digest and the executor's inputs where they were.
     codeOnly: codeOnlyText(a.codeOnly),
@@ -2841,7 +2851,7 @@ export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef 
   // Q589, Q589.1 A: the unselected line is the selected line's primary family, stepping with it. The selected line is
   // the selection mark (`interactive.primary.indicator.*`, #3346); an unselected line is an edge, not a mark, so it
   // takes the same family's `border.*`, the role Q589 named. Both resolve to the label's color by default.
-  for (const k of Object.keys(def.tokens)) if (k.startsWith('selected.border') && k !== 'selected.border-width') tokens[`un${k}`] = def.tokens[k].replace(/^(color\.interactive\.[^.]+\.)indicator\./, '$1border.');
+  for (const [k, ref] of Object.entries(def.tokens)) if (k.startsWith('selected.border') && k !== 'selected.border-width') tokens[`un${k}`] = ref.replace(/^(color\.interactive\.[^.]+\.)indicator\./, '$1border.');
   // Q592.2 A: no 4px leading inset on the dismissible label row, so its layer gap is the whole visible distance. At
   // comfortable it is written here; `applySpacingDensity` recomputes it from `visibleGaps` (visible − 0) elsewhere.
   for (const v of def.variants?.size ?? []) {
@@ -2940,7 +2950,7 @@ export const applyBannerStyle = (def: ComponentDef, style: BannerStyle): Compone
   if (!keys) return def;
   const tokens = { ...def.tokens };
   for (const key of keys) {
-    const tone = key.split('.')[0];
+    const [tone = ''] = key.split('.');
     if (def.tokens[key] !== bannerTintOf(tone))
       throw new Error(`${def.id}: "Banner style" rebinds ${key} from ${bannerTintOf(tone)}, and the def binds ${def.tokens[key] ?? 'nothing'} there`);
     tokens[key] = 'color.background.primary';
@@ -2987,9 +2997,23 @@ export const MIN_WIDTH_DERIVATION = 'min-width';
 /** True when `def` is in the button family the #1667 levers reach — it declares the `min-width` derivation. */
 export const isButtonFamily = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[MIN_WIDTH_DERIVATION];
 
-/** The button settings, as `materializeForBrand` reads them off a brand: #1667's three and #1752's label weight. */
-export type ButtonLayout = { icons: ButtonIcons; content: ButtonContentSize; minWidthMultiplier: number; labelWeight: ButtonLabelWeight; textHover: ButtonTextHover };
-export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content: 'match', minWidthMultiplier: DEFAULT_MIN_WIDTH_MULTIPLIER, labelWeight: 'emphasis', textHover: 'text' };
+/** The button settings, as `materializeForBrand` reads them off a brand: #1667's three, #1752's label weight, #2324's
+ *  text hover and #576's outline border weight. */
+export type ButtonLayout = { icons: ButtonIcons; content: ButtonContentSize; minWidthMultiplier: number; labelWeight: ButtonLabelWeight; textHover: ButtonTextHover; borderWeight: ButtonBorderWeight };
+export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content: 'match', minWidthMultiplier: DEFAULT_MIN_WIDTH_MULTIPLIER, labelWeight: 'emphasis', textHover: 'text', borderWeight: 'hairline' };
+/** "Outline button border" (#576): the key every button-family def binds its edge's thickness to, and the rung it binds
+ *  at `hairline`, the default. The setting rebinds that one key to `border-width.<weight>`; no token is added. */
+export const BORDER_WEIGHT_KEY = 'border-width';
+const BORDER_WEIGHT_DEFAULT_REF = 'border-width.hairline';
+/** Step 6 of `applyButtonLayout` (#576), shared by the button family and the defs that opt in (`levers.buttonBorderWeight`,
+ *  Q6). `hairline` is the identity. THROWS when the def's edge is not bound to the default rung: a def that moved its
+ *  border onto another key or rung would otherwise keep it while this reported the weight applied. */
+const withBorderWeight = (def: ComponentDef, tokens: Record<string, string>, weight: ButtonBorderWeight): Record<string, string> => {
+  if (weight === 'hairline') return tokens;
+  if (tokens[BORDER_WEIGHT_KEY] !== BORDER_WEIGHT_DEFAULT_REF)
+    throw new Error(`${def.id}: "Outline button border" rebinds ${BORDER_WEIGHT_KEY} from ${BORDER_WEIGHT_DEFAULT_REF} to border-width.${weight}, and the def binds ${tokens[BORDER_WEIGHT_KEY] ?? 'nothing'} there`);
+  return { ...tokens, [BORDER_WEIGHT_KEY]: `border-width.${weight}` };
+};
 
 /** "One step smaller" (#1667): the ONE size whose content moves, and the size it borrows from. Medium only,
  *  and deliberately: New Balance's 44px button (our `size.md.height`) carries a 12px label and a 16px icon,
@@ -3016,7 +3040,7 @@ const withDefaultLabels = (def: ComponentDef, from: Record<string, string>): Rec
       throw new Error(`${def.id}: "Control label weight" rebinds ${key} to type.label.<rung>.${BUTTON_LABEL_DEFAULT_ROLE}, and the def binds ${tokens[key] ?? 'nothing'} there`);
     // The role `brandTheme` unions into the label category for this setting, so the style is emitted; the text
     // appearance's underline tail (#2324) is kept, and `brandTheme` mints that twin too (labels always link).
-    segs[3] = `${BUTTON_LABEL_DEFAULT_ROLE}${segs[3].endsWith('-link') ? '-link' : ''}`;
+    segs[3] = `${BUTTON_LABEL_DEFAULT_ROLE}${must(segs[3], `${def.id}: ${key}'s role`).endsWith('-link') ? '-link' : ''}`; // four segments, checked above
     tokens[key] = segs.join('.');
   }
   return tokens;
@@ -3055,6 +3079,13 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  *      moves (#2324), and the text appearance keeps its underline: `emphasis-link` becomes `default-link`.
  *   5. "Text button hover" (`textHover: 'fill'`, #2324). The text appearance takes the outline appearance's hover
  *      and pressed wash. `text`, the default, keys none: the label and icon change color, and nothing fills.
+ *   6. "Outline button border" (`borderWeight: 'thick'`, #576). The container's `border-width` key binds
+ *      `border-width.thick` instead of `border-width.hairline`, in every button set at once: one brand-wide weight
+ *      (owner decision 2026-11-18, A). The key sits on the shared container, so filled and text members carry it too
+ *      and paint no stroke, exactly as they carry the hairline today. The border's COLOR is untouched: it stays the
+ *      set's own `outline.border.*`. `hairline`, the default, is the identity. The one other setting that reaches
+ *      past the family: a def opting in with `levers.buttonBorderWeight` (IconButton and FlushIconButton, owner decision
+ *      2026-11-19 Q6) moves the same key the same way, so a Thick brand's outline icon buttons match its text buttons.
  *
  * THROWS when a size's number does not resolve: a button with no floor, or a pinned icon with no reserve,
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
@@ -3063,10 +3094,15 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   // "Control label weight" reaches a def outside the family that opts in with `levers.buttonLabelWeight` (Tag: #2945,
   // Q591 A; its own entry since #3786); the other button settings do not. Badge and every other def that binds a label
   // style keep their own.
-  if (!isButtonFamily(def))
-    return layout.labelWeight === 'default' && def.levers?.buttonLabelWeight ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
+  // "Outline button border" likewise reaches a def that opts in with `levers.buttonBorderWeight` (#576 Q6).
+  if (!isButtonFamily(def)) {
+    let tokens = def.tokens;
+    if (layout.labelWeight === 'default' && def.levers?.buttonLabelWeight) tokens = withDefaultLabels(def, tokens);
+    if (def.levers?.buttonBorderWeight) tokens = withBorderWeight(def, tokens, layout.borderWeight);
+    return tokens === def.tokens ? def : { ...def, tokens };
+  }
   const a = def.anatomy!;
-  const root = a.parts[a.root];
+  const root = must(a.parts[a.root], `${def.id}: root part '${a.root}'`);
   if (!root.layout || !root.height)
     throw new Error(`${def.id}: the button levers need an auto-layout root that binds a height, and '${a.root}' does not`);
 
@@ -3098,6 +3134,8 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
       if (wash) tokens[`text.overlay.${st}`] = wash;
     }
   }
+  // 6. "Outline button border" (#576).
+  tokens = withBorderWeight(def, tokens, layout.borderWeight);
   // A def key (`size.{size}.gap`) at one size → px, through the (possibly rebound) token map.
   const at = (key: string, v: string, what: string): number => {
     const ref = tokens[key.replace('{size}', v)];
@@ -3119,7 +3157,7 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
       if (p?.kind !== 'slot' || i === label) return;
       if (!p.size) throw new Error(`${def.id}: "Locked to edges" reserves the icon's width, and slot '${c}' binds no size`);
       const inset = Object.fromEntries(sizes.map((v) => [v, at(inlineVisual, v, 'visual padding')]));
-      const reserve = Object.fromEntries(sizes.map((v) => [v, inset[v] + at(p.size!, v, 'icon') + at(root.gap!, v, 'gap')]));
+      const reserve = Object.fromEntries(sizes.map((v) => [v, at(inlineVisual, v, 'visual padding') + at(p.size!, v, 'icon') + at(root.gap!, v, 'gap')]));
       parts[c] = { ...p, pin: { edge: i < label ? 'start' : 'end', inset, reserve } };
     });
   }
@@ -3157,7 +3195,7 @@ export const applySpacingDensity = (def: ComponentDef, density: Density): Compon
   }
   // A layer gap under a fixed inset (`visibleGaps`, the dismissible Tag): what is left of the visible gap,
   // now that it has taken its step and its floor, once the inset is taken off. Never floored itself.
-  for (const g of visibleGapKeys(def)) tokens[g.gap] = visibleGapStep(tokens[g.visible], tokens[g.inset]);
+  for (const g of visibleGapKeys(def)) tokens[g.gap] = visibleGapStep(must(tokens[g.visible], `${def.id}: token '${g.visible}'`), must(tokens[g.inset], `${def.id}: token '${g.inset}'`));
   return { ...def, tokens };
 };
 
@@ -3229,11 +3267,11 @@ export const resolveWeightIntent = (intent: string, avail: readonly WeightRoleNa
   const ordered = WEIGHT_ROLE_ORDER.filter((r) => avail.includes(r));
   if (!ordered.length) throw new Error(`weight intent '${intent}': the brand ships no weight roles for this category, so no role can resolve`);
   const defaultIdx = WEIGHT_ROLE_ORDER.indexOf('default');
-  if (intent === 'regular') return ordered.includes('default') ? 'default' : ordered[0];
+  if (intent === 'regular') return ordered.includes('default') ? 'default' : must(ordered[0], 'a weight role'); // non-empty, checked above
   if (intent === 'bold') {
     const atOrAbove = ordered.filter((r) => WEIGHT_ROLE_ORDER.indexOf(r) >= defaultIdx);
     const pool = atOrAbove.length ? atOrAbove : ordered;
-    return pool[pool.length - 1];
+    return must(pool[pool.length - 1], 'a weight role');
   }
   throw new Error(`unknown weight intent '${intent}' — the declared intents are [${WEIGHT_INTENTS.join(', ')}]`);
 };
@@ -3293,7 +3331,7 @@ export const applyWeightIntent = (authored: ComponentDef, avail: WeightAvailabil
   if (!axisValues.length)
     throw new Error(`${def.id}: weightIntent.axis '${wi.axis}' names no values in \`variants\` — the intents to resolve are the axis values`);
   // `intents` (#2580) names the intent for an axis that keeps its own value names (Link: emphasis → bold).
-  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(wi.intents ? wi.intents[v] : v, groupAvail)] as const));
+  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(wi.intents ? must(wi.intents[v], `${def.id}: weightIntent.intents.${v}`) : v, groupAvail)] as const));
 
   // A type token entry keyed under this axis: its ref is a `type.<group>.<variant>.<role>` and the key
   // carries one of the axis values. The repoint replaces the ref's role tail with the brand's role.
@@ -3305,7 +3343,7 @@ export const applyWeightIntent = (authored: ComponentDef, avail: WeightAvailabil
     if (segs[1] !== wi.group)
       throw new Error(`${def.id}: weight-intent type ref '${ref}' is in category '${segs[1]}' but weightIntent.group is '${wi.group}' — one weight axis cannot span two categories' availabilities`);
     // The underlined twin keeps its `-link` suffix (#2580): `strong-link` → `emphasis-link`, not `emphasis`.
-    const link = segs[segs.length - 1].endsWith('-link') ? '-link' : '';
+    const link = must(segs[segs.length - 1], `${def.id}: ${ref}'s tail`).endsWith('-link') ? '-link' : '';
     segs[segs.length - 1] = roleFor.get(intent)! + link;
     return segs.join('.');
   };
@@ -3409,7 +3447,7 @@ export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlin
     if (method === 'none' && OUTLINE_SUBTLE_REF.test(ref)) continue;
     const m = OUTLINE_OVERLAY_REF.exec(ref);
     if (!m) { tokens[k] = ref; continue; }
-    const role = outlineFillRole(method, m[1], m[2]);
+    const role = outlineFillRole(method, must(m[1], `${ref}'s palette`), must(m[2], `${ref}'s state`)); // both groups are mandatory
     if (role) tokens[k] = `color.${role}`;
   }
   return { ...def, tokens };
@@ -3855,18 +3893,20 @@ export const variantNameErrors = (def: ComponentDef, memberNames: string[]): str
   for (const name of memberNames) {
     if (seen.has(name)) errs.push(`${def.id}: duplicate member coordinate '${name}'`);
     seen.add(name);
-    const coord: Record<string, string> = {};
+    // A pair with no `=` has no value: it reads as `undefined`, outside every domain, as it always has.
+    const coord: Record<string, string | undefined> = {};
     for (const kv of name.split(', ')) {
-      const [k, v] = kv.split('=');
+      const [k = '', v] = kv.split('=');
       coord[k] = v;
+      const dom = domain[k];
       if (!declared.has(k)) errs.push(`${def.id}: member '${name}' carries undeclared axis '${k}'`);
-      else if (!domain[k]) errs.push(`${def.id}: axis '${k}' in member '${name}' is declared but has no declared value domain — the domain and the declared names are keyed differently`);
-      else if (!domain[k].has(v)) errs.push(`${def.id}: axis '${k}=${v}' in member '${name}' is outside its declared values {${[...domain[k]].join(', ')}}`);
+      else if (!dom) errs.push(`${def.id}: axis '${k}' in member '${name}' is declared but has no declared value domain — the domain and the declared names are keyed differently`);
+      else if (v === undefined || !dom.has(v)) errs.push(`${def.id}: axis '${k}=${v}' in member '${name}' is outside its declared values {${[...dom].join(', ')}}`);
     }
     // EXCLUDED — a member at a coordinate `excludeCoordinates` removes (2026-09-28). Matched here from the
     // member NAME against the entries, with its own one-line matcher rather than `isExcludedCoordinate`,
     // so a projector whose filter stopped applying is caught even where the count happens to agree.
-    if ((fp.excludeCoordinates ?? []).some((entry) => Object.keys(entry).every((a) => entry[a].includes(coord[a]))))
+    if ((fp.excludeCoordinates ?? []).some((entry) => Object.entries(entry).every(([a, vs]) => { const c = coord[a]; return c !== undefined && vs.includes(c); })))
       errs.push(`${def.id}: member '${name}' sits at a coordinate figmaProperties.excludeCoordinates removes`);
   }
   return errs;
@@ -4096,6 +4136,7 @@ export const nestVariantMissAdviceSrc = (): string => nestVariantMissAdvice.toSt
  * `nestVariantMissAdvice`: a pure expression closing over nothing in this module, because the payload
  * has none of this module.
  */
+// #1182: `hits[0]!`: read only when `hits.length === 1`. Type-only, so the source this ships as is unchanged, and no helper is called: it closes over nothing.
 export const nestVariantMatch = (wanted: Record<string, string>, members: readonly string[]): string | null => {
   const hits = members.filter((m) => {
     const coord: Record<string, string> = {};
@@ -4106,7 +4147,7 @@ export const nestVariantMatch = (wanted: Record<string, string>, members: readon
     // identify it, so the two lengths must agree before the values are compared at all.
     return keys.length === Object.keys(wanted).length && keys.every((k) => coord[k] === wanted[k]);
   });
-  return hits.length === 1 ? hits[0] : null;
+  return hits.length === 1 ? hits[0]! : null;
 };
 
 /** `nestVariantMatch` as source, for the paste payload. See `nestVariantMissAdviceSrc` for why a
@@ -4140,6 +4181,7 @@ export const nestVariantMatchSrc = (): string => nestVariantMatch.toString();
  * `nestVariantMissAdvice`: no template literal, no `?.`, no `??`. And written for bytes, because every byte
  * of it ships in every paste chunk's shell (see `SET_CHUNK_BYTES`).
  */
+// #1182: `named[0]!`: read only past the `!named.length` return. Type-only, so the source this ships as is unchanged, and no helper is called: it closes over nothing.
 export const resolveNestMember = <C extends { name?: string; type?: string; createInstance?: unknown }>(
   sets: readonly { name?: string; children?: readonly C[] }[],
   target: string,
@@ -4150,7 +4192,7 @@ export const resolveNestMember = <C extends { name?: string; type?: string; crea
   const named = sets.filter((s) => s.name === target);
   if (!named.length) return null;
   if (named.length > 1) return { miss: '.nestTarget -> ' + target + ' (found ' + named.length + ' COMPONENT_SETs named ' + target + '; nothing built — a nest resolves only inside the one set its def names. Rename or remove the stale copy, then rebuild)' };
-  const kids = named[0].children || [];
+  const kids = named[0]!.children || [];
   const members = kids.map((c) => c.name || '');
   const hit = match(wanted, members);
   const member = hit ? kids.filter((c) => c.name === hit)[0] : undefined;
@@ -4181,6 +4223,7 @@ export const resolveNestMemberSrc = (): string => resolveNestMember.toString();
  * Returns the misses WITHOUT the part name, which each caller prefixes. SHIPPED AS SOURCE to the paste payload
  * (`applyNestOverridesSrc`): it closes over nothing, and uses no template literal, no `?.`, no `??`.
  */
+// #1182: `props[k]!`: `k` is one of `Object.keys(props)`; `keys[0]!`: read only when `keys.length === 1`. Type-only, so the source this ships as is unchanged, and no helper is called: it closes over nothing.
 export const applyNestOverrides = (
   inst: { componentProperties?: unknown; setProperties?: (props: Record<string, string>) => void },
   overrides: readonly NestOverride[],
@@ -4192,7 +4235,7 @@ export const applyNestOverrides = (
     // does not exist where this source is shipped.
     let props: Record<string, { type?: string; value?: unknown }> = {};
     try { props = (inst.componentProperties || {}) as Record<string, { type?: string; value?: unknown }>; } catch (e) { props = {}; }
-    const keys = Object.keys(props).filter((k) => k.split('#')[0] === o.property && props[k].type === o.type);
+    const keys = Object.keys(props).filter((k) => k.split('#')[0] === o.property && props[k]!.type === o.type);
     const head = '.nestOverrides -> ' + o.property + ' ';
     if (keys.length !== 1) {
       out.push(head + '(' + (keys.length ? keys.length + ' ' + o.type + ' properties' : 'no ' + o.type + ' property') + ' of that name on the nested instance; it keeps its default)');
@@ -4204,15 +4247,15 @@ export const applyNestOverrides = (
       if (!id) { out.push(head + '(' + o.value + ' is not a component in this file; the nested instance keeps its default)'); continue; }
       want = id;
     }
-    if (props[keys[0]].value === want) continue;
+    if (props[keys[0]!]!.value === want) continue;
     const w: Record<string, string> = {};
-    w[keys[0]] = want;
+    w[keys[0]!] = want;
     try { (inst.setProperties as (props: Record<string, string>) => void)(w); } catch (e) {
       out.push(head + 'REFUSED (' + (e && (e as Error).message ? (e as Error).message : String(e)) + ')');
       continue;
     }
     let got: { value?: unknown } | undefined;
-    try { got = ((inst.componentProperties || {}) as Record<string, { value?: unknown }>)[keys[0]]; } catch (e) { got = undefined; }
+    try { got = ((inst.componentProperties || {}) as Record<string, { value?: unknown }>)[keys[0]!]; } catch (e) { got = undefined; }
     if (!got || got.value !== want) out.push(head + 'DISCARDED (set ' + JSON.stringify(want) + ', reads ' + JSON.stringify(got ? got.value : null) + ')');
   }
   return out;
@@ -4238,6 +4281,7 @@ export const applyNestOverridesSrc = (): string => applyNestOverrides.toString()
  * Returns the misses WITHOUT the part name, which each caller prefixes. SHIPPED AS SOURCE to the paste payload
  * (`applyNestItemPrefersSrc`): it closes over nothing, and uses no template literal, no `?.`, no `??`.
  */
+// #1182: `it[0]!`: read only when `it.length === 1`. Type-only, so the source this ships as is unchanged, and no helper is called: it closes over nothing.
 export const applyNestItemPrefers = (
   inst: { findAll: (pred: (n: { name?: string; type?: string }) => boolean) => { swapComponent: (c: unknown) => void }[] },
   prefs: readonly NestItemPrefer[],
@@ -4251,7 +4295,7 @@ export const applyNestItemPrefers = (
     if (r.miss !== undefined) { out.push(h + 'in this file, but it did not resolve: ' + r.miss.slice(1) + '; it keeps its default)'); continue; }
     const it = inst.findAll((x) => x.name === o.item && x.type === 'INSTANCE');
     if (it.length !== 1) { out.push(h + it.length + ' instances of that name in the nested instance; it keeps its default)'); continue; }
-    try { it[0].swapComponent(r.member); } catch (e) { out.push(h + 'REFUSED: ' + (e as Error).message + ')'); }
+    try { it[0]!.swapComponent(r.member); } catch (e) { out.push(h + 'REFUSED: ' + (e as Error).message + ')'); }
   }
   return out;
 };
@@ -5652,7 +5696,7 @@ for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+n
 export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
-  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs',
+  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tag-group', 'tab-item', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
   'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', '_slider-thumb', 'slider',
@@ -5669,21 +5713,24 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
-  if (!plans.length) throw new Error(`${fn}: no plans`);
+  const plan0 = plans[0];
+  if (!plan0) throw new Error(`${fn}: no plans`);
+  // `vals` and `names` are `plans` mapped one to one, so a plan's index reads its own entry in each.
+  const valsAt = (i: number) => must(vals[i], `${fn}: plan ${i}'s coordinate`);
   // ONE COMPONENT PER SET, and the two guards below cannot cover it. Both reason about
   // `planComponentName`, which is built from `coord`/`size`/`slots` and deliberately carries NO
   // component — a member name is a variant coordinate and nothing else, because Figma folds a slash
   // prefix into the first axis key. So a plan from a different component has an identical axis shape
   // and a distinct coordinate: it passes the axis check, passes the duplicate check, and lands in the
-  // set as a member. `set.name` comes from `plans[0].component`, so it is named after whichever plan
+  // set as a member. `set.name` comes from `plan0.component`, so it is named after whichever plan
   // was first and the rest disappear into it — a `chip` variant filed under `button`, reported nowhere.
   // The property declarations then derive from the assembled nodes, so they describe the union of two
   // components' anatomies as though it were one API.
-  const stray = plans.find((p) => p.component !== plans[0].component);
-  if (stray) throw new Error(`${fn}: every plan must come from the same component — got '${plans[0].component}' and '${stray.component}'; the set would be named after the first and silently absorb the rest`);
+  const stray = plans.find((p) => p.component !== plan0.component);
+  if (stray) throw new Error(`${fn}: every plan must come from the same component — got '${plan0.component}' and '${stray.component}'; the set would be named after the first and silently absorb the rest`);
   const axesOf = (p: AnatomyPlan): string =>
     planComponentName(p).split(', ').map((kv) => kv.split('=')[0]).join(',');
-  const axes = axesOf(plans[0]);
+  const axes = axesOf(plan0);
   const odd = plans.find((p) => axesOf(p) !== axes);
   if (odd) throw new Error(`${fn}: every plan must declare the same variant axes — got '${axes}' and '${axesOf(odd)}' (${planComponentName(odd)})`);
   const names = plans.map(planComponentName);
@@ -5719,7 +5766,7 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // Every plan in a set carries the same `gridAxis` (they come from one def via `figmaAnatomySet`), so
   // the first is the set's. Read off the PLAN rather than a def this function never receives.
   const colKey = gridColumnAxis(
-    plans[0].gridAxis && (plans[0].axisFigmaNames?.[plans[0].gridAxis] ?? plans[0].gridAxis),
+    plan0.gridAxis && (plan0.axisFigmaNames?.[plan0.gridAxis] ?? plan0.gridAxis),
     varying.map((k) => ({ name: k, values: new Set(vals.map((v) => v[k])).size })),
   );
   // INVERSE AS ONE BLOCK (#2188, owner decision Q173 A), for every def with canvas furniture (`CANVAS_FURNITURE`). `surface`
@@ -5728,20 +5775,21 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // coordinate and key are untouched, and so is the plan order the members are built and combined in, which is the
   // order a variant property's values read in the properties panel (#2386). The regroup is a STABLE partition: inside
   // each surface block the rows keep the order they had, so the rest of the grid reads as before.
-  const surfaceFirst = CANVAS_FURNITURE.has(plans[0].component) && varying.includes('surface') && colKey !== 'surface';
+  const surfaceFirst = CANVAS_FURNITURE.has(plan0.component) && varying.includes('surface') && colKey !== 'surface';
   const rowKeys = varying.filter((k) => k !== colKey && !(surfaceFirst && k === 'surface'));
   if (surfaceFirst) rowKeys.unshift('surface');
   const order = (list: string[]) => { const seen: string[] = []; for (const x of list) if (!seen.includes(x)) seen.push(x); return seen; };
-  const cols = colKey ? order(vals.map((v) => v[colKey])) : [''];
+  // Every plan declares the same axes (checked above), so each coordinate carries every key.
+  const cols = colKey ? order(vals.map((v) => must(v[colKey], `${fn}: a '${colKey}' value`))) : [''];
   const rowOf = (v: Record<string, string>): string => rowKeys.map((k) => v[k]).join(' ');
   const rows = surfaceFirst
-    ? order(vals.map((v) => v.surface)).flatMap((s) => order(vals.filter((v) => v.surface === s).map(rowOf)))
+    ? order(vals.map((v) => must(v.surface, `${fn}: a 'surface' value`))).flatMap((s) => order(vals.filter((v) => v.surface === s).map(rowOf)))
     : order(vals.map(rowOf));
   const cells = plans.map((p, i) => ({
-    name: names[i],
+    name: must(names[i], `${fn}: plan ${i}'s name`),
     root: p.root,
-    row: rows.indexOf(rowKeys.map((k) => vals[i][k]).join(' ')),
-    col: colKey ? cols.indexOf(vals[i][colKey]) : 0,
+    row: rows.indexOf(rowKeys.map((k) => valsAt(i)[k]).join(' ')),
+    col: colKey ? cols.indexOf(must(valsAt(i)[colKey], `${fn}: plan ${i}'s '${colKey}'`)) : 0,
     // The FOOTPRINT COHORT — the variants that must measure the same. `size` and slot fill legitimately
     // change a button's box; `state` and `appearance` must not, so those share a group and the payload
     // compares measured sizes within it.
@@ -5782,7 +5830,7 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
       ...(p.slotAxes.includes('leading') ? [`${p.slotFigmaNames?.leading ?? 'leading'}=${p.slots.leading}`] : []),
       ...(p.slotAxes.includes('trailing') ? [`${p.slotFigmaNames?.trailing ?? 'trailing'}=${p.slots.trailing}`] : []),
       // Under each axis's Figma name (#2571), since `vals` is parsed from the member name.
-      ...heldAxes(p).map((k) => p.axisFigmaNames?.[k] ?? k).flatMap((k) => (vals[i][k] === undefined ? [] : [`${k}=${vals[i][k]}`])),
+      ...heldAxes(p).map((k) => p.axisFigmaNames?.[k] ?? k).flatMap((k) => (valsAt(i)[k] === undefined ? [] : [`${k}=${valsAt(i)[k]}`])),
     ].join(', '),
   }));
 
@@ -5836,15 +5884,15 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // `footprintVaries` — the HELD list, declared exemptions then authoring axes (#1611, `heldAxes`) — rides
   // out for the CHUNKED path only — the single-shot payload reads the `group`
   // this function already computed off each cell, while a chunk re-derives it from the member name and so
-  // needs the def's list. Off `plans[0]` for `gridAxis`'s reason: every plan in a set comes from one def.
+  // needs the def's list. Off `plan0` for `gridAxis`'s reason: every plan in a set comes from one def.
   //
   // `slotKeys` rides out for the same reason (#1309/#1380): the cohort `group` above now writes each slot
   // axis's Figma DISPLAY name (`leading icon`), so the chunk's `cellOf` — which parses the member name —
   // must `seg()` those same display keys, not the old hardcoded `leading`/`trailing`. In the fixed
   // leading-then-trailing order the `group` uses, resolved through `slotFigmaNames`. Empty for a def with
   // no slot axes, so its payload is byte-identical.
-  const slotKeys = ['leading', 'trailing'].filter((k) => plans[0].slotAxes.includes(k)).map((k) => plans[0].slotFigmaNames?.[k] ?? k);
-  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: heldAxes(plans[0]).map((k) => plans[0].axisFigmaNames?.[k] ?? k), slotKeys };
+  const slotKeys = ['leading', 'trailing'].filter((k) => plan0.slotAxes.includes(k)).map((k) => plan0.slotFigmaNames?.[k] ?? k);
+  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plan0.component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: heldAxes(plan0).map((k) => plan0.axisFigmaNames?.[k] ?? k), slotKeys };
 };
 
 /**
@@ -5902,7 +5950,7 @@ const at=(arr,n)=>arr.slice(0,n).reduce((a,b)=>a+(b||0)+GAP,PAD);
 // they disagree, so the offline check in \`planSetToPluginJs\` is what keeps that from being the
 // caller's first sign of trouble — by then twenty-one loose components are already in the file.
 const set=figma.combineAsVariants(built,figma.currentPage);
-set.name=${JSON.stringify(plans[0].component)};
+set.name=${JSON.stringify(must(plans[0], 'a plan').component)};
 // #1393 — THE SET'S DEFAULTS, claimed as the plugin executor claims them (\`n\` null: the variant-set border, #1430).
 claimDefaults(set,null,'created');
 // LAY OUT AND RESIZE, after the combine as both other scripts do. Live, \`combineAsVariants\` sizes the set
@@ -6410,12 +6458,13 @@ export const settleChunks = <T, C extends { bytes: number }>(
   const bound = items * (items + 1);
   for (let pass = 0; ; pass++) {
     const out = groups.map((slice, i) => ship(slice, i, groups.length, i === groups.length - 1));
-    const i = out.findIndex((c, k) => groups[k].length > 1 && c.bytes > budgetBytes);
+    // `out` is `groups` mapped one to one, so `k` and `i` index both.
+    const i = out.findIndex((c, k) => must(groups[k], `chunk ${k}`).length > 1 && c.bytes > budgetBytes);
     if (i < 0) return out;
     if (pass >= bound)
-      throw new Error(`settleChunks: chunk ${i + 1} of ${out.length} still measures ${out[i].bytes} bytes against a ${budgetBytes}-byte budget after ${pass} moves`);
-    const moved = groups[i].pop()!;
+      throw new Error(`settleChunks: chunk ${i + 1} of ${out.length} still measures ${must(out[i], `chunk ${i}`).bytes} bytes against a ${budgetBytes}-byte budget after ${pass} moves`);
+    const moved = must(groups[i], `chunk ${i}`).pop()!;
     if (i === groups.length - 1) groups.push([moved]);
-    else groups[i + 1].unshift(moved);
+    else must(groups[i + 1], `chunk ${i + 1}`).unshift(moved);
   }
 };

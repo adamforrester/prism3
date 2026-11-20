@@ -526,6 +526,7 @@
       "description": "BOOLEAN",
       "description text": "TEXT",
       "dividers": "BOOLEAN",
+      "show title": "BOOLEAN",
       "title": "TEXT"
     }
   },
@@ -1061,6 +1062,21 @@
       "↳ swap leading icon": "INSTANCE_SWAP"
     }
   },
+  "popover": {
+    "axes": {
+      "placement": [
+        "bottom"
+      ]
+    },
+    "members": 1,
+    "properties": {
+      "body": "SLOT",
+      "close": "BOOLEAN",
+      "footer": "BOOLEAN",
+      "title": "BOOLEAN",
+      "title text": "TEXT"
+    }
+  },
   "progress": {
     "axes": {
       "shape": [
@@ -1546,6 +1562,19 @@
       "label": "TEXT",
       "leading icon": "BOOLEAN",
       "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
+  "tag-group": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 3,
+    "properties": {
+      "items": "SLOT"
     }
   },
   "text-field": {

@@ -350,6 +350,31 @@ console.log('\n3b. a late restore-input after the designer acted is offered, not
     const gone = await strip(page);
     ok((after.brandSel ?? '').includes('restored-brand') && !gone.shown && gone.action === null,
       `#3697 R9 confirm-replace: Replace brand loads the file's brand and the strip clears — brand "${after.brandSel}", ${JSON.stringify(gone)}`);
+    // Undo load's scope (#1037 Q-BK2 A): every load the designer chooses, NOT the file's own brand arriving. This is
+    // that arrival, over unsaved edits, so it must offer nothing. Mutation: `loadReplacing` for every origin fails it.
+    // An ABSENCE, so it goes through `hooks.absent` with a proof from this same panel (#4245): the read waits until the
+    // switcher names the loaded brand (the bar paints the switcher and the offer in one pass, `shell/bar.ts`), and then
+    // a designer-chosen load over edits, read the same way, must draw the offer. Without that control a renamed hook or
+    // a late draw read as "no offer". Mutations (#4245, each fails by name): the hook renamed in `bar.ts` · the offer
+    // never drawn (`v.undo ? undo : null` → `null`).
+    const switcherReads = (want) => page.waitForFunction((w) => (document.querySelector('[data-p3="brand-switcher"]')?.textContent ?? '').toLowerCase().includes(w.toLowerCase()), want, { timeout: 4000 }).then(() => true, () => false);
+    const undoDrawn = () => page.evaluate(() => document.querySelectorAll('[data-p3="undo-load"]').length);
+    const settled = await switcherReads('restored-brand');
+    const u = await undoDrawn();
+    await hooks.click(page.locator('[data-p3="tab-shape"]'));
+    const lever = page.locator('[data-p3="shape-levers"] input[type="range"]:not([disabled])').first();
+    await lever.focus();
+    for (let i = 0; i < 5; i++) await lever.press('ArrowRight');
+    await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+    const pick = page.locator('[data-p3="brand-menu-example"]').first();
+    const pickName = ((await pick.textContent()) ?? '').trim();
+    await hooks.click(pick);
+    await hooks.click(page.locator('[data-p3="overwrite-replace"]').first());
+    const chosenLoaded = pickName !== '' && await switcherReads(pickName);
+    const control = await undoDrawn();
+    ok(chosenLoaded && control === 1, `#4245 control: a load the designer chooses over edits draws Undo load once the switcher names it ("${pickName}" loaded: ${chosenLoaded}, undo-load drawn: ${control})`);
+    hooks.absent(ok, { seen: settled && chosenLoaded && control === 1, state: 'Undo load drawn after a chosen load, in this same panel' },
+      u === 0, `#1037 the file's own brand arriving offers no Undo load (undo-load drawn: ${u})`);
     ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
     await page.close();
   }
@@ -1563,6 +1588,39 @@ const BRAND_WRITES = ['apply-theme', 'build-components', 'prune', 'file-setup', 
   await settle(3);
   links = await page.evaluate(() => window.__links);
   ok(links.at(-1)?.type === 'agent-link' && links.at(-1)?.on === false, `the tile turns it off through the same request — ${JSON.stringify(links.at(-1))}`);
+  await page.close();
+}
+{
+  // #2368 (owner decision A): the bar's busy mark beside the Agent switch, from an agent-started that carries busy until the
+  // link state that publishes that command's result; agent-finished alone does not end it. Words typed here (DRAFT).
+  const { page } = await openPanel();
+  const state = (last) => ({ type: 'agent-link-state', state: { on: true, pollMs: 2000, transports: { mailbox: true, bridge: false }, lastCommand: last, inboxError: null } });
+  await post(page, state(null));
+  await post(page, { type: 'restore-input-library', library: LIB });
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="bar-agent"] [data-p3="agent-toggle"]'), null, { timeout: 4000 }).catch(() => {});
+  const read = () => page.evaluate(() => {
+    const m = document.querySelector('[data-p3="agent-busy"]'), sw = document.querySelector('[data-p3="agent-toggle"]');
+    const d = sw?.getAttribute('aria-describedby');
+    return { inBar: !!m?.closest('[data-p3="bar-agent"]'), drawn: !!m && !m.hidden && m.getClientRects().length > 0, title: m?.getAttribute('title') ?? null,
+      spin: !!m?.querySelector('.p3-spin'), word: m?.querySelector('.p3-agent-busy-word')?.textContent ?? null, desc: d ? document.getElementById(d)?.textContent ?? null : null };
+  });
+  const LINE = 'Agent running Style guides — closing Prism3 now stops it partway.';
+  let s = await read();
+  ok(s.inBar && !s.drawn && s.desc === null, `#2368 busy/idle: the bar holds the busy mark, not drawn, while nothing runs — ${JSON.stringify(s)}`);
+  await post(page, { type: 'agent-started', id: 'sg-1', cmd: 'status' });
+  s = await read();
+  ok(!s.drawn, `#2368 busy/quiet: a command started without busy (a read) draws no busy mark — ${JSON.stringify(s)}`);
+  await post(page, { type: 'agent-started', id: 'sg-2', cmd: 'style-guide', busy: true });
+  s = await read();
+  ok(s.drawn && s.spin && s.word === 'Running' && s.title === LINE && s.desc === LINE,
+    `#2368 busy/drawn: a write's start draws the spinner and "Running", its line the tooltip and the switch's description — ${JSON.stringify(s)}`);
+  await post(page, { type: 'agent-finished', id: 'sg-2', cmd: 'style-guide' });
+  await post(page, state({ id: 'sg-1', cmd: 'status', ok: true, finishedAt: new Date().toISOString(), headline: '' }));
+  s = await read();
+  ok(s.drawn, `#2368 busy/until-result: agent-finished, and another command's result, leave it busy — ${JSON.stringify(s)}`);
+  await post(page, state({ id: 'sg-2', cmd: 'style-guide', ok: true, finishedAt: new Date().toISOString(), headline: '✓ 41 tables drawn' }));
+  s = await read();
+  ok(!s.drawn && s.desc === null, `#2368 busy/done: the link state publishing its result returns the bar to idle — ${JSON.stringify(s)}`);
   await page.close();
 }
 

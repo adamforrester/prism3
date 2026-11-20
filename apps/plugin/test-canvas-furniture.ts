@@ -104,7 +104,9 @@ import { allLeaves } from './src/file-taxonomy';
 import type { TemplatesApi } from './src/furniture-templates';
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -1016,10 +1018,15 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // THE SWITCH COVERS EVERY SET. The oracle is the def registry, never the engine's list: every def with Figma
   // properties builds a set, except the three that build single components (`emitAsComponents`), which have no grid:
   // Icon, Provider logo (#2343) and Spinner.
-  const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
+  // A SET OF ONE MEMBER HAS NO GRID (#4008): Popover builds one member, so there is no row or column to label and it
+  // takes no furniture. Named here, never derived, so a second one-member set fails the count by name.
+  const ONE_MEMBER = ['popover'];
+  const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents && !ONE_MEMBER.includes(d.id)).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 59 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'provider-logo', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 59 defs that build a set have furniture; Icon, Provider logo and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 60 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'provider-logo', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 60 defs that build a set of more than one member have furniture; Icon, Provider logo and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(ONE_MEMBER.every((id) => componentDefs.some((d) => d.id === id) && !hasFurniture(id)),
+    `rollout/one member: ${ONE_MEMBER.join(', ')} builds a set of one member and has no furniture (${JSON.stringify(ONE_MEMBER.filter(hasFurniture))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
@@ -1118,6 +1125,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     Switch: ['switch-control', 'switch-row'],
     // #2989 Q656 A: the Code cell joins the Code input page, first.
     'Code input': ['code-input-cell', 'code-input'],
+    // #1739: Tag.Group builds after Tag on the Tag page, so its nested tags resolve there.
+    Tag: ['tag', 'tag-group'],
     Tabs: ['tab-item', 'tabs'],
     'Segmented control': ['segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],
@@ -1137,7 +1146,7 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // Sets only: Icons & assets holds two defs since #3148, Icon and Provider logo, and both build single components.
   const buildsSet = (id: string): boolean => !componentDefs.find((d) => d.id === id)?.figmaProperties?.emitAsComponents;
   const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.filter(buildsSet).length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
-  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the fifteen pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
+  ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the sixteen pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   for (const [name, ids] of Object.entries(SHARED)) {
@@ -1627,5 +1636,5 @@ section('templates — the three file components, against the Q171 spec and #260
   ok(again.built.length === 0 && JSON.stringify(again.present) === JSON.stringify(['_Label', '_inverse-backdrop', '_scrim-backdrop']), `templates/idempotent: a second run builds nothing (${JSON.stringify(again)})`);
 }
 
-console.log(failed ? `\n❌ ${failed} failed` : '\n✅ canvas furniture: all checks passed');
+console.log(`${failed ? `\n❌ ${failed} failed` : '\n✅ canvas furniture: all checks passed'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

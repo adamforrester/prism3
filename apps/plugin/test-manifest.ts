@@ -27,7 +27,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 let failures = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   console.log(`${cond ? 'PASS' : 'FAIL'}  ${label}`);
   if (!cond) failures++;
 };
@@ -57,5 +59,5 @@ ok(offline.id === 'prism3-theming-plugin-offline', `the offline plugin has its o
 ok(JSON.stringify(offline.networkAccess?.allowedDomains) === '["none"]',
   `the offline plugin allows no network (manifest-offline allowedDomains: ${JSON.stringify(offline.networkAccess?.allowedDomains)})`);
 
-console.log(failures ? `\n${failures} failure(s)` : '\nmanifest: all checks pass');
+console.log(`${failures ? `\n${failures} failure(s)` : '\nmanifest: all checks pass'} — ${executed} assertions executed`);
 if (failures > 0) process.exit(1);

@@ -48,7 +48,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list', 'doc-settings', 'file-sets',
-  'hand-edits', 'hand-edits-done', 'update-check', 'update-check-progress', 'file-due', 'add-queue', 'panels-clean-result',
+  'hand-edits', 'hand-edits-done', 'update-check', 'update-check-progress', 'file-due', 'add-queue', 'updates-off', 'panels-clean-result',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
@@ -69,7 +69,7 @@ const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, collisions: null, collisionsChosen: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null, overrideState: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
-  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, panelsClean: { busy: false, count: null, verdict: null }, addQueue: null,
+  pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, panelsClean: { busy: false, count: null, verdict: null }, addQueue: null, updatesOffError: null,
   handEdits: [], handPass: 'idle', updateCheck: null, updateProgress: null,
 }), 'initial session: every slot empty');
 
@@ -144,7 +144,9 @@ for (const c of verdictCases) {
 //
 // Mutations this fails by name: recording the verdict against nothing → `G9: a clean verdict for the panel's own build
 // of 'tag' records tag → ok`; reading "failed" off `ok` alone → `C1: a build that ran to the end with misses records
-// badge → issues, not failed`.
+// badge → issues, not failed`. #2087: recording only the panel's own builds (`agentDef` dropped) → `#2087: an agent's
+// build of 'button' records button → ok`; reading the agent run after it settled (`!prev.agentRun.settled` dropped) →
+// `#2087: a second verdict after the agent's run settled is not recorded against its set`.
 {
   const posted: HostSession = { ...init, componentState: 'pending', componentDef: 'tag' };
   const clean = step(posted, { kind: 'component-result', ok: true, completed: true, headline: '✓ built 45', summary: "set 'Tag'" });
@@ -154,10 +156,20 @@ for (const c of verdictCases) {
   ok(same([...issues.next.setBuilds], [['tag', 'ok'], ['badge', 'issues']]), `C1: a build that ran to the end with misses records badge → issues, not failed, and keeps tag's (${JSON.stringify([...issues.next.setBuilds])})`);
   const failed = step({ ...issues.next, componentState: 'pending', componentDef: 'tag' }, { kind: 'component-result', ok: false, completed: false, headline: '✗ apply failed', summary: 'x' });
   ok(failed.next.setBuilds.get('tag') === 'failed' && failed.next.setBuilds.get('badge') === 'issues', `C1: a build that stopped before the set records tag → failed, replacing its clean result (${JSON.stringify([...failed.next.setBuilds])})`);
-  // An agent's build (the panel posted nothing): its verdict names no set, so none is recorded.
-  const agentRun = step(init, { kind: 'agent-started', id: 'b9', cmd: 'build-components' }).next;
+  // #2087: an agent's build (the panel posted nothing) names its set on `agent-started`, so its verdict is recorded
+  // against that set, as the panel's own would be. A start that names none (an older host) records nothing.
+  const agentRun = step(init, { kind: 'agent-started', id: 'b9', cmd: 'build-components', def: 'button' }).next;
   const byAgent = step(agentRun, { kind: 'component-result', ok: true, completed: true, headline: '✓ built 432', summary: "set 'Button'" });
-  ok(byAgent.next.setBuilds.size === 0, `G9: an agent's build is not attributed to a set (${JSON.stringify([...byAgent.next.setBuilds])})`);
+  ok(same([...byAgent.next.setBuilds], [['button', 'ok']]), `#2087: an agent's build of 'button' records button → ok (${JSON.stringify([...byAgent.next.setBuilds])})`);
+  const agentIssues = step(step(byAgent.next, { kind: 'agent-started', id: 'b10', cmd: 'build-components', def: 'tag' }).next,
+    { kind: 'component-result', ok: false, completed: true, headline: '⚠ 20, 1 missed', summary: "set 'Tag'" });
+  ok(same([...agentIssues.next.setBuilds], [['button', 'ok'], ['tag', 'issues']]), `#2087: an agent's build of 'tag' with misses records tag → issues and keeps button's (${JSON.stringify([...agentIssues.next.setBuilds])})`);
+  const settled = step(byAgent.next, { kind: 'component-result', ok: false, completed: false, headline: '✗', summary: 'x' });
+  ok(settled.next.setBuilds.get('button') === 'ok', `#2087: a second verdict after the agent's run settled is not recorded against its set (${JSON.stringify([...settled.next.setBuilds])})`);
+  const unnamed = step(step(init, { kind: 'agent-started', id: 'b8', cmd: 'build-components' }).next, { kind: 'component-result', ok: true, completed: true, headline: '✓', summary: 'x' });
+  ok(unnamed.next.setBuilds.size === 0, `#2087: an agent's build that names no set records nothing (${JSON.stringify([...unnamed.next.setBuilds])})`);
+  const update = step(step(init, { kind: 'agent-started', id: 'u1', cmd: 'update-components', def: 'tag' }).next, { kind: 'component-result', ok: true, completed: true, headline: '✓', summary: 'x' });
+  ok(update.next.setBuilds.size === 0, `#2087: only a build-components run is attributed, not another components command (${JSON.stringify([...update.next.setBuilds])})`);
   // The panel's request declined behind an agent's run: no build of its own is coming, so it forgets the set.
   const declined = step({ ...agentRun, componentState: 'pending', componentDef: 'tag' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: 'busy' });
   ok(declined.next.componentDef === null && declined.next.componentState === null, 'G9: a declined panel build forgets the set it posted');
@@ -468,6 +480,12 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   ok(same(fq.next.addQueue, ['tag']), `#3129: file-sets carries the add queue into its slot (${JSON.stringify(fq.next.addQueue)})`);
   const aq = step(fq.next, { kind: 'add-queue', queued: ['tag', 'badge'], error: null });
   ok(same(aq.next.addQueue, ['tag', 'badge']) && same(aq.topics, ['host:update', 'host:components']), `#3129: a queue write's answer replaces the queue and invalidates host:update and host:components (${JSON.stringify(aq.topics)})`);
+  // #2956: a turn off that could not be written is kept to say so; the next answer that was written clears it. Both
+  // repaint the overlay and Components (the set's status tag).
+  const uo = step(aq.next, { kind: 'updates-off', def: 'tag', off: true, error: 'this file has no tag set' });
+  const uo2 = step(uo.next, { kind: 'updates-off', def: 'tag', off: false, error: null });
+  ok(same(uo.next.updatesOffError, { def: 'tag', off: true, error: 'this file has no tag set' }) && uo2.next.updatesOffError === null && same(uo.topics, ['host:update', 'host:components']),
+    `#2956 updates-off: a refused write is kept, a written one clears it, and both repaint Update file and Components (${JSON.stringify(uo.next.updatesOffError)})`);
   const lq = step(aq.next, { kind: 'file-due', seq: 9, present: ['button'], theme: false, error: null, due: {}, queued: ['badge'] });
   ok(same(lq.next.addQueue, ['badge']) && same(lq.topics, ['host:update', 'host:components']), '#3129: the live recount carries the queue too, and a queue it moves repaints Components');
   const lq2 = step(lq.next, { kind: 'file-due', seq: 10, present: ['button'], theme: false, error: null, due: {}, queued: ['badge'] });

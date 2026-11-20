@@ -709,8 +709,8 @@ section('kept/bound — a capture too large to keep, or one the host refuses, ca
   ok(wrongRef.length === 0, `kept/refused filled: every instance is filled from the in-memory capture (${ref.placed.length - wrongRef.length}/${ref.placed.length})`);
   const oRef = resRef?.outcomes[0];
   const vRef = resRef ? applyVerdict(resRef) : null;
-  ok(oRef?.unkept?.[0]?.refused === 'plugin data too large'
-    && !!vRef?.lines.includes('checkbox-group: Figma refused to save its placed instances\' slot content on the set (plugin data too large), so only this run carries it.'),
+  ok(oRef?.unkept?.[0]?.refused === 'Error: plugin data too large'
+    && !!vRef?.lines.includes('checkbox-group: Figma refused to save its placed instances\' slot content on the set (Error: plugin data too large), so only this run carries it.'),
     `kept/refused named: the set's outcome names the refusal and that only this run carried it (${JSON.stringify(oRef?.unkept)})`);
   const settled = await previewUpdate(ref.w.host, [target]);
   ok(setUpToDate(settled.sets[0]), `kept/refused settles: the next dry run reads the set up to date (${JSON.stringify(settled.sets[0].counts)})`);
@@ -721,7 +721,7 @@ section('kept/bound — a capture too large to keep, or one the host refuses, ca
   const cap = { slot: 'items', instances: [{ id: 'I:1', name: 'x', page: '', member: '', rows: [], hidden: [], lost: [] }] };
   let u: ReturnType<typeof keepCarry> = null, threwDirect = '';
   try { u = keepCarry(node, 'rows', cap); } catch (e) { threwDirect = (e as Error).message; }
-  ok(!threwDirect && u?.refused === 'refused' && calls.at(-1) === '', `kept/refused direct: a refused write is caught, reported and the entry cleared (${threwDirect || JSON.stringify(u)}; ${JSON.stringify(calls.map((c) => c.length))})`);
+  ok(!threwDirect && u?.refused === 'Error: refused' && calls.at(-1) === '', `kept/refused direct: a refused write is caught, reported and the entry cleared (${threwDirect || JSON.stringify(u)}; ${JSON.stringify(calls.map((c) => c.length))})`);
 }
 
 section('kept/malformed — an entry this version can\'t read is ignored, named, and cleared by the set\'s next write (#3796 review B2)');
@@ -829,12 +829,13 @@ section('failed — a throw outside the set\'s write returns what was done, not 
   let res: Awaited<ReturnType<typeof applyUpdate>> | null = null, threw = '';
   try { res = await applyUpdate(w.host, w.api as any, [target], previewHashOf(pre)); } catch (e) { threw = (e as Error).message; }
   ok(!!res && !threw, `failed/returned: the run returns its result rather than throwing (${threw || 'returned'})`);
-  ok(res?.failed === 'the instance could not be read', `failed/why: the result says why the run ended (${res?.failed})`);
+  // #4205: as `failureDetail` gives it, the class in front, so Report a problem keeps the class alone.
+  ok(res?.failed === 'Error: the instance could not be read', `failed/why: the result says why the run ended (${res?.failed})`);
   const o = res?.outcomes[0];
   ok(!!o && o.set === 'checkbox-group' && o.updated.length > 0 && !o.stopped,
     `failed/partial: the set written before the throw is in the result, with its members updated (${o?.updated.length ?? 0})`);
   const v = res ? applyVerdict(res) : null;
-  ok(!!v && !v.ok && v.headline === '✗ update failed' && v.lines[0].startsWith('The update failed: the instance could not be read.') && v.lines.slice(1).some((l) => l.startsWith('checkbox-group:')),
+  ok(!!v && !v.ok && v.headline === '✗ update failed' && v.lines[0].startsWith('The update failed: Error: the instance could not be read.') && v.lines.slice(1).some((l) => l.startsWith('checkbox-group:')),
     `failed/verdict: the verdict fails, says why first, and keeps the set's line for what was done (${v?.headline}; ${JSON.stringify(v?.lines.slice(0, 2))})`);
   // #3758: a run that threw did not go through every set, so Update file's run must stop there, not go on as a warning.
   ok(v?.completed === false, `failed/not completed: a thrown update's verdict says the run did not complete (completed ${String(v?.completed)})`);
@@ -1025,5 +1026,5 @@ section('dialog — the footer buttons move into the nested Button.Group slot, k
   ok(!!found && current === null, `dialog/old shape: a set with the stacked footer's old buttons migrates, and one already holding the group does not (${!!found}, ${current === null})`);
 }
 
-console.log(`\n${failed ? `✗ ${failed} of ${executed} failed` : `✓ slot migration: all ${executed} pass`}`);
+console.log(`\n${failed ? `✗ ${failed} of ${executed} failed` : `✓ slot migration: all pass — ${executed} assertions executed`}`);
 if (failed) process.exit(1);

@@ -29,7 +29,9 @@ const throwsUnrecognized = (fn: () => unknown): string | null => {
 };
 
 let failed = 0;
+let executed = 0;
 const ok = (cond: boolean, label: string): void => {
+  executed++;
   if (cond) console.log(`  ✓ ${label}`);
   else { failed++; console.error(`  ✗ ${label}`); }
 };
@@ -86,5 +88,5 @@ ok(!!oldShapeMsg && /schema v1/.test(oldShapeMsg) && /re-theme|re-import/.test(o
 // refuses UNRECOGNIZED versions, not the one this build actually writes.
 ok(JSON.parse(serializeBrandInput(brand)).v === PERSIST_VERSION, `persist: serializeBrandInput stamps the current PERSIST_VERSION (${PERSIST_VERSION})`);
 
-console.log(`\nPlugin persist test: ${failed === 0 ? 'all passed' : failed + ' FAILED'}`);
+console.log(`\nPlugin persist test: ${failed === 0 ? 'all passed' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exitCode = 1;

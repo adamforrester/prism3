@@ -22,9 +22,9 @@
  */
 import {
   ALL_SETTINGS, ALL_SOURCES, AVAILABLE_SOURCES, ARTIFACTS, DTCG_SETTINGS, DESIGN_MD_SETTINGS,
-  IMPORT_SLOTS, SAMPLE_CRITERIA, defaultSettings, visibleSettings, projectDtcg, mergeFiles,
+  SAMPLE_CRITERIA, defaultSettings, visibleSettings, projectDtcg, mergeFiles,
   fileNames, previewFiles, sampleLeaves, leavesOf, rootKeyOf, renameSegment, unrenameSegment,
-  availableImportSlots, declarationDefects, jargonDefects, admissionDefects, aliasDefects,
+  declarationDefects, settingDefects, identifierHits, danglingAliases, jargonDefects, admissionDefects, aliasDefects,
   sampleDefects, METADATA_OPTION, exportDtcg, exportFileNames, exportPreview, metadataDefects, groupMetaOf,
   type SettingDef, type SettingsState, type ExportSource,
 } from './src/export-settings';
@@ -267,21 +267,6 @@ for (const { id, tree } of corpus) {
 }
 
 // =============================================================================================
-// 7. Import is a slot — the unbuilt path is not reachable as a control
-// =============================================================================================
-
-console.log('\n=== 7. import slots ===');
-ok(IMPORT_SLOTS.length === 2, `two import slots declared (${IMPORT_SLOTS.map((s) => s.id).join(', ')})`);
-ok(availableImportSlots().length === 1 && availableImportSlots()[0].id === 'design-md',
-  'only the design.md slot is available — the Figma-file path waits on #677');
-const unbuilt = IMPORT_SLOTS.filter((s) => !s.available);
-ok(unbuilt.length === 1 && unbuilt.every((s) => 'needs' in s && !!s.needs),
-  `every unavailable slot names what it waits on (${unbuilt.map((s) => ('needs' in s ? s.needs : '?')).join(', ')})`);
-// The union is the enforcement: an unavailable slot HAS no label, so a renderer cannot show one.
-ok(unbuilt.every((s) => !('label' in s) && !('desc' in s)),
-  'an unavailable slot carries no copy — there is no string to render for a path that does not exist');
-
-// =============================================================================================
 // 7b. The download is the CONSUMER set, metadata off by default (#2552, owner decision Q250 A)
 // =============================================================================================
 //
@@ -382,23 +367,17 @@ console.log('\n=== 7c. group metadata survives the export (#2446) ===');
 // mutation it CATCHES, and a check that has never been seen red is a hope (docs/34).
 //
 // Two of these mutate the setting list; the rest mutate the TREE, which is how the losslessness
-// checks get seen red. `declarationDefects`/`jargonDefects` read the module's exported arrays, so the
-// mutants are built as local shapes and the same predicate logic is applied to them — the predicates
-// are re-expressed here, and that duplication is the point rather than something to DRY away: a
-// mutation harness that called the real function on the real list could only ever re-run section 1.
+// checks get seen red. The setting-list mutants are built as local shapes and handed to the SHIPPED
+// per-item predicates (`settingDefects`, `identifierHits`, `danglingAliases`). They once went to local
+// re-expressions of those predicates instead, on the argument that duplication was the point — and
+// #1066 M24 measured where that leads: with the `unreachable` rule deleted from the shipped code, the
+// local copy still caught MUTANT 2 and the suite certified a check that no longer existed (#387's
+// shape, docs/34 shape 2). A battery is only evidence about the code it drives. What keeps it from being
+// a re-run of section 1 is the MUTANT INPUT, not a second copy of the rule.
 
 console.log('\n=== 8. mutation: each check goes red on the defect it exists for ===');
 
-/** The declaration predicate, applied to a candidate setting. Mirrors `declarationDefects`'s rules. */
-const declDefectsOf = (s: SettingDef): string[] => {
-  const out: string[] = [];
-  if (s.sources.length === 0) out.push(`${s.key}: declares no source`);
-  for (const src of s.sources) if (!ALL_SOURCES.includes(src)) out.push(`${s.key}: unknown source '${src}'`);
-  if (!ARTIFACTS.some((a) => a.id === s.artifact)) out.push(`${s.key}: unknown artifact`);
-  if (!s.options.some((o) => o.value === s.def)) out.push(`${s.key}: default is not an option`);
-  if (!s.sources.some((src) => AVAILABLE_SOURCES.includes(src))) out.push(`${s.key}: unreachable`);
-  return out;
-};
+const declDefectsOf = settingDefects;
 const templ = { artifact: 'dtcg' as const, admits: 'renaming' as const, label: 'X', desc: 'A readable line.', options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }], def: 'a' };
 
 // MUTANT 1 — a setting declaring no source at all. This is #723's named mutation.
@@ -415,7 +394,7 @@ ok(m3.some((d) => d.includes('unknown source')), `MUTANT unknown source name →
 
 // MUTANT 4 — jargon in a description. The rule is a shape test, so it catches an identifier it has
 // never seen, which a word list could not.
-const jargonHits = (text: string): readonly string[] => text.match(/\b[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)+\b|\b[a-z0-9]+_[a-z0-9]+\b/g) ?? [];
+const jargonHits = identifierHits;
 ok(jargonHits('Applies roleToPalette before emitting.').length > 0, 'MUTANT camel-hump identifier in a description → caught');
 ok(jargonHits('Reads the max_depth setting.').length > 0, 'MUTANT snake identifier in a description → caught');
 ok(jargonHits('Ink on a fill, over a surface, as an alias.').length === 0, 'and teachable domain vocabulary passes — ink, fill, surface, alias (#618 reading 1)');
@@ -437,8 +416,7 @@ ok(jargonHits('Ink on a fill, over a surface, as an alias.').length === 0, 'and 
 {
   const tree = { m: { 'on-fill': { $type: 'color', $value: '#fff' }, ref: { $type: 'color', $value: '{m.on-fill}' } } };
   const broken = { m: { on_fill: { $type: 'color', $value: '#fff' }, ref: { $type: 'color', $value: '{m.on-fill}' } } };
-  const paths = new Set(leavesOf(broken).map((l) => l.path));
-  const dead = leavesOf(broken).flatMap((l) => [...String(l.leaf.$value).matchAll(/\{([^{}]+)\}/g)]).filter((m) => !paths.has(m[1]));
+  const { dangling: dead } = danglingAliases([{ name: 'broken', doc: broken }], defaultSettings());
   ok(dead.length === 1, 'MUTANT rename that skipped $value → alias resolution goes red where a path check would not');
   none(aliasDefects(tree, defaultSettings(), 'm'), 'and the correct kebab tree resolves clean');
   none(aliasDefects(tree, { ...defaultSettings(), tokenNameCase: 'snake' }, 'm'), 'and so does the snake projection — the aliases moved with the keys');

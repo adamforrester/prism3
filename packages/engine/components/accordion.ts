@@ -142,7 +142,7 @@ export const accordion: ComponentDef = {
         note: 'One section: the header, the panel when open, and the rule under it.',
       },
       header: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'target',
         // The header CENTERS its one flow child, `titleRow` (owner Q276 A): a single line is centered at every size,
         // type and density, where top alignment put all of the 44px floor's slack under it (6px high at small). A
@@ -298,7 +298,7 @@ export const accordion: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'the height animation — the panel eases open and closed (motion.transition.enter / exit); under prefers-reduced-motion it opens and closes at the reduced duration. Figma variants carry no motion.',
+          'the height animation — the panel eases open and closed (motion.transition.enter / exit); under prefers-reduced-motion the height changes at once and the panel fades, on motion.duration-reduced.normal to open and to close. Figma variants carry no motion.',
       },
       {
         class: 'right-to-left',
@@ -337,7 +337,7 @@ export const accordion: ComponentDef = {
   },
 
   accessibility: {
-    role: 'A native <button> with aria-expanded and aria-controls, inside an <hN>; the panel is role="region" with aria-labelledby pointing at the button. Native <details> and <summary> are the alternative where their styling and animation support are enough.',
+    role: 'A native `<button>` with `aria-expanded` and `aria-controls`, inside an `<hN>`; the panel is `role="region"` with `aria-labelledby` pointing at the button. Native `<details>` and `<summary>` are the alternative where their styling and animation support are enough.',
     wcag: [
       '4.1.2 Name, Role, Value (a button that exposes aria-expanded)',
       '1.3.1 Info and Relationships (each header is a heading at the level the page outline needs)',
@@ -349,7 +349,7 @@ export const accordion: ComponentDef = {
       '2.5.5 Target Size (Enhanced), as intent (the whole header is the target, at least 44px tall on comfortable and spacious density)',
     ],
     keyboard: 'Tab moves from header to header, and into an open panel\'s content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.',
-    focus: 'A focus ring around the header row on :focus-visible. Opening a section does not move focus.',
+    focus: 'A focus ring around the header row on `:focus-visible`. Opening a section does not move focus.',
     aria: 'Hide the indicator glyph from assistive technology (aria-hidden="true"); the button\'s aria-expanded carries the state. Do not put role="tab" or a tablist on an accordion.',
   },
 
@@ -387,7 +387,7 @@ export const accordion: ComponentDef = {
   composition: {
     composesWith: ['_accordion-indicator', 'focus-ring', 'divider'],
     alternativeTo: ['tabs', 'dialog'],
-    replacesPatterns: ['a show/hide div with no aria-expanded or heading', 'a tablist used for vertical sections that open together'],
+    replacesPatterns: ['a show/hide div with no `aria-expanded` or heading', 'a tablist used for vertical sections that open together'],
     supersededBy: [],
     planned: ['tree'],
   },
@@ -395,7 +395,7 @@ export const accordion: ComponentDef = {
   motion: {
     enter: 'The panel eases open to its content height (motion.transition.enter), and the indicator turns to its open glyph.',
     exit: 'The panel eases closed (motion.transition.exit), and the indicator turns back.',
-    reduceMotion: 'Under prefers-reduced-motion the panel opens and closes at the reduced duration, since the change is the information and the height movement is not.',
+    reduceMotion: 'Under prefers-reduced-motion the height changes at once, and the panel\'s fade stays, on motion.duration-reduced.normal to open and to close. The indicator swaps without turning. A fade is not movement, and it keeps the cue that the panel opened or closed.',
   },
 
   notes: {

@@ -45,6 +45,8 @@ Shown on the default member: type `select`, selection `unselected`, size `medium
 
 Use a tag for something a user acts on in place. Use a select tag for a lightweight filter or choice the user toggles; use a dismissible tag for an applied filter they can remove, or a recipient or keyword entered into a field. Put tags in a group with at least 8px between them, and let the group own selection, arrow-key movement and focus after removal. If nobody acts on it, it is a badge; if it runs an action, it is a button.
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Name the remove control "Remove" followed by the label
@@ -64,11 +66,11 @@ Use a tag for something a user acts on in place. Use a select tag for a lightwei
 
 ## Accessibility
 
-- **Keyboard:** Select: Space or Enter toggles. In a single-choice group, arrows move and select, as radios do. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.
-- **Focus:** A focus ring around the whole tag on :focus-visible. In a group of dismissible tags, focus moves to the next tag after a removal, else the previous one, else the group or its input, and never to \<body>.
-- **Screen readers:** By type. Select: a \<button> with aria-pressed, or a role="checkbox" or listbox option when a group owns the selection (a radiogroup for single choice). Dismissible: the remove control is a real button named "Remove" followed by the label; in a group of dismissible tags it sits in a role="grid" row.
+- **Keyboard:** Select: Space or Enter toggles. In a group, one tab stop enters the group and Left and Right arrows move focus between tags without toggling them. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.
+- **Focus:** A focus ring around the whole tag on `:focus-visible`. In a group of dismissible tags, focus moves to the next tag after a removal, else the previous one, else the group or its input, and never to `<body>`.
+- **Screen readers:** By type. Select: a `<button>` with `aria-pressed`; in a group of select tags (Tag.Group) it is one of the pressed buttons in a `role="toolbar"`, and any number may be pressed. Dismissible: the remove control is a real button named "Remove" followed by the label; in a group of dismissible tags it sits in a `role="grid"` row.
 
-  Name the remove control "Remove" followed by the label ("Remove Marketing"), or aria-label="Remove" plus aria-labelledby pointing at the label. Never a bare "Remove" or "×". A select tag exposes its state with aria-pressed, aria-checked or aria-selected, matching the role its group gives it. The check mark and a leading icon are aria-hidden. Every name is translatable, and the row mirrors under right-to-left layout.
+  Name the remove control "Remove" followed by the label ("Remove Marketing"), or aria-label="Remove" plus aria-labelledby pointing at the label. Never a bare "Remove" or "×". A select tag exposes its state with aria-pressed, alone or in a group. The check mark and a leading icon are aria-hidden. Every name is translatable, and the row mirrors under right-to-left layout.
 
 ### WCAG
 
@@ -99,7 +101,7 @@ Keep the label to one word where possible. Use the words the data or the user su
 
 - **Built from:** `focus-ring`
 - **Instead, consider:** `badge`, `button`, `checkbox-group`, `radio-group`
-- **Often used with:** `icon`
+- **Often used with:** `tag-group`, `icon`, `popover`
 - **Replaces:**
   - a removable token list built as a listbox
   - a clickable div styled as a pill

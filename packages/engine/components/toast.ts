@@ -107,7 +107,7 @@ export const toast: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'target',
         paintSlots: ['fill'],
         elevation: 'shadow',
@@ -288,7 +288,7 @@ export const toast: ComponentDef = {
   },
 
   accessibility: {
-    role: 'The toast sits in one shared role="status" live region (polite, aria-atomic="true"), inside a landmark labeled "Notifications". The toast itself takes no role and never takes focus.',
+    role: 'The toast sits in one shared `role="status"` live region (polite, `aria-atomic="true"`), inside a landmark labeled "Notifications". The toast itself takes no role and never takes focus.',
     wcag: [
       '4.1.3 Status Messages (the message is announced through a live region without moving focus)',
       '2.2.1 Timing Adjustable (a toast with no action shows for at least 5 seconds, pausing on hover, focus and a hidden window; a toast with an action does not time out)',
@@ -340,7 +340,7 @@ export const toast: ComponentDef = {
   composition: {
     composesWith: ['button', 'flush-icon-button-neutral'],
     alternativeTo: ['dialog', 'field-message', 'banner'],
-    replacesPatterns: ['an alert() after a save', 'a status message that moves focus', 'a timed message with no pause'],
+    replacesPatterns: ['an `alert()` after a save', 'a status message that moves focus', 'a timed message with no pause'],
     supersededBy: [],
     planned: [],
   },

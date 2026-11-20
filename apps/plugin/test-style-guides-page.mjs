@@ -365,16 +365,48 @@ const runGuides = async (page) => {
   ok(sentOf(st, 'doc-settings-save').length === 0, `Q2909.23 A: restoring saves nothing (${sentOf(st, 'doc-settings-save').length})`);
   const ticks = await runGuides(page);
   ok(ticks.theme === 'false' && ticks.guides === 'false', `Q2909.5 A, #3422 Q44 A: on a set-up file that matches the brand the checklist opens with neither the theme nor the style guides ticked (${JSON.stringify(ticks)})`);
+  // #2366 (owner decision A; #4086 review): while the run holds Style guides' Options (`fieldset.p3-sg-plain` disabled),
+  // every segmented choice in it draws Prism3's disabled skin by the `.p3-mode` mapping, as every other held control
+  // does: the checked one the outline skin (disabled text, no fill, the disabled-icon edge), the others the text skin
+  // (disabled text, no edge). Expected colors come from the roles, resolved on a probe, never from the rule under test.
+  // On main's CSS these choices drew their live skin while held.
+  const held = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    document.body.append(probe);
+    const role = (v) => { probe.style.color = `var(${v})`; return getComputedStyle(probe).color; };
+    const want = { text: role('--p3-disabled-text'), edge: role('--p3-disabled-icon') };
+    probe.remove();
+    const tabs = [...document.querySelectorAll('[data-p3^="sg-opt-"].p3-seg-tab')];
+    const clear = (c) => c === 'transparent' || /^rgba\(.*,\s*0\)$/.test(c);
+    const on = (n) => ['aria-checked', 'aria-pressed', 'aria-selected'].some((a) => n.getAttribute(a) === 'true');
+    const bad = tabs.flatMap((n) => {
+      const c = getComputedStyle(n);
+      const ok = n.matches(':disabled') && c.color === want.text && clear(c.backgroundColor) && (on(n) ? c.borderTopColor === want.edge : clear(c.borderTopColor));
+      return ok ? [] : [`${n.getAttribute('data-p3')} (${on(n) ? 'checked' : 'unchecked'}): disabled ${n.matches(':disabled')}, ink ${c.color}, fill ${c.backgroundColor}, edge ${c.borderTopColor}`];
+    });
+    return { n: tabs.length, checked: tabs.filter(on).length, bad, want };
+  });
+  ok(held.n >= 4 && held.checked >= 1 && held.bad.length === 0,
+    `#2366 held options: while the run holds Style guides' Options, each segmented choice draws the .p3-mode mapping: checked, the outline skin; the others, the text skin (${held.n} read, ${held.checked} checked) — ${held.bad.slice(0, 3).join('; ') || JSON.stringify(held.want)}`);
   st = await read(page);
   const drawn = sentOf(st, 'style-guide')[0]?.options;
   const WANT = { header: 'dark', aliases: true, description: true, titleCell: false, rem: true, valueFormat: 'hex', display: 'auto', dimensionDisplay: 'filled',
     fontDisplay: 'auto', paragraphSpacing: false, textDecoration: false, tokenNames: 'short', tables: [ALL_KEYS[1], ALL_KEYS[3]] };
   ok(canon(drawn) === canon(WANT), `Q2909.23 A: Update file draws the saved selection by key, with the saved options (${JSON.stringify(drawn)})`);
   ok(sentOf(st, 'apply-theme').length === 0 && sentOf(st, 'build-components').length === 0, `an unticked item is not run: no theme, no sets (${sentOf(st, 'apply-theme').length}, ${sentOf(st, 'build-components').length})`);
+  // The run's table list, as the main thread sends it before drawing (#2561 reads the verdict pill this run leaves).
+  await post(page, { type: 'style-guide-tables', tables: [{ key: ALL_KEYS[1], title: 'Primary', page: '↳ Semantic tokens' }, { key: ALL_KEYS[3], title: 'Text', page: '↳ Semantic tokens' }] });
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables updated in place' });
   await until(page, "Update file idle after the run's verdict", () => document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-busy') !== 'true');
   const busy = await page.evaluate(() => document.querySelector('[data-p3="update-file"]')?.getAttribute('aria-busy'));
   ok(busy !== 'true', `the run ends with the style guide's verdict: Update file is idle again (aria-busy ${busy})`);
+  // #2561 (owner decision A): the verdict pill is one step down the chrome's type scale (12px to 10px) with tighter sides
+  // (12px to 8px), and stays a 24px target: it is a button. Expected px typed here, never read from the stylesheet.
+  await until(page, 'the verdict pill drawn', () => !!document.querySelector('[data-p3="sg-verdict"]'));
+  const pill = await page.evaluate(() => { const n = document.querySelector('[data-p3="sg-verdict"]'); const c = n && getComputedStyle(n);
+    return c && { fs: c.fontSize, pl: c.paddingLeft, pr: c.paddingRight, h: n.getBoundingClientRect().height, tag: n.tagName.toLowerCase(), text: n.textContent }; });
+  ok(!!pill && pill.fs === '10px' && pill.pl === '8px' && pill.pr === '8px' && pill.h >= 24 && pill.tag === 'button' && pill.text === '✓ style guide: 2 tables',
+    `#2561: the verdict pill draws 10px type with 8px sides, still a 24px button (${JSON.stringify(pill)})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }

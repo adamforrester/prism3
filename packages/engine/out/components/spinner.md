@@ -32,6 +32,8 @@ Shown on the default member: size `x-small`.
 
 Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite "Loading", or a more specific label, through a status region that exists, empty, before it shows; inside a host that announces its own busy state, such as a Button's isPending, the host sets aria-hidden="true" on it.
 
+**In RTL.** The ring glyph does not mirror.
+
 ### Do
 
 - Put the spinner in the host's own icon slot at that slot's icon size, so nothing around it moves
@@ -65,9 +67,9 @@ Use a spinner for a short wait with no known end — about 200ms to 5s — insid
 
 ### Motion
 
-- **Enter:** A quick fade in on mount: opacity over `motion.duration.fast` (100ms at the standard tempo) on the `motion.easing-role.enter` curve. The host decides when to mount it.
+- **Enter:** A quick fade in on mount: opacity over `motion.duration.fast` on the `motion.easing-role.enter` curve. The host decides when to mount it.
 - **Exit:** none
-- **Reduced motion:** The turn runs `motion.duration.spin` (800ms) per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` (2600ms) per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion.
+- **Reduced motion:** The turn runs `motion.duration.spin` per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion.
 
 ## Content guidelines
 

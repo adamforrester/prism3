@@ -14,8 +14,8 @@
  *   4. TOUCH TARGET 44 BY DEFAULT. The container binds `size.{size}.height`, Button's rung, so medium is 44px
  *      on comfortable, 56px on spacious and 36px at compact. `lint-hit-target.ts` measures it in `INTERACTIVE`;
  *      small is a named below-floor exception beside the small Button, and compact density is the other.
- *   5. TAG GROUP. Not a def (held, #1739). Its API is carried as code-tier rules in `codeOnly`, and the owner's
- *      spacing decision is bound here as `group-gap` → `space.100` (8px), gated in `test.ts` at ≥ 8px.
+ *   5. TAG GROUP. A def since #1739 (owner, 2026-11-18): `tag-group.ts`. The owner's spacing decision is bound
+ *      here as `group-gap` → `space.100` (8px), gated in `test.ts` at ≥ 8px, and Tag.Group binds the same step.
  *
  * ── THE OWNER'S DECISIONS (2026-09-28): TWO TYPES, SELECT AND DISMISSIBLE ──────────────────────────────
  *
@@ -205,8 +205,8 @@ export const tag: ComponentDef = {
     // against the label row's own end.
     'label-row.padding-end': 'space.0',
     // The group's spacing between tags (owner decision 5, 2026-09-27): at least 8px, bound to a spacing token.
-    // No part of THIS def reads it — the group is code-only until the owner decides whether it is a def — so
-    // it lives here as the one binding the group will read, and `test.ts` holds it at `space.100` and ≥ 8px.
+    // No part of THIS def reads it: Tag.Group (#1739) binds the same step as its own `group-gap`, on both axes, and
+    // `test.ts` holds the two equal, at `space.100` and ≥ 8px.
     'group-gap': 'space.100',
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
@@ -311,7 +311,7 @@ export const tag: ComponentDef = {
     root: 'container',
     parts: {
       container: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'target',
         // The overlay wash if it resolves (unselected hover/pressed, and the selected tint), with the edge on its
         // own stroke. No `fill` slot: no member has an opaque fill.
@@ -428,7 +428,7 @@ export const tag: ComponentDef = {
         class: 'semantics',
         disposition: 'refused',
         description:
-          'The select tag in code — a <button> with aria-pressed, or a role="checkbox" or listbox option when a group owns the selection (a radiogroup for single choice). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state.',
+          'The select tag in code — a <button type="button"> with aria-pressed, alone or inside Tag.Group, whose select group is a role="toolbar" of these pressed buttons with any number pressed (`tag-group.ts`, #1739, Q-TG1 B). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state.',
       },
       {
         class: 'deferred',
@@ -446,7 +446,7 @@ export const tag: ComponentDef = {
         class: 'composition',
         disposition: 'refused',
         description:
-          'The group contract (the tag group is not built yet) — the group owns the selection model (multiple: a listbox with aria-multiselectable, or pressed buttons; single: a radiogroup), and it lays tags out as a wrapping flex row with the `group-gap` binding (space.100, 8px) between tags on both axes. A dismissible group is role="grid" when the × slot alone is the target: each tag is a row, its label a gridcell and its remove control a second gridcell; the row and gridcell wrappers take display: contents so the tags wrap in the flex layout. One tab stop enters the group, Left and Right arrows move between tags (Up and Down across wrapped lines), and Delete or Backspace removes the focused tag. Never a listbox for dismissible tags: ARIA does not allow an interactive child inside role="option".',
+          'The group contract (Tag.Group, `tag-group.ts`, owns it) — the group owns the selection model (multiple, each select tag a pressed button, owner decision on #1739), and it lays tags out as a wrapping flex row with the `group-gap` binding (space.100, 8px) between tags on both axes. A dismissible group is role="grid" when the × slot alone is the target: each tag is a row, its label a gridcell and its remove control a second gridcell; the row and gridcell wrappers take display: contents so the tags wrap in the flex layout. One tab stop enters the group, Left and Right arrows move between tags (Up and Down across wrapped lines), and Delete or Backspace removes the focused tag. Never a listbox for dismissible tags: ARIA does not allow an interactive child inside role="option".',
       },
       {
         class: 'keyboard-and-focus',
@@ -538,7 +538,7 @@ export const tag: ComponentDef = {
   },
 
   accessibility: {
-    role: 'By type. Select: a <button> with aria-pressed, or a role="checkbox" or listbox option when a group owns the selection (a radiogroup for single choice). Dismissible: the remove control is a real button named "Remove" followed by the label; in a group of dismissible tags it sits in a role="grid" row.',
+    role: 'By type. Select: a `<button>` with `aria-pressed`; in a group of select tags (Tag.Group) it is one of the pressed buttons in a `role="toolbar"`, and any number may be pressed. Dismissible: the remove control is a real button named "Remove" followed by the label; in a group of dismissible tags it sits in a `role="grid"` row.',
     wcag: [
       '1.4.1 Use of Color (a selected tag adds a 2px outline and, by default, a check mark to its tint, never color alone)',
       '1.4.3 Contrast (the label ink clears 4.5:1 on the tag at rest in every mode, on the page unselected and on the tint selected)',
@@ -551,9 +551,9 @@ export const tag: ComponentDef = {
       '2.5.5 Target Size (Enhanced) (44×44, as intent — under Tag style Pill a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px), and a small tag reaches 44 only at spacious density; elsewhere, and at every size under Underline, a code-side hit area reaches it)',
       '1.1.1 Non-text Content / 4.1.2 Name, Role, Value (the remove control is named "Remove" followed by the label, and a select tag exposes its state)',
     ],
-    keyboard: 'Select: Space or Enter toggles. In a single-choice group, arrows move and select, as radios do. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.',
-    focus: 'A focus ring around the whole tag on :focus-visible. In a group of dismissible tags, focus moves to the next tag after a removal, else the previous one, else the group or its input, and never to <body>.',
-    aria: 'Name the remove control "Remove" followed by the label ("Remove Marketing"), or aria-label="Remove" plus aria-labelledby pointing at the label. Never a bare "Remove" or "×". A select tag exposes its state with aria-pressed, aria-checked or aria-selected, matching the role its group gives it. The check mark and a leading icon are aria-hidden. Every name is translatable, and the row mirrors under right-to-left layout.',
+    keyboard: 'Select: Space or Enter toggles. In a group, one tab stop enters the group and Left and Right arrows move focus between tags without toggling them. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.',
+    focus: 'A focus ring around the whole tag on `:focus-visible`. In a group of dismissible tags, focus moves to the next tag after a removal, else the previous one, else the group or its input, and never to `<body>`.',
+    aria: 'Name the remove control "Remove" followed by the label ("Remove Marketing"), or aria-label="Remove" plus aria-labelledby pointing at the label. Never a bare "Remove" or "×". A select tag exposes its state with aria-pressed, alone or in a group. The check mark and a leading icon are aria-hidden. Every name is translatable, and the row mirrors under right-to-left layout.',
   },
 
   content: {
@@ -584,7 +584,7 @@ export const tag: ComponentDef = {
     primaryPurpose: 'Render a small interactive token the user toggles or removes in place.',
     whenToUse: 'Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.',
     avoidWhen: 'Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).',
-    commonPartners: ['badge', 'icon', 'checkbox-group', 'radio-group'],
+    commonPartners: ['tag-group', 'badge', 'icon', 'checkbox-group', 'radio-group', 'popover'],
     triggerKeywords: ['tag', 'chip', 'filter tag', 'filter chip', 'input tag', 'input chip', 'removable tag', 'dismissible tag', 'selectable tag', 'select tag', 'choice chip', 'facet', 'applied filter', 'recipient token'],
     generationPriority: 3,
   },
@@ -593,7 +593,7 @@ export const tag: ComponentDef = {
     // Exactly what the anatomy nests: the ring (an `absolute`). The × is a glyph of the tag's own, not a nest.
     composesWith: ['focus-ring'],
     alternativeTo: ['badge', 'button', 'checkbox-group', 'radio-group'],
-    planned: ['tag-group', 'combobox', 'toggle-button', 'avatar', 'popover'],
+    planned: ['combobox', 'toggle-button', 'avatar'],
     replacesPatterns: ['a removable token list built as a listbox', 'a clickable div styled as a pill', 'a bare × glyph with no accessible name'],
   },
 
@@ -612,7 +612,6 @@ export const tag: ComponentDef = {
       'The selection axis values `[unselected, selected]` (brief §4 and §15 words) against checkbox\'s `[unchecked, checked]`. A filter tag\'s ARIA state is aria-pressed, aria-checked or aria-selected depending on the group\'s role, so no one ARIA word fits; recorded as `disjoint` in `lint-axis-values.ts` and held for the owner.',
       'Tone (§4, §15: neutral + info/success/warning/error) is NOT built. The owner requires the interactive family, which has no status hues, and the brief itself warns against status vocabulary in a tag (§7). A status-encoding tag is held for the owner.',
       '`removing` (§4, the transient state) is not a state: it is motion only, and `STATES` has no such name. `unselected` is the selection axis value, not a state.',
-      'Tag group: held for the owner (#1739) — a second def (like checkbox-group) or code-only. The group is code-only, and the owner\'s ≥ 8px spacing is bound as `group-gap`.',
     ],
     unverified: [
       'The check mark is the first part carrying both a boolean and a variant presence gate. The offline shim builds it (the node exists only at selected members, and the switch toggles it there); a real Figma host has not been checked for a boolean property that some members of a set have no node for.',
@@ -621,6 +620,7 @@ export const tag: ComponentDef = {
       'The selected tint is the primary fill at an opacity step over the page. Whether it reads as "selected" beside the 10% neutral hover wash of an unselected tag is a visual question no gate asks; the 2px primary outline is the measured separation.',
     ],
     evolution: [
+      'Owner, 2026-11-18 (#1739, A, A, A): the tag group is a component, Tag.Group (`tag-group.ts`): multiple selection as pressed buttons, wrap overflow, a Figma set of three nested tags. Its gap binds `space.100` on both axes, the step `group-gap` holds here.',
       '2026-11 (#3346): the selected outline follows `interactive.primary.indicator.*`, the selection mark, which matches the label\'s color, so a brand\'s outline-edge setting never reaches it. It bound `interactive.primary.border.*`, and on the reference brand a hand-quieted outline edge made the selected outline light grey. Under Tag style Underline the unselected line keeps `interactive.primary.border.*`.',
       'Owner, 2026-09-29 (from a mockup in a real Figma file): the spacing is this spec\'s own `space.*` steps (padding 8/12/16, icon to label 6/8/12, label to check 4/6/8 at small/medium/large), and the label and check sit in their own row so their gap can differ from the icon\'s. It had bound Button\'s shared `size.*.padding-x` and `size.*.gap`, which the spacing model removed.',
       'Owner, 2026-09-29: the minimum width is 1.5 times the tag\'s height, rounded to the nearest 8px (decision L), replacing "never narrower than it is tall" (decision D). Figma receives it as a number per size, written from the brand\'s heights, since a variable cannot hold the product.',

@@ -57,12 +57,14 @@ Shown on the default member: size `medium`, type `single`.
 
 Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use TextField, or turn on the paired inputs. Don't use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).
 
+**In RTL.** The layout mirrors: the start edge is on the right.
+
 ### Do
 
 - Name the dimension with a visible label
-- Format the value with its unit or currency, and use the same text for aria-valuetext
+- Format the value with its unit or currency, and use the same text for `aria-valuetext`
 - Turn on the paired inputs when an exact value matters
-- Bind costly work, such as a network filter, to onChangeEnd
+- Bind costly work, such as a network filter, to `onChangeEnd`
 
 ### Don't
 
@@ -74,8 +76,8 @@ Use a slider for an approximate value, or a range, where seeing the position wit
 ## Accessibility
 
 - **Keyboard:** Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move ten steps; Home and End go to the minimum and maximum, or for a range thumb to the other thumb. Tab moves from the minimum thumb to the maximum thumb. In right-to-left text, Right lowers and Left raises.
-- **Focus:** A focus ring around the focused thumb on :focus-visible, never around the track.
-- **Screen readers:** slider, once per thumb, from a visually hidden native \<input type="range">; a range is two sliders in a group named by the label
+- **Focus:** A focus ring around the focused thumb on `:focus-visible`, never around the track.
+- **Screen readers:** slider, once per thumb, from a visually hidden native `<input type="range">`; a range is two sliders in a group named by the label
 
   Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs "Minimum {label}" and "Maximum {label}", which are translatable. Help and error text join aria-describedby, and an error sets aria-invalid on each thumb. A required slider adds "required" to each thumb's accessible name, such as "Price range, required", and sets no aria-required, which the slider role does not support. The layout mirrors right to left.
 
@@ -108,7 +110,7 @@ The label names the dimension. The value text shows the value with its unit; a r
 - **Built from:** `field-label`, `_slider-thumb`, `text-field`, `field-message`
 - **Instead, consider:** `segmented-control`, `radio-group`, `switch-row`
 - **Replaces:**
-  - a native \<input type="range"> styled per browser engine
+  - a native `<input type="range">` styled per browser engine
   - a drag-only custom slider with no keyboard support
   - two separate sliders for a minimum and a maximum
 

@@ -44,11 +44,13 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 ## Usage guidelines
 
-Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set autoComplete to current-password on a sign-in form and new-password where the user sets one. Put the rules for a new password in helper text or a list under the field.
+Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.
+
+**In RTL.** The layout mirrors: the start edge is on the right.
 
 ### Do
 
-- Set autoComplete to current-password or new-password on every password field
+- Set `autoComplete` to `current-password` or `new-password` on every password field
 - Let the user paste, so a password manager can fill the field
 - Return the field to hidden when its form submits
 - State the rules for a new password before the user types
@@ -56,7 +58,7 @@ Use for a password, a PIN typed as text, or any other secret a user types. The f
 ### Don't
 
 - Use an eye icon inside the field instead of the Show/Hide button
-- Add aria-pressed to the button as well as changing its name
+- Add `aria-pressed` to the button as well as changing its name
 - Use this for a one-time code in separate boxes
 - Put the password rules in the placeholder
 
@@ -64,7 +66,7 @@ Use for a password, a PIN typed as text, or any other secret a user types. The f
 
 - **Keyboard:** Tab reaches the input, then the Show/Hide button. Enter or Space on the button shows or hides the password, and focus stays on the button. Tab order follows the visual order in left-to-right and right-to-left layouts.
 - **Focus:** The input takes TextField's 2px focus edge, in place of its border. The button takes Button's own focus ring. Pressing the button never moves focus.
-- **Screen readers:** textbox (native \<input type="password">, switched to type="text" while shown), plus a native \<button type="button">
+- **Screen readers:** textbox (native `<input type="password">`, switched to `type="text"` while shown), plus a native `<button type="button">`
 
   The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes ("Show password" / "Hide password"), not aria-pressed. Each change is announced once through the app's shared polite live region: "Your password is shown" / "Your password is hidden".
 
@@ -101,7 +103,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 - **Replaces:**
   - eye icon inside a password field
   - password field with no way to show the characters
-  - autocomplete="off" on a password
+  - `autocomplete="off"` on a password
 
 ## Building it in code
 

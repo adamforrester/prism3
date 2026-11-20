@@ -112,14 +112,18 @@ export const ARTIFACTS: readonly ArtifactDef[] = [
   {
     id: 'design-md',
     label: 'Brand brief',
-    desc: 'The few anchors this brand is generated from, as Markdown. Import it back here to get the brand again.',
+    desc: 'The few anchors this brand is generated from, as Markdown. Import it in Studio to get the brand again.',
   },
   {
     // #3425 (owner decision Q45 A; DRAFT wording for the owner, Q3425.1): the component-defs export for the brand on
     // screen, its component settings resolved, and the same as a Specs components set.
+    // #1325 (owner decision Q-CC1 A; DRAFT wording for the owner): the export is published as component contracts, and the
+    // description and the button say so. The tab keeps "Component specs": "Component contracts" runs 2px past the column at
+    // the plugin's 380, where the three tabs are held to fit (#3553 M8, `3553-md`). Which label the tab takes, and
+    // whether the row may wrap for it, is the owner's call.
     id: 'component-specs',
     label: 'Component specs',
-    desc: "Every component's props, states, parts and the tokens each part binds, built with this brand's component settings. As Prism3 JSON and in the Specs format.",
+    desc: "Every component's contract: its props, states, parts and the tokens each part binds, built with this brand's component settings. As Prism3 JSON and in the Specs format.",
   },
 ];
 
@@ -710,40 +714,6 @@ export const metadataDefects = (tree: unknown, slug = 'brand'): string[] => {
 };
 
 // ===========================================================================================
-// Import — a slot, not a control (#723, #721)
-// ===========================================================================================
-
-/**
- * The import half of the dialog.
- *
- * "Load Prism3-themed tokens from an existing Figma file" depends on #677, which is unbuilt, so it is
- * a SLOT rather than a control: building the affordance first bakes in an assumption about how
- * reconstruction works, and #677 has not decided that.
- *
- * The union is what enforces it. An unavailable slot has no `label` and no `desc` — there is no copy
- * to write for a path that does not exist — and `availableImportSlots()` narrows to the copy-bearing
- * variant, so a renderer cannot reach for a string the unbuilt slot does not have.
- */
-export type ImportSlot =
-  | { readonly id: string; readonly available: true; readonly label: string; readonly desc: string }
-  | { readonly id: string; readonly available: false; readonly needs: string };
-
-export const IMPORT_SLOTS: readonly ImportSlot[] = [
-  {
-    id: 'design-md',
-    available: true,
-    label: 'Brand brief',
-    desc: 'Paste or upload a brief. The engine has to accept it before it replaces what you have here.',
-  },
-  // #677: reconstructing a brand from emitted tokens is an undetermined inverse — the engine grows a
-  // whole system from sparse anchors, and that does not run backwards. Until it is decided, no control.
-  { id: 'figma-file', available: false, needs: '#677' },
-];
-
-export const availableImportSlots = (): ReadonlyArray<Extract<ImportSlot, { available: true }>> =>
-  IMPORT_SLOTS.filter((s): s is Extract<ImportSlot, { available: true }> => s.available);
-
-// ===========================================================================================
 // The checks — what makes the rules above rules
 // ===========================================================================================
 
@@ -758,26 +728,34 @@ export const availableImportSlots = (): ReadonlyArray<Extract<ImportSlot, { avai
  * build" is both of them: `typecheck` plus this, run by `npm run -w @prism3/studio test`.
  */
 export const declarationDefects = (): string[] => {
-  const out: string[] = [];
-  for (const s of ALL_SETTINGS) {
-    if (s.sources.length === 0) out.push(`${s.key}: declares no source — it would be visible nowhere`);
-    for (const src of s.sources) {
-      if (!ALL_SOURCES.includes(src)) out.push(`${s.key}: declares unknown source '${src}'`);
-    }
-    if (new Set(s.sources).size !== s.sources.length) out.push(`${s.key}: declares a source twice`);
-    if (!ARTIFACTS.some((a) => a.id === s.artifact)) out.push(`${s.key}: names unknown artifact '${s.artifact}'`);
-    if (!s.options.some((o) => o.value === s.def)) out.push(`${s.key}: default '${s.def}' is not one of its options`);
-    if (s.options.length < 2) out.push(`${s.key}: fewer than two options — nothing to choose`);
-    if (new Set(s.options.map((o) => o.value)).size !== s.options.length) out.push(`${s.key}: two options share a value`);
-  }
+  const out: string[] = ALL_SETTINGS.flatMap(settingDefects);
   const keys = ALL_SETTINGS.map((s) => s.key);
   if (new Set(keys).size !== keys.length) out.push('two settings share a key');
+  return out;
+};
+
+/**
+ * One setting's declaration defects — the per-item half of `declarationDefects`, exported so the test's
+ * mutation battery drives THIS predicate on its mutants rather than a copy of it (#1066 M24, the #387
+ * shape: a re-expressed predicate in the test kept catching `unreachable` after the shipped rule was
+ * deleted, so the suite certified a check that no longer existed). Only the cross-setting rule (two
+ * settings sharing a key) stays in `declarationDefects`, because it has no single item to judge.
+ */
+export const settingDefects = (s: SettingDef): string[] => {
+  const out: string[] = [];
+  if (s.sources.length === 0) out.push(`${s.key}: declares no source — it would be visible nowhere`);
+  for (const src of s.sources) {
+    if (!ALL_SOURCES.includes(src)) out.push(`${s.key}: declares unknown source '${src}'`);
+  }
+  if (new Set(s.sources).size !== s.sources.length) out.push(`${s.key}: declares a source twice`);
+  if (!ARTIFACTS.some((a) => a.id === s.artifact)) out.push(`${s.key}: names unknown artifact '${s.artifact}'`);
+  if (!s.options.some((o) => o.value === s.def)) out.push(`${s.key}: default '${s.def}' is not one of its options`);
+  if (s.options.length < 2) out.push(`${s.key}: fewer than two options — nothing to choose`);
+  if (new Set(s.options.map((o) => o.value)).size !== s.options.length) out.push(`${s.key}: two options share a value`);
   // A setting nobody can reach is as much a defect as one nobody declared: it means the export it
   // shapes cannot be produced. Checked against what is AVAILABLE, not against what is declarable.
-  for (const s of ALL_SETTINGS) {
-    if (!s.sources.some((src) => AVAILABLE_SOURCES.includes(src))) {
-      out.push(`${s.key}: no available source declares it — unreachable in the UI`);
-    }
+  if (!s.sources.some((src) => AVAILABLE_SOURCES.includes(src))) {
+    out.push(`${s.key}: no available source declares it — unreachable in the UI`);
   }
   return out;
 };
@@ -797,12 +775,15 @@ export const declarationDefects = (): string[] => {
  * reason — they are token names on purpose (`color.on-fill`), which is the setting demonstrating
  * itself; they are held to being real paths instead, below.
  */
+export const identifierHits = (text: string): readonly string[] =>
+  text.match(/\b[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)+\b|\b[a-z0-9]+_[a-z0-9]+\b/g) ?? [];
+
+/** Every rule above, over every shipped label and description. The shape test is `identifierHits`,
+ *  exported so the test's mutation battery drives the shipped rule rather than a copy (#1066 M24). */
 export const jargonDefects = (): string[] => {
   const out: string[] = [];
-  const identifierish = (text: string): readonly string[] =>
-    text.match(/\b[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)+\b|\b[a-z0-9]+_[a-z0-9]+\b/g) ?? [];
   const check = (where: string, text: string): void => {
-    for (const hit of identifierish(text)) out.push(`${where}: '${hit}' reads as an identifier, not as words`);
+    for (const hit of identifierHits(text)) out.push(`${where}: '${hit}' reads as an identifier, not as words`);
   };
   for (const a of ARTIFACTS) { check(`artifact ${a.id} label`, a.label); check(`artifact ${a.id} desc`, a.desc); }
   for (const s of ALL_SETTINGS) {
@@ -814,10 +795,6 @@ export const jargonDefects = (): string[] => {
   }
   check(`${METADATA_OPTION.key} label`, METADATA_OPTION.label);
   check(`${METADATA_OPTION.key} desc`, METADATA_OPTION.desc);
-  for (const slot of availableImportSlots()) {
-    check(`import slot ${slot.id} label`, slot.label);
-    check(`import slot ${slot.id} desc`, slot.desc);
-  }
   return out;
 };
 
@@ -976,9 +953,25 @@ const leavesIn = (doc: unknown, s: SettingsState): readonly Leaf[] =>
  * which is a worse export. So the scope of the check is the scope of the merge.
  */
 export const aliasDefects = (tree: unknown, s: SettingsState, slug = 'brand'): string[] => {
-  const out: string[] = [];
   const files = projectDtcg(tree, slug, s);
-  const docs = files.map((f) => ({ name: f.name, doc: JSON.parse(f.text) as unknown }));
+  const { refs, dangling } = danglingAliases(files.map((f) => ({ name: f.name, doc: JSON.parse(f.text) as unknown })), s);
+  const out = [...dangling];
+  // An export with no references at all would pass the loop above vacuously — the shape docs/34 calls
+  // a probe over a haystack that cannot disagree. So assert there were references to resolve. Counted
+  // over the SET for the same reason: a split's palette file legitimately holds none of its own.
+  if (refs === 0) out.push(`${slug}: no aliases found to resolve — the check ran on nothing`);
+  return out;
+};
+
+/**
+ * The resolution half of `aliasDefects`, over documents already projected: every `{path}` reference in
+ * a leaf `$value`, resolved against the whole set's paths. Exported so the test's mutation battery
+ * drives the shipped resolver on a hand-broken document rather than a copy of it (#1066 M24).
+ */
+export const danglingAliases = (
+  docs: ReadonlyArray<{ readonly name: string; readonly doc: unknown }>, s: SettingsState,
+): { refs: number; dangling: string[] } => {
+  const dangling: string[] = [];
   // The whole set's paths, because a consumer merges the set before resolving.
   const defined = new Set(docs.flatMap(({ doc }) => pathsIn(doc, s)));
   let refs = 0;
@@ -987,7 +980,7 @@ export const aliasDefects = (tree: unknown, s: SettingsState, slug = 'brand'): s
       if (typeof v === 'string') {
         for (const m of v.matchAll(/\{([^{}]+)\}/g)) {
           refs++;
-          if (!defined.has(m[1])) out.push(`${name}: alias {${m[1]}} resolves to nothing`);
+          if (!defined.has(m[1])) dangling.push(`${name}: alias {${m[1]}} resolves to nothing`);
         }
         return;
       }
@@ -996,11 +989,7 @@ export const aliasDefects = (tree: unknown, s: SettingsState, slug = 'brand'): s
     };
     for (const { leaf } of leavesIn(doc, s)) walk(leaf.$value);
   }
-  // An export with no references at all would pass the loop above vacuously — the shape docs/34 calls
-  // a probe over a haystack that cannot disagree. So assert there were references to resolve. Counted
-  // over the SET for the same reason: a split's palette file legitimately holds none of its own.
-  if (refs === 0) out.push(`${slug}: no aliases found to resolve — the check ran on nothing`);
-  return out;
+  return { refs, dangling };
 };
 
 /**

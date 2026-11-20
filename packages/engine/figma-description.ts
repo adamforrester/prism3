@@ -34,6 +34,13 @@ export const BODY_TEXT_FLOOR = 4.5;
  *  Shared by the DTCG and Figma registers so the two state the same rule in the same words. */
 export const LARGE_TEXT_ONLY = 'large text (≥24px, or ≥18.67px bold) or non-essential text only';
 
+/** A value the caller has established is present (an in-range index, a key just written); a named throw, not a
+ *  silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
+const must = <T>(x: T | undefined, what: string): T => {
+  if (x === undefined) throw new Error(`figma-description: ${what} is missing`);
+  return x;
+};
+
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 const num = (n: number): string => String(+n.toFixed(2));
 const slash = (dotted: string): string => dotted.replace(/\./g, '/');
@@ -46,7 +53,7 @@ export const modesPhrase = (ms: string[]): string => {
 
 /** `40%`, or `40% (60% in dark and hc-light; 70% in hc-dark)` when the value differs by mode. `byMode[0]` is light. */
 export const perModePercent = (byMode: Array<[string, number]>): string => {
-  const [, base] = byMode[0];
+  const [, base] = must(byMode[0], 'the light entry');
   const others = new Map<number, string[]>();
   for (const [m, v] of byMode.slice(1)) if (v !== base) others.set(v, [...(others.get(v) ?? []), m]);
   if (!others.size) return `${base}%`;
@@ -99,7 +106,7 @@ export const figmaColorDescription = (f: ColorFacts): string => {
       return fail();
     }
     case 'foreground': {
-      const k = seg[1];
+      const k = must(seg[1], `role '${r}' second segment`);
       if (k === 'primary') return inv ? 'Inverse surface — the opposite-polarity fill' : 'Surface on the page — a card';
       if (k === 'secondary') return inv ? 'Inverse surface, second tier' : 'Second surface — a panel or nested container';
       if (k === 'tertiary') return inv ? 'Inverse surface, third tier' : 'Third surface step';
@@ -111,7 +118,7 @@ export const figmaColorDescription = (f: ColorFacts): string => {
     case 'text':
     case 'icon': {
       const what = seg[0];
-      const k = seg[1];
+      const k = must(seg[1], `role '${r}' second segment`);
       if (k === 'primary') return `Primary ${what} — strongest neutral`;
       if (k === 'link') return `Link ${what}, ${seg[2]} — ${claim}`;
       if (k.startsWith('on-')) return `${cap(what)} on a solid ${k.slice(3)} fill — ${claim}`;
@@ -124,7 +131,7 @@ export const figmaColorDescription = (f: ColorFacts): string => {
       return `${lead} — ${claim}`;
     }
     case 'interactive': {
-      const c = cap(seg[1]);
+      const c = cap(must(seg[1], `role '${r}' second segment`));
       const part = seg[2];
       const st = seg[3];
       if (part === 'fill') {
@@ -164,7 +171,7 @@ export const figmaColorDescription = (f: ColorFacts): string => {
       return fail();
     }
     case 'border': {
-      const k = seg[1];
+      const k = must(seg[1], `role '${r}' second segment`);
       if (k === 'primary') return 'Default border — a decorative divider';
       if (k === 'secondary') return 'Stronger border / divider';
       // #3555 Q-MD15 A: the tertiary border is the first gated one (3:1), so its line states the floor as the others do.
@@ -338,7 +345,10 @@ export const figmaFocusDescription = (key: string, px: number): string => {
 
 // ── layout ───────────────────────────────────────────────────────────────────────────────────────
 
-export const figmaBreakpointDescription = (px: number): string => `Min-width ${px}px (mobile-first)`;
+/** `typeMode` (#2935) is the `type-sets` mode a frame at this breakpoint uses by default, or undefined when type is
+ *  static and `type-sets` has no modes to pick from. */
+export const figmaBreakpointDescription = (px: number, typeMode?: 'mobile' | 'desktop'): string =>
+  `Min-width ${px}px (mobile-first)${typeMode ? `. A frame at this breakpoint uses ${typeMode} type by default` : ''}`;
 export const figmaContainerDescription = (key: string, px: number): string => {
   if (key === 'max') return `Content width cap — ${px}px (fluid below it)`;
   if (key === 'narrow') return `Reading measure — ${px}px`;

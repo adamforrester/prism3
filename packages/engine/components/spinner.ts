@@ -113,7 +113,7 @@ export const spinner: ComponentDef = {
         note: 'The square the spinner turns in; it paints nothing and takes the size of the slot it is placed in.',
       },
       ringGlyph: {
-        kind: 'vector',
+        kind: 'vector', mirror: 'never',
         glyph: 'spinner',
         size: 'size.{size}',
         note: 'The composed drawing: the track (a full ring at 20% layer opacity) under the head arc (33% of the circle, round caps), both filled outlines inked with the one icon color. Drawn at the rest position — the arc starting at twelve o\'clock and running clockwise.',
@@ -126,13 +126,13 @@ export const spinner: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite` (800ms per turn), a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here.',
+          'rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite`, one turn per `motion.duration.spin`, a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here.',
       },
       {
         class: 'motion',
         disposition: 'refused',
         description:
-          'reduced motion — under `@media (prefers-reduced-motion: reduce)` the turn SLOWS to `var(--motion-duration-reduced-spin)` (2600ms per turn), still linear and infinite. Not a pulse and not a static ring: the turn is what tells a sighted user work is continuing, so reduced motion keeps it and takes the speed out of it.',
+          'reduced motion — under `@media (prefers-reduced-motion: reduce)` the turn SLOWS to `var(--motion-duration-reduced-spin)` per turn, still linear and infinite. Not a pulse and not a static ring: the turn is what tells a sighted user work is continuing, so reduced motion keeps it and takes the speed out of it.',
       },
       {
         class: 'visual-treatment',
@@ -150,7 +150,7 @@ export const spinner: ComponentDef = {
         class: 'right-to-left',
         disposition: 'unsupported',
         description:
-          'right-to-left — the turn stays clockwise and does not mirror (Spectrum\'s rule, brief §9). Clockwise reads as time moving forward; counter-clockwise reads as undo or going back. Layout mirrors through logical properties, and the rotation is the deliberate exception, so no `[dir="rtl"]` rule flips it.',
+          'right-to-left — the turn stays clockwise and does not mirror (Spectrum\'s rule, brief §9). Clockwise reads as time moving forward; counter-clockwise reads as undo or going back. The page around it mirrors, and the rotation is the deliberate exception, so no `[dir="rtl"]` rule flips it.',
       },
       {
         class: 'motion',
@@ -239,9 +239,9 @@ export const spinner: ComponentDef = {
   },
 
   motion: {
-    enter: 'A quick fade in on mount: opacity over `motion.duration.fast` (100ms at the standard tempo) on the `motion.easing-role.enter` curve. The host decides when to mount it.',
+    enter: 'A quick fade in on mount: opacity over `motion.duration.fast` on the `motion.easing-role.enter` curve. The host decides when to mount it.',
     exit: 'none',
-    reduceMotion: 'The turn runs `motion.duration.spin` (800ms) per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` (2600ms) per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion.',
+    reduceMotion: 'The turn runs `motion.duration.spin` per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion.',
   },
 
   notes: {

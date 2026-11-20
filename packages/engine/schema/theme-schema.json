@@ -9,7 +9,8 @@
   "properties": {
     "id": {
       "type": "string",
-      "description": "Brand identifier (e.g. 'aurora'). Host-supplied identity; the emit namespace is set separately by `root`."
+      "pattern": "^(?!\\.{1,2}$)(?=[\\s\\S]*\\S)[^/\\\\\\u0000]+$",
+      "description": "Brand identifier (e.g. 'aurora'). Host-supplied identity; the emit namespace is set separately by `root`. It names the emitted files, so it holds no slash, backslash or NUL, is not blank, and is not `.` or `..`."
     },
     "name": {
       "type": "string",
@@ -83,11 +84,11 @@
             "additionalProperties": false,
             "description": "OPTIONAL. Per-mode font WEIGHT per weight-role — a different NUMERIC value the role resolves to (e.g. dark's `strong` = 600 not 700). Never changes WHICH roles exist; only their number. Only a role whose numeric differs from light carries a per-mode override on the `font.weight-role.<role>` primitive. Role ordering is NOT enforced (the UI owns that).",
             "properties": {
-              "subtle": { "type": "number", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `subtle` weight-role." },
-              "default": { "type": "number", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `default` weight-role." },
-              "emphasis": { "type": "number", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `emphasis` weight-role." },
-              "strong": { "type": "number", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `strong` weight-role." },
-              "max": { "type": "number", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `max` weight-role." }
+              "subtle": { "type": "integer", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `subtle` weight-role." },
+              "default": { "type": "integer", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `default` weight-role." },
+              "emphasis": { "type": "integer", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `emphasis` weight-role." },
+              "strong": { "type": "integer", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `strong` weight-role." },
+              "max": { "type": "integer", "minimum": 100, "maximum": 900, "description": "OPTIONAL. Per-mode numeric for the `max` weight-role." }
             }
           },
           "lineHeights": {
@@ -411,11 +412,11 @@
           "additionalProperties": false,
           "description": "Function-named weight roles → the brand's numeric weights (the white-label-stable weight model). Omit any to use the defaults (subtle 300 / default 400 / emphasis 600 / strong 700 / max 900).",
           "properties": {
-            "subtle": { "type": "number", "description": "Lighter-than-body weight (optional use)." },
-            "default": { "type": "number", "description": "Resting body / UI weight." },
-            "emphasis": { "type": "number", "description": "Mild lift — strong inline text, active states." },
-            "strong": { "type": "number", "description": "Headings, primary actions." },
-            "max": { "type": "number", "description": "Heaviest slot — black/display hero weight (optional use)." }
+            "subtle": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "Lighter-than-body weight (optional use)." },
+            "default": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "Resting body / UI weight." },
+            "emphasis": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "Mild lift — strong inline text, active states." },
+            "strong": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "Headings, primary actions." },
+            "max": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "Heaviest slot — black/display hero weight (optional use)." }
           }
         },
         "typeScale": {
@@ -495,6 +496,7 @@
         },
         "links": {
           "type": "array",
+          "minItems": 1,
           "items": { "type": "string", "enum": ["display", "title", "body", "label", "caption", "eyebrow", "code"] },
           "description": "Roles that get an underlined `.<weight>-link` variant per size×weight (underline baked; color stays text.link.*). Default ['body','caption']. `label` is always included, whatever is listed: a text button underlines its label, in the button's own ink (#2324)."
         },
@@ -562,7 +564,7 @@
           "description": "Hue-shifts the shadow base off pure black. Default a subtle neutral tint; set a brand hue + higher amount for brand-hued marketing shadows.",
           "properties": {
             "hue": { "type": "number", "description": "Shadow tint hue (deg). Defaults to the neutral ramp hue." },
-            "amount": { "type": "number", "minimum": 0, "description": "Tint strength (0 ≈ pure black; ~1 ≈ clearly hue-tinted). Default 0.15." }
+            "amount": { "type": "number", "minimum": 0, "maximum": 1, "description": "Tint strength, 0 to 1 (0 ≈ pure black; 1 ≈ clearly hue-tinted). Default 0.15." }
           }
         }
       }
@@ -598,7 +600,7 @@
       "type": "string",
       "enum": ["rounded", "pill", "boxed", "hairline"],
       "default": "rounded",
-      "description": "OPTIONAL. Corner shape for pill-able controls (button, icon-button). 'boxed' is sharp (radius.none, 0px); 'hairline' is a fixed 1px edge (radius.hairline, implies the hairline rung); 'rounded' follows radius softness (radius.md); 'pill' is a full height ÷ 2 (radius.capsule). Default 'rounded'."
+      "description": "OPTIONAL. The corner shape of buttons, fields and checkboxes. Hairline gives buttons, fields and checkboxes a 1px corner (radius.hairline), and Boxed gives them a sharp 0px corner (radius.none). Rounded follows radius softness (radius.md). Pill rounds the ends of buttons fully, whatever the softness (radius.capsule); fields and checkboxes keep their own corner. An underline field has no corners. Default 'rounded'."
     },
     "fieldStyle": { "type": "string", "enum": ["outline", "underline"], "default": "outline", "description": "OPTIONAL. The edge every field component draws (text field, password field, select, textarea). 'outline' is a box; 'underline' is one line under the value, with no side padding and square corners. Default 'outline'." },
     "searchFieldStyle": { "type": "string", "enum": ["follow", "outline", "underline"], "default": "follow", "description": "OPTIONAL. The search field's own edge. 'follow' takes fieldStyle; 'outline' or 'underline' sets the search field apart from the other fields. Default 'follow'." },
@@ -610,6 +612,7 @@
     "buttonContentSize": { "type": "string", "enum": ["match", "smaller"], "default": "match", "description": "OPTIONAL. 'smaller': a medium button takes the small label and icon." },
     "buttonLabelWeight": { "type": "string", "enum": ["default", "emphasis"], "default": "emphasis", "description": "OPTIONAL. 'default': buttons bind type.label.*.default." },
     "buttonTextHover": { "type": "string", "enum": ["text", "fill"], "default": "text", "description": "OPTIONAL. A text button on hover and pressed: 'text' changes the label and icon colors only; 'fill' also takes the overlay wash. Never filled at rest." },
+    "buttonBorderWeight": { "type": "string", "enum": ["hairline", "thick"], "default": "hairline", "description": "OPTIONAL. The border of an outline button, in every button set: 'hairline' binds border-width.hairline (1px), 'thick' border-width.thick (2px). Default 'hairline'." },
     "buttonMinWidthMultiplier": { "type": "number", "default": 2.25, "minimum": 1, "maximum": 4, "description": "OPTIONAL. Button min width = height × this, rounded up to 8px." },
     "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Radius softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
     "baseMd": { "type": "number", "default": 4, "description": "OPTIONAL. The radius.md anchor (px) at scale 1. Default 4." },

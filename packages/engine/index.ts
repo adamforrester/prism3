@@ -33,7 +33,7 @@ export {
   LETTER_SPACING_KEYS, LETTER_SPACING_LADDER, LINE_HEIGHT_KEYS, LINE_HEIGHT_LADDER, LOOP_ROLES,
   OUTLINE_WASH_DEFAULTS, OUTLINE_WASH_STEPS, PER_MODE_SIZE_GROUPS, REQUIRED_WEIGHT_ROLES, SHIPPED_GLASS_ROLE,
   SPIN_ROLE, TRACKING_SHIFT_KEYS, TYPE_LINK_ALWAYS, TYPE_LINK_DEFAULT, UNDERLINE_BOUNDS, UNDERLINE_ON_DEFAULT,
-  brandTheme, derivedRungFor, isReservedPalette, nbThemeFrom, normalizeDisabledStrategy, shiftRung, typefaceSlug,
+  brandTheme, defaultTypeMode, derivedRungFor, isReservedPalette, nbThemeFrom, normalizeDisabledStrategy, shiftRung, typefaceSlug,
   weightAvailability,
 } from './theme';
 export type {
@@ -53,7 +53,7 @@ export {
   densitySpacingStep, sizeRefPx,
 } from './scale';
 export type {
-  BannerStyle, ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover, ControlShape, CurrentIndicator,
+  BannerStyle, ButtonBorderWeight, ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover, ControlShape, CurrentIndicator,
   Density, DialogTitleSize, FieldStyle, RadioDotShare, SearchFieldStyle, SizeStep, TagStyle,
 } from './scale';
 export { CONTRACT_VERSION, ENGINE_VERSION } from './version';
@@ -78,3 +78,5 @@ export {
   slotMigrationOf, slotTextMigrationOf,
 } from './component-renames';
 export type { ComponentRename } from './component-renames';
+// The component-defs export's file names (#3429): no imports, so the web lists them before it loads the definitions.
+export { componentDefsFileNames } from './component-defs-names';

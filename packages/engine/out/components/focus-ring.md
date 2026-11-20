@@ -13,7 +13,7 @@ The shared keyboard-focus indicator: a stroke drawn outside its host's bounds, s
 
 - **Purpose:** Render the shared keyboard-focus indicator for a focusable control.
 - **Use when:** Every component that can receive keyboard focus nests it as an absolute sibling and picks its surface and offset. It is never placed in a layout on its own.
-- **Avoid when:** As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. Fields draw their own focus edge instead. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.
+- **Avoid when:** As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside `:focus-visible` destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. Fields draw their own focus edge instead. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.
 
 ## Anatomy
 
@@ -43,13 +43,13 @@ Build this component first, then leave it to hosts: every focusable component ne
 
 - Draw the ring on the host's own border — an outline appearance then has to give up its border for it, and the two contend for one stroke at different palette steps
 - Remove the indicator without replacing it (the most common 2.4.7 failure)
-- Render it for :focus rather than :focus-visible — a ring after every mouse click trains users to ignore it
-- Implement it as a box-shadow: shadows are dropped in forced-colors mode and the indicator vanishes for the users who need it most
+- Render it for `:focus` rather than `:focus-visible` — a ring after every mouse click trains users to ignore it
+- Implement it as a `box-shadow`: shadows are dropped in forced-colors mode and the indicator vanishes for the users who need it most
 - Make it focusable or give it an ARIA role — it is presentational
 
 ## Accessibility
 
-- **Focus:** This component is the focus appearance. It is drawn for :focus-visible rather than :focus, so a pointer click does not raise it while keyboard navigation does — the distinction browsers make and the one a design system must not flatten. Never suppress it without replacing it: removing the indicator is the single most common 2.4.7 failure.
+- **Focus:** This component is the focus appearance. It is drawn for `:focus-visible` rather than `:focus`, so a pointer click does not raise it while keyboard navigation does — the distinction browsers make and the one a design system must not flatten. Never suppress it without replacing it: removing the indicator is the single most common 2.4.7 failure.
 - **Screen readers:** none — a presentational sibling. The ring has no role of its own; it renders the focus state of the control it surrounds.
 
   None, and that is a contract rather than an absence. The ring is presentational — the focus state is already conveyed by the platform focus itself, so an ARIA attribute here would announce something assistive tech already knows. It must never be given a role that makes it a stop in the tab order: a focusable focus ring is a node the user can land on with nothing to do.

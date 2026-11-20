@@ -9,7 +9,7 @@
 
 ## Overview
 
-Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.
+Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. To show a collapsed trail, set a middle item to overflow. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.
 
 - **Purpose:** Show the current page's place in the site hierarchy as links to its ancestors, ending in the current page.
 - **Use when:** A page three or more levels deep in a stable hierarchy (a catalog, documentation, settings), where people need to see where they are and climb back up.
@@ -37,7 +37,9 @@ Shown on the default member: path `full`, separator `chevron`, size `medium`.
 
 ## Usage guidelines
 
-Use breadcrumbs on a site three or more levels deep, to show where a page sits and to climb back up. They follow the site's structure, not the visitor's history, and supplement the main navigation. For a one or two level site, use a single link back, or nothing. To go back in history, use the browser's Back or a Link. To switch between peers at one level, use Tabs.
+Use breadcrumbs on a site three or more levels deep, to show where a page sits and to climb back up. They follow the site's structure, not the visitor's history, and supplement the main navigation. For a one or two level site, use a single link back, or nothing. To go back in history, use the browser's Back or a Link. To switch between peers at one level, use Tabs. A trail of six steps collapses to four: Home, the overflow button, the parent and the current page. Pressing the button shows all six in place, and focus moves to the first step it revealed.
+
+**In RTL.** The layout mirrors: the start edge is on the right. The back glyph flips to point the other way.
 
 ### Do
 
@@ -45,6 +47,7 @@ Use breadcrumbs on a site three or more levels deep, to show where a page sits a
 - Use each page's own title as its label
 - Place breadcrumbs above the page heading
 - Let a long trail collapse its middle rather than wrap
+- Show a collapsed trail in a design by setting a middle item to overflow and removing the steps it stands for
 
 ### Don't
 

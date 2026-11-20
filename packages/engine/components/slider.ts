@@ -457,7 +457,7 @@ export const slider: ComponentDef = {
         note: 'The hit area around the track, as tall as the hit target. A click anywhere on it moves the nearer thumb there.',
       },
       track: {
-        kind: 'box',
+        kind: 'box', mirror: 'reverses',
         role: 'presentation',
         paintSlots: ['fill'],
         children: ['spaceStart', 'thumbMin', 'bar', 'thumb', 'spaceEnd'],
@@ -532,7 +532,7 @@ export const slider: ComponentDef = {
         class: 'deferred',
         disposition: 'refused',
         description:
-          'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.',
+          'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.',
       },
       {
         class: 'implementation',
@@ -604,7 +604,7 @@ export const slider: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the slide is 0ms; motion.duration-reduced.fast keeps 100ms, so the slider sets 0 itself.',
+          'Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the thumb moves at once; motion.duration-reduced.fast still slides, so the slider turns the transition off itself.',
       },
       {
         class: 'composition',
@@ -665,7 +665,7 @@ export const slider: ComponentDef = {
   },
 
   accessibility: {
-    role: 'slider, once per thumb, from a visually hidden native <input type="range">; a range is two sliders in a group named by the label',
+    role: 'slider, once per thumb, from a visually hidden native `<input type="range">`; a range is two sliders in a group named by the label',
     wcag: [
       '4.1.2 Name, Role, Value (each thumb named, with aria-valuetext for a formatted value)',
       '2.1.1 Keyboard (arrow, Page and Home and End keys on every thumb)',
@@ -677,7 +677,7 @@ export const slider: ComponentDef = {
       '3.3.2 Labels or Instructions (a visible label names the dimension)',
     ],
     keyboard: 'Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move ten steps; Home and End go to the minimum and maximum, or for a range thumb to the other thumb. Tab moves from the minimum thumb to the maximum thumb. In right-to-left text, Right lowers and Left raises.',
-    focus: 'A focus ring around the focused thumb on :focus-visible, never around the track.',
+    focus: 'A focus ring around the focused thumb on `:focus-visible`, never around the track.',
     aria: 'Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs "Minimum {label}" and "Maximum {label}", which are translatable. Help and error text join aria-describedby, and an error sets aria-invalid on each thumb. A required slider adds "required" to each thumb\'s accessible name, such as "Price range, required", and sets no aria-required, which the slider role does not support. The layout mirrors right to left.',
   },
 
@@ -690,9 +690,9 @@ export const slider: ComponentDef = {
     usage: 'Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use TextField, or turn on the paired inputs. Don\'t use a slider for a few named options (use SegmentedControl or Radio.Group) or for on and off (use Switch.Row).',
     do: [
       'Name the dimension with a visible label',
-      'Format the value with its unit or currency, and use the same text for aria-valuetext',
+      'Format the value with its unit or currency, and use the same text for `aria-valuetext`',
       'Turn on the paired inputs when an exact value matters',
-      'Bind costly work, such as a network filter, to onChangeEnd',
+      'Bind costly work, such as a network filter, to `onChangeEnd`',
     ],
     dont: [
       'Use a slider for a precise value over a wide range; a 300px track cannot reach every value',
@@ -715,7 +715,7 @@ export const slider: ComponentDef = {
   composition: {
     composesWith: ['field-label', '_slider-thumb', 'text-field', 'field-message'],
     alternativeTo: ['text-field', 'segmented-control', 'radio-group', 'switch-row'],
-    replacesPatterns: ['a native <input type="range"> styled per browser engine', 'a drag-only custom slider with no keyboard support', 'two separate sliders for a minimum and a maximum'],
+    replacesPatterns: ['a native `<input type="range">` styled per browser engine', 'a drag-only custom slider with no keyboard support', 'two separate sliders for a minimum and a maximum'],
     supersededBy: [],
   },
 

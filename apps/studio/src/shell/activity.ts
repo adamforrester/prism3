@@ -408,11 +408,15 @@ export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narr
   sheetHead.append(close, h('b', 'p3-drawer-title', 'Activity'), h('span', 'p3-spacer'), sheetCounts);
   body.append(sheetHead, linkDetail, rows, note);
   // #2069 (Q116 A): Report a problem, the drawer's last line, where the session's results are. DRAFT placement and words.
+  // The owner (2026-11-17): less prominent. A ghost icon button at the line's end (the drawer's bottom corner), not a
+  // full-width button: the glyph the web rail draws for it (#3524), named and titled by its words, as Close Activity is.
   if (opts.lend.report) {
     const report = opts.lend.report;
-    const rep = hook(h('button', 'p3-btn p3-btn-page p3-drawer-report'), 'activity-report');
+    const rep = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-drawer-report'), 'activity-report');
     rep.type = 'button';
-    rep.textContent = REPORT_COPY.open;
+    rep.setAttribute('aria-label', REPORT_COPY.open);
+    rep.title = REPORT_COPY.open;
+    rep.append(glyph('report'));
     rep.onclick = () => report(rep);
     body.append(rep);
   }
@@ -1077,7 +1081,8 @@ export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narr
         rec.result = { ok: kind === 'ok', kind, verdict: u.verdict ?? ROW_TITLE.update, summary: null, lines: null, causes: null, steps: u.steps, agent: false, t: rec.t ?? now(), ref: u };
         if (kind !== 'ok') { expanded.add('update'); settledBad = true; } else { settledOk = true; expanded.delete('update'); }
         const firstBad = u.steps.find((st) => st.state === 'bad' || st.state === 'warn');
-        said.push(finishLine('update', { state: kind === 'ok' ? 'ok' : 'bad', verdict: u.verdict, summary: null, lines: firstBad ? [firstBad.words, ...firstBad.lines] : null, causes }, kind));
+        // #4219: the step's own lines first, so a failure is announced with the host's reason, not the step's headline.
+        said.push(finishLine('update', { state: kind === 'ok' ? 'ok' : 'bad', verdict: u.verdict, summary: null, lines: firstBad ? [...firstBad.lines, firstBad.words] : null, causes }, kind));
         pendingEnds.push({ k: 'update', kind });
       }
     }
