@@ -1382,6 +1382,20 @@ npx tsx packages/engine/lint-test-arms.ts           # a registered test arm is s
                                                     # held to the authored test-arms.txt. A merge that
                                                     # drops an arm fails ARM GONE by name; a new arm
                                                     # fails UNREGISTERED until --accept adds it (sorted).
+npx tsx packages/engine/shadcn-vars.ts --check      # the shadcn map covers the pinned shadcn variable set
+                                                    # (#2997): every pinned name mapped, every extra
+                                                    # declared, the map version equal to the pin's; only
+                                                    # --accept moves the pin, after a version raise, and
+                                                    # the pin is held to the base's pin from git (a name
+                                                    # added needs MINOR, dropped MAJOR). Per target.
+npx tsx packages/engine/lint-shadcn-contract.ts     # the shadcn map follows the component contract (#2997):
+                                                    # each anchored variable maps to the role Button, Text
+                                                    # Field, Select or Focus Ring binds; every row anchored
+                                                    # or declared unanchored; every mapped role guaranteed.
+npx tsx packages/engine/lint-spec-supplement.ts     # the spec supplement lines up with Spectacular (#2996):
+                                                    # each element, prop and Figma name against a hand-
+                                                    # copied fixture of Spectacular's own output, each
+                                                    # $token path mapped, each code name in the contract.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR but one
@@ -1778,9 +1792,9 @@ npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds
                                           # release page's carried notes ("In detail") are then the
                                           # dated record, like CHANGELOG.md, and are not re-read
 npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here.
-                                          # NOT the same scope any more: it still has the
-                                          # apps/plugin/dist hole #937 closed above (3 violations
-                                          # measured in main.js), filed as #948 not folded in
+                                          # Same bundle scope since #948: it reads
+                                          # apps/plugin/dist (main.js + ui.html) too, the hole
+                                          # #937 closed above for the US-English gate
 sh tools/claude-md-freshness/mutations.sh  # the mutation battery for the CLAUDE.md-freshness
                                           # SessionStart hook (#1110), wired into CI as #1123 — the
                                           # one tools/ battery that is a gate. NAMED FOR THE
