@@ -30,8 +30,8 @@ export const DISPOSITION_NAMES = {
 
 export type Disposition = keyof typeof DISPOSITION_NAMES;
 
-/** What each disposition claims about the design-file leg. Written once, read by the doc and the gate's
- *  report, so a reader of either sees the same definitions. */
+/** What each disposition claims about the design-file leg. Written once; `lint-code-only-classes.ts` prints each
+ *  beside its name in its report (#4145), so a reader of the counts sees what they count. */
 export const DISPOSITION_MEANINGS: Record<Disposition, string> = {
   carried: 'The design file carries the fact in full; the entry records how code meets it.',
   lowered: 'The design file carries a lossy form, and the entry names the loss: a frozen number, a static placeholder, one fixed member.',
