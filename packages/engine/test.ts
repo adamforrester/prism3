@@ -10848,6 +10848,22 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(threwOn('id: a\nid: b'), 'L-08: a duplicate top-level key throws (no silent last-win)');
   ok(threwOn('neutral:\n  hue: 200\n  hue: 300'), 'L-08: a duplicate nested key throws');
   ok(!threwOn('id: a\nneutral:\n  hue: 200'), 'L-08: distinct keys at the same level still parse clean');
+  // #4119: a `__proto__` key ran the prototype setter, so its values were hidden from the schema and dropped without a
+  // word. Block and flow form, nested and top level, and the two sibling names. Each must throw, naming the key.
+  const msgOf = (src: string) => { try { parseYamlSubset(src); return ''; } catch (e) { return (e as Error).message; } };
+  for (const [label, src] of [
+    ['block top level', 'id: x\n__proto__:\n  density: not-a-density'],
+    ['block nested', 'overrides:\n  __proto__:\n    y: 2'],
+    ['flow map', 'f: { __proto__: { y: 2 }, z: 1 }'],
+    ['flow nested', 'f: { a: { constructor: 1 } }'],
+    ['block constructor', 'constructor:\n  prototype: 1'],
+    ['block prototype', 'prototype: 1'],
+  ] as const) {
+    const m = msgOf(src);
+    ok(/key '(__proto__|constructor|prototype)'/.test(m), `#4119 parser refuses a prototype key (${label}) by name (got ${JSON.stringify(m.slice(0, 160))})`);
+  }
+  ok(/line 2/.test(msgOf('id: x\n__proto__:\n  density: 1')), '#4119 the refusal names the source line');
+  ok(!threwOn('id: x\nproto: 1\nconstructors: { a: 1 }'), '#4119 a key that only resembles a prototype name still parses');
 }
 // (2) parseDesignMd — frontmatter/prose split; a missing fence is an error.
 {
@@ -11598,6 +11614,26 @@ arm: {
   ok(validateBrandInput({ id: 't', primary: { l: 0.5, c: 0.05, h: 200 }, neutral: { hue: 200, chroma: 0.01 }, radiusScale: NaN } as any).length > 0, 'M-14: the validator rejects a NaN number (backstop)');
   const nativeStd = parseStandardDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8'));
   ok(Object.keys(nativeStd.colors).length === 0, 'dialect detection: an engine-native brief has no top-level colors map (routes native)');
+  // #4137: a heading face named `headline` (or `heading`, `h1`–`h6`) was not read, so display, title, label and eyebrow
+  // fell back to the body face without a word. EXPECTED is typed from the issue's list of names.
+  for (const name of ['headline', 'heading', 'h1', 'h3', 'h6', 'Headline-Large']) {
+    const std4137 = parseStandardDesignMd(`---\nname: H\ncolors:\n  primary: "#6B3E26"\n  neutral-900: "#2A2522"\ntypography:\n  ${name}: { fontFamily: Fraunces, fontSize: 40px, fontWeight: 700 }\n  body: { fontFamily: Inter, fontSize: 16px }\n---\n`);
+    const fam = standardToBrandInput(std4137).input.typography?.families as Record<string, string> | undefined;
+    ok(fam?.display === 'Fraunces' && fam?.title === 'Fraunces' && fam?.body === 'Inter',
+      `#4137 a '${name}' typography token sets the heading face (got ${JSON.stringify(fam)})`);
+  }
+  // A face no category reads is named, never dropped silently (#2678's rule). A face that IS read is not named.
+  const conv4137 = standardToBrandInput(parseStandardDesignMd('---\nname: H\ncolors:\n  primary: "#6B3E26"\n  neutral-900: "#2A2522"\ntypography:\n  display: { fontFamily: Fraunces }\n  body: { fontFamily: Inter }\n  code: { fontFamily: JetBrains Mono }\n  caption: { fontFamily: Inter }\n---\n'));
+  ok(conv4137.xWarnings.some((w) => w.includes("'code'") && w.includes('JetBrains Mono')) && !conv4137.xWarnings.some((w) => /'(display|body|caption)'/.test(w)),
+    `#4137 a typography token whose face no category reads is named in the warnings, and the faces it reads are not (got ${JSON.stringify(conv4137.xWarnings)})`);
+  // A second heading face is skipped too, and the warning's reason must say why: only the FIRST heading face is read,
+  // not "only heading and body faces", which a heading face contradicts. EXPECTED (typed here): the 'headline' token is
+  // named, and its reason names the first heading face. Mutation that fails here BY NAME: the reason back to "only
+  // heading and body faces are read".
+  const second4137 = standardToBrandInput(parseStandardDesignMd('---\nname: H\ncolors:\n  primary: "#6B3E26"\n  neutral-900: "#2A2522"\ntypography:\n  display: { fontFamily: Playfair }\n  headline: { fontFamily: Fraunces }\n  body: { fontFamily: Inter }\n---\n'));
+  const w4137 = second4137.xWarnings.find((w) => w.includes("'headline'") && w.includes('Fraunces')) ?? '';
+  ok(/\bfirst heading face\b/.test(w4137) && !/only heading and body faces/.test(w4137),
+    `#4137 a second heading face is named, and the reason says only the first heading face is read (got ${JSON.stringify(second4137.xWarnings)})`);
 }
 // (7) LEVER MANIFEST — the shared-control contract (docs/08 §4). The presentation
 // half must NOT drift from theme-schema.json (the validation half): every key
@@ -44511,6 +44547,15 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(commented.name === '5" screen', `#3876 a trailing comment after an escaped quote is stripped (got ${JSON.stringify(commented.name)})`);
   const keyed = parseYamlSubset('meta:\n  "a\\": b": 1\n') as any;
   ok(keyed?.meta?.['a": b'] === 1, `#3876 a block key holding an escaped quote and a colon splits at its own colon (got ${JSON.stringify(keyed)})`);
+  // #4213: a control character (a newline above all) was written raw, so the next line broke the frontmatter.
+  for (const name of ['A\nB', 'tab\there', 'cr\r\nlf', 'bell\u0007', 'trail\n', 'literal \\n stays']) {
+    let x: any = { ...base, name, typography: { families: { body: name } }, meta: { [name]: name } };
+    let err = '';
+    try { for (let i = 0; i < 3; i++) x = parseDesignMd(toDesignMd(x)).input; } catch (e) { err = (e as Error).message; }
+    ok(!err && x.name === name && x.typography?.families?.body === name && x.meta?.[name] === name,
+      `#4213 three design.md round trips keep ${JSON.stringify(name)} as a name, a value and a key (${err ? `threw: ${err.slice(0, 120)}` : `got ${JSON.stringify(x.name)}`})`);
+  }
+  ok((parseYamlSubset('name: "a\\nb"') as any).name === 'a\nb', '#4213 a hand-written double-quoted \\n reads as a newline, as YAML reads it');
 }
 
 // #2454 — the behavior layer is decided (Q-BH1 A, 2026-11-18, docs/41 §7.2): plain HTML/CSS ships a written behavior
