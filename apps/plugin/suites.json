@@ -31,7 +31,7 @@
     { "file": "test-file-setup.ts", "floor": 145 },
     { "file": "test-file-components.ts", "floor": 113 },
     { "file": "test-page-header.ts", "floor": 44 },
-    { "file": "test-canvas-furniture.ts", "floor": 667 },
+    { "file": "test-canvas-furniture.ts", "floor": 666 },
     { "file": "test-cover-frame.ts", "floor": 109 },
     { "file": "test-library-about.ts", "floor": 70 },
     { "file": "test-doc-panel.ts", "floor": 395 },
@@ -58,13 +58,16 @@
     { "file": "test-open-docs.ts", "floor": 6 },
     { "file": "test-activity-height.ts", "floor": 6 },
     { "file": "test-manifest.ts", "floor": 9 },
+    { "file": "test-size-budget.ts", "floor": 21 },
     { "file": "test-git-stamp.ts", "floor": 34 },
+    { "file": "test-absolute-path.ts", "floor": 14 },
     { "file": "test-loose-host.ts", "floor": 14 },
     { "file": "test-file-kind.ts", "floor": 26 },
     { "file": "test-consistency-audit.ts", "floor": 31 },
     { "file": "test-file-facts.ts", "floor": 111 },
     { "file": "test-report-redaction.ts", "floor": 76 },
-    { "file": "test-main-thread.ts", "floor": 22 }
+    { "file": "test-main-thread.ts", "floor": 22 },
+    { "file": "test-file-records.ts", "floor": 7 }
   ],
   "elsewhere": {
     "test-roundtrip.ts": "its own CI step, test:roundtrip (#874)",

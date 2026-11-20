@@ -390,6 +390,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'banner': 'a banner has no size RUNG — its axes are `tone` and `edge` (contained or full-bleed), and the brief names no size; density moves its padding and gaps (`densitySpacing`), and the nested buttons carry their own small rung (#2579)',
   '_breadcrumb-separator': 'one 16px mark (`icon.size.xs`) at both breadcrumb sizes (#2666, owner call 6 A, kept by Q382 A), bound under a non-`size.*` key; its axis is `type`, chevron or slash, so there is no ladder to compare. The item it sits in carries the size',
   'toast': 'one size: the brief names none and the owner approved one (#2668 call 11 A). It is built 360 wide as a literal (`placementWidth`), its type is one role (`type.body.sm.default`, #3165), its floor one rung (`size.md.height`, Q3165.1 A), its glyph one rung (`icon.size.sm`), and its nested Button and IconButton.Neutral are fixed at small; there is no size ladder to compare against the tier',
+  'popover': 'one size: the proposal names none and the owner approved one member (#4008, Q-FL2 on OD-P2 A). It is built 320 wide as a literal (`placementWidth`), its title and body are one role each, and its nested close button is fixed at small; there is no size ladder to compare against the tier',
   'button-group': 'a layout of Buttons has no size RUNG of its own — its axis is `layout`, its gaps are `space.*` steps, and each nested Button is medium and measured under its own name; a size axis for smaller actions is held for the owner (#2661)',
   'divider': 'a rule has no size RUNG — its axis is `orientation`, its thickness is one border-width role (`border-width.hairline`), and its length is a NOMINAL standalone placeholder (`container.narrow` across, `size.md.height` tall) a host stretches; there is no size ladder to compare against the tier (#2455)',
 };
@@ -412,6 +413,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
 const LADDER_STATED_ONCE: Record<string, string> = {
   icon: 'its Figma grid is the 40-glyph `name` axis (#864), and a def cannot declare a `variants` axis it does not project — so the ladder lives in `props.size` and `tokens` only',
   'provider-logo': 'its Figma grid is the `name` axis, one standalone component per mark (#2343), as on Icon — so the height ladder a host binds lives in `props.size` and `tokens` only',
+  dialog: 'its size only set a centered panel\'s width, so it is a code prop and no Figma axis (owner decision #3392 A); the three widths are recommendations the designer or the container sets, so there is no variants ladder to compare',
 };
 
 /**
@@ -539,7 +541,17 @@ const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
  * admitted def whose size now binds a key is stale, and one with no per-size width fails.
  */
 const SIZE_BY_BUILT_WIDTH: Record<string, string> = {
-  dialog: 'the centered panel\'s width per size, 400 / 560 / 720px, def-level literals with no token (owner decision Q303.5 A)',
+};
+
+/**
+ * #3392 — A SIZE STATED IN THE PROP'S OWN PROSE, as recommendations. Dialog's `size` set only a centered panel's width,
+ * so the owner took it off the variants (#3392 A): the designer or the container sets the width, and the code prop
+ * documents the recommended widths. Nothing in the def binds a rung, so arm 2 would refuse every value. The admission
+ * is re-checked structurally: the def declares no `variants.size`, and the prop's description names a px width for
+ * EVERY value it admits, in the form `400px (small)`. A value with no stated width fails by name.
+ */
+const SIZE_IN_PROSE: Record<string, string> = {
+  dialog: 'a code prop only since #3392 A; its description states the recommended width of each size, and the designer or the container sets the width',
 };
 
 /**
@@ -741,6 +753,15 @@ for (const def of componentDefs) {
     continue;
   }
 
+  if (def.id in SIZE_IN_PROSE) {
+    const desc = def.props.find((x) => x.name === 'size')?.description ?? '';
+    if (variants) failures.push(`${def.id}: admitted in SIZE_IN_PROSE, but it declares variants.size [${variants.join(', ')}]. The admission is STALE — remove it in the same PR.`);
+    const unstated = values.filter((v) => !new RegExp(`\\d+px \\(${v}\\b`).test(desc));
+    if (unstated.length) failures.push(`${def.id}: admitted in SIZE_IN_PROSE, but its size description states no width for ${unstated.map((v) => `'${v}'`).join(', ')} — a size a consumer can ask for with nothing said about it.`);
+    notes.push(`${def.id}: [${values.join(', ')}] — size stated in the prop's prose; admitted: ${SIZE_IN_PROSE[def.id]}`);
+    continue;
+  }
+
   if (def.id in SIZE_BY_BUILT_WIDTH) {
     if (parsed.length || rungless.length) {
       failures.push(`${def.id}: admitted in SIZE_BY_BUILT_WIDTH as binding no size.* key of its own, but it now binds ${parsed.length + rungless.length}. The admission is STALE — remove it in the same PR and let arm 2 check the ladder.`);
@@ -895,6 +916,9 @@ for (const id of Object.keys(NO_SIZE_AXIS))
   if (!componentDefs.some((d) => d.id === id))
     failures.push(`STALE ADMISSION: NO_SIZE_AXIS names '${id}', which is not a def any more. Remove it — an admission for a def that does not exist is a memory of something no longer true.`);
 
+for (const id of Object.keys(SIZE_IN_PROSE))
+  if (!componentDefs.some((d) => d.id === id))
+    failures.push(`STALE ADMISSION: SIZE_IN_PROSE names '${id}', which is not a def any more. Remove it.`);
 for (const id of Object.keys(SIZE_BY_BUILT_WIDTH))
   if (!componentDefs.some((d) => d.id === id))
     failures.push(`STALE ADMISSION: SIZE_BY_BUILT_WIDTH names '${id}', which is not a def any more. Remove it.`);

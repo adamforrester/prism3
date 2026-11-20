@@ -120,6 +120,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | text, effect and gradient styles carry a rename record; the plugin renames the existing style in place (Q173 A) | 2026-11-11 | `docs/44-materialization-renames.md` §10.1 | #1040 |
 | plain HTML/CSS ships a written behavior contract per interactive component, and web components carry their own behavior (Q-BH1 A) | 2026-11-18 | `docs/41-internal-and-ejected.md` §7.2 | #2454 |
 | the scrim's steps are declared taste, not a derivation | 2026-11-18 | `docs/20-interactive-color-system.md` §8.3 | #1043 |
+| the export package — no Style Dictionary preset, no value-shape options, a ZIP, CSS from the Style Dictionary build | 2026-11-19 | `docs/12-token-press-monorepo-eval.md` §12 | #2425 |
 
 ## Known gaps, named rather than silent
 

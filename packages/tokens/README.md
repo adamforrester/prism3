@@ -47,7 +47,20 @@ npm install ./prism3-tokens-<version>.tgz       # in the client project
 |---|---|
 | `@prism3/tokens` (also `@prism3/tokens/prism3.css`) | every block, `:root` first |
 | `@prism3/tokens/prism3/base.css` | the light defaults, on `:root` and `[data-theme="light"]` |
-| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `dark`, `hc-dark`, `hc-light` |
+| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `dark`, `hc-dark`, `hc-light`. `dark.css` also holds the system-preference block below |
+
+**Following the OS (#4140).** A page that sets no `data-theme` follows the system setting: the dark values also apply
+under `@media (prefers-color-scheme: dark)` on `:root:not([data-theme])`, with no script and no flash of light. A page
+or subtree that sets `data-theme` keeps the theme it asked for. The high-contrast modes are opt-in only, by attribute.
+
+The CSS defines custom properties only, so it can't set `color-scheme`, which native form controls and scrollbars read.
+Add it beside the import:
+
+```css
+:root:not([data-theme]) { color-scheme: light dark; }
+[data-theme$="dark"] { color-scheme: dark; }
+[data-theme$="light"] { color-scheme: light; }
+```
 
 Names are stock Style Dictionary's, with the token root as prefix: `--pds3-…` (`docs/35` §9.4). Every
 mode block defines every name, so a theme switch never falls back to a light value. References stay
@@ -62,6 +75,13 @@ That check ignores spelling (`#0000001a` or `rgba(0, 0, 0, 0.1)`, quoted or not)
 reversed `cubic-bezier( )` or reordered shadow layers fail it. Each per-mode file
 (`prism3/<mode>.css`) gets the same checks on its own, not only the joined file (#3877). A non-DTCG type (today the three `spring` tokens) isn't in the
 projection, so it isn't in the CSS (#642).
+
+Each typeface ships with its fallback stack, ending in a generic family:
+`--pds3-core-font-typeface-inter: Inter, system-ui, …, sans-serif` (#4155). If a face doesn't load, text
+falls back to the same kind of face rather than the browser default. The build reads the web base,
+`prism3.web.base.tokens.json`, which is the conforming base with each stack as its DTCG array value. The
+platform-neutral `prism3.base.tokens.json` keeps one family per typeface, because a comma list isn't a font
+name on Android. `check-package.mjs`'s [FALLBACK] arm checks the generic family in every block.
 
 ### What a typography style's `font` shorthand leaves out (#3507)
 
@@ -88,6 +108,31 @@ authored, so it names the underline but not the tracking, and the role is only i
 This package stays stock Style Dictionary with no custom transform (owner decision on #3507), so it
 writes no per-style `-letter-spacing` or `-text-decoration` property. A component package reads both fields from the DTCG tree and writes the
 two declarations itself.
+
+### Three sub-properties DTCG §9.8 doesn't define (#4128)
+
+DTCG 2025.10 Format §9.8 defines five typography sub-properties: `fontFamily`, `fontSize`, `fontWeight`,
+`letterSpacing` and `lineHeight`. A `type.*` style's `$value` can carry three more. They are Prism3
+extensions to §9.8, and they stay in `$value` (owner decision A on #4128) — the conforming projection
+strips `$extensions` (#2552), so a key moved there would not reach a consumer.
+
+| Sub-property | What it carries | Which styles carry it | In the stock `font` shorthand |
+|---|---|---|---|
+| `fontStyle` | `"italic"` | the italic styles: a `*-italic` modifier, and the bare styles of a category that is italic by default | yes — the shorthand starts with `italic` |
+| `textDecoration` | `"underline"` | the `*-link` styles | no — set `text-decoration-line: underline` beside it |
+| `textCase` | `"uppercase"` (the engine also accepts `"lowercase"`; no brand emits it) | the eyebrow styles | no — set `text-transform: uppercase` beside it |
+
+Each key is a literal string, never an alias, and is absent when the style is upright, undecorated or
+in its authored case. **A strict §9.8 reader may drop all three.** Where it does, an italic style reads
+upright, a link style loses its underline and an eyebrow loses its uppercase, with no warning. The stock
+CSS output keeps `fontStyle`, because the `font` shorthand has a font-style field:
+
+```css
+--pds3-type-display-sm-emphasis: italic var(--pds3-core-font-weight-role-emphasis) var(--pds3-core-font-size-48)/var(--pds3-core-font-line-height-role-snug) var(--pds3-core-font-family-display);
+```
+
+The shorthand has no field for `textDecoration` or `textCase`, so neither is in the CSS value; a
+component package reads them from the DTCG tree, the same way as `letterSpacing` above.
 
 ## The rule
 

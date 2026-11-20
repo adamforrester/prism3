@@ -80,16 +80,8 @@ figma.ui.onmessage = async (message: PluginMessage) => {
  */
 async function checkFilePermissions(): Promise<void> {
   try {
-    // Try to access basic file properties that require edit permissions
-    // If the user doesn't have proper access, these operations may fail
-    const currentUser = figma.currentUser;
-
-    if (!currentUser) {
-      throw new Error(
-        'Unable to access user information. Please ensure you are logged into Figma.'
-      );
-    }
-
+    // No `figma.currentUser` check here (prism3 #4121): the manifest asks for no `currentuser`
+    // permission, so reading it would throw, and no one opens a file in the editor signed out.
     // Attempt to access file properties that require proper permissions
     const fileName = figma.root.name;
 
@@ -101,7 +93,6 @@ async function checkFilePermissions(): Promise<void> {
 
     // Check for common permission-related error patterns
     if (
-      errorMessage.includes('currentUser') ||
       errorMessage.includes('fileRoleUpdates') ||
       errorMessage.includes('permissions') ||
       errorMessage.includes('access')
@@ -188,12 +179,15 @@ async function handleScan(): Promise<void> {
       };
     });
 
-    // Run validation
+    // Run validation. An alias to a team-library variable the file imports is not broken: resolve those
+    // targets first (prism3 #4166).
+    const external = await scanner.resolveExternalAliasTargets(variables);
     const issues = await validator.validateAll({
       collections,
       variables,
       textStyles,
       effectStyles,
+      externalVariables: external.variables,
     });
 
     // Build alias edges so the UI can compute "alias into excluded collection"

@@ -14,7 +14,11 @@
 import type { Theme } from '@prism3/engine';
 import { cutsOf, drawFace, faceDraw, WEIGHT_NAME, type HostFonts } from '../../ui/fonts';
 import { TYPE_GROUP_ORDER } from '../../state/type-input';
-import { el, hook, palSection, subHead } from './kit';
+import { el, hook, palSection, scrollBox, subHead } from './kit';
+
+/** The stretch column's cell (#4224): layout only, so a cell hidden from assistive tech, never a header. As a `<th>` it
+ *  headed a column with no name, and each cell under it read as blank. */
+const filler = (): HTMLElement => { const c = el('td', 'mtbl-fill'); c.setAttribute('aria-hidden', 'true'); return c; };
 
 /** The italic chips' words (owner decision Q6, APPROVED), as the levers name them. */
 const ITALIC_WORD = { upright: 'Upright', both: 'Upright + italic', only: 'Italic only' } as const;
@@ -34,7 +38,7 @@ export const weightsByFaceSection = (ty: Theme['typography'], mode: string, copy
   const roles = ty.weightRolesByMode?.[mode] ?? ty.weightRoles;
 
   const wtbl = el('div', 'mtbl');
-  const wscroll = el('div', 'mtbl-scroll');
+  const wscroll = scrollBox('Weights');
   const wt = el('table', 'mtbl-tbl');
   const whead = el('thead'), whtr = el('tr');
   wsec.append(subHead('Weights'));
@@ -45,7 +49,7 @@ export const weightsByFaceSection = (ty: Theme['typography'], mode: string, copy
     th.title = `${f.name} — used by ${f.roles.join(', ')}\n${f.stack}`;
     whtr.append(th);
   }
-  whtr.append(el('th', 'mtbl-fill'));
+  whtr.append(filler());
   whead.append(whtr); wt.append(whead);
   const wb = el('tbody');
   for (const w of roles) {
@@ -71,7 +75,7 @@ export const weightsByFaceSection = (ty: Theme['typography'], mode: string, copy
         : ships ? `${f.name} ships ${w.value}` : `${f.name} may not ship ${w.value} — falls back to the nearest`;
       tr.append(td);
     }
-    tr.append(el('td', 'mtbl-fill'));
+    tr.append(filler());
     wb.append(tr);
   }
   wt.append(wb); wscroll.append(wt); wtbl.append(wscroll); wsec.append(wtbl);
@@ -84,10 +88,10 @@ export const weightsByFaceSection = (ty: Theme['typography'], mode: string, copy
   // Which italic and link styles each text type ships, in the italic chips' words.
   wsec.append(subHead('Italic and link styles'));
   const stbl = el('div', 'mtbl');
-  const sscroll = el('div', 'mtbl-scroll');
+  const sscroll = scrollBox('Italic and link styles');
   const st = el('table', 'mtbl-tbl');
   const shead = el('thead'), shtr = el('tr');
-  shtr.append(el('th', 'mtbl-stick', 'Text type'), el('th', 'mtbl-mode', 'Italic'), el('th', 'mtbl-mode', 'Link'), el('th', 'mtbl-fill'));
+  shtr.append(el('th', 'mtbl-stick', 'Text type'), el('th', 'mtbl-mode', 'Italic'), el('th', 'mtbl-mode', 'Link'), filler());
   shead.append(shtr); st.append(shead);
   const sb = el('tbody');
   for (const g of TYPE_GROUP_ORDER) {
@@ -98,7 +102,7 @@ export const weightsByFaceSection = (ty: Theme['typography'], mode: string, copy
     tr.dataset.group = g;
     const nc = el('td', 'mtbl-stick');
     nc.append(el('span', 'mtbl-name mono', g));
-    tr.append(nc, hook(el('td', 'mtbl-mode', ITALIC_WORD[it]), 'styles-preview-italic'), hook(el('td', 'mtbl-mode', comps.some((c) => c.link) ? 'Yes' : 'No'), 'styles-preview-link'), el('td', 'mtbl-fill'));
+    tr.append(nc, hook(el('td', 'mtbl-mode', ITALIC_WORD[it]), 'styles-preview-italic'), hook(el('td', 'mtbl-mode', comps.some((c) => c.link) ? 'Yes' : 'No'), 'styles-preview-link'), filler());
     sb.append(tr);
   }
   st.append(sb); sscroll.append(st); stbl.append(sscroll); wsec.append(stbl);

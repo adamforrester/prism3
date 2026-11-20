@@ -19,7 +19,7 @@
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
 import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
-import { ENGINE_VERSION, formerDefIds, serializeBrandInput, resolveAllModes, brandTheme, type BrandInput } from '@prism3/engine';
+import { ENGINE_VERSION, formerDefIds, serializeBrandInput, resolveAllModes, brandTheme, UnrecognizedPersistedInputError, type BrandInput } from '@prism3/engine';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { isIssueUrl } from '../../studio/src/state/report';
 import { onUiMessage, postToUi } from './bridge-main';
@@ -65,7 +65,7 @@ import { setupIncompleteOf, type IncompleteApi } from './setup-incomplete';
 import { builtDocBlockItem, ensureDocBlock, docBlockNote, docBlockThemed, DOC_BLOCK_DEFS, DOC_BLOCK_SET, type DocBlockApi, type DocBlockResult } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 import { clearOrphanSpecPanels, drawSpecPanel, specItems, specTargets, type SpecApi, type SpecOutcome } from './spec-panel';
-import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings';
+import { COVER_OFF, readDocSettings, writeDocSettings } from './doc-settings'; import { readRecord, writeRecord } from './file-record';
 import { livePanels, livePanelsOf, panelLeadsOf, paneledOf, panelsCleanCount, removeUneditedPanels, unpaneledOf, type CensusRoot } from './panel-census';
 import { DOC_PANEL_KEY, DOC_PANEL_NS, clearOrphanPanels, docPanelReach, drawDocPanel, findDocBlock, lastChangedKey, leadsPanel, PANEL_FORMAT, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
@@ -75,7 +75,7 @@ import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleNames } from './list-fonts';
 import { restoreInput, holdsInput, canon } from './persist-figma';
 import { readUpdatesOff, writeUpdatesOff, type UpdatesOff } from './updates-off';
-import { planOverride, overrideVerdict, overrideData, wholeRunRefusal, type OverrideChange, type OverrideRefusal } from './set-override';
+import { planOverride, overrideVerdict, overrideData, wholeRunRefusal, confirmMoved, type OverrideChange, type OverrideRefusal } from './set-override';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { PACE_MS, pacer } from './pace';
 import { searchComponents } from './component-search';
@@ -193,10 +193,10 @@ const FILE_ID_KEY = 'prism3:file-id';
 const STRIP_AT_KEY = 'prism3:strip-at:';
 const fileId = (make: boolean): string | null => {
   try {
-    const was = figma.root.getPluginData(FILE_ID_KEY);
+    const was = readRecord(figma.root, FILE_ID_KEY);   // #4154: both builds read one id
     if (was || !make) return was || null;
     const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    figma.root.setPluginData(FILE_ID_KEY, id);
+    writeRecord(figma.root, FILE_ID_KEY, id);
     return id;
   } catch { return null; }
 };
@@ -2096,7 +2096,7 @@ const savedContract = (): { contract: SgContract | null; note: string } => {
     const input = restoreInput(figma.root);
     return { contract: input ? resolveAllModes(brandTheme(input)) : null, note: '' };
   } catch (e) {
-    return { contract: null, note: `The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"` };
+    return { contract: null, note: `The saved brand did not resolve (${failureDetail(e)}), so the contrast column reads "—"` };
   }
 };
 
@@ -2216,7 +2216,7 @@ const restoreToUi = (): void => {
     if (input) postToUi({ type: 'restore-input', input });
     else void fileKindToUi();
   } catch (e) {
-    postToUi({ type: 'restore-input-error', message: (e as Error).message });
+    postToUi({ type: 'restore-input-error', message: e instanceof UnrecognizedPersistedInputError ? e.message : failureDetail(e) });   // #4253: a host throw as its class
   }
 };
 
@@ -2349,8 +2349,8 @@ const panelsClean = async (confirm: boolean, sink: ActionSink): Promise<void> =>
 
 /**
  * #3394 (Q3394.1–.7 all A): THE AGENT LINK'S COLOR OVERRIDES. A preview plans the changes against the brand the file holds
- * and writes nothing. A confirmed write plans them again, refuses when the plan's hash is not the preview's (the file's
- * brand moved) or when the panel holds Theme edits the file does not, and then hands the planned brand to
+ * and writes nothing. A confirmed write plans them again, refuses when the plan's hash is not the preview's (the changes
+ * sent are not the ones previewed, or the file's brand moved: #3693 tells the two apart) or when the panel holds Theme edits the file does not, and then hands the planned brand to
  * `ACTIONS.applyTheme`, the entry the panel's Apply reaches (so its guard, its saved version and its persist are the
  * Theme write's own). Its verdict is its own, `override-result`, one Activity row (Q3394.7 A); the Theme write's verdict
  * is read here and not posted. After a write the panel is sent the brand, so Theme shows what the agent stored.
@@ -2375,7 +2375,9 @@ const setOverride = async (changes: readonly OverrideChange[], previewHash: stri
     sink.post({ type: 'override-result', ok: v.ok, preview: !applied, applied: false, headline: v.headline, summary: v.lines.join('; '), lines: v.lines });
     return;
   }
-  if (plan.previewHash !== previewHash) { refused(wholeRunRefusal('brand-moved'), { previewHash: plan.previewHash }); return; }
+  // #3693: the echoed hash's changes half names an agent's own mismatch; its brand half, the file's.
+  const moved = confirmMoved(plan.previewHash, previewHash);
+  if (moved) { refused(wholeRunRefusal(moved), { previewHash: plan.previewHash }); return; }
   if (panelInput && !holdsInput(figma.root, panelInput)) { refused(wholeRunRefusal('theme-unsaved')); return; }
   // The Theme write, through the table: the same function object the panel's Apply reaches, read at call time.
   const posts: MainToUi[] = [];
@@ -2383,7 +2385,7 @@ const setOverride = async (changes: readonly OverrideChange[], previewHash: stri
   // The panel's brand as the write starts: an edit the designer makes while it runs must not be reloaded over.
   const asked = panelInput ? canon(panelInput) : null;
   let threw: string | null = null;
-  try { await ACTIONS.applyTheme(plan.input, undefined, inner); } catch (e) { threw = (e as Error)?.message ?? String(e); }
+  try { await ACTIONS.applyTheme(plan.input, undefined, inner); } catch (e) { threw = failureDetail(e); }
   const busy = posts.find((m) => m.type === 'refused');
   if (busy) { sink.post(busy); return; }
   sink.data(overrideData(plan));

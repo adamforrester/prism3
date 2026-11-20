@@ -20,9 +20,10 @@
  * Run: `npx tsx packages/engine/mcp-test.ts`   (exits non-zero on any failure)
  */
 import { spawn, ChildProcessWithoutNullStreams } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { HANDSHAKE_PROBES, MCP_SERVERS } from './mcp-handshake-probes';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -214,6 +215,60 @@ await new Promise((r) => setTimeout(r, 3000));
     'conformance: structuredContent and the text block carry identical data');
 }
 
+// ---------------------------------------------------- #4156: llms.txt's example calls run as written
+// `docs/public/llms.txt` is the agent entry point, and its "Use the MCP server" block gives one minimal call per
+// tool. EXPECTED is that block, read from the file as text; ACTUAL is each call's result from a server started the
+// way the block says. Run in a scratch directory, so `export_theme`'s "./tokens" writes there and not into the repo.
+// Represented, not counted (docs/34 shape 13): every tool `tools/list` advertises has an example.
+// BY-NAME MUTATIONS: break the brand in one example (`"neutral": {"hue": "cool"}`) → the runs-as-written arm names
+// that line; delete the export_theme line → the every-tool arm names export_theme; write `"include": ["tokens"]` in the
+// prose under the block → the include arm names the missing notes.
+{
+  const llms = readFileSync(resolve(HERE, '../../docs/public/llms.txt'), 'utf8');
+  const section = llms.split(/\n## /).find((s) => s.startsWith('Use the MCP server')) ?? '';
+  const fenced = /```jsonl\n([\s\S]*?)```/.exec(section)?.[1] ?? '';
+  const lines = fenced.split('\n').filter((l) => l.trim());
+  const examples = lines.map((l) => { try { return JSON.parse(l) as { name: string; arguments: unknown }; } catch { return { name: `(unparsed) ${l.slice(0, 60)}`, arguments: undefined }; } });
+  ok(/npx --yes tsx@4 packages\/engine\/mcp\.ts/.test(section) && lines.length > 0,
+    `#4156: llms.txt says how to start the MCP server and gives example calls (${lines.length} example lines)`);
+  const scratch = mkdtempSync(join(tmpdir(), 'p3-llms-'));
+  const proc = spawn(resolve(HERE, '../../node_modules/.bin/tsx'), [resolve(HERE, 'mcp.ts')], { cwd: scratch });
+  let out = ''; const got = new Map<number, Rpc>();
+  proc.stdout.setEncoding('utf8');
+  proc.stdout.on('data', (d: string) => {
+    out += d; let nl: number;
+    while ((nl = out.indexOf('\n')) >= 0) { const line = out.slice(0, nl).trim(); out = out.slice(nl + 1); if (line) { const m = JSON.parse(line) as Rpc; got.set(Number(m.id), m); } }
+  });
+  examples.forEach((ex, i) => proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: i + 1, method: 'tools/call', params: ex }) + '\n'));
+  proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 0, method: 'tools/list' }) + '\n');
+  // The prose under the block promises the decisions log AND the token tree from the `include` it names; that sentence
+  // is run too, with the theme_brand example's brand (#4335 review: `include` replaces the default, it does not add).
+  const prose = section.slice(section.indexOf('```', section.indexOf('```jsonl') + 3) + 3);
+  const proseInclude = (() => { try { return JSON.parse(/"include":\s*(\[[^\]]*\])/.exec(prose)?.[1] ?? 'null') as unknown; } catch { return null; } })();
+  const themeEx = examples.find((ex) => ex.name === 'theme_brand');
+  const PROSE_ID = 9999;
+  if (themeEx && Array.isArray(proseInclude)) {
+    proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: PROSE_ID, method: 'tools/call',
+      params: { name: 'theme_brand', arguments: { ...(themeEx.arguments as object), include: proseInclude } } }) + '\n');
+  }
+  const want = examples.length + 1 + (themeEx && Array.isArray(proseInclude) ? 1 : 0);
+  const deadline = Date.now() + 60_000;
+  while (got.size < want && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+  proc.kill();
+  const broken = examples.map((ex, i) => [ex, got.get(i + 1)] as const)
+    .filter(([, r]) => !r || r.error || r.result?.isError === true)
+    .map(([ex, r]) => `${ex.name}: ${!r ? 'no reply' : r.error ? `RPC ${r.error.code} ${r.error.message}` : String(r.result?.content?.[0]?.text ?? '').replace(/\s+/g, ' ').slice(0, 200)}`);
+  ok(examples.length > 0 && broken.length === 0, `#4156: every llms.txt example call runs as written (${examples.length - broken.length} of ${examples.length}; failing: ${broken.join('; ') || 'none'})`);
+  const advertised = ((got.get(0)?.result?.tools ?? []) as Array<{ name: string }>).map((t) => t.name);
+  const unshown = advertised.filter((n) => !examples.some((ex) => ex.name === n));
+  ok(advertised.length > 0 && unshown.length === 0, `#4156: llms.txt gives an example call for every tool tools/list advertises (${advertised.length} tools; no example: ${unshown.join(', ') || 'none'})`);
+  ok(existsSync(join(scratch, 'tokens')), '#4156: the export_theme example wrote into the directory the server was started in');
+  const proseKeys = (() => { try { return Object.keys(JSON.parse(String(got.get(PROSE_ID)?.result?.content?.[0]?.text ?? '{}'))); } catch { return []; } })();
+  ok(/decisions log/.test(prose) && proseKeys.includes('notes') && proseKeys.includes('tokens'),
+    `#4156: the include llms.txt names returns the decisions log and the token tree it promises (include ${JSON.stringify(proseInclude)} → ${proseKeys.join(', ') || 'no reply'})`);
+  rmSync(scratch, { recursive: true, force: true });
+}
+
 // ---------------------------------------------- #2146: validate_brand reports the engine's own refusals
 // The schema is not the whole contract: `brandTheme` refuses inputs the schema accepts, and `validate_brand`
 // called them valid while `theme_brand` then refused them. EXPECTED is each refusal's owner-approved sentence,
@@ -313,6 +368,98 @@ await new Promise((r) => setTimeout(r, 3000));
   ] as const) {
     const r = await refusedAs(tool, args);
     ok(r.okShape, `#2162 ${tool}: a build-time refusal comes back as an isError result carrying the engine's sentence, not a protocol error (got ${r.seen})`);
+  }
+}
+
+// ------------------------------------------- #4122: every tool refuses an argument its schema does not declare
+// All six tools declare `additionalProperties: false`, and `include` is an enum, but only `export_theme` checked either:
+// a typo in `include` quietly shrank the answer. EXPECTED is typed here per tool, never read from the schemas. The one
+// named exception is a call with no `brand` key to a tool that requires one (#4120), such as theme_brand's bare
+// BrandInput; test.ts's #4120 block holds the missing-`brand` message. BY-NAME MUTATION: turn the
+// shared argument check off in mcp.ts → every refusal arm below fails.
+{
+  const B = { id: 'args', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const brief = ['---', 'id: args', 'primary: { l: 0.5, c: 0.15, h: 250 }', 'neutral: { hue: 250, chroma: 0.01 }', '---'].join('\n');
+  for (const [tool, args, named] of [
+    ['theme_brand', { brand: B, include: ['tokenz'] }, 'tokenz'],
+    ['theme_from_brief', { brief, include: ['aiMetaData'] }, 'aiMetaData'],
+    ['theme_from_brief', { brief, brand: B }, 'brand'],
+    ['list_levers', { foo: 1 }, 'foo'],
+    ['score_consumption', { brand: B, refs: ['color.text.primary'], ref: ['x'] }, 'ref'],
+    ['export_theme', { brand: B, outDir: 'packages/engine/.mcp-test-4122-out', bogus: true }, 'bogus'],
+  ] as const) {
+    const r = await server.callJson(tool, args);
+    ok(r.isError === true && JSON.stringify(r.payload).includes(named),
+      `#4122 ${tool} refuses the undeclared ${JSON.stringify(named)} by name instead of ignoring it (got ${JSON.stringify(r.payload).slice(0, 200)})`);
+  }
+  rmSync(resolve(HERE, '.mcp-test-4122-out'), { recursive: true, force: true });   // written only when the check is off
+  const bare = await server.callJson('theme_brand', B);
+  ok(!bare.isError, '#4122 theme_brand still accepts a bare BrandInput, the one named exception (#4120)');
+  const none = await server.callJson('theme_brand', { brand: B, include: [] });
+  ok(!none.isError && none.payload.omitted?.length === 3, '#4122 theme_brand still accepts an empty include');
+  // A present `include` that is not an array (#4277 review): it fell through to the default sections with no error, and
+  // export_theme threw `want.filter is not a function` (#4281). EXPECTED: an isError result naming the argument.
+  // BY-NAME MUTATION: drop the array-type check from mcp.ts `argumentErrors` → each of these fails.
+  for (const [tool, args] of [
+    ['theme_brand', { brand: B, include: 'tokens' }],
+    ['theme_brand', { brand: B, include: null }],
+    ['theme_from_brief', { brief, include: 'aiMetadata' }],
+    ['export_theme', { brand: B, outDir: 'packages/engine/.mcp-test-4122-out', include: 'tokenz' }],
+  ] as const) {
+    let seen: string;
+    let refused = false;
+    try {
+      const r = await server.callJson(tool, args);
+      seen = JSON.stringify(r.payload ?? r).slice(0, 200);
+      refused = r.isError === true && seen.includes('include must be an array');
+    } catch (err) { seen = `threw: ${(err as Error).message.slice(0, 160)}`; }
+    ok(refused, `#4122 ${tool} refuses include ${JSON.stringify(args.include)} as not an array instead of answering with the default sections (got ${seen})`);
+  }
+  rmSync(resolve(HERE, '.mcp-test-4122-out'), { recursive: true, force: true });
+}
+
+// ---------------------------------- #4151: a tool that returns structuredContent declares an outputSchema it meets
+// theme_brand and theme_from_brief returned structuredContent with no outputSchema, so the generated reference said
+// they had none. Every tool in tools/list is called once with a valid input (a tool missing from SAMPLES fails by
+// name), and each structured result is checked against the declared schema with a small validator written here, not
+// imported from mcp.ts. BY-NAME MUTATION: drop theme_brand's outputSchema → its arm fails.
+{
+  const conforms = (v: any, s: any, at = '$'): string[] => {
+    if (!s || typeof s !== 'object') return [];
+    const e: string[] = [];
+    const t = s.type;
+    const typeOk = !t || (t === 'array' ? Array.isArray(v) : t === 'object' ? v !== null && typeof v === 'object' && !Array.isArray(v)
+      : t === 'integer' ? Number.isInteger(v) : typeof v === t);
+    if (!typeOk) return [`${at}: not ${t}`];
+    if (Array.isArray(s.required)) for (const k of s.required) if (v?.[k] === undefined) e.push(`${at}: missing '${k}'`);
+    if (s.properties && v && typeof v === 'object') for (const [k, sub] of Object.entries(s.properties)) if (v[k] !== undefined) e.push(...conforms(v[k], sub, `${at}.${k}`));
+    if (s.items && Array.isArray(v)) v.forEach((x: unknown, i: number) => e.push(...conforms(x, s.items, `${at}[${i}]`)));
+    if (Array.isArray(s.anyOf) && !s.anyOf.some((b: any) => conforms(v, b, at).length === 0)) e.push(`${at}: matches no anyOf branch`);
+    return e;
+  };
+  const B = { id: 'schema', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const SAMPLES: Record<string, unknown> = {
+    list_levers: {},
+    theme_brand: { brand: B, include: ['notes', 'tokens', 'aiMetadata'] },
+    score_consumption: { brand: B, refs: ['color.text.primary'], pairs: [{ fg: 'color.text.primary', bg: 'color.background.primary' }] },
+    theme_from_brief: { brief: ['---', 'id: schema', 'primary: { l: 0.5, c: 0.15, h: 250 }', 'neutral: { hue: 250, chroma: 0.01 }', '---'].join('\n') },
+    export_theme: { brand: B, outDir: 'packages/engine/.mcp-test-4151-out', include: ['tokens'] },
+    validate_brand: B,
+  };
+  const listed = ((await server.reply(server.send('tools/list'))).result?.tools ?? []) as Array<{ name: string; outputSchema?: unknown }>;
+  try {
+    for (const tool of listed) {
+      if (!(tool.name in SAMPLES)) { ok(false, `#4151 ${tool.name} has no sample input here, so its output contract went unchecked`); continue; }
+      const res = await server.call(tool.name, SAMPLES[tool.name]);
+      if (res.isError || res.structuredContent === undefined) {
+        ok(res.structuredContent === undefined && !res.isError, `#4151 ${tool.name}: the sample call succeeded (got ${JSON.stringify(res).slice(0, 200)})`);
+        continue;
+      }
+      const bad = tool.outputSchema ? conforms(res.structuredContent, tool.outputSchema) : ['declares no outputSchema'];
+      ok(bad.length === 0, `#4151 ${tool.name} returns structuredContent and declares an outputSchema it meets (${bad.slice(0, 4).join('; ') || 'ok'})`);
+    }
+  } finally {
+    rmSync(resolve(HERE, '.mcp-test-4151-out'), { recursive: true, force: true });
   }
 }
 
