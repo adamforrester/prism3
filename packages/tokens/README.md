@@ -109,6 +109,31 @@ This package stays stock Style Dictionary with no custom transform (owner decisi
 writes no per-style `-letter-spacing` or `-text-decoration` property. A component package reads both fields from the DTCG tree and writes the
 two declarations itself.
 
+### Three sub-properties DTCG §9.8 doesn't define (#4128)
+
+DTCG 2025.10 Format §9.8 defines five typography sub-properties: `fontFamily`, `fontSize`, `fontWeight`,
+`letterSpacing` and `lineHeight`. A `type.*` style's `$value` can carry three more. They are Prism3
+extensions to §9.8, and they stay in `$value` (owner decision A on #4128) — the conforming projection
+strips `$extensions` (#2552), so a key moved there would not reach a consumer.
+
+| Sub-property | What it carries | Which styles carry it | In the stock `font` shorthand |
+|---|---|---|---|
+| `fontStyle` | `"italic"` | the italic styles: a `*-italic` modifier, and the bare styles of a category that is italic by default | yes — the shorthand starts with `italic` |
+| `textDecoration` | `"underline"` | the `*-link` styles | no — set `text-decoration-line: underline` beside it |
+| `textCase` | `"uppercase"` (the engine also accepts `"lowercase"`; no brand emits it) | the eyebrow styles | no — set `text-transform: uppercase` beside it |
+
+Each key is a literal string, never an alias, and is absent when the style is upright, undecorated or
+in its authored case. **A strict §9.8 reader may drop all three.** Where it does, an italic style reads
+upright, a link style loses its underline and an eyebrow loses its uppercase, with no warning. The stock
+CSS output keeps `fontStyle`, because the `font` shorthand has a font-style field:
+
+```css
+--pds3-type-display-sm-emphasis: italic var(--pds3-core-font-weight-role-emphasis) var(--pds3-core-font-size-48)/var(--pds3-core-font-line-height-role-snug) var(--pds3-core-font-family-display);
+```
+
+The shorthand has no field for `textDecoration` or `textCase`, so neither is in the CSS value; a
+component package reads them from the DTCG tree, the same way as `letterSpacing` above.
+
 ## The rule
 
 > **NO CUSTOM CODE.** No preprocessors, no custom transforms, no custom formats. Standard Style
