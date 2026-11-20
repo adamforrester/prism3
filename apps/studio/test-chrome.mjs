@@ -20482,6 +20482,37 @@ for (const [theme, w] of [['light', 1280], ['dark', 1280], ['light', 380]]) {
     await settle(page);
     const av = await strip(page);
     ok(av.kind === 'verdict' && av.what === 'Theme applied' && N_CLOCK.test(av.n ?? ''), `${where}: Q3170.6 A: "Theme applied" and its time (${JSON.stringify(av)})`);
+    // ── #4219 (owner A): one announcer per run, Activity's, and a failure says why ──
+    // Every write to both polite regions is recorded through one run that fails: the drawer's `activity-status` speaks
+    // once at the start and once at the end, the strip's `status-live` not at all (it keeps only "Still working on …",
+    // held above), and the end names the host's reason. The reason is the issue's literal.
+    step = '#4219 one announcer';
+    await page.evaluate(() => {
+      window.__live = [];
+      for (const k of ['activity-status', 'status-live']) {
+        const n = document.querySelector(`[data-p3="${k}"]`);
+        if (n) new MutationObserver(() => { if (n.textContent.trim()) window.__live.push([k, n.textContent]); }).observe(n, { childList: true, characterData: true, subtree: true });
+      }
+    });
+    await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+    await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+    await postMsg(page, { ...T_FILE, due: { button: { state: 'current' }, tag: { state: 'current' }, badge: { state: 'current' } } });
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="update-go"]'), null, WAIT).catch(() => {});
+    if ((await page.evaluate(() => document.querySelector('[data-p3="update-check-theme"]')?.getAttribute('aria-checked'))) !== 'true') await hooks.click(page.locator('[data-p3="update-check-theme"]'), WAIT);
+    await postMsg(page, { ...T_FILE, due: { button: { state: 'current' }, tag: { state: 'current' }, badge: { state: 'current' } } });
+    await page.waitForFunction(() => !document.querySelector('[data-p3="update-go"]')?.disabled, null, WAIT).catch(() => {});
+    const go4219 = await page.evaluate(() => ({ disabled: document.querySelector('[data-p3="update-go"]')?.disabled ?? null, ticks: [...document.querySelectorAll('[data-p3="update-dialog"] [role="checkbox"]')].map((n) => `${n.dataset.key}=${n.getAttribute('aria-checked')}`) }));
+    ok(go4219.disabled === false, `${where}: #4219 premise: Update file's Go is on with Theme ticked (${JSON.stringify(go4219)})`);
+    await hooks.click(page.locator('[data-p3="update-go"]'), WAIT);
+    await postMsg(page, { type: 'run-progress', run: 'apply-theme', phase: 'work', item: 'color', done: 1, total: 7 });
+    await settle(page);
+    await postMsg(page, { type: 'apply-result', ok: false, headline: '✗ Apply failed', summary: 'Figma refused the write: the file is read-only.', lines: null });
+    await settle(page);
+    const said = await page.evaluate(() => window.__live);
+    const act = said.filter(([k]) => k === 'activity-status').map(([, t]) => t), str = said.filter(([k]) => k === 'status-live').map(([, t]) => t);
+    ok(str.length === 0, `${where}: #4219 the status strip announces nothing of the run (${JSON.stringify(str)})`);
+    ok(act.length === 2 && act[0].startsWith('Update file'), `${where}: #4219 Activity announces the run once at its start and once at its end (${JSON.stringify(act)})`);
+    ok(act[act.length - 1] === 'Update file failed: Figma refused the write: the file is read-only.', `${where}: #4219 the failure's announcement carries the host's reason (${JSON.stringify(act[act.length - 1])})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
@@ -23304,6 +23335,117 @@ if (runs('3938')) {
     } finally { await ctx.close(); }
   }
 } // 3938
+if (runs('markup-audit')) {
+  console.log(`\nMarkup the overnight audit found: placeholders, Export's choices, the preview tables (#4220, #4221, #4223, #4224)\n${'='.repeat(78)}`);
+  // In-page helpers, as strings so each evaluate can take them: an rgb() parse, sRGB contrast, and the opaque ground
+  // behind an element (its own background, else its nearest painted ancestor's).
+  const COLOR_KIT = `(() => {
+    const rgb = (c) => { const m = /rgba?\\(([^)]+)\\)/.exec(c); if (!m) return null; const [r, g, b, a = 1] = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r, g, b, a }; };
+    const lum = ({ r, g, b }) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const ground = (el) => { for (let n = el; n; n = n.parentElement) { const c = rgb(getComputedStyle(n).backgroundColor); if (c && c.a === 1) return c; } return { r: 255, g: 255, b: 255, a: 1 }; };
+    const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+    return { rgb, ratio, ground, over };
+  })()`;
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `markup-audit ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'boot';
+    try {
+      // #4220: every chrome text field with a hint draws it at 4.5:1 or more on its own ground, in the chrome's secondary
+      // ink. EXPECTED (typed here): 4.5, the AA floor for body text. Read from the drawn `::placeholder`, not a token:
+      // a value gate cannot see a rule that does not exist. Mutation that fails here BY NAME: the new
+      // `.p3-text-input::placeholder` rule dropped → `#4220 … dark` (Chromium's own gray, 4.22:1).
+      step = 'Type, the text fields';
+      await goPlace(page, 'type');
+      await hooks.need(page, '[data-p3="levers-pane"] .p3-text-input[placeholder]');
+      const ph = await page.evaluate((kit) => {
+        const K = eval(kit);
+        const probe = document.createElement('span'); probe.style.color = 'var(--p3-text-2)';
+        document.querySelector('[data-p3="levers-pane"]').append(probe);
+        const text2 = getComputedStyle(probe).color; probe.remove();
+        return [...document.querySelectorAll('.p3-text-input[placeholder]')].filter((f) => f.getClientRects().length && f.placeholder).map((f) => {
+          const c = getComputedStyle(f, '::placeholder').color;
+          const bg = K.ground(f);
+          return { hook: f.getAttribute('data-p3'), color: c, text2, ratio: Math.round(K.ratio(K.over(K.rgb(c), bg), bg) * 100) / 100 };
+        });
+      }, COLOR_KIT);
+      const low = ph.filter((x) => x.ratio < 4.5 || x.color !== x.text2);
+      ok(ph.length >= 1 && low.length === 0, `#4220 ${where}: every text field's hint is in the chrome's secondary ink, at 4.5:1 or more (${ph.length} field(s); off: ${JSON.stringify(low.slice(0, 3))})`);
+      // #4223 and #4224, the Type preview's tables.
+      step = 'Type, the preview tables';
+      await hooks.need(page, '.mtbl-scroll');
+      const tb = await page.evaluate(() => ({
+        scrolls: [...document.querySelectorAll('.mtbl-scroll')].map((s) => ({ tab: s.tabIndex, role: s.getAttribute('role'), name: s.getAttribute('aria-label') ?? '' })),
+        emptyHeads: [...document.querySelectorAll('.mtbl th')].filter((th) => !th.textContent.trim() && th.getAttribute('aria-hidden') !== 'true' && th.getAttribute('role') !== 'presentation').length,
+        fillers: [...document.querySelectorAll('.mtbl .mtbl-fill')].filter((c) => !c.textContent.trim()).map((c) => [c.tagName, c.getAttribute('aria-hidden')]),
+      }));
+      // EXPECTED (typed here): a Tab stop, a group (not a region: D5 Q197 allows no named landmark but main), a name. Mutation that fails here BY NAME: `scrollBox` without its
+      // tabindex → `#4223 …`.
+      const bad = tb.scrolls.filter((x) => x.tab !== 0 || x.role !== 'group' || !x.name.trim());
+      ok(tb.scrolls.length >= 4 && bad.length === 0, `#4223 ${where}: each preview table's scroll wrapper is a Tab stop, a named group (${tb.scrolls.length}; off ${JSON.stringify(bad)})`);
+      // Mutation that fails here BY NAME: `filler` back to `el('th', 'mtbl-fill')` → `#4224 …`.
+      ok(tb.emptyHeads === 0 && tb.fillers.length >= 2 && tb.fillers.every(([t, h]) => t === 'TD' && h === 'true'),
+        `#4224 ${where}: no table in the Type preview has an empty header cell; the stretch cells are hidden cells (${tb.emptyHeads} empty header(s); fillers ${JSON.stringify(tb.fillers)})`);
+      step = 'a scroll wrapper, focused';
+      // Reached by the keyboard (out and back in), so `:focus-visible` is the browser's own call.
+      await page.locator('.mtbl-scroll').first().focus();
+      await page.keyboard.press('Shift+Tab');
+      await page.keyboard.press('Tab');
+      // The chrome's ring, not the browser's own `auto` outline: solid, in the focus ring token's color, resolved on a probe.
+      // Mutation that fails here BY NAME: the `.mtbl-scroll:focus-visible` rule dropped (`chrome.css`) → this arm.
+      const ring = await page.evaluate(() => {
+        const a = document.activeElement, c = getComputedStyle(a);
+        const probe = document.createElement('span'); probe.style.color = 'var(--p3-focus-ring)'; a.parentElement.append(probe);
+        const want = getComputedStyle(probe).color; probe.remove();
+        return { cls: a.className, style: c.outlineStyle, color: c.outlineColor, want, width: parseFloat(c.outlineWidth) };
+      });
+      ok(/\bmtbl-scroll\b/.test(ring.cls) && ring.style === 'solid' && ring.color === ring.want && ring.width >= 1, `#4223 ${where}: a focused scroll wrapper draws the chrome's focus ring (${JSON.stringify(ring)})`);
+      // #4223, Shape's tables: `shapeTable` builds every one (Spacing, Radius, Control heights, the building blocks), so
+      // each Shape section's wrappers are read here, grouped by section. EXPECTED (typed here): the four Shape sections
+      // each hold at least one wrapper, and every wrapper is a Tab stop and a named group. Mutation that fails here BY
+      // NAME: `shapeTable`'s `scrollBox(name)` back to `el('div', 'mtbl-scroll')` → `#4223 … Shape`.
+      step = 'Shape, the preview tables';
+      await goPlace(page, 'shape');
+      await hooks.need(page, '.mtbl-scroll');
+      const sh = await page.evaluate(() => [...document.querySelectorAll('[data-p3="section-head"]')].map((h) => h.parentElement)
+        .filter((sec) => sec.querySelector('.mtbl-scroll')).map((sec) => ({
+          section: sec.querySelector('[data-p3="section-title"]')?.textContent ?? '',
+          scrolls: [...sec.querySelectorAll('.mtbl-scroll')].map((s) => ({ tab: s.tabIndex, role: s.getAttribute('role'), name: s.getAttribute('aria-label') ?? '' })),
+        })));
+      const shOff = sh.filter((s) => s.scrolls.some((x) => x.tab !== 0 || x.role !== 'group' || !x.name.trim()));
+      ok(sh.length >= 4 && shOff.length === 0, `#4223 ${where}: each Shape section's table wrappers are Tab stops and named groups (${sh.length} section(s); off ${JSON.stringify(shOff.slice(0, 2))})`);
+      // #4221: Export's settings are radio groups. EXPECTED (typed here): each named by its label, one checked radio, one
+      // Tab stop each; an arrow key moves the selection and focus with it. Mutation that fails here BY NAME: the options
+      // back to `aria-pressed` buttons → `#4221 …`.
+      step = 'Export, its settings';
+      await hooks.click(page.locator('[data-p3="rail-export"]'), WAIT);
+      await hooks.need(page, '[data-p3="export-page"] [data-p3="export-setting"]');
+      const ex = await page.evaluate(() => [...document.querySelectorAll('.p3-export-set')].map((row) => {
+        const g = row.querySelector('.p3-export-oseg');
+        const opts = [...g.querySelectorAll('[data-p3="export-setting"]')];
+        const by = g.getAttribute('aria-labelledby');
+        return { label: row.querySelector('.p3-export-lab')?.textContent, role: g.getAttribute('role'), named: !!by && document.getElementById(by)?.textContent === row.querySelector('.p3-export-lab')?.textContent,
+          radios: opts.every((o) => o.getAttribute('role') === 'radio' && !o.hasAttribute('aria-pressed')), checked: opts.filter((o) => o.getAttribute('aria-checked') === 'true').length,
+          stops: opts.filter((o) => o.tabIndex === 0).length };
+      }));
+      const off = ex.filter((g) => g.role !== 'radiogroup' || !g.named || !g.radios || g.checked !== 1 || g.stops !== 1);
+      ok(ex.length >= 3 && off.length === 0, `#4221 ${where}: each Export setting is a radio group named by its label, one option checked, one Tab stop (${ex.length} group(s); off ${JSON.stringify(off)})`);
+      const first = page.locator('.p3-export-oseg').first().locator('[aria-checked="true"]');
+      const before = await first.textContent();
+      await first.focus();
+      await page.keyboard.press('ArrowRight');
+      await settle(page);
+      const moved = await page.evaluate(() => { const g = document.querySelector('.p3-export-oseg'); const on = g.querySelector('[aria-checked="true"]'); return { on: on?.textContent ?? null, focus: document.activeElement === on }; });
+      ok(moved.on !== before && moved.focus, `#4221 ${where}: ArrowRight moves the first setting's selection and focus with it (${before} → ${JSON.stringify(moved)})`);
+      await page.keyboard.press('ArrowLeft');
+      await settle(page);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // markup-audit
 if (runs('4235')) {
   console.log(`\nAn edit's reveal reads layout a frame after the repaint, not in the callback that rebuilt the preview (#4235)\n${'='.repeat(78)}`);
   // `revealGroup` reads the pane's and the palette's boxes. Read in the frame that just rebuilt the preview, that read

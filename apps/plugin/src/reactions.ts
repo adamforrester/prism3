@@ -42,7 +42,7 @@
  * NOT COVERED, stated because it is invisible from the call site: reactions on a member's descendants. Only the
  * member's own reactions are read, written and recorded.
  */
-import { coordKey, coordPairs } from '@prism3/engine';
+import { coordKey, coordPairs } from '@prism3/engine'; import { failureDetail } from './host-detail';   // #4253
 
 /** The axis the reactions are planned from, and its three values. */
 export const STATE_AXIS = 'state';
@@ -246,7 +246,7 @@ export const writeSetReactions = async (
       else misses.push(`${mName}.reactions -> ${r.trigger} NOT WRITTEN (${r.to} is not in the set)`);
     }
     try { await m.setReactionsAsync(write); }
-    catch (err) { misses.push(`${mName}.reactions -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+    catch (err) { misses.push(`${mName}.reactions -> REFUSED (${failureDetail(err)})`); continue; }
     const back = await readReactions(m);
     if (back && reactionVerdict(wantRead, back).differs) misses.push(`${mName}.reactions -> NOT HELD (wrote ${reactionsText(wantRead)}, reads ${reactionsText(back)})`);
     if (opts.every && opts.yieldTo && ++writes % opts.every === 0) await opts.yieldTo();

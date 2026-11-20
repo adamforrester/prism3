@@ -684,9 +684,10 @@ export const GATES: Gate[] = [
   },
   {
     // The four git-history gates above, replayed on main's push run in a `$TMPDIR` clone (#2556): a
-    // squash that breaks a gate's rule must fail by that gate's own assertion. Runs the gates itself.
+    // squash that breaks a gate's rule must fail by that gate's own assertion. Runs the gates itself. Also
+    // replays a merge-group run (#4106): each gate reads the group's parent, and fails closed without it.
     id: 'lint-push-base',
-    ciStep: "On main's push run each git-history gate compares a squash with its parent (#2556)",
+    ciStep: "On main's push run and a merge-group run each git-history gate reads the right base (#2556, #4106)",
     cmd: engine('lint-push-base.ts'),
   },
   {
