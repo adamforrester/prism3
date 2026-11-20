@@ -85,13 +85,13 @@ The brief's sections follow one locked spine, so each lands in a known place:
 | §2 Anatomy and parts | `anatomy` (§2 below) |
 | §3 Properties / API | `props` |
 | §4 States and variants | `states`, `variants`, `axisKinds`. A brief state or axis the def omits is a `contested` entry in `notes` that says so. A component with no interaction states of its own, including a container whose states live on its children, declares `states: []`, never `['rest']` (the validator refuses it) |
-| §5 Usage guidance | `docs` (`usage`, `do`, `dont`) |
+| §5 Usage guidance | `docs` (`usage`, `do`, `dont`; the build rules go in its `implementation` list, below) |
 | §6 Accessibility | `accessibility` (`role`, `wcag`, `keyboard`, `focus`, `aria`) |
 | §7 Content guidelines | `content` (`labelPattern`, `errorPattern`, `emptyPattern`, `dialogPattern`, `metaphorRules` — a closed key list) and `docs.contentGuidelines` |
 | §8 Motion and transition | `motion` (`enter`, `exit`, `reduceMotion`) |
 | §9 Internationalization | `accessibility` `aria` (translatable names, what mirrors) and `anatomy.codeOnly` entries led by `RTL —` or `text expansion —` (the schema has no i18n field) |
 | §10 Naming | `aliases` (kebab-case ids) and `ai.triggerKeywords` (phrases) |
-| §11 Implementation notes | `anatomy.codeOnly` |
+| §11 Implementation notes | the `docs` `implementation` list for a rule a developer acts on, `anatomy.codeOnly` for what Figma cannot carry |
 | §12 Related and alternative components | `composition` and `ai` (`ai.commonPartners`, `ai.avoidWhen`) |
 | §13 Field POV evolution | the `evolution` bucket of `notes` |
 | §15 Agent-consumable schema | identity (`category`, `status`), and its open points into the `contested` and `unverified` buckets of `notes` |
@@ -140,6 +140,17 @@ strips them (`notes` whole; each `codeOnly` entry down to its leading term); and
 `lint-component-docs` and `apps/plugin/lint-bundle-prose.ts` fail by name if either reaches a
 shipped form. Provenance, history, issue numbers, brief section references and Prism 2 go there,
 or in code comments.
+
+**Usage or implementation.** Shipped guidance has three readers: a designer placing the component, an
+agent generating UI with it, and a developer building it in code. One test sorts each rule:
+
+- Would a designer placing it in a mockup act on it? The `docs` `do` / `dont` lists. A rule both readers act on
+  (a prop the designer sets and the developer wires) stays here.
+- Only someone writing the component's code (DOM and ARIA wiring, state ownership, events, CSS technique,
+  what a brand setting builds)? The `docs` `implementation` list. It ships in `components.ai.json` and as the page's
+  "Building it in code" section.
+- The ARIA contract? The `accessibility` `aria` field.
+- What Figma cannot carry, or its history? `anatomy.codeOnly` / `notes`, which do not ship.
 
 `summary` is the one line a designer reads in Figma: the plugin writes it as the component
 set's description (each component's, for an `emitAsComponents` def) and as the description on
@@ -446,7 +457,7 @@ whose actual value comes from the host, not from the plan.
   small size of the defs in its `SMALL_SIZE` list, the flush text buttons in `FLUSH_MEMBERS`, whose
   44×44 (24×24 at small) target is extended in code and must be stated in the def's `codeOnly`, and
   the flush icon buttons in `CODE_SIDE_TARGETS`, whose target is extended in code to 44×44 at every
-  size and must be stated in both `codeOnly` and the shipped docs' do list. A def that is not a
+  size and must be stated in both `codeOnly` and the shipped `docs` `implementation` list. A def that is not a
   control of its own is listed in `EXCLUDED` in `packages/engine/lint-hit-target.ts` with a
   reason, and a part inside a control that is a target of its own (Tag's ×) in `INNER_TARGETS`.
   So in shipped prose, SC 2.5.5 is stated as intent, not as a guarantee for every size. See `packages/engine/components/select.ts` and

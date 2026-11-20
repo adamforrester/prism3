@@ -582,11 +582,13 @@ export const checkboxRow: ComponentDef = {
   docs: {
     usage: 'Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember me"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the `aria-describedby` chain. Past roughly 7–10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.',
     do: [
+      'Accept rich content in the label, so a consent line can carry the link it needs',
+      'Phrase the label positively, and state exactly what is being agreed to on a consent checkbox',
+    ],
+    implementation: [
       'Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond',
       'Set `aria-checked="mixed"` explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech',
       'Let the group own required, validation and the value array; a row inside a group never manages its own error',
-      'Accept rich content in the label, so a consent line can carry the link it needs',
-      'Phrase the label positively, and state exactly what is being agreed to on a consent checkbox',
     ],
     dont: [
       'Pre-check a consent checkbox — a dark pattern, and for marketing consent often unlawful',

@@ -17450,10 +17450,13 @@ arm: {
     // exemption keyed by def and path, not a loosened pattern: every other string in these three defs is still
     // scanned. It is live: each exempt path must still carry a hit, so the exemption cannot outlive the hold.
     // Items 5, 8 and 12 left the list with Q-UG2b A (#3552): every span they carry is code, so they pass unexempted.
-    const HELD_Q362: Record<string, number[]> = Object.fromEntries(
-      ['button', 'button-destructive', 'button-neutral'].map((id) => [id, [3, 4, 6, 7, 9, 10, 11]]));
+    // #2778 (Q362 decided A) moved the build rules to `docs.implementation`, wording unchanged, so the same seven lines
+    // are held at their new paths: six build rules, and the flush line, which serves both readers and stays in `docs.do`.
+    const HELD_Q362: Record<string, string[]> = Object.fromEntries(
+      ['button', 'button-destructive', 'button-neutral'].map((id) => [id, [
+        ...[0, 1, 3, 4, 6, 7].map((i) => `docs.implementation[${i}]`), 'docs.do[3]']]));
     const heldHits = new Set<string>(); const heldKeys: string[] = [];
-    for (const [id, idx] of Object.entries(HELD_Q362)) for (const i of idx) heldKeys.push(`${id} docs.do[${i}]`);
+    for (const [id, paths] of Object.entries(HELD_Q362)) for (const p of paths) heldKeys.push(`${id} ${p}`);
     const CODE_FIELD = /^(?:accessibility|content|docs|ai)\./;
     const CODE_WORDS = new Set(['href', 'alt', 'tabindex', 'autocomplete', 'true', 'false', 'mixed']);
     const isCode = (c: string): boolean =>
@@ -22280,6 +22283,7 @@ arm: {
       ...(fieldMessage.anatomy?.codeOnly ?? []).map((c, i): [string, string] => [`anatomy.codeOnly[${i}]`, c.description]),
       ...(fieldMessage.docs.do ?? []).map((d, i): [string, string] => [`docs.do[${i}]`, d]),
       ...(fieldMessage.docs.dont ?? []).map((d, i): [string, string] => [`docs.dont[${i}]`, d]),
+      ...(fieldMessage.docs.implementation ?? []).map((d, i): [string, string] => [`docs.implementation[${i}]`, d]),
       ['docs.usage', fieldMessage.docs.usage ?? ''],
       ['textField.accessibility.aria', textField.accessibility.aria ?? ''],
     ];
@@ -32550,7 +32554,7 @@ arm: {
     && cs.files.get('./cs/component-contracts.json') === cs.files.get('./cs/component-defs.json'),
     `#1325 export_theme: include:[componentSpecs] writes exactly the component contracts, their compatibility copy (the same bytes) and the Specs projection (${[...cs.files.keys()].join(', ')})`);
   const csDoc = JSON.parse(cs.files.get('./cs/component-defs.json') ?? '{}');
-  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.5' && Object.keys(csDoc.components ?? {}).length >= 40,
+  ok(csDoc.brand?.id === xbrand.id && csDoc.format === 'prism3-component-defs/1.6' && Object.keys(csDoc.components ?? {}).length >= 40,
     `export_theme: the component-defs export is the brand's (${csDoc.brand?.id}), in its format, with every component (${Object.keys(csDoc.components ?? {}).length})`);
 
   // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
@@ -36147,6 +36151,43 @@ arm: {
 // fixture, not a path, so the test does not move when that file does. Module scope since #1387's block
 // below reads it too.
 const NB_MASTER: BrandInput = {"id": "nb-redesign", "root": "nbds", "modes": ["light"], "primary": {"l": 0.5418, "c": 0.2151, "h": 23}, "neutral": {"hue": 325.7, "chroma": 0.0025, "auto": true}, "actionPalette": "brand-neutral", "actionAnchorStep": 950, "neutralEmphasis": "strong", "roleColors": {"danger": "primary"}, "radiusScale": 0.5, "controlShape": "hairline", "typography": {"families": {"display": "ITC Garamond Std", "title": "ITC Garamond Std", "body": "Suisse Int'l", "label": "Suisse Int'l", "caption": "Suisse Int'l", "eyebrow": "Suisse Int'l"}, "weights": {"display": ["subtle"], "title": ["subtle"], "body": ["default", "emphasis"], "caption": ["default", "emphasis"], "label": ["default", "emphasis"]}, "weightRoles": {"emphasis": 500}, "responsive": {"fluid": true, "minViewport": 375, "maxViewport": 1440}, "typefaceLibrary": ["Inter", "Suisse Int'l"], "displayCeiling": "2xl", "faces": {"display": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}, "title": {"subtle": {"family": "ITC Garamond Std", "style": "Light Condensed"}}}, "leadingShift": {"title": 1, "body": 1, "display": 1}, "trackingShift": {"display": 1, "body": -1, "label": -1, "caption": -1, "eyebrow": -1}, "lineHeights": {"compact": 1.25, "snug": 1.2}, "sizes": {"title": {"2xl": 56, "xl": 48, "lg": 40, "md": 36, "sm": 32, "xs": 24}, "display": {"sm": 64, "md": 72}}, "sizeOverrides": {"title": {"2xl": {"mobile": 40}, "xl": {"mobile": 36}, "lg": {"mobile": 32}, "md": {"mobile": 28}, "sm": {"mobile": 24}}}}, "overrides": {"light": {"foreground.primary": {"palette": "neutral", "step": "025"}, "foreground.secondary": {"palette": "neutral", "step": "050"}, "foreground.tertiary": {"palette": "neutral", "step": "100"}, "interactive.primary.fill.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.fill.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.fill.rest": {"palette": "brand-neutral", "step": "025"}, "interactive.primary.text.rest": {"palette": "brand-neutral", "step": "950"}, "interactive.primary.text.hover": {"palette": "brand-neutral", "step": "800"}, "interactive.primary.text.pressed": {"palette": "brand-neutral", "step": "700"}, "inverse.interactive.primary.text.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.border.rest": {"palette": "brand-neutral", "step": "025"}, "inverse.interactive.primary.on-fill": {"palette": "neutral", "step": "950"}, "interactive.primary.border.rest": {"palette": "brand-neutral", "step": "350"}}}, "motionPersonality": {"tempo": "relaxed"}, "baseMd": 5, "radiusHairline": true, "brandColors": [{"name": "brand-neutral", "oklch": {"l": 0.578529639963649, "c": 0.014407766653341907, "h": 244.39838400513634}}], "outlineInteraction": "solid-tint", "layout": {"breakpoints": [0, 768], "columns": 24, "columnOverrides": {"sm": 6}, "containerNarrow": 740}, "density": "comfortable", "buttonContentSize": "smaller", "buttonMinWidthMultiplier": 2.75, "buttonIcons": "edges"} as unknown as BrandInput;
+
+// ---- #2778 (owner, 2026-11-18, Q362 A): THE BUILD RULES SHIP IN THEIR OWN LIST ------------------------------------
+// `docs.implementation` holds the rules a developer acts on and a designer placing the component does not; `docs.do`
+// keeps the usage rules. Expectations are literals typed from the move (the proposal's classification), never read from
+// a def: four representative lines must sit in `implementation` and not in `do`, in the def, in components.ai.json and
+// on the page under "Building it in code"; the defs that carry the list are named; and no line is in both lists.
+// Mutation: put Checkbox.Group's value-array line back in `docs.do` → `#2778 checkbox-group: …` fails by name.
+{
+  const MOVED: [string, string][] = [
+    ['button', "Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered"],
+    ['flush-icon-button', 'Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized'],
+    ['checkbox-group', 'Let the group own the value array, required and validation — a row inside a group never manages its own'],
+    ['tab-item', 'Let the tab list set selected from its value'],
+  ];
+  const ai = JSON.parse(readFileSync(resolve(HERE, './out/components/components.ai.json'), 'utf8')) as { components: unknown };
+  const aiList = (Array.isArray(ai.components) ? ai.components : Object.values(ai.components as object)) as Array<{ id: string; docs?: { do?: string[]; implementation?: string[] } }>;
+  for (const [id, line] of MOVED) {
+    const def = componentDefs.find((d) => d.id === id);
+    const a = aiList.find((c) => c.id === id);
+    const md = existsSync(resolve(HERE, `./out/components/${id}.md`)) ? readFileSync(resolve(HERE, `./out/components/${id}.md`), 'utf8') : '';
+    const code = md.split('\n## ').find((sec) => sec.startsWith('Building it in code')) ?? '';
+    const where = {
+      def: !!def?.docs.implementation?.includes(line) && !def?.docs.do?.includes(line),
+      ai: !!a?.docs?.implementation?.includes(line) && !a?.docs?.do?.includes(line),
+      page: code.includes(line.replace(/`[^`]*`/g, '').slice(0, 30)) || code.includes(line.slice(0, 40)),
+    };
+    ok(where.def && where.ai && where.page, `#2778 ${id}: the build rule ships in docs.implementation, not docs.do, in the def, components.ai.json and the page's Building it in code (${JSON.stringify(where)})`);
+  }
+  const WITH = ['_slider-thumb', 'banner', 'button', 'button-destructive', 'button-neutral', 'card-number-field', 'checkbox-control', 'checkbox-group', 'checkbox-row',
+    'code-input', 'counter', 'dialog', 'field-message', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'icon-button',
+    'icon-button-destructive', 'icon-button-neutral', 'page-nav', 'pagination', 'pagination-item', 'password-field', 'radio-control', 'radio-group', 'radio-row',
+    'search-field', 'segmented-control', 'select', 'slider', 'spinner', 'switch-control', 'switch-row', 'tab-item', 'tag', 'text-field', 'textarea', 'veil'];
+  const got = componentDefs.filter((d) => (d.docs.implementation ?? []).length).map((d) => d.id).sort();
+  ok(JSON.stringify(got) === JSON.stringify([...WITH].sort()), `#2778 the defs carrying docs.implementation are the ${WITH.length} the move named (got ${got.length}: ${JSON.stringify(got.filter((x) => !WITH.includes(x)))} extra, ${JSON.stringify(WITH.filter((x) => !got.includes(x)))} missing)`);
+  const both = componentDefs.flatMap((d) => (d.docs.implementation ?? []).filter((l) => (d.docs.do ?? []).includes(l)).map((l) => `${d.id}: ${l.slice(0, 50)}`));
+  ok(both.length === 0, `#2778 no line is in both docs.do and docs.implementation (${JSON.stringify(both)})`);
+}
 
 // ---- #2814 (owner, 2026-11-18, A): CODE INPUT'S CELLS SET LINING FIGURES ---------------------------------------------
 // The title family's default figures can be old style, which drop 3, 4, 5, 7 and 9 below the baseline, so a digit sits
