@@ -54,11 +54,12 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, applyNestItemPrefers, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities, type AnatomyPlan, type FigmaNodePlan, type SwapFound } from '@prism3/engine/components';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, applyNestItemPrefers, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, ICON_PLACEHOLDER, planComponentName, planStamp, glyphLayerOpacities, type AnatomyPlan, type FigmaNodePlan, type SwapFound } from '@prism3/engine/components';
 import { ENGINE_VERSION, coordKey } from '@prism3/engine';
 import { tailOf } from '@prism3/engine/figma';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
+import { searchComponents } from './component-search';   // #4160
 import { labelColumns, readLabelColumn } from './label-columns';
 import { BASELINE_KEY, UPDATING_KEY, baselineOf, builtByPrism3, mainOf, readBaseline, snapshotMember, writeBaseline, type OwnershipRead } from './member-baseline';
 import { REACTIONS_PATH, writeSetReactions } from './reactions';
@@ -1953,7 +1954,8 @@ const writeComponentSet = async (
   await api.loadAllPagesAsync();
   // The cast lives HERE, next to the criteria that make it true: `types: ['COMPONENT']` is what
   // guarantees every result is a `CompRef` (see the port's note on why the port itself cannot say so).
-  const comps = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
+  // #4160 — each whole-file search for components or sets runs with hidden instance children skipped (`searchComponents`).
+  const comps = searchComponents(['COMPONENT'], () => api.root.findAllWithCriteria({ types: ['COMPONENT'] })) as readonly CompRef[];
   const compByName = new Map(comps.map((c) => [c.name, c] as const));
   // HOW MANY plain components carry each name (#1796). A nest or swap target resolves only when exactly ONE does:
   // `compByName` keeps the last of several, which is document order picking, so the targets read `oneComp`, and
@@ -1971,7 +1973,7 @@ const writeComponentSet = async (
   // silently, which is the one fact a nest must not lose: two sets under the exact name a def targets is
   // an ambiguity to report, not a tie to break by document order. `resolveNestMember` filters it by exact
   // name per nest, so a set renamed aside (`__old__checkbox-row`) never answers for `checkbox-row`.
-  const compSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[];
+  const compSets = searchComponents(['COMPONENT_SET'], () => api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] })) as readonly CompSetRef[];
 
   /** WHAT THE FILE HOLDS under a name `compByName` came back empty for (#1280 PR-C). The same second
    *  search the nest path runs, and on the same terms: by name, every type, on the FAILURE PATH ONLY —
@@ -3789,6 +3791,13 @@ const writeComponentSet = async (
   // preferred def id resolves to the set built under its name, found fresh because the set's key is what Figma
   // stores; a def not built in this file is a named miss and the rest are written. A preferred-only slot with none
   // of its preferred sets built is written open, since preferred-only with nothing preferred flags every child.
+  // #4160 — the file's sets and components are searched ONCE for the whole pass, not once per slot property, and only
+  // when a slot names a preferred def. Nothing is built inside the loop, so one search answers every slot.
+  let slotLookup: { sets: readonly CompSetRef[]; singles: readonly CompRef[] } | undefined;
+  const slotFound = (): NonNullable<typeof slotLookup> => (slotLookup ??= {
+    sets: searchComponents(['COMPONENT_SET'], () => api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] })) as readonly CompSetRef[],
+    singles: searchComponents(['COMPONENT'], () => api.root.findAllWithCriteria({ types: ['COMPONENT'] })) as readonly CompRef[],
+  });
   for (const p of readable ? props : []) {
     if (p.type !== 'SLOT') continue;
     const key = propIds.get(p.name);
@@ -3804,8 +3813,7 @@ const writeComponentSet = async (
     const ids = [...(p.preferred ?? []), ...optional];
     if (ids.length) {
       // A def with variants builds a set under its id; a single-component def (#2296) builds one component under it.
-      const sets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[];
-      const singles = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
+      const { sets, singles } = slotFound();
       for (const id of ids) {
         const asSet = sets.filter((x) => x.name === id);
         const named: { key?: string }[] = asSet.length ? asSet : singles.filter((x) => x.name === id);
@@ -3843,26 +3851,27 @@ const writeComponentSet = async (
 
   // ---- ICON SWAPS' PREFERRED VALUES (#4164, owner decision A) ----------------------------------------------------
   // An INSTANCE_SWAP whose target is a core icon (`preferIcons`) offers every icon component the file holds first in its
-  // swap picker: each component whose name shares the target's prefix (`icon/`), in name order, by key. Found fresh, as
+  // swap picker: each component whose name shares the target's prefix (`icon/`), in name order, by key. The placeholder
+  // (`ICON_PLACEHOLDER`) is left out (owner decision 2026-11-20): it stays the swap's default, not an icon to pick. Found fresh, as
   // the slot pass finds its sets, since a component's key is what Figma stores. No icon in the file, or a name held by
   // more than one component, is a named miss, and the rest are written. Read back off the set, as a slot's are. The
   // paste payload's twin is `PAYLOAD_ICON_SWAPS` in `anatomy-figma.ts`.
   const iconSwaps = readable ? props.filter((p): p is Extract<typeof p, { type: 'INSTANCE_SWAP' }> => p.type === 'INSTANCE_SWAP' && p.preferIcons === true) : [];
   if (iconSwaps.length) {
-    const all = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
+    const all = searchComponents(['COMPONENT'], () => api.root.findAllWithCriteria({ types: ['COMPONENT'] })) as readonly CompRef[];   // #4160
     for (const p of iconSwaps) {
       const key = propIds.get(p.name);
       if (!key) continue; // reported as not created, above
       const prefix = p.swapTarget.slice(0, p.swapTarget.indexOf('/') + 1);
       const byName = new Map<string, CompRef[]>();
       for (const c of all) if (c.name.startsWith(prefix)) byName.set(c.name, [...(byName.get(c.name) ?? []), c]);
-      const names = [...byName.keys()].sort();
+      const names = [...byName.keys()].filter((n) => n !== ICON_PLACEHOLDER).sort();
       const twiceHeld = names.filter((n) => byName.get(n)!.length > 1);
       const preferredValues: SlotPreferredValue[] = names.filter((n) => byName.get(n)!.length === 1 && byName.get(n)![0].key).map((n) => ({ type: 'COMPONENT', key: byName.get(n)![0].key! }));
       if (twiceHeld.length) misses.push(`property ${p.name}.preferred -> ${twiceHeld.length} icon name(s) held by more than one component (${twiceHeld.slice(0, 3).join(', ')}; not offered in the swap. Rename or remove the stale copies, then rebuild)`);
       // Icons with no key are a host that cannot name a component by key (Figma always keys one): nothing to write there.
       if (!preferredValues.length) {
-        if (!names.length) misses.push(`property ${p.name}.preferred -> no ${prefix}* component in this file (build the icons first, then rebuild this one; until then the swap lists no icons first)`);
+        if (!byName.size) misses.push(`property ${p.name}.preferred -> no ${prefix}* component in this file (build the icons first, then rebuild this one; until then the swap lists no icons first)`);
         continue;
       }
       const edit = liveSet().editComponentProperty;

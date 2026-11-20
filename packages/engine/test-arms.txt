@@ -210,6 +210,7 @@ apps/plugin/test-run-progress.ts #3170
 apps/plugin/test-run-progress.ts #3208
 apps/plugin/test-run-read.ts #3177
 apps/plugin/test-slot-constraints.ts #2646
+apps/plugin/test-slot-constraints.ts #4160
 apps/plugin/test-slot-constraints.ts #4164
 apps/plugin/test-slot-migration.ts #3697
 apps/plugin/test-slot-migration.ts #3762

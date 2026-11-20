@@ -61,7 +61,7 @@ import { rtlNote, withMirrors } from './rtl-mirror';
 import { RTL_MIRRORED_GLYPHS, ICON_SOURCES } from './icon-set';
 import { docSections } from './component-doc-sections';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, fieldStyleFor, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound, type FigmaPropertyPlan } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, fieldStyleFor, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, ICON_PLACEHOLDER, type AnatomyPlan, type SwapFound, type FigmaPropertyPlan } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, slotTextUnclaimed, slotTextMigrationOf, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -27033,9 +27033,18 @@ arm: {
         const iRun = await runPayload(planSetToPluginJs(iconTag), { vars: iconTag.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: iconTag.flatMap((pl) => planTextStyles(pl.root)),
           comps: ['icon/FPO-default-icon', 'icon/search', 'icon/check', 'provider-logo/payment/generic'], compKeys: true, page: iPage });
         const iDefs = Object.values((((iPage.children.find((c) => c.type === 'COMPONENT_SET') ?? {}) as Record<string, unknown>).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
-        const ICONS = '[{"type":"COMPONENT","key":"CK:icon/FPO-default-icon"},{"type":"COMPONENT","key":"CK:icon/check"},{"type":"COMPONENT","key":"CK:icon/search"}]';
+        // The placeholder is left out (owner decision 2026-11-20): it stays the default, it is not an icon to pick.
+        const ICONS = '[{"type":"COMPONENT","key":"CK:icon/check"},{"type":"COMPONENT","key":"CK:icon/search"}]';
         ok(iDefs.length > 0 && iDefs.every((d) => JSON.stringify(d.preferredValues) === ICONS) && !iRun.misses.some((m) => /\.preferred ->/.test(m)),
-          `#4164 paste: every icon swap prefers the three icon components, by key in name order, and not the provider logo (${JSON.stringify(iDefs.map((d) => d.preferredValues))}${iRun.misses.length ? `; misses ${JSON.stringify(iRun.misses.filter((m) => /preferred/.test(m)).slice(0, 2))}` : ''})`);
+          `#4164 paste: every icon swap prefers the two icon components, by key in name order, and not the placeholder or the provider logo (${JSON.stringify(iDefs.map((d) => d.preferredValues))}${iRun.misses.length ? `; misses ${JSON.stringify(iRun.misses.filter((m) => /preferred/.test(m)).slice(0, 2))}` : ''})`);
+        // THE PLACEHOLDER (owner decision 2026-11-20): no icon swap offers `icon/FPO-default-icon` as a preferred value, and
+        // each still defaults to it: `73:37`, the stub's id for the first of `comps`, which is the placeholder. Mutation: the
+        // payload's exclusion dropped (`.filter(n=>n!==…)` removed) → `#4164 paste, placeholder`.
+        const iPlaceholderId = '73:37';
+        ok(ICON_PLACEHOLDER === 'icon/FPO-default-icon' && iDefs.length > 0
+          && iDefs.every((d) => Array.isArray(d.preferredValues) && (d.preferredValues as { key?: string }[]).length > 0 && !(d.preferredValues as { key?: string }[]).some((v) => v.key === 'CK:icon/FPO-default-icon'))
+          && iDefs.every((d) => d.defaultValue === iPlaceholderId),
+          `#4164 paste, placeholder: no icon swap prefers the placeholder, and each still defaults to it (${JSON.stringify(iDefs.map((d) => ({ default: d.defaultValue, preferred: d.preferredValues })))})`);
         // A name two components hold (a stale copy of icon/check) is left out of the list and named; the rest are written.
         // Mutation: the exclusion dropped (`by.get(n).length===1&&by.get(n)[0].key` → `by.get(n)[0].key`) → `#4164 paste, duplicate`.
         const dPage = { children: [] as Record<string, unknown>[] };
@@ -27043,7 +27052,7 @@ arm: {
           comps: ['icon/FPO-default-icon', 'icon/search', 'icon/check', 'icon/check', 'provider-logo/payment/generic'], compKeys: true, page: dPage });
         const dDefs = Object.values((((dPage.children.find((c) => c.type === 'COMPONENT_SET') ?? {}) as Record<string, unknown>).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
         const dMisses = dRun.misses.filter((m) => /\.preferred ->/.test(m));
-        ok(dDefs.length > 0 && dDefs.every((d) => JSON.stringify(d.preferredValues) === '[{"type":"COMPONENT","key":"CK:icon/FPO-default-icon"},{"type":"COMPONENT","key":"CK:icon/search"}]') && dMisses.length === dDefs.length
+        ok(dDefs.length > 0 && dDefs.every((d) => JSON.stringify(d.preferredValues) === '[{"type":"COMPONENT","key":"CK:icon/search"}]') && dMisses.length === dDefs.length
           && dMisses.every((m) => /^property \S.*\.preferred -> 1 icon name\(s\) held by more than one component \(icon\/check; not offered in the swap\. Rename or remove the stale copies, then rebuild\)$/.test(m)),
           `#4164 paste, duplicate: an icon name two components hold is left out of the list and named as a miss (${JSON.stringify(dDefs.map((d) => d.preferredValues))}; ${JSON.stringify(dMisses)})`);
       }

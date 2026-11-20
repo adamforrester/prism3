@@ -971,6 +971,9 @@ export const providerLogoComponentName = (mark: string): string => `${PROVIDER_L
 export const ICON_DEF_ID = 'icon';
 /** The component a glyph of the icon set is an instance of (#2380). */
 export const iconComponentName = (glyph: string): string => `${ICON_DEF_ID}/${glyph}`;
+/** The icon a swap shows until a designer picks one (`icon/FPO-default-icon`, "for position only"). It stays a swap's
+ *  default but is never one of its preferred values (#4164, owner decision 2026-11-20): the list offers icons to pick. */
+export const ICON_PLACEHOLDER = iconComponentName('FPO-default-icon');
 /** The layer name of the icon instance an INSET part wraps (#2380, `FigmaNodePlan.glyphInset`): checkbox's
  *  `mark` and `dash` are each a frame holding one instance named this. */
 export const ICON_INSET_CHILD = 'glyph';
@@ -5443,13 +5446,13 @@ let b;try{b=(set.componentPropertyDefinitions||{})[key];}catch(e){b=undefined;}c
 const g={minChildren:bs.minChildren!=null?bs.minChildren:null,maxChildren:bs.maxChildren!=null?bs.maxChildren:null,allowPreferredValuesOnly:bs.allowPreferredValuesOnly===true,displayEmptyByDefault:bs.displayEmptyByDefault===true};const gk=((b&&b.preferredValues)||[]).map(v=>String(v.key));
 if(JSON.stringify(g)!==JSON.stringify(w)||JSON.stringify(gk)!==JSON.stringify(pv.map(v=>v.key)))misses.push('property '+p.name+'.slotSettings -> NOT KEPT (wrote '+JSON.stringify(w)+' with '+pv.length+' preferred; the set holds '+JSON.stringify(g)+' with '+gk.length+')');}`;
 // #4164 (owner decision A) — the plugin executor's twin is the ICON SWAPS pass in `apps/plugin/src/write-components.ts`.
-const PAYLOAD_ICON_SWAPS = `// #4164 — ICON SWAPS: every icon component the file holds is a swap's preferred value, offered first; none is a named miss.
+const PAYLOAD_ICON_SWAPS = `// #4164 — ICON SWAPS: every icon component the file holds but the placeholder is a swap's preferred value, offered first; none is a named miss.
 {const isw=PROPS.filter(p=>p.type==='INSTANCE_SWAP'&&p.preferIcons===true);if(isw.length){const all=figma.root.findAllWithCriteria({types:['COMPONENT']});
 for(const p of isw){const key=propIds.get(p.name);if(!key)continue;const prefix=p.swapTarget.slice(0,p.swapTarget.indexOf('/')+1);const by=new Map();
-for(const c of all)if(c.name.startsWith(prefix))by.set(c.name,(by.get(c.name)||[]).concat([c]));const names=[...by.keys()].sort();const twice=names.filter(n=>by.get(n).length>1);
+for(const c of all)if(c.name.startsWith(prefix))by.set(c.name,(by.get(c.name)||[]).concat([c]));const names=[...by.keys()].filter(n=>n!==${JSON.stringify(ICON_PLACEHOLDER)}).sort();const twice=names.filter(n=>by.get(n).length>1);
 const pv=names.filter(n=>by.get(n).length===1&&by.get(n)[0].key).map(n=>({type:'COMPONENT',key:by.get(n)[0].key}));
 if(twice.length)misses.push('property '+p.name+'.preferred -> '+twice.length+' icon name(s) held by more than one component ('+twice.slice(0,3).join(', ')+'; not offered in the swap. Rename or remove the stale copies, then rebuild)');
-if(!pv.length){if(!names.length)misses.push('property '+p.name+'.preferred -> no '+prefix+'* component in this file (build the icons first, then rebuild this one; until then the swap lists no icons first)');continue;}
+if(!pv.length){if(!by.size)misses.push('property '+p.name+'.preferred -> no '+prefix+'* component in this file (build the icons first, then rebuild this one; until then the swap lists no icons first)');continue;}
 try{set.editComponentProperty(key,{preferredValues:pv});}catch(err){misses.push('property '+p.name+'.preferred -> REFUSED ('+(err&&err.message?err.message:String(err))+')');continue;}
 let b;try{b=(set.componentPropertyDefinitions||{})[key];}catch(e){b=undefined;}const gk=((b&&b.preferredValues)||[]).map(v=>String(v.key));
 if(JSON.stringify(gk)!==JSON.stringify(pv.map(v=>v.key)))misses.push('property '+p.name+'.preferred -> NOT KEPT (wrote '+pv.length+' icons; the set holds '+gk.length+')');}}}`;
