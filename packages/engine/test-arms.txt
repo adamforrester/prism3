@@ -217,6 +217,7 @@ apps/plugin/test-slot-migration.ts #3763
 apps/plugin/test-slot-migration.ts #3796
 apps/plugin/test-slot-migration.ts #3797
 apps/plugin/test-slot-migration.ts #3809
+apps/plugin/test-slot-migration.ts #4351
 apps/plugin/test-start-screen.mjs #1031
 apps/plugin/test-start-screen.mjs #1037
 apps/plugin/test-start-screen.mjs #1041
@@ -768,6 +769,7 @@ apps/studio/test-report.ts #3561
 apps/studio/test-report.ts #3697
 apps/studio/test-report.ts #3702
 apps/studio/test-report.ts #3883
+apps/studio/test-report.ts #3957
 apps/studio/test-report.ts #4257
 apps/studio/test-run-ended.ts #533
 apps/studio/test-run-time.ts #3471

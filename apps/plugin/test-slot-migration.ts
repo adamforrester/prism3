@@ -1026,5 +1026,40 @@ section('dialog — the footer buttons move into the nested Button.Group slot, k
   ok(!!found && current === null, `dialog/old shape: a set with the stacked footer's old buttons migrates, and one already holding the group does not (${!!found}, ${current === null})`);
 }
 
+section('report — a placed instance\'s name, page and text stay out of Report a problem (#4351)');
+{
+  // The slot migrations name each placed instance by the client's own layer and page names, and the line carries the
+  // client's own text (the rows' labels, the body that moves). The drawer keeps it; Report a problem must not. The
+  // names and labels are literals typed here, and the lines come from the plugin's own dry run and builders, so only the
+  // report's rule (`reduceInstance`, studio `report.ts`) can take them out. Mutation: `reduceInstance` dropped from
+  // `reduceFailure` → `#4351 report/instance: … the check's line` and the others below, by name.
+  const { buildReport } = await import('../studio/src/state/report');
+  const { slotTextLine } = await import('./src/slot-text-migration');
+  const SECRET = /Checkout Hero|Unannounced|Spring Sale|Members only/;
+  const report = (lines: string[]): string => buildReport({ stamp: 's', engine: 'e', host: 'figma', includeBrand: false, seen: [], brand: null,
+    activity: [{ title: 'Update file', verdict: '⚠ check', lines, agent: false }] });
+  const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
+  const w = await world(LEGACY['checkbox-group'](), target.plans);
+  const medium = memberNamed(w.set(), 'status=default, size=medium');
+  w.put(place('Checkout Hero', medium, w.set(), {}, { row1: { props: { 'Label#1:0': 'Spring Sale' } } }), medium);
+  const check = previewVerdict(await previewUpdate(w.host, [target])).lines;
+  const named = check.filter((l) => l.includes('Checkout Hero'));
+  const cases: [string, string[]][] = [
+    ['the check\'s line', check],
+    ['a carry miss', [applyVerdict({ outcomes: [{ set: 'checkbox-group', def: 'checkbox-group', updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], identity: [],
+      content: ['checkbox-group instance "Checkout Hero": row1 Label reads "Members only", expected "Spring Sale"'], misses: [], unrecorded: [], kept: [], handEdits: 'keep' }], missing: [], refused: [] } as never).lines.join('\n')]],
+    ['the slot text\'s line, with its page', [slotTextLine('banner', { property: 'body text', show: 'Show body', hide: 'Hide body' },
+      { id: 'T:1', name: 'Checkout Hero', page: 'Unannounced', member: 'm', case: { kind: 'move', characters: 'Spring Sale' } })]],
+    ['a name holding a quote and a line break', ['checkbox-group instance "Checkout "Hero"\nUnannounced": no longer in the file']],
+  ];
+  ok(named.length > 0 && named.some((l) => l.includes('Spring Sale')), `#4351 report/instance premise: the dry run names the instance and its label (${JSON.stringify(named)})`);
+  for (const [name, lines] of cases) {
+    const text = report(lines);
+    const kept = text.split('\n').filter((l) => l.includes(' instance ') && !/\d instances? in this file/.test(l));
+    ok(lines.some((l) => SECRET.test(l)) && !SECRET.test(text) && kept.length > 0 && kept.every((l) => l.endsWith(' instance [removed]')),
+      `#4351 report/instance: the report keeps the set and cuts the instance's name, page and text, ${name} (${JSON.stringify(kept)})`);
+  }
+}
+
 console.log(`\n${failed ? `✗ ${failed} of ${executed} failed` : `✓ slot migration: all pass — ${executed} assertions executed`}`);
 if (failed) process.exit(1);
