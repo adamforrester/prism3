@@ -47,7 +47,20 @@ npm install ./prism3-tokens-<version>.tgz       # in the client project
 |---|---|
 | `@prism3/tokens` (also `@prism3/tokens/prism3.css`) | every block, `:root` first |
 | `@prism3/tokens/prism3/base.css` | the light defaults, on `:root` and `[data-theme="light"]` |
-| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `dark`, `hc-dark`, `hc-light` |
+| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `dark`, `hc-dark`, `hc-light`. `dark.css` also holds the system-preference block below |
+
+**Following the OS (#4140).** A page that sets no `data-theme` follows the system setting: the dark values also apply
+under `@media (prefers-color-scheme: dark)` on `:root:not([data-theme])`, with no script and no flash of light. A page
+or subtree that sets `data-theme` keeps the theme it asked for. The high-contrast modes are opt-in only, by attribute.
+
+The CSS defines custom properties only, so it can't set `color-scheme`, which native form controls and scrollbars read.
+Add it beside the import:
+
+```css
+:root:not([data-theme]) { color-scheme: light dark; }
+[data-theme$="dark"] { color-scheme: dark; }
+[data-theme$="light"] { color-scheme: light; }
+```
 
 Names are stock Style Dictionary's, with the token root as prefix: `--pds3-…` (`docs/35` §9.4). Every
 mode block defines every name, so a theme switch never falls back to a light value. References stay

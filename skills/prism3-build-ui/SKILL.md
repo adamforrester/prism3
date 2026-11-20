@@ -316,14 +316,14 @@ agent link). Its section 10 says when to run it, how to read the findings and ho
 
 ## If you have the MCP surface
 
-Call `export_theme` to write the brand's tree (`tokens.json`), its metadata sidecar
-(`ai-metadata.json`) and its Figma files (`figma/`) to a directory (the host must grant file
-access), then apply everything above. It does not write the base + overlay set rule 3 builds
-from, so for a multi-mode code build compile the brand with `packages/engine/cli.ts --out <dir>`
-or download it from the studio's export, which both write it. `theme_brand` returns only the contract results and notes unless you
+Call `export_theme` to write the brand's tree (`<brand>.tokens.json`), the base + overlay set
+rule 3 builds from, its metadata sidecar (`<brand>.ai.json`) and its Figma files (`figma/`) to a
+directory (the host must grant file access), then apply everything above. The names are the
+ones `packages/engine/cli.ts --out <dir>` writes. `theme_brand` returns only the contract results and notes unless you
 ask for the tree with `include`, and the tree is too large to read through a tool result.
 When you finish, `score_consumption` runs the self-check above for you: it flags invented
 names and raw primitives, and scores each `{fg, bg, kind}` pair in every mode. The skill and
 the MCP compose: the MCP gives you the *data*, this skill is the *discipline* for using it.
 Without the MCP (a committed catalog), the discipline is identical — you read the tree from the
-file. From a `design.md` brief, compile it first (`theme_from_brief`, or the CLI).
+file. From a `design.md` brief, compile it first (`theme_from_brief`, or the CLI), and pass its
+`derivedBrandInput` as `score_consumption`'s `brand`.

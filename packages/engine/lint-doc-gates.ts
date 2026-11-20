@@ -144,6 +144,9 @@
  * job-level `if:` is not this arm's: `all-gates.sh` fails a skipped job by name unless the docs-only exemption
  * (arm above, `exemptionGaps`) lists it. Today the rule holds at zero; a step that genuinely needs either key is
  * #888's route, a separate non-required job, and an allowlist for it would be added here in that PR.
+ * A third key neuters a step the same way (#4201 item 1): `shell:` names the program the `run:` text is handed to,
+ * so `shell: true {0}` runs `true <script>` and always passes. A gate step's shell, and a job's or the workflow's
+ * `defaults.run.shell`, is sound only absent or exactly `bash` or `sh`.
  *
  * WHY IMPORTING `verify.ts` IS SAFE: it runs its gates only under a main-module guard, so importing
  * `GATES` costs nothing. It does run its own self-checks at import time, which is deliberate — this
@@ -659,7 +662,16 @@ export const pinGaps = (tree: YamlValue, pkgJson: string, nodeVersion: string): 
  *  a push to `main`, and on a merge-queue group (`merge_group`, with `checks_requested`): a queue whose required check
  *  never reports holds every PR forever, and one whose workflow lost the trigger would wait on a check nothing starts.
  *  The `gates` job must also run in a merge-group run, so it may carry no `if:` other than `always()`, which
- *  `aggregatorGaps` already holds. Empty when sound. */
+ *  `aggregatorGaps` already holds.
+ *  #4106 — THE MERGE-GROUP BASE. The top-level `env:` sets `MERGE_GROUP_BASE_SHA` to the group's parent, exactly
+ *  `${{ github.event.merge_group.base_sha }}`, and no job or step sets it again: every git-history gate reads it as its
+ *  base in a merge-group run, and fails closed without it (`mergeGroupBase` in `comparison-base.ts`). And no job or
+ *  step `if:` reads the event or a base or head ref: an `if:` like that is how a gate stops running in one kind of run,
+ *  merge groups included, with nothing in the step list showing it. The docs-only exemption reads a job output, and
+ *  `docs-only.sh` never exempts a merge group (`test-docs-only.sh`). Empty when sound. */
+export const MERGE_GROUP_BASE_ENV = 'MERGE_GROUP_BASE_SHA';
+export const MERGE_GROUP_BASE_VALUE = '${{ github.event.merge_group.base_sha }}';
+const EVENT_IN_IF = /github\.event_name|github\.base_ref|github\.head_ref|github\.event\.(pull_request|merge_group)|GITHUB_EVENT_NAME|GITHUB_BASE_REF/;
 export const triggerGaps = (tree: YamlValue): string[] => {
   const on = (tree as { on?: YamlValue }).on;
   const problems: string[] = [];
@@ -671,6 +683,20 @@ export const triggerGaps = (tree: YamlValue): string[] => {
   const mg = o.merge_group as { types?: YamlValue } | undefined;
   if (!mg || typeof mg !== 'object') problems.push('ci.yml does not run on `merge_group`, so a merge queue on `main` would wait on a `gates` check nothing starts (#3698 R3)');
   else if (!Array.isArray(mg.types) || !mg.types.includes('checks_requested')) problems.push('ci.yml\'s `merge_group` trigger does not list `checks_requested`, the one type GitHub sends (#3698 R3)');
+  const env = (tree as { env?: Record<string, YamlValue> }).env;
+  const val = env && typeof env === 'object' ? env[MERGE_GROUP_BASE_ENV] : undefined;
+  if (typeof val !== 'string' || val.trim() !== MERGE_GROUP_BASE_VALUE)
+    problems.push(`ci.yml's top-level \`env:\` does not set \`${MERGE_GROUP_BASE_ENV}: ${MERGE_GROUP_BASE_VALUE}\`, so every git-history gate in a merge-group run has no base and CANNOT RUN (#4106)`);
+  const jobs = (tree as { jobs?: Record<string, { if?: YamlValue; env?: Record<string, YamlValue>; steps?: { name?: YamlValue; if?: YamlValue; env?: Record<string, YamlValue> }[] }> }).jobs ?? {};
+  for (const [k, j] of Object.entries(jobs)) {
+    if (typeof j.if === 'string' && EVENT_IN_IF.test(j.if)) problems.push(`job \`${k}\` runs \`if: ${j.if.trim()}\`, which reads the event or a base or head ref, so it can skip in a merge-group run (#4106)`);
+    if (j.env && typeof j.env === 'object' && MERGE_GROUP_BASE_ENV in j.env) problems.push(`job \`${k}\` sets \`${MERGE_GROUP_BASE_ENV}\` again, over the workflow's (#4106)`);
+    for (const st of j.steps ?? []) {
+      const name = typeof st.name === 'string' ? st.name : '(unnamed)';
+      if (typeof st.if === 'string' && EVENT_IN_IF.test(st.if)) problems.push(`\`${k}\` step "${name}" runs \`if: ${st.if.trim()}\`, which reads the event or a base or head ref, so it can skip in a merge-group run (#4106)`);
+      if (st.env && typeof st.env === 'object' && MERGE_GROUP_BASE_ENV in st.env) problems.push(`\`${k}\` step "${name}" sets \`${MERGE_GROUP_BASE_ENV}\` again, over the workflow's (#4106)`);
+    }
+  }
   return problems;
 };
 
@@ -703,14 +729,25 @@ export const neuteredStepGaps = (tree: YamlValue): string[] => {
   const jobs = (tree as { jobs?: Record<string, Record<string, YamlValue> & { steps?: Record<string, YamlValue>[] }> }).jobs ?? {};
   const problems: string[] = [];
   const soundCoe = (v: YamlValue | undefined): boolean => v === undefined || String(v).trim() === 'false';
+  // #4201 item 1: the program a `run:` is handed to. Only the two shells that run the text as a script are sound.
+  const soundShell = (v: YamlValue | undefined): boolean => v === undefined || /^(bash|sh)$/.test(String(v).trim());
+  const defaultShell = (holder: YamlValue | undefined): YamlValue | undefined =>
+    ((holder as { defaults?: { run?: Record<string, YamlValue> } } | undefined)?.defaults?.run ?? {}).shell;
+  const workflowShell = defaultShell(tree);
   for (const [k, j] of Object.entries(jobs)) {
     const gateSteps = (j.steps ?? []).filter((st) => typeof st.run === 'string' && st.run.trim());
     if (gateSteps.length && !soundCoe(j['continue-on-error']))
       problems.push(`job \`${k}\` carries \`continue-on-error: ${String(j['continue-on-error'])}\`, so its ${gateSteps.length} gate step(s) cannot fail the run`);
+    const jobShell = defaultShell(j);
+    if (gateSteps.length && !soundShell(jobShell))
+      problems.push(`job \`${k}\` sets \`defaults.run.shell: ${String(jobShell)}\`, so its ${gateSteps.length} gate step(s) are handed to that program, not run as a script`);
+    if (gateSteps.length && !soundShell(workflowShell))
+      problems.push(`the workflow sets \`defaults.run.shell: ${String(workflowShell)}\`, so job \`${k}\`'s ${gateSteps.length} gate step(s) are handed to that program, not run as a script`);
     for (const st of gateSteps) {
       const name = typeof st.name === 'string' ? st.name : '(unnamed)';
       if (!soundCoe(st['continue-on-error'])) problems.push(`"${name}" (\`${k}\`) carries \`continue-on-error: ${String(st['continue-on-error'])}\`, so GitHub reports it as \`success\` when the gate fails`);
       if ('if' in st) problems.push(`"${name}" (\`${k}\`) carries a step-level \`if: ${String(st.if)}\`, so the gate runs only when that holds`);
+      if (!soundShell(st.shell)) problems.push(`"${name}" (\`${k}\`) carries \`shell: ${String(st.shell)}\`, so its \`run:\` is handed to that program and the gate passes whatever it says`);
     }
   }
   return problems;
@@ -1425,11 +1462,15 @@ if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: ha
     branches: [main]
   merge_group:
     types: [checks_requested]
+env:
+  MERGE_GROUP_BASE_SHA: \${{ github.event.merge_group.base_sha }}
 jobs:
   a:
     runs-on: ubuntu-latest
+    if: \${{ needs.changes.outputs.docs_only != 'true' }}
     steps:
-      - run: true
+      - name: s
+        run: true
 `;
   const gaps = (yaml: string): string[] => triggerGaps(parseYamlSubset(yaml));
   if (gaps(ON).length) selfFails.push(`the trigger check flags a sound workflow: ${gaps(ON).join('; ')}`);
@@ -1437,6 +1478,12 @@ jobs:
   if (!gaps(ON.replace('[checks_requested]', '[other]')).some((p) => p.includes('checks_requested'))) selfFails.push('the trigger check misses a `merge_group` without `checks_requested`');
   if (!gaps(ON.replace('  pull_request:\n', '')).some((p) => p.includes('`pull_request`'))) selfFails.push('the trigger check misses a dropped `pull_request` trigger');
   if (!gaps(ON.replace('[main]', '[dev]')).some((p) => p.includes('push to `main`'))) selfFails.push('the trigger check misses a push trigger that no longer names `main`');
+  // #4106 — the merge-group base and the event-reading `if:`.
+  if (!gaps(ON.replace(/env:\n {2}MERGE_GROUP_BASE_SHA: .*\n/, '')).some((p) => p.includes('does not set `MERGE_GROUP_BASE_SHA'))) selfFails.push('the trigger check misses a dropped `MERGE_GROUP_BASE_SHA` env');
+  if (!gaps(ON.replace('merge_group.base_sha', 'merge_group.head_sha')).some((p) => p.includes('does not set `MERGE_GROUP_BASE_SHA'))) selfFails.push('the trigger check misses `MERGE_GROUP_BASE_SHA` set to the wrong field');
+  if (!gaps(ON.replace("needs.changes.outputs.docs_only != 'true'", "github.event_name == 'pull_request'")).some((p) => p.includes('job `a` runs'))) selfFails.push('the trigger check misses a job `if:` that reads the event');
+  if (!gaps(ON.replace('        run: true\n', "        if: github.base_ref == 'main'\n        run: true\n")).some((p) => p.includes('step "s" runs'))) selfFails.push('the trigger check misses a step `if:` that reads a base ref');
+  if (!gaps(ON.replace('        run: true\n', '        env:\n          MERGE_GROUP_BASE_SHA: x\n        run: true\n')).some((p) => p.includes('step "s" sets'))) selfFails.push('the trigger check misses a step that sets `MERGE_GROUP_BASE_SHA` again');
 }
 
 // 6f. THE FOLD BOT (#3698 R1), through the shipped `foldWorkflowGaps` over mutations of the real file.
@@ -1493,6 +1540,11 @@ jobs:
   if (!gaps(step("continue-on-error: ${{ github.event_name == 'push' }}")).some((p) => p.includes('"Sample gate"'))) selfFails.push('arm 10 misses a gate step with an expression `continue-on-error`');
   if (!gaps(step('if: false')).some((p) => p.includes('"Sample gate"') && p.includes('if: false'))) selfFails.push('arm 10 misses a gate step with `if: false`');
   if (!gaps(T.replace('    runs-on: ubuntu-latest', '    runs-on: ubuntu-latest\n    continue-on-error: true')).some((p) => p.includes('job `engine`'))) selfFails.push('arm 10 misses a job-level `continue-on-error: true` over gate steps');
+  // #4201 item 1: `shell:` hands the `run:` text to another program.
+  for (const sound of ['shell: bash', 'shell: sh']) if (gaps(step(sound)).length) selfFails.push(`arm 10 flags \`${sound}\`, which runs the step as a script`);
+  if (!gaps(step('shell: true {0}')).some((p) => p.includes('"Sample gate"') && p.includes('shell: true {0}'))) selfFails.push('arm 10 misses a gate step with `shell: true {0}` (it cannot fail)');
+  if (!gaps(T.replace('    runs-on: ubuntu-latest', '    runs-on: ubuntu-latest\n    defaults:\n      run:\n        shell: true {0}')).some((p) => p.includes('job `engine`') && p.includes('defaults.run.shell'))) selfFails.push('arm 10 misses a job-level `defaults.run.shell: true {0}` over gate steps');
+  if (!gaps(T.replace('jobs:', 'defaults:\n  run:\n    shell: true {0}\njobs:')).some((p) => p.includes('the workflow') && p.includes('defaults.run.shell'))) selfFails.push('arm 10 misses a workflow-level `defaults.run.shell: true {0}` over gate steps');
 }
 
 // 7. ARM 6 — a retired gate's token is found in a place, and a place without it is clean.
@@ -1651,7 +1703,7 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
 // THE TRIGGERS (#3698 R3), on the real file: pull request, push to main, and the merge queue.
 {
   const problems = triggerGaps(ciTree);
-  console.log('    triggers: pull_request, push to main and merge_group checked');
+  console.log('    triggers: pull_request, push to main and merge_group checked; MERGE_GROUP_BASE_SHA set once, no `if:` reads the event (#4106)');
   if (problems.length) {
     console.error('\n❌ ci.yml does not start on every event the merge rule needs (#3698 R3):\n');
     for (const p of problems) console.error(`    ${p}`);
@@ -1692,7 +1744,7 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
 // ARM 10 (#3881), on the real file: no gate step that cannot fail.
 {
   const problems = neuteredStepGaps(ciTree);
-  console.log('    neutered steps: every job and every step with a `run:` checked for `continue-on-error` and a step `if:`');
+  console.log('    neutered steps: every job and every step with a `run:` checked for `continue-on-error`, a step `if:` and a `shell:` other than bash or sh');
   if (problems.length) {
     console.error(`\n❌ ${problems.length} gate step(s) or job(s) in ci.yml cannot fail (#3881):\n`);
     for (const p of problems) console.error(`    ${p}`);
