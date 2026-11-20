@@ -525,6 +525,21 @@ console.log('3d. the #2597 file: update, file-setup and builds move only the com
       }
     }
   }
+
+  // #2634: THE FIRST SECTION'S CREATED HEADER, the same case for the section anchored on Cover. `Foundations` deleted, its
+  // divider and its pages kept: it comes back on that divider, ahead of its own pages, never straight after Cover with
+  // a new divider of its own and the old one left between it and its pages. A Foundations build (`icon`) ensures the
+  // header the same way. The expected lists are typed here. Mutation: the first section anchored on Cover alone →
+  // `first header/kept pages, …`.
+  for (const reading of ['host', 'splice'] as const) {
+    for (const run of ['build', 'file-setup'] as const) {
+      const f = fixture(ORIGINAL.filter(([, id]) => id !== '1:668'), reading);
+      if (run === 'build') await resolveComponentPage(f.api, 'icon', TAXONOMY); else await scaffoldSkeleton(f.api, TAXONOMY);
+      const want = [...HEAD, '--- 1:674', 'Components', ...COMPONENT_PAGES, ...TAIL];
+      ok(JSON.stringify(plain(f.label())) === JSON.stringify(want),
+        `first header/kept pages, ${run}, ${reading} reading: Foundations comes back on its own divider, ahead of its pages (${JSON.stringify(plain(f.label()).slice(0, 8))})`);
+    }
+  }
 }
 
 // ── 4. Taxonomy coverage of the real registry ────────────────────────────────────────────────────

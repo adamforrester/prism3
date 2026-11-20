@@ -207,6 +207,7 @@ apps/plugin/test-roundtrip.ts #3382
 apps/plugin/test-roundtrip.ts #3399
 apps/plugin/test-roundtrip.ts #3476
 apps/plugin/test-roundtrip.ts #3554
+apps/plugin/test-roundtrip.ts #3972
 apps/plugin/test-roundtrip.ts #865
 apps/plugin/test-roundtrip.ts #874
 apps/plugin/test-run-progress.ts #3170
@@ -448,6 +449,7 @@ apps/plugin/test-write-components.ts #801
 apps/plugin/test-write-components.ts #804
 apps/plugin/test-write-components.ts #865
 apps/plugin/test-write-components.ts #913
+apps/plugin/test-write-components.ts #971
 apps/plugin/test-write-components.ts #982
 apps/plugin/test-write-float.ts #146
 apps/plugin/test-write-float.ts #1570
