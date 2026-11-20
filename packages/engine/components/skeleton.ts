@@ -193,7 +193,7 @@ export const skeleton: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'the pulse and the shimmer — in code the pulse fades the whole shape between two opacities, one cycle every `var(--motion-duration-sweep)` (1600ms, Progress\'s sweep, so no token is minted) on `var(--motion-easing-role-default)`, repeating until the content arrives (OD-S3 A). `animation="shimmer"` sweeps a highlight in `color.background.secondary` across the shape in the reading direction, one pass per period, animating `transform` on a pseudo-element, never `background-position`, so low-end devices keep the frame rate. `animation="none"` draws the still shape. Figma holds the still frame.',
+          'the pulse and the shimmer — in code the pulse fades the whole shape between two opacities, one cycle every `var(--motion-duration-sweep)` (Progress\'s `motion.duration.sweep`, so no token is minted) on `var(--motion-easing-role-default)`, repeating until the content arrives (OD-S3 A). `animation="shimmer"` sweeps a highlight in `color.background.secondary` across the shape in the reading direction, one pass per period, animating `transform` on a pseudo-element, never `background-position`, so low-end devices keep the frame rate. `animation="none"` draws the still shape. Figma holds the still frame.',
       },
       {
         class: 'motion',
