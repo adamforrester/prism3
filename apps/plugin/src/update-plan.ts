@@ -658,15 +658,19 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     // A LAYER ADDED BY HAND OUTRANKS DANGLING REACTIONS TOO (#2674), as it does drawn damage (#2413): the apply skips the
     // member, so it counts as edited by hand, and its state says the reactions are left dangling.
     // #3101: a member stamped under another revision is to update only when a revision since reaches this set.
-    const drifted = unfinished || planMoved || (revField !== null && revField !== rev && reaches(defId, Number(revField), EXECUTOR_REVISION)) || rxv.differs || nested.length > 0;
+    const moved = unfinished || planMoved || (revField !== null && revField !== rev && reaches(defId, Number(revField), EXECUTOR_REVISION)) || nested.length > 0;
+    const drifted = moved || rxv.differs;
     const state: MemberState = (damaged.length || rxv.dangling) && !structural ? 'update'
       : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
       : drifted ? 'update'
       : revField === null ? 'revisionUnknown'
       : 'current';
-    // #3907: behind today's plan whatever the hand edits, so a skip leaves it out of date.
-    const behind = drifted || damaged.length > 0 || rxv.dangling;
+    // #3907: behind today's plan whatever the hand edits, so a skip leaves it out of date. Reactions the designer edited
+    // by hand are theirs, as `nested` leaves out a node edited by hand (#4381 review S1): only reactions that differ from
+    // the plan and are not a hand edit count. A plan that moves its reactions still moves `planMoved`.
+    const rxBehind = rxv.differs && !(edit?.changed ?? []).includes(REACTIONS_PATH);
+    const behind = moved || rxBehind || damaged.length > 0 || rxv.dangling;
     counts[state]++;
     const earlier = state === 'noBaseline' && !!m.earlierRecord;
     if (earlier) counts.earlierRecord = (counts.earlierRecord ?? 0) + 1;
