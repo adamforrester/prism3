@@ -27,19 +27,19 @@ export const shapeBuildingBlocksSection = (c: SgCtx, dims: Theme['dims'], copy: 
   const sec = palSection(copy.title, copy.desc);
   sec.dataset.sgSection = 'shape-building-blocks';   // the shared-section marker (`kit.ts`'s header)
   sec.append(subHead(SHAPE_BLOCK_TITLES.border));
-  sec.append(shapeTable(['Width', 'Sample'], BORDER_WIDTHS.map(([k, px]) => {
+  sec.append(shapeTable(SHAPE_BLOCK_TITLES.border, ['Width', 'Sample'], BORDER_WIDTHS.map(([k, px]) => {
     const line = px ? shapeSample(c, 'shp-line') : el('div', 'shp-wbar zero');
     if (px) line.style.borderTopWidth = `${px}px`;
     return { hook: 'border-width-row', key: k, label: `${px}px`, token: `border-width.${k}`, who: '', sample: line };
   }), false));
   sec.append(subHead(SHAPE_BLOCK_TITLES.icon));
-  sec.append(shapeTable(['Size', 'Sample'], dims.icons.map((i) => {
+  sec.append(shapeTable(SHAPE_BLOCK_TITLES.icon, ['Size', 'Sample'], dims.icons.map((i) => {
     const box = shapeSample(c, 'shp-icon');
     box.style.width = box.style.height = `${i.px}px`;
     return { hook: 'icon-size-row', key: i.name, label: `${i.px}px`, token: `icon.size.${i.name}`, who: '', sample: box };
   }), false));
   sec.append(subHead(SHAPE_BLOCK_TITLES.grid));
-  sec.append(shapeTable(['Step', 'Sample'], dims.grid.map((px) => {
+  sec.append(shapeTable(SHAPE_BLOCK_TITLES.grid, ['Step', 'Sample'], dims.grid.map((px) => {
     const bar = px ? shapeSample(c, 'shp-wbar') : el('div', 'shp-wbar zero');
     if (px) bar.style.width = `${px}px`;
     return { hook: 'grid-row', key: String(px), label: `${px}px`, token: `core.dimension.${px}`, who: '', sample: bar };

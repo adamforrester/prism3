@@ -20,9 +20,10 @@
  * Run: `npx tsx packages/engine/mcp-test.ts`   (exits non-zero on any failure)
  */
 import { spawn, ChildProcessWithoutNullStreams } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { HANDSHAKE_PROBES, MCP_SERVERS } from './mcp-handshake-probes';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -212,6 +213,60 @@ await new Promise((r) => setTimeout(r, 3000));
   const vb = await server.call('validate_brand', { id: 'x', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } });
   ok(vb.structuredContent !== undefined && JSON.stringify(vb.structuredContent) === JSON.stringify(JSON.parse(vb.content[0].text)),
     'conformance: structuredContent and the text block carry identical data');
+}
+
+// ---------------------------------------------------- #4156: llms.txt's example calls run as written
+// `docs/public/llms.txt` is the agent entry point, and its "Use the MCP server" block gives one minimal call per
+// tool. EXPECTED is that block, read from the file as text; ACTUAL is each call's result from a server started the
+// way the block says. Run in a scratch directory, so `export_theme`'s "./tokens" writes there and not into the repo.
+// Represented, not counted (docs/34 shape 13): every tool `tools/list` advertises has an example.
+// BY-NAME MUTATIONS: break the brand in one example (`"neutral": {"hue": "cool"}`) → the runs-as-written arm names
+// that line; delete the export_theme line → the every-tool arm names export_theme; write `"include": ["tokens"]` in the
+// prose under the block → the include arm names the missing notes.
+{
+  const llms = readFileSync(resolve(HERE, '../../docs/public/llms.txt'), 'utf8');
+  const section = llms.split(/\n## /).find((s) => s.startsWith('Use the MCP server')) ?? '';
+  const fenced = /```jsonl\n([\s\S]*?)```/.exec(section)?.[1] ?? '';
+  const lines = fenced.split('\n').filter((l) => l.trim());
+  const examples = lines.map((l) => { try { return JSON.parse(l) as { name: string; arguments: unknown }; } catch { return { name: `(unparsed) ${l.slice(0, 60)}`, arguments: undefined }; } });
+  ok(/npx --yes tsx@4 packages\/engine\/mcp\.ts/.test(section) && lines.length > 0,
+    `#4156: llms.txt says how to start the MCP server and gives example calls (${lines.length} example lines)`);
+  const scratch = mkdtempSync(join(tmpdir(), 'p3-llms-'));
+  const proc = spawn(resolve(HERE, '../../node_modules/.bin/tsx'), [resolve(HERE, 'mcp.ts')], { cwd: scratch });
+  let out = ''; const got = new Map<number, Rpc>();
+  proc.stdout.setEncoding('utf8');
+  proc.stdout.on('data', (d: string) => {
+    out += d; let nl: number;
+    while ((nl = out.indexOf('\n')) >= 0) { const line = out.slice(0, nl).trim(); out = out.slice(nl + 1); if (line) { const m = JSON.parse(line) as Rpc; got.set(Number(m.id), m); } }
+  });
+  examples.forEach((ex, i) => proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: i + 1, method: 'tools/call', params: ex }) + '\n'));
+  proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 0, method: 'tools/list' }) + '\n');
+  // The prose under the block promises the decisions log AND the token tree from the `include` it names; that sentence
+  // is run too, with the theme_brand example's brand (#4335 review: `include` replaces the default, it does not add).
+  const prose = section.slice(section.indexOf('```', section.indexOf('```jsonl') + 3) + 3);
+  const proseInclude = (() => { try { return JSON.parse(/"include":\s*(\[[^\]]*\])/.exec(prose)?.[1] ?? 'null') as unknown; } catch { return null; } })();
+  const themeEx = examples.find((ex) => ex.name === 'theme_brand');
+  const PROSE_ID = 9999;
+  if (themeEx && Array.isArray(proseInclude)) {
+    proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: PROSE_ID, method: 'tools/call',
+      params: { name: 'theme_brand', arguments: { ...(themeEx.arguments as object), include: proseInclude } } }) + '\n');
+  }
+  const want = examples.length + 1 + (themeEx && Array.isArray(proseInclude) ? 1 : 0);
+  const deadline = Date.now() + 60_000;
+  while (got.size < want && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+  proc.kill();
+  const broken = examples.map((ex, i) => [ex, got.get(i + 1)] as const)
+    .filter(([, r]) => !r || r.error || r.result?.isError === true)
+    .map(([ex, r]) => `${ex.name}: ${!r ? 'no reply' : r.error ? `RPC ${r.error.code} ${r.error.message}` : String(r.result?.content?.[0]?.text ?? '').replace(/\s+/g, ' ').slice(0, 200)}`);
+  ok(examples.length > 0 && broken.length === 0, `#4156: every llms.txt example call runs as written (${examples.length - broken.length} of ${examples.length}; failing: ${broken.join('; ') || 'none'})`);
+  const advertised = ((got.get(0)?.result?.tools ?? []) as Array<{ name: string }>).map((t) => t.name);
+  const unshown = advertised.filter((n) => !examples.some((ex) => ex.name === n));
+  ok(advertised.length > 0 && unshown.length === 0, `#4156: llms.txt gives an example call for every tool tools/list advertises (${advertised.length} tools; no example: ${unshown.join(', ') || 'none'})`);
+  ok(existsSync(join(scratch, 'tokens')), '#4156: the export_theme example wrote into the directory the server was started in');
+  const proseKeys = (() => { try { return Object.keys(JSON.parse(String(got.get(PROSE_ID)?.result?.content?.[0]?.text ?? '{}'))); } catch { return []; } })();
+  ok(/decisions log/.test(prose) && proseKeys.includes('notes') && proseKeys.includes('tokens'),
+    `#4156: the include llms.txt names returns the decisions log and the token tree it promises (include ${JSON.stringify(proseInclude)} → ${proseKeys.join(', ') || 'no reply'})`);
+  rmSync(scratch, { recursive: true, force: true });
 }
 
 // ---------------------------------------------- #2146: validate_brand reports the engine's own refusals
