@@ -15,7 +15,7 @@ Figma plugin without touching either UI (docs/08 §4).
 ## Shell
 
 The shell is a rail of areas: Theme · Components · Docs · Export (#2909, IA v2;
-`src/shell/pages.ts`). Theme holds the levers as a tab row in the order a theme composes:
+`src/shell/pages.ts`; the Docs area's id is `documentation`, #3553 Q-UI9 A). Theme holds the levers as a tab row in the order a theme composes:
 Brand, Color, Type, Shape, Depth & motion, Layout. Each page puts its levers beside the live
 preview, which has its own mode selector. What each area holds today: **Scope**, below.
 

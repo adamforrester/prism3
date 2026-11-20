@@ -1,5 +1,9 @@
 # 43 — The agent instruction surface: what CLAUDE.md should hold, and what should hold it instead
 
+> **For maintainer agents working on this repository** (#4156). An agent that uses Prism3, through the MCP
+> server, the agent link or the CLI, starts at [`docs/public/llms.txt`](public/llms.txt) instead. The sizes below were
+> measured when this proposal was written.
+
 > `CLAUDE.md` is 62,136 bytes — roughly 14k tokens injected into every session, on every lane, before
 > any task is read. This is a **proposal** for what moves, where, and what must stay. It does not
 > restructure `CLAUDE.md` — see the PR for why that's a separate, later change, one disposition group
