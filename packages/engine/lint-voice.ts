@@ -900,8 +900,8 @@ const NOTES_UNREACHABLE = ['typography: empty display tier (the "below the usual
 // The push sites, counted in the SOURCE (comments dropped), as a tripwire for a new producer the sweep
 // never reaches: one the sweep reaches is an unclaimed note already. A literal per file, written here.
 // theme-brand.ts (`brandTheme`, in theme.ts until #3698 R5 split it per axis): 45 note pushes (#3052 added the grid-link notes' spread) + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
-// #4133 added the one that copies hex-anchors.ts's notes in (52), and hex-anchors.ts's own push.
-const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme-brand.ts': 52, 'packages/engine/vocabulary.ts': 2, 'packages/engine/hex-anchors.ts': 1 };
+// #3284 added a pinned-action note (52). #4133 added the one that copies hex-anchors.ts's notes in (53), and hex-anchors.ts's own push.
+const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme-brand.ts': 53, 'packages/engine/vocabulary.ts': 2, 'packages/engine/hex-anchors.ts': 1 };
 // The rules a NOTE must also pass, beyond §2 and `normative`. Each is a thing an engine note has carried.
 const ALLCAPS_OK = new Set(['AA', 'AAA', 'WCAG', 'OKLCH', 'HC']);
 const NOTE_RULES: { rule: string; re: RegExp }[] = [
