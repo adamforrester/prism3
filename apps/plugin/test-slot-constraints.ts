@@ -53,6 +53,8 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // Open (#2609, as built): the body holds whatever the dialog needs — text or any components — so no limit and no
   // preferred component. The footer's actions are the nested Button group's slot (#2661), its row below.
   'dialog.body': {},
+  // Open (#4008, as Dialog's): the body holds whatever the popover needs, so no limit and no preferred component.
+  'popover.body': {},
   // Open (#2579, as built; renamed from `body` by #3225): the rich body holds a short list or other rich content, so no
   // limit and no preferred component. The plain sentence is the body text property now.
   'banner.richBody': {},
@@ -199,7 +201,7 @@ console.log('\na host that cannot take them');
   const combine = api.combineAsVariants;
   api.combineAsVariants = (...args: unknown[]) => { const s = combine(...args); s.editComponentProperty = () => { throw new Error('in editComponentProperty: slotSettings is not supported'); }; return s; };
   const res = await applyComponentPlan(plans, api, {});
-  ok(res.misses.some((m) => m === 'property dismiss.slotSettings -> REFUSED (in editComponentProperty: slotSettings is not supported)') && slotDef(page)?.slotSettings === undefined,
+  ok(res.misses.some((m) => m === 'property dismiss.slotSettings -> REFUSED (Error: in editComponentProperty: slotSettings is not supported)') && slotDef(page)?.slotSettings === undefined,
     `constraints/refusal named: a host that refuses the edit is named, not passed (${JSON.stringify(res.misses.filter((m) => /slotSettings/.test(m)))})`);
 }
 
