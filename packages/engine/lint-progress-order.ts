@@ -165,7 +165,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { STAMP_PATHS, onlyFilledStamps } from './rename-stamp-audit';
-import { integrationBase } from './comparison-base';
+import { integrationBase, mergeGroupBase } from './comparison-base';
 
 const repo = join(import.meta.dirname, '../..');
 const FILE = 'docs/00-progress.md';
@@ -354,8 +354,14 @@ const removed = walk('D');
 // fragments are left unseen here. A push run is `main` itself, so HEAD is the chain; anywhere else
 // `origin/main`, then `main`. Never GITHUB_BASE_REF: a stacked PR's base is another branch, and the
 // fold writes `main`'s order, not that branch's.
+// A merge-queue run (#4106) reads the group's parent commit instead: `main` with the groups ahead of this one
+// already in it, the `main` this group lands on. `origin/main` lacks the groups ahead, so a fragment one of them
+// landed would go unseen. The parent is authoritative there, as in every ladder (`mergeGroupBase`).
+const mg = mergeGroupBase(git);
+if (mg && !mg.ref) cannotRun(`no base for a merge-group run (#4106): ${mg.tried}.`, 'Under `merge_group`, `ci.yml` passes the group\'s parent as MERGE_GROUP_BASE_SHA.');
 const mainRef = process.env.GITHUB_EVENT_NAME === 'push'
   ? 'HEAD'
+  : mg ? mg.ref!
   : ['origin/main', 'main'].find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
 if (!mainRef) cannotRun('no main ref to read landing order from (tried origin/main, main).', 'Locally, `git fetch origin main`.');
 const mainChain = git('rev-list', '--first-parent', mainRef!);
@@ -484,7 +490,8 @@ const leavesNothingPending = (base: string, tip: string | null, whence: string):
 // AUTHORITATIVE when set and never falls through, because falling back would judge the wrong diff.
 {
   const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : null;
-  const candidates = prBase ? [prBase] : ['origin/main', 'main'];
+  // A merge-queue run (#4106) reads the group's parent commit, and only it: `mg` above, already checked.
+  const candidates = mg ? [mg.ref!] : prBase ? [prBase] : ['origin/main', 'main'];
   const baseRef = candidates.find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
   if (process.env.GITHUB_EVENT_NAME === 'push') {
     console.log('  ✓ carries an entry: skipped — a push run (GITHUB_EVENT_NAME=push) has no PR diff; the PR run held it');
