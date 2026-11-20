@@ -121,7 +121,7 @@ const name = (computed: string) => decode.get(computed) ?? (computed === 'rgba(0
 
 // ------------------------------------------------------------------------------------------------ probes
 type Check = { at: string; pseudo?: string; prop: string; want: string; what: string };
-type Probe = { kind: string; props: Record<string, string>; state: string; where: string; checks: Check[]; ownLabel?: Attrs; ownMessage?: Attrs; icons?: boolean };
+export type Probe = { kind: string; props: Record<string, string>; state: string; where: string; checks: Check[]; ownLabel?: Attrs; ownMessage?: Attrs; icons?: boolean };
 
 /** A part path's element, as the contract writes it (the check's own map, not the generator's). */
 const at = (kind: string, part: string): { at: string; pseudo?: string } => {
@@ -307,13 +307,29 @@ const html = (pr: Probe, i: number, contracts: { field: Record<string, Contract>
 };
 
 // ------------------------------------------------------------------------------------------------ the run
-export const runParity = async (browser: any, css: Css, contracts: { field: Record<string, Contract>; label: Contract; message: Contract }) => {
-  const { probes, gaps, skipped } = buildProbes(contracts);
+/**
+ * A DELIVERY FORM (#3408 S6), as in `check-parity.ts`. `skip` names a probe the form cannot write, with why; a skipped
+ * probe is reported on every run, never silently passed. `props` is the probe as API props: its own plus its state's.
+ */
+export type Form = { name: string; scripts: string[]; skip?: (pr: Probe) => string | undefined; write: (pr: Probe, i: number, props: Record<string, string>, missing: string[]) => string };
+/** As `check-parity.ts`'s (copied, not imported: importing it would run a second emission). */
+const MARK_ROOTS = `(async () => { const hosts = [...document.querySelectorAll('[data-probe-host]')]; await Promise.all(hosts.map((h) => h.updateComplete)); for (const h of hosts) { const inner = h.querySelector(':scope > ' + h.getAttribute('data-probe-root')); if (inner) inner.setAttribute('data-probe', h.getAttribute('data-probe-host')); } })()`;
+export const STATE_PROPS = (state: string): Record<string, string> => STATE[state]?.props ?? {};
+export const isFilled = (state: string): boolean => !!STATE[state]?.filled;
+export const runParity = async (browser: any, css: Css, contracts: { field: Record<string, Contract>; label: Contract; message: Contract }, form?: Form) => {
+  const built0 = buildProbes(contracts);
+  const { gaps } = built0;
+  const skipped = new Set(built0.skipped);
+  const probes = form?.skip ? built0.probes.filter((pr) => { const why = form.skip!(pr); if (why) skipped.add(`${form.name} form: ${pr.where}: ${why}`); return !why; }) : built0.probes;
   const failures = [...gaps];
   const page = await browser.newPage();
-  const built = probes.map((pr, i) => { const missing: string[] = []; const h = html(pr, i, contracts, missing); for (const m of missing) failures.push(`${pr.where}: ${m} has no markup mapping`); return h; });
+  const built = probes.map((pr, i) => { const missing: string[] = []; const h = form ? form.write(pr, i, { showMessage: 'true', ...pr.props }, missing) : html(pr, i, contracts, missing); for (const m of missing) failures.push(`${pr.where}: ${m} has no markup mapping`); return h; });
   const root = `:root{${[...sentinel].map(([k, v]) => `${k}:${v};`).join('')}}`;
   await page.setContent(`<!doctype html><html><head><style>${root}</style>${FILES.map((f) => `<style>${css[f]}</style>`).join('')}</head><body>${built.map((b) => `<div>${b}</div>`).join('\n')}</body></html>`);
+  if (form?.scripts.length) {
+    for (const s of form.scripts) await page.addScriptTag({ content: s });
+    await page.evaluate(MARK_ROOTS);
+  }
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('DOM.enable');
   await cdp.send('CSS.enable');
@@ -321,10 +337,12 @@ export const runParity = async (browser: any, css: Css, contracts: { field: Reco
   for (let i = 0; i < probes.length; i++) {
     if (!STATE[probes[i].state]?.hover) continue;
     const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: doc.root.nodeId, selector: `[data-probe="${i}"] .p3-${probes[i].kind}__control` });
+    if (!nodeId) continue; // no probe root: its checks read "(no probe root)" below
     await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] });
   }
   const read = (i: number) => page.evaluate(([idx, checks]: [number, Check[]]) => {
-    const el = document.querySelector(`[data-probe="${idx}"]`)!;
+    const el = document.querySelector(`[data-probe="${idx}"]`);
+    if (!el) return checks.map(() => '(no probe root)');
     return checks.map((c) => {
       const node = c.at ? el.querySelector(c.at) : el;
       if (!node) return '(no element)';
@@ -337,7 +355,7 @@ export const runParity = async (browser: any, css: Css, contracts: { field: Reco
   }, [i, probes[i].checks] as [number, Check[]]);
   const reads: string[][] = [];
   for (let i = 0; i < probes.length; i++) {
-    if (STATE[probes[i].state]?.focus) await page.focus(`[data-probe="${i}"] input`);
+    if (STATE[probes[i].state]?.focus && await page.$(`[data-probe="${i}"] input`)) await page.focus(`[data-probe="${i}"] input`);
     reads[i] = await read(i);
     if (STATE[probes[i].state]?.focus) await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
   }
