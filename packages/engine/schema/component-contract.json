@@ -1,5 +1,5 @@
 {
-  "componentContractVersion": "1.1.0",
+  "componentContractVersion": "1.2.0",
   "componentSchemaVersion": "1.5.0",
   "note": "Written by packages/engine/component-contract.ts --accept alone; do not hand-edit, and never regenerate it. `components` is the component-contract surface: per component, its name and status, its props (type, required, default, values), states, variant axes and values, and slots. `schema.shape` is the component schema: the shape of one published entry, read from the JSON schema named in `schema.source`, with its prose left out. Removing or renaming a name is a MAJOR change, adding one is MINOR, and moving a default is a PATCH; docs/30 has the full table.",
   "schema": {
@@ -3882,6 +3882,77 @@
       "slots": [
         "leadingVisual"
       ]
+    },
+    "popover": {
+      "name": "Popover",
+      "status": "draft",
+      "props": {
+        "align": {
+          "type": "enum",
+          "default": "start",
+          "values": [
+            "center",
+            "end",
+            "start"
+          ]
+        },
+        "arrow": {
+          "type": "boolean",
+          "default": false
+        },
+        "children": {
+          "type": "node",
+          "required": true
+        },
+        "defaultOpen": {
+          "type": "boolean",
+          "default": false
+        },
+        "footer": {
+          "type": "slot",
+          "anyOf": [
+            "button",
+            "button-destructive",
+            "button-neutral"
+          ],
+          "minItems": 1,
+          "maxItems": 2
+        },
+        "initialFocus": {
+          "type": "node"
+        },
+        "onOpenChange": {
+          "type": "function"
+        },
+        "open": {
+          "type": "boolean",
+          "default": false
+        },
+        "placement": {
+          "type": "enum",
+          "default": "bottom",
+          "values": [
+            "bottom",
+            "end",
+            "start",
+            "top"
+          ]
+        },
+        "showClose": {
+          "type": "boolean",
+          "default": true
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "states": [],
+      "variants": {
+        "placement": [
+          "bottom"
+        ]
+      },
+      "slots": []
     },
     "progress": {
       "name": "Progress",

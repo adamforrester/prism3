@@ -6,11 +6,11 @@ file landed first, as #3992.
 
 ### What landed
 
-- `version.ts` gains `COMPONENT_CONTRACT_VERSION` (1.1.0) and `COMPONENT_SCHEMA_VERSION` (1.5.0), apart from the token
-  `CONTRACT_VERSION`. The first baseline was cut at 1.0.0 and 1.4.0, the shape the export then declared. Two MINOR
-  moves on `main` landed before this did, and the gate classified them on the refresh: `tag-group` was added (contract
-  1.1.0), and #4074's `prism3-component-defs/1.5` added the button's `borderWeight` setting (schema 1.5.0). So the
-  schema number still equals the export's `format`, and a consumer reading it sees no move.
+- `version.ts` gains `COMPONENT_CONTRACT_VERSION` (1.2.0) and `COMPONENT_SCHEMA_VERSION` (1.5.0), apart from the token
+  `CONTRACT_VERSION`. The first baseline was cut at 1.0.0 and 1.4.0, the shape the export then declared. MINOR
+  moves on `main` landed before this did, and the gate classified them on each refresh: `tag-group` and `dialog`'s
+  `hideTitle` prop (#4057) were added (contract 1.1.0), `popover` was added (#4252, contract 1.2.0),
+  and #4074's `prism3-component-defs/1.5` added the button's `borderWeight` setting (schema 1.5.0). So the schema number still equals the export's `format`, and a consumer reading it sees no move.
 - `component-contract.ts` builds both surfaces live and gates them against `schema/component-contract.json`, which only
   `--accept` writes, after each bump. Both modes compare the numbers as `token-contract.ts` does (#1768): behind, or
   ahead with nothing to record, fails. It also holds the schema version's MAJOR.MINOR, the schema's `$id` and

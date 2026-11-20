@@ -746,11 +746,13 @@ export const CONTRACT_VERSION = '15.1.0';
  * 1.0.0 (the contract): the first baseline, every registered def recorded whatever its `status`.
  * 1.4.0 (the schema): starts at the shape the export already declared, `prism3-component-defs/1.4`, so the number
  * a consumer has been reading does not move under them.
- * 1.1.0 (the contract, MINOR): `tag-group` added, a component main registered after the first baseline was cut.
+ * 1.1.0 (the contract, MINOR): `tag-group` added, a component main registered after the first baseline was cut, and
+ *   `dialog`'s `hideTitle` prop added (#4057).
  * 1.5.0 (the schema, MINOR): #4074's `prism3-component-defs/1.5`, the button's `borderWeight` setting added.
+ * 1.2.0 (the contract, MINOR): `popover` added (#4252).
  */
 export const COMPONENT_SCHEMA_VERSION = '1.5.0';
-export const COMPONENT_CONTRACT_VERSION = '1.1.0';
+export const COMPONENT_CONTRACT_VERSION = '1.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
