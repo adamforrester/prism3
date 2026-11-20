@@ -26,7 +26,7 @@
     { "file": "test-add-queue.ts", "floor": 10 },
     { "file": "test-version-title.ts", "floor": 28 },
     { "file": "test-component-specs-export.ts", "floor": 6 },
-    { "file": "test-reactions.ts", "floor": 61 },
+    { "file": "test-reactions.ts", "floor": 62 },
     { "file": "test-build-telemetry.ts", "floor": 56 },
     { "file": "test-file-setup.ts", "floor": 145 },
     { "file": "test-file-components.ts", "floor": 113 },
