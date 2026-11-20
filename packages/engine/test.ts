@@ -25,7 +25,7 @@ import { isInverseRole } from './inverse-roles';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd, xPrism3Warnings } from './standard-design-md';
 import { classifyColors } from './classify-colors';
-import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
+import { SLIDER_STOPS, TRAITS, TRAIT_OPPOSITES, resolveVocabulary } from './vocabulary';
 import { leverManifest, leverGroups, buildLeverManifest, identityFields } from './levers';
 import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
@@ -1241,6 +1241,27 @@ ok(autoPlaceStep(0.9) < autoPlaceStep(0.3), 'autoPlaceStep: lighter < darker');
   // A literal, not a fragment: the note is approved copy (#1883), so a change to it shows up here as a diff.
   ok(mkTheme(oog).notes.includes("anchor 'x' (oklch 0.55 0.32 145) is outside the sRGB gamut — sRGB shows at most 0.173 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.173 ships exactly."), 'M-03: brandTheme surfaces an out-of-gamut anchor in the decisions log (not silent)');
   ok(!mkTheme({ l: 0.5, c: 0.04, h: 200 }).notes.some((n) => n.includes('outside the sRGB gamut')), 'M-03: an all-in-gamut brand produces no gamut warning');
+}
+{
+  // #4211: the ratio floor must not lose a step to float error. `4.6 * 100` is 459.99999999999994, so a bare
+  // `Math.floor(r * 100) / 100` printed an exact 4.6 as 4.59 (141 of the two-decimal values 1.00–21.00 did). The
+  // expected strings are built from the integer step, not from `floorRatio`, so the arm cannot agree with itself.
+  for (const [r, want] of [[4.6, '4.60:1'], [4.35, '4.35:1'], [4.5, '4.50:1'], [7, '7.00:1']] as const)
+    ok(formatRatio(r) === want, `#4211 formatRatio(${r}) prints as itself, ${want} (got ${formatRatio(r)})`);
+  const lost: string[] = [];
+  for (let k = 100; k <= 2100; k++) {
+    const r = k / 100, want = `${Math.floor(k / 100)}.${String(k % 100).padStart(2, '0')}`;
+    if (formatRatio(r, { bare: true }) !== want || floorRatio(floorRatio(r)) !== floorRatio(r)) lost.push(`${want}→${formatRatio(r, { bare: true })}`);
+  }
+  ok(lost.length === 0, `#4211 every two-decimal ratio from 1.00 to 21.00 floors to itself, and re-flooring is a no-op (${lost.length} lose a step: ${lost.slice(0, 6).join(', ')})`);
+  // The tolerance absorbs float error only: a pair that genuinely misses a step still floors down (CR-01's concern).
+  for (const [r, want] of [[4.5 - 1e-8, '4.49:1'], [7 - 1e-8, '6.99:1'], [3 - 1e-6, '2.99:1']] as const)
+    ok(formatRatio(r) === want, `#4211 a ratio just under a step still floors below it: ${r} → ${want} (got ${formatRatio(r)})`);
+  // #4214 item 4: the sidecar schema says the stored ratio is floored (#3759), not just "to two decimals". A literal: the
+  // description is the published contract's prose.
+  const ratioDesc = JSON.parse(readFileSync(resolve(HERE, 'schema/ai-metadata.schema.json'), 'utf8')).$defs?.contrast?.properties?.ratio?.description;
+  ok(ratioDesc === 'The measured ratio in light mode, floored to two decimals, so it never reads at or above a floor it misses.',
+    `#4214 the sidecar schema says contrast_with[].ratio is floored, as floorRatio stores it (got ${JSON.stringify(ratioDesc)})`);
 }
 
 // ------------------------------------------------ extreme white-label brands
@@ -22454,9 +22475,23 @@ arm: {
     // THE OWNER'S DEPARTURES FROM A BRIEF'S CATEGORY, typed from the decision and admitted by name, never by pattern.
     // Each entry records the brief and the category it departs from, so the entry fails if the brief moves under it.
     // Veil has no brief, so its choice is the header's stated category and needs no entry here.
-    const OWNER_CATEGORY: Record<string, { brief: string; from: string; category: string }> = {
-      divider: { brief: 'divider.md', from: 'foundations', category: 'layout' },
+    // THE OWNER'S DEPARTURES FROM A BRIEF'S CATEGORY (#2092 A, 2026-11-18), typed here from the decision and never read
+    // from a def. Badge and Tag leave the KB's `foundations` to match the Figma file, which places both under Components
+    // (`apps/plugin/src/file-taxonomy.ts`). The two values are DRAFT, held for the owner in the PR. Mutations: Badge or
+    // Tag back on `foundations` → `#2092 badge:` / `#2092 tag:`; an entry dropped → `#1700 <id>: category is …`.
+    const OWNER_CATEGORY: Record<string, { issue: string; brief: string; from: string; category: string }> = {
+      divider: { issue: '#4045', brief: 'divider.md', from: 'foundations', category: 'layout' },
+      badge: { issue: '#2092', brief: 'badge.md', from: 'foundations', category: 'feedback' },
+      tag: { issue: '#2092', brief: 'tag.md', from: 'foundations', category: 'form' },
     };
+    for (const id of Object.keys(OWNER_CATEGORY).filter((k) => OWNER_CATEGORY[k].issue === '#2092'))
+      ok(componentDefs.find((d) => d.id === id)?.category === OWNER_CATEGORY[id].category,
+        `#2092 ${id} is filed under '${OWNER_CATEGORY[id].category}', out of foundations, as the Figma file places it under Components (got '${componentDefs.find((d) => d.id === id)?.category}')`);
+    // D16's retired words never reach a summary, which ships to the plugin bundle (#1623). Spinner's "icon ladder" was
+    // the one hit in the sweep; the owner approved "in the icon sizes" (#2092 A).
+    const RETIRED = /\b(ladder|ramp|band|rung|face|muted)s?\b/i;
+    const retiredHits = componentDefs.filter((d) => RETIRED.test(d.summary)).map((d) => `${d.id}: "${d.summary}"`);
+    ok(retiredHits.length === 0, `#2092 no component summary uses a retired word (ladder, ramp, band, rung, face, muted)${retiredHits.length ? ` — ${retiredHits.join('; ')}` : ''}`);
     const defDir = resolve(HERE, './components');
     const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
     const fileOf = new Map<string, string>();
@@ -22480,7 +22515,7 @@ arm: {
           if (owned) {
             // An owner's departure from the brief, admitted by name, and only while the brief still says what it departs from.
             ok(owned.brief === cites[0] && owned.from === want && d.category === owned.category,
-              `#4045 ${d.id}: the owner moved it from its brief's '${owned.from}' to '${owned.category}' (\`components/${owned.brief}\`) — got category '${d.category}', brief \`components/${cites[0]}\` says '${want}'`);
+              `${owned.issue} ${d.id}: the owner moved it from its brief's '${owned.from}' to '${owned.category}' (\`components/${owned.brief}\`) — got category '${d.category}', brief \`components/${cites[0]}\` says '${want}'`);
           } else {
             ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
           }
@@ -31880,6 +31915,23 @@ arm: {
     ok(lever.stops === stops, `vocabulary: the '${key}' manifest entry carries the SAME stops object the engine resolves against (joined, not restated)`);
   }
 
+  // ---- #3976: the direct opposites a host turns off on a pick ----
+  // The pairs are the owner's (Q-PW1 A), typed here, not read from TRAIT_OPPOSITES: a pair dropped or added there fails
+  // by name. Each pair must share a lever the two set to different values, or "only one of them can take effect" is
+  // not a fact about the engine.
+  {
+    const OWNER_PAIRS = ['bold|restrained', 'calm|energetic', 'dense|generous', 'sharp|soft'];
+    const held = TRAIT_OPPOSITES.map(([a, b]) => [a, b].sort().join('|')).sort();
+    ok(JSON.stringify(held) === JSON.stringify(OWNER_PAIRS), `#3976 vocabulary: the opposite pairs are the owner's four (${OWNER_PAIRS.join(', ')}) — holds ${held.join(', ')}`);
+    const words = TRAIT_OPPOSITES.flat();
+    ok(new Set(words).size === words.length, `#3976 vocabulary: no trait is in two opposite pairs — ${words.join(', ')}`);
+    for (const [a, b] of TRAIT_OPPOSITES) {
+      ok(!!TRAITS[a] && !!TRAITS[b], `#3976 vocabulary: opposite pair ${a}/${b} names two traits the engine knows`);
+      const clash = Object.keys(TRAITS[a]?.levers ?? {}).filter((k) => k in (TRAITS[b]?.levers ?? {}) && TRAITS[a].levers[k] !== TRAITS[b].levers[k]);
+      ok(clash.length > 0, `#3976 vocabulary: opposite pair ${a}/${b} sets at least one shared lever differently — clashes on ${clash.join(', ') || 'nothing'}`);
+    }
+  }
+
   // ---- traits target real levers, with values those levers accept ----
   const leverKeys = new Set(leverManifest.map((l) => l.key));
   for (const [name, trait] of Object.entries(TRAITS)) {
@@ -32849,6 +32901,45 @@ arm: {
 
   const set = buildOverlaySet(t);
   ok(set.overlays.length === modes.length, `overlay: the set carries one overlay per mode (${set.overlays.length})`);
+}
+
+// ---- #4155: the WEB base carries each typeface's fallback stack; the conforming base does not ----------------
+// Owner decision B (2026-11-19). The canonical tree holds one family per typeface (#105.3, for the Figma and
+// TokenPress round trip) and the curated stack under `$extensions.prism3.fallbackStack`, which every projection
+// strips. The platform-neutral base must STAY single-family: stock Style Dictionary's android group would write a
+// stack as one unusable `<string>`. The web base (`<brand>.web.base.tokens.json`, what `@prism3/tokens` builds from)
+// carries the stack as DTCG 2025.10 §8.3's array, primary first, ending in a CSS generic family, and differs from
+// the base in nothing else. Read from the COMMITTED files, so this holds what a consumer gets (`regen --check` ties
+// them to the engine). The generic list is CSS Fonts 4 §4.1.1, written here, not read off the engine.
+{
+  const GENERIC = new Set(['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-serif',
+    'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji', 'fangsong']);
+  const OUT = resolve(HERE, 'out');
+  const rootOf = (x: any) => x?.[Object.keys(x ?? {}).find((k) => !k.startsWith('$'))!];
+  const brands = readdirSync(OUT).filter((f) => /^[^.]+\.base\.tokens\.json$/.test(f)).map((f) => f.split('.')[0]).sort();
+  ok(brands.length >= 5, `#4155: every brand with a conforming base is checked (${brands.join(', ')})`);
+  for (const b of brands) {
+    const read = (f: string) => JSON.parse(readFileSync(resolve(OUT, f), 'utf8'));
+    const canonFaces = Object.entries((rootOf(read(`${b}.tokens.json`))?.core?.font?.typeface ?? {}) as Record<string, any>);
+    const base = read(`${b}.base.tokens.json`);
+    const webFile = `${b}.web.base.tokens.json`;
+    const web = existsSync(resolve(OUT, webFile)) ? read(webFile) : undefined;
+    ok(web !== undefined, `#4155 ${b}: the web base ${webFile} is emitted`);
+    const baseFaces = (rootOf(base)?.core?.font?.typeface ?? {}) as Record<string, any>;
+    const webFaces = (rootOf(web)?.core?.font?.typeface ?? {}) as Record<string, any>;
+    ok(canonFaces.length > 0 && canonFaces.every(([k, f]) => typeof baseFaces[k]?.$value === 'string' && baseFaces[k].$value === f.$value),
+      `#4155 ${b}: the conforming base keeps each typeface a single family, the canonical one (${canonFaces.length} faces)`);
+    for (const [k, f] of canonFaces) {
+      const v = webFaces[k]?.$value;
+      ok(Array.isArray(v) && v[0] === f.$value && v.length > 1 && GENERIC.has(v[v.length - 1]),
+        `#4155 ${b}: the web base's typeface \`${k}\` is a fallback stack, primary first, ending in a CSS generic family (got ${JSON.stringify(v)})`);
+    }
+    // Nothing else moves: the web base with its typefaces put back to the base's values IS the base.
+    const restored = web === undefined ? undefined : structuredClone(web);
+    if (restored) for (const k of Object.keys(webFaces)) rootOf(restored).core.font.typeface[k].$value = baseFaces[k]?.$value;
+    ok(JSON.stringify(restored) === JSON.stringify(base),
+      `#4155 ${b}: the web base differs from the conforming base only in its typefaces' values`);
+  }
 }
 
 // ---- Arc 2's primitives: `icon` and `focus-ring` as real defs (#741) ---------------------------
@@ -44290,6 +44381,36 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   // The accept side: rising floors, a fractional one among them, still build.
   const rising = refusal(() => brandTheme(withBps([0, 768.5, 1024])));
   ok(rising === '', `#3872 rising breakpoints [0, 768.5, 1024] still build (got ${JSON.stringify(rising)})`);
+}
+
+// #3284 (owner decision A, 2026-11-18) — the action note told an unset lever from an explicit `primary` by the
+// RESOLVED name only, so a brand that wrote `actionPalette: 'primary'` read "actionPalette is not set". The explicit
+// case now reads "the primary palette, as the brand sets" (APPROVED wording), under either spelling. And a pin on
+// `actionAnchorStep` is applied on any action palette, so the pin sentence is said for any pin, not only under a
+// brand color.
+{
+  const b3284 = { id: 'a3284', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  const actionLines = (extra: object): string[] => brandTheme({ ...b3284, ...extra } as unknown as BrandInput).notes.filter((n) => n.startsWith('action: '));
+  const unset = actionLines({});
+  ok(JSON.stringify(unset) === JSON.stringify(['action: the primary palette, by default — actionPalette is not set.']),
+    `#3284 an unset action palette still reads "by default — actionPalette is not set" (got ${JSON.stringify(unset)})`);
+  for (const [label, extra] of [['actionPalette', { actionPalette: 'primary' }], ['roleColors.action', { roleColors: { action: 'primary' } }]] as const) {
+    const set = actionLines(extra);
+    ok(JSON.stringify(set) === JSON.stringify(['action: the primary palette, as the brand sets.']),
+      `#3284 an explicit ${label} 'primary' reads "the primary palette, as the brand sets", never "not set" (got ${JSON.stringify(set)})`);
+  }
+  const pin = "by actionAnchorStep — applied exactly, never moved; a miss of 3:1 (7:1 in high contrast) is reported, not corrected.";
+  for (const [label, extra, line] of [
+    ['an explicit primary', { actionPalette: 'primary', actionAnchorStep: 300 }, 'action: the primary palette, as the brand sets.'],
+    ['an unset', { actionAnchorStep: 300 }, 'action: the primary palette, by default — actionPalette is not set.'],
+  ] as const) {
+    const got = actionLines(extra);
+    ok(JSON.stringify(got) === JSON.stringify([line, `action: pinned at 'primary' step 300 ${pin}`]),
+      `#3284 a pin on ${label} action palette gets the pin sentence, naming primary step 300 (got ${JSON.stringify(got)})`);
+  }
+  const neutralPin = actionLines({ actionPalette: 'neutral', actionAnchorStep: 900 });
+  ok(neutralPin.includes(`action: pinned at 'neutral' step 900 ${pin}`),
+    `#3284 a pin on a palette with no brand color (neutral) gets the pin sentence too (got ${JSON.stringify(neutralPin)})`);
 }
 
 // #3375 — List.Item's icon marker stays on `icon.size.sm/md/lg` (owner decision A, 2026-11-18), and the comment that
