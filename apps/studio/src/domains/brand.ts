@@ -26,7 +26,7 @@
  */
 import { currentMode, lastError, rebuild, rp, searchQuery, setCurrentMode, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import {
-  MODE_NAME, MODE_ROWS, PERSONALITY_WORDS, ROOT_RE, addCustomMode, currentRoot, customModes, hcDarkLocked, modesOn, namespaceNote,
+  MODE_NAME, MODE_ROWS, PERSONALITY_ORDER_LINE, PERSONALITY_WORDS, ROOT_RE, addCustomMode, currentRoot, customModes, hcDarkLocked, modesOn, namespaceNote,
   personality, planModeOff, removeCustomMode, renameCustomMode, renameNamespace, setCustomBase, setModeOff, setModeOn, setName, setPersonality, shownName,
   customModesBasedOn,
   traitLevers, modeDrops,
@@ -161,8 +161,10 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       chips.append(c.el);
       return c;
     });
-    const sub = subLine('');
-    b.ctl.append(chips, sub);
+    const sub = hook(subLine(''), 'personality-fills');
+    // #3976: the order rule, said once and always; the words on, below it, are listed in the order they were picked.
+    const order = hook(subLine(PERSONALITY_ORDER_LINE), 'personality-order');
+    b.ctl.append(chips, order, sub);
     return {
       nodes: [b.el],
       drawn: [{ block: b, keys: ['personality'], sync: () => {
