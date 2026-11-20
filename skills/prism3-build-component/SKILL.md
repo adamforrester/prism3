@@ -271,7 +271,7 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 | `nest` | an in-flow instance of another component — takes a cell like a box, content resolved from `nests` |
 | `vector` | a filled outline whose content is geometry — names a `glyph` from the icon vocabulary |
 
-A new kind is a schema change: add it to `KINDS` in `packages/engine/lint-part-union.ts` and to that gate's `ADMITS`, and raise `EXECUTOR_REVISION` if the
+A new kind is a schema change: add it to `KINDS` in `packages/engine/lint-part-union.ts` and to that gate's `ADMITS`, and raise `EXECUTOR_REVISION` in `apps/plugin/src/executor-revision.ts` if the
 executor draws it (§7).
 
 **Some fields belong to certain kinds** (#3698), and both `tsc` and the validator refuse them on any other kind:
