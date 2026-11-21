@@ -45273,7 +45273,7 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const ring = String((radioControl.tokens as Record<string, string>)['checked.border']).replace(/^color\./, '');
   const path = nb ? String((resolveAllModes(nb).find((m) => m.mode === 'light')!.roles as Record<string, { path?: string }>)[ring]?.path) : '';
   ok(/\.palette\.neutral\./.test(path), `#1754 nb-redesign's checked radio ring (${ring}) resolves to a neutral step, so "brand-colored" is untrue there (got ${path || 'nothing'})`);
-  const shipped = (d: ComponentDef): string[] => [d.summary ?? '', d.description ?? '', ...(d.docs?.do ?? []), ...(d.docs?.dont ?? []),
+  const shipped = (d: ComponentDef): string[] => [d.summary ?? '', d.description ?? '', ...(d.docs?.do ?? []), ...(d.docs?.dont ?? []), ...(d.docs?.implementation ?? []),
     ...(d.props ?? []).map((p) => p.description ?? '')];
   const claim = /\bbrand(?:-colou?red| colou?r| ring| edge)\b|\bring to brand\b/i;
   const hits = componentDefs.filter((d) => /^(checkbox|radio|switch)-/.test(d.id))
