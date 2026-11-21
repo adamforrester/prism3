@@ -107,7 +107,9 @@ const snapshot = (f: FileShim) => {
     const c = colById.get(v.variableCollectionId);
     return {
       key: `${c?.name}/${v.name}`, type: v.resolvedType, scopes: [...v.scopes], hidden: v.hiddenFromPublishing, description: v.description,
-      values: Object.fromEntries(Object.entries(v.valuesByMode).map(([m, x]) => [modeName(c, m), val(x)]).sort()),
+      // `deep`, not `val` (#4157): a wash's value nests its aliases ({ color, opacity }), and those ids differ between two
+      // shims too, as soon as one side makes an object the other does not (the plugin's mode probe).
+      values: Object.fromEntries(Object.entries(v.valuesByMode).map(([m, x]) => [modeName(c, m), deep(x)]).sort()),
     };
   }).sort((a, b) => (a.key < b.key ? -1 : 1));
   const styles = Object.fromEntries((['effect', 'paint', 'grid', 'text'] as const).map((k) => [k, f.styles[k].map((s) => {
