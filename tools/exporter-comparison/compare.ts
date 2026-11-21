@@ -1575,6 +1575,7 @@ const printReport = (r: BrandReport): void => {
 
   console.log(`\nADAPTATION (what feeding TokenPress a prism3 tree cost — each item is a finding):`);
   console.log(`  W1 aliases rebound name -> synthetic id : ${r.adapted.aliasesRebound}`);
+  console.log(`     tinted washes kept color + opacity   : ${r.adapted.washesComposed}`);
   console.log(`     unresolved alias names               : ${r.adapted.unresolvedAliasNames.length}`);
   console.log(`     duplicate variable names             : ${r.adapted.duplicateVariableNames.length}`);
   console.log(`  W2 per-mode files joined per variable   : ${Object.entries(r.adapted.modeAxes).filter(([, m]) => m.length > 1).map(([c, m]) => `${c}(${m.length})`).join(', ')}`);
