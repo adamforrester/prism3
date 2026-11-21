@@ -15509,6 +15509,7 @@
           "Link a current step or a step not started yet",
           "Show status with color alone"
         ],
+        "implementation": [],
         "contentGuidelines": "Short noun phrases, sentence case, the same words the step's page heading uses."
       },
       "ai": {
@@ -15686,6 +15687,7 @@
           "Use Steps for steps a person can take in any order",
           "Show status with color alone"
         ],
+        "implementation": [],
         "contentGuidelines": "Step names are short noun phrases in sentence case, matching each step's page heading."
       },
       "ai": {
