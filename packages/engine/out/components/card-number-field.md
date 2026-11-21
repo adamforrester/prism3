@@ -48,10 +48,6 @@ Use for a payment card's number in a checkout or a saved-card form. The field ne
 
 ### Do
 
-- Let the leading digits set the network, and swap the tile in place
-- State the detected network in text with `brandName`, not by the tile alone
-- Group the digits as the user types, and keep the value digits only
-- Use the payment provider's hosted input in production, with `renderInput`
 - Warn, rather than block, when the number fails the checksum
 
 ### Don't
@@ -107,6 +103,11 @@ Label = "Card number", sentence case, no trailing colon. Placeholder = a format 
   - `type="number"` on a card number
 
 ## Building it in code
+
+- Let the leading digits set the network, and swap the tile in place
+- State the detected network in text with `brandName`, not by the tile alone
+- Group the digits as the user types, and keep the value digits only
+- Use the payment provider's hosted input in production, with `renderInput`
 
 ### Props
 
