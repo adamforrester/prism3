@@ -514,6 +514,7 @@ apps/studio/test-build-identity.ts #474
 apps/studio/test-build-identity.ts #836
 apps/studio/test-button-input.ts #2049
 apps/studio/test-button-input.ts #2918
+apps/studio/test-chrome-motion.ts #3914
 apps/studio/test-chrome-shards.mjs #2898
 apps/studio/test-chrome.mjs #1031
 apps/studio/test-chrome.mjs #1196
