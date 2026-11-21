@@ -2213,6 +2213,12 @@ export type ComponentDef = {
     usage: string;
     do?: string[];
     dont?: string[];
+    /** How to build it in code (#2778, owner decision A on Q362): the rules a developer, or an agent writing the
+     *  component's code, acts on and a designer placing it does not (DOM and ARIA wiring, state ownership, events,
+     *  CSS technique, what each brand setting builds). Ships in `components.ai.json` and on the docs page's
+     *  "Building it in code" section. `do` / `dont` keep the usage rules and the ones both readers act on; ARIA's
+     *  contract stays in `accessibility.aria`; what Figma cannot carry and its history stay in `codeOnly` / `notes`. */
+    implementation?: string[];
     contentGuidelines?: string;
   };
 

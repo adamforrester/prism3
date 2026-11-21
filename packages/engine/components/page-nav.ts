@@ -190,8 +190,10 @@ export const pageNav: ComponentDef = {
     do: [
       'Mark the page the user is on as the current item',
       'Use each page\'s own title as its label',
-      'Name the landmark for the area, such as Account',
       'Keep the row the same on every page it links',
+    ],
+    implementation: [
+      'Name the landmark for the area, such as Account',
     ],
     dont: [
       'Use page navigation to switch panels in place; use Tabs',
