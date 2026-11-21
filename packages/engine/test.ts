@@ -8494,7 +8494,7 @@ arm: {
   const codeOnly = codeOnlyText(spinner.anatomy!.codeOnly).join('\n');
   ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && !/\d\s?ms\b/.test(spinner.motion?.reduceMotion ?? ''),
     '#1670 spinner: the motion field names both turn tokens and no millisecond value (#4174 a: the token, never its number)');
-  ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly),
+  ok(/var\(--motion-easing-linear\) infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly),
     '#1670 spinner: the code rule spins linear and infinite and slows under prefers-reduced-motion');
 
   // ---- THE OWNER'S DECISIONS OF 2026-09-27 (the brief carry-forward) ----------------------------------------
@@ -40394,7 +40394,7 @@ arm: {
     const ringNote = codeOnlyText(progress.anatomy!.codeOnly).find((c) => c.startsWith('the indeterminate ring')) ?? '';
     const usage = progress.docs?.usage ?? '';
     ok(ringOff.length === 0
-      && /rotate\(1turn\)/.test(ringNote) && /var\(--motion-duration-sweep\) linear infinite/.test(ringNote) && /prefers-reduced-motion: reduce/.test(ringNote) && /var\(--motion-duration-reduced-sweep\)/.test(ringNote) && /never stopped/.test(ringNote)
+      && /rotate\(1turn\)/.test(ringNote) && /var\(--motion-duration-sweep\) var\(--motion-easing-linear\) infinite/.test(ringNote) && /prefers-reduced-motion: reduce/.test(ringNote) && /var\(--motion-duration-reduced-sweep\)/.test(ringNote) && /never stopped/.test(ringNote)
       && !/refused in development, pointing to Spinner/.test(code)
       && /\(3 at small, 2\.4 at medium/.test(code)
       && /ring/.test(usage) && /Spinner for a short wait inside a control/.test(usage) && /indeterminate when it is not/.test(usage),
