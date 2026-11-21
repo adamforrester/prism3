@@ -1,6 +1,6 @@
 {
   "componentContractVersion": "2.0.0",
-  "componentSchemaVersion": "1.5.0",
+  "componentSchemaVersion": "1.6.0",
   "note": "Written by packages/engine/component-contract.ts --accept alone; do not hand-edit, and never regenerate it. `components` is the component-contract surface: per component, its name and status, its props (type, required, default, values), states, variant axes and values, and slots. `schema.shape` is the component schema: the shape of one published entry, read from the JSON schema named in `schema.source`, with its prose left out. Removing or renaming a name is a MAJOR change, adding one is MINOR, and moving a default is a PATCH; docs/30 has the full table.",
   "schema": {
     "source": "packages/engine/schema/component-defs.schema.json",
@@ -164,6 +164,8 @@
       "#/$defs/def/properties/docs/properties/do $ref=\"#/$defs/texts\"",
       "#/$defs/def/properties/docs/properties/dont",
       "#/$defs/def/properties/docs/properties/dont $ref=\"#/$defs/texts\"",
+      "#/$defs/def/properties/docs/properties/implementation",
+      "#/$defs/def/properties/docs/properties/implementation $ref=\"#/$defs/texts\"",
       "#/$defs/def/properties/docs/properties/usage",
       "#/$defs/def/properties/docs/properties/usage $ref=\"#/$defs/text\"",
       "#/$defs/def/properties/id",
