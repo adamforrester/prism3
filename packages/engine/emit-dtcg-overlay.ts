@@ -83,6 +83,50 @@ export const DTCG_TYPES: ReadonlySet<string> = new Set([
 /** Whether a leaf's `$type` is one a conforming consumer is defined to understand. */
 export const isConformingLeaf = (n: Node): boolean => typeof n.$type === 'string' && DTCG_TYPES.has(n.$type as string);
 
+/**
+ * The custom types whose `$value` is already a CSS value, so a stock Style Dictionary can write it as it stands
+ * (#3510). AUTHORED, like `DTCG_TYPES`: a type joins only by a decision that its value is CSS-ready, never by
+ * being a string. `spring` is not here: its value is `{ damping, stiffness }`, which no CSS property holds.
+ *
+ * `linearEasing` is a spring sampled into a CSS `linear()` function (`spring.ts`, owner decision Q-SP1 E). DTCG
+ * has no type for it, so it stays out of the conforming projection like any other custom type (#642).
+ */
+export const CSS_ONLY_TYPES: ReadonlySet<string> = new Set(['linearEasing']);
+
+/**
+ * THE CSS-ONLY SOURCE (#3510): the leaves of a `CSS_ONLY_TYPES` type, with no `$extensions`, as a third Style
+ * Dictionary source beside the base and an overlay. Only the shippable CSS build reads it (`sd.ship.mjs`).
+ *
+ * Why a separate file rather than a leaf in the projection: the projection is a DTCG conformance promise, and a
+ * DTCG tool MUST treat a token whose type it cannot determine as invalid. So the leaves a stock Style Dictionary
+ * can pass through, but a conforming tool cannot read, sit in a file that makes no such promise. Stock Style
+ * Dictionary has no transform for an unknown type and writes its string value unchanged, which is the CSS.
+ *
+ * A leaf here may not vary by mode: the file is added to every mode's build, so a per-mode value would ship the
+ * base value in every block. That throws rather than ship wrong; if a CSS-only leaf ever varies by mode, it needs
+ * overlays of its own.
+ */
+export const buildCssOnly = (tree: unknown): unknown => {
+  const walk = (n: unknown, path: string): unknown => {
+    if (!n || typeof n !== 'object') return undefined;
+    if (isLeaf(n)) {
+      if (typeof n.$type !== 'string' || !CSS_ONLY_TYPES.has(n.$type)) return undefined;
+      if (typeof n.$value !== 'string') throw new Error(`emit-dtcg-overlay: CSS-only leaf ${path} (\`${n.$type}\`) must hold a CSS string, got ${typeof n.$value}`);
+      if (((n.$extensions as Node | undefined)?.prism3 as Node | undefined)?.modes)
+        throw new Error(`emit-dtcg-overlay: CSS-only leaf ${path} varies by mode, which the CSS-only source cannot carry (#3510)`);
+      return stripExtensions(n);
+    }
+    const out: Node = {};
+    for (const [k, v] of Object.entries(n as Node)) {
+      if (k.startsWith('$')) continue;
+      const child = walk(v, path ? `${path}.${k}` : k);
+      if (child !== undefined) out[k] = child;
+    }
+    return Object.keys(out).length ? out : undefined;
+  };
+  return walk(tree, '') ?? {};
+};
+
 /** Every mode named by any leaf's `modes` extension, sorted. Walks the tree rather than taking a
  *  caller's list — a mode present on one leaf and absent from the argument would vanish silently. */
 export const overlayModes = (tree: unknown): string[] => {

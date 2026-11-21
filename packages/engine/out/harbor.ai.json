@@ -2,7 +2,7 @@
   "$schema": "prism3-ai-metadata/0.6",
   "brand": "harbor",
   "generated": true,
-  "note": "Agent-readable metadata, companion to harbor.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, background-blur, focus-ring, icon, control and grid roles, and the type line boxes), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). The primitive families are `core.palette`, `core.dimension`, `core.font`, `opacity`, `motion.duration-ms`, `motion.easing`, `motion.spring`, `shadow`, `breakpoint`, `container`. Not every one sits under `core`: a family outside it is still a primitive, so read the tier, not the path. A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. `motion_presets` names, for each motion preset, the duration step it plays on (the brand's mapping), its easing role and its reduced-motion duration. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
+  "note": "Agent-readable metadata, companion to harbor.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, background-blur, focus-ring, icon, control and grid roles, and the type line boxes), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). The primitive families are `core.palette`, `core.dimension`, `core.font`, `opacity`, `motion.duration-ms`, `motion.easing`, `motion.spring`, `motion.spring-duration`, `motion.spring-easing`, `shadow`, `breakpoint`, `container`. Not every one sits under `core`: a family outside it is still a primitive, so read the tier, not the path. A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. `motion_presets` names, for each motion preset, the duration step it plays on (the brand's mapping), its easing role and its reduced-motion duration. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
   "color_fields": [
     "$description",
     "meaning",
@@ -12395,6 +12395,42 @@
     "motion.spring.bouncy": {
       "$description": "spring bouncy — damping 0.6, stiffness 800",
       "meaning": "Spring primitive (damping / stiffness)",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-duration.snappy": {
+      "$description": "spring snappy settle time — 317ms, the time the snappy spring takes to settle on its target; play spring-easing snappy over it",
+      "meaning": "Spring settle time — the duration its CSS curve plays over",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-duration.gentle": {
+      "$description": "spring gentle settle time — 435ms, the time the gentle spring takes to settle on its target; play spring-easing gentle over it",
+      "meaning": "Spring settle time — the duration its CSS curve plays over",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-duration.bouncy": {
+      "$description": "spring bouncy settle time — 360ms, the time the bouncy spring takes to settle on its target; play spring-easing bouncy over it",
+      "meaning": "Spring settle time — the duration its CSS curve plays over",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-easing.snappy": {
+      "$description": "spring snappy as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration snappy (317ms); the damping and stiffness stay in spring snappy",
+      "meaning": "Spring as a CSS linear() curve, for code that cannot run a spring",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-easing.gentle": {
+      "$description": "spring gentle as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration gentle (435ms); the damping and stiffness stay in spring gentle",
+      "meaning": "Spring as a CSS linear() curve, for code that cannot run a spring",
+      "tier": "primitive",
+      "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
+    },
+    "motion.spring-easing.bouncy": {
+      "$description": "spring bouncy as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration bouncy (360ms); the damping and stiffness stay in spring bouncy",
+      "meaning": "Spring as a CSS linear() curve, for code that cannot run a spring",
       "tier": "primitive",
       "consume": "Consumable — easing shapes and springs are used directly where no role fits; transitions compose them."
     },

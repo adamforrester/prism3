@@ -726,7 +726,14 @@ export const ENGINE_VERSION = '0.239.0';
  * (`motion.brand.*`) is not on the surface: no corpus member emits it. A MAJOR (#4165 with #1421) is being batched
  * separately and is not part of this raise.
  */
-export const CONTRACT_VERSION = '15.2.0';
+/**
+ * 15.3.0 (#3510, owner Q-SP1 E, 2026-11-18): MINOR. Each spring joins the guaranteed surface as a pair CSS can play:
+ * `motion.spring-easing.{snappy,gentle,bouncy}`, the spring sampled into a CSS `linear()` curve (a custom
+ * `linearEasing` type, since DTCG has none for it), and `motion.spring-duration.{snappy,gentle,bouncy}`, the time
+ * the spring takes to settle, a DTCG `duration`. Both come from `spring.ts`. Six added paths; an added path cannot
+ * break a reference. Nothing is removed or retyped: `motion.spring.*` keeps its damping and stiffness.
+ */
+export const CONTRACT_VERSION = '15.3.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

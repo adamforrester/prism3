@@ -19161,6 +19161,76 @@
           }
         }
       },
+      "spring-duration": {
+        "snappy": {
+          "$type": "duration",
+          "$value": "317ms",
+          "$description": "spring snappy settle time — 317ms, the time the snappy spring takes to settle on its target; play spring-easing snappy over it",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 317
+            }
+          }
+        },
+        "gentle": {
+          "$type": "duration",
+          "$value": "435ms",
+          "$description": "spring gentle settle time — 435ms, the time the gentle spring takes to settle on its target; play spring-easing gentle over it",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 435
+            }
+          }
+        },
+        "bouncy": {
+          "$type": "duration",
+          "$value": "360ms",
+          "$description": "spring bouncy settle time — 360ms, the time the bouncy spring takes to settle on its target; play spring-easing bouncy over it",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 360
+            }
+          }
+        }
+      },
+      "spring-easing": {
+        "snappy": {
+          "$type": "linearEasing",
+          "$value": "linear(0, 0.008, 0.029, 0.061, 0.101, 0.145, 0.194, 0.245, 0.296, 0.348, 0.398, 0.447, 0.495, 0.54, 0.582, 0.622, 0.66, 0.694, 0.727, 0.756, 0.783, 0.808, 0.83, 0.851, 0.869, 0.885, 0.9, 0.913, 0.925, 0.936, 0.945, 0.953, 0.96, 0.966, 0.972, 0.976, 0.981, 0.984, 0.987, 0.99, 0.992, 0.994, 0.995, 0.997, 0.998, 0.999, 0.999, 1, 1, 1.001, 1.001, 1.001, 1.001, 1.001, 1.002, 1.002, 1.002, 1.001, 1.001, 1.001, 1.001, 1.001, 1.001, 1.001, 1)",
+          "$description": "spring snappy as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration snappy (317ms); the damping and stiffness stay in spring snappy",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "customType": "linearEasing"
+            }
+          }
+        },
+        "gentle": {
+          "$type": "linearEasing",
+          "$value": "linear(0, 0.005, 0.017, 0.037, 0.062, 0.091, 0.125, 0.161, 0.199, 0.239, 0.28, 0.321, 0.363, 0.404, 0.444, 0.483, 0.521, 0.558, 0.594, 0.628, 0.66, 0.69, 0.719, 0.747, 0.772, 0.796, 0.818, 0.839, 0.858, 0.875, 0.891, 0.906, 0.919, 0.932, 0.943, 0.953, 0.961, 0.969, 0.977, 0.983, 0.988, 0.993, 0.997, 1.001, 1.004, 1.007, 1.009, 1.011, 1.012, 1.013, 1.014, 1.015, 1.015, 1.015, 1.015, 1.015, 1.015, 1.015, 1.014, 1.014, 1.013, 1.013, 1.012, 1.011, 1.011, 1.01, 1.009, 1.009, 1.008, 1.008, 1.007, 1.007, 1.006, 1.006, 1.005, 1.005, 1.004, 1.004, 1.003, 1.003, 1.003, 1.002, 1.002, 1.002, 1.002, 1.001, 1.001, 1)",
+          "$description": "spring gentle as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration gentle (435ms); the damping and stiffness stay in spring gentle",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "customType": "linearEasing"
+            }
+          }
+        },
+        "bouncy": {
+          "$type": "linearEasing",
+          "$value": "linear(0, 0.009, 0.036, 0.075, 0.126, 0.185, 0.249, 0.317, 0.388, 0.458, 0.527, 0.595, 0.659, 0.719, 0.775, 0.827, 0.874, 0.915, 0.952, 0.984, 1.011, 1.034, 1.052, 1.067, 1.078, 1.086, 1.092, 1.094, 1.095, 1.093, 1.091, 1.087, 1.082, 1.076, 1.07, 1.063, 1.056, 1.05, 1.043, 1.037, 1.031, 1.025, 1.02, 1.015, 1.011, 1.007, 1.004, 1.001, 0.998, 0.996, 0.995, 0.993, 0.992, 0.992, 0.991, 0.991, 0.991, 0.991, 0.991, 0.992, 0.992, 0.993, 0.994, 0.994, 0.995, 0.995, 0.996, 0.997, 0.997, 0.998, 0.998, 0.999, 1)",
+          "$description": "spring bouncy as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration bouncy (360ms); the damping and stiffness stay in spring bouncy",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "customType": "linearEasing"
+            }
+          }
+        }
+      },
       "transition": {
         "default": {
           "$type": "transition",

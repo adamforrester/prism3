@@ -123,6 +123,10 @@ const readSource = (brand, file = SOURCE(brand)) => {
   // Paths, not just a count: a non-conforming type has to be NAMED to be actionable, and a bare
   // number would leave whoever hits this failure hunting for which token it means.
   const byType = {};
+  // Non-DTCG leaves whose value is an object, so a stock Style Dictionary with no transform for the type writes
+  // `[object Object]` (`spring`). A non-DTCG leaf holding a string passes through as written (#3510: `linearEasing`,
+  // a spring's `linear()` curve), so it is non-conforming without being corrupt, and the two are counted apart.
+  const objectValued = [];
   const walk = (node, path = '') => {
     if (!node || typeof node !== 'object') return;
     if ('$value' in node) {
@@ -130,6 +134,7 @@ const readSource = (brand, file = SOURCE(brand)) => {
       if (node.$type) {
         types.add(node.$type);
         (byType[node.$type] ??= []).push(path);
+        if (!DTCG_TYPES.has(node.$type) && node.$value && typeof node.$value === 'object') objectValued.push(path);
       }
       const m = node.$extensions?.prism3?.modes;
       if (m) for (const k of Object.keys(m)) modes.add(k);
@@ -145,7 +150,7 @@ const readSource = (brand, file = SOURCE(brand)) => {
     .filter(([t]) => !DTCG_TYPES.has(t))
     .flatMap(([t, paths]) => paths.map((p) => `${p} (\`${t}\`)`))
     .sort();
-  return { leaves, modes: [...modes].sort(), types: [...types].sort(), root, nonConforming };
+  return { leaves, modes: [...modes].sort(), types: [...types].sort(), root, nonConforming, objectValued: objectValued.sort() };
 };
 
 /** Variables in the emitted CSS, their values, and its selectors. Parses the CSS — NOT the JSON. */
@@ -268,11 +273,12 @@ for (const brand of brands) {
   // ---- VALUE INTEGRITY on the CANONICAL build. NOT a conformance promise — this tree is ours and
   // extension-based by #609's decision, and `spring` lives here on purpose. Kept measured so the
   // corruption does not become invisible now that the RULE below covers the projection. The expected
-  // count is DERIVED from two independent readers: non-DTCG leaves counted by walking the JSON, plus
-  // the consumer gap counted by parsing the CSS. A literal here would be the pin this PR just split.
-  const canonicalExpected = src.nonConforming.length + CONSUMER_GAP[brand];
+  // count is DERIVED from two independent readers: object-valued non-DTCG leaves counted by walking the JSON,
+  // plus the consumer gap counted by parsing the CSS. A literal here would be the pin this PR just split. Only
+  // the object-valued ones corrupt: a non-DTCG string (`linearEasing`, #3510) is written as it stands.
+  const canonicalExpected = src.objectValued.length + CONSUMER_GAP[brand];
   ok(css.corrupt.length === canonicalExpected,
-    `${brand}: the canonical build corrupts ${css.corrupt.length} value(s) = ${src.nonConforming.length} non-DTCG + ${CONSUMER_GAP[brand]} consumer-gap — expected, this tree is ours (#609)`);
+    `${brand}: the canonical build corrupts ${css.corrupt.length} value(s) = ${src.objectValued.length} object-valued non-DTCG + ${CONSUMER_GAP[brand]} consumer-gap — expected, this tree is ours (#609)`);
 
   // ---- THE PROJECTION (#609): what a conforming consumer actually reads ----
   const base = readEmitted(await buildProjected(brand, 'base'));

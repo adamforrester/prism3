@@ -20,6 +20,7 @@ import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale
 import { resolveAllModes, ModeResult, OPACITY_STEPS } from './modes';
 import { orderedRoleKeys } from './color-order';
 import { ENGINE_VERSION } from './version';
+import { springSettleMs, springLinearEasing } from './spring';
 
 /** A value the caller has established is present (a key just walked, a list known non-empty); a named throw,
  *  not a silent `undefined` (#1182, `noUncheckedIndexedAccess`). */
@@ -53,7 +54,7 @@ const ROW_LABEL_RUNG: Record<string, string> = { sm: 'xs', md: 'sm', lg: 'md' };
 // tier + a shadow step, composed at the component layer (see docs/06). The shadow
 // ramp + the tonal foreground ladder carry it; no parallel `elevation.*` tokens.
 
-type Token = { $type: 'color' | 'dimension' | 'number' | 'strokeStyle' | 'duration' | 'cubicBezier' | 'transition' | 'spring' | 'distanceDuration' | 'gesture' | 'fontFamily' | 'fontWeight' | 'typography' | 'shadow' | 'gradient'; $value: string | number | number[] | string[] | Record<string, unknown> | Record<string, unknown>[]; $description: string; $extensions: { prism3: Record<string, unknown> } };
+type Token = { $type: 'color' | 'dimension' | 'number' | 'strokeStyle' | 'duration' | 'cubicBezier' | 'transition' | 'spring' | 'linearEasing' | 'distanceDuration' | 'gesture' | 'fontFamily' | 'fontWeight' | 'typography' | 'shadow' | 'gradient'; $value: string | number | number[] | string[] | Record<string, unknown> | Record<string, unknown>[]; $description: string; $extensions: { prism3: Record<string, unknown> } };
 
 // ---- colour leaves ----
 const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boolean, ramp: Step[], hueSource?: 'brand' | 'default'): Token => {
@@ -116,6 +117,15 @@ const springLeaf = (p: { damping: number; stiffness: number }, description: stri
   // is expected, since spring → platform (web linear()/CSS, native
   // stiffness/damping/mass) is inherently a per-platform step.
   $extensions: { prism3: { generated: true, customType: 'spring' } },
+});
+// A spring as CSS can play it (#3510, Q-SP1 E): its `linear()` curve and the time it takes to settle, both from
+// `spring.ts`, which G5 (#3485) shares so Figma's paired duration is the same number. The duration is a DTCG
+// `duration` and reaches the conforming projection like any other. The curve is not: DTCG has no type for a
+// `linear()` function (a `cubicBezier` value must be four numbers), so it is another INTENTIONAL custom type,
+// omitted from the projection (#642) and carried to the token CSS by the CSS-only source (`emit-dtcg-overlay.ts`).
+const springEasingLeaf = (css: string, description: string): Token => ({
+  $type: 'linearEasing', $value: css, $description: description,
+  $extensions: { prism3: { generated: true, customType: 'linearEasing' } },
 });
 // The brand-only motion group (#2857, Q-MP7 option 3 item 3): a brand's true one-offs, outside the guaranteed
 // contract. Each leaf is a CUSTOM type, as `spring` is: DTCG has no type for a spring, a duration that scales with
@@ -1161,7 +1171,7 @@ const buildTreeOnce = (theme: Theme): BuiltTree => {
   collect(m);
   for (const mm of Object.values(motionByMode)) collect(mm);
 
-  const motion: Record<string, any> = { 'duration-ms': {}, duration: {}, 'duration-reduced': {}, easing: {}, 'easing-role': {}, spring: {}, transition: {} };
+  const motion: Record<string, any> = { 'duration-ms': {}, duration: {}, 'duration-reduced': {}, easing: {}, 'easing-role': {}, spring: {}, 'spring-duration': {}, 'spring-easing': {}, transition: {} };
   for (const v of [...msValues].sort((a, b) => a - b))
     motion['duration-ms'][String(v)] = durLeaf(v, `duration primitive — ${v}ms (literal; the semantic tier names the use)`);
 
@@ -1185,6 +1195,11 @@ const buildTreeOnce = (theme: Theme): BuiltTree => {
   for (const [k, v] of Object.entries(m.durationReduced)) motion['duration-reduced'][k] = durSemantic(v as number, k === SPIN_ROLE ? `reduce-motion spin — ${v}ms per full turn: a slow turn, kept rather than removed, because the spinner is how a sighted user sees work continuing` : k === SWEEP_ROLE ? `reduce-motion sweep — ${v}ms per pass: a slow sweep, kept rather than removed, because the moving segment is how a sighted user sees the work continuing` : `reduce-motion ${k} — ${v}ms${v === 0 ? ' (eliminated — substitute a cross-fade)' : ''}`, (mm) => mm.durationReduced[k]);
   for (const [k, v] of Object.entries(m.easing)) motion.easing[k] = bezierLeaf(v, `easing ${k}${EASING_NOTE[k] ? ` — ${EASING_NOTE[k]}` : ''}`);
   for (const [k, v] of Object.entries(m.spring)) motion.spring[k] = springLeaf(v, `spring ${k} — damping ${v.damping}, stiffness ${v.stiffness}`);
+  for (const [k, v] of Object.entries(m.spring)) {
+    const ms = springSettleMs(v);
+    motion['spring-duration'][k] = durLeaf(ms, `spring ${k} settle time — ${ms}ms, the time the ${k} spring takes to settle on its target; play spring-easing ${k} over it`);
+    motion['spring-easing'][k] = springEasingLeaf(springLinearEasing(v), `spring ${k} as a CSS linear() curve, sampled at most every 5ms — play it over spring-duration ${k} (${ms}ms); the damping and stiffness stay in spring ${k}`);
+  }
   // The ROLE tier (#522) — `easing-role.<role> → {motion.easing.<curve>}`. It exists so a mode can
   // re-point an intent at a different curve without redefining the curve, exactly as
   // `font.weight-role.*` lets a mode move `strong` without touching `font.weight.700`. Every per-mode

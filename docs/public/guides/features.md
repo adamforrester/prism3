@@ -7,7 +7,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 - Web studio: the studio in a browser. <!-- src: apps/studio/build-site.mjs:1-8#7ef7bf24 -->
 - Figma plugin: the same studio inside Figma <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d -->, plus **Update file**, which writes to the file. <!-- src: apps/studio/src/state/update-file.ts:330 -->
 - Agent, through the agent link: an AI agent driving the open plugin. See [Use the agent link](agent-link.md). <!-- src: apps/plugin/src/agent-protocol.ts:42#6bb39596 -->
-- Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:267-410#dd2425a2 -->
+- Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:267-410#aa2f980c -->
 
 ✓ means the surface can do it. – means it can't.
 

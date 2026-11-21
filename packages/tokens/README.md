@@ -73,8 +73,32 @@ guaranteed name, in every mode block. It also checks each name's value against t
 that mode, read from `packages/engine/out/prism3.tokens.json`, which the build never reads (#3563).
 That check ignores spelling (`#0000001a` or `rgba(0, 0, 0, 0.1)`, quoted or not), but not order: a
 reversed `cubic-bezier( )` or reordered shadow layers fail it. Each per-mode file
-(`prism3/<mode>.css`) gets the same checks on its own, not only the joined file (#3877). A non-DTCG type (today the three `spring` tokens) isn't in the
-projection, so it isn't in the CSS (#642).
+(`prism3/<mode>.css`) gets the same checks on its own, not only the joined file (#3877). A non-DTCG type isn't in the projection (#642).
+
+### Springs (#3510)
+
+Plain CSS can't run spring physics, so the CSS carries each spring as an easing curve and a duration to play
+it over (owner decision Q-SP1 E):
+
+```css
+.sheet {
+  transition: transform var(--pds3-motion-spring-duration-snappy) var(--pds3-motion-spring-easing-snappy);
+}
+```
+
+- `--pds3-motion-spring-easing-<name>` is the spring sampled into a `linear()` curve.
+- `--pds3-motion-spring-duration-<name>` is how long the spring takes to settle. Use the same `<name>` for both.
+
+The springs' damping and stiffness (`motion.spring.*`) aren't in the CSS. They stay in the DTCG tree
+(`<brand>.tokens.json`) and in Figma, where a JavaScript animation library or Figma can run the spring itself.
+`packages/engine/spring.ts` derives the curve and the duration and states the numbers behind them: the settle
+threshold, the sampling density and the error bound `test.ts` holds the curve to.
+
+DTCG has no type for a `linear()` function, so the curves have the custom type `linearEasing` and aren't in the
+conforming projection. The engine writes them to a third source, `<brand>.css-only.json`, which only
+`sd.ship.mjs` reads. Stock Style Dictionary has no transform for that type and writes the string as it stands,
+so the build still runs no custom code. The durations are DTCG `duration` tokens and travel in the projection
+like any other. `check-package.mjs` expects both, from its own list of the types the package carries.
 
 Each typeface ships with its fallback stack, ending in a generic family:
 `--pds3-core-font-typeface-inter: Inter, system-ui, …, sans-serif` (#4155). If a face doesn't load, text
