@@ -261,7 +261,8 @@ const flushRuleGap = (codeOnly: readonly string[]): string[] => {
 // The flush icon button's box IS its glyph (20 or 24px, no padding), so no emitted token is its target: the owner's
 // rule is a hit area of at least 44×44 in CODE at every size, through an invisible extension, and Figma draws the
 // glyph square only. So, as for FLUSH_MEMBERS, this gate requires the def to STATE it, twice: in `codeOnly` (the
-// maintainer record) and in the shipped `docs.do` (the page an implementer reads, which `codeOnly` never reaches).
+// maintainer record) and in the shipped `docs.implementation` (the page an implementer reads, which `codeOnly` never
+// reaches; `docs.do` until #2778 moved the build rules to their own list).
 // Each listed def is also measured BELOW the floor at every size on comfortable, so a box later grown to 44 makes the
 // entry stale by name rather than leaving a code-side claim on a control that no longer needs one. The phrases are
 // literals here, never read off the def (docs/34): deleting either sentence from the def fails this gate by name.
@@ -753,8 +754,8 @@ for (const [id, target] of Object.entries(CODE_SIDE_TARGETS)) {
   }
   const ruleMiss = ruleGap(codeOnlyText(def.anatomy?.codeOnly), CODE_SIDE_RULE);
   if (ruleMiss.length) failures.push(`${id}: no codeOnly entry states the code-side hit area (missing: ${ruleMiss.join(', ')}) — its box is below the floor by design, so the rule is the only target it has. State that the hit area is at least 44×44px at every size in code, through a ::before inset outward and centered on the glyph (owner Q283.3 A, #2457).`);
-  const docMiss = ruleGap(def.docs?.do ?? [], CODE_SIDE_DOC);
-  if (docMiss.length) failures.push(`${id}: the shipped docs.do does not tell the implementer to extend the hit area (missing: ${docMiss.join(', ')}) — codeOnly never ships, so without this the code docs lose the only 44×44 target the control has. Keep a docs.do entry: "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward…" (owner Q283.3 A, #2457).`);
+  const docMiss = ruleGap(def.docs?.implementation ?? [], CODE_SIDE_DOC);
+  if (docMiss.length) failures.push(`${id}: the shipped docs.implementation does not tell the implementer to extend the hit area (missing: ${docMiss.join(', ')}) — codeOnly never ships, so without this the code docs lose the only 44×44 target the control has. Keep a docs.implementation entry: "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward…" (owner Q283.3 A, #2457).`);
 }
 
 // ── FLUSH NESTS (#2427): every code-side nest listed, and each listed pair 44px apart center to center ──────────

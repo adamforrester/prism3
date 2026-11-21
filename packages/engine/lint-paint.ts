@@ -837,6 +837,8 @@ const FAMILY_SEGMENT = 2;
 const provenanceFailures = (): { failures: { key: string; detail: string }[]; exempted: Map<string, number> } => {
   const out: { key: string; detail: string }[] = [];
   const satisfied = new Set<string>();
+  // The keys the rule EVALUATED and found violating, which is the only place a per-key exception does work (#1740).
+  const excused = new Set<string>();
   // Which NON_FAMILY_AXES entries actually covered a binding that would otherwise have FAILED. An axis
   // whose keys all satisfy provenance anyway needs no exemption, so this is the counter the stale
   // direction below reads — not "is the axis declared", which a def can satisfy while binding nothing
@@ -868,7 +870,7 @@ const provenanceFailures = (): { failures: { key: string; detail: string }[]; ex
         exercised.set(axis, (exercised.get(axis) ?? 0) + 1);
         continue;
       }
-      if (id in PROVENANCE_EXCEPTIONS) continue;
+      if (id in PROVENANCE_EXCEPTIONS) { excused.add(id); continue; }
       out.push({ key: id, detail: `${axis}='${lead}' is absent from '${ref}' — a ${lead} coordinate would paint another ${axis}'s colour` });
     }
   }
@@ -894,6 +896,10 @@ const provenanceFailures = (): { failures: { key: string; detail: string }[]; ex
       out.push({ key: id, detail: 'exempted key does not exist — remove the exception, it asserts something untrue about this def' });
     else if (satisfied.has(id))
       out.push({ key: id, detail: 'exempted key now SATISFIES provenance — remove the exception so the rule covers it' });
+    // #1740: a key the rule never evaluates (not a color, not led by an axis value, or on an exempt axis) is
+    // neither violated nor satisfied, so neither branch above sees it, and the entry sat there silently.
+    else if (!excused.has(id))
+      out.push({ key: id, detail: 'exempted key is outside the provenance rule — the rule never evaluates it, so the exception excuses nothing; remove it (#1740)' });
   }
   return { failures: out, exempted: exercised };
 };
@@ -1308,6 +1314,20 @@ const main = (): void => {
   console.log('Prism3 paint gate (#758)\n');
 
   // ── ARM 1 ─────────────────────────────────────────────────────────────────────────────────────
+  // #1740 SELF-CHECK: plant an exception on a key the rule never evaluates (a token whose lead segment is no axis
+  // value, found in the defs rather than spelled), and the stale direction must name it.
+  {
+    const outside = componentDefs.flatMap((d) => Object.keys(d.tokens ?? {})
+      .filter((k) => !Object.values(d.variants ?? {}).some((vs) => vs.includes(k.split('.')[0])))
+      .map((k) => `${d.id}|${k}`)).find((id) => !(id in PROVENANCE_EXCEPTIONS));
+    if (!outside) fails.push('provenance self-check (#1740): no def key outside the rule to plant — the check measured nothing');
+    else {
+      PROVENANCE_EXCEPTIONS[outside] = 'planted by the #1740 self-check';
+      const named = provenanceFailures().failures.some((f) => f.key === outside && f.detail.includes('outside the provenance rule'));
+      delete PROVENANCE_EXCEPTIONS[outside];
+      ok(named, `provenance self-check (#1740): an exception on '${outside}', a key the rule never evaluates, is not reported as stale`);
+    }
+  }
   const { failures: prov, exempted } = provenanceFailures();
   for (const f of prov) fails.push(`provenance: ${f.key} — ${f.detail}`);
   console.log(`  provenance rule … ${prov.length === 0 ? 'ok' : `${prov.length} violation(s)`} (${Object.keys(PROVENANCE_EXCEPTIONS).length} named key exception(s))`);

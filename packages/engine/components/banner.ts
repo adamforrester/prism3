@@ -441,6 +441,8 @@ export const banner: ComponentDef = {
       'Give the action a verb that says what it does',
       'Use the neutral tone for an announcement or an offer, which carries no status',
       'End a one-line message with an inline link when its action goes somewhere',
+    ],
+    implementation: [
       'Move focus to a sensible place after a dismiss',
     ],
     dont: [

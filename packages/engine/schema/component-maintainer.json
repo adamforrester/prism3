@@ -112,7 +112,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -211,7 +211,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -328,11 +328,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -436,11 +431,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -544,11 +534,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -652,11 +637,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -770,7 +750,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -898,7 +878,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -988,11 +968,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1082,11 +1057,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1176,11 +1146,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1271,11 +1236,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1366,11 +1326,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1461,11 +1416,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1563,7 +1513,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -1657,11 +1607,6 @@
           "section": "related",
           "field": "composition.replacesPatterns",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1717,12 +1662,10 @@
         "contested": [
           "The focus edge on a field with a status (#3399, owner decision Q22.1 A): while focused, an error, warning or success field draws its 2px focus edge in the status color, not the focus color, so the status stays visible while the user types (Material and Primer do the same). The alternative, the focus color over every status, hides the status while the field has focus. The decided trade-off: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band, which changes from the field's fill to the status color; the outer 1px keeps the status color it had at rest. A default field is under the same trade-off (see the note on the default focus edge).",
           "The focus edge on a default field (#3399, owner decision Q3399.1 A): while focused, the field's border becomes a 2px edge in the focus color. The inner 1px changes from the field's fill to the focus color, at 3:1 or more in every brand and mode. The outer 1px changes from the rest border to the focus color, and both are mid-luminance roles, so that change can fall below 3:1, as it does in every brand the engine ships. The decided trade-off, the same as on a status field: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band. The alternatives were a darker focus color for fields (a token-tier change) and a wider edge, which brings back the ring's look.",
-          "Bundled props vs composed slots — ship both: props for the 90% vertical-form case, composed FieldLabel/FieldMessage slots for the 10% custom layout (brief §3).",
           "How far to split the typed family — NumberField separate; SearchField/PasswordField thin specializations; email/url/tel stay as type+attributes (brief §3).",
           "Validation ownership/timing — presentational default; the form library owns timing (brief §3, §6).",
           "pressed — the brief lists it as a runtime state (§4, touch-down feedback before the virtual keyboard rises), largely a mobile concern. Not declared: `pressed` is not a field state here (see `tokens`), so a touch-down carries no skin of its own. The alternative is a `pressed` state with its own skin, which no field role emits today (`color.field.border.pressed` does not exist).",
-          "density [comfortable, compact, fluid] — the brief's second variant axis (§4, §15). Not declared: the engine's density is a brand lever that moves every control's rungs, and `size` covers per-field scale. Carbon's borderless `fluid` field is a separate treatment, not built.",
-          "prefix / suffix as TEXT affixes vs merged away (#1699 decision 3, owner-delegated: one prop per slot). They were glyph-or-action slots duplicating `leadingIcon` / `trailingIcon`. Chosen: keep the names for the text affixes (a currency symbol, a unit — brief §9's locale placement). In the brief, `prefix` / `suffix` name the adornment slots (§2, §15) and §10 maps `leadingVisual` / `trailingVisual` onto them; here the glyph adornments are the two icon slots, so the names are reused for the text affixes, with the glyphs on the two icon slots and the clear action on `clearable`. The alternative, dropping `prefix` / `suffix` entirely, loses the text affix a currency or unit field needs."
+          "density [comfortable, compact, fluid] — the brief's second variant axis (§4, §15). Not declared: the engine's density is a brand lever that moves every control's rungs, and `size` covers per-field scale. Carbon's borderless `fluid` field is a separate treatment, not built."
         ],
         "unverified": [
           "Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).",
@@ -1731,6 +1674,8 @@
           "The leading and trailing glyphs are node-visibility BOOLEANS (#1331/#1494): each node is built hidden and shown by its switch. In Figma auto-layout a `visible:false` child is excluded from the flow, so a hidden glyph should add no gap — but whether a real host reflows `content` / the control when a switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where a hidden glyph sits, or the trailing affix not pinning tight when off."
         ],
         "evolution": [
+          "Bundled props vs composed slots — ship both: props for the 90% vertical-form case, composed FieldLabel/FieldMessage slots for the 10% custom layout (brief §3).",
+          "prefix / suffix as TEXT affixes vs merged away (#1699 decision 3, owner-delegated: one prop per slot). They were glyph-or-action slots duplicating `leadingIcon` / `trailingIcon`. Chosen: keep the names for the text affixes (a currency symbol, a unit — brief §9's locale placement). In the brief, `prefix` / `suffix` name the adornment slots (§2, §15) and §10 maps `leadingVisual` / `trailingVisual` onto them; here the glyph adornments are the two icon slots, so the names are reused for the text affixes, with the glyphs on the two icon slots and the clear action on `clearable`. The alternative, dropping `prefix` / `suffix` entirely, loses the text affix a currency or unit field needs.",
           "READ-ONLY KEEPS THE EDITABLE FIELD'S BOUNDARY (owner decision, 2026-09-29, #1710). The read-only member binds `field.border.rest`, the same border as the rest and filled members, in every mode. The earlier `border.secondary` binding measured 2.69–2.81:1 on `background.secondary` in light, below the 1.4.11 floor, and `field.border.rest` is already the quietest neutral step that clears 3:1 there, so no fainter read-only edge can pass. Read-only is carried by its semantics (aria-readonly; still focusable and submitted) and by the affordances its member does not draw (no caret), not by a fainter edge.",
           "warning as a distinct state (brief §4 calls it optional; many systems fold it into helper/error). Settled here as a STATUS, not a state: `warning` is a value of the `status` axis with its own border (`color.border.warning`, #1517) and its own message status, so the field signals it on both.",
           "FLOATING LABELS OUT OF FAVOR. Static top-aligned labels are now the assumed default for accessibility, i18n and density; Material 3 keeps floating as an option (KB text-field brief §13). This field composes the static FieldLabel.",
@@ -1763,11 +1708,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1879,11 +1819,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -1952,11 +1887,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2001,8 +1931,7 @@
       "notes": {
         "contested": [
           "`alignment` (top/baseline vs center) is in brief §15's variants block and is NOT an axis here. The brief calls top/baseline \"the non-negotiable default, not center\", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centered — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlCell` exactly one label line-box tall and centers WITHIN that box, so a single-line label reads centered and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.",
-          "The group's `orientation` and `density` are in brief §15's variants block and are not here because they are `CheckboxGroup`'s axes, not this component's. The alternative is folding the group into this def, which is the monolithic decomposition the brief evaluates and rejects (§2).",
-          "BORDER AND FILL AT ONE COORDINATE — #1011's third finding, and the answer is NEITHER of the two the issue offered. The defect: a selected box named `fill.selected` for its fill and let its border fall through to `border.rest`, so two bindings that must AGREE about the box's boundary disagreed. Both resolved, both named tokens this def chose, and the box shipped with a visible seam — #802's class again, and the second on this component after #967's `role: 'target'` conflation. The issue asked whether this needs a new EXPRESSION or is PER-DEF CARE. It is a third thing. It needs no new expression: the grammar already says it, because an unbound slot returns `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` IS the binding \"this coordinate has no fill\" — the fix was deleting seven keys, not adding a field. And per-def care is exactly what had already failed: the radio and switch defs of the time carried the identical pairing because they copied this def verbatim, which is per-def care performed correctly three times over one wrong premise. What was missing was neither vocabulary nor diligence but ENFORCEMENT, so the answer is a gate — `lint-paint.ts` arm 4, which measures whether a fill is self-bounding against the page (>= 3:1, SC 1.4.11) and fails a same-family border drawn beside one. It named all three defs in a single run before any of them was fixed. The measured fact underneath, which is why the rule generalizes rather than describing these three: `interactive.<intent>.fill.*` and `interactive.<intent>.border.*` were byte-identical at every rung they SHARE across the brands measured then (5 brands x 4 modes), and the border ladder has NO `selected` rung at all — so `fill.selected` beside `border.rest` was never two shades of one idea, it was a fill that moved and a border that could not follow. The asymmetry to keep in view: switch's OFF track KEEPS its rim, because no brand's neutral fill clears 3:1 (1.21-1.58:1 at rest) and the rim is that track's only edge — which is precisely why arm 4 asks about the FILL's contrast rather than comparing the two bindings to each other."
+          "The group's `orientation` and `density` are in brief §15's variants block and are not here because they are `CheckboxGroup`'s axes, not this component's. The alternative is folding the group into this def, which is the monolithic decomposition the brief evaluates and rejects (§2)."
         ],
         "unverified": [
           "THE CONTROL SQUARE IS NOW BOUND (#951 emitted `control.size.<rung>`, closing #900), and what is unverified moved with it rather than away. The square reads `control.size.<rung>.height` on both axes: 16/20/24 in all four shipped brands at comfortable density, which lands in the brief's stated 16-18px range at `md`, and 12/16/20 at COMPACT density (the `minimal-compact` fixture since aurora moved to comfortable, #1215), whose `sm` square is 12px. No compact checkbox has been built on a real host. Two things to check when one is: whether a 12px box reads as a checkbox at all, and — separately, because it is a different failure — that a 12px box does not become a 12px TARGET. SC 2.5.8 wants 24x24, and the row is what has to supply it; the square's own edge was never the target. The old form of this note read \"the box's edge is unexpressible today\" and the ladder it warned against is worth keeping: `icon.size.*` resolves, typechecks and passes every gate here, and is 16/20/24 in every shipped brand at every density, so binding to it would hold the control rigid against exactly the brand density `control.size.*` exists to move.",
@@ -2012,6 +1941,7 @@
           "The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw, morphing dash to check) is stated in `checkbox-control`'s `motion` on motion.duration.fast, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`."
         ],
         "evolution": [
+          "BORDER AND FILL AT ONE COORDINATE — #1011's third finding, and the answer is NEITHER of the two the issue offered. The defect: a selected box named `fill.selected` for its fill and let its border fall through to `border.rest`, so two bindings that must AGREE about the box's boundary disagreed. Both resolved, both named tokens this def chose, and the box shipped with a visible seam — #802's class again, and the second on this component after #967's `role: 'target'` conflation. The issue asked whether this needs a new EXPRESSION or is PER-DEF CARE. It is a third thing. It needs no new expression: the grammar already says it, because an unbound slot returns `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` IS the binding \"this coordinate has no fill\" — the fix was deleting seven keys, not adding a field. And per-def care is exactly what had already failed: the radio and switch defs of the time carried the identical pairing because they copied this def verbatim, which is per-def care performed correctly three times over one wrong premise. What was missing was neither vocabulary nor diligence but ENFORCEMENT, so the answer is a gate — `lint-paint.ts` arm 4, which measures whether a fill is self-bounding against the page (>= 3:1, SC 1.4.11) and fails a same-family border drawn beside one. It named all three defs in a single run before any of them was fixed. The measured fact underneath, which is why the rule generalizes rather than describing these three: `interactive.<intent>.fill.*` and `interactive.<intent>.border.*` were byte-identical at every rung they SHARE across the brands measured then (5 brands x 4 modes), and the border ladder has NO `selected` rung at all — so `fill.selected` beside `border.rest` was never two shades of one idea, it was a fill that moved and a border that could not follow. The asymmetry to keep in view: switch's OFF track KEEPS its rim, because no brand's neutral fill clears 3:1 (1.21-1.58:1 at rest) and the rim is that track's only edge — which is precisely why arm 4 asks about the FILL's contrast rather than comparing the two bindings to each other.",
           "THE PAINT GRAMMAR IS AXIS-LED and the exemption is declared per-AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`) rather than per-key. RESOLVED, not open — kept here because the rejected alternative is the instructive part. This def first shipped SLOT-led (`fill.checked`), which skips arm 1 by construction, since that rule only examines a key whose literal lead is an axis value: the same net coverage, none of the visibility, and exactly the shape the house rule forbids — a false positive is fixed by adding to the exemption list, never by narrowing a scan. The other alternative, axis-led with a `PROVENANCE_EXCEPTIONS` entry per binding, was costed at roughly four times `field-message`'s whole list for this one def; the axis-level entry replaces all twenty with one declaration that `radio-control` and `switch-control` inherit. What stays genuinely open is only the underlying fact, and it is a TOKEN-TIER claim anyone can check: the tier emits no `color.checked.*` family and should not grow one. If that stops being true, arm 1 should cover this axis and the exemption fails as no-longer-exercised, which is the direction it is checked in.",
           "`checked`/`indeterminate` as a variant AXIS rather than as two `STATES` entries — and, since #1330, EXPOSED from the nested control rather than enumerated on the Row. The alternative (two states) is real and cheaper but wrong: `{state}` holds one value per coordinate, so `checked` x `hover` would not fail — it would fall back and paint the unchecked hover border. `selection` earns its axis in the shape a flat state property could not — the mark and the dash are two PARTS gated on it (`presentWhen`), not two paint treatments, so collapsing it into `state` would put a tick and a dash at one coordinate. What #1330 changed is WHERE the axis lives, not whether it is one: the atom (`checkbox-control`) carries the 3 selections x 3 sizes x 6 states = 54-member set, and the Row EXPOSES `selection` + `state` from it (projecting a size-only 3-member set) instead of re-enumerating the 54 it used to. The #761 reversal, owner-approved, QA-measured. Settled by evidence.",
           "THE BOX'S CORNER — CLOSED by #1015, and the answer was engine surface after all. This entry ran for three revisions saying `radius.sm` was correct and needed no def change, and each revision was right about the fact it measured and wrong about the question. What it kept measuring: 2px is what four of five brands resolve, and aurora's 4px is its own `radiusScale: 2` lever working as designed. What it never asked: whether ONE corner value can be right for THREE box sizes. It cannot. `radius.sm` is a rung on the CARD ramp, and a card scales with the page while this box scales with the type — so the same 4px token is a fourteenth of aurora's card corner and a THIRD of its 12px `small` square. The proportion is the defect, not the value, which is why \"2px is correct\" and \"the binding is wrong\" were both true and the entry could not see it. Now `control.size.<rung>.radius` = `min(radius.sm, snap2(edge ÷ 8))`, a sibling of the `height` it is derived from, bound per rung. Prism 2's own controls sit at ~1/8 of their edge, which is where the ratio comes from; `min` is what makes the change non-destructive, because a bare ratio would round nb's 24px `large` corner UP from 2 to 4 and move four brands to fix one. Aurora moves 4 → 2 at all three rungs and nothing else moves at all. The alternative this entry named — a dedicated control-radius RUNG on the radius ramp — was the shape rejected: a rung cannot see the box EDGE, so it would be a fourth name that still could not scale with the thing it corners. What is genuinely NOT fixed: the ratio and the 2px radius sub-grid cannot both hold on a 12px edge, so aurora's `small` lands at 0.167 rather than the 0.125 the ratio targets, and the sub-grid wins on purpose (a 1.5px corner is not a corner). The binding reaches the built NODE, pinned by a per-rung read-back in `apps/plugin/test-write-components.ts` that recomputes the clamp from the brand's own `radius.sm` and box edge rather than trusting the emitter — `radius/round` for radio stays asserted beside it, so \"checkbox only\" is enforced rather than intended.",
@@ -2046,11 +1976,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2154,11 +2079,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2231,11 +2151,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2317,11 +2232,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2426,11 +2336,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2511,11 +2416,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2610,11 +2510,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2667,8 +2562,7 @@
           "The focus edge on a default field (#3399, owner decision Q3399.1 A): while focused, the field's border becomes a 2px edge in the focus color. The inner 1px changes from the field's fill to the focus color, at 3:1 or more in every brand and mode. The outer 1px changes from the rest border to the focus color, and both are mid-luminance roles, so that change can fall below 3:1, as it does in every brand the engine ships. The decided trade-off, the same as on a status field: this meets WCAG AA (2.4.7, 2.4.11, 1.4.11), and under strict AAA 2.4.13 the indicator relies on the inner 1px band. The alternatives were a darker focus color for fields (a token-tier change) and a wider edge, which brings back the ring's look.",
           "Native <select> vs a custom listbox — this def models the closed control both share and leaves the open menu to the platform (native-first). A fully custom, styleable menu is a separate listbox/popover surface, chosen when the native menu's look is unacceptable and the extra ARIA cost is accepted.",
           "SINGLE vs MULTIPLE choice — the brief carries a `multiple` prop (§3, §15: value becomes an array, Space toggles and keeps the list open, a token or count summary, leading checkboxes). This def is single-choice by decision (#1699, owner-delegated): a choice of several values goes to Checkbox.Group, or to a multi-select, not built yet. The alternative is `multiple` here, which changes the keyboard contract and the value type, so it is a second component's worth of behavior behind one flag.",
-          "THE BRIEF'S OTHER VARIANT AXES, NOT DECLARED (brief §4, §15). `size` [small, medium, large] was deferred (#1699 decision 2) and is now declared and projected (#2266, the field sizing system). `density` [comfortable, compact] follows the brand's density lever rather than a per-component axis. `selection` [single, multiple] and `multi-summary` [count, tokens] are the single-choice decision above. `rendering` [native, custom] is the native-first call in the first entry: this def models the closed control both share. `mode: creatable` blurs toward a combobox (brief §4) and belongs with that component, not built yet. None is in `VARIANT_AXES` today, which is closed (#847).",
-          "error as a border swap vs a full validation border set — settled as text-field settles it. Until #1517 error was the ONLY status that colored the border; #1517 (owner-directed, Prism 2 parity) extended the swap to warning and success, which the token tier already emits as `border.warning`/`border.success`, so every non-default status now colors its own boundary AND carries the message."
+          "THE BRIEF'S OTHER VARIANT AXES, NOT DECLARED (brief §4, §15). `size` [small, medium, large] was deferred (#1699 decision 2) and is now declared and projected (#2266, the field sizing system). `density` [comfortable, compact] follows the brand's density lever rather than a per-component axis. `selection` [single, multiple] and `multi-summary` [count, tokens] are the single-choice decision above. `rendering` [native, custom] is the native-first call in the first entry: this def models the closed control both share. `mode: creatable` blurs toward a combobox (brief §4) and belongs with that component, not built yet. None is in `VARIANT_AXES` today, which is closed (#847)."
         ],
         "unverified": [
           "The nested label and message now FILL the field's width (#1503, `crossAxisFill` → `layoutAlign: STRETCH`), spanning the 320 control rather than hugging narrower — the gap this note used to record (a `nest` cannot bind sizing, #1299, so it once sat at its natural width) is closed. The root is built at 320 (`placementWidth`, #2292) and the control fills it above its own 320 floor (`minWidth`), so an unplaced field reads at 320, a field set to fill its column stretches the control with it, and the two nested parts stretch to match, each instance FIXED across (#1751) so its text wraps at that width (#1757); `test:roundtrip` measures the stretch and the wrap on the offline host, but whether a real host keeps the stretch on a nested INSTANCE is the standing offline-arm caveat (below).",
@@ -2676,6 +2570,7 @@
           "The leading glyph is a node-visibility BOOLEAN (#1331): the node is built at every member with `visible:false` and shown by the `leading icon` switch. In Figma auto-layout a `visible:false` child is EXCLUDED from the flow — it takes no space or gap — so a hidden glyph should add no gap to `content`, exactly as the absent slot did. The offline shims gate the boolean property, the built `visible=false` and the `componentPropertyReferences.visible` wiring, but NOT auto-layout's exclusion of invisible children: whether a real host reflows `content` when the switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where the hidden glyph sits, or the field not tightening when leading is off."
         ],
         "evolution": [
+          "error as a border swap vs a full validation border set — settled as text-field settles it. Until #1517 error was the ONLY status that colored the border; #1517 (owner-directed, Prism 2 parity) extended the swap to warning and success, which the token tier already emits as `border.warning`/`border.success`, so every non-default status now colors its own boundary AND carries the message.",
           "READ-ONLY KEEPS THE EDITABLE FIELD'S BOUNDARY (owner decision, 2026-09-29, #1710). The read-only member binds `field.border.rest`, the same border as the rest and filled members, in every mode. The earlier `border.secondary` binding measured 2.69–2.81:1 on `background.secondary` in light, below the 1.4.11 floor, and `field.border.rest` is already the quietest neutral step that clears 3:1 there, so no fainter read-only edge can pass. Read-only is carried by its semantics (aria-readonly; still focusable and submitted) and by the affordances its member does not draw (no caret), not by a fainter edge.",
           "STYLING ERA (~2015–2020): custom <div> listboxes to escape the unstyleable native element, at the cost of industry-wide accessibility regressions (KB select brief §13).",
           "ACCESSIBILITY ERA (~2020–2024): headless libraries (React Aria, Radix) codify the ARIA 1.2 listbox and combobox patterns correctly, with JavaScript positioning and focus management dominating the payload.",
@@ -2708,11 +2603,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2812,11 +2702,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -2933,7 +2818,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -2942,7 +2827,7 @@
         {
           "class": "motion",
           "disposition": "REFUSED",
-          "description": "rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite`, one turn per `motion.duration.spin`, a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here."
+          "description": "rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) var(--motion-easing-linear) infinite`, one turn per `motion.duration.spin`, a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here."
         },
         {
           "class": "motion",
@@ -3060,11 +2945,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -3171,7 +3051,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3333,11 +3213,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -3448,7 +3323,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3545,11 +3420,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -3654,7 +3524,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3796,7 +3666,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3881,7 +3751,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -3940,7 +3810,7 @@
       ],
       "notes": {
         "contested": [
-          "PENDING THE OWNER'S VISUAL QA (Q241): the block padding (8/12/16), the gap (8/12/16) and the panel's bottom inset (12/16/24). Decided since: the inline padding steps 12/16/20 at the header and the panel alike (Q338 A, revising 24 at large; the fields keep 24), and the panel keeps its own padding, aligned to the header edge rather than to the title (Q339 A). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy (\"Section title\", and the panel placeholder), the property names, the page placement and the prose.",
+          "PENDING THE OWNER'S VISUAL QA (Q241): the block padding (8/12/16), the gap (8/12/16) and the panel's bottom inset (12/16/24).",
           "A flush style only: the brief's contained (boxed card) variant is not built.",
           "DRAFT (#2646), for the owner: the panel slot (`content`) declares no constraint. No minimum or maximum child count, no preferred components and not preferred-only, and a new instance shows the placeholder. A section holds whatever its content is (text, a list, a form, an image), so any limit here would flag ordinary use."
         ],
@@ -3948,6 +3818,7 @@
           "That the native slot behaves the same on a designer's instance in every Figma plan: slots were measured in one file; a plan without the feature keeps the panel as a plain frame, and the build says so."
         ],
         "evolution": [
+          "Since the Q241 visual QA opened: the inline padding steps 12/16/20 at the header and the panel alike (Q338 A, revising 24 at large; the fields keep 24), and the panel keeps its own padding, aligned to the header edge rather than to the title (Q339 A). Approved in Q241: the inks (`interactive.neutral.text.rest` for the title, `text.primary` for the panel placeholder), the Figma copy (\"Section title\", and the panel placeholder), the property names, the page placement and the prose.",
           "Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header's focus ring on its edge, `focus.ring.offset-field`), and the owner's QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header's edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title's first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding). #2878 (Q-block A, 2026-10-25): the indicator pair is an `indicator` axis on the Accordion, which the nested indicator follows, so the set is 48 members and the nested instance is no longer exposed.",
           "#3180 (Q-ACC1 A, 2026-10-30): the title moved from the emphasis label composite to the default (regular) one at every size, for every brand. The reference brand's FAQ accordion sets its title at 14px regular, and field practice is split between regular and medium. The line box is unmoved, and an Update rewrites the title's text style in place, keeping a hand edit on the header's padding.",
           "#3198 (Q-ACC2 A, 2026-10-31): a `divider` boolean, on by default, shows or hides the nested Divider in every member, with a code prop of the same name. A rebuild of the reference brand's FAQ list, which has no rules between items, could only hide the rule with a layer override on each instance. An Update adds the property in place: no member id changes, and hand edits are kept."
@@ -3988,7 +3859,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4092,7 +3963,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4193,7 +4064,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4292,7 +4163,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4389,11 +4260,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -4511,7 +4377,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4605,7 +4471,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -4763,11 +4629,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -4882,11 +4743,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -4969,15 +4825,14 @@
         }
       ],
       "notes": {
-        "contested": [
-          "Decided: Q436 (a) (#2668): the close nests FlushIconButton.Neutral (Q386, as Dialog), not the proposal's IconButton.Neutral; FlushIconButton gains a `surface` axis (`default | inverse`, appended last, following IconButton's) so the glyph reads on the inverse card, with Counter and Dialog naming `surface: default` on their nests. Decided: Q367 (c): the action label stays the nested Button's text, as Dialog's footer, not a toast text property. Decided: Q532.1 A: the 8px gap between the message and the controls stays as built (the proposal leaves it open; the wireframe uses 8px).",
-          "Decided: Q3165.1 A (#3165): with the message at 14px, the card takes a floor at `size.md.height`, so a one-line toast with no action measures 44 at comfortable rather than 37; the alternatives were holding 40 with a 24px floor on the message row, or no floor."
-        ],
+        "contested": [],
         "unverified": [
           "That the nested Button and FlushIconButton.Neutral carry their prototype reactions into the toast's instances on the canvas, as they do inside Dialog.",
           "The live-region timing (one frame after the region exists) and NVDA's behavior, against current assistive technology."
         ],
         "evolution": [
+          "Decided: Q436 (a) (#2668): the close nests FlushIconButton.Neutral (Q386, as Dialog), not the proposal's IconButton.Neutral; FlushIconButton gains a `surface` axis (`default | inverse`, appended last, following IconButton's) so the glyph reads on the inverse card, with Counter and Dialog naming `surface: default` on their nests. Decided: Q367 (c): the action label stays the nested Button's text, as Dialog's footer, not a toast text property. Decided: Q532.1 A: the 8px gap between the message and the controls stays as built (the proposal leaves it open; the wireframe uses 8px).",
+          "Decided: Q3165.1 A (#3165): with the message at 14px, the card takes a floor at `size.md.height`, so a one-line toast with no action measures 44 at comfortable rather than 37; the alternatives were holding 40 with a 24px floor on the message row, or no floor.",
           "Owner decisions: the proposal and wireframe on #2668, every numbered call A (2026-10-16): toast for the user's own action and safe to miss, errors to a banner; intents neutral and success; no glyph on neutral; bottom center below 768px and the bottom inline-end corner from 768px; one at a time, the newest replacing; 6s with a 5s floor and pauses, no timer with an action; at most one action that also exists elsewhere; close on by default; the inverse surface; F6 in, Escape out; built at 360; named Toast with its aliases; the wording as drafted.",
           "Owner request (#3165, 2026-10-30): the message moves from `type.body.md` (16px) to `type.body.sm` (14px), after the option rows' 14px label (#3153).",
           "The brief's severity set (info, success, warning, error, loading), its stacked toaster, its timeout bar and its swipe are not built: errors and warnings go to a banner (call 1 A), one toast shows at a time (call 5 A), and the rest is out of scope (the proposal's §11)."
@@ -5028,7 +4883,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -5117,7 +4972,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -5220,7 +5075,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -5343,7 +5198,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -5452,11 +5307,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -5573,11 +5423,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -5704,11 +5549,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -5737,7 +5577,7 @@
         {
           "class": "runtime-behavior",
           "disposition": "LOWERED",
-          "description": "the indeterminate ring — the same `<svg>` with the arc's `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) linear infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (one turn per `motion.duration.sweep`, Progress's own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)`: slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o'clock. In right-to-left the arc turns counterclockwise."
+          "description": "the indeterminate ring — the same `<svg>` with the arc's `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) var(--motion-easing-linear) infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (one turn per `motion.duration.sweep`, Progress's own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)`: slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o'clock. In right-to-left the arc turns counterclockwise."
         },
         {
           "class": "right-to-left",
@@ -5838,7 +5678,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -5941,11 +5781,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6062,11 +5897,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6208,11 +6038,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6263,6 +6088,11 @@
       },
       "docGaps": [
         {
+          "section": "usage",
+          "field": "docs.do",
+          "reason": "empty"
+        },
+        {
           "section": "content",
           "field": "content.errorPattern",
           "reason": "empty"
@@ -6296,11 +6126,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6407,7 +6232,8 @@
         ],
         "evolution": [
           "2026-10-16 (#2669): owner decision, every call A on the proposal and wireframe. One Slider with a type axis (single, range) × five states = 10 members, one size, header value text, a 2px rail and 4px fill, a 24px ringed thumb nested as Slider.Thumb, optional end labels, inputs and message.",
-          "2026-10-22 (#2669): owner decision Q550, A on Q536 a–f. One track thickness in field.border.rest with the selected part and the thumb in neutral ink; the thumb on the track with no ring; a 0px header gap; labeled milestones in place of the end labels, off by default; a size axis (small, medium, large) for 30 members; a halo at hover and press."
+          "2026-10-22 (#2669): owner decision Q550, A on Q536 a–f. One track thickness in field.border.rest with the selected part and the thumb in neutral ink; the thumb on the track with no ring; a 0px header gap; labeled milestones in place of the end labels, off by default; a size axis (small, medium, large) for 30 members; a halo at hover and press.",
+          "2026-11 (#3398): the selected bar follows `interactive.neutral.indicator.rest`, the thumb's selection mark, so a brand's outline-edge setting never reaches it. It bound `interactive.neutral.border.rest`."
         ],
         "projection": [
           "The range text key (#2967) — the Figma text property range text is keyed to defaultValue only because a texts key must be a declared prop and the two readouts need different placeholders. It is mechanical, not a prop mapping: range text is the readout of the current range, and defaultValue is only the starting value, so a Code Connect projection does not map defaultValue to it."
@@ -6443,11 +6269,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6560,7 +6381,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -6665,11 +6486,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -6768,7 +6584,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -6872,11 +6688,6 @@
           "section": "related",
           "field": "composition.supersededBy",
           "reason": "empty"
-        },
-        {
-          "section": "code",
-          "field": "docs.implementation",
-          "reason": "not in the schema yet"
         }
       ]
     },
@@ -7005,7 +6816,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -7120,7 +6931,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -7221,7 +7032,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     },
@@ -7325,7 +7136,7 @@
         {
           "section": "code",
           "field": "docs.implementation",
-          "reason": "not in the schema yet"
+          "reason": "empty"
         }
       ]
     }
