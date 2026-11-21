@@ -566,9 +566,11 @@ export const codeInput: ComponentDef = {
   docs: {
     usage: 'Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with `one-time-code` `autocomplete`.',
     do: [
-      'Accept a pasted or autofilled code in full, ignoring spaces and hyphens',
       'Say which error it is: too few digits, wrong code or expired code',
       'Keep the resend link and any expiry time next to the field',
+    ],
+    implementation: [
+      'Accept a pasted or autofilled code in full, ignoring spaces and hyphens',
     ],
     dont: [
       'Build one input per cell: paste and autofill then fill one cell',
