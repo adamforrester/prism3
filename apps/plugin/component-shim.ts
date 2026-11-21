@@ -557,6 +557,12 @@ export const makeShim = (opts: ShimOpts = {}) => {
     c.parent = null;
   };
   const page = opts.page;
+  /** #971: THE HOST PARENTS A CREATED NODE TO THE CURRENT PAGE the moment it exists (`createFrame`, `createText`,
+   *  `createNodeFromSvg`, `createInstance`), so a node a build made and never placed is on the designer's canvas. The
+   *  shim did not model it, so no gate could see what a throw left behind. `pageParent` is the shim's `currentPage`,
+   *  set once the shim exists; a later `appendChild` anywhere takes the node off the page (`detach`). */
+  let pageParent: unknown = null;
+  const created = (n: Node): Node => { if (page) { page.children.push(n); n.parent = pageParent; } return n; };
   /** #3308 (Q3308.3 A): a COMPONENT on a page of a several-page file (`pages`), by its own id. Figma takes a live
    *  component's id as an instance-swap value, as the usage panel's Specimen sets it; without `pages`, none. */
   const pageComponent = (id: string): boolean => {
@@ -1259,6 +1265,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
       swapComponent(c: { createInstance?: () => Node }) {
         const tmp = c.createInstance?.();
         if (!tmp) throw new Error('in swapComponent: Expected a component');
+        // #971: the host's swap makes no node; the shim's stand-in instance is taken off the page it was created on.
+        detach(tmp);
         carryMain(tmp, node);
         if (tmp._main) node._main = tmp._main;
         node._swaps = ((node._swaps as number | undefined) ?? 0) + 1;
@@ -1730,7 +1738,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           // value names a component by key, so a nested component the slot prefers must have one, as on a real file).
           ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}),
           createInstance: () => {
-            const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
+            const inst = created(mkNode('INSTANCE')); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
             // #2645 — ITS PROPERTIES: a live member's are its set's (a plain live component's, its own), read when
             // asked, so a property the executor declares later is there; a catalog name's are `componentProps'`.
             // #2317 — an opaque component this run did not build, and `componentProps` does not declare, carries
@@ -1897,14 +1905,14 @@ export const makeShim = (opts: ShimOpts = {}) => {
     },
     createText: () => {
       if (opts.refuse?.createText) throw new Error('in createText: The document is not editable');
-      return mkNode('TEXT');
+      return created(mkNode('TEXT'));
     },
     createFrame: () => {
       // #913: either the BUILD's first frame or the MARKING's, depending on the setting. Figma's message
       // for a file the plugin may not write to.
       if (opts.refuse?.createFrame === 'always' || (opts.refuse?.createFrame === 'on-failure-path' && hostRefusing))
         throw new Error('in createFrame: The document is not editable');
-      return mkNode('FRAME');
+      return created(mkNode('FRAME'));
     },
     // THE SVG IMPORTER (#864) — a FRAME on the document's artboard, wrapping the outline it drew.
     // Mirrors the engine stub's, deliberately and for the reason stated on that one: the parity gate
@@ -1914,7 +1922,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // and only the executor's runtime misses can catch the live host disagreeing.
     createNodeFromSvg: (svg: string) => {
       const attr = (name: string) => Number(new RegExp(`${name}="([0-9.]+)"`).exec(svg)?.[1] ?? 0);
-      const frame = mkNode('FRAME');
+      const frame = created(mkNode('FRAME'));
       (frame.resize as (w: number, h: number) => void)(attr('width'), attr('height'));
       // ONE VECTOR PER <path> (#1670), each with the layer `opacity` the element declares — which is how
       // Figma's importer builds a multi-path document, and the spinner's is one: a track at 0.2 and an arc.
@@ -2022,6 +2030,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // finds a set by its id, re-read the first set and failed a set it had updated correctly.
       if (!opts.identities) set.id = `SET:${++setSeq}`;
       giveKey(set);
+      // #971: the members leave wherever they were (the page a created node starts on, or a frame) for the set, as on
+      // the host. `detach` takes a node off the page too, so it is the one place the members leave the page.
+      for (const m of members) detach(m);
       set.children = members;
       // #1430 — HOST TRUTH, AS PROBED LIVE (2026-09-27, a scratch file and the owner's master file agree):
       // `combineAsVariants` returns a set with the dash rhythm and the radius of a variant-set frame but NO
@@ -2037,7 +2048,6 @@ export const makeShim = (opts: ShimOpts = {}) => {
       set.strokeAlign = 'INSIDE';
       set.dashPattern = [10, 5];
       for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) (set as Record<string, unknown>)[c] = 5;
-      takeFromPage(members);
       // A member's parent is its set, as on the host: a native slot made on it later finds the set this way (#2417),
       // and a reaction's destination is resolved among its siblings this way (#2466). ALWAYS the set: a member built
       // onto a page that records parents (`file-shim.ts`) arrived with the page as its parent, which the host's
@@ -2174,9 +2184,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
         w = nw; h = nh;
       };
       set.appendChild = (c: Node) => {
+        // #971: a node elsewhere (a member built onto the page, as the host creates it) leaves its old parent first.
+        if (c.parent && c.parent !== set) detach(c);
         (set.children as Node[]).push(c);
         takeFromPage([c]);
-        if (!c.parent) c.parent = set;
+        c.parent = set;
         // A member APPENDED to an existing set merges its slots into the set's SLOT property of that name, as the
         // combine does (measured, #2417); a name the set has no property for gets one.
         (set as Record<string, unknown>)._mergeSlots?.(c);
@@ -2402,11 +2414,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // guard in `combineAsVariants` above). The shim's currentPage is the default combine parent, so it
       // must carry one or every pre-#1554 combine would trip the guard the live host enforces.
       id: 'PAGE:current',
-      appendChild: (c: Node) => { page?.children.push(c); },
+      // #971: REPARENTS, as the host does: taken off wherever it was, then put last on the page.
+      appendChild: (c: Node) => { detach(c); page?.children.push(c); c.parent = pageParent; },
       get children() { return page?.children ?? []; },
       findOne: (pred: (n: unknown) => boolean) => (page?.children ?? []).find(pred) ?? null,
     },
   } as ShimOpts & Record<string, unknown>;
+  pageParent = shim.currentPage;
   // #3215 Q-C8 A — THE STRICT HOST IS THE DEFAULT. Each surface is fixed as `host-descriptors.json` records the real
   // host: `figma` measured (#3209's error), the root as #3214 assumed it. Nodes are not fixed here: their descriptors
   // are not measured yet, and `test-loose-host.ts` fails by name the day the fixture says they are fixed.

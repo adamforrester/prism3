@@ -2178,7 +2178,7 @@ export const captureVerdictText = (r: CaptureResult): { ok: boolean; headline: s
     ...r.sets.flatMap((x) => {
       const why = [...new Set(x.skipped.map((s) => s.reason))];
       const head = x.skipped.length
-        ? `${x.set}: ${n(x.recorded, 'member')} recorded, ${x.skipped.length} left as they are (${why.slice(0, 3).join('; ')}${why.length > 3 ? '; …' : ''}).`
+        ? `${x.set}: ${n(x.recorded, 'member')} recorded, ${x.skipped.length} left as ${x.skipped.length === 1 ? 'it is' : 'they are'} (${why.slice(0, 3).join('; ')}${why.length > 3 ? '; …' : ''}).`
         : `${x.set}: ${n(x.recorded, 'member')} recorded.`;
       // Each member left out because it differs from its plan, with what differs, NAMED (#2295).
       return [head, ...namedLines(x.set, x.skipped.flatMap((s) => (s.differences ?? []).map((d) => ({ ...d, part: d.part === '.' ? s.member : `${s.member} / ${d.part}` }))))];
@@ -2196,7 +2196,7 @@ export const adoptVerdictText = (r: AdoptResult): { ok: boolean; headline: strin
     ...r.sets.map((x) => {
       const why = [...new Set(x.skipped.map((s) => s.reason))];
       return x.skipped.length
-        ? `${x.set}: ${n(x.adopted, 'member')} adopted, ${x.skipped.length} left as they are (${why.join('; ')}).`
+        ? `${x.set}: ${n(x.adopted, 'member')} adopted, ${x.skipped.length} left as ${x.skipped.length === 1 ? 'it is' : 'they are'} (${why.join('; ')}).`
         : `${x.set}: ${n(x.adopted, 'member')} adopted.`;
     }),
     ...r.refused.map((x) => `${x.def}: not adopted. ${x.reason}.`),

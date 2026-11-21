@@ -1062,6 +1062,10 @@ section('structure — an update that changes a hand-edited member\'s structure 
       ok(o.updated.includes(NAME) && !o.skipped.length && content === k.content && (JSON.stringify(member().fills) === JSON.stringify(RED)) === (k.choice === 'keep'),
         `structure/${k.kind} written: under ${k.choice} the member is updated, its layers ${k.content}, its edited fill ${k.choice === 'keep' ? 'kept' : 'overwritten'} (${o.updated.length} updated; ${content}; ${JSON.stringify(o.skipped)})`);
     }
+    // #4116 (owner A): the guide says a recolor keeps the set updating unless an update changes that variant's layers. A
+    // structural skip around the recolor turns the WHOLE set's updates off (#3948); a written member leaves them on.
+    // Mutation: `restructured` skips left out of `around` in `plan()` → `#4116 structure/<kind>: … updates off`.
+    ok((o.turnedOff === true) === k.skips, `#4116 structure/${k.kind}: under ${k.choice} the set's updates are ${k.skips ? '' : 'not '}turned off (turnedOff ${String(o.turnedOff)})`);
   }
 }
 
