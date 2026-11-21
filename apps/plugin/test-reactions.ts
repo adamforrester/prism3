@@ -27,6 +27,8 @@
  *                `orphan/hand-renamed`, `orphan/under a layer dry run`; the skip without it → `orphan/under a layer skip`.
  *   hand/…       a reaction removed by hand is a hand edit at its own path, kept by default and still reported;
  *                overwritten on request, then current. Mutation: reactions dropped from the record → `hand/detected`.
+ *                With a layer added by hand too, the member is skipped but not behind its plan (#3907), so the set is
+ *                still recorded as current. Mutation: `behind` counting hand-edited reactions → `hand/not behind`.
  *   converge/…   a set built before reactions existed (no reactions, no reactions in its records, an older executor
  *                revision) is named by the dry run, updated, verified, and then reads up to date. Mutations: the
  *                executor skips in-place members → `converge/written`, `converge/up to date`.
@@ -51,7 +53,7 @@ import { BASELINE_KEY, writeBaseline } from './src/member-baseline';
 import { EXECUTOR_REVISION } from './src/executor-revision';
 import { makeShim, type Node, type Page } from './component-shim';
 import { previewUpdate, previewVerdict, type UpdateTarget } from './src/update-plan';
-import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict, ledgerAfter, previewHashOf, type ApplyHost } from './src/update-apply';
 import { REACTIONS_PATH, reactionMap } from './src/reactions';
 
 let failed = 0;
@@ -342,6 +344,28 @@ section('hand — a reaction removed by hand is a hand edit, with the usual choi
   ok(JSON.stringify(named(w, member(w, T('rest')))) === JSON.stringify([`ON_HOVER→${T('hover')}`, `ON_PRESS→${T('pressed')}`]), `hand/overwritten: overwrite puts the plan's reactions back (${named(w, member(w, T('rest'))).join('; ')})`);
   const last = (await previewUpdate(w.host, targets(w, TAG))).sets[0];
   ok(last.counts.current === 45, `hand/current: then all 45 current (${JSON.stringify(last.counts)})`);
+}
+
+{
+  // #4381 review S1 (#3907): A MEMBER THAT DIFFERS ONLY BY THE DESIGNER'S OWN EDITS IS NOT BEHIND. Its reactions edited by
+  // hand and a layer added by hand, its plan unchanged: the apply skips it for the layer, but nothing of Prism3's is out
+  // of date on it, so the set is still recorded as built from today's def. Before the fix, the hand-edited reactions
+  // read as `behind` and the set stayed due on every run. Expected values typed here. Mutation: `behind` counts
+  // reactions that are a hand edit → `hand/not behind`.
+  const w = await world(TAG);
+  const rest = member(w, T('rest'));
+  await (rest.setReactionsAsync as (r: unknown[]) => Promise<void>)(reactionsOf(rest).filter((r) => r.trigger.type === 'ON_PRESS'));
+  const extra = (w.api.createFrame as () => Node)();
+  extra.name = 'designer note';
+  (rest.appendChild as (c: Node) => void)(extra);
+  const e = { engine: 'e1', def: 'today', rev: 1 } as never;
+  const { pre, res } = await confirm(w, TAG);
+  const st = pre.sets[0].states.find((s) => s.member === T('rest'));
+  const o = res.outcomes[0];
+  const ledger = ledgerAfter(res.outcomes, () => e, { [TAG]: { engine: 'e1', def: 'earlier', rev: 1 } } as never);
+  ok(st?.state === 'handEdited' && !st.behind && o.skipped.some((x) => x.member === T('rest') && x.reason === 'a layer was added or removed by hand')
+    && !o.behind && JSON.stringify(ledger[TAG]) === JSON.stringify(e),
+    `hand/not behind: a member differing only by its hand-edited reactions and a layer added by hand is skipped, and the set is recorded as built from today's def (${JSON.stringify(st)}; ${JSON.stringify(o.behind ?? null)}; ${JSON.stringify(ledger[TAG] ?? null)})`);
 }
 
 /* ── converge ───────────────────────────────────────────────────────────────────────────────────────────── */

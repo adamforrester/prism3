@@ -156,6 +156,9 @@ export type SetOutcome = {
   /** #2956 — this run turned the set's updates off by itself: it skipped a member whose hand edits the update could not
    *  apply around (`aroundEdits`). The rest of the set was written as usual. Absent otherwise. */
   turnedOff?: true;
+  /** #3907 — of `skipped`, the members the dry run read as behind today's plan whatever their hand edits (`behind` on
+   *  its states): left out of date, so the ledger does not record the set as built from today's def. Absent when none. */
+  behind?: string[];
   /** Members updated with no as-built record, so with no hand-edit check (`choices.noBaseline`, default `update`). */
   unrecorded: string[];
   /** Of `unrecorded`, those whose record was from an earlier format (#2379 review). */
@@ -328,7 +331,7 @@ export { nestedFirst };
 const preflight = (p: SetPreview): string | null => (p.blockers.length ? p.blockers.join('; ') : null);
 
 /** Which members this update configures, which it leaves, and why, from the dry run alone. */
-const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>; skipped: SetOutcome['skipped']; around: string[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
+const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>; skipped: SetOutcome['skipped']; around: string[]; behind: string[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
   const byMember = new Map<string, SetPreview['handEdits']>();
   for (const h of p.handEdits) byMember.set(h.member, [...(byMember.get(h.member) ?? []), h]);
   const members = new Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>();
@@ -389,7 +392,10 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
   // Every member the dry run read as not built by Prism3 is named, the ones off the plan too (a designer's own icon
   // under the def's prefix, #2296): the update never writes them, and the verdict says so rather than leaving them out.
   for (const u of p.unstamped) if (!skipped.some((x) => x.member === u)) skipped.push({ member: u, reason: 'not built by Prism3' });
-  return { members, skipped, around, kept, unrecorded, restamp, earlierRecord };
+  // #3907: a skipped member the dry run read as behind its plan is left out of date by this run.
+  const left = new Set(skipped.map((x) => x.member));
+  const behind = p.states.filter((s) => s.behind && left.has(s.member)).map((s) => s.member);
+  return { members, skipped, around, behind, kept, unrecorded, restamp, earlierRecord };
 };
 
 /** THE LEDGER AFTER AN APPLY (#2909 Q2909.8 A; #3421, owner decision Q39 A): each set the apply acted on, recorded as
@@ -406,7 +412,9 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
  *  kept set; it never reads one current while its edits keep the plan out. */
 export const ledgerAfter = (outcomes: readonly SetOutcome[], entryOf: (def: string) => LedgerEntry | null, was: Ledger = {}): Record<string, LedgerEntry> =>
   // #2956: a set left because its updates are off was not written, so its entry stands.
-  Object.fromEntries(outcomes.filter((o) => !o.refused && !o.stopped && !o.off).flatMap((o) => {
+  // #3907: so does a set whose run skipped a member still behind its plan: recorded as current, Update file's due read
+  // would stop offering it while that member is out of date (and, once its updates are turned back on, never again).
+  Object.fromEntries(outcomes.filter((o) => !o.refused && !o.stopped && !o.off && !o.behind?.length).flatMap((o) => {
     const e = entryOf(o.def);
     if (!e) return [];
     const { held: _now, ...rest } = e;
@@ -566,6 +574,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
   const work = plan(p, opts.handEdits, opts.noBaseline);
   out.skipped = work.skipped;
   if (work.around.length) out.aroundEdits = work.around;
+  if (work.behind.length) out.behind = work.behind;
   out.unrecorded = work.unrecorded;
   if (work.earlierRecord.length) out.earlierRecord = work.earlierRecord;
   out.kept = work.kept;
@@ -1003,6 +1012,8 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
   const changed = changedSets(res.outcomes);
   res.publish = publishDescription({
     title: res.version, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
+    // #2882 (owner decision A): each set's range starts at its own members' stamps, as the check read them.
+    stampedBy: Object.fromEntries(preview.sets.filter((s) => changed.includes(s.set) && s.engines).map((s) => [s.set, s.engines!])),
     consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.filter(breaksConsumers).length ?? 0), 0),   // #3711 (Q-UF1 A): a retired member is not breaking
   });
 };
