@@ -23,3 +23,7 @@ plan on #3408.
 
 **Not measured yet:** KPI 1 and ejection (plan items 3–5), and arm 2, which needs read access to the contributor's
 repo.
+
+**Review fix.** `api-mismatches.ts` refuses to report a count when no manifest element matches a def, since a 0 there
+would compare nothing. That guard is now `unmeasurable()`, shared by the CLI and an 11th self-test case, which fails by
+name when the guard is emptied.

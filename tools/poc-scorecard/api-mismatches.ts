@@ -12,6 +12,9 @@
  *   - ACTUAL is the arm's Custom Elements Manifest, written by the analyzer from the element's source: a prop is on the
  *     element when the manifest has it as an attribute's field or as a public field (a property with no attribute, such
  *     as a controlled `value` or an `onChange` handler, is still on the element).
+ * For arm 1's own props the two are not independent: `packages/web-components/generate.ts` writes the element from
+ * `def.props`, so that half of arm 1's count is 0 by construction and is no evidence; only the `exposes` half can move.
+ * For arm 2, whose elements are not generated from the defs, both halves are independent.
  * A manifest element is matched to a def by its tag name less the first segment (`p3-text-field` → `text-field`), so any
  * prefix works. Defs with no element are listed, not counted: this measures the elements an arm ships.
  *
@@ -54,6 +57,11 @@ export const mismatches = (defs: Record<string, Def>, manifest: Manifest): Resul
   return out;
 };
 
+/** Why a result is no measurement, or null when it is one: with no manifest element matching a def, nothing was
+ *  compared, and a count of 0 there would be a vacuous one. The CLI and the self-test both read it from here. */
+export const unmeasurable = (r: Result, source: string): string | null =>
+  r.compared.length ? null : `FAIL api mismatches: no element in ${source} matches a def (tags: ${r.unmatched.join(', ') || 'none'})`;
+
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.dirname ?? '', 'api-mismatches.ts')) {
   const arg = (n: string) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : undefined; };
   const mf = arg('--manifest');
@@ -61,7 +69,8 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.dirname 
   const defsFile = arg('--defs');
   const defs = (defsFile ? JSON.parse(readFileSync(resolve(defsFile), 'utf8')) : readUncommitted('component-defs.json')).components as Record<string, Def>;
   const r = mismatches(defs, JSON.parse(readFileSync(resolve(mf), 'utf8')) as Manifest);
-  if (!r.compared.length) { console.error(`FAIL api mismatches: no element in ${mf} matches a def (tags: ${r.unmatched.join(', ') || 'none'})`); process.exit(1); }
+  const why = unmeasurable(r, mf);
+  if (why) { console.error(why); process.exit(1); }
   for (const [id, ps] of Object.entries(r.missing)) console.log(`  ${id}: exposed in Figma, not on the element: ${ps.join(', ')}`);
   if (r.unmatched.length) console.log(`  not a def, not compared: ${r.unmatched.join(', ')}`);
   console.log(`OK api mismatches: ${r.count} mismatches across ${r.compared.length} elements (${r.compared.join(', ')})`);

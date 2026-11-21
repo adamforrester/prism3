@@ -2454,7 +2454,7 @@ The tree was `poc/arm-1` at `40d7fc01` plus this tool, which no measurement read
 
 ### What was checked, and how
 
-- `--self-test`: 10 cases, all OK.
+- `--self-test`: 11 cases, all OK.
 - **Hand mutation on disk**, after a commit, restored with `git show HEAD:<path> > <path>`: making a missing record
   render `0` fails 3 self-test cases by name, starting with "an arm with no records still shows every row, as not
   measured".
@@ -2505,3 +2505,8 @@ and there's a def with no element. The case must count 3 and show `3 mismatches`
 committed first and restored with `git show`, and each fails that case by name:
 - the count hardcoded to 0 (`counted 0`);
 - the nestings' `exposes` dropped (`counted 1`).
+
+**Review fix, same PR.** The tool's "no vacuous 0" guard had no test: removing it still passed the self-test, and the
+card would then show a measured 0 for a manifest that matched nothing. The guard is now `unmeasurable()`, which the CLI
+and the self-test both call, and an 11th case plants a manifest whose only tag matches no def and requires the FAIL line,
+never `0 mismatches`. With the guard emptied, that case fails by name.

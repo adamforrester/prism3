@@ -26,7 +26,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ROWS, ARMS, CARD_ARMS, type Measure } from './measures';
-import { mismatches, type Manifest } from './api-mismatches';
+import { mismatches, unmeasurable, type Manifest } from './api-mismatches';
 
 const HERE = import.meta.dirname ?? '';
 const ROOT = resolve(HERE, '../..');
@@ -151,6 +151,10 @@ export const SELF: { name: string; check: () => string | null }[] = [
     if (m.count !== 3 || m.missing.field?.join() !== 'size,emphasis,weight' || m.compared.join() !== 'field,chip') return `counted ${m.count} (${JSON.stringify(m.missing)}, compared ${m.compared.join()}), expected 3: size, emphasis, weight on field`;
     const r = row(render({ 'arm-1': { 'kpi2-api-mismatches': planted({ id: 'kpi2-api-mismatches', value: m.count, unit: 'mismatches: Figma-exposed props the element lacks' }) } }), 'API parity against Figma: mismatches');
     return /\| 3 mismatches: Figma-exposed props the element lacks \(abcdef01/.test(r) ? null : r; } },
+  { name: 'a manifest whose elements match no def is no measurement: it FAILs, never 0 mismatches', check: () => {
+    const m = mismatches({ field: { def: { props: [{ name: 'label' }] } } }, { modules: [{ declarations: [{ tagName: 'x-nothing', attributes: [{ name: 'label' }] }] }] });
+    const why = unmeasurable(m, 'planted.json');
+    return why === 'FAIL api mismatches: no element in planted.json matches a def (tags: x-nothing)' ? null : `read as a measurement: ${why ?? `${m.count} mismatches across ${m.compared.length} elements`}`; } },
   { name: 'every arm 1 row is measured or names why not', check: () => {
     const arm = ARMS['arm-1'];
     const gaps = ROWS.filter((x) => !arm.measures.some((m) => m.id === x.id) && !arm.pending[x.id]);
