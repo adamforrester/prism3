@@ -111,7 +111,7 @@ export const toggleCategoryWeight = (g: string, role: string, roleOrder: readonl
  *  category's required role, or its last shipped one. The engine refuses both. */
 export const categoryWeightLock = (g: string, role: string, shipped: ReadonlySet<string>): string | undefined => {
   const required = (REQUIRED_WEIGHT_ROLES as Record<string, { role: string; why: string } | undefined>)[g];
-  if (shipped.has(role) && required?.role === role) return `${g[0].toUpperCase()}${g.slice(1)} always ships ${role} — ${required.why}.`;
+  if (shipped.has(role) && required?.role === role) return `${g.charAt(0).toUpperCase()}${g.slice(1)} always ships ${role} — ${required.why}.`;
   if (shipped.has(role) && shipped.size === 1) return 'Every text type ships at least one weight. Tick another before clearing this one.';
   return undefined;
 };
@@ -292,7 +292,8 @@ export const ceilingBlocked = (): Map<string, string> => {
     for (const v of Object.keys(lev?.typeSizes?.display ?? {})) set.add(v);
   const order: readonly string[] = DISPLAY_VARIANTS;
   const top = Math.max(-1, ...[...set].map((v) => order.indexOf(v)));
-  return new Map(top < 0 ? [] : order.slice(0, top).map((c) => [c, order[top]]));
+  const ceiling = order[top];
+  return new Map(top < 0 || ceiling === undefined ? [] : order.slice(0, top).map((c) => [c, ceiling]));
 };
 /** Whether the 18px title floor is refused because title 2xs is set individually (#2054). Only the 16px floor
  *  makes title 2xs, and the engine refuses a size set on a rung the brand does not make. It counts as set
