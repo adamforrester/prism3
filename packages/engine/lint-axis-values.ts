@@ -373,6 +373,26 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'separator type a glyph, and no value would mean the same thing on both defs. The item picks it by its own '
       + '`separator` axis, which holds the same two values.',
   },
+  {
+    axis: 'type',
+    values: ['action', 'submenu'],
+    defs: ['menu-item'],
+    relation: 'disjoint',
+    reason:
+      'What a menu row does when chosen (#4007, owner decision Q-FL2 on OD-M3 A): runs an action, or opens a submenu, '
+      + 'which adds the arrow and its space. Checkbox and radio items are action members with the check toggles on, so '
+      + 'they are not values. `action` LEADS because it is the code default and Figma\'s default member. DISJOINT from '
+      + 'Badge\'s canonical set: no value would mean the same thing on both defs.',
+  },
+  {
+    axis: 'type',
+    values: ['section'],
+    defs: ['menu-group'],
+    relation: 'disjoint',
+    reason:
+      'One value (#4007, held for the owner): the engine projects no set without an axis, so Menu.Group\'s one member '
+      + 'carries `section`. A radio set draws the same. DISJOINT from Badge\'s canonical set.',
+  },
   // field-label's `indicator` axis left the register (#1338). It carried a three-way `[none/required/optional]`
   // axis whose most important value was ABSENCE, which is exactly why it never projected to Figma. The owner
   // decision (2026-09-13) reconciled it into Prism 2's `Required` BOOLEAN (default true) — a node-visibility toggle,
@@ -1031,7 +1051,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'placement',
     values: ['bottom'],
-    defs: ['popover'],
+    defs: ['popover', 'menu'],
     relation: 'subset',
     reason:
       'The side of its trigger a popover opens on (#4008, owner decision Q-FL2 on OD-P2 A and OD-X2 A): Dialog\'s word for '
@@ -1076,13 +1096,23 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'intent',
     values: ['neutral', 'success'],
     defs: ['toast'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'What a toast confirms (#2668, owner call 2 A): a plain confirmation, or a completed action with a circled check. '
       + 'No danger, warning or info: a message the user must see goes to a banner (call 1 A). `neutral` LEADS because it '
       + 'is the code default and Figma\'s default member. The axis returns here as a variant axis after #1225 retired it '
       + 'from the button families (where intent became the component): a toast\'s two intents differ in one glyph and its '
       + 'ink, not in a family of interactive colors, so they are members of one set. One def carries it.',
+  },
+  {
+    axis: 'intent',
+    values: ['default', 'destructive'],
+    defs: ['menu-item'],
+    relation: 'disjoint',
+    reason:
+      'What a menu action does (#4007, owner decision Q-FL2 on OD-M3 A): a plain action, or one that deletes or cannot '
+      + 'be undone, in the destructive ink. Disjoint from Toast\'s [neutral, success]: a toast reports, a menu item acts, '
+      + 'and neither has the other\'s values. `default` LEADS because it is the code default and Figma\'s default member.',
   },
   {
     axis: 'footer',

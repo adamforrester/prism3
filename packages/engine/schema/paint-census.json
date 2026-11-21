@@ -780,6 +780,42 @@
         "assignments": 4,
         "sha256": "92e9d522af64dce87a341930067f3de19097577db0f12b22b91691523dd8d54c"
       }
+    },
+    "menu-item": {
+      "set": {
+        "members": 15,
+        "assignments": 89,
+        "sha256": "092a0a729bc96ac87993f1b593de2665fda65bcb4a9b99ca325830e3f0dcb3fb"
+      },
+      "grid": {
+        "members": 15,
+        "assignments": 89,
+        "sha256": "ba0f1036cde72cabfe0649ea0954b3ae9005ec1f58854b205c3998373e762795"
+      }
+    },
+    "menu-group": {
+      "set": {
+        "members": 1,
+        "assignments": 1,
+        "sha256": "92913096e0634edb328468b2e91644d9a20ecf1472899716537401549d1774fa"
+      },
+      "grid": {
+        "members": 1,
+        "assignments": 1,
+        "sha256": "aa9f65754f2cf92d34950327a5449b18b540c124a8e9762e3db19aaf9a56bc40"
+      }
+    },
+    "menu": {
+      "set": {
+        "members": 1,
+        "assignments": 2,
+        "sha256": "3b5d379578b0493f47a65e6018b3830dd3e10f982f12a88169e09f262c40baf8"
+      },
+      "grid": {
+        "members": 1,
+        "assignments": 2,
+        "sha256": "b81958886c20ab845356177fd7f01382b9263fa89faeb8600692ff7a18e4e4a4"
+      }
     }
   }
 }

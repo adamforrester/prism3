@@ -2969,6 +2969,167 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "menu",
+      "name": "Menu",
+      "category": "overlay",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "placement": [
+          "bottom"
+        ]
+      },
+      "props": [
+        {
+          "name": "items"
+        },
+        {
+          "name": "open",
+          "default": false
+        },
+        {
+          "name": "defaultOpen",
+          "default": false
+        },
+        {
+          "name": "onOpenChange"
+        },
+        {
+          "name": "placement",
+          "default": "bottom",
+          "values": [
+            "top",
+            "bottom",
+            "start",
+            "end"
+          ]
+        },
+        {
+          "name": "align",
+          "default": "start",
+          "values": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        {
+          "name": "loop",
+          "default": true
+        }
+      ],
+      "sizes": []
+    },
+    {
+      "id": "menu-group",
+      "name": "Menu.Group",
+      "category": "overlay",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "type": [
+          "section"
+        ]
+      },
+      "props": [
+        {
+          "name": "heading"
+        },
+        {
+          "name": "items"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "onValueChange"
+        }
+      ],
+      "sizes": []
+    },
+    {
+      "id": "menu-item",
+      "name": "Menu.Item",
+      "category": "overlay",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "type": [
+          "action",
+          "submenu"
+        ],
+        "intent": [
+          "default",
+          "destructive"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "type",
+          "default": "action",
+          "values": [
+            "action",
+            "checkbox",
+            "radio",
+            "submenu"
+          ]
+        },
+        {
+          "name": "intent",
+          "default": "default",
+          "values": [
+            "default",
+            "destructive"
+          ]
+        },
+        {
+          "name": "checked",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "leadingIcon"
+        },
+        {
+          "name": "description"
+        },
+        {
+          "name": "shortcut"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "textValue"
+        },
+        {
+          "name": "onSelect"
+        },
+        {
+          "name": "closeOnSelect"
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "page-nav",
       "name": "PageNav",
       "category": "navigation",
@@ -5663,6 +5824,7 @@
       "members": [
         "button-group",
         "checkbox-group",
+        "menu-group",
         "radio-group",
         "tag-group"
       ],
@@ -5673,6 +5835,7 @@
       "name": "*.Item",
       "members": [
         "list-item",
+        "menu-item",
         "page-nav-item",
         "pagination-item",
         "tab-item"
@@ -5741,6 +5904,7 @@
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
+      "menu-item",
       "pagination-item",
       "password-field",
       "radio-control",
@@ -5794,6 +5958,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "menu-item",
       "pagination-item",
       "password-field",
       "radio-control",
@@ -5838,6 +6003,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "menu-item",
       "pagination-item",
       "password-field",
       "radio-control",
@@ -5896,6 +6062,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "menu-item",
       "pagination-item",
       "radio-control",
       "radio-row",
@@ -5939,6 +6106,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "menu-item",
       "pagination-item",
       "password-field",
       "radio-control",
@@ -6145,6 +6313,15 @@
     "intent": [
       {
         "values": [
+          "default",
+          "destructive"
+        ],
+        "components": [
+          "menu-item"
+        ]
+      },
+      {
+        "values": [
           "neutral",
           "success"
         ],
@@ -6228,6 +6405,7 @@
           "bottom"
         ],
         "components": [
+          "menu",
           "popover"
         ]
       },
@@ -6658,6 +6836,15 @@
       },
       {
         "values": [
+          "action",
+          "submenu"
+        ],
+        "components": [
+          "menu-item"
+        ]
+      },
+      {
+        "values": [
           "chevron",
           "slash"
         ],
@@ -6721,6 +6908,14 @@
         ],
         "components": [
           "slider"
+        ]
+      },
+      {
+        "values": [
+          "section"
+        ],
+        "components": [
+          "menu-group"
         ]
       }
     ],
@@ -6794,6 +6989,15 @@
       }
     ],
     "align": [
+      {
+        "id": "menu",
+        "default": "start",
+        "values": [
+          "start",
+          "center",
+          "end"
+        ]
+      },
       {
         "id": "popover",
         "default": "start",
@@ -7027,6 +7231,10 @@
         "id": "checkbox-row"
       },
       {
+        "id": "menu-item",
+        "default": false
+      },
+      {
         "id": "radio-control"
       },
       {
@@ -7057,6 +7265,11 @@
       {
         "id": "text-field",
         "default": false
+      }
+    ],
+    "closeOnSelect": [
+      {
+        "id": "menu-item"
       }
     ],
     "collapse": [
@@ -7114,6 +7327,10 @@
       }
     ],
     "defaultOpen": [
+      {
+        "id": "menu",
+        "default": false
+      },
       {
         "id": "popover",
         "default": false
@@ -7178,6 +7395,9 @@
       },
       {
         "id": "dialog"
+      },
+      {
+        "id": "menu-item"
       },
       {
         "id": "radio-row"
@@ -7271,6 +7491,10 @@
       },
       {
         "id": "icon-button-neutral",
+        "default": false
+      },
+      {
+        "id": "menu-item",
         "default": false
       },
       {
@@ -7455,6 +7679,11 @@
         "id": "pagination"
       }
     ],
+    "heading": [
+      {
+        "id": "menu-group"
+      }
+    ],
     "headingLevel": [
       {
         "id": "accordion",
@@ -7548,6 +7777,9 @@
       },
       {
         "id": "link"
+      },
+      {
+        "id": "menu-item"
       },
       {
         "id": "page-nav-item"
@@ -7734,6 +7966,14 @@
     ],
     "intent": [
       {
+        "id": "menu-item",
+        "default": "default",
+        "values": [
+          "default",
+          "destructive"
+        ]
+      },
+      {
         "id": "toast",
         "default": "neutral",
         "values": [
@@ -7872,6 +8112,12 @@
         "id": "list"
       },
       {
+        "id": "menu"
+      },
+      {
+        "id": "menu-group"
+      },
+      {
         "id": "page-nav"
       },
       {
@@ -7956,6 +8202,9 @@
       },
       {
         "id": "link"
+      },
+      {
+        "id": "menu-item"
       },
       {
         "id": "page-nav"
@@ -8063,6 +8312,9 @@
         "id": "card-number-field"
       },
       {
+        "id": "menu-item"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -8110,6 +8362,12 @@
     "link": [
       {
         "id": "banner"
+      }
+    ],
+    "loop": [
+      {
+        "id": "menu",
+        "default": true
       }
     ],
     "max": [
@@ -8498,6 +8756,9 @@
         "id": "dialog"
       },
       {
+        "id": "menu"
+      },
+      {
         "id": "popover"
       }
     ],
@@ -8514,9 +8775,23 @@
         "id": "tag-group"
       }
     ],
+    "onSelect": [
+      {
+        "id": "menu-item"
+      }
+    ],
+    "onValueChange": [
+      {
+        "id": "menu-group"
+      }
+    ],
     "open": [
       {
         "id": "dialog",
+        "default": false
+      },
+      {
+        "id": "menu",
         "default": false
       },
       {
@@ -8585,6 +8860,16 @@
           "center",
           "bottom",
           "full",
+          "end"
+        ]
+      },
+      {
+        "id": "menu",
+        "default": "bottom",
+        "values": [
+          "top",
+          "bottom",
+          "start",
           "end"
         ]
       },
@@ -8890,6 +9175,11 @@
           "circle",
           "rect"
         ]
+      }
+    ],
+    "shortcut": [
+      {
+        "id": "menu-item"
       }
     ],
     "showCardMark": [
@@ -9696,6 +9986,11 @@
         ]
       }
     ],
+    "textValue": [
+      {
+        "id": "menu-item"
+      }
+    ],
     "thumbLabels": [
       {
         "id": "slider"
@@ -9891,6 +10186,16 @@
           "unordered",
           "ordered",
           "icon"
+        ]
+      },
+      {
+        "id": "menu-item",
+        "default": "action",
+        "values": [
+          "action",
+          "checkbox",
+          "radio",
+          "submenu"
         ]
       },
       {
@@ -10157,6 +10462,9 @@
         "id": "list-item"
       },
       {
+        "id": "menu-group"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -10301,12 +10609,17 @@
       "kind": "state set",
       "subject": "role peers: *.Item",
       "components": [
-        "list-item",
-        "page-nav-item",
-        "pagination-item",
-        "tab-item"
+        "list-item"
       ],
-      "detail": "no state set is shared by most of the group — list-item []; page-nav-item []; pagination-item [rest, hover, pressed, focus-visible, disabled]; tab-item [rest, hover, pressed, focus-visible, disabled]"
+      "detail": "list-item differs from the group's common set [disabled, focus-visible, hover, pressed, rest] — lacks disabled, focus-visible, hover, pressed, rest"
+    },
+    {
+      "kind": "state set",
+      "subject": "role peers: *.Item",
+      "components": [
+        "page-nav-item"
+      ],
+      "detail": "page-nav-item differs from the group's common set [disabled, focus-visible, hover, pressed, rest] — lacks disabled, focus-visible, hover, pressed, rest"
     },
     {
       "kind": "state set",
@@ -10525,12 +10838,22 @@
     },
     {
       "kind": "axis values",
+      "subject": "axis intent",
+      "components": [
+        "menu-item",
+        "toast"
+      ],
+      "detail": "the intent axis takes 2 value sets — [default, destructive] in menu-item; [neutral, success] in toast"
+    },
+    {
+      "kind": "axis values",
       "subject": "axis placement",
       "components": [
         "dialog",
+        "menu",
         "popover"
       ],
-      "detail": "the placement axis takes 2 value sets — [bottom] in popover; [bottom, center, end, full] in dialog"
+      "detail": "the placement axis takes 2 value sets — [bottom] in menu, popover; [bottom, center, end, full] in dialog"
     },
     {
       "kind": "axis values",
@@ -10694,13 +11017,15 @@
         "badge",
         "list",
         "list-item",
+        "menu-group",
+        "menu-item",
         "pagination",
         "pagination-item",
         "progress",
         "slider",
         "tag"
       ],
-      "detail": "the type axis takes 8 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider"
+      "detail": "the type axis takes 10 value sets — [icon, ordered, unordered] in list, list-item; [action, submenu] in menu-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider; [section] in menu-group"
     },
     {
       "kind": "axis values",
@@ -11279,6 +11604,14 @@
         "link"
       ],
       "detail": "link has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "menu-group",
+      "components": [
+        "menu-group"
+      ],
+      "detail": "menu-group has the variant axis type and no prop of that name"
     },
     {
       "kind": "axis without prop",

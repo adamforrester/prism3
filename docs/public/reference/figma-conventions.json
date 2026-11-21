@@ -215,6 +215,15 @@
             ]
           },
           {
+            "name": "↳ Menu",
+            "components": [
+              "menu-item",
+              "menu-group",
+              "menu"
+            ],
+            "usagePanelLead": "menu"
+          },
+          {
             "name": "↳ Banner",
             "components": [
               "banner"
@@ -3592,6 +3601,127 @@
           }
         ],
         "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/popover.md"
+      },
+      {
+        "id": "menu-item",
+        "name": "Menu.Item",
+        "figmaName": "menu-item",
+        "kind": "component set",
+        "page": "↳ Menu",
+        "section": "Components",
+        "members": 15,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "action",
+              "submenu"
+            ]
+          },
+          {
+            "name": "intent",
+            "values": [
+              "default",
+              "destructive"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "description text",
+            "type": "TEXT"
+          },
+          {
+            "name": "shortcut text",
+            "type": "TEXT"
+          },
+          {
+            "name": "leading",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "indicator",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "checked",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "leading icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "description",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "shortcut",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/menu-item.md"
+      },
+      {
+        "id": "menu-group",
+        "name": "Menu.Group",
+        "figmaName": "menu-group",
+        "kind": "component set",
+        "page": "↳ Menu",
+        "section": "Components",
+        "members": 1,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "section"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "heading text",
+            "type": "TEXT"
+          },
+          {
+            "name": "heading",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/menu-group.md"
+      },
+      {
+        "id": "menu",
+        "name": "Menu",
+        "figmaName": "menu",
+        "kind": "component set",
+        "page": "↳ Menu",
+        "section": "Components",
+        "members": 1,
+        "variantProperties": [
+          {
+            "name": "placement",
+            "values": [
+              "bottom"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/menu.md"
       }
     ]
   },
@@ -3795,6 +3925,28 @@
       {
         "component": "popover",
         "property": "body"
+      },
+      {
+        "component": "menu-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "menu-item"
+        ]
+      },
+      {
+        "component": "menu",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "menu-item"
+        ]
       }
     ]
   },
@@ -3985,7 +4137,8 @@
       "sign-in-button",
       "page-nav-item",
       "page-nav",
-      "skeleton"
+      "skeleton",
+      "menu-item"
     ],
     "templates": [
       {

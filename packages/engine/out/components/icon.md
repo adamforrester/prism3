@@ -79,7 +79,7 @@ Name a meaningful icon for the concept or the action it fires, in a word or two,
 ## Related components
 
 - **Instead, consider:** `provider-logo`
-- **Often used with:** `button`, `icon-button`, `text-field`, `field-message`, `select`, `tag`, `link`
+- **Often used with:** `button`, `icon-button`, `text-field`, `field-message`, `select`, `tag`, `link`, `menu-item`
 - **Replaces:**
   - legacy icon fonts
   - ad-hoc inline SVGs outside the set

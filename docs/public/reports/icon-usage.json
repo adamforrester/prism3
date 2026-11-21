@@ -337,6 +337,30 @@
         "icon"
       ]
     },
+    "menu-item": {
+      "glyphs": [
+        {
+          "part": "checkGlyph",
+          "glyph": "check",
+          "source": "icon set",
+          "how": "drawn"
+        },
+        {
+          "part": "chevronGlyph",
+          "glyph": "chevron-right",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "submenu"
+            ]
+          }
+        }
+      ],
+      "iconSlots": [
+        "leadingVisual"
+      ]
+    },
     "pagination-item": {
       "glyphs": [
         {
@@ -611,6 +635,7 @@
     "check": [
       "checkbox-control",
       "list-item",
+      "menu-item",
       "switch-control",
       "tag"
     ],
@@ -630,6 +655,7 @@
     ],
     "chevron-right": [
       "_breadcrumb-separator",
+      "menu-item",
       "pagination-item"
     ],
     "chevron-up": [

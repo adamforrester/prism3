@@ -197,6 +197,8 @@ const INTERACTIVE: Record<string, Binding> = {
   // #2669: the control row around the track is the click-to-jump target, on the interactive floor `size.md.min-height`
   // at every size (owner Q550 e: the size axis moves the thumb and the track, never the row). Each thumb is its own
   // code-side target below (CODE_SIDE_TARGETS).
+  // #4007: the whole menu row is the target, on the interactive floor at its one size.
+  'menu-item': { key: () => 'min-height', why: 'the menu row\'s min-height floor, the whole row being the target', single: true },
   'slider': { key: () => 'control-height', why: 'the control row around the track, the click-to-jump target, the same at every size' },
 };
 
@@ -346,6 +348,8 @@ const EXCLUDED: Record<string, string> = {
   'banner': 'a message in the page flow, never itself a pointer target: its one text action is a Button (Button.Neutral when the file has it) and its dismiss a FlushIconButton.Neutral, each measured under its own name (#2579, Q533.1)',
   'button-group': 'a layout of one to three Buttons, never itself a pointer target: each Button is measured under its own name (#2661)',
   'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#2609, Q385 A)',
+  'menu': 'a panel of Menu.Items, never itself a pointer target: each item is measured under its own name (#4007)',
+  'menu-group': 'a heading over Menu.Items, never itself a pointer target: each item is measured under its own name (#4007)',
   'popover': 'a non-modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#4008)',
   'toast': 'a status message over the page, never itself a pointer target: its action and close button are a Button and a FlushIconButton.Neutral, each measured under its own name; the small close button\'s 44×44 hit area is extended in code, as IconButton records (#2668)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',

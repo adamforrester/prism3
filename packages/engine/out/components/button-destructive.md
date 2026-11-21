@@ -98,7 +98,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 
 - **Built from:** `focus-ring`, `spinner`
 - **Instead, consider:** `icon-button-destructive`, `switch-row`
-- **Often used with:** `icon`, `button-group`, `popover`
+- **Often used with:** `icon`, `button-group`, `popover`, `menu`
 - **Replaces:**
   - input[type=button\|submit]
   - `div[role=button]`

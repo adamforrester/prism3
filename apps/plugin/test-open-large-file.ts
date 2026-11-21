@@ -951,7 +951,9 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   //   · `check/drops`: a hand edit made after the pass, heard as Figma's `documentchange`, is in the check's answer: the
   //     edited set is read again. Mutation: the listener's drop removed → `check/drops`.
   // Measured, not asserted: the check's host calls on a fresh read of every set.
-  const CHECK_CAP = 900_000;
+  // #4007: 950,000 since Menu, Menu.Item and Menu.Group took the template to 66 sets (904,870 measured; 900,000 held 63). The
+  // mutations above still land at 2.1M and more, so the cap keeps its margin over them.
+  const CHECK_CAP = 950_000;
   const checkOf = async (): Promise<{ msg: any; calls: number; progress: { msg: any; turn: number; i: number }[]; answerAt: number }> => {
     const at = posted.length;
     calls = 0; callsIn.clear();

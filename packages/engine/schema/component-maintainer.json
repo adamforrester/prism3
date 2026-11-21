@@ -5187,11 +5187,6 @@
         },
         {
           "section": "related",
-          "field": "ai.commonPartners",
-          "reason": "empty"
-        },
-        {
-          "section": "related",
           "field": "composition.supersedes",
           "reason": "empty"
         },
@@ -6896,6 +6891,326 @@
           "Owner decisions (2026-11-19, on #4252), all as recommended: (1) the set is one member on a one-value axis, placement=bottom, the default side, because the engine projects no set without an axis; (2) the member is built 320px wide, between the proposal's 240px floor and 360px cap; (3) the brief's trapFocus and modal are not props, because a trapped or modal popover is a Dialog (OD-P1 A), and restoreFocus is always on; (4) the motion keeps motion.duration.fast, 100ms on the reference brand, which the tempo lever moves per brand; (5) Popover has its own page under Components; (6) the copy is approved.",
           "Owner decision S1 A (2026-11-19, on #4252): a read-only popover announces its content through a polite live region (role=\"status\") and sits right after its trigger in the DOM. aria-controls is not relied on, because most screen readers do not announce it.",
           "Owner decision Q-FL2 (2026-11-19, on #4007 and #4008): the proposal's recommendations OD-P1 to OD-P6 and OD-X1 to OD-X5, read with the KB brief check; K4 B (the aliases overlay and flyout, as the brief lists them); K5 B (a read-only popover leaves focus on its trigger); K8 A for the POC (an owned, dependency-free positioning layer, the library question going to the developers)."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "empty"
+        }
+      ]
+    },
+    "menu-item": {
+      "codeOnly": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "the item in code — `role=\"menuitem\"`, `menuitemcheckbox` or `menuitemradio` (the last two with `aria-checked`), focusable by roving `tabindex`. A submenu item carries `aria-haspopup=\"menu\"` and `aria-expanded`. The check, the chevron and the leading icon are `aria-hidden`; the visible shortcut text is `aria-hidden` and a real shortcut is exposed through `aria-keyshortcuts`. An item with `href` renders an `<a>` with the menuitem role."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "checkbox — not projected as a member: a checkbox or radio item is an action item with the `indicator` and `checked` toggles on, because they show or hide one node each. In code `type` takes action, checkbox, radio or submenu, and the role follows it."
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED",
+          "description": "a disabled item stays focusable — `aria-disabled=\"true\"`, never the `disabled` attribute, so arrowing still reaches it and a screen reader announces it as unavailable. It takes no action."
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED",
+          "description": "activation — one path for a press, Enter, Space and typeahead. An action runs and closes the menu, returning focus to the trigger. A checkbox or radio item toggles and the menu stays open, whatever the key. A radio item turns the others in its group off."
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED",
+          "description": "the highlight follows focus — in code the highlight is the item that has focus, whether the pointer or the arrow keys put it there, so there is one highlight in a menu at a time. A submenu item keeps the highlight while its submenu is open. Keyboard focus adds the shared focus ring, because the wash alone does not clear 3:1 against the panel."
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED",
+          "description": "first-line alignment — the leading cells sit `max(0px, (icon − 1lh) / 2)` down from the top and the label `max(0px, (1lh − icon) / 2)`, so a two-line item keeps its glyphs on the first line; the trailing cell takes the same offset. Figma freezes the leading offset at paste and top-aligns the trailing cell."
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED",
+          "description": "motion — the highlight moves with no transition, so a person arrowing through sees it land at once, and a check appears at once. The menu itself opens and closes on the Popover / open and Popover / close pattern."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED",
+          "description": "right-to-left — the row mirrors through logical properties: the check and icon move to the right, the shortcut and chevron to the left, and the chevron points left."
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED",
+          "description": "text expansion — the label and description wrap rather than truncate, and the menu grows to its max width before they do. Shortcut text follows the platform (Ctrl on Windows, ⌘ on macOS)."
+        },
+        {
+          "class": "hit-target",
+          "disposition": "CARRIED",
+          "description": "the target — the whole row, at least `size.md.min-height` tall and the panel's width less its padding, so it clears 24px everywhere and 44px at comfortable and spacious density."
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED",
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it. In plain HTML/CSS that covers roving focus, typeahead and submenu timing."
+        }
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER: the chevron takes the item's icon ink (neutral, or destructive), not `color.icon.secondary` as the proposal's table drew it. The paint grammar gives an item one icon ink, which the check and the leading icon also take.",
+          "HELD FOR THE OWNER: the focus ring sits outside the row at the corpus offset (2px out, 2px wide). It fits inside the panel's 4px padding, and overlaps a neighbor by 4px. The proposal said inset; the engine has no inset ring.",
+          "HELD FOR THE OWNER: the item's built width, 240px; the shortcut placeholder, ⌘K; the panel names \"description text\" and \"shortcut text\"."
+        ],
+        "unverified": [
+          "That the trailing cell centers on the first line in every brand: it does where the label's line is 20px, as in the corpus's `type.label.md`; elsewhere Figma top-aligns it and code offsets it."
+        ],
+        "evolution": [
+          "Owner decision Q-FL2 (2026-11-19, on #4007): every OD at its recommendation, with K1 B (menubar kept as an alias), K2 measured and so A (the highlight plus the focus ring), K3 B (checkable items never close the menu). Owner direction (2026-11-18): two-line items align to the first line."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "empty"
+        }
+      ]
+    },
+    "menu-group": {
+      "codeOnly": [
+        {
+          "class": "implementation",
+          "disposition": "LOWERED",
+          "description": "the one-value axis — the one Figma member carries `type=section` because the design file needs an axis to build a set; code has no type prop, and a radio set is a section whose items are radio items."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "the group in code — `role=\"group\"` with `aria-labelledby` on the heading, or `aria-label` when it has none. A radio set is always a group, so the radio items it holds are one set."
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED",
+          "description": "a radio set — `value` and `onValueChange` on the group; the item whose value matches has `aria-checked=\"true\"` and shows the check. Choosing an item keeps the menu open."
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED",
+          "description": "the heading — not focusable and skipped by the arrow keys; focus moves from the last item of one group to the first of the next."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED",
+          "description": "right-to-left — the heading aligns to the right through logical properties."
+        }
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER: the heading's inset (space.100 above, space.050 below, space.150 at the side to line up with the labels), its placeholder copy, and its panel name, \"heading text\"."
+        ],
+        "unverified": [],
+        "evolution": [
+          "Owner decision Q-FL2 (2026-11-19, on #4007): the group as proposed, with an optional heading and a native items slot; a radio set takes value and onValueChange at the group, as the brief says."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "empty"
+        }
+      ]
+    },
+    "menu": {
+      "codeOnly": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "the menu in code — `role=\"menu\"`, labeled by its trigger through `aria-labelledby`. The trigger, any Button or IconButton, carries `aria-haspopup=\"menu\"`, `aria-expanded` and `aria-controls`. A divider inside it is the Divider at `decorative=false`, with `role=\"separator\"`."
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED",
+          "description": "the keyboard — on the trigger, Enter, Space or Arrow Down opens the menu on the first item and Arrow Up on the last. In the menu, Arrow Up and Down move (wrapping under `loop`), Home and End jump, Enter acts, Space toggles a checkbox or radio item, a printable character jumps to the next item whose text starts with it (a buffer of about 500ms), Escape closes the menu and returns focus to the trigger, and Tab closes every open menu and moves on. Roving `tabindex`, not `aria-activedescendant`."
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED",
+          "description": "submenus — Arrow Right opens a submenu on its first item and Arrow Left or Escape closes it back to its parent item (mirrored in right-to-left text). A submenu opens on the end side, its first item level with the parent, and flips to the start side when there is no room. On hover it opens after a short intent delay, and a pointer moving toward it keeps it open. One level deep at most."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "collision — the design file builds the panel alone. In code it opens on `placement` and `align`, offset `space.050` from the trigger, flips to the other side when there is no room and shifts to stay in the viewport. It is at least as wide as its trigger, between 180px and 320px, and at most the viewport height less its margins, the items scrolling inside."
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED",
+          "description": "the floating layer — Popover's: the `popover` attribute for the top layer and light dismiss, CSS anchor positioning with `position-try-fallbacks` for the flip, and an owned shift fallback. No positioning library."
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED",
+          "description": "a context menu — the same Menu opened by a secondary click or Shift+F10, placed at the pointer. Nothing in the design file changes."
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED",
+          "description": "motion — the Popover / open and Popover / close pattern: opening fades in and scales up from a little under full size from the trigger's side, on `motion.duration.fast` and `motion.easing-role.enter`; closing fades out on `motion.duration.instant` and `motion.easing-role.exit`. A submenu fades only, on the same timings. Under `prefers-reduced-motion` it fades only, on `motion.duration-reduced.fast` to open and to close."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED",
+          "description": "right-to-left — start and end placements swap sides and submenus open to the left; the items mirror."
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED",
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it. In plain HTML/CSS that covers roving focus, typeahead, submenu timing and dismissal."
+        }
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER: the panel's built width, 240px between the proposal's 180px floor and 320px cap, and the default content (three plain items).",
+          "A split button is a Menu variant in the brief; it gets its own issue, #4296 (planned here)."
+        ],
+        "unverified": [
+          "The Popover / open and Popover / close motion preset is described here but not built: the starter set exists only as a wireframe."
+        ],
+        "evolution": [
+          "Owner decision Q-FL2 (2026-11-19, on #4007): every OD at its recommendation, with K1 B (menubar kept as an alias), K2 measured and so A, K3 B. OD-X1 A: the panel binds Popover's five raised-surface roles, and test.ts holds them equal."
         ],
         "projection": []
       },

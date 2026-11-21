@@ -221,7 +221,8 @@
           "field-message",
           "select",
           "tag",
-          "link"
+          "link",
+          "menu-item"
         ],
         "triggerKeywords": [
           "icon",
@@ -248,7 +249,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "menu",
           "illustration",
           "logo",
           "thumbnail",
@@ -999,7 +999,8 @@
           "spinner",
           "focus-ring",
           "button-group",
-          "popover"
+          "popover",
+          "menu"
         ],
         "triggerKeywords": [
           "button",
@@ -1032,7 +1033,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "menu",
           "toggle-button",
           "split-button"
         ],
@@ -1330,7 +1330,8 @@
           "spinner",
           "focus-ring",
           "button-group",
-          "popover"
+          "popover",
+          "menu"
         ],
         "triggerKeywords": [
           "destructive button",
@@ -1362,7 +1363,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "menu",
           "toggle-button",
           "split-button"
         ],
@@ -1659,7 +1659,8 @@
           "spinner",
           "focus-ring",
           "button-group",
-          "popover"
+          "popover",
+          "menu"
         ],
         "triggerKeywords": [
           "neutral button",
@@ -1688,7 +1689,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "menu",
           "toggle-button",
           "split-button"
         ],
@@ -2395,7 +2395,8 @@
           "icon",
           "spinner",
           "focus-ring",
-          "popover"
+          "popover",
+          "menu"
         ],
         "triggerKeywords": [
           "icon button",
@@ -2423,8 +2424,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tooltip",
-          "menu"
+          "tooltip"
         ],
         "replacesPatterns": [
           "`div[role=button]` wrapping an icon",
@@ -2657,7 +2657,8 @@
           "icon",
           "spinner",
           "focus-ring",
-          "popover"
+          "popover",
+          "menu"
         ],
         "triggerKeywords": [
           "delete icon button",
@@ -2685,8 +2686,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tooltip",
-          "menu"
+          "tooltip"
         ],
         "replacesPatterns": [
           "`div[role=button]` wrapping an icon",
@@ -2918,7 +2918,8 @@
           "icon",
           "spinner",
           "focus-ring",
-          "popover"
+          "popover",
+          "menu"
         ],
         "triggerKeywords": [
           "close button",
@@ -2946,8 +2947,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tooltip",
-          "menu"
+          "tooltip"
         ],
         "replacesPatterns": [
           "`div[role=button]` wrapping an icon",
@@ -6754,13 +6754,13 @@
           "textarea",
           "radio-row",
           "tabs",
-          "counter"
+          "counter",
+          "menu"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "form",
-          "menu",
           "combobox"
         ],
         "replacesPatterns": [
@@ -8591,7 +8591,8 @@
         "avoidWhen": "Spacing already separates the groups, the edge is a container's own border (a card or field draws its own), or the break needs a title or more than one short word (use a heading). A labeled divider is for one word, such as Or, between two alternative groups of actions.",
         "commonPartners": [
           "accordion",
-          "list"
+          "list",
+          "menu"
         ],
         "triggerKeywords": [
           "divider",
@@ -8616,7 +8617,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "menu",
           "card",
           "stack",
           "toolbar"
@@ -9380,7 +9380,6 @@
           "data-list",
           "checklist",
           "table",
-          "menu",
           "navigation"
         ],
         "replacesPatterns": [
@@ -10052,9 +10051,7 @@
         ],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "menu"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "a click handler on a div or span styled as a link",
           "an `<a>` with no `href`, `href=\"#\"` or `javascript:void(0)`",
@@ -10495,9 +10492,7 @@
         ],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "menu"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "a div overlay with a z-index and a hand-written focus trap",
           "a backdrop built from a veil"
@@ -11573,7 +11568,8 @@
         "commonPartners": [
           "breadcrumb-item",
           "link",
-          "tabs"
+          "tabs",
+          "menu"
         ],
         "triggerKeywords": [
           "breadcrumbs",
@@ -11602,9 +11598,7 @@
         ],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "menu"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "links separated by typed \">\" or \"/\" characters",
           "a history trail of visited pages",
@@ -15522,13 +15516,13 @@
           "button-group"
         ],
         "alternativeTo": [
-          "dialog"
+          "dialog",
+          "menu"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "tooltip",
-          "menu"
+          "tooltip"
         ],
         "replacesPatterns": [
           "an absolutely positioned div with a hand-written click-outside handler",
@@ -15578,6 +15572,586 @@
         },
         {
           "class": "visual-treatment",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        }
+      ]
+    },
+    "menu-item": {
+      "id": "menu-item",
+      "name": "Menu.Item",
+      "aliases": [
+        "menuitem",
+        "menu-option",
+        "action-item"
+      ],
+      "category": "overlay",
+      "status": "draft",
+      "summary": "One action in a menu: a label, an optional icon, check, description, shortcut or submenu arrow.",
+      "description": "One row of a Menu: an action, a checkbox or radio choice, or the way into a submenu. It holds a label, and can add a leading icon, a check column, a second line of description, a keyboard shortcut hint at the end, or an arrow that opens a submenu. The row highlights under the pointer and while it has keyboard focus. A destructive action takes the destructive ink. Menu places the items and owns the keyboard.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "What the action does, in a few words: \"Rename\", \"Move to folder\"."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'action' | 'checkbox' | 'radio' | 'submenu'",
+          "default": "action",
+          "required": false,
+          "values": [
+            "action",
+            "checkbox",
+            "radio",
+            "submenu"
+          ],
+          "description": "action runs something; checkbox turns an option on or off; radio picks one option of a group; submenu opens a further menu."
+        },
+        {
+          "name": "intent",
+          "type": "enum: 'default' | 'destructive'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "destructive"
+          ],
+          "description": "destructive for an action that deletes or cannot be undone. Actions only."
+        },
+        {
+          "name": "checked",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether a checkbox or radio item is on. Checkbox and radio items only."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Dims the item and stops it acting. It stays in the keyboard order, so a person can still find it."
+        },
+        {
+          "name": "leadingIcon",
+          "type": "slot",
+          "required": false,
+          "description": "An icon before the label. Decorative: the label carries the meaning."
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "description": "A short second line under the label that says more about the action."
+        },
+        {
+          "name": "shortcut",
+          "type": "string",
+          "required": false,
+          "description": "A keyboard shortcut shown at the end, as a hint. The app owns the binding itself."
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "required": false,
+          "description": "For an action that goes to a page: the address it opens."
+        },
+        {
+          "name": "textValue",
+          "type": "string",
+          "required": false,
+          "description": "The text typing a letter matches, when the label is not plain text. Defaults to the label."
+        },
+        {
+          "name": "onSelect",
+          "type": "function",
+          "required": false,
+          "description": "Called when the item is chosen: a press, Enter, or Space on a checkbox or radio item."
+        },
+        {
+          "name": "closeOnSelect",
+          "type": "boolean",
+          "required": false,
+          "description": "Whether choosing the item closes the menu. True for an action; checkbox and radio items keep the menu open."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "type": {
+          "values": [
+            "action",
+            "submenu"
+          ],
+          "kind": "authoring"
+        },
+        "intent": {
+          "values": [
+            "default",
+            "destructive"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "`role=\"menuitem\"`, `role=\"menuitemcheckbox\"` or `role=\"menuitemradio\"`, inside a `role=\"menu\"`.",
+        "wcag": [
+          "1.4.3 Contrast (the label and secondary text clear 4.5:1 on the panel and on the highlight)",
+          "1.4.11 Non-text Contrast (the check, icon and chevron clear 3:1; the keyboard-focused item adds the focus ring, because the highlight alone does not)",
+          "2.1.1 Keyboard (every item is reachable with the arrow keys and acts on Enter)",
+          "2.4.7 Focus Visible (the focused item shows the highlight and the shared focus ring)",
+          "2.5.8 Target Size (Minimum) (the whole row is the target, well above 24px)",
+          "4.1.2 Name, Role, Value (the role, the checked state and a submenu's expanded state are set)"
+        ],
+        "keyboard": "Set by the menu: Arrow Up and Down move between items, Enter acts, Space toggles a checkbox or radio item, Arrow Right opens a submenu (Arrow Left in right-to-left text).",
+        "focus": "Roving focus: the focused item has `tabindex=\"0\"`, the rest -1. A disabled item stays focusable. The focused item shows the highlight and the focus ring.",
+        "aria": "aria-checked on a checkbox or radio item; aria-haspopup=\"menu\" and aria-expanded on a submenu item; aria-disabled=\"true\" on a disabled item; aria-keyshortcuts for a real shortcut. The check, chevron, icon and visible shortcut text are aria-hidden."
+      },
+      "content": {
+        "labelPattern": "Start with a verb for an action (\"Rename\", \"Move to folder\"); name the option for a checkbox or radio item (\"Show grid\"). Sentence case, no ending punctuation. Add an ellipsis only when the action opens something that asks for more (\"Rename…\")."
+      },
+      "docs": {
+        "usage": "Use Menu.Item inside a Menu or a Menu.Group: one per action or option. Mark a destructive action with the destructive intent, and put it last or in its own group.",
+        "do": [
+          "Start each action with a verb",
+          "Turn on the check column for every item once any item in the menu is checkable",
+          "Put a destructive action last, after a divider",
+          "Keep a disabled item in place so people learn where it lives"
+        ],
+        "dont": [
+          "Use a menu item to navigate a site. Use a link.",
+          "Nest a submenu inside a submenu",
+          "Hide a disabled item's reason. Say why in the description, or enable it and explain on use."
+        ],
+        "implementation": [],
+        "contentGuidelines": "Labels are short, start with a verb for an action, and use sentence case. A description is one short line."
+      },
+      "ai": {
+        "primaryPurpose": "One action or option in a menu.",
+        "whenToUse": "Only as a child of Menu. Generate Menu, which places one item per action, inside a Menu.Group where the menu has sections.",
+        "avoidWhen": "The row navigates to a page (a link), or picks a form value (a select).",
+        "commonPartners": [
+          "menu",
+          "menu-group",
+          "icon",
+          "divider"
+        ],
+        "triggerKeywords": [
+          "menu item",
+          "menu option",
+          "menu action",
+          "checkable menu item",
+          "submenu item"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "The highlight lands at once, with no transition, as a person arrows through the menu.",
+        "exit": "The highlight leaves at once.",
+        "reduceMotion": "Nothing changes under prefers-reduced-motion: the highlight and the check already appear at once."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a div in a dropdown with an onclick and no menuitem role"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "hit-target",
+          "disposition": "CARRIED"
+        },
+        {
+          "class": "deferred",
+          "disposition": "REFUSED"
+        }
+      ]
+    },
+    "menu-group": {
+      "id": "menu-group",
+      "name": "Menu.Group",
+      "aliases": [
+        "menu-section",
+        "menu-radio-group"
+      ],
+      "category": "overlay",
+      "status": "draft",
+      "summary": "A labeled run of items inside a menu: a section, or a set of radio choices.",
+      "description": "A run of Menu.Item rows inside a Menu, with an optional heading above them. Use it to split a long menu into sections, or to hold a set of radio items where one is on. A Divider between groups separates them further.",
+      "props": [
+        {
+          "name": "heading",
+          "type": "string",
+          "required": false,
+          "description": "A short heading above the items. It names the group for a screen reader too. A radio set may go without one."
+        },
+        {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "menu-item"
+          ],
+          "minItems": 1,
+          "description": "The items in the group."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": false,
+          "description": "For a radio set: the value of the item that is on."
+        },
+        {
+          "name": "onValueChange",
+          "type": "function",
+          "required": false,
+          "description": "For a radio set: called with the new value when a person picks another item."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "type": {
+          "values": [
+            "section"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "`role=\"group\"`, named by its heading.",
+        "wcag": [
+          "1.3.1 Info and Relationships (the heading names the group it sits over)",
+          "1.4.3 Contrast (the heading in secondary text clears 4.5:1 on the panel)"
+        ],
+        "keyboard": "The heading takes no focus. The arrow keys move through the items of every group in order.",
+        "focus": "Never focused itself; its items are.",
+        "aria": "aria-labelledby pointing at the heading, or aria-label when there is none."
+      },
+      "content": {
+        "labelPattern": "A heading names what the items have in common in one or two words (\"Sort by\", \"View\"). Sentence case."
+      },
+      "docs": {
+        "usage": "Use Menu.Group to split a long menu into named sections, and always for a set of radio items, so one of them is on. Put a Divider between groups when they have no headings.",
+        "do": [
+          "Name a group with a short heading",
+          "Hold radio items in their own group"
+        ],
+        "dont": [
+          "Put a single item in a group",
+          "Use a heading as an item. It does nothing when chosen."
+        ],
+        "implementation": [],
+        "contentGuidelines": "Headings are one or two words, in sentence case."
+      },
+      "ai": {
+        "primaryPurpose": "Group related items in a menu under a heading, or hold a set of radio items.",
+        "whenToUse": "To name a section of a long menu, or to hold a set of radio items, placed in a Menu's items. A short menu needs none.",
+        "avoidWhen": "The menu is short and its items need no sections (place the items in the Menu directly).",
+        "commonPartners": [
+          "menu",
+          "divider"
+        ],
+        "triggerKeywords": [
+          "menu group",
+          "menu section",
+          "menu radio group",
+          "menu heading"
+        ],
+        "generationPriority": 3
+      },
+      "composition": {
+        "composesWith": [
+          "menu-item"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a bold item used as a section title in a menu"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "implementation",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
+    },
+    "menu": {
+      "id": "menu",
+      "name": "Menu",
+      "aliases": [
+        "dropdown-menu",
+        "action-menu",
+        "action-list",
+        "overflow-menu",
+        "kebab-menu",
+        "popup-menu",
+        "context-menu",
+        "menubar"
+      ],
+      "category": "overlay",
+      "status": "draft",
+      "summary": "A list of actions on a raised panel, opened from a button. It closes once an action is chosen.",
+      "description": "A list of actions that opens from a button: the menu behind a \"More\" button, a dropdown of commands, or the menu a secondary click opens. It sits on a raised panel beside its trigger and closes when a person chooses an action, presses Escape or clicks outside. Items can be grouped under headings, split by dividers, turned on and off with a check, or open a submenu. Not a select (a menu does things, it does not choose a form value), not navigation (use links), and not a popover (a popover holds content, a menu holds actions).",
+      "props": [
+        {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "menu-item",
+            "menu-group",
+            "divider"
+          ],
+          "minItems": 1,
+          "description": "The menu's items, groups and dividers, in order."
+        },
+        {
+          "name": "open",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the menu is showing. Leave it unset and use defaultOpen for a menu that manages its own state."
+        },
+        {
+          "name": "defaultOpen",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the menu starts open, when open is not set."
+        },
+        {
+          "name": "onOpenChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with true when the trigger opens the menu, and with false when an action, Escape, a click outside or Tab closes it."
+        },
+        {
+          "name": "placement",
+          "type": "enum: 'top' | 'bottom' | 'start' | 'end'",
+          "default": "bottom",
+          "required": false,
+          "values": [
+            "top",
+            "bottom",
+            "start",
+            "end"
+          ],
+          "description": "The side of the trigger it opens on. start and end follow the writing direction. When there is no room it moves to the opposite side."
+        },
+        {
+          "name": "align",
+          "type": "enum: 'start' | 'center' | 'end'",
+          "default": "start",
+          "required": false,
+          "values": [
+            "start",
+            "center",
+            "end"
+          ],
+          "description": "Where it lines up along that side: with the start edge of the trigger, its center, or its end edge."
+        },
+        {
+          "name": "loop",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Whether the arrow keys wrap from the last item to the first and back."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "placement": {
+          "values": [
+            "bottom"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "`role=\"menu\"`, labeled by its trigger, holding items with `role=\"menuitem\"`, `role=\"menuitemcheckbox\"` or `role=\"menuitemradio\"`.",
+        "wcag": [
+          "1.4.11 Non-text Contrast (the panel's edge and the focused item's focus ring)",
+          "1.4.13 Content on Hover or Focus (a submenu opened on hover stays while the pointer moves to it, and Escape closes it)",
+          "2.1.1 Keyboard (every item is reachable with the arrow keys)",
+          "2.1.2 No Keyboard Trap (Escape and Tab leave the menu)",
+          "2.4.3 Focus Order (focus moves into the menu on open and returns to the trigger on close)",
+          "2.4.7 Focus Visible (the focused item shows the highlight and the shared focus ring)",
+          "4.1.2 Name, Role, Value (the trigger states its popup and whether it is expanded)"
+        ],
+        "keyboard": "Enter, Space or Arrow Down on the trigger opens the menu. Arrow Up and Down move, Home and End jump, Enter acts, Space toggles, typing a letter jumps to an item, Escape closes and returns focus to the trigger, and Tab closes the menu and moves on.",
+        "focus": "Moves to the first item on open (the last, from Arrow Up) and returns to the trigger when the menu closes by Escape or an action.",
+        "aria": "On the trigger: aria-haspopup=\"menu\", aria-expanded, and aria-controls pointing at the menu. The menu: aria-labelledby pointing at the trigger."
+      },
+      "content": {
+        "labelPattern": "The trigger names what the menu holds (\"Sort\", \"More actions\"); an icon-only trigger needs an accessible name. Items start with a verb."
+      },
+      "docs": {
+        "usage": "Use a Menu for a set of actions that do not fit on the page: the actions on a row, a \"More\" button, or the commands for a selection. Group related items, put a destructive action last after a divider, and keep it short. To choose a form value use a select; to move between pages use links.",
+        "do": [
+          "Open it from a button that says what it holds",
+          "Group related items, with a heading or a divider",
+          "Put a destructive action last, after a divider",
+          "Keep it to one level of submenu"
+        ],
+        "dont": [
+          "Use a menu for site navigation. Use links.",
+          "Use a menu to pick a form value. Use a select.",
+          "Hide the main action of a page in a menu",
+          "Nest a submenu inside a submenu"
+        ],
+        "implementation": [],
+        "contentGuidelines": "Items start with a verb, in sentence case, with no ending punctuation. Headings are one or two words."
+      },
+      "ai": {
+        "primaryPurpose": "Offer a list of actions from a button, without taking room on the page.",
+        "whenToUse": "A button opens a set of actions or options: an overflow \"More\" menu, a dropdown of commands, a context menu, or a list of view options with checks.",
+        "avoidWhen": "The choice is a form value (a select), the items go to other pages (links), the content is not a list of actions (a popover), or there are only one or two actions (show them as buttons).",
+        "commonPartners": [
+          "button",
+          "button-neutral",
+          "icon-button",
+          "icon-button-neutral",
+          "divider",
+          "popover"
+        ],
+        "triggerKeywords": [
+          "menu",
+          "dropdown menu",
+          "overflow menu",
+          "more menu",
+          "kebab menu",
+          "context menu",
+          "action menu",
+          "actions dropdown"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "Fades in and scales up from a little under full size, from the trigger's side (motion.duration.fast, motion.easing-role.enter). A submenu fades only.",
+        "exit": "Fades out (motion.duration.instant, motion.easing-role.exit), quicker than it opened.",
+        "reduceMotion": "Under prefers-reduced-motion it fades only, with no scale, on motion.duration-reduced.fast to open and to close. A fade is not movement, and it keeps the cue that the menu opened or closed."
+      },
+      "composition": {
+        "composesWith": [
+          "menu-item"
+        ],
+        "alternativeTo": [
+          "select",
+          "popover"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "split-button",
+          "listbox"
+        ],
+        "replacesPatterns": [
+          "a select used to run commands",
+          "a hand-built dropdown with no menu role or keyboard support"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "keyboard-and-focus",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "implementation",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
           "disposition": "REFUSED"
         },
         {

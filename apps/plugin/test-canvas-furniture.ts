@@ -1018,13 +1018,13 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // THE SWITCH COVERS EVERY SET. The oracle is the def registry, never the engine's list: every def with Figma
   // properties builds a set, except the three that build single components (`emitAsComponents`), which have no grid:
   // Icon, Provider logo (#2343) and Spinner.
-  // A SET OF ONE MEMBER HAS NO GRID (#4008): Popover builds one member, so there is no row or column to label and it
+  // A SET OF ONE MEMBER HAS NO GRID (#4008): Popover, Menu and Menu.Group each build one member, so there is no row or column to label and each
   // takes no furniture. Named here, never derived, so a second one-member set fails the count by name.
-  const ONE_MEMBER = ['popover'];
+  const ONE_MEMBER = ['popover', 'menu', 'menu-group'];
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents && !ONE_MEMBER.includes(d.id)).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 61 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'provider-logo', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 61 defs that build a set of more than one member have furniture; Icon, Provider logo and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 62 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'provider-logo', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 62 defs that build a set of more than one member have furniture; Icon, Provider logo and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
   ok(ONE_MEMBER.every((id) => componentDefs.some((d) => d.id === id) && !hasFurniture(id)),
     `rollout/one member: ${ONE_MEMBER.join(', ')} builds a set of one member and has no furniture (${JSON.stringify(ONE_MEMBER.filter(hasFurniture))})`);
 
@@ -1131,6 +1131,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     'Segmented control': ['segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],
     List: ['list-item', 'list'],
+    // #4007: Menu.Item builds first, then the group and the menu, whose slots hold it.
+    Menu: ['menu-item', 'menu-group', 'menu'],
     // #2666 Q382 A, #2989 Q656 A: the breadcrumb separator and step join the Breadcrumbs page, first, as the Accordion
     // indicator joins the Accordion's.
     Breadcrumbs: ['_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs'],

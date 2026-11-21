@@ -344,7 +344,10 @@
           "page-nav-item",
           "page-nav",
           "skeleton",
-          "popover"
+          "popover",
+          "menu-item",
+          "menu-group",
+          "menu"
         ]
       }
     },

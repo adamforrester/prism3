@@ -193,7 +193,7 @@ export const list: ComponentDef = {
     alternativeTo: [],
     replacesPatterns: ['a `<ul>` with `list-style: none` and no `role="list"`', 'a column of text boxes with typed bullet characters'],
     supersededBy: [],
-    planned: ['data-list', 'checklist', 'table', 'menu', 'navigation'],
+    planned: ['data-list', 'checklist', 'table', 'navigation'],
   },
 
   motion: {

@@ -936,6 +936,62 @@
       "swap icon": "INSTANCE_SWAP"
     }
   },
+  "menu": {
+    "axes": {
+      "placement": [
+        "bottom"
+      ]
+    },
+    "members": 1,
+    "properties": {
+      "items": "SLOT"
+    }
+  },
+  "menu-group": {
+    "axes": {
+      "type": [
+        "section"
+      ]
+    },
+    "members": 1,
+    "properties": {
+      "heading": "BOOLEAN",
+      "heading text": "TEXT",
+      "items": "SLOT"
+    }
+  },
+  "menu-item": {
+    "axes": {
+      "intent": [
+        "default",
+        "destructive"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "type": [
+        "action",
+        "submenu"
+      ]
+    },
+    "members": 15,
+    "properties": {
+      "checked": "BOOLEAN",
+      "description": "BOOLEAN",
+      "description text": "TEXT",
+      "indicator": "BOOLEAN",
+      "label": "TEXT",
+      "leading": "BOOLEAN",
+      "leading icon": "BOOLEAN",
+      "shortcut": "BOOLEAN",
+      "shortcut text": "TEXT",
+      "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
   "page-nav": {
     "axes": {
       "size": [

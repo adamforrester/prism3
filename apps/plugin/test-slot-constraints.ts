@@ -55,6 +55,10 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   'dialog.body': {},
   // Open (#4008, as Dialog's): the body holds whatever the popover needs, so no limit and no preferred component.
   'popover.body': {},
+  // #4007 (OD-M3 A): Menu's items, one at least, the item, and the group and the Divider where the file has them; a group's items, one at least,
+  // the item only.
+  'menu.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['menu-item'], preferredWhenBuilt: ['menu-group', 'divider'] },
+  'menu-group.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['menu-item'] },
   // Open (#2579, as built; renamed from `body` by #3225): the rich body holds a short list or other rich content, so no
   // limit and no preferred component. The plain sentence is the body text property now.
   'banner.richBody': {},

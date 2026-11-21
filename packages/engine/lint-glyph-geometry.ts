@@ -134,6 +134,8 @@ const MUST_COVER = [
   // The icon INSTANCES (#2380): every icon-set glyph inside another component.
   'checkbox-control.checkGlyph', 'checkbox-control.dashGlyph', 'textarea.gripGlyph', 'tag.checkGlyph', 'tag.closeGlyph',
   'field-message.errorGlyph', 'field-message.warningGlyph', 'field-message.successGlyph',
+  // #4007: the menu item's check and submenu arrow.
+  'menu-item.checkGlyph', 'menu-item.chevronGlyph',
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevronGlyph', 'image-placeholder.markerGlyph',
   '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
   // Progress's own glyphs (#2670), measured by the RING_GLYPH arm.
@@ -291,6 +293,9 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   '_breadcrumb-separator.chevronGlyph': { glyph: 'chevron-right', at: { type: ['chevron'] }, why: 'the chevron look, pointing toward the current page; one fixed shape, mirrored in right-to-left in code, never a glyph a designer picks' },
   '_breadcrumb-separator.slashGlyph': { glyph: 'slash', at: { type: ['slash'] }, why: 'the slash look, a forward slash between steps; one fixed shape, not mirrored in right-to-left' },
   // #2666 (owner call 11 A) — the small-screen path's chevron, pointing up the trail to the parent page.
+  // #4007 — the menu item's check (any item with the check toggle on) and its submenu arrow.
+  'menu-item.checkGlyph': { glyph: 'check', at: {}, why: 'the check on a checkable item that is on; one fixed shape, never a glyph a designer picks' },
+  'menu-item.chevronGlyph': { glyph: 'chevron-right', at: { type: ['submenu'] }, why: 'the submenu arrow, pointing toward the submenu; one fixed shape, mirrored in right-to-left in code' },
   'breadcrumbs.backGlyph': { glyph: 'chevron-left', at: { path: ['parent'] }, why: 'the up-a-level mark before the parent link, pointing back up the trail; one fixed shape, mirrored in right-to-left in code' },
   // #2417 (owner Q183) — the Accordion indicator's four glyphs, one per (indicator, expansion) pair. `glyph:
   // '{expansion}'` cannot express them: the vocabulary has no `collapsed` or `expanded` glyph, and the pair changes

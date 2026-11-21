@@ -4390,6 +4390,8 @@ for (const b of brands) {
       // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
       // glyph-to-message gap. The action-to-close 4px is not listed: it stays at the floor.
       toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
+      // #4007: the menu item's inline padding and gap, one size.
+      'menu-item': { keys: [], sizes: [], bare: ['padding-x', 'gap'] },
       // Divider (#3051, #3143): the labeled divider's label-to-line gap, across a row and down a column.
       divider: { keys: [], sizes: [], bare: ['horizontal.gap', 'vertical.gap'] },
       'breadcrumb-item': { keys: ['gap'], sizes: ['small', 'medium'] },
@@ -4438,6 +4440,7 @@ for (const b of brands) {
       banner: { compact: 'bare 12/8/8', comfortable: 'bare 16/12/12', spacious: 'bare 20/16/16' },
       // Toast (#2668, the proposal's §8 approved by call 13 A): comfortable is 8/16/8 padding, 8 to the controls, 12 glyph to message.
       toast: { compact: 'bare 6/12/6/6/8', comfortable: 'bare 8/16/8/8/12', spacious: 'bare 12/20/12/12/16' },
+      'menu-item': { compact: 'bare 8/6', comfortable: 'bare 12/8', spacious: 'bare 16/12' },
       // Divider (#3051, Q3051.4 A; #3143, Q3143.3 A): the label-to-line gap, horizontal / vertical. Comfortable is the
       // owner's space.300, 24px, across a row and space.150, 12px, down a column; the vertical one moves 8/12/16.
       divider: { compact: 'bare 20/8', comfortable: 'bare 24/12', spacious: 'bare 32/16' },
@@ -4490,6 +4493,7 @@ for (const b of brands) {
       // Banner (#2579): the glyph→content gap and the fixed title→body gap (one action since Q533.1, so no action gap).
       banner: ['gap', 'content-gap'],
       toast: ['gap', 'glyph-gap', 'controls-gap'],
+      'menu-item': ['gap'],
       // #3051, #3143: the labeled divider's label-to-line gap, each orientation's own key.
       divider: ['horizontal.gap', 'vertical.gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
@@ -4569,6 +4573,8 @@ for (const b of brands) {
       toast: { prefix: 'bare', lt: [['gap', 'pad-x'], ['glyph-gap', 'pad-x']] },
       // #4008: the header, body and footer gap is tighter than the panel padding around them.
       popover: { prefix: 'bare', lt: [['gap', 'pad']] },
+      // #4007: the item's gap is tighter than its inline padding.
+      'menu-item': { prefix: 'bare', lt: [['gap', 'padding-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     // `pad` (#2579): Banner's one padding, block and inline alike.
@@ -19242,6 +19248,62 @@ arm: {
       // OD-P1 A: the role is a non-modal dialog.
       ok(/role="dialog"/.test(pop.accessibility?.role ?? '') && /no `aria-modal`/.test(pop.accessibility?.role ?? ''), '#4008 popover role (OD-P1 A): role="dialog" with no aria-modal');
     }
+    // ---- #4007 Menu: OD-X1 A, K2 measured, and the item's decisions, each against a literal or an emitted value ----
+    {
+      const pop = componentDefs.find((x) => x.id === 'popover')!;
+      const mnu = componentDefs.find((x) => x.id === 'menu')!;
+      const item = componentDefs.find((x) => x.id === 'menu-item')!;
+      // OD-X1 A: Menu's panel binds Popover's five raised-surface roles. Two defs compared, each authored on its own.
+      const SURFACE = ['fill', 'border', 'border-width', 'shadow', 'radius'];
+      const unequal = SURFACE.filter((k) => !mnu.tokens[k] || mnu.tokens[k] !== pop.tokens[k]);
+      ok(unequal.length === 0, `#4007 OD-X1: Menu and Popover bind the same raised-surface roles (${SURFACE.join(', ')})${unequal.length ? ` — differ: ${unequal.map((k) => `${k} ${mnu.tokens[k]} vs ${pop.tokens[k]}`).join('; ')}` : ''}`);
+      const mp = mnu.anatomy.parts.panel, pp = pop.anatomy.parts.panel;
+      ok(mp.kind === 'box' && pp.kind === 'box' && mp.paintSlots?.join() === pp.paintSlots?.join() && mp.strokeWidth === pp.strokeWidth && mp.elevation === pp.elevation && mp.radius === pp.radius,
+        '#4007 OD-X1: the two panels paint, stroke, cast and round from the same keys');
+      // K2: the highlight against the panel, recomputed from the emitted trees (never from the def's own claim). It does
+      // not clear 3:1 in any committed brand and mode, so K2 is A: a focus-visible item draws the FocusRing as well.
+      const OUT = join(HERE, 'out');
+      const rgb = (v: string): number[] => {
+        const m = /^rgba?\(([^)]*)\)$/.exec(v);
+        if (m) { const q = m[1].split(',').map(Number); return [q[0] / 255, q[1] / 255, q[2] / 255, q.length > 3 ? q[3] : 1]; }
+        const h = v.replace('#', '');
+        return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).concat(h.length === 8 ? parseInt(h.slice(6, 8), 16) / 255 : 1);
+      };
+      const lum = (c: number[]) => [0, 1, 2].map((i) => (c[i] <= 0.04045 ? c[i] / 12.92 : ((c[i] + 0.055) / 1.055) ** 2.4)).reduce((a, x, i) => a + x * [0.2126, 0.7152, 0.0722][i], 0);
+      let best = 0, cells = 0;
+      for (const f of readdirSync(OUT).filter((n) => n.endsWith('.base.tokens.json'))) {
+        const brand = f.split('.')[0];
+        const base = JSON.parse(readFileSync(join(OUT, f), 'utf8'));
+        const root = Object.keys(base).find((k) => !k.startsWith('$'))!;
+        const modes = ['light', ...readdirSync(OUT).filter((n) => n.startsWith(`${brand}.`) && n.endsWith('.overlay.tokens.json')).map((n) => n.split('.')[1])];
+        for (const m of modes) {
+          const ov = m === 'light' ? {} : JSON.parse(readFileSync(join(OUT, `${brand}.${m}.overlay.tokens.json`), 'utf8'));
+          const at = (t: any, p: string) => p.split('.').reduce((o, k) => o?.[k], t?.[root])?.$value;
+          const res = (p: string): string => { let v = at(ov, p) ?? at(base, p); for (let i = 0; i < 10 && typeof v === 'string' && v.startsWith('{'); i++) { const q = v.slice(1, -1).replace(`${root}.`, ''); v = at(ov, q) ?? at(base, q); } return v; };
+          const panel = rgb(res('color.foreground.raised'));
+          const wash = rgb(res('color.interactive.neutral.overlay.hover'));
+          const comp = [0, 1, 2].map((i) => wash[i] * wash[3] + panel[i] * (1 - wash[3]));
+          const a = lum(comp), b = lum(panel);
+          best = Math.max(best, (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)); cells++;
+        }
+      }
+      ok(cells >= 20 && best < 3, `#4007 K2: the item highlight (neutral hover wash over the raised panel) stays under 3:1 against the panel in every brand and mode, so the ring is drawn (best ${best.toFixed(2)}:1 over ${cells} cells)`);
+      const ring = item.anatomy.parts.focusRing;
+      ok(ring?.kind === 'absolute' && ring.nests === 'focus-ring' && ring.when === 'focus-visible' && item.tokens['default.overlay.focus-visible'] === 'color.interactive.neutral.overlay.hover',
+        '#4007 K2 A: a focus-visible item shows the highlight and the shared focus ring');
+      // OD-M3 A: 15 members, one size.
+      const members = figmaAnatomySet(item, { swapTarget: 'FPO-default-icon' });
+      ok(members.length === 15 && !item.variants?.size, `#4007 OD-M3: Menu.Item is 15 members and one size (${members.length})`);
+      // K1 B: menubar kept as an alias.
+      ok(mnu.aliases?.includes('menubar') === true, '#4007 K1 B: Menu keeps menubar as an alias');
+      // Owner direction (2026-11-18): two-line items align to the first line.
+      const row = item.anatomy.parts.row;
+      ok(row.kind === 'box' && row.layout?.align === 'start' && row.firstLine?.glyphCell === 'leadCell' && row.firstLine?.textCell === 'textCell',
+        '#4007 first line: the item row is top-aligned and centers its leading cell on the label\'s first line');
+      // K3 B: checkable items never close the menu.
+      ok(item.anatomy.codeOnly.some((e) => /checkbox or radio item toggles and the menu stays open, whatever the key/.test(e.description)),
+        '#4007 K3 B: the activation contract keeps the menu open for a checkbox or radio item, whatever the key');
+    }
     // ---- #3163: `PartDef.scroll`, the scroll region, and its two refusal arms, each pinned BY NAME (docs/34) ----
     // SUBJECT: Dialog's body as committed, then mutated. EXPECTED: the projection Q3130.8 A asks for (the body clips and
     // scrolls vertically on every member) and the authored refusal shapes. Delete either refusal from `anatomyErrors`
@@ -21253,7 +21315,7 @@ arm: {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'sign-in-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2, 'tag-group': 2,
-      'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, popover: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
+      'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, popover: 2, menu: 2, 'menu-item': 9, 'menu-group': 3, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, skeleton: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
@@ -23428,9 +23490,10 @@ arm: {
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
     // `pagination-item` joins (#2665): a page cell's hover and pressed are IconButton.Neutral ghost's neutral wash.
+    // `menu-item` joins (#4007): its highlight is the neutral wash, so the brand's wash steps reach it.
     // `code-input-cell` joined with #2428 and every field (text-field, password-field, search-field, select, textarea) left
     // with #2926: a field binds no wash, so the lever has nothing to reach on it.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'segmented-control-segment', 'tag']),
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'menu-item', 'pagination-item', 'segmented-control-segment', 'tag']),
       `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, pagination-item, segmented-control-segment, tag, and no field (${binders.join(', ')})`);
     // #3071 (owner Q3071.4 A): the opaque fill reaches Button, Icon button and Flush icon button only. Tag, Segmented
     // control and Pagination keep the neutral wash: a fill on an unselected item reads as selected.
@@ -34082,7 +34145,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['skeleton', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter'];
+  const GATED_EXPECTED = ['skeleton', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter', 'menu-item'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -35667,6 +35730,9 @@ arm: {
     + 'block and centring cannot float the icon mid-paragraph. Fixed on its counter axis as well, which is '
     + 'the mechanical half of the same fact: the row has no room to grow into a second line.';
   const CENTRE_OK: Record<string, string> = {
+    // #4007: the shortcut is one short line that never wraps; centered in the 20px trailing cell, it sits on the chevron's
+    // middle, which the top-aligned row keeps on the label's first line.
+    'menu-item.trailCell': 'a one-line shortcut beside a 20px chevron, inside a top-aligned row',
     'button.container': buttonCentreReason,
     // #1223 split the semantic intents into sibling components that share Button's exact anatomy, so the
     // same design fact exempts them — a Destructive or Neutral button label is the same short action phrase.
@@ -40883,6 +40949,9 @@ arm: {
     'pagination-item.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'the current page is marked by `current`, rendering aria-current="page", as Link does (#2665, #3554 Q-CC15 A)' },
     'page-nav-item.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'a page navigation item marks the current page by `current`, as Link does (#3345)' },
     'link.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'a link marks the current page by `current`, rendering aria-current="page" (#2872, Q507.3 A)' },
+    // #4007 (held for the owner): one member, so the group carries a one-value `type` the engine needs to project a set.
+    // Code has no type prop: every group is a section, with or without its heading, and a radio set is a section too.
+    'menu-group.type': { prop: 'heading', map: { undefined: 'section' }, reason: 'code has no type prop; a group is a section whether or not it sets `heading` (#4007: the one-value axis is how the engine projects one member)' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
     // #2666 (owner call 11 A): code has no path prop. `responsive` (default true) swaps the trail for the parent link
     // below 480px by a container query, and either value renders the trail at every wider width, so the code default
@@ -45232,7 +45301,7 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
 // defs is written out here by hand, not read from the defs, so a def that drops the note fails by its id (docs/34 shape 1).
 {
   const DECIDED = 'Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it.';
-  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'popover', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs'];
+  const INTERACTIVE = ['breadcrumb-item', 'breadcrumbs', 'code-input', 'dialog', 'link', 'page-nav-item', 'page-nav', 'pagination', 'popover', 'segmented-control-segment', 'segmented-control', 'slider', 'tab-item', 'tabs', 'menu-item', 'menu'];
   const all = componentDefs;
   for (const id of INTERACTIVE) {
     const d = all.find((x) => x.id === id);

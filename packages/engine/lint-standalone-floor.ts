@@ -239,6 +239,7 @@ const MUST_PROJECT = [
   'code-input', 'code-input-cell',
   'skeleton',
   'popover',
+  'menu-item', 'menu-group', 'menu',
 ];
 
 /** Whether the def declares the floor. Read here, ONCE, off the def — the EXPECTED half. */

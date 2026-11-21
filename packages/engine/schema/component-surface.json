@@ -872,6 +872,67 @@
         "title text:TEXT",
         "title:BOOLEAN"
       ]
+    },
+    "menu-item": {
+      "members": 15,
+      "sha256": "dea7b1fe44add5635d4525f3f60dec2e244da9468b06fd1daa92e8d37b5a22be",
+      "properties": [
+        "checked:BOOLEAN",
+        "description text:TEXT",
+        "description:BOOLEAN",
+        "indicator:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN",
+        "leading:BOOLEAN",
+        "shortcut text:TEXT",
+        "shortcut:BOOLEAN"
+      ]
+    },
+    "menu-item@outline-solid-tint": {
+      "members": 15,
+      "sha256": "470877f25f31f2b86307237502ab3b5e49fd5a59ea67fc7d3cc5f5fb002ae9c6",
+      "properties": [
+        "checked:BOOLEAN",
+        "description text:TEXT",
+        "description:BOOLEAN",
+        "indicator:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN",
+        "leading:BOOLEAN",
+        "shortcut text:TEXT",
+        "shortcut:BOOLEAN"
+      ]
+    },
+    "menu-item@outline-none": {
+      "members": 15,
+      "sha256": "bd91566fbe4ec1e00f17ace78918199c93b0dd5740e3de273984a49b51a56362",
+      "properties": [
+        "checked:BOOLEAN",
+        "description text:TEXT",
+        "description:BOOLEAN",
+        "indicator:BOOLEAN",
+        "label:TEXT",
+        "leading icon:BOOLEAN",
+        "leading:BOOLEAN",
+        "shortcut text:TEXT",
+        "shortcut:BOOLEAN"
+      ]
+    },
+    "menu-group": {
+      "members": 1,
+      "sha256": "ba618abef0621b9169238dc929fb4840629b871507fceb3c18b3b38286ef65a2",
+      "properties": [
+        "heading text:TEXT",
+        "heading:BOOLEAN",
+        "items:SLOT"
+      ]
+    },
+    "menu": {
+      "members": 1,
+      "sha256": "114d3a3c43211e651ea28e034344ee24a80895c19a6da99a17b0664dd7288fe1",
+      "properties": [
+        "items:SLOT"
+      ]
     }
   }
 }

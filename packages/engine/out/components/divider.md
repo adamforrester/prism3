@@ -78,7 +78,7 @@ A plain divider holds no copy. A labeled divider holds one short word, such as O
 
 ## Related components
 
-- **Often used with:** `accordion`, `list`
+- **Often used with:** `accordion`, `list`, `menu`
 - **Replaces:**
   - a hand-drawn line or a border-bottom on one item standing in for a separator
 

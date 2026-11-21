@@ -711,12 +711,12 @@ export const select: ComponentDef = {
   composition: {
     // What the anatomy nests (#1700). The leading glyph and the chevron are partners, not parts.
     composesWith: ['field-label', 'field-message'],
-    alternativeTo: ['text-field', 'radio-group', 'checkbox-group', 'segmented-control', 'textarea', 'radio-row', 'tabs', 'counter'],
+    alternativeTo: ['text-field', 'radio-group', 'checkbox-group', 'segmented-control', 'textarea', 'radio-row', 'tabs', 'counter', 'menu'],
     replacesPatterns: ['a bare `<select>` with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
     // intent and scale, not replacements.
     supersededBy: [],
-    planned: ['form', 'menu', 'combobox'],
+    planned: ['form', 'combobox'],
   },
 
   // KB select brief §8. The signature motion is the open list's, which this def does not model; what the closed

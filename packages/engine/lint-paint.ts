@@ -303,6 +303,19 @@ const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
  * asserting something untrue about the def it names.
  */
 const PROVENANCE_EXCEPTIONS: Record<string, string> = {
+  // Menu.Item (#4007): `default` is the neutral family, and the highlight is the neutral wash on both intents.
+  'menu-item|default.overlay.hover': 'the highlight is the neutral wash on both intents (#4007, OD-M6 A): a destructive action highlights as every other item does, and its ink alone carries the intent',
+  'menu-item|default.overlay.pressed': 'the highlight is the neutral wash on both intents (#4007, OD-M6 A): a destructive action highlights as every other item does, and its ink alone carries the intent',
+  'menu-item|default.overlay.focus-visible': 'the highlight is the neutral wash on both intents (#4007, OD-M6 A): a destructive action highlights as every other item does, and its ink alone carries the intent',
+  'menu-item|destructive.overlay.hover': 'the highlight is the neutral wash on both intents (#4007, OD-M6 A): a destructive action highlights as every other item does, and its ink alone carries the intent',
+  'menu-item|destructive.overlay.pressed': 'the highlight is the neutral wash on both intents (#4007, OD-M6 A): a destructive action highlights as every other item does, and its ink alone carries the intent',
+  'menu-item|destructive.overlay.focus-visible': 'the highlight is the neutral wash on both intents (#4007, OD-M6 A): a destructive action highlights as every other item does, and its ink alone carries the intent',
+  'menu-item|default.label': 'intent `default` maps to the neutral interactive family: a plain menu action takes the neutral ink, and the token tier has no `default` family (#4007)',
+  'menu-item|default.label.hover': 'intent `default` maps to the neutral interactive family: a plain menu action takes the neutral ink, and the token tier has no `default` family (#4007)',
+  'menu-item|default.label.pressed': 'intent `default` maps to the neutral interactive family: a plain menu action takes the neutral ink, and the token tier has no `default` family (#4007)',
+  'menu-item|default.icon': 'intent `default` maps to the neutral interactive family: a plain menu action takes the neutral ink, and the token tier has no `default` family (#4007)',
+  'menu-item|default.icon.hover': 'intent `default` maps to the neutral interactive family: a plain menu action takes the neutral ink, and the token tier has no `default` family (#4007)',
+  'menu-item|default.icon.pressed': 'intent `default` maps to the neutral interactive family: a plain menu action takes the neutral ink, and the token tier has no `default` family (#4007)',
   // Banner (#3225, owner Q-BN3.1 A): the neutral tone has no `neutral` color family to draw from. Its surface is the
   // page's secondary ground and its edge the neutral edge contracted at the non-text bar on every ground.
   'banner|neutral.fill':

@@ -500,7 +500,7 @@ export const dialog: ComponentDef = {
     alternativeTo: ['accordion', 'toast', 'banner', 'popover'],
     replacesPatterns: ['a div overlay with a z-index and a hand-written focus trap', 'a backdrop built from a veil'],
     supersededBy: [],
-    planned: ['menu'],
+    planned: [],
   },
 
   motion: {
