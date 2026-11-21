@@ -48,7 +48,7 @@ import { brandTheme, BrandInput, type Theme } from './theme';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildOverlaySet } from './emit-dtcg-overlay';
 import { buildAiMetadata } from './ai-metadata';
-import { buildLeverManifest } from './levers';
+import { buildLeverManifest, type Lever } from './levers';
 import { figmaArtifacts } from './emit-figma';
 import { scoreConsumption, scoreContractCompliance, UsedPair } from './eval';
 import { parseDesignMd } from './design-md';
@@ -270,11 +270,12 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'list_levers',
     title: 'List brand controls',
-    description: 'List the complete BrandInput surface an agent can set: the lever catalog (grouped, labeled, typed, with enums, defaults and UI ranges — the same manifest the Figma plugin and web playground render from) PLUS the non-lever fields the manifest does not carry (identity, mode set, and the per-mode override layers). Call this first to learn what theme_brand accepts. Pass `describe` with field names to get those fields\' full schema descriptions instead.',
+    description: 'List the complete BrandInput surface an agent can set: the lever catalog (grouped, labeled, typed, with enums, defaults and UI ranges — the same manifest the Figma plugin and web playground render from) PLUS the non-lever fields the manifest does not carry (identity, mode set, and the per-mode override layers). Call this first to learn what theme_brand accepts; pass `summary: true` for the compact form (about 7,000 characters: each field\'s key, control, range or options and default, without the prose). Pass `describe` with field names to get those fields\' full schema descriptions instead.',
     inputSchema: {
       type: 'object',
       properties: {
         describe: { type: 'array', items: { type: 'string' }, description: 'BrandInput field names (e.g. ["typography", "radiusHairline"]). Returns each field\'s schema entry with every description in full, plus the $defs it references, instead of the catalog.' },
+        summary: { type: 'boolean', description: 'true returns the compact catalog: one entry per lever (key, group, control, range or option values, default), the non-lever fields by key, and the required fields. No labels or descriptions; `describe` returns those.' },
       },
       additionalProperties: false,
     },
@@ -283,7 +284,7 @@ export const toolDefs = (brandSchema: unknown) => [
     // MCP asks of an outputSchema) while still requiring all three catalog fields on a catalog call.
     outputSchema: {
       type: 'object',
-      anyOf: [{ required: ['levers', 'nonLeverFields', 'required'] }, { required: ['described'] }],
+      anyOf: [{ required: ['levers', 'nonLeverFields', 'required'] }, { required: ['described'] }, { required: ['summary', 'nonLeverFields', 'required'] }],
       properties: {
         levers: { type: 'object', description: 'The lever manifest — UI presentation contract.' },
         nonLeverFields: {
@@ -292,6 +293,7 @@ export const toolDefs = (brandSchema: unknown) => [
         },
         required: { type: 'array', items: { type: 'string' }, description: 'Fields theme_brand will reject a call without.' },
         described: { type: 'object', description: 'With `describe`: { properties, $defs }, the named fields\' full schema.' },
+        summary: { type: 'array', description: 'With `summary: true`: one compact entry per lever, in the catalog\'s order.', items: { type: 'object', properties: { key: { type: 'string' }, group: { type: 'string' }, control: { type: 'string' } }, required: ['key', 'group', 'control'] } },
       },
     },
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -299,7 +301,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'theme_brand',
     title: 'Generate a design-token system',
-    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 890,000 and 590,000 characters respectively (~370,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first. Each field description in the `brand` schema below is a one-line summary; list_levers with `describe` returns the full text.',
+    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 440,000 and 560,000 characters respectively (~250,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first. Each field description in the `brand` schema below is a one-line summary; list_levers with `describe` returns the full text.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -376,7 +378,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'export_theme',
     title: 'Write the token system to disk',
-    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 890,000 characters for a four-mode brand, which no tool result should carry. Files carry the names the CLI writes. "tokens" writes <id>.tokens.json (the full DTCG tree), <id>.base.tokens.json and one <id>.<mode>.overlay.tokens.json per other mode (the set a multi-mode code build reads); "aiMetadata" writes <id>.ai.json; "figma" writes a figma/ directory of Figma collection files; "componentSpecs" writes <id>.component-contracts.json (every component contract, with the brand\'s settings resolved), <id>.component-defs.json (the same file under its old name) and <id>.component-defs.specs.json (the same in the Specs format). `include` replaces the default ["tokens", "aiMetadata", "figma"]; for everything, pass all four. For one release each file is also written under its old unprefixed name (tokens.json, ai-metadata.json, component-contracts.json, component-defs.json, component-defs.specs.json). Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
+    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 440,000 characters for a four-mode brand, which no tool result should carry. Files carry the names the CLI writes. "tokens" writes <id>.tokens.json (the full DTCG tree), <id>.base.tokens.json and one <id>.<mode>.overlay.tokens.json per other mode (the set a multi-mode code build reads); "aiMetadata" writes <id>.ai.json; "figma" writes a figma/ directory of Figma collection files; "componentSpecs" writes <id>.component-contracts.json (every component contract, with the brand\'s settings resolved), <id>.component-defs.json (the same file under its old name) and <id>.component-defs.specs.json (the same in the Specs format). `include` replaces the default ["tokens", "aiMetadata", "figma"]; for everything, pass all four. For one release each file is also written under its old unprefixed name (tokens.json, ai-metadata.json, component-contracts.json, component-defs.json, component-defs.specs.json). Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -445,7 +447,8 @@ export const toolDefs = (brandSchema: unknown) => [
  *
  *  (Measured when `notes` became a default. Re-measured 2026-09-24, #1623: tokens ~850,000 and
  *  aiMetadata ~500,000; re-measured 2026-09-26, #1670: ~890,000 and ~590,000, the aiMetadata figure having
- *  drifted to the edge of the test's 15% band — the tool descriptions carry the current figures.)
+ *  drifted to the edge of the test's 15% band — the tool descriptions carry the current figures. #4150: the
+ *  text block went compact, so the figures dropped to ~440,000 and ~560,000: the same trees, unindented.)
  *
  *  Withholding the two huge payloads is right — no client can spend half a megabyte on one result.
  *  Withholding 3.6KB cost an agent the single most decision-relevant thing the engine produces, and
@@ -474,9 +477,32 @@ const text = (obj: unknown, isError = false): ToolResult =>
 
 /** A result carrying BOTH `structuredContent` (what a client validates against `outputSchema`) and the
  *  serialised JSON in a text block — the spec asks for the text copy for backwards compatibility with
- *  clients that do not read structured content. */
+ *  clients that do not read structured content.
+ *
+ *  #4150: the text copy is COMPACT. Indented, it was half again the size of the object: `theme_brand`
+ *  with tokens and aiMetadata came to 2.7 MB, the text 1.58 MB of it beside a 1.06 MB structuredContent.
+ *  A client that reads the text copy parses it, and a parser does not need the indentation. The result
+ *  still carries the object twice, because the spec asks for both. */
 const structured = (obj: unknown): ToolResult =>
-  ({ content: [{ type: 'text', text: JSON.stringify(obj, null, 2) }], structuredContent: obj });
+  ({ content: [{ type: 'text', text: JSON.stringify(obj) }], structuredContent: obj });
+
+/** #4147: the compact lever catalog `list_levers {summary: true}` returns. The full catalog was 43,000
+ *  characters of text, and the tool descriptions tell an agent to call it first, so discovery cost about
+ *  20,000 tokens before any work. This keeps what an agent needs to write a valid input (the key, the
+ *  kind of control, its range or option values, the default, whether it is required, whether it is
+ *  retired) and drops the labels and descriptions, which `describe` returns in full. Fields are only
+ *  carried when the lever has them, so nothing here is a placeholder. */
+export const leverSummary = (levers: Lever[]): Record<string, unknown>[] =>
+  levers.map((l) => ({
+    key: l.key, group: l.group, control: l.control,
+    ...(l.required ? { required: true } : {}),
+    ...(l.options ? { options: l.options.map((o) => o.value) } : {}),
+    ...(l.min !== undefined ? { min: l.min } : {}),
+    ...(l.max !== undefined ? { max: l.max } : {}),
+    ...(l.stops ? { stops: Object.keys(l.stops) } : {}),
+    ...(l.default !== undefined ? { default: l.default } : {}),
+    ...(l.deprecated ? { deprecated: true } : {}),
+  }));
 
 /** Dispatch a tools/call. Pure — imports of the core are all pure functions. Tool-level
  *  failures (bad brand, generation throw) come back as `isError` results, not RPC errors,
@@ -541,7 +567,7 @@ const themePayload = (brand: unknown, include: string[]): ToolResult => {
     if (rr.min > 0) { checks++; if (rr.ratio >= rr.min) pass++; else failures.push(`${m.mode}.${k} ${rr.ratio}<${rr.min}`); }
   }
   // The VERIFICATION payload is the default, because that is what "generate and verify" is worth over
-  // one call — and because the two omitted sections measure ~1,350,000 characters for a four-mode
+  // one call — and because the two omitted sections measure ~1,000,000 characters for a four-mode
   // brand, which no client can spend on a single tool result.
   const out: Record<string, unknown> = {
     id: theme.id,
@@ -555,7 +581,7 @@ const themePayload = (brand: unknown, include: string[]): ToolResult => {
   if (include.includes('notes')) out.notes = theme.notes;
   // Say what was withheld and how to get it — a silently partial result is worse than a big one.
   if ((out.omitted as string[]).length) {
-    out.hint = `Withheld by default: ${(out.omitted as string[]).join(', ')}. Re-call with include: [...] to add them (tokens ~850KB, aiMetadata ~500KB for a four-mode brand).`;
+    out.hint = `Withheld by default: ${(out.omitted as string[]).join(', ')}. Re-call with include: [...] to add them (tokens ~440,000 characters, aiMetadata ~560,000, for a four-mode brand).`;
   }
   return structured(out);
 };
@@ -706,7 +732,7 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     } catch (e) { return text({ error: `write failed: ${(e as Error).message}`, written }, true); }
 
     // The MANIFEST is the result — never the content. That is the entire point of this tool: the
-    // payload it produces is over 1,350,000 characters for a four-mode brand, and returning any of it here
+    // payload it produces is over 1,000,000 characters for a four-mode brand, and returning any of it here
     // would reintroduce the cost the export exists to avoid.
     return structured({
       id: theme.id,
@@ -736,6 +762,15 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
       return structured({ described: { properties, ...(Object.keys(defs).length ? { $defs: defs } : {}) } });
     }
     const levers = buildLeverManifest();
+    if (args?.summary !== undefined && args.summary !== false) {
+      if (args.summary !== true) return text({ error: 'list_levers `summary` must be true or false' }, true);
+      const nonLever = brandSchema ? nonLeverFields(brandSchema, manifestRootKeys(levers)) : [];
+      return structured({
+        summary: leverSummary(levers.levers),
+        nonLeverFields: nonLever.map(({ key, required }) => ({ key, required })),
+        required: ((brandSchema as { required?: string[] } | undefined)?.required) ?? [],
+      });
+    }
     // The manifest ALONE was the bug: it is the UI catalogue, not the input contract. Shipping the
     // non-lever fields beside it makes this tool's promise ("what theme_brand accepts") true.
     const nonLever = brandSchema ? nonLeverFields(brandSchema, manifestRootKeys(levers)) : [];

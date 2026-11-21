@@ -617,6 +617,59 @@ await new Promise((r) => setTimeout(r, 3000));
   ok(/frontmatter/i.test(JSON.stringify(bogus.payload)), 'journey ⑥: the error says what was wrong with it');
 }
 
+// ------------------------------------ #4150 / #4147: what a result costs the agent that reads it
+// Measured over the wire, where an agent pays for it. #4150: a structured result's text copy is the
+// object, unindented; indented it was half again the size (2.7 MB for theme_brand with tokens and
+// aiMetadata). Every size an agent reads in the tool descriptions, the withheld-sections hint and the
+// engine README is held to ±15% of the size measured here, so the four statements cannot disagree again.
+// #4147: list_levers {summary:true} is the compact catalog, under 8,000 characters, and still names every
+// lever the full catalog names. EXPECTED for the sizes is the prose itself; ACTUAL is the measured result.
+// BY-NAME MUTATIONS: restore `JSON.stringify(obj, null, 2)` in mcp.ts `structured()` → the compact arm fails
+// (and test.ts's ±15% arm, which measures the text copy); put back the hint's "~850KB" → the size arm fails;
+// drop the `summary` branch from the list_levers handler → both #4147 arms fail.
+{
+  const B = { id: 'size-probe', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const base = await server.call('theme_brand', { brand: B, include: [] });
+  const full = await server.call('theme_brand', { brand: B, include: ['tokens', 'aiMetadata'] });
+  ok(full.content[0].text === JSON.stringify(full.structuredContent) && base.content[0].text === JSON.stringify(base.structuredContent),
+    `#4150: a structured result's text copy is its structuredContent, compact (theme_brand with tokens and aiMetadata: text ${full.content[0].text.length.toLocaleString('en-US')} chars, structuredContent ${JSON.stringify(full.structuredContent).length.toLocaleString('en-US')})`);
+  const measured = {
+    tokens: JSON.stringify(full.structuredContent.tokens).length,
+    aiMetadata: JSON.stringify(full.structuredContent.aiMetadata).length,
+  };
+  const near = (stated: number, m: number): boolean => Math.abs(stated - m) / m <= 0.15;
+  const num = (s: string | undefined): number => (s === undefined ? NaN : +s.replace(/,/g, ''));
+  const toolsId = server.send('tools/list');
+  const tools = ((await server.reply(toolsId)).result?.tools ?? []) as Array<{ name: string; description: string }>;
+  const descOf = (n: string): string => tools.find((t) => t.name === n)?.description ?? '';
+  const themeDesc = descOf('theme_brand').match(/roughly ([\d,]+) and ([\d,]+) characters/);
+  const exportDesc = descOf('export_theme').match(/the DTCG tree alone is roughly ([\d,]+) characters/);
+  const hint = String(base.structuredContent.hint ?? '').match(/tokens ~([\d,]+) characters, aiMetadata ~([\d,]+)/);
+  const readme = readFileSync(resolve(HERE, 'README.md'), 'utf8').match(/a four-mode token tree is roughly ([\d,]+) characters in a tool result/);
+  const claims: Array<[string, number, number]> = [
+    ['theme_brand description, tokens', num(themeDesc?.[1]), measured.tokens],
+    ['theme_brand description, aiMetadata', num(themeDesc?.[2]), measured.aiMetadata],
+    ['export_theme description, tokens', num(exportDesc?.[1]), measured.tokens],
+    ['theme_brand hint, tokens', num(hint?.[1]), measured.tokens],
+    ['theme_brand hint, aiMetadata', num(hint?.[2]), measured.aiMetadata],
+    ['engine README, tokens', num(readme?.[1]), measured.tokens],
+  ];
+  const off = claims.filter(([, stated, m]) => !near(stated, m)).map(([where, stated, m]) => `${where}: states ${Number.isNaN(stated) ? 'nothing' : stated.toLocaleString('en-US')}, measured ${m.toLocaleString('en-US')}`);
+  ok(off.length === 0, `#4150: every stated payload size is within 15% of the measured one (${claims.length} statements; off: ${off.join('; ') || 'none'})`);
+
+  const summary = await server.call('list_levers', { summary: true });
+  const catalog = await server.call('list_levers', {});
+  const fullKeys = (catalog.structuredContent?.levers?.levers ?? []).map((l: { key: string }) => l.key);
+  const summaryKeys = (summary.structuredContent?.summary ?? []).map((l: { key: string }) => l.key);
+  ok(summary.isError !== true && summary.content[0].text.length < 8_000,
+    `#4147: list_levers {summary:true} is the compact catalog, under 8,000 characters (${summary.content[0].text.length.toLocaleString('en-US')}; the full catalog is ${catalog.content[0].text.length.toLocaleString('en-US')})`);
+  const missing = fullKeys.filter((k: string) => !summaryKeys.includes(k));
+  const nonLever = (summary.structuredContent?.nonLeverFields ?? []).map((f: { key: string }) => f.key).sort().join(',');
+  const fullNonLever = (catalog.structuredContent?.nonLeverFields ?? []).map((f: { key: string }) => f.key).sort().join(',');
+  ok(fullKeys.length > 0 && missing.length === 0 && summaryKeys.length === fullKeys.length && nonLever === fullNonLever && nonLever.length > 0,
+    `#4147: the summary names every lever and non-lever field the full catalog names (${summaryKeys.length} of ${fullKeys.length} levers; missing: ${missing.join(', ') || 'none'})`);
+}
+
 server.stop();
 
 console.log(`\nPrism3 MCP suite: ${pass} passed, ${fails.length} failed`);
