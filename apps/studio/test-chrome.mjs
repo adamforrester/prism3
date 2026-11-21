@@ -23800,7 +23800,8 @@ if (runs('3977')) {
       const nb = name?.getBoundingClientRect(), db = desc?.getBoundingClientRect();
       const ncs = name && getComputedStyle(name), dcs = desc && getComputedStyle(desc);
       return {
-        name: name?.textContent.trim() ?? null, desc: desc?.textContent ?? null,
+        // #4191 T3: the label reads the brand's name; the example's id, which EXAMPLE_LINES keys on, is the item's data.
+        name: item.dataset.example ?? null, desc: desc?.textContent ?? null,
         below: !!nb && !!db && db.width > 0 && db.top >= nb.bottom - 0.5,
         muted: !!ncs && !!dcs && dcs.color !== ncs.color && dcs.color === secondary && parseFloat(dcs.fontSize) <= parseFloat(ncs.fontSize),
         ink: dcs ? `${dcs.color} ${dcs.fontSize}` : null, nameInk: ncs ? `${ncs.color} ${ncs.fontSize}` : null, secondary,
