@@ -594,11 +594,13 @@ export const textarea: ComponentDef = {
     usage: 'Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the `aria-describedby` chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.',
     do: [
       'Set `maxRows` whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste',
+      'Reserve space in the footer for the validation message and the counter, so an over-limit error does not push the resize handle',
+    ],
+    implementation: [
       'Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length',
       'Announce the over-limit through the live region and `aria-invalid` — color alone is not a signal',
       'Normalize \\r\\n to \\n on paste before counting or storing, and resize once per paste rather than once per inserted line',
       'Keep a read-only textarea scrollable and selectable, so the whole value stays reachable — far more text is hidden here than in a single-line field',
-      'Reserve space in the footer for the validation message and the counter, so an over-limit error does not push the resize handle',
     ],
     dont: [
       'Offer horizontal or both resize — it shatters grid and flex layouts and breaks responsive viewports',

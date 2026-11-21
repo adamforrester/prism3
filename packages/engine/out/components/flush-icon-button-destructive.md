@@ -45,7 +45,6 @@ Use inside another component where the icon is itself the control: the minus and
 ### Do
 
 - Always give it an accessible name (a verb)
-- Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized
 - Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap
 - Confirm a destructive action that cannot be undone, and give the confirmation a neutral way out ("Cancel" or "Keep"), since a lone glyph offers none
 
@@ -93,6 +92,8 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
   - an IconButton with its padding overridden to zero
 
 ## Building it in code
+
+- Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized
 
 ### Props
 

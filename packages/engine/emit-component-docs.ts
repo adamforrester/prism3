@@ -76,7 +76,7 @@ import { projectDef } from './project-def';
 import { exportComponentDefs, toSpecsComponents, componentDefsFileNames } from './component-defs-export';
 
 /** The sidecar's schema id. `schema/component-docs.schema.json` carries the same `$id`; both move together. */
-export const COMPONENT_DOCS_SCHEMA = 'prism3-component-docs/1.1';
+export const COMPONENT_DOCS_SCHEMA = 'prism3-component-docs/1.2';
 
 // `projectDef` moved to its own I/O-free module (#3425) so a surface can bundle it; re-exported for existing readers.
 export { projectDef };
@@ -210,6 +210,9 @@ export const renderMarkdown = (def: ComponentDef): string => {
         out.push('');
         break;
       case 'code':
+        // The implementation rules first (#2778): what to build, then the props it is built with.
+        if (s.implementation.length) bullets(s.implementation);
+        if (!s.props.length) break;
         out.push('### Props', '');
         out.push('| Name | Type | Default | Required | Description |', '| --- | --- | --- | --- | --- |');
         for (const p of s.props) {
@@ -221,7 +224,6 @@ export const renderMarkdown = (def: ComponentDef): string => {
           out.push(`| ${name} | ${mdEscape(p.type)}${mdEscape(values)}${mdEscape(items)} | ${p.default === undefined ? '—' : code(String(p.default))} | ${p.required ? 'yes' : 'no'} | ${mdEscape(p.description)} |`);
         }
         out.push('');
-        if (s.implementation.length) bullets(s.implementation);
         break;
     }
   }

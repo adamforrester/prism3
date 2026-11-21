@@ -32,7 +32,7 @@
  * reports the nodes as present. The facts here are authored fixtures — the executor's own collection of
  * them is gated against real host state in `test-write-components.ts`.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, refsItems, partialWriteHeadline, partialWriteNote, partialWriteItem, fromClauses, motionReplacedItem } from './src/apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, missesLine, refsNote, refsItems, partialWriteHeadline, partialWriteNote, partialWriteItem, fromClauses, motionReplacedItem } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
 import { fieldStyleNote, searchFieldStyleNote } from './src/field-style-note';
 import { tagStyleNote } from './src/tag-style-note';
@@ -377,6 +377,12 @@ ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.str
   ok(/tagStyleNote\(before, input\),\n\s*\]\.map/.test(main),
     '#2887: Apply\'s clause list carries the tag style notice, off the brand read before the new one persisted');
 }
+
+// #4185 B (owner decision 2026-11-20 on #4364): a build's misses are one line that counts bindings and promises no place
+// (the run log is memory only). Expected text typed here, singular and plural. Mutation: the plural `s` dropped, or the
+// old "kept in the file's run log" tail restored → `#4185 missesLine`.
+ok(missesLine(0) === '' && missesLine(1) === "⚠ 1 binding Prism3 couldn't make." && missesLine(363) === "⚠ 363 bindings Prism3 couldn't make.",
+  `#4185 missesLine: none says nothing, one binding is singular, more are plural, and no place is promised (${JSON.stringify([missesLine(0), missesLine(1), missesLine(363)])})`);
 
 console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'} — ${executed} assertions executed`);
 if (failed) process.exit(1);

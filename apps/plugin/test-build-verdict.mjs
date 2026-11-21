@@ -1910,6 +1910,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
 //   · the late-restore guard applied to `unreadable` only → `#2007 guard: a rejected restore after a brand was chosen …`.
 //   · `rejected`'s bar back to "until a brand resolves", or the tooltip back to the old wording → `#2007 rejected: the
 //     bar says the writes are off "until a brand loads" …`.
+//   · `unresolved`'s bar back to "until a brand resolves" → `#2007 unresolved: the bar says the writes are off "until a
+//     brand loads", the owner's words …`.
 {
   const base = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
   const capture = (page) => page.evaluate(() => {
@@ -2009,6 +2011,9 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     await post(page, { type: 'restore-input', input: { ...base, id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } } });
     await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
     const off = await read(page);
+    // Owner (#4222, 2026-11-19): the owner's words, "until a brand loads", for this kind too.
+    ok((off.bar ?? '').includes('are off until a brand loads.') && !(off.bar ?? '').includes('until a brand resolves'),
+      `#2007 unresolved: the bar says the writes are off "until a brand loads", the owner's words — bar ${JSON.stringify((off.bar ?? '').slice(-110))}`);
     ok(allOff(off), `#1994 unresolved: Update file's action is off after the refused restore — ${JSON.stringify(off)}`);
     const ex = await exportBrief(page);
     ok(ex.off === false && !!ex.file && ex.file.name === 'refused-brand.design.md' && ex.file.text.includes('background.secondary'),
