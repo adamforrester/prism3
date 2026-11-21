@@ -14,7 +14,8 @@
  *   - a failed measurement reads FAIL with its first failing line, never its count;
  *   - a passing run whose summary matches none of the row's patterns reads "unparsed", never 0;
  *   - each measured cell names the commit and the time it was recorded at;
- *   - a row's unit carries no number: every number on the card comes from a record, never from a literal.
+ *   - a row's unit carries no number: every number on the card comes from a record, never from a literal;
+ *   - the API mismatch count is measured (`api-mismatches.ts`): a planted mismatch shows its count, never 0.
  * A tree is dirty when anything not ignored differs from the commit, untracked files included (a dropped-in input such
  * as `apps/storybook/figma-geometry.json` before it is committed).
  *
@@ -25,6 +26,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ROWS, ARMS, CARD_ARMS, type Measure } from './measures';
+import { mismatches, type Manifest } from './api-mismatches';
 
 const HERE = import.meta.dirname ?? '';
 const ROOT = resolve(HERE, '../..');
@@ -134,6 +136,21 @@ export const SELF: { name: string; check: () => string | null }[] = [
   { name: 'no row\'s unit carries a number, so every number on the card traces to a record', check: () => {
     const literal = Object.entries(ARMS).flatMap(([a, x]) => x.measures.filter((m) => /\d/.test(m.unit)).map((m) => `${a} ${m.id}: "${m.unit}"`));
     return literal.length ? `a number written into the unit, not measured: ${literal.join('; ')}` : null; } },
+  { name: 'a planted API mismatch is counted and shows its count on the card, never 0', check: () => {
+    // Two defs; the element for `field` lacks one own prop and both of a nesting's exposed props (3), `chip` lacks none.
+    const defs = {
+      field: { def: { props: [{ name: 'label' }, { name: 'value' }, { name: 'aria-label' }, { name: 'size' }] }, spec: { nesting: [{ exposes: ['emphasis', 'weight'] }, { exposes: [] }] } },
+      chip: { def: { props: [{ name: 'label' }] } },
+      unshipped: { def: { props: [{ name: 'tone' }] } },
+    };
+    const manifest: Manifest = { modules: [{ declarations: [
+      { tagName: 'x-field', attributes: [{ name: 'data-label', fieldName: 'label' }], members: [{ kind: 'field', name: 'value', privacy: 'public' }, { kind: 'field', name: 'ariaLabel' }, { kind: 'field', name: 'size', privacy: 'private' }] },
+      { tagName: 'x-chip', attributes: [{ name: 'label' }] },
+    ] }] };
+    const m = mismatches(defs, manifest);
+    if (m.count !== 3 || m.missing.field?.join() !== 'size,emphasis,weight' || m.compared.join() !== 'field,chip') return `counted ${m.count} (${JSON.stringify(m.missing)}, compared ${m.compared.join()}), expected 3: size, emphasis, weight on field`;
+    const r = row(render({ 'arm-1': { 'kpi2-api-mismatches': planted({ id: 'kpi2-api-mismatches', value: m.count, unit: 'mismatches: Figma-exposed props the element lacks' }) } }), 'API parity against Figma: mismatches');
+    return /\| 3 mismatches: Figma-exposed props the element lacks \(abcdef01/.test(r) ? null : r; } },
   { name: 'every arm 1 row is measured or names why not', check: () => {
     const arm = ARMS['arm-1'];
     const gaps = ROWS.filter((x) => !arm.measures.some((m) => m.id === x.id) && !arm.pending[x.id]);
