@@ -276,6 +276,13 @@ jobs:
       - name: Token package gate (the packed @prism3/tokens installs and defines the contract's names)
         run: npm run -w @prism3/tokens check:package
 
+      # #2997 gate 5 — the engine's Tailwind v4 theme, compiled by the stock Tailwind CLI pinned in packages/tokens
+      # against a typed fixture. A utility that does not compile fails `<utility> utility unresolved` by name; a dimension
+      # or font that computes to the wrong value, or a variable `.dark` does not set, fails naming it. Color values are
+      # gate 2's (the shadcn round trip reads this file too).
+      - name: The Tailwind v4 theme compiles in a stock Tailwind (#2997)
+        run: npm run -w @prism3/tokens check:shadcn
+
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
       # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, skills/**
       # was not. Its first run found `prism3-consume` (now `prism3-build-ui`) teaching the pre-rename `action.*` family,

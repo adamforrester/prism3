@@ -41,10 +41,11 @@ type Tree = Record<string, unknown>;
 type Token = { $type?: string; $value?: unknown };
 
 /** The brands the handoff carries: every `<brand>.base.tokens.json` in `dir` whose full tree `<brand>.tokens.json`
- *  sits beside it, sorted by code point. The tree test skips the web-only `<brand>.web.base.tokens.json` (#4282),
- *  which has no overlays and is not a brand (#4428). */
+ *  sits beside it, sorted by code point. A brand's web base, `<brand>.web.base.tokens.json` (#4155, #4282), shares the
+ *  suffix but is not a brand: it has no overlays of its own, and no full tree beside it (#4428). */
 export const handoffBrands = (dir = OUT_DIR): string[] =>
-  readdirSync(dir).filter((f) => f.endsWith('.base.tokens.json')).map((f) => f.slice(0, -'.base.tokens.json'.length))
+  readdirSync(dir).filter((f) => f.endsWith('.base.tokens.json') && !f.endsWith('.web.base.tokens.json'))
+    .map((f) => f.slice(0, -'.base.tokens.json'.length))
     .filter((b) => existsSync(join(dir, `${b}.tokens.json`)))
     .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
@@ -125,13 +126,13 @@ const colorValue = (h: Handoff, role: string, mode: ShadcnMode): string => {
   return toOklchCss(value);
 };
 
-const dimensionValue = (h: Handoff, role: string): string => {
+export const dimensionValue = (h: Handoff, role: string): string => {
   const { type, value } = resolveRole(h, role, 'light');
   if (type !== 'dimension' || typeof value !== 'string') throw new Error(`${h.brand}: ${role} is not a dimension (${type})`);
   return value;
 };
 
-const fontValue = (h: Handoff, key: string, role: string): string => {
+export const fontValue = (h: Handoff, key: string, role: string): string => {
   const { type, value } = resolveRole(h, role, 'light');
   const families = (Array.isArray(value) ? value : [value]).map(String);
   if (type !== 'fontFamily' || !families.length) throw new Error(`${h.brand}: ${role} is not a font family (${type})`);

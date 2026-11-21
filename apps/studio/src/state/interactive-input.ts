@@ -22,6 +22,7 @@ import { resolveAllModes, type Theme } from '@prism3/engine';
 import { brandState, setPath, theme } from './store';
 import { setRoleOverride, stepsOf } from './fills-input';
 import { commitAtomic, removeColumn } from './name-refs';
+import { must } from '../must';
 
 /** The last dot-segment of a token path: the palette step key (`…primary.650` → `650`). */
 export const stepKeyOf = (path: string | undefined): string => (path ? path.split('.').pop()! : '');
@@ -82,7 +83,7 @@ export const anchorOf = (mode: string, col: string): number | undefined => {
   if (col === 'primary') return brandState.actionAnchorStep;
   if (col === 'destructive') return brandState.destructiveAnchorStep;
   const i = accentIndex(col);
-  return i < 0 ? undefined : brandState.interactivePalettes![i].anchorStep;
+  return i < 0 ? undefined : must(brandState.interactivePalettes?.[i], `accent ${col}`).anchorStep;
 };
 /** Pin column `col`'s fill anchor in `mode`, or clear it (`undefined`). Light writes the column's global
  *  field (`actionAnchorStep`, `destructiveAnchorStep`, or the accent's `anchorStep`); any other mode writes
@@ -117,7 +118,7 @@ export const setAnchor = (mode: string, col: string, v: number | undefined): voi
 export const setInverseFillSource = (mode: string, role: string, assignedPalette: string, value: string): void => {
   if (value === '') return setRoleOverride(mode, role, assignedPalette, undefined);
   const [pal, step] = value.split('::');
-  setRoleOverride(mode, role, pal, step);
+  setRoleOverride(mode, role, must(pal, 'the palette'), step);
 };
 
 // ── links (legacy `setLinkRung`, `setLinkFamilyOverride`) ──────────────────────────────────────────

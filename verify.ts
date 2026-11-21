@@ -981,6 +981,13 @@ export const GATES: Gate[] = [
     cmd: ws('@prism3/tokens', 'check:package'),
   },
   {
+    // #2997 gate 5 — generates the Tailwind theme with the engine's emitter into a temp dir and compiles a fixture
+    // against it with the stock Tailwind CLI pinned in packages/tokens. Needs no build and no browser.
+    id: 'tailwind-theme',
+    ciStep: 'The Tailwind v4 theme compiles in a stock Tailwind (#2997)',
+    cmd: ws('@prism3/tokens', 'check:shadcn'),
+  },
+  {
     id: 'lint-skills',
     ciStep: 'Skills gate (shipped skills make true claims)',
     cmd: engine('lint-skills.ts'),
