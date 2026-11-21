@@ -17,7 +17,7 @@ The first time the studio opens, a start window offers three ways in. <!-- src: 
 
 To come back to these later, open the brand menu at the left of the top bar and choose **New brand**. The same menu lists the examples, each with its few words, and has **Import design.md…**. <!-- src: apps/studio/src/shell/bar.ts:231-257 -->
 
-If opening another brand would replace edits that aren't saved anywhere else, the studio asks first. Before you choose **Replace brand** or **Cancel**, you can keep a copy with **Download design.md** or **Download tokens**; a download leaves the question open. <!-- src: apps/studio/src/state/leave-guard.ts:25-28 --> <!-- src: apps/studio/src/shell/bar.ts:280-302 --> On the web, the browser also asks before you leave the page while the brand has unsaved edits. <!-- src: apps/studio/src/main.ts:1377-1388#b587cb67 -->
+If opening another brand would replace edits that aren't saved anywhere else, Studio asks first. Before you choose **Replace brand** or **Cancel**, you can keep a copy with **Download design.md** or **Download tokens**; a download leaves the question open. <!-- src: apps/studio/src/state/leave-guard.ts:25-28 --> <!-- src: apps/studio/src/shell/bar.ts:280-302 --> On the web, the browser also asks before you leave the page while the brand has unsaved edits. <!-- src: apps/studio/src/main.ts:1377-1388#b587cb67 -->
 
 *[Screenshot placeholder: the start window with its three cards.]*
 
