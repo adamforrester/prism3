@@ -32,6 +32,7 @@ import STYLE from './styles.css';
 // `chrome.css`, as TEXT. A virtual module that only `apps/studio/chrome/esbuild-plugin.mjs` resolves, so
 // a bundler without the plugin fails at build time rather than shipping without it (UI redesign S1.1).
 import CHROME from 'p3:chrome-css';
+import { must } from './must';
 
 // ---- 1. boot -----------------------------------------------------------------------------------------
 // Web persists the working brand to localStorage; the plugin uses Figma shared-data instead (restored
@@ -70,12 +71,12 @@ const bootBrand = (): { input: BrandInput; origin: Origin; baseline?: BrandInput
     // Web, nothing valid stored → the EMPTY STATE. brandState still holds the demo so the app is in a
     // valid state behind the start screen, but the origin is `none`: nothing has been chosen yet, so
     // there is nothing to be dirty against and nothing an import could lose.
-    return { input: structuredClone(BRANDS[BOOT_BRAND]), origin: { kind: 'none' } };
+    return { input: structuredClone(must(BRANDS[BOOT_BRAND], 'the boot brand')), origin: { kind: 'none' } };
   }
   // Plugin: boot on the demo and wait for the host. `restore-input` (#131) may replace this within
   // milliseconds with the file's own brand — until it arrives, `example` is the honest answer, and a
   // file with no stored blob correctly keeps it (that is #721's state 2).
-  return { input: structuredClone(BRANDS[BOOT_BRAND]), origin: { kind: 'example', id: BOOT_BRAND } };
+  return { input: structuredClone(must(BRANDS[BOOT_BRAND], 'the boot brand')), origin: { kind: 'example', id: BOOT_BRAND } };
 };
 const boot = bootBrand();
 initSession(boot.input, boot.origin, boot.baseline);

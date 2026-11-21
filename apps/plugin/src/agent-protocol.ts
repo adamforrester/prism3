@@ -275,10 +275,11 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
   // The stable commands only: a dev command never reaches here (the check above answers it `unknown-command`, #2530).
   switch (cmd as (typeof AGENT_COMMANDS)[number]) {
     case 'apply-theme':
-      if (!isObject(args.input)) return fail('bad-args', "apply-theme needs args.input: a BrandInput object, as the UI's Apply sends it");
+      // #4200 owner decision 1 (a): name the alias. The engine's MCP tools call this object `brand` (DRAFT wording).
+      if (!isObject(args.input)) return fail('bad-args', "apply-theme needs args.input: a BrandInput object, as the UI's Apply sends it (the object the MCP tools call brand)");
       return { ok: true, command: { ...base, cmd: 'apply-theme', args: { input: args.input as unknown as BrandInput } } };
     case 'prune':
-      if (!isObject(args.input)) return fail('bad-args', 'prune needs args.input: a BrandInput object');
+      if (!isObject(args.input)) return fail('bad-args', 'prune needs args.input: a BrandInput object (the object the MCP tools call brand)');
       if (typeof args.confirm !== 'boolean') return fail('bad-args', 'prune needs args.confirm: false to preview, true to delete');
       if (!args.confirm) return { ok: true, command: { ...base, cmd: 'prune', args: { input: args.input as unknown as BrandInput, confirm: false } } };
       if (typeof args.previewHash !== 'string' || !args.previewHash) {

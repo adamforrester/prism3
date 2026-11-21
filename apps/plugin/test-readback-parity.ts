@@ -47,16 +47,16 @@
  * designer sees. Every other number (a dimension, a weight, a duration, a ratio) and every string, alias included,
  * must be equal.
  *
- * ── the one value shape the exporter cannot read: the tinted wash (#2365) ──────────────────────────
+ * ── the tinted wash: compared, then checked against the emission (#2365) ───────────────────────────
  *
- * Since #1646 Apply Theme writes a tinted wash as an ALIAS WITH OPACITY (`{ color: alias, opacity: alias }`). TokenPress
- * does not read that shape and exports a color with null components; the adapter on the expected side drops the
- * opacity and exports a plain alias. So for exactly those leaves the export comparison would compare two wrong
- * answers. They are carved out as a MEMORY, not a count: the carved set is the emission's own `aliasOpacity`
- * variables × their modes (read from the emission, never from either export), every one of them must show the
- * VALUE difference (a bijection, so a wash TokenPress learns to read fails here and the carve-out is removed with
- * #2365), and each wash is then checked AS WRITTEN in the file: its color alias and its opacity alias, by name, in
- * every mode, against the emission's.
+ * Since #1646 Apply Theme writes a tinted wash as an ALIAS WITH OPACITY (`{ color: alias, opacity: alias }`), and since
+ * #2365 TokenPress exports it as the color the alias resolves to at that alpha, and the adapter on the expected side
+ * passes the opacity through. So the washes cross the export comparison above like every other leaf, with no
+ * carve-out. That comparison runs ONE exporter over both sides, so a wash it read wrong on both would agree with
+ * itself. Each wash is therefore also checked against the emission, which neither export produced: its exported
+ * color's channels are the emission's own `value` channels, within the tolerance above, and its alpha is the
+ * emission's `aliasOpacity` percent as a fraction. And each is checked AS WRITTEN in the file: its color alias and its
+ * opacity alias, by name, in every mode, against the emission's.
  *
  * ── the style channels compared as written ────────────────────────────────────────────────────────
  *
@@ -137,6 +137,9 @@ const EXCLUDED: Record<string, string> = {
   nb: 'the regression fixture: its emission is built from nbTheme() and the measured reference, not from a BrandInput, so there is no brief to apply',
 };
 const MIN_BRANDS = 3;
+/** Each gated brand plans its tinted washes in every color mode: today one wash in 4 modes. A floor, so an emission that
+ *  stopped planning them cannot leave the wash arms passing over nothing (docs/34 shape 9). */
+const MIN_WASHES = 4;
 /** Half an 8-bit step: the largest channel difference that cannot change the color a designer sees. */
 const COLOR_TOL = 0.5 / 255;
 /** How many differences of each kind to print before summarizing. */
@@ -186,13 +189,13 @@ const diffExports = (actual: Map<string, Leaf>, expected: Map<string, Leaf>): Di
 };
 
 // ── the tinted washes (#2365) ───────────────────────────────────────────────────────────────────────
-type Wash = { name: string; mode: string; color: string; opacity: string };
+type Wash = { name: string; mode: string; color: string; opacity: string; rgb: [number, number, number]; percent: number };
 /** Every alias-with-opacity value the emission plans, per mode, read from its own color files. */
 const washesOf = (brand: string): Wash[] => {
   const out: Wash[] = [];
   for (const f of readdirSync(join(FIGMA_OUT, brand)).filter((x) => x.endsWith('.json')).sort()) {
     const j = JSON.parse(readFileSync(join(FIGMA_OUT, brand, f), 'utf8')) as { $mode?: string; variables?: any[] };
-    for (const v of j.variables ?? []) if (v.aliasOpacity) out.push({ name: v.name, mode: j.$mode ?? '', color: v.alias?.name, opacity: v.aliasOpacity.name });
+    for (const v of j.variables ?? []) if (v.aliasOpacity) out.push({ name: v.name, mode: j.$mode ?? '', color: v.alias?.name, opacity: v.aliasOpacity.name, rgb: [v.value.r, v.value.g, v.value.b], percent: v.aliasOpacity.value });
   }
   return out;
 };
@@ -409,15 +412,22 @@ for (const brand of GATED) {
     const actual = leavesOf((await runTokenPress(fromShim)).files);
     const expected = leavesOf((await runTokenPress(adaptBrand(brand, join(FIGMA_OUT, brand)))).files);
     ok(expected.size > 0 && actual.size > 0, `${brand}: both exports hold tokens (shim ${actual.size}, emission ${expected.size})`);
-    // The washes: carved out of the export comparison as a bijection, then checked as written (#2365).
+    // The washes: compared above like every leaf, then checked against the emission and as written (#2365).
     const washes = washesOf(brand);
     const byName = new Map(file.vars.map((v: any) => [v.name, v]));
     const colName = (v: any) => file.collections.find((c: any) => c.id === v.variableCollectionId)?.name ?? '?';
-    const washKeys = new Set(washes.map((w) => washKey(w, byName.has(w.name) ? colName(byName.get(w.name)) : '?')));
     const diffs = diffExports(actual, expected);
-    const carved = diffs.filter((d) => d.kind === 'VALUE' && washKeys.has(d.key));
-    ok(carved.length === washKeys.size, `${brand} washes (#2365): every one of the ${washKeys.size} planned wash leaves is the known unreadable export, and nothing else is carved (${carved.length} carved)`);
-    for (const k of washKeys) if (!carved.some((d) => d.key === k)) console.error(`      not carved: ${k} — the export now agrees, so #2365's carve-out is obsolete`);
+    ok(washes.length >= MIN_WASHES, `${brand} washes (#2365): the emission plans ${washes.length} wash leaves (at least ${MIN_WASHES})`);
+    const offValue: string[] = [];
+    for (const w of washes) {
+      const leaf = actual.get(washKey(w, byName.has(w.name) ? colName(byName.get(w.name)) : '?'));
+      const val: any = leaf?.$value;
+      const fits = leaf?.$type === 'color' && val && val.colorSpace === 'srgb' && Array.isArray(val.components)
+        && val.components.length === 3 && val.components.every((c: unknown, i: number) => typeof c === 'number' && Math.abs(c - w.rgb[i]) <= COLOR_TOL)
+        && typeof val.alpha === 'number' && Math.abs(val.alpha - w.percent / 100) <= COLOR_TOL;
+      if (!fits) offValue.push(`${w.name} @${w.mode}: exported ${J(leaf && { $type: leaf.$type, $value: leaf.$value })}, emission rgb ${J(w.rgb)} at ${w.percent}%`);
+    }
+    ok(offValue.length === 0, `${brand} washes (#2365): each of the ${washes.length} exports as the emission's color at its opacity, as a literal${offValue.length ? ` — ${offValue.slice(0, 3).join('; ')}` : ''}`);
     const wrong: string[] = [];
     for (const w of washes) {
       const v: any = byName.get(w.name);
@@ -428,7 +438,7 @@ for (const brand of GATED) {
       if (!val || nameOf(val.color) !== w.color || nameOf(val.opacity) !== w.opacity) wrong.push(`${w.name} @${w.mode}: file ${J(val && { color: nameOf(val.color), opacity: nameOf(val.opacity) })}, emission ${J({ color: w.color, opacity: w.opacity })}`);
     }
     ok(wrong.length === 0, `${brand} washes (#2365): each of the ${washes.length} is written as its color alias at its opacity alias, as the emission plans${wrong.length ? ` — ${wrong.slice(0, 4).join('; ')}` : ''}`);
-    report(`${brand} export`, diffs.filter((d) => !carved.includes(d)), ['ADDED', 'REMOVED', 'RETYPED', 'VALUE', 'DESCRIPTION']);
+    report(`${brand} export`, diffs, ['ADDED', 'REMOVED', 'RETYPED', 'VALUE', 'DESCRIPTION']);
 
     // #3399 (Q22 A, Q22.1 A): WHAT THE FOCUS EDGE BINDS, AS APPLY THEME WRITES IT. A focused field's edge is its own stroke,
     // weighted by `focus/ring/width` and painted in `color/border/focus` or its status role, at the field's

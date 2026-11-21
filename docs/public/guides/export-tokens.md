@@ -4,15 +4,15 @@
 
 There are two ways to get token files out, and they start from different places:
 
-- Export, an area of the Prism3 studio on the web and in the plugin, writes the brand you set in the studio. <!-- src: apps/studio/src/shell/pages.ts:520#a3230059 --> <!-- src: apps/studio/src/export-settings.ts:63-70#9d917e16 -->
+- Export, an area of the Prism3 studio on the web and in the plugin, writes the brand you set in the studio. <!-- src: apps/studio/src/shell/pages.ts:522#a3230059 --> <!-- src: apps/studio/src/export-settings.ts:63-70#9d917e16 -->
 - TokenPress, a separate Figma plugin, writes what a Figma file holds: its variables, text styles, effect styles and gradient paint styles, whoever made them. <!-- src: apps/tokenpress/README.md:3#9efac648 --> <!-- src: apps/tokenpress/README.md:107-116#07079251 -->
 
 ## Export from the studio
 
-1. Open **Export** in the rail. <!-- src: apps/studio/src/shell/pages.ts:520 -->
+1. Open **Export** in the rail. <!-- src: apps/studio/src/shell/pages.ts:522 -->
 2. Choose **Design tokens**: "The token set in the W3C design-token format, aliases intact: a base file and one overlay per mode. These are the files a build reads." <!-- src: apps/studio/src/export-settings.ts:105-110 -->
-3. Set the options. The file list and a preview beside them update as you change them. <!-- src: apps/studio/src/main.ts:1571-1575#ce59ed88 -->
-4. Choose **Download tokens**. <!-- src: apps/studio/src/main.ts:1613 -->
+3. Set the options. The file list and a preview beside them update as you change them. <!-- src: apps/studio/src/main.ts:1573-1577#ce59ed88 -->
+4. Choose **Download tokens**. <!-- src: apps/studio/src/main.ts:1615 -->
 
 *[Screenshot placeholder: the Export area with Design tokens selected and the file list.]*
 
@@ -34,7 +34,7 @@ With **One per mode** <!-- src: apps/studio/src/export-settings.ts:218 -->, the 
 A build reads the base and then the overlay for the mode it wants. Style Dictionary does this with its stock setup, and CI checks that it still does. <!-- src: packages/engine/emit-dtcg-overlay.ts:23-26#827e558d --> <!-- src: packages/tokens/check-consumability.mjs:279-288#306a7f75 -->
 The modes here are the appearance modes (such as dark and the high-contrast pair). Breakpoint values travel inside the layout tokens themselves; the per-breakpoint detail the engine keeps for its own use is left out of these files. <!-- src: packages/engine/emit-dtcg-overlay.ts:38-42#daf3ffcf -->
 
-Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1424-1431#12963735 -->
+Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1426-1433#12963735 -->
 
 The same brand exports the same files from the web studio and from the plugin; CI compares the two byte for byte. <!-- src: apps/studio/test-export-parity.mjs:1-3#2bb0d110 --> <!-- src: apps/studio/test-export-parity.mjs:259#21ecd0a3 -->
 
