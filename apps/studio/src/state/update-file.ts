@@ -264,8 +264,8 @@ export const statusesOf = (id: string, f: FileSets | null, hand: ReadonlyMap<str
 
 export type StepResult = { readonly step: StepKey; readonly ok: boolean; readonly headline: string;
   /** #3308: not clean, but the step did all it was asked: every queued set was built, some with problems. The run goes
-   *  on to the next step; the verdict line says the step had problems. Never set with `ok`. */
-  readonly warn?: true };
+   *  on to the next step; the verdict line says the step had problems. Never set with `ok`. #4067 `sets`: the update step's sets written to, its verdict's count. */
+  readonly warn?: true; readonly sets?: number };
 export type UpdateRun = {
   readonly steps: readonly StepKey[];
   /** The sets the `sets` step builds: the add queue, in Components' order (#3129). */
@@ -287,11 +287,11 @@ export const stepOf = (r: UpdateRun): StepKey | null => (r.done ? null : r.steps
 
 /** The run after the running step's verdict: done after a failure, after Stop, or after the last step. A step that is
  *  not `ok` but did all it was asked (`warn`, #3308: every set built, some with problems) is not a failure: the run goes on. */
-export const stepDone = (r: UpdateRun, ok: boolean, headline: string, warn = false): UpdateRun => {
+export const stepDone = (r: UpdateRun, ok: boolean, headline: string, warn = false, sets: number | null = null): UpdateRun => {
   const step = stepOf(r);
   if (!step) return r;
   const w = !ok && warn;
-  const results: StepResult[] = [...r.results, { step, ok, headline, ...(w ? { warn: true as const } : {}) }];
+  const results: StepResult[] = [...r.results, { step, ok, headline, ...(w ? { warn: true as const } : {}), ...(step === 'update' && sets !== null ? { sets } : {}) }];
   return { ...r, results, done: (!ok && !w) || r.stopping || results.length >= r.steps.length };
 };
 

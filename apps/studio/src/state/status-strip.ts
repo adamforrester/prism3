@@ -239,7 +239,7 @@ export const stripView = (x: {
 };
 
 /** One step's result, as Update file's run records it (`StepResult`). */
-type Result = { readonly step: StepKey; readonly ok: boolean; readonly headline: string; readonly warn?: true };
+type Result = { readonly step: StepKey; readonly ok: boolean; readonly headline: string; readonly warn?: true; readonly sets?: number };
 
 /** The verdict line once Update file's run has ended (Q3170.6 A). `stopped`: the person asked it to stop. The update's
  *  count is the run's (`StripRun.updated`): a reading of `finish` with fewer sets done than ticked is the host's stop at a
@@ -274,7 +274,9 @@ export const stripVerdict = (x: {
     return { tone: 'bad', what: STRIP_COPY.stoppedAt(at), n: u ? STRIP_COPY.updatedOf(u.done, u.total) : clock,
       sub: `${failed.headline.replace(/^[✓✗⚠]\s*/, '')}. ${u ? kept(u.done, u.total) : ''}${STRIP_COPY.details}` };
   }
-  const words = x.results.map((r) => (r.step === 'update' ? STRIP_COPY.updated(u?.done ?? 0) : STRIP_COPY.done[r.step]));
+  // #4067: the update's count is its own verdict's sets written to (`wroteTo`), the number its headline gives, never
+  // the in-place pass's progress, which counts only the sets whose members it writes (a run of 6 sets so counted wrote to 37).
+  const words = x.results.map((r) => (r.step === 'update' ? STRIP_COPY.updated(r.sets ?? u?.done ?? 0) : STRIP_COPY.done[r.step]));
   // #3308: each step that had problems says so in its own headline, after the steps; the line is then a warning.
   const warned = x.results.filter((r) => r.warn).map((r) => `${r.headline.replace(/^[✓✗⚠]\s*/, '')}. `).join('');
   return { tone: warned ? 'warn' : 'ok', what: words.length === 1 ? words[0] : STRIP_COPY.fileUpdated, n: clock, sub: `${words.length > 1 ? `${words.join(', ')}. ` : ''}${warned}${STRIP_COPY.details}` };

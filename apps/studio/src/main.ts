@@ -2169,14 +2169,14 @@ const postUpdate = (u: NonNullable<UpdateRun['update']>, previewHash: string): v
 };
 const updateChanged = (): void => { hostChanged(); invalidate('host:update'); };
 /** The run after the step out ended: record it, then start the next or end the run. */
-const endStep = (ok: boolean, headline: string, warn = false, own = false): void => {
+const endStep = (ok: boolean, headline: string, warn = false, own = false, sets: number | null = null): void => {
   if (!updateRun) return;
   const step = stepOf(updateRun);
   const steps = updateRun.steps;
   // #3326 PR 2: the step as Activity draws it. `own`: it ended on its operation's own verdict, so that reading is the step's.
   const reading = own && step ? activityReading().ops[OP_OF_STEP[step]] : null;
   if (activityRun) activityRun = { ...activityRun, ended: [...activityRun.ended, { ok, warn: !ok && warn, headline, reading: reading && reading.state !== 'running' && reading.state !== 'idle' ? reading : null }] };
-  updateRun = stepDone(updateRun, ok, headline, warn);
+  updateRun = stepDone(updateRun, ok, headline, warn, sets);
   if (!ok && !warn && step) updateStopped = { step, headline };
   if (stripRun) stripRun = stepEnded(stripRun, Date.now());
   if (updateRun.done) {
@@ -2247,7 +2247,7 @@ const advanceUpdate = (m: Parameters<typeof reduce>[1], prev: HostSession): void
   }
   // #3711 (Q-UF3 A): an update that wrote every set, some left to check, did all it was asked: the run goes on (`warn`),
   // as past a To add step with problems (#3308). A set that stopped or was refused, or a stop asked for, still ends it.
-  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline, m.completed, true); return; }
+  if ((step === 'update' || step === 'cover') && updatePhase === 'apply' && m.kind === 'component-update-result') { updatePhase = null; endStep(m.ok, m.headline, m.completed, true, m.sets ?? null); return; }
   // The build queue posts its sets one after another (`runAfterResult`); the step ends with the queue.
   // #3308: a queue that built every set, some with problems, did all it was asked: the run goes on (`warn`). A set that
   // failed, or a stop that left sets unbuilt, still ends it.

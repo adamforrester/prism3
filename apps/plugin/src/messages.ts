@@ -441,7 +441,10 @@ export type MainToUi =
     /** #3711 (Q-UF3 A): the applied update went through every set it was given, none stopped or refused, and no stop
      *  was asked for (`applyVerdict`). Not `ok` with it: every set written, some left to check, so Update file's run goes
      *  on as a warning. Absent from every other verdict of this kind. */
-    completed?: boolean }
+    completed?: boolean;
+    /** #4067: the sets the applied update wrote to (`wroteTo` in `update-apply.ts`), the count its headline gives, so
+     *  Update file's run line says the same number. Absent from every other verdict of this kind. */
+    sets?: number }
   /** Result of a `file-setup` scaffold (#1554) — the same `{ok, headline, summary}` shape as
    *  `apply-result` / `component-result`, a DISTINCT variant for the same one-kind-per-fact reason: "did
    *  the page skeleton get laid" is separately true and separately actionable from a theme or component

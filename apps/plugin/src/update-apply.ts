@@ -48,7 +48,7 @@
  * were kept as a hand edit. Either failing makes the verdict a failure.
  */
 import { failureDetail } from './apply-summary';
-import { diffAnatomy, type HostNode, planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/engine/components';
+import { diffAnatomy, type HostNode, planComponentName, planSetProperties, type AnatomyPlan, type FigmaNodePlan } from '@prism3/engine/components';
 import { coordKey, partRenames, type ComponentRename, slotMigrationOf, slotTextMigrationOf } from '@prism3/engine';
 import { applyComponentPlan, emitCoordValue, keptBoundOf, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { NS } from './persist-figma';
@@ -132,6 +132,49 @@ export type UpdateChoices = {
 const choiceFor = (c: UpdateChoices | undefined, set: string): HandEditChoice => c?.sets?.[set]?.handEdits ?? c?.handEdits ?? 'keep';
 const noRecordFor = (c: UpdateChoices | undefined, set: string): NoRecordChoice => c?.sets?.[set]?.noBaseline ?? c?.noBaseline ?? 'update';
 
+/** #4068 — one part whose plan face did not load, written in the fallback its plan declares, `count` times. */
+export type FontFallback = { part: string; face: string; used: string; count: number };
+
+/** #4068 — THE FONT FALLBACKS AMONG A BUILD'S MISSES. For a `literalFont` the executor loads the face, then the plan's
+ *  fallback, and reports each face that did not load as `<part>.font -> <family> <style> REFUSED (<ErrorClass>: <reason>)`
+ *  (`write-components.ts`, #4358; `fontMissHead` below is that form's one copy here). A face miss on a part whose plan declares that face with a fallback is the
+ *  designed outcome when the fallback then landed. The misses carry no member name, and a label whose fallback did not
+ *  land reports its face twice (the literal's load, then the text write's load of the font the node still holds), so
+ *  no count pairs them. The rule is the safe one: a part's face misses are fallbacks only when no miss says its fallback
+ *  did not land (`<part>.font -> <fallback> REFUSED (`, or a `<part>.literalFont ->` miss naming it); otherwise every one stays
+ *  a miss. A miss is never hidden as a fallback; a fallback can at worst read as a miss, as it did before #4068. */
+/** #4068 — THE HEAD OF THE EXECUTOR'S MISS FOR A FACE THAT DID NOT LOAD (`write-components.ts`, every `loadFontAsync` catch:
+ *  `<part>.font -> <family> <style> REFUSED (<ErrorClass>: <reason>)`, the form #4358 gave it). Both reads in
+ *  `splitFontFallbacks` key on this one copy, and `test-update-apply.ts` checks it against the misses the real executor
+ *  reports (`fallback/miss form`), so a change to the executor's wording fails by name rather than turning every
+ *  fallback back into a miss in silence. The paste twin (`anatomy-figma.ts`) words it without `REFUSED`; an update runs
+ *  the plugin executor only. */
+export const fontMissHead = (part: string, face: string): string => `${part}.font -> ${face} REFUSED (`;
+
+export const splitFontFallbacks = (misses: readonly string[], plans: readonly AnatomyPlan[]): { fallbacks: FontFallback[]; misses: string[] } => {
+  const declared = new Map<string, { part: string; face: string; used: string }>();
+  const walk = (n: FigmaNodePlan): void => {
+    const f = n.literalFont;
+    if (f) {
+      const face = `${f.family} ${f.style}`;
+      declared.set(fontMissHead(n.name, face), { part: n.name, face, used: `${f.fallback.family} ${f.fallback.style}` });
+    }
+    for (const c of n.children) walk(c);
+  };
+  for (const pl of plans) walk(pl.root);
+  const drop = new Set<number>();
+  const fallbacks: FontFallback[] = [];
+  for (const [key, d] of declared) {
+    const at = misses.flatMap((m, i) => (m.startsWith(key) ? [i] : []));
+    const notLanded = misses.filter((m) => m.startsWith(fontMissHead(d.part, d.used)) || m.startsWith(`${d.part}.literalFont -> ${d.used} `)
+      || m.startsWith(`${d.part}.literalFont -> DISCARDED (set ${d.used} `)).length;
+    const count = notLanded ? 0 : at.length;
+    for (const i of at.slice(0, count)) drop.add(i);
+    if (count) fallbacks.push({ ...d, count });
+  }
+  return { fallbacks, misses: misses.filter((_, i) => !drop.has(i)) };
+};
+
 export type SetOutcome = {
   def: string;
   set: string;
@@ -180,6 +223,10 @@ export type SetOutcome = {
   content: string[];
   /** The build pass's own misses, apart from its notes on members it was told to leave alone. */
   misses: string[];
+  /** #4068 — the literal faces that did not load where the plan declares a fallback, and the fallback landed: the
+   *  designed outcome, so listed apart from the misses, one entry per part and face, and never a part to check. A face
+   *  whose fallback did not land either stays a miss. Absent when none. */
+  fallbacks?: FontFallback[];
   /** For a set the apply entered with nothing to write: the dry run's own set line, and whether the dry run called the
    *  set up to date. The verdict says what the dry run said (#2495, owner Q205 A). */
   asPreviewed?: { line: string; upToDate: boolean };
@@ -793,6 +840,10 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
     });
     if (editedMisses.length) out.editedMisses = editedMisses;
   }
+  // A DECLARED FONT FALLBACK IS NOT A MISS (#4068): the face not installed, the plan's fallback written, as the def allows.
+  const fb = splitFontFallbacks(out.misses, t.plans);
+  out.misses = fb.misses;
+  if (fb.fallbacks.length) out.fallbacks = fb.fallbacks;
 
   // ── VERIFY (a): IDENTITY, OFF THE HOST ─────────────────────────────────────────────────────────────────────
   const now = t.single ? (await liveFor(host, t, p.set)) ?? live
@@ -1314,6 +1365,17 @@ const unfinishedOf = (o: SetOutcome): { members: string[]; others: string[] } =>
   return { members, others };
 };
 
+/** #4068 (DRAFT wording for the owner): a part written in the fallback face its component declares. */
+export const fallbackLine = (set: string, f: FontFallback): string =>
+  `${set}: ${f.face} isn't installed, so ${n(f.count, f.part)} ${f.count === 1 ? 'uses' : 'use'} ${f.used}, as the component allows.`;
+
+/** #4067 — A SET UPDATED, the one meaning every line of the run gives the words: a set this run wrote to (a member
+ *  written or stamped, a carry filled, its canvas furniture drawn, or the set moved). Not a set refused, stopped, with
+ *  updates off, entered and left as it was (`isIdle`), or given with nothing to write (`asPreviewed`): those wrote
+ *  nothing. The named version, saved before the first write, names the sets the check planned to write; the two agree
+ *  unless the run stopped, refused a set, or the re-spacing moved a set the check did not list. */
+const wroteTo = (o: SetOutcome): boolean => !o.refused && !o.stopped && !o.off && !isIdle(o) && !o.asPreviewed;
+
 /** #3170 Q3170.4 A, DRAFT wording: a run the person stopped at a set boundary. */
 const haltedHeadline = (h: NonNullable<ApplyResult['halted']>): string =>
   h.after ? `⚠ stopped after ${h.after}: ${h.done} of ${n(h.total, 'set')} updated` : '⚠ stopped before writing: nothing updated';
@@ -1330,10 +1392,10 @@ const isIdle = (o: SetOutcome): boolean => !o.refused && !o.stopped && o.skipped
 /** #3711 (Q-UF3 A): `completed` is true when the run went through every set it was given: none stopped, none refused or
  *  left not updated, and no stop asked for. A run that wrote every set and left some to check is `completed` and not
  *  `ok`: Update file's run goes on past it as a warning, as a To add step with problems does (#3308). */
-export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean; headline: string; summary: string; lines: string[]; causes: Cause[] } => {
+export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean; headline: string; summary: string; lines: string[]; causes: Cause[]; sets: number } => {
   if (r.refusedAll) {
     const lines = [`Nothing was updated: ${r.refusedAll}.`];
-    return { ok: false, completed: false, headline: '✗ update refused', summary: lines.join('\n'), lines, causes: [runCause('✗ update refused', r.refusedAll)] };
+    return { ok: false, completed: false, headline: '✗ update refused', summary: lines.join('\n'), lines, causes: [runCause('✗ update refused', r.refusedAll)], sets: 0 };
   }
   const stopped = r.outcomes.find((o) => o.stopped);
   // A miss from the build's own pass is a set not verified, as an identity or content difference is (#2477): the set
@@ -1404,6 +1466,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
     // DRAFT wording for the owner (#2649): the placed instances whose rows became slot items.
     if (o.carriedText) lines.push(`${o.set}: ${n(o.carriedText.instances, 'instance')} carried: ${n(o.carriedText.moved, 'body', 'bodies')} moved into the text property, ${o.carriedText.rich} kept in the slot, ${o.carriedText.emptied} left empty.`);
     if (o.carried) lines.push(`${o.set}: ${n(o.carried.instances, 'instance')} carried into the slot, ${n(o.carried.items, 'item')} in all.${o.carried.limits.length ? ` Outside the slot's limits: ${o.carried.limits.join('; ')}.` : ''}`);
+    // #4068 (DRAFT wording for the owner): a declared font fallback, one line per part and face, never ⚠.
+    for (const f of o.fallbacks ?? []) lines.push(fallbackLine(o.set, f));
     const at = lines.length;
     if (o.identity.length) lines.push(`${o.set}: component IDs changed — ${o.identity.slice(0, 3).join('; ')}${o.identity.length > 3 ? '; …' : ''}.`);
     if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still ${o.content.length === 1 ? 'differs' : 'differ'} from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
@@ -1444,12 +1508,15 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
   // #2859: the library cover, kept current before it.
   if (r.cover && coverLine(r.cover)) lines.push(coverLine(r.cover));
   if (r.about) lines.push(aboutLine(r.about));
+  // #4067 (DRAFT wording for the owner): the sets to check, by name, so the headline's count names what it counts.
+  const completedRun = !stopped && !r.halted && !refused;
+  if (completedRun && failed.length) lines.push(`To check: ${failed.map((o) => o.set).join(', ')}. The lines above say what differs on each.`);
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
   else if (r.aboutOnly && (r.about?.drawn || coverDid(r.cover))) lines.push(coverPageOnlyLine({ about: !!r.about?.drawn, cover: coverDid(r.cover) }, true));
-  const completed = !stopped && !r.halted && !refused;
-  // #3711 (Q-UF3 A, DRAFT wording): every set written, some left to check. The count is the sets the run wrote,
-  // those to check among them; each one's lines above name what differs.
-  const written = r.outcomes.filter((o) => !o.refused && !o.stopped && !o.off && !isIdle(o)).length;
+  const completed = completedRun;
+  // #3711 (Q-UF3 A, DRAFT wording): every set written, some left to check. The count is the sets the run wrote
+  // (`wroteTo`, #4067), those to check after it; the To check line names them.
+  const written = r.outcomes.filter(wroteTo).length;
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
     : r.halted ? haltedHeadline(r.halted)
     // A set not updated stops the run, so it heads the verdict over any set to check beside it.
@@ -1486,8 +1553,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
   // DRAFT wording for the owner: the line that introduces the partial result.
   if (r.failed) {
     const all = [`The update failed: ${r.failed}. What is listed below was done before it.`, ...lines];
-    return { ok: false, completed: false, headline: '✗ update failed', summary: all.join('\n'), lines: all, causes: mergeCauses([runCause('✗ update failed', r.failed), ...causes]) };
+    return { ok: false, completed: false, headline: '✗ update failed', summary: all.join('\n'), lines: all, causes: mergeCauses([runCause('✗ update failed', r.failed), ...causes]), sets: written };
   }
   const ok = !stopped && !r.halted && !failed.length && !refused;
-  return { ok, completed, headline: `${headline}${held ? ` · ${n(held, 'set')} kept edits over changes` : ''}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines, causes: ok ? [] : mergeCauses(causes) };
+  return { ok, completed, headline: `${headline}${held ? ` · ${n(held, 'set')} kept edits over changes` : ''}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines, causes: ok ? [] : mergeCauses(causes), sets: written };
 };

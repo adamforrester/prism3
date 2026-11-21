@@ -305,6 +305,8 @@ apps/plugin/test-update-apply.ts #3392
 apps/plugin/test-update-apply.ts #3399
 apps/plugin/test-update-apply.ts #3474
 apps/plugin/test-update-apply.ts #3554
+apps/plugin/test-update-apply.ts #4067
+apps/plugin/test-update-apply.ts #4068
 apps/plugin/test-update-apply.ts #4070
 apps/plugin/test-update-apply.ts #4116
 apps/plugin/test-update-components.ts #1098

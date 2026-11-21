@@ -26,6 +26,7 @@
  * seen set Updated → `rows/updating`; `stripVerdict` reading a stop the person asked for as a failure → `verdict/stopped`.
  */
 import { agentHeard, elapsed, heard, rowState, startStripRun, stepEnded, stripVerdict, stripView, withReading, type StripRun } from './src/state/status-strip';
+import { startUpdate, stepDone } from './src/state/update-file';
 
 let failed = 0;
 let executed = 0;
@@ -124,6 +125,19 @@ r = withReading(r, { run: 'update', phase: 'work', item: 'checkbox', done: 4, to
       steps: ['update', 'guides'], stopped: false, run: u, now: T0 + 95_000, nameOf });
     ok(J(v) === J({ tone: 'warn', what: 'File updated', n: '1:35', sub: '47 sets updated, Style guides drawn. Updated 47 sets · 2 to check. Details in Activity.' }),
       `verdict/update warn: a run whose update left sets to check ends "File updated" as a warning (${J(v)})`);
+  }
+  // #4067: the owner's run of 2026-11-18. The in-place pass wrote the members of 6 sets (its progress, 6 of 6), and the
+  // run wrote to 37 sets in all, the rest only their usage panels; the line said "6 sets updated" beside the verdict's
+  // count. It now reads the verdict's own count, carried by the step (`stepDone`'s `sets`). Literal. Mutation: the line
+  // reading the progress again → `verdict/update count`.
+  {
+    let u: StripRun = startStripRun(T0);
+    u = stepEnded(withReading(u, { run: 'update', phase: 'finish', item: null, done: 6, total: 6 }, T0 + 1), T0 + 2);
+    const run = stepDone(startUpdate(['update'], []), false, '⚠ Updated 37 sets · 1 to check', true, 37);
+    ok(run.results[0]?.sets === 37, `verdict/update sets: the step keeps the verdict's count (${J(run.results[0])})`);
+    const v = stripVerdict({ results: run.results, steps: ['update'], stopped: false, run: u, now: T0 + 95_000, nameOf });
+    ok(J(v) === J({ tone: 'warn', what: '37 sets updated', n: '1:35', sub: 'Updated 37 sets · 1 to check. Details in Activity.' }),
+      `verdict/update count: the line gives the verdict's 37, never the pass's 6 (${J(v)})`);
   }
   // #3308 Q3308.4, the owner's copy decision (2026-11-02): the cover step's verdict reads "Cover page drawn", true with
   // Documentation's cover off too, when the step draws About this library alone.
