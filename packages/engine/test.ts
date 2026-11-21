@@ -39256,7 +39256,9 @@ arm: {
       const past = commit('a carry cut from main past the fold moves an artifact under a patch note');
       carriedPR(past);
       const cpast = tsx('packages/engine/lint-emission-version.ts', CARRIED);
-      ok(cpast.status === 1 && cpast.out.includes('NOTE SHAPE — packages/engine/changes/replay-carried-past-patch.md declares `engine: patch`, and 1 committed artifact(s) moved (#1807).') && !cpast.out.includes(`the newest main HEAD carries, ${past.slice(0, 8)}`),
+      // Judged from the fold, main's own m2 patch note is in the diff too, so the line names both notes.
+      const shape = cpast.out.split('\n').find((l) => l.includes('NOTE SHAPE — ')) ?? '';
+      ok(cpast.status === 1 && shape.includes('packages/engine/changes/replay-carried-past-patch.md') && shape.includes('declares `engine: patch`, and 1 committed artifact(s) moved (#1807).') && !cpast.out.includes(`the newest main HEAD carries, ${past.slice(0, 8)}`),
         `#3408 carried repo: a carry cut from main past the fold is not its own base, so its own patch note over its own moved artifact still fails NOTE SHAPE by name (exit ${cpast.status}: ${said(cpast, /NOTE SHAPE|base |clean/)})`);
       // Teeth, in prism3's layout: a fold PR made on its base that drops a note's prose. The fold's parent is the base.
       const PROSE = 'The #3833 replay\'s replay-main-minor.';
