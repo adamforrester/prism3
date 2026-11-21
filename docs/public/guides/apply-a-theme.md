@@ -65,7 +65,7 @@ Three more cases stop the theme before it starts:
 
 - The file's Figma plan allows fewer modes per collection than the theme writes. The line names both numbers and the next step: "Move the file to a team on a plan with more modes." Nothing is written, and no version is saved. <!-- src: apps/plugin/src/preflight.ts:274 -->
 - Another write is running, from an agent: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->
-- The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1953 -->
+- The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1955 -->
 
 ## Writing it again
 

@@ -9,24 +9,13 @@ text, 3 non-text) and the engine's own `min` for the ink's role, read from `<bra
 tree by its own alias walk, while the projector reads the handoff files.
 
 **What it found.** 320 pairs measured. 15 fail as Q2997.8 A expected: `destructive` and `primary` used as text in dark,
-at 4.04–4.25 on every brand. They are listed in `KNOWN` per brand, with the decision and the ratio accepted (the value
-measured, floored to two places), and #4279 holds the engine question. A known pair below its accepted ratio fails by
-name, and an entry whose pair passes fails as STALE, so the list remembers what the owner saw (review on #4289). One more
-pair fails: nb, light, `muted-foreground` on `muted`, 3.77. The owner accepted it on #4289 (owner decision 2026-11-19
-A: a legacy fixture, not engine-derived), and it stays in `KNOWN_PENDING`, held the same way as `KNOWN`: to its accepted
-3.77, printed on every run, STALE once it passes. The round trip is exact for all 320 values. No mapped role carries alpha
+at 4.04–4.25 on every brand. They are listed in `KNOWN` with the decision, and #4279 holds the engine question. One more
+pair fails and is held in `KNOWN_PENDING` for the owner: nb, light, `muted-foreground` on `muted`, 3.77. It prints on
+every run, and fails as STALE once it passes. The round trip is exact for all 320 values. No mapped role carries alpha
 today, so the alpha arm has nothing to read until one does.
 
 **Trap.** A function passed to Playwright's `page.evaluate` from a `tsx` script carries esbuild's `__name` helper, which
 the page does not have. The page code is therefore a string.
-The `test.ts` import of the gate moves every line below it by one, so the public guide's cite of `test.ts`
-(`docs/public/guides/index.md`) moves with it; `lint-guide-claims` names the stale range (delta review on #4289).
-
-**Fix carried here (#4428).** On a tree with `main` merged in, both gates crashed: `aurora.web: no
-aurora.web.dark.overlay.tokens.json in the handoff`. Since #4282 `out/` commits a web-only `<brand>.web.base.tokens.json`,
-and `handoffBrands` (#4286) read every `*.base.tokens.json` as a brand. It now keeps a name only when the full tree
-`<brand>.tokens.json` sits beside it. A `test.ts` arm plants a web base, so the regression fails by name (`#4428 a
-web-only base is not read as a brand`) rather than as a thrown error. #4315 carries the same `handoffBrands`.
 
 **Where it runs.** CI's studio job, after the Chromium install step, because the engine job has no browser. Playwright
 loads at run time from the workspace, as `tools/block-capture` loads it. `packages/engine/package.json` still declares
@@ -35,8 +24,4 @@ no dependency.
 **Checked.** Mutations, each failing by name:
 - `muted-foreground` → `color.text.tertiary` fails `prism3 light: muted-foreground on muted 3.17 < 4.5`;
 - L rounded to two places in the projector fails `prism3 light popover: #e9e9e9 → #e8e8e8` (176 of 320);
-- a pending key that no longer fails fails `STALE PENDING`, and the real nb pair fails by name;
-- prism3's dark `primary` emitted as `oklch(0.25 0.1 266.7)` fails `prism3 dark: primary on background 1.19 < 4.5 — BELOW
-  ACCEPTED 4.24`, and a lighter dark `destructive` fails `STALE KNOWN prism3 dark: destructive on background`.
-- nb's light `muted` darkened fails `nb light: muted-foreground on muted 2.57 < 4.5 — BELOW ACCEPTED 3.77`, where it
-  was muted at any ratio before (delta review on #4289).
+- a pending key that no longer fails fails `STALE PENDING`, and the real nb pair fails by name.
