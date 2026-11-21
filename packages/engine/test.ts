@@ -45521,6 +45521,38 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
 }
 
+// #4193 decision 1 (owner, 2026-11-19): each lever's ⓘ in the UI is one line of at most 90 characters (voice standard
+// §4), its `tip`; the long `description` stays for agents. Read from the EMITTED manifest on disk, so the arm also holds
+// the emission to carrying the tip. The 90 is the standard's number, typed here. Mutations that fail BY NAME: a tip
+// lengthened past 90 → `#4193 every lever's UI line …`; a tip dropped from a long lever → `#4193 a lever has a tip …`.
+{
+  const manifest = JSON.parse(readFileSync(new URL('./schema/lever-manifest.json', import.meta.url), 'utf8')) as { levers: { key: string; description: string; tip?: string }[] };
+  const long = manifest.levers.filter((l) => (l.tip ?? l.description).length > 90).map((l) => `${l.key} (${(l.tip ?? l.description).length})`);
+  ok(manifest.levers.length > 40 && long.length === 0, `#4193 every lever's UI line (its tip, or a short description) is at most 90 characters (over: ${long.join(', ') || 'none'})`);
+  const mismatched = manifest.levers.filter((l) => (l.description.length > 90) !== (l.tip !== undefined)).map((l) => l.key);
+  ok(mismatched.length === 0, `#4193 a lever has a tip exactly when its description runs past 90 characters (mismatched: ${mismatched.join(', ') || 'none'})`);
+  const notShorter = manifest.levers.filter((l) => l.tip !== undefined && !(l.tip.length < l.description.length && l.tip.trim() === l.tip && l.tip.length > 20)).map((l) => l.key);
+  ok(notShorter.length === 0, `#4193 each tip is a real line, shorter than its description (${notShorter.join(', ') || 'none'})`);
+  // #4367 review: a rewrite left Strict interactive contrast saying "so every state clears AA — every state clears AA
+  // over brand color". A run of four words said again within two words of where it ended is a doubled clause, never
+  // emphasis. Mutation that fails BY NAME: restore the doubled clause → `#4193 no lever text says a clause twice …`.
+  const doubled: string[] = [];
+  for (const l of manifest.levers) for (const [field, text] of [['description', l.description], ['tip', l.tip]] as const) {
+    if (!text) continue;
+    const w = text.toLowerCase().split(/[^a-z0-9:.]+/).filter(Boolean);
+    const gram = (i: number): string => w.slice(i, i + 4).join(' ');
+    let hit = false;
+    for (let i = 0; i + 8 <= w.length && !hit; i++) for (let j = i + 4; j <= i + 6 && j + 4 <= w.length; j++) if (gram(i) === gram(j)) { doubled.push(`${l.key} ${field}: "${gram(i)}"`); hit = true; break; }
+  }
+  ok(doubled.length === 0, `#4193 no lever text says a clause twice, back to back (${doubled.join('; ') || 'none'})`);
+  // #4367 owner decision (2026-11-20, Outline hover → A): the tip names the four hover treatments, in the owner's
+  // words. The expected line is the decision's text, typed here; the actual is the EMITTED manifest. Mutation that
+  // fails BY NAME: any other tip on outlineInteraction → `#4367 the Outline hover tip is the owner's line …`.
+  const OUTLINE_HOVER_TIP = 'How outline and text controls show hover: a neutral wash, a tinted wash, a fill, or none.';
+  const outlineTip = manifest.levers.find((l) => l.key === 'outlineInteraction')?.tip;
+  ok(outlineTip === OUTLINE_HOVER_TIP && OUTLINE_HOVER_TIP.length <= 90, `#4367 the Outline hover tip is the owner's line, at most 90 characters (tip: ${JSON.stringify(outlineTip)})`);
+}
+
 // #811 — the engine README names only roles the engine emits. `foreground.danger.<state>` was retired (the
 // interactive-family arm above asserts it gone), and the README still taught `.default` and `.pressed`. ACTUAL is
 // read off a freshly resolved theme, never off the README or a list kept beside it, so a renamed role fails here

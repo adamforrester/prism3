@@ -46,6 +46,10 @@ export type Lever = {
   kind: LeverKind;
   label: string;
   description: string;
+  /** #4193 decision 1 (owner, 2026-11-19): the one line the UI shows as the lever's ⓘ, at most 90 characters (voice
+   *  standard §4). `description` stays the full text for agents (the manifest, MCP). Absent where the description is
+   *  itself 90 characters or fewer; a reader takes `tip ?? description`. */
+  tip?: string;
   control: LeverControl;
   required?: boolean;                   // a required BrandInput field (no default; must be set)
   advanced?: boolean;                   // hidden behind progressive disclosure by default
@@ -80,20 +84,25 @@ const enumOpts = (...pairs: [string | number, string][]): { value: string | numb
 export const leverManifest: Lever[] = [
   // ---- COLOR ----
   { key: 'primary', group: 'color', kind: 'value', label: 'Primary brand color', control: 'color', required: true,
+    tip: 'The brand\'s exact color, placed on its ramp by its lightness and never shifted.',
     description: 'The exact brand anchor. Pinned, never shifted; the engine places it on the ramp by its lightness.' },
   { key: 'neutral.hue', group: 'color', kind: 'value', label: 'Neutral hue', control: 'slider', required: true, min: 0, max: 360, step: 1, unit: '°',
     description: 'Hue the grays lean toward (a small chroma tints them to the brand for cohesion).' },
-  { key: 'neutral.chroma', group: 'color', kind: 'value', label: 'Neutral chroma', control: 'slider', required: true, min: 0, max: 0.03, step: 0.001,
+  { key: 'neutral.chroma', group: 'color', kind: 'value', label: 'Neutral tint strength', control: 'slider', required: true, min: 0, max: 0.03, step: 0.001,
     description: 'Peak neutral chroma (~0.004–0.02); tapers to near-0 at the ramp ends. 0 = pure gray.' },
   { key: 'neutral.anchor', group: 'color', kind: 'value', label: 'Pin a neutral', control: 'color',
+    tip: 'A brand gray kept exactly; the gray ramp is built around it. Leave off to derive one.',
     description: 'Optional. A pre-defined brand gray, pinned verbatim at its lightness step; the ramp is built around it (hue/chroma from the anchor) instead of the cast. Set for a client that ships their own neutral; omit to derive from hue + chroma.' },
-  { key: 'brandColors', group: 'color', kind: 'value', label: 'Additional brand colors', control: 'list', itemLabel: 'brand color (name + OKLCH)',
+  { key: 'brandColors', group: 'color', kind: 'value', label: 'Additional brand colors', control: 'list', itemLabel: 'brand color (a name and an OKLCH color)',
+    tip: 'Secondary and accent colors. Each gets its own ramp and can drive buttons.',
     description: 'Secondary / tertiary / accents — any number; each becomes its own ramp and can drive actions.' },
   // #3365 — the description is a DRAFT for the owner (Q3365.1 on the build PR): it names neutral, which the Studio and
   // the plugin now offer, and says what choosing it leaves alone (held by test.ts's #3365 block).
   { key: 'actionPalette', group: 'color', kind: 'value', label: 'Action palette', control: 'palette-ref', default: 'primary',
+    tip: 'The palette buttons and other actions use. Defaults to the primary color.',
     description: 'Which palette drives interactive/action color. Defaults to primary; point at neutral for near-black or gray actions (text, surfaces and borders stay as they are), or at an accent when the hero color is a poor CTA.' },
   { key: 'linkPalette', group: 'color', kind: 'value', label: 'Link palette', control: 'palette-ref',
+    tip: 'The palette links use. Defaults to the action color; links always meet the 4.5:1 floor.',
     description: 'Which palette drives link color. Defaults to following the action color, including a roleColors.action override; point at primary, neutral, or an accent to give links their own color. The contrast floor holds either way. A link palette that is not color-distinct from body text (e.g. neutral) prompts a warning to underline links for WCAG 1.4.1 — pair it with an underlined link role.' },
   { key: 'status.success', group: 'color', kind: 'value', label: 'Success color', control: 'color', advanced: true,
     description: 'Optional measured override; omit to let the engine synthesize from a canonical hue.' },
@@ -104,68 +113,83 @@ export const leverManifest: Lever[] = [
   { key: 'status.info', group: 'color', kind: 'value', label: 'Info color', control: 'color', advanced: true,
     description: 'Optional measured override; omit to synthesize from the canonical blue hue.' },
   { key: 'surfaces', group: 'color', kind: 'value', label: 'Page surfaces', control: 'object', advanced: true,
+    tip: 'Page and inverse backgrounds per mode. The contrast floor follows the second one.',
     description: 'Non-default page and inverse surfaces per mode. The contrast floor follows the second tier.' },
   // #3049 (owner Q721 A; Q3049.1 C, Q3049.2 A, Q3049.4) — label, option labels and description are a DRAFT for the owner
   // (Q3049.6 on the build PR). It moves a token value, not a binding: Dialog binds `color.foreground.raised` once, and
   // this sets what that token holds in light and hc-light. Its home in the Studio is Components › Dialog (Q578).
   { key: 'raisedSurface', group: 'color', kind: 'value', label: 'Dialog surface', control: 'enum', default: 'card',
     options: enumOpts(['card', 'Card'], ['page', 'Page'], ['white', 'White']),
+    tip: 'The background of dialogs and sheets in light mode. Dark mode always uses the card color.',
     description: 'The surface of every dialog and sheet in light mode: the card color, the page color, or white. Dark mode always uses the card color, so the panel stays lifted.' },
   // #3050 (owner Q825 B) — label, option labels and description are a DRAFT for the owner (on the build PR). It moves
   // a token value, not a binding: the dialog's backdrop binds `color.scrim.default` once, and this picks which existing
   // `black-alpha` step that token aliases in each mode. Its home in the Studio is Surfaces & fills › Scrim.
   { key: 'scrimStrength', group: 'color', kind: 'value', label: 'Scrim strength', control: 'enum', default: 'standard',
     options: enumOpts(['standard', 'Standard'], ['strong', 'Strong']),
+    tip: 'How much the page dims behind a dialog. Strong keeps it from competing with the dialog.',
     description: 'How much the backdrop behind a dialog dims the page. Standard keeps the page readable behind it. Strong dims it further, so the page stops competing with the dialog.' },
   // #3339 (owner C, 2026-11-18) — the key, the option values, the label, the option labels and the description are a
   // DRAFT for the owner (on the build PR). It moves values, never a token name: each interactive role names the ground
   // it was measured on. Its home in the Studio is Surfaces & fills, under the contrast floor, marked advanced.
   { key: 'interactiveGround', group: 'color', kind: 'value', label: 'Controls sit on', control: 'enum', default: 'floor', advanced: true,
     options: enumOpts(['floor', 'Every surface'], ['page', 'The page only']),
+    tip: 'Where controls keep 3:1: on every surface, or on the page only, so a few run lighter.',
     description: 'Which surfaces buttons, fields and other controls may sit on. Every surface keeps their colors at 3:1 on cards and on the second and third backgrounds. The page only measures them on the page background, so field borders, disabled text and the destructive outline can run a step lighter, and cards on another step carry no contrast promise for controls. High-contrast modes keep every surface.' },
   // `secondaryTextGround` (owner Q-TXT1 A) is deliberately not a lever (owner Q3212.7 A): a brand-fit setting with an accessibility cost, authored in the brand input, not flipped on a slider.
   // #3073 (owner Q806, Q807 A) — label and description are a DRAFT for the owner (on the build PR). It adds roles, it
   // never moves `color.glass.surface`. Its home in the Studio is Surfaces & fills › Glass.
   { key: 'glassRoles', group: 'color', kind: 'value', label: 'Glass fills', control: 'object', advanced: true, itemLabel: 'glass fill',
+    tip: 'Translucent fills the brand adds beside white glass, each a color at an opacity.',
     description: 'Glass fills the brand adds beside the white glass. Each takes a color, from a palette or from a role such as the card, at an opacity, and is named color.glass.<name>.' },
   { key: 'strictInteractiveContrast', group: 'color', kind: 'value', label: 'Strict interactive contrast', control: 'toggle', advanced: true, default: false,
-    description: 'Opt-in (off by default). The inverse filled button steps its fill per state; the primary and destructive labels’ colored ink clears AA at rest but dips on the transient hover/pressed steps. On swaps both inverse labels to the neutral high-contrast ink so every state clears AA — guaranteed legibility over brand color.' },
+    tip: 'Keeps inverse button labels at 4.5:1 on hover and pressed, not only at rest.',
+    description: 'Opt-in (off by default). The inverse filled button steps its fill per state; the primary and destructive labels’ colored ink clears AA at rest but dips on the transient hover/pressed steps. On swaps both inverse labels to the neutral high-contrast ink so every state clears AA over brand color.' },
   { key: 'linkStateRungs', group: 'color', kind: 'value', label: 'Link states', control: 'object', advanced: true,
+    tip: 'How far hover, pressed and visited links step from the resting link, in ramp steps.',
     description: 'Optional. Set how far each engaged link state — hover, pressed, visited — steps from the resting link, one state at a time, as a count of ramp steps. An unset state keeps the tuned walk; the resting link and its focus follow the link palette. Each step is held to the link’s contrast floor, so it respaces a state without dropping the link below 4.5:1.' },
 
   // ---- FORM ----
   { key: 'radiusScale', group: 'form', kind: 'value', label: 'Radius softness', control: 'slider', default: 1, min: 0, max: 2, step: 0.5,
+    tip: 'How round every corner is, from sharp (0) to round (2). Pill and 1px corners stay fixed.',
     description: 'How round every radius size is, from sharp (0) to round (2). The pill sizes and the 1px radius stay fixed.' },
   { key: 'density', group: 'form', kind: 'value', label: 'Density', control: 'enum', default: 'comfortable',
     options: enumOpts(['comfortable', 'Comfortable'], ['compact', 'Compact'], ['spacious', 'Spacious']),
+    tip: 'Control heights, and each component\'s padding and gaps, one step up or down.',
     description: 'Sets control heights, and moves each component’s padding and gaps one step on the spacing scale. Token names stay the same; their values change. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.' },
   { key: 'controlShape', group: 'form', kind: 'value', label: 'Control shape', control: 'enum', default: 'rounded',
     options: enumOpts(['boxed', 'Boxed'], ['hairline', 'Hairline'], ['rounded', 'Rounded'], ['pill', 'Pill']),
     // #2361 — Hairline's sentence is the owner's (Q139); Boxed's reach (Q139 item 3) is a DRAFT for the owner.
     // #2695 (owner Q333, taking Q6 A) — the last sentence is the proposal's, approved with option A.
+    tip: 'The corners of buttons, fields and checkboxes: hairline, boxed, rounded or pill.',
     description: 'The corner shape of buttons, fields and checkboxes. Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds the ends of buttons fully, whatever the softness; fields and checkboxes keep their own corner. An underline field has no corners.' },
   // #2695 — label, option labels and description are the proposal's Q1 option A, which the owner took (Q333).
   { key: 'fieldStyle', group: 'form', kind: 'structural', label: 'Field style', control: 'enum', default: 'outline',
     options: enumOpts(['outline', 'Outline'], ['underline', 'Underline']),
+    tip: 'The edge of every form field: a box, or one line under the value. Both clear 3:1.',
     description: 'The edge of every form field. Outline draws a box; Underline draws one line under the value, with no side padding. Either way the line clears 3:1.' },
   // #2888 — label, option labels and description are the owner's (Q514 taking Q?2 A, approved as drafted).
   { key: 'searchFieldStyle', group: 'form', kind: 'structural', label: 'Search field style', control: 'enum', default: 'follow',
     options: enumOpts(['follow', 'Follow field style'], ['outline', 'Outline'], ['underline', 'Underline']),
+    tip: 'The edge of the search field: the field style, a box, or one line. Each clears 3:1.',
     description: 'The edge of the search field. Follow field style matches every other field; Outline or Underline sets search apart. Either way the line clears 3:1.' },
   // #2887 — label, option labels and description are the owner's (Q513.1 A, Q540 taking Q8 A as revised for the 2px hover).
   { key: 'tagStyle', group: 'form', kind: 'structural', label: 'Tag style', control: 'enum', default: 'pill',
     options: enumOpts(['pill', 'Pill'], ['underline', 'Underline']),
+    tip: 'The shape of every tag: a rounded outline, or one line under it. Both clear 3:1.',
     description: 'The shape of every tag. Pill draws a rounded outline; Underline draws one line under the tag, 2px when selected or under the pointer. Either way the line clears 3:1.' },
   // #2958 (owner Q588, Q588b A) — label, option labels and description are a DRAFT for the owner (Q1 on #2958). Its home in
   // the Studio is Components › Dialog (Q578: component settings live with their components).
   { key: 'dialogTitleSize', group: 'form', kind: 'value', label: 'Dialog title size', control: 'enum', default: 'large',
     options: enumOpts(['large', 'Large'], ['medium', 'Medium'], ['small', 'Small']),
+    tip: 'The title size of every dialog and sheet: the large, medium or small label style.',
     description: 'The title of every dialog and sheet: the large, medium or small label style, at Emphasis weight. One dialog can still be changed by hand in Figma.' },
   // #2924 (owner Q693 A, Q707 A: Tinted and Outlined, Bold held on #3038) — label and option labels are the owner's DRAFT
   // (Q2 on #2924, joins the wording pass); the description is the wireframe's Q2 A draft. Its home in the Studio is
   // Components › Banner (Q578: component settings live with their components).
   { key: 'bannerStyle', group: 'form', kind: 'value', label: 'Banner style', control: 'enum', default: 'tinted',
     options: enumOpts(['tinted', 'Tinted'], ['outlined', 'Outlined']),
+    tip: 'The surface of every banner: filled with its tone\'s tint, or outlined in the tone.',
     description: 'The surface of every banner. Tinted fills it with the tone’s tint; Outlined draws the edge in the tone on the page color. Either way the edge and glyph clear 3:1.' },
   // #3345 (owner decision 2026-11-03, Q2 A: a brand setting; Q10 B: Partial the engine default) — key, label, option labels and
   // description are the owner's (Q3 A). It moves no token and no binding: Link's current-page
@@ -173,6 +197,7 @@ export const leverManifest: Lever[] = [
   // Its home in the Studio is Components › Page navigation (Q578: component settings live with their components).
   { key: 'currentIndicator', group: 'form', kind: 'value', label: 'Current page indicator', control: 'enum', default: 'partial',
     options: enumOpts(['full', 'Full width'], ['partial', 'Partial']),
+    tip: 'The line under the current page in page navigation: full width or half width.',
     description: 'The 2px line under the current page in a page navigation. Full width runs under the whole title; Partial is half the title’s width, centered under it.' },
   // #3086 (owner Q816 A, no new token) — label, option labels and description are a DRAFT for the owner. It moves token
   // values, not a binding: Radio binds `control.size.{sm,md,lg}.dot`, and this sets what those hold. Nothing else follows
@@ -180,14 +205,17 @@ export const leverManifest: Lever[] = [
   // Its home in the Studio is Components › Radio (Q578).
   { key: 'radioDot', group: 'form', kind: 'value', label: 'Radio dot size', control: 'enum', default: 50,
     options: enumOpts([50, 'Default'], [60, '60%'], [70, '70%'], [80, '80%']),
+    tip: 'How big the dot in a selected radio is, as a share of the radio. Default is half.',
     description: 'How big the dot in a selected radio is, as a share of the radio, at every size. Default is half. The dot rounds to a 2px step and never covers the ring.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', kind: 'structural', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),
+    tip: 'Where button icons sit: beside the label, or pinned to the button\'s edges.',
     description: 'Where button icons sit. Attached to label keeps them beside the label. Locked to edges pins them to the button edges and centers the label in the space between.' },
   // #2918 (owner Q527) — label, option labels and description are a DRAFT for the owner (option A); the keys stay.
   { key: 'buttonContentSize', group: 'form', kind: 'value', label: 'Medium button label & icon', control: 'enum', default: 'match',
     options: enumOpts(['match', 'Medium'], ['smaller', 'Small']),
+    tip: 'The label and icon size of a medium button: its own, or the small button\'s.',
     description: 'The label and icon size of a medium button. Medium keeps its own; Small gives it the small button’s label and icon at the medium height and padding. Other button sizes are unchanged.' },
   // #1752 — option labels are the owner's exact words (2026-09-28). #2945 (owner Q591 A, Q591.1 A and Q591.2 A,
   // 2026-10-23): widened to buttons AND tags, and the label and description are the owner's approved draft. The key
@@ -195,50 +223,65 @@ export const leverManifest: Lever[] = [
   // plugin and Studio keep working.
   { key: 'buttonLabelWeight', group: 'form', kind: 'value', label: 'Control label weight', control: 'enum', default: 'emphasis',
     options: enumOpts(['default', 'Default'], ['emphasis', 'Emphasis']),
+    tip: 'The weight of button and tag labels: Emphasis or Default.',
     description: 'The weight of button and tag labels: Emphasis (600 by default) or Default (400). Default adds that weight to the label styles. Badges keep Emphasis.' },
   // #2324 — label and option labels are the owner's words (2026-10-08); the description is a DRAFT for the owner.
   { key: 'buttonTextHover', group: 'form', kind: 'value', label: 'Text button hover', control: 'enum', default: 'text',
     options: enumOpts(['text', 'Text & icon only'], ['fill', 'Fill']),
+    tip: 'What a text button does on hover and press: change its colors, or also fill.',
     description: 'What a text button does on hover and when pressed. Text & icon only changes the label and icon colors. Fill also fills the button. A text button is never filled at rest.' },
   // #576 (owner decision 2026-11-18, A): ONE weight for every outline button set; the border's color stays per set. The
   // key, values, label, option labels and description are a DRAFT for the owner (on the build PR).
   { key: 'buttonBorderWeight', group: 'form', kind: 'value', label: 'Outline button border', control: 'enum', default: 'hairline',
     options: enumOpts(['hairline', 'Thin (1px)'], ['thick', 'Thick (2px)']),
+    tip: 'How thick the border of an outline button is, in every button set.',
     description: 'How thick the border of an outline button is, in every button set. Each set keeps its own border color. Filled and text buttons draw no border.' },
   { key: 'buttonMinWidthMultiplier', group: 'form', kind: 'value', label: 'Button minimum width', control: 'slider', default: 2.25, min: 1, max: 4, step: 0.25, unit: '× height',
+    tip: 'A button is at least this many times its height wide, so short labels stay balanced.',
     description: 'A button is at least its height times this wide, rounded up to the 8px grid, so a short label never makes a stubby button.' },
   { key: 'baseMd', group: 'form', kind: 'value', label: 'Base radius', control: 'slider', advanced: true, default: 4, min: 2, max: 12, step: 1, unit: 'px',
     description: 'The medium radius at standard softness. Every other radius size is a multiple of it.' },
   { key: 'radiusHairline', group: 'form', kind: 'value', label: 'Hairline radius', control: 'toggle', advanced: true, default: false,
+    tip: 'Retired: the 1px corner is always emitted, so this setting changes nothing.',
     description: 'Retired. radius.hairline, a fixed 1px corner, is always emitted, so this setting changes nothing.',
     deprecated: 'Always on since #2053: radius.hairline is emitted for every brand. Accepted so existing brand files still load.' },
 
   // ---- TYPE ----
   { key: 'typography.typeScale', group: 'type', kind: 'value', label: 'Type scale', control: 'enum', default: 'default',
     options: enumOpts(['compact', 'Compact'], ['default', 'Default'], ['expressive', 'Expressive']),
+    tip: 'Moves every heading size one step up or down. Body, label, caption and code stay.',
     description: 'Moves every heading size one step up or down the size ladder. Body, label, caption and code stay put.' },
   { key: 'typography.families', group: 'type', kind: 'value', label: 'Font families', control: 'object',
+    tip: 'The font family each text type uses, and whether it is a variable font.',
     description: 'The font family each text type uses, and whether it is a variable font. A single family name gets a system fallback stack added. Setting code to none ships no code styles.' },
   { key: 'typography.weightRoles', group: 'type', kind: 'value', label: 'Weights', control: 'object', advanced: true,
+    tip: 'The weight number behind each weight name, from subtle to max.',
     description: 'The weight number behind each name. The names read in order, from subtle to max. The defaults are 300, 400, 600, 700 and 900.' },
   { key: 'typography.displayCeiling', group: 'type', kind: 'value', label: 'Largest display size', control: 'enum', advanced: true, default: '3xl',
-    options: enumOpts(['sm', 'display.sm (1 rung)'], ['md', 'display.md (2 rungs)'], ['lg', 'display.lg (3 rungs)'],
-      ['xl', 'display.xl (4 rungs)'], ['2xl', 'display.2xl (5 rungs)'], ['3xl', 'display.3xl (all 6)']),
+    options: enumOpts(['sm', 'display sm (1 step)'], ['md', 'display md (2 steps)'], ['lg', 'display lg (3 steps)'],
+      ['xl', 'display xl (4 steps)'], ['2xl', 'display 2xl (5 steps)'], ['3xl', 'display 3xl (all 6)']),
+    tip: 'The largest display size the brand makes. Larger display sizes are left out.',
     description: 'The largest display size the brand makes. Display sizes above it are left out. It names a step, not a pixel value, so changing the type scale never changes how many display sizes are kept.' },
   { key: 'typography.titleFloor', group: 'type', kind: 'value', label: 'Smallest title size', control: 'enum', advanced: true, default: 18,
     options: enumOpts([18, '18px (title.xs)'], [16, '16px (adds title.2xs)']),
+    tip: '16px adds a title at body size. The Compact scale already has one.',
     description: '16px adds a title at body size. The Compact scale already places a title at 16px, so the engine refuses 16px with it.' },
   { key: 'typography.captionFloor', group: 'type', kind: 'value', label: 'Smallest caption size', control: 'enum', advanced: true, default: 11,
     options: enumOpts([11, '11px (caption.md)'], [10, '10px (adds caption.sm)']),
+    tip: '10px adds a fine-print caption. The default smallest caption is 11px.',
     description: '10px adds a fine-print caption, for dense legal, footer or product details. The default smallest caption is 11px.' },
   { key: 'typography.sizeFloor', group: 'type', kind: 'value', label: 'Smallest type size', control: 'enum', advanced: true, default: 10,
-    options: enumOpts([10, '10px (default floor)'], [8, '8px (adds caption.xs — escape hatch)']),
+    options: enumOpts([10, '10px (default floor)'], [8, '8px (adds caption xs, for fine print only)']),
+    tip: '8px adds the smallest caption. It sits below the checked sizes: fine print only.',
     description: '8px adds the smallest caption and moves the smallest type size down to 8px. That is below the sizes the contrast checks were set for, so the engine notes it: use it only for fine print that has an accessible alternative.' },
   { key: 'typography.responsive', group: 'type', kind: 'value', label: 'Headings scale between mobile and desktop', control: 'object', advanced: true,
+    tip: 'Headings shrink smoothly from desktop to mobile between these widths. Body stays.',
     description: 'Display, title and eyebrow sizes shrink smoothly from desktop to mobile between these two screen widths. Body text keeps one size.' },
   { key: 'typography.weights', group: 'type', kind: 'value', label: 'Weights each text type ships', control: 'object', advanced: true,
+    tip: 'Which weights each text type ships. Each weight is a text style at every size.',
     description: 'Which weights each text type ships. Each weight is a text style at every size. Every text type keeps at least one; label keeps Emphasis, and body and caption keep Default, because buttons and form controls use them.' },
   { key: 'typography.links', group: 'type', kind: 'value', label: 'Underlined link styles', control: 'list', advanced: true, itemLabel: 'type role',
+    tip: 'Which text types get an underlined link style. Labels are always included.',
     description: 'Which text types get an underlined link style. The default is body and caption. Labels are always included: a text button’s label is underlined.' },
   // #2942 (owner Q1–Q6 A, Q800 A, Q801 A) — label and description are DRAFT placeholders (Q2 A: the owner replaces the
   // wording before merge). One object lever (Q4 A), drawn as a "Custom underline" switch and two whole-percent fields
@@ -246,26 +289,33 @@ export const leverManifest: Lever[] = [
   // the Studio is Theme › Type › Weights and styles, beside Underlined link styles (Q3 A).
   { key: 'typography.underline', group: 'type', kind: 'value', label: 'Underline thickness and offset', control: 'object', advanced: true,
     default: { thickness: 'auto', offset: 'auto' }, unit: '% of font size',
+    tip: 'The link underline\'s thickness and offset, as a share of the font size.',
     description: 'The underline on every link style, as a share of the font size: 5% thickness is 0.8px on 16px text, and a 25% offset puts the line 4px below the text. Auto leaves it to the font.' },
   { key: 'typography.italics', group: 'type', kind: 'value', label: 'Italic styles', control: 'list', advanced: true, itemLabel: 'type role',
     description: 'Which text types ship an italic style for each weight. The default is none.' },
   { key: 'typography.italicDefault', group: 'type', kind: 'value', label: 'Italic-only text types', control: 'list', advanced: true, itemLabel: 'type role',
+    tip: 'Text types that are italic only, with no upright style. The default is none.',
     description: 'Which text types are italic only: every style is italic, with no upright style. The default is none. A text type here can’t also be in Italic styles.' },
 
   // ---- MOTION ----
   { key: 'motionPersonality.tempo', group: 'motion', kind: 'value', label: 'Motion tempo', control: 'enum', default: 'standard',
     options: enumOpts(['snappy', 'Snappy'], ['standard', 'Standard'], ['relaxed', 'Relaxed']),
+    tip: 'How fast every duration runs: Snappy 0.8×, Standard 1×, Relaxed 1.3×.',
     description: 'How fast every duration runs: Snappy is 0.8×, Standard 1×, Relaxed 1.3×. Reduced motion is set for you.' },
   // ---- ELEVATION ----
   { key: 'shadow.softness', group: 'elevation', kind: 'value', label: 'Shadow softness', control: 'slider', default: 1, min: 0, max: 2, step: 0.1,
-    description: 'Blur:offset dial. Low → crisp/product; high → soft/marketing.' },
+    tip: 'How soft every shadow is: low keeps edges crisp, high blurs them past their offset.',
+    description: 'How soft every shadow is: low keeps edges crisp, high blurs them wider than they’re offset.' },
   { key: 'shadow.tint', group: 'elevation', kind: 'value', label: 'Shadow tint', control: 'object', advanced: true,
+    tip: 'How far shadows move off pure black, and toward which hue. 0 is pure black.',
     description: 'How far the shadow color moves off pure black, and toward which hue. Amount 0 is pure black; the default is a slight neutral tint.' },
 
   // ---- LAYOUT ----
   { key: 'layout.breakpoints', group: 'layout', kind: 'value', label: 'Breakpoints', control: 'list', advanced: true, itemLabel: 'min-width (px)',
+    tip: 'The screen width where each layout starts, smallest first. The first is 0px.',
     description: 'The screen width where each layout starts, smallest first. The first is always 0px. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920.' },
   { key: 'layout.columns', group: 'layout', kind: 'value', label: 'Grid columns', control: 'slider', advanced: true, default: 12, min: 4, max: 24, step: 1,
+    tip: 'How many columns the grid has at the widest breakpoints: 4, then 8, then this.',
     description: 'How many columns the grid has on the widest breakpoints. Smaller breakpoints step up to it: 4, then 8, then this count.' },
   { key: 'layout.containerMax', group: 'layout', kind: 'value', label: 'Maximum width', control: 'slider', advanced: true, default: 1440, min: 960, max: 1920, step: 40, unit: 'px',
     description: 'The widest content gets. Below this width, content fills the screen.' },
@@ -275,34 +325,44 @@ export const leverManifest: Lever[] = [
   // ---- ADVANCED (accessibility + opt-in) ----
   { key: 'iconContrast', group: 'advanced', kind: 'value', label: 'Icon contrast floor', control: 'enum', default: 'text',
     options: enumOpts(['text', 'Match text (4.5:1)'], ['3:1', 'Non-text floor (3:1)']),
+    tip: 'Icons match text contrast by default, or use the 3:1 floor for icons that stand alone.',
     description: 'Whether icons mirror text contrast or run against the WCAG 1.4.11 non-text floor. Matching text is the default on purpose: icons usually sit beside text, and an icon that is lighter than the label next to it reads as a mistake even though 3:1 conforms. Choose the non-text floor when icons stand alone or you want them to recede.' },
   { key: 'disabledStrategy', group: 'advanced', kind: 'value', label: 'Disabled contrast', control: 'enum', default: 'reduced',
     options: enumOpts(['full', 'Full contrast (4.5:1 — AA text)'], ['reduced', 'Reduced contrast (3:1 minimum)']),
+    tip: 'Full keeps disabled text at 4.5:1; Reduced dims it to a floor you set, at least 3:1.',
     description: 'Full guarantees AA text on disabled controls — legibility is certain, but the disabled look then rests on fill / border / cursor rather than dimming. Reduced dims it to a floor you set, never below 3:1.' },
   { key: 'disabledMin', group: 'advanced', kind: 'value', label: 'Reduced contrast floor', control: 'slider', default: 3, min: 3, max: 4.5, step: 0.5,
-    description: 'How dim Reduced goes. 3:1 is the WCAG non-text / large-text threshold and where Primer and USWDS sit — the lowest ratio still legible. Escalates to 4.5:1 in high-contrast modes. Ignored on Full.' },
+    tip: 'How dim Reduced disabled text goes, at least 3:1. High-contrast modes use 4.5:1.',
+    description: 'How dim Reduced goes. 3:1 is the WCAG non-text / large-text threshold, the lowest ratio still legible. Escalates to 4.5:1 in high-contrast modes. Ignored on Full.' },
   { key: 'outlineInteraction', group: 'advanced', kind: 'value', label: 'Outline hover', control: 'enum', default: 'overlay-neutral',
     // #3071: 'opaque-fill' and its chip label are a DRAFT for the owner (on the build PR).
     options: enumOpts(['overlay-neutral', 'Neutral overlay wash'], ['solid-tint', 'Tinted wash'], ['opaque-fill', 'Solid fill'], ['none', 'No hover fill']),
+    tip: 'How outline and text controls show hover: a neutral wash, a tinted wash, a fill, or none.',
     description: 'How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = the control\'s own fill at 20% opacity (30% pressed), stepped down the opacity scale where the label needs more contrast and up where the hover would not show, so a destructive outline hovers red-tinted rather than gray; opaque-fill = a solid palette step you pick (Outline hover fill), with the label and icon kept legible on it, on buttons and icon buttons only, while tags, segmented controls and pagination keep the wash; none = omit.' },
   // #3071 (owner Q824 A): label and description are a DRAFT for the owner (on the build PR). Read only under 'opaque-fill'.
   { key: 'outlineHoverFill', group: 'advanced', kind: 'value', label: 'Outline hover fill', control: 'object', advanced: true,
+    tip: 'The solid hover fill of outline and text buttons, per mode, as a palette step.',
     description: 'The solid hover fill of outline and text buttons, per mode: a palette step, such as neutral 050, for every button set, or for one set alone. Pressed takes the next step unless you pick one. The label and icon move along their own color where they need to, to stay legible on it. Modes you leave on Auto, and inverse surfaces, take the gray step closest to their ground.' },
   // #3335 (the owner's Q3335.3 A): the wash's opacity, brand-wide, hover and pressed apart. Two enums rather than one object
   // so the lever sweep reaches every step. No `default`: it is the method's own (10/20 neutral, 20/30 tinted).
   // Labels and descriptions are a DRAFT for the owner (on the build PR).
   { key: 'outlineWash.hover', group: 'advanced', kind: 'value', label: 'Wash opacity: hover', control: 'enum', advanced: true,
     options: enumOpts([5, '5%'], [10, '10%'], [20, '20%'], [30, '30%'], [40, '40%']),
+    tip: 'How strong the hover wash is on outline and text controls, as an opacity step.',
     description: 'How strong the hover wash is on outline and text controls, as an opacity step. The neutral wash defaults to 10% and the tinted wash to 20%; the tinted wash steps down per set where a label would drop below 4.5:1, and up where the hover would not show. Ignored under No hover fill.' },
   { key: 'outlineWash.pressed', group: 'advanced', kind: 'value', label: 'Wash opacity: pressed', control: 'enum', advanced: true,
     options: enumOpts([5, '5%'], [10, '10%'], [20, '20%'], [30, '30%'], [40, '40%']),
+    tip: 'How strong the pressed wash is, above hover. Selected follows it.',
     description: 'How strong the pressed wash is, above the hover step so a press reads as coming forward; selected follows it. The neutral wash defaults to 20% and the tinted wash to 30%. Ignored under No hover fill.' },
   { key: 'neutralEmphasis', group: 'advanced', kind: 'value', label: 'Neutral emphasis', control: 'enum', default: 'subtle',
     options: enumOpts(['subtle', 'Subtle (light gray)'], ['strong', 'Strong (bold near-black/white)']),
+    tip: 'How bold the neutral button fill is: a light gray, or near-black and near-white.',
     description: 'The neutral interactive fill boldness — subtle light gray (a surface) or a strong near-black/near-white fill.' },
   { key: 'interactivePalettes', group: 'color', kind: 'value', label: 'Interactive palettes', control: 'list', advanced: true, itemLabel: 'accent column (name + palette [+ anchorStep])',
+    tip: 'Brand colors promoted to button sets, each with fill, text, border and states.',
     description: 'Promote declared palettes (a `brandColors` entry, or `primary`) to full interactive.<name>.* columns — fill/states, on-fill, text, border, overlay. The generalized accent lever; edit via the interactive cards. Supersedes the back-compat single-column `accentPalette` input.' },
   { key: 'gradients', group: 'advanced', kind: 'value', label: 'Gradients', control: 'toggle', default: false,
+    tip: 'Off by default. On ships one brand gradient; a list ships specific ones.',
     description: 'Opt-in (off by default). On ships one default brand gradient; an explicit array ships specific ones.' },
 ];
 

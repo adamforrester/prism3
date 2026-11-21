@@ -55,14 +55,14 @@ export const SHAPE_COPY = {
   paddingLink: 'See Components',
   next: 'Continue to Depth & motion',
   // DRAFT, pending the owner: the labels and tooltips in plain words (D16, E2).
-  densityTip: 'Sets every control height, and moves each component’s padding and gaps one step on the spacing scale.',
+  densityTip: 'Control heights, and each component\'s padding and gaps, one step up or down.',
   softnessLabel: 'Radius softness',
-  softnessTip: 'How round every radius size is, from sharp (0) to round (2). The pill sizes and the 1px radius stay fixed.',
+  softnessTip: 'How round every corner is, from sharp (0) to round (2). Pill and 1px corners stay fixed.',
   // #2361 — DRAFT for the owner: leads with what the shape reaches (Q139); Boxed reaches fields and checkboxes too.
   // #2695 (Q333, taking Q6 A) adds the last sentence, as on the engine's own description.
-  shapeTip: 'Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds buttons fully at any height; fields and checkboxes keep their own corner. An underline field has no corners.',
+  shapeTip: 'The corners of buttons, fields and checkboxes: hairline, boxed, rounded or pill.',
   baseLabel: 'Base radius',
-  baseTip: 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.',
+  baseTip: 'The medium radius at standard softness, 2 to 12px. Every other size is a multiple.',
   baseHint: 'The medium radius at standard softness. The other sizes scale from it.',
   /** #2909 Q2909.4 A: Control shape's line. DRAFT placeholder (Q2909.10 A). */
   shapeLink: 'Set it in Components',

@@ -32,8 +32,9 @@ const ok = (cond: boolean, label: string, detail = ''): void => {
 };
 
 const manifestPath = fileURLToPath(new URL('../../packages/engine/schema/lever-manifest.json', import.meta.url));
-const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { levers: { key: string; description?: string }[] };
-const described = (key: string): string | undefined => manifest.levers.find((l) => l.key === key)?.description;
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { levers: { key: string; description?: string; tip?: string }[] };
+// #4193 decision 1: the line a lever shows in the UI is its `tip` where it has one, else its description.
+const described = (key: string): string | undefined => { const l = manifest.levers.find((x) => x.key === key); return l?.tip ?? l?.description; };
 
 const PAIRS: [label: string, key: string, tip: string][] = [
   ['Type scale', 'typography.typeScale', S63.scaleTip],
@@ -48,6 +49,23 @@ for (const [label, key, tip] of PAIRS) {
     `tooltip:  ${JSON.stringify(tip)}\n      manifest: ${JSON.stringify(want)}`);
 }
 
-if (executed !== PAIRS.length * 2) { failed++; console.error(`  ✗ ran ${executed} checks, expected ${PAIRS.length * 2}`); }
+// #4193 decision 1: every ⓘ line Studio writes itself (a `…Tip:` or `info:` literal in `src/domains`) is at most 90
+// characters, the voice standard's §4 length for a description. Read from the source, so a new long tip fails by name.
+{
+  const { readdirSync } = await import('node:fs');
+  const dir = fileURLToPath(new URL('./src/domains/', import.meta.url));
+  const files = readdirSync(dir).filter((f) => f.endsWith('.ts'));
+  const long: string[] = [];
+  let seen = 0;
+  // Single-quoted, double-quoted and template literals alike, so a tip quoted another way can't slip past the 90.
+  for (const f of files) for (const m of readFileSync(dir + f, 'utf8').matchAll(/\b(\w*Tip|info)\s*:\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g)) {
+    seen++;
+    const text = m[3].replace(/\\(.)/g, '$1');
+    if (text.length > 90) long.push(`${f} ${m[1]} (${text.length})`);
+  }
+  ok(seen > 20 && long.length === 0, `#4193 every Studio ⓘ line is at most 90 characters (${seen} read; over: ${long.join(', ') || 'none'})`);
+}
+
+if (executed !== PAIRS.length * 2 + 1) { failed++; console.error(`  ✗ ran ${executed} checks, expected ${PAIRS.length * 2 + 1}`); }
 console.log(failed ? `\n${failed} of ${executed} failed` : `\nlever tips: ${executed}/${executed} pass`);
 process.exit(failed ? 1 : 0);

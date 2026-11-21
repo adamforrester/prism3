@@ -13680,7 +13680,7 @@ const EXPECT_HEADINGS = {
   'color-palettes': {
     // #2175 (PN1 B) folded the Pinned neutral section and its Pin a neutral lever into Neutrals' source choice.
     L1: ['Primary', 'Brand colors', 'Neutrals', 'Status colors'],
-    L2: ['Primary brand color', 'Additional brand colors', 'Neutral hue', 'Neutral chroma', 'Success color', 'Warning color', 'Danger color', 'Info color'],
+    L2: ['Primary brand color', 'Additional brand colors', 'Neutral hue', 'Neutral tint strength', 'Success color', 'Warning color', 'Danger color', 'Info color'],
   },
   'color-fills': {
     L1: ['Background fills', 'Scrim', 'Glass', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
@@ -13807,17 +13807,18 @@ if (runs('30')) ok(HEADING_EXEMPT.every(([sel, why]) => typeof sel === 'string' 
 const PROMOTED = {
   'color-fills': {
     'Background fills': 'The page, its tiers and the inverse fill for the mode the preview shows.',
-    Gradients: manifest.levers.find((l) => l.key === 'gradients')?.description,
+    // #4193 decision 1: a lever's ⓘ shows its short tip where it has one.
+    Gradients: ((l) => l?.tip ?? l?.description)(manifest.levers.find((l) => l.key === 'gradients')),
   },
   type: {
-    'Typeface library': 'The font families this brand can use. A family is in the library while a text type uses it, or once you add it.',
-    'Font family for each text type': 'Each text type’s font.family token names one family from the library. Swapping the family keeps every reference to the token.',
+    'Typeface library': 'The font families the brand can use: those a text type uses, and any you add.',
+    'Font family for each text type': 'The family each text type uses. Swapping it keeps every reference to the token.',
   },
   shape: {
-    Density: 'Sets every control height, and moves each component’s padding and gaps one step on the spacing scale.',
+    Density: 'Control heights, and each component\'s padding and gaps, one step up or down.',
     // #3553 Q-UI14 A: Base radius is no section of its own any more; it is a lever in Radius, under its own name and ⓘ.
   },
-  layout: { Breakpoints: manifest.levers.find((l) => l.key === 'layout.breakpoints')?.description },
+  layout: { Breakpoints: ((l) => l?.tip ?? l?.description)(manifest.levers.find((l) => l.key === 'layout.breakpoints')) },
 };
 if (runs('30')) ok(Object.values(PROMOTED).every((p) => Object.values(p).every((t) => typeof t === 'string' && t.length > 20)), `BG1 A: every promoted lever's help text is typed or read from the manifest (${JSON.stringify(PROMOTED)})`);
 /** BG1 A's subgroup labels, the owner's approved words, exactly (not by their start). */
@@ -22827,7 +22828,7 @@ if (runs('3553-cards')) {
             return { line: lv?.querySelector('.p3-lever-ctl')?.textContent ?? null, tip: (tipId && document.getElementById(tipId)?.textContent) || lv?.querySelector(':scope > [id^="p3-tip-"]')?.textContent || null };
           });
           const LINE = 'The medium radius at standard softness. Every other radius size is a multiple of it.';
-          const TIP = 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.';
+          const TIP = 'The medium radius at standard softness, 2 to 12px. Every other size is a multiple.';   // #4193: the 90-character tip (DRAFT; the approved line was 100)
           ok(!!words.line?.includes(LINE) && !!words.tip?.includes(TIP), `#3553 Q-UI14 ${where} shape: Base radius, opened in Radius, carries its approved line and its ⓘ (line ${JSON.stringify(words.line?.slice(0, 90))}, ⓘ ${JSON.stringify(words.tip?.slice(0, 110))})`);
         }
         await hooks.click(page.locator(`[data-p3="${fold}"]`));
