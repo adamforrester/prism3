@@ -49,7 +49,6 @@ Use for a short, fixed-length code sent by text message, email or an authenticat
 
 ### Do
 
-- Accept a pasted or autofilled code in full, ignoring spaces and hyphens
 - Say which error it is: too few digits, wrong code or expired code
 - Keep the resend link and any expiry time next to the field
 
@@ -104,6 +103,8 @@ Label = noun phrase, sentence case. Helper = the length and where the code went.
   - auto-submit on the last digit
 
 ## Building it in code
+
+- Accept a pasted or autofilled code in full, ignoring spaces and hyphens
 
 ### Props
 

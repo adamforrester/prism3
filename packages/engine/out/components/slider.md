@@ -64,7 +64,6 @@ Use a slider for an approximate value, or a range, where seeing the position wit
 - Name the dimension with a visible label
 - Format the value with its unit or currency, and use the same text for `aria-valuetext`
 - Turn on the paired inputs when an exact value matters
-- Bind costly work, such as a network filter, to `onChangeEnd`
 
 ### Don't
 
@@ -115,6 +114,8 @@ The label names the dimension. The value text shows the value with its unit; a r
   - two separate sliders for a minimum and a maximum
 
 ## Building it in code
+
+- Bind costly work, such as a network filter, to `onChangeEnd`
 
 ### Props
 
@@ -256,7 +257,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -267,7 +268,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -278,7 +279,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -289,7 +290,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -311,7 +312,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueRange` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -322,7 +323,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueRange` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -333,7 +334,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueRange` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -344,7 +345,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueRange` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |

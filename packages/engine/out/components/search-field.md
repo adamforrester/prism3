@@ -48,10 +48,7 @@ Use for a query that finds or filters: a site search, a search within a section,
 
 ### Do
 
-- Wrap a site or section search in a search landmark
 - Keep a label on every search field, visually hidden where the context makes it plain
-- Return focus to the input after the clear button empties it
-- Hide the browser's own cancel glyph, so the field shows one clear button
 
 ### Don't
 
@@ -104,6 +101,10 @@ Label = noun phrase, sentence case, no trailing colon, naming what is searched. 
   - clear button on an empty search field
 
 ## Building it in code
+
+- Wrap a site or section search in a search landmark
+- Return focus to the input after the clear button empties it
+- Hide the browser's own cancel glyph, so the field shows one clear button
 
 ### Props
 

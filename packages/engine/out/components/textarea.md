@@ -47,10 +47,6 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 ### Do
 
 - Set `maxRows` whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste
-- Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length
-- Announce the over-limit through the live region and `aria-invalid` — color alone is not a signal
-- Normalize \r\n to \n on paste before counting or storing, and resize once per paste rather than once per inserted line
-- Keep a read-only textarea scrollable and selectable, so the whole value stays reachable — far more text is hidden here than in a single-line field
 - Reserve space in the footer for the validation message and the counter, so an over-limit error does not push the resize handle
 
 ### Don't
@@ -103,6 +99,11 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
   - a contenteditable div used for plain multi-line text
 
 ## Building it in code
+
+- Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length
+- Announce the over-limit through the live region and `aria-invalid` — color alone is not a signal
+- Normalize \r\n to \n on paste before counting or storing, and resize once per paste rather than once per inserted line
+- Keep a read-only textarea scrollable and selectable, so the whole value stays reachable — far more text is hidden here than in a single-line field
 
 ### Props
 

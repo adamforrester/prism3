@@ -774,6 +774,13 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'Lead with a verb, name the object ("Publish post", not "Submit")',
       'Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing',
       'Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
+      // #2350 (owner Q143) — DRAFT words, for the owner.
+      'Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and, at medium and large sizes, extend its hit area to at least 44×44px with a transparent `::before` inset outward and centered on the label, so the target clears 44px while the box stays label-width; extend it the same way to at least 24×24px at small',
+      // #4204 (owner decision 2 a) — the one place "inactive" and "disabled" are defined; Counter and Pagination reuse the words. DRAFT.
+      'Use isInactive for a control the user can still unblock, such as Submit on an unfinished form; it stays focusable and says why. Use disabled only when the control doesn\'t apply right now',
+      ...sibling.do,
+    ],
+    implementation: [
       // THE BRAND'S BUTTON SETTINGS (#1667), stated for the agent that builds this component in code: the
       // def is brand-agnostic, so the settings travel as brand input (`buttonIcons`,
       // `buttonMinWidthMultiplier`, `buttonContentSize`, and #1752's `buttonLabelWeight`) and these lines
@@ -789,12 +796,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting',
       'Never fill a button at appearance=text at rest; under the brand\'s `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed',
       'On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it',
-      // #2350 (owner Q143) — DRAFT words, for the owner.
-      'Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and, at medium and large sizes, extend its hit area to at least 44×44px with a transparent `::before` inset outward and centered on the label, so the target clears 44px while the box stays label-width; extend it the same way to at least 24×24px at small',
       'Never fill a flush button on hover or pressed, whatever the brand\'s `buttonTextHover` is: with no padding the fill would hug the label; only its label and icon colors change',
-      // #4204 (owner decision 2 a) — the one place "inactive" and "disabled" are defined; Counter and Pagination reuse the words. DRAFT.
-      'Use isInactive for a control the user can still unblock, such as Submit on an unfinished form; it stays focusable and says why. Use disabled only when the control doesn\'t apply right now',
-      ...sibling.do,
     ],
     dont: [
       'Set `inset=flush` on a filled or outline button — their visible edge needs its padding; flush is for `appearance=text`',

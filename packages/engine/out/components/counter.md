@@ -51,7 +51,6 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 - Set max when stock or a per-order limit exists, and state the limit in the message
 - Name the buttons for the item in a list of line items ("Increase quantity, Trail runner")
 - Show a button at its limit as inactive rather than hiding it, so the row does not move
-- Leave each button its 44×44px hit area in code, at least 44px apart center to center
 
 ### Don't
 
@@ -102,6 +101,8 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
   - two IconButtons around a `<span>` with no spinbutton semantics
 
 ## Building it in code
+
+- Leave each button its 44×44px hit area in code, at least 44px apart center to center
 
 ### Props
 
