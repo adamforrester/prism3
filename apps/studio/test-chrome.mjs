@@ -13388,6 +13388,48 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+
+// #2206 (the studio accessibility fix lane, 2026-11-20): pinned, the hue and chroma sliders are a read-only readout drawn
+// disabled, and the state line says so. In the accessibility tree each slider keeps its value and has that line as its
+// description, on both hosts. EXPECTED is the line's words, typed here; ACTUAL is CDP's computed description and value.
+// Mutation: the `aria-describedby` line removed (color-palettes.ts) → `#2206 … the hue readout is described by the state line …`.
+{
+  const PN2206_STATE = 'A pinned neutral sets the ramp: #5c6670. Hue and chroma are its readout.';
+  const axSlider = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      if (!nodeId) return null;
+      const n = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes.find((x) => !x.ignored);
+      return { role: n?.role?.value ?? '', desc: n?.description?.value ?? '', value: String(n?.value?.value ?? ''),
+        disabled: !!n?.properties?.find((p) => p.name === 'disabled')?.value?.value };
+    } finally { await cdp.detach(); }
+  };
+  for (const host of ['web', 'figma']) {
+    const where = `#2206 ${host} light 1280`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    try {
+      const before = await axSlider(page, '[data-p3="neutral-hue-slider"]');
+      ok(before && before.desc === '', `${where}: unpinned, the hue slider has no pinned description (${JSON.stringify(before)})`);
+      await hooks.click(page.locator('[data-p3="neutral-source-pinned"]'));
+      await hooks.need(page, '[data-p3="neutral-anchor-hex"]');
+      const f = page.locator('[data-p3="neutral-anchor-hex"]');
+      await f.fill('#5c6670');
+      await f.press('Enter');
+      await page.waitForFunction((t) => document.querySelector('[data-p3="lever-neutral-hue"] .p3-lever-state')?.textContent.trim() === t, PN2206_STATE, { timeout: 5000 }).catch(() => {});
+      for (const [what, sel] of [['hue', '[data-p3="neutral-hue-slider"]'], ['chroma', '[data-p3="neutral-chroma-slider"]']]) {
+        const r = await axSlider(page, sel);
+        ok(!!r && r.role === 'slider' && r.disabled && r.value !== '' && r.desc === PN2206_STATE,
+          `${where}: pinned, the ${what} readout is described by the state line and keeps its value (${JSON.stringify(r)})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
 } // 29-pinned
 
 // =============================================================================================
@@ -18026,6 +18068,85 @@ console.log(`\n#2487 names, landmarks, the selected segment and the display-only
             ok(sg.mains === 1, `${where} / build style guides: D5 exactly one main landmark (main ${sg.mains}, regions ${JSON.stringify(sg.regions)})`);
           }
         }
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+// #2492 and #4223 (the studio accessibility fix lane, 2026-11-20).
+//   · #2492: Inspect › Token list's Primitives and Semantics buttons say which is selected: the accessibility tree reports
+//     the selected one pressed and the other not pressed, and the two swap when the other is chosen.
+//   · #4223: the preview body is a Tab stop exactly when it scrolls and holds nothing a keyboard can reach, Chromium's own
+//     rule written out for Safari. Read on every place, both hosts, at 1280 and 380 (the preview pane shown).
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the pressed values, and the rule worked out from the body's measured
+// overflow and a focusable list written in this file. ACTUAL is CDP's `pressed` property and the body's own `tabindex`.
+// Mutations, each failing here by name: the `aria-pressed` line removed (main.ts) → `#2492 … the selected tier is
+// pressed …`; the body's stop never set (frame.ts) → `#4223 … the preview body is a Tab stop exactly when …`.
+{
+  const pressedOf = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      if (!nodeId) return 'absent';
+      const n = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes.find((x) => !x.ignored);
+      return String(n?.properties?.find((p) => p.name === 'pressed')?.value?.value ?? 'none');
+    } finally { await cdp.detach(); }
+  };
+  const BODY_REACH = 'button, select, textarea, input:not([type="hidden"]), a[href], [contenteditable="true"], [tabindex]:not([tabindex="-1"]), [role="slider"], [role="radio"], [role="tab"], [role="checkbox"], [role="switch"], [role="button"]';
+  const bodyRead = (page) => page.evaluate((reach) => {
+    const b = document.querySelector('[data-p3="preview-body"]');
+    if (!b || !b.getClientRects().length) return null;
+    const scrolls = b.scrollHeight > b.clientHeight + 1 || b.scrollWidth > b.clientWidth + 1;
+    const reachable = [...b.querySelectorAll(reach)].filter((n) => n.tabIndex >= 0 && !n.disabled && n.getClientRects().length > 0).length;
+    return { scrolls, reachable, tabindex: b.getAttribute('tabindex') };
+  }, BODY_REACH);
+  for (const host of ['web', 'figma']) {
+    const where = `#2492 ${host} light 1280`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'brand');
+      await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
+      await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
+      await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
+      await hooks.need(page, '[data-p3="token-path-full"]');
+      const s = [await pressedOf(page, '[data-p3="token-tier-semantic"]'), await pressedOf(page, '[data-p3="token-tier-primitive"]')];
+      ok(s[0] === 'true' && s[1] === 'false', `${where}: Inspect › Token list, the selected tier is pressed and the other is not, Semantics chosen (semantic ${s[0]}, primitive ${s[1]})`);
+      await hooks.click(page.locator('[data-p3="token-tier-primitive"]'), WAIT);
+      await page.waitForFunction(() => !document.querySelector('[data-p3="token-path-full"]'), null, { timeout: 5000 }).catch(() => {});
+      const p = [await pressedOf(page, '[data-p3="token-tier-semantic"]'), await pressedOf(page, '[data-p3="token-tier-primitive"]')];
+      ok(p[0] === 'false' && p[1] === 'true', `${where}: Inspect › Token list, the selected tier is pressed and the other is not, Primitives chosen (semantic ${p[0]}, primitive ${p[1]})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  for (const host of ['web', 'figma']) {
+    for (const w of [1280, 380]) {
+      const where = `#4223 ${host} light ${w}`;
+      const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+      let step = 'boot';
+      try {
+        const seen = { stop: 0, held: 0 };
+        for (const place of NEW_PAGES) {
+          step = place;
+          await goPlace(page, place);
+          if (w === 380) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'), WAIT);
+          await settle(page);
+          await page.waitForTimeout(120);
+          const r = await bodyRead(page);
+          if (!r) { ok(false, `${where} / ${place}: the preview body is drawn and shown (read nothing)`); continue; }
+          const want = r.scrolls && r.reachable === 0;
+          if (want) seen.stop++; else if (r.scrolls) seen.held++;
+          ok((r.tabindex === '0') === want,
+            `${where} / ${place}: the preview body is a Tab stop exactly when it scrolls and holds nothing a keyboard reaches (${JSON.stringify(r)})`);
+          if (w === 380) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'), WAIT);
+        }
+        ok(seen.stop > 0, `${where}: some place drew a scrolling preview body with nothing to reach, so the stop was measured (${JSON.stringify(seen)})`);
+        ok(seen.held > 0, `${where}: some place drew a scrolling preview body that holds controls, so the stop's absence was measured (${JSON.stringify(seen)})`);
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
         ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);

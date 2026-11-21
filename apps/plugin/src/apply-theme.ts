@@ -31,14 +31,15 @@ import { persistInput, restoreInput } from './persist-figma';
 import { emissionOf, stampEmission } from './theme-emission';
 import { fontPreloadApiOf, preflightApiOf, textApiOf } from './theme-ports';
 import type { ThemeHost } from './theme-ports';
-import { buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan } from '@prism3/engine/figma';
+import { buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan, withSharedTree } from '@prism3/engine/figma';
 import { brandTheme, type BrandInput } from '@prism3/engine';
 
 export type { ThemeHost };
 
 /** Every plan one apply writes, built once from the brand. Exported so the paste harness slices the SAME
- *  objects the plugin writes, rather than rebuilding them by a second route. */
-export const themePlans = (input: BrandInput) => {
+ *  objects the plugin writes, rather than rebuilding them by a second route. #4230: the plans share one token tree
+ *  (`withSharedTree`), where each emitter built its own: about nine builds of the same tree, 129 ms of 158. */
+export const themePlans = (input: BrandInput) => withSharedTree(() => {
   const theme = brandTheme(input);
   const textPlan = buildTextStylePlan(theme);
   // Hoisted rather than inlined into the calls below because the #1152 stranded-collection pass
@@ -54,7 +55,7 @@ export const themePlans = (input: BrandInput) => {
   const stylesPlan = buildStylesPlan(theme);
   const gridPlan = buildGridStylePlan(theme);
   return { theme, textPlan, colorFiles, colorPlan, floatPlan, fontPlan, motionPlan, stylesPlan, gridPlan };
-};
+});
 export type ThemePlans = ReturnType<typeof themePlans>;
 
 /** #3170 Q3170.5 A: Apply Theme's seven write stages, in the order `runApplyTheme` writes them. The panel's status strip

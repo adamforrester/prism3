@@ -53,7 +53,7 @@
     { "file": "test-update-owner-run.ts", "floor": 34 },
     { "file": "test-update-cover.ts", "floor": 10 },
     { "file": "test-run-progress.ts", "floor": 66 },
-    { "file": "test-open-large-file.ts", "floor": 72 },
+    { "file": "test-open-large-file.ts", "floor": 73 },
     { "file": "test-theme-pref.ts", "floor": 6 },
     { "file": "test-show-set.ts", "floor": 15 },
     { "file": "test-open-docs.ts", "floor": 6 },
@@ -67,6 +67,7 @@
     { "file": "test-consistency-audit.ts", "floor": 31 },
     { "file": "test-file-facts.ts", "floor": 111 },
     { "file": "test-report-redaction.ts", "floor": 128 },
+    { "file": "test-main-thread.ts", "floor": 22 },
     { "file": "test-file-records.ts", "floor": 7 }
   ],
   "elsewhere": {

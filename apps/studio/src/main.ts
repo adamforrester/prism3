@@ -833,6 +833,8 @@ const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
   const seg = el('div', mix('pvseg', 'tok-seg'));
   for (const [k, label] of [['primitive', 'Primitives'], ['semantic', 'Semantics']] as Array<[TokTier, string]>) {
     const b = hook(el('button', 'pvseg-b' + (tokTier === k ? ' on' : ''), label), `token-tier-${k}`) as HTMLButtonElement;
+    // #2492: the selected tier is said, not only drawn (`.on`).
+    b.setAttribute('aria-pressed', String(tokTier === k));
     b.onclick = () => { if (tokTier !== k) { tokTier = k; tokCat = ''; repaint(); } };
     seg.append(b);
   }
