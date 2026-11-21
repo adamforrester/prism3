@@ -119,10 +119,11 @@ export const componentHeadline = (added: number, skipped: number, misses: number
 export const staleNote = (stale: number, engineVersion: string): string | null => {
   if (stale === 0) return null;
   const one = stale === 1;
+  // #4185 C (DRAFT): the fix the old line offered, deleting the members, is what it warned breaks placed instances.
+  // Update file updates a stale variant in place (its stamp's earlier engine half re-applies, `update-plan.ts`).
   return (
-    `${stale} member${one ? '' : 's'} in this set ${one ? 'was' : 'were'} built from an earlier plan and ${one ? 'was' : 'were'} left in place, ` +
-    `because rebuilding ${one ? 'it' : 'them'} would orphan any instance you have already placed — an instance tracks its main component by id. ` +
-    `This build is engine ${engineVersion}; to pick it up, delete ${one ? 'that member' : 'those members'} and run again, or build into a fresh page.`
+    `${stale} variant${one ? ' was' : 's were'} built by an earlier version of Prism3 (this build is engine ${engineVersion}) and kept, ` +
+    `so placed instances stay linked. Run Update file to update ${one ? 'it' : 'them'} in place.`
   );
 };
 

@@ -1896,7 +1896,7 @@ section('overlap/… — a panel lies on nothing');
   const set = fakeSet(q, 'tag', 0, 0, 600, 400);
   q.appendChild!(mk('FRAME', 'Notes', [], { x: 700, y: 100, _w: 300, _h: 300 }));
   const r = await drawDocPanel(host([q]), set, componentDefs.find((d) => d.id === 'tag')!, { names });
-  ok(!r.drawn && panelsOn(q).length === 0 && panelItems(r).join(' ') === 'No usage panel for tag: "Notes" sits right of the set, where the panel goes. Move it, then build or update again',
+  ok(!r.drawn && panelsOn(q).length === 0 && panelItems(r).join(' ') === 'No usage panel for tag: "Notes" sits right of the set, where the panel goes. Move it, then build again or run Update file',
     `overlap/blocked: no panel drawn, and the run says to move the layer, not to Update, which never moves it: "${panelItems(r).join(' ')}"`);
   // A backdrop reaching into the panel's spot (#2902): the set's own, tagged as Prism3 draws it, never blocks; one a
   // designer placed, untagged, blocks as Notes does (Q172.5), and so does another set's.
@@ -1916,7 +1916,7 @@ section('overlap/… — a panel lies on nothing');
   const handSet = fakeSet(hand, 'tag', 0, 0, 600, 400);
   bg(hand, handSet, null);
   const rh = await drawDocPanel(host([hand]), handSet, tagDef, { names });
-  ok(!rh.drawn && panelItems(rh).join(' ') === 'No usage panel for tag: "inverse-bg" sits right of the set, where the panel goes. Move it, then build or update again',
+  ok(!rh.drawn && panelItems(rh).join(' ') === 'No usage panel for tag: "inverse-bg" sits right of the set, where the panel goes. Move it, then build again or run Update file',
     `overlap/hand backdrop: an untagged inverse-bg still blocks (Q172.5): "${panelItems(rh).join(' ')}"`);
   const other = page('↳ Other backdrop');
   const otherSet = fakeSet(other, 'tag', 0, 0, 600, 400);
@@ -2075,7 +2075,7 @@ const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
 };
 {
   const { p, a, b, ra, rb, uh, targets, livePanel } = await roomPage('↳ Room apply');
-  ok(rb.drawn && !ra.drawn && panelItems(ra).join(' ') === 'No usage panel for badge: "divider" sits right of the set, where the panel goes. Run Update to make room, then the panel is drawn',
+  ok(rb.drawn && !ra.drawn && panelItems(ra).join(' ') === 'No usage panel for badge: "divider" sits right of the set, where the panel goes. Run Update file to make room, then the panel is drawn',
     `overlap/blocked by a set: a Prism3 set later in the row is the one case the run sends to Update ("${panelItems(ra).join(' ')}")`);
   const pre = await previewUpdate(uh, targets);
   const pa = pre.sets.find((x) => x.set === 'badge'), pb = pre.sets.find((x) => x.set === 'divider');

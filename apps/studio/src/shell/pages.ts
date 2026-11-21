@@ -114,7 +114,7 @@ export type Host = 'web' | 'figma';
 
 /** The views a page can call home, with their titles (the preview header shows the title). */
 export const VIEWS = [
-  ['guide', 'Style guide'], ['palettes', 'Palettes'], ['surfaces', 'Surfaces & fills'], ['interactive', 'Interactive'],
+  ['guide', 'Brand overview'], ['palettes', 'Palettes'], ['surfaces', 'Surfaces & fills'], ['interactive', 'Interactive'],  // #4184 decision 8 A: "Brand overview" (DRAFT), so "Style guide" names only the token tables Docs draws into Figma.
   ['type', 'Type'], ['shape', 'Shape'], ['depth', 'Depth & motion'], ['layout', 'Layout'], ['comps', 'Components'],
 ] as const;
 /** The views behind Inspect (F1). They open over any page's preview and are never a page's home. The Decisions log, the
