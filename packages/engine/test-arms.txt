@@ -119,6 +119,9 @@ apps/plugin/test-hand-edit-survival.ts #2956
 apps/plugin/test-hand-edit-survival.ts #3076
 apps/plugin/test-library-about.ts #2914
 apps/plugin/test-loose-host.ts #3209
+apps/plugin/test-main-thread.ts #4160
+apps/plugin/test-main-thread.ts #4230
+apps/plugin/test-main-thread.ts #4237
 apps/plugin/test-manifest.ts #3138
 apps/plugin/test-manifest.ts #3147
 apps/plugin/test-mcp-paste.ts #111
