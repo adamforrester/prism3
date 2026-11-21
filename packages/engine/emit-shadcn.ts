@@ -40,9 +40,13 @@ export type ShadcnMode = keyof typeof SHADCN_MODES;
 type Tree = Record<string, unknown>;
 type Token = { $type?: string; $value?: unknown };
 
-/** The brands the handoff carries: every `<brand>.base.tokens.json` in `dir`, sorted by code point. */
+/**
+ * The brands the handoff carries: every `<brand>.base.tokens.json` in `dir`, sorted by code point. A brand's web base,
+ * `<brand>.web.base.tokens.json` (#4155), shares the suffix but is not a brand: it has no overlays of its own.
+ */
 export const handoffBrands = (dir = OUT_DIR): string[] =>
-  readdirSync(dir).filter((f) => f.endsWith('.base.tokens.json')).map((f) => f.slice(0, -'.base.tokens.json'.length))
+  readdirSync(dir).filter((f) => f.endsWith('.base.tokens.json') && !f.endsWith('.web.base.tokens.json'))
+    .map((f) => f.slice(0, -'.base.tokens.json'.length))
     .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
 export type Handoff = { brand: string; root: string; base: Tree; overlays: Partial<Record<string, Tree>> };
@@ -122,13 +126,13 @@ const colorValue = (h: Handoff, role: string, mode: ShadcnMode): string => {
   return toOklchCss(value);
 };
 
-const dimensionValue = (h: Handoff, role: string): string => {
+export const dimensionValue = (h: Handoff, role: string): string => {
   const { type, value } = resolveRole(h, role, 'light');
   if (type !== 'dimension' || typeof value !== 'string') throw new Error(`${h.brand}: ${role} is not a dimension (${type})`);
   return value;
 };
 
-const fontValue = (h: Handoff, key: string, role: string): string => {
+export const fontValue = (h: Handoff, key: string, role: string): string => {
   const { type, value } = resolveRole(h, role, 'light');
   const families = (Array.isArray(value) ? value : [value]).map(String);
   if (type !== 'fontFamily' || !families.length) throw new Error(`${h.brand}: ${role} is not a font family (${type})`);
