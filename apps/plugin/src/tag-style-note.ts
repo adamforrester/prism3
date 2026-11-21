@@ -17,5 +17,5 @@ export const tagStyleNote = (before: BrandInput | null, after: BrandInput): stri
   const now = after.tagStyle ?? 'pill';
   if (was === now) return '';
   const label = leverManifest.find((l) => l.key === 'tagStyle')?.options?.find((o) => o.value === now)?.label ?? now;
-  return `Tag style is now ${label}. Update components to redraw the tag set.`;
+  return `Tag style is now ${label}. Run Update file to redraw the tag set.`;
 };

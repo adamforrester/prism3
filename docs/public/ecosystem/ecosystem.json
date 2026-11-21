@@ -344,6 +344,7 @@
           "code-input",
           "page-nav-item",
           "page-nav",
+          "skeleton",
           "popover"
         ]
       }

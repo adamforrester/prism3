@@ -85,7 +85,7 @@
  *                  the search limited to the page's top level → `single/moved`.
  *   dropped/…      a fill the plan no longer has is named as a difference (#2335): a text button built under "Text
  *                  button hover: Fill" and planned under "Text & icon only" (#2324) lists its hover and pressed wash,
- *                  `fill: the plan says none, the file has <the wash>`, per variable with its member count; and the
+ *                  `fill: Prism3 expects none, the file has <the wash>`, per variable with its member count; and the
  *                  capture leaves out a member with a fill added by hand where its plan has none. Mutation: `droppedFills` never called → `dropped/dry run`,
  *                  `dropped/capture`.
  *   file/…         a def with no set is missing, and the verdict's `lines` (#2177) are one per item, the list the
@@ -616,7 +616,7 @@ section('capture — the one-time record for sets built before the baseline');
   ok(pre.counts.noBaseline === 45, `premise: with the records cleared, all 45 read noBaseline (${pre.counts.noBaseline})`);
   const r = await captureBaselines(b.shim, [{ def: TAG, plans: b.plans }]);
   const s = r.sets[0];
-  ok(s.recorded === 44 && s.skipped.length === 1 && s.skipped[0].member === edited.name && /differs from the plan/.test(s.skipped[0].reason),
+  ok(s.recorded === 44 && s.skipped.length === 1 && s.skipped[0].member === edited.name && /differs from what Prism3 expects/.test(s.skipped[0].reason),
     `capture/refuses: 44 recorded; the edited member is left without a record, because recording it would launder the edit (${s.recorded}, ${JSON.stringify(s.skipped)})`);
   ok(JSON.stringify(membersOf(b.set).map((m) => (m.getSharedPluginData as (ns: string, k: string) => string)(NS, STAMP_KEY))) === JSON.stringify(stamps), 'capture/stamps: no stamp was rewritten');
   const post = (await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }])).sets[0];
@@ -641,7 +641,7 @@ section('earlier — a captured file built by an earlier plugin reads no changes
   ok(r.sets[0].counts.revisionUnknown === 45, `premise: all 45 read as from an earlier plugin (${r.sets[0].counts.revisionUnknown})`);
   const v = previewVerdict(r);
   ok(v.ok && v.headline === '✓ No changes found', `earlier/headline: members from an earlier plugin are not counted as changes (${v.headline})`);
-  ok(v.lines[0] === `${r.sets[0].set}: no changes (45 members).`, `earlier/set line: the set reads no changes (${v.lines[0]})`);
+  ok(v.lines[0] === `${r.sets[0].set}: no changes (45 variants).`, `earlier/set line: the set reads no changes (${v.lines[0]})`);
   ok(v.lines.includes('45 built by an earlier plugin. Update them to bring them current.'), `earlier/line: a line of its own flags them (${JSON.stringify(v.lines)})`);
   // A real difference on one member still counts.
   (childNamed(membersOf(b.set)[3], 'content').setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varId(b, 'space/0') });
@@ -706,7 +706,7 @@ section('converged — a set whose only non-current members are not built by Pri
   const v = previewVerdict(both);
   // The headline words are the existing ones, typed here; #2464 changes which sets reach them, not the words.
   ok(v.ok && v.headline === '✓ All sets up to date', `converged/headline: a file whose only non-current members are not built by Prism3 reads "✓ All sets up to date" (got "${v.headline}")`);
-  ok(v.lines[0] === 'tag: up to date (47 members). 2 not built by Prism3, left as they are.',
+  ok(v.lines[0] === 'tag: up to date (47 variants). 2 not built by Prism3, left as they are.',
     `converged/set line: the set reads up to date and still counts the 2 not built by Prism3 (got "${v.lines[0]}")`);
   // With a real change beside them, the set still counts: the content gap moved on every member.
   const next = (b.plans.map((x) => JSON.parse(JSON.stringify(x))) as AnatomyPlan[]);
@@ -723,7 +723,7 @@ section('converged — a set whose only non-current members are not built by Pri
   ok(a.counts.current === 43 && a.counts.unstamped === 2 && a.adoptable.length === 2 && a.counts.add === 0 && a.changes.length === 0,
     `premise: 43 current and 2 not built by Prism3 on planned coordinates, both adoptable, nothing to add (${JSON.stringify(a.counts)}, ${a.adoptable.length} adoptable)`);
   const av = previewVerdict({ sets: [a], missing: [], refused: [] });
-  ok(av.headline === '✓ No changes found' && av.lines[0] === 'tag: no changes (45 members). 2 not built by Prism3, left as they are. Adopt can claim them.',
+  ok(av.headline === '✓ No changes found' && av.lines[0] === 'tag: no changes (45 variants). 2 not built by Prism3, left as they are. Adopt can claim them.',
     `converged/adoptable: a set whose only other members Adopt could claim reads "no changes" and names them, never up to date (${av.headline}; ${av.lines[0]})`);
 }
 {
@@ -736,7 +736,7 @@ section('converged — a set whose only non-current members are not built by Pri
   ok(p.counts.members === 576 && p.counts.unstamped === 1 && p.adoptable.length === 1 && p.counts.add === 0 && p.changes.length === 0,
     `premise: Button's 576 members, one not built by Prism3 on a planned coordinate, adoptable, nothing to add (${JSON.stringify(p.counts)}, ${p.adoptable.length} adoptable)`);
   const line = previewLine(p);
-  ok(line === 'button: no changes (576 members). 1 not built by Prism3, left as it is. Adopt can claim it.',
+  ok(line === 'button: no changes (576 variants). 1 not built by Prism3, left as it is. Adopt can claim it.',
     `converged/adoptable one: a set with one member Adopt could claim reads "… Adopt can claim it." (got "${line}")`);
 }
 
@@ -762,7 +762,7 @@ section('adopt — the one-time claim of members Prism3 did not build (#2283, §
   const node = planned;
   const r = await adoptMembers(b.shim, [{ def: TAG, plans: b.plans }]);
   const s = r.sets[0];
-  ok(s.adopted === 1 && s.skipped.length === 1 && s.skipped[0].member === offPlan.name && s.skipped[0].reason === 'not in the plan',
+  ok(s.adopted === 1 && s.skipped.length === 1 && s.skipped[0].member === offPlan.name && s.skipped[0].reason === 'not a variant Prism3 builds',
     `adopt/only planned: the member on a planned coordinate is adopted; the one off the plan is left as it is (${s.adopted}, ${JSON.stringify(s.skipped)})`);
   ok(stampOf(offPlan) === '' && recordOf(offPlan) === '', 'adopt/only planned: nothing is written on the member left as it is');
   ok(writes.length === 2 && writes[writes.length - 1] === STAMP_KEY && writes[0] === BASELINE_KEY,
@@ -775,7 +775,7 @@ section('adopt — the one-time claim of members Prism3 did not build (#2283, §
   const again = await adoptMembers(b.shim, [{ def: TAG, plans: b.plans }]);
   ok(again.sets[0].adopted === 0, `adopt/once: a second Adopt adopts nothing (${again.sets[0].adopted})`);
   const v = adoptVerdictText(r);
-  ok(v.headline === '✓ 1 adopted' && JSON.stringify(v.lines) === JSON.stringify([`${s.set}: 1 member adopted, 1 left as it is (not in the plan).`, 'Run an update to bring it in line with the plan.']),
+  ok(v.headline === '✓ 1 adopted' && JSON.stringify(v.lines) === JSON.stringify([`${s.set}: 1 variant adopted, 1 left as it is (not a variant Prism3 builds).`, "Run Update file to bring it in line with Prism3's values."]),
     `adopt/words: the verdict counts what it adopted and what it left (${v.headline}; ${JSON.stringify(v.lines)})`);
 }
 
@@ -860,7 +860,7 @@ section('adopt — a set the dry run refuses is refused whole; a held coordinate
   const ledger: ComponentRename[] = [{ def: TAG, kind: 'value', axis: 'size', from: 'sm', to: 'small', issue: 2265 }];
   const r = await adoptMembers(b.shim, [{ def: TAG, plans: b.plans }], undefined, ledger);
   const s = r.sets[0];
-  ok(!!s && s.adopted === 0 && s.skipped.length === 1 && s.skipped[0].member === String(theirs.name) && s.skipped[0].reason === 'a Prism3 member has this coordinate' && stampOf(theirs) === '',
+  ok(!!s && s.adopted === 0 && s.skipped.length === 1 && s.skipped[0].member === String(theirs.name) && s.skipped[0].reason === 'a Prism3 variant has this coordinate' && stampOf(theirs) === '',
     `adopt/held: the hand-made member on the coordinate Prism3's member holds is left as it is (${JSON.stringify(r).slice(0, 200)})`);
 }
 {
@@ -892,7 +892,7 @@ section('adopt — a set the dry run refuses is refused whole; a held coordinate
 section('differ — a member that differs from its plan is reported by part and field, plan against file (#2295)');
 {
   // #2295's reproduction: image-placeholder's aspect lock reads back as Figma's `{x, y}` Vector. Read as a number,
-  // every member of a fresh build "differs from the plan in 1 place", which is what the NB master showed.
+  // every member of a fresh build "differs from what Prism3 expects in 1 place", which is what the NB master showed.
   const IMG = 'image-placeholder';
   const b = await build(IMG);
   for (const m of membersOf(b.set)) (m.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, '');
@@ -907,13 +907,13 @@ section('differ — a member that differs from its plan is reported by part and 
   (childNamed(m, 'content').setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varId(b, 'space/0') });
   const v = previewVerdict(await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }]));
   const named = v.lines.filter((l) => l.startsWith('tag · content · bound: '));
-  ok(named.length === 1 && named[0].includes(`the plan says itemSpacing→${planned}`) && /the file has itemSpacing→\S*space\/0/.test(named[0]),
+  ok(named.length === 1 && named[0].includes(`Prism3 expects itemSpacing→${planned}`) && /the file has itemSpacing→\S*space\/0/.test(named[0]),
     `differ/dry run: the one planted field is named, with the plan's value and the file's (${JSON.stringify(named)})`);
   // The capture of a set built before records, same planted field.
   for (const x of membersOf(b.set)) (x.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, '');
   const c = captureVerdictText(await captureBaselines(b.shim, [{ def: TAG, plans: b.plans }]));
   const capNamed = c.lines.filter((l) => l.startsWith(`tag · ${m.name} / content · bound: `));
-  ok(capNamed.length === 1 && capNamed[0].includes(`the plan says itemSpacing→${planned}`) && /the file has itemSpacing→\S*space\/0/.test(capNamed[0]),
+  ok(capNamed.length === 1 && capNamed[0].includes(`Prism3 expects itemSpacing→${planned}`) && /the file has itemSpacing→\S*space\/0/.test(capNamed[0]),
     `differ/capture: the member left out is named with what differs (${JSON.stringify(capNamed)}; ${JSON.stringify(c.lines.slice(0, 1))})`);
 }
 
@@ -1038,7 +1038,7 @@ section('dropped — a fill the plan no longer has is named, plan against file (
     return String(id ? b.ports.varName(id) : 'NO BOUND FILL') + at;
   };
   const want = (await Promise.all(['hover', 'pressed'].flatMap((st) => ['default', 'inverse'].map((g) => wash(st, g)))))
-    .map((v) => `button · the member · fill: the plan says none, the file has ${v} (12 members).`);
+    .map((v) => `button · the member · fill: Prism3 expects none, the file has ${v} (12 variants).`);
   // The reference brand's text button takes its opaque hover fill under Fill (#3071, owner Q824 A), not the wash.
   ok(want.every((l) => /interactive\/primary\/hover-fill\/(hover|pressed) \(/.test(l)), `premise: the built text hover and pressed members carry the primary opaque hover fill (${JSON.stringify(want)})`);
   const v = previewVerdict(await previewUpdate(b.shim, [{ def: 'button', plans: textOnly }]));
@@ -1057,7 +1057,7 @@ section('dropped — a fill the plan no longer has is named, plan against file (
   for (const x of membersOf(b.set)) (x.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, '');
   const c = captureVerdictText(await captureBaselines(b.shim, [{ def: TAG, plans: b.plans }]));
   const named = c.lines.filter((l) => l.startsWith(`tag · ${m.name} / content · fill: `));
-  ok(JSON.stringify(named) === JSON.stringify([`tag · ${m.name} / content · fill: the plan says none, the file has #ff0000 at 50%.`]),
+  ok(JSON.stringify(named) === JSON.stringify([`tag · ${m.name} / content · fill: Prism3 expects none, the file has #ff0000 at 50%.`]),
     `dropped/capture: the member with a fill added by hand is left out, the fill named (${JSON.stringify(named)}; ${JSON.stringify(c.lines.slice(0, 1))})`);
 }
 
@@ -1073,10 +1073,10 @@ section('file — a def with no set is missing; the verdict says nothing changed
   // The fixture shim makes its variables in the order the components bind them, not the emission's, so it reads as out of
   // canonical order (#2860). That report has its own block below; here it is set aside.
   const lines = v.lines.filter((l) => !l.startsWith('Color variables: '));
-  ok(lines.length === 3 && lines[0].startsWith(`${r.sets[0].set}: `) && lines[1] === 'Not in this file: badge.'
+  ok(lines.length === 3 && lines[0].startsWith(`${r.sets[0].set}: `) && lines[1] === 'Not in this file: badge. Build them first, then run Update file again.'
     && lines[2] === 'This was a check only. Nothing in the file changed.', `file/lines: one line per set, then each closing line (${JSON.stringify(lines)})`);
   const c = captureVerdictText({ sets: [{ def: TAG, set: 'Tag', recorded: 2, skipped: [] }], missing: ['badge'], refused: [{ def: 'x', reason: 'two sets' }] });
-  ok(JSON.stringify(c.lines) === JSON.stringify(['Tag: 2 members recorded.', 'x: not recorded. two sets.', 'Not in this file: badge.']),
+  ok(JSON.stringify(c.lines) === JSON.stringify(['Tag: 2 variants recorded.', 'x: not recorded. two sets.', 'Not in this file: badge. Build them first, then run Update file again.']),
     `file/capture lines: one line per set, refusal and missing list (${JSON.stringify(c.lines)})`);
 }
 
@@ -1246,12 +1246,12 @@ section('#3474 nested main — a change that reaches a member only through its n
 // "1 left as it is", "2 left as they are". The lines are typed here whole. Mutation: either verdict back to a fixed
 // "left as they are" → `#3275 Record as built, 1 left` (or `#3275 Adopt, 1 left`) by name.
 {
-  const skip = (k: number) => Array.from({ length: k }, (_, i) => ({ member: `m${i}`, reason: 'not in the plan' }));
+  const skip = (k: number) => Array.from({ length: k }, (_, i) => ({ member: `m${i}`, reason: 'not a variant Prism3 builds' }));
   for (const [k, words] of [[1, 'it is'], [2, 'they are']] as const) {
     const c = captureVerdictText({ sets: [{ def: 'tag', set: 'Tag', recorded: 3, skipped: skip(k) }], missing: [], refused: [] });
-    ok(c.lines[0] === `Tag: 3 members recorded, ${k} left as ${words} (not in the plan).`, `#3275 Record as built, ${k} left: the pronoun agrees with the count (${JSON.stringify(c.lines[0])})`);
+    ok(c.lines[0] === `Tag: 3 variants recorded, ${k} left as ${words} (not a variant Prism3 builds).`, `#3275 Record as built, ${k} left: the pronoun agrees with the count (${JSON.stringify(c.lines[0])})`);
     const a = adoptVerdictText({ sets: [{ def: 'tag', set: 'Tag', adopted: 1, skipped: skip(k) }], missing: [], refused: [] });
-    ok(a.lines[0] === `Tag: 1 member adopted, ${k} left as ${words} (not in the plan).`, `#3275 Adopt, ${k} left: the pronoun agrees with the count (${JSON.stringify(a.lines[0])})`);
+    ok(a.lines[0] === `Tag: 1 variant adopted, ${k} left as ${words} (not a variant Prism3 builds).`, `#3275 Adopt, ${k} left: the pronoun agrees with the count (${JSON.stringify(a.lines[0])})`);
   }
 }
 

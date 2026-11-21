@@ -429,7 +429,7 @@ lands without a second bump.
 | `CONTRACT_VERSION` | PR | guaranteed paths added |
 |---|---|---|
 | 15.1.0 | (#3408, Q-HT1 A) | `space.550`, the 44px step beside the half steps `space.150` and `space.250`: the hit-target floor a medium or large Button binds in code |
-| 15.2.0 | (#4110, OD-A3 A) | `icon.size.2xl`, 64px: Avatar's x-large size, one on-grid step past the icon ladder's five control-paired steps |
+| 15.3.0 | (#4110, OD-A3 A) | `icon.size.2xl`, 64px: Avatar's x-large size, one on-grid step past the icon ladder's five control-paired steps |
 
 ## Change classification
 

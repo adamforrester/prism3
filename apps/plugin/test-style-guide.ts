@@ -113,7 +113,7 @@
  *      included, and one emptied by hand never removed; an inverse family with no default past Semantic colors' last
  *      column in Inverse colors; effect styles below the groups; a header set with no Size=Large.
  *  38. A GROUP YOU MADE (Q412 A, superseded 2026-10-19): its inverse guides move out to Inverse colors, its defaults into
- *      one grid, once; the cleanup offer for a table the generator no longer draws.
+ *      one grid, once; the cleanup offer for a table Prism3 no longer draws.
  *  39. THE MEASURED FILE (owner decision, 2026-10-19): a fixed, clipping frame you made with the inverse guides in a second
  *      row, running over the frames below. Inverse colors is its own titled group 320 below, column-aligned (read off the
  *      shim's layout model); the fixed frame grows to fit; the frames below move clear, order and gap kept; a rerun is
@@ -1611,7 +1611,7 @@ const main = async (): Promise<void> => {
     ok(!tableFrame(f.sem, 'Scrim') && JSON.stringify(again.deleted) === JSON.stringify(['Style guide — Scrim']) && again.kept.length === 0, '6: an unedited stale table is deleted');
     const s = styleGuideSummary(again);
     ok(s.summary.includes('Text: 1 added, 1 removed, 1 changed'), '6: the summary names the changes');
-    ok(s.summary.includes('1 table the generator no longer draws was deleted, unedited: Style guide — Scrim'), '6: the summary names the deleted table');
+    ok(s.summary.includes('1 table Prism3 no longer draws was deleted, unedited: Style guide — Scrim'), '6: the summary names the deleted table');
   }
 
   console.log('7. skips');
@@ -1745,7 +1745,7 @@ const main = async (): Promise<void> => {
     ok(tablesOn(f9.sem).length === 39 && tablesOn(f9.prim).length === 21 && again.tables.every((t) => t.status === 'updated'), '9: rerun: every table updated in place, no duplicates');
     ok(JSON.stringify(again.replaced) === JSON.stringify(['Style guide — Nbds']) && again.stale.length === 0, '9: the per-root table is reported as replaced, not stale');
     ok(old.parent === f9.sem && JSON.stringify(again.kept) === JSON.stringify([{ name: 'Style guide — Nbds', reason: 'unrecorded' }]), '9: the per-root table has no fingerprint, so it is left in place');
-    ok(styleGuideSummary(again).summary.includes('1 table the generator no longer draws was left in place — drawn before edits were tracked, so the generator never deletes it; delete it by hand if no longer needed: Style guide — Nbds'), '9: the summary names the kept table and why it is kept');
+    ok(styleGuideSummary(again).summary.includes('1 table Prism3 no longer draws was left in place — drawn before edits were tracked, so Prism3 never deletes it; delete it by hand if no longer needed: Style guide — Nbds'), '9: the summary names the kept table and why it is kept');
     ok(prim.name === 'Style guide — Primary — nbds' && pTitle.characters === 'Primary — nbds', `9: an earlier run's title is rewritten to name its root (${prim.name} / ${pTitle.characters})`);
     ok(nTitle.characters === 'Grays' && neu.name === 'Style guide — Neutral — nbds', '9: a title the designer typed is kept');
 
@@ -1923,7 +1923,7 @@ const main = async (): Promise<void> => {
     const light = tableFrame(a.sh.prim, 'Light')!;
     ok(cellOf(dark) === a.at.cell && cellOf(light) === '0,1' && dark.parent === light.parent && dark.parent?.gridColumnCount === 2,
       `11: the group closes over the deleted table: Dark takes Legacy's cell ${a.at.cell}, Light the next, two columns (${cellOf(dark)}, ${cellOf(light)}; ${dark.parent?.gridColumnCount} columns)`);
-    ok(summaryOf(a.r).includes('1 table the generator no longer draws was deleted, unedited: Style guide — Legacy'), '11: the summary names the deleted table');
+    ok(summaryOf(a.r).includes('1 table Prism3 no longer draws was deleted, unedited: Style guide — Legacy'), '11: the summary names the deleted table');
     ok(styleGuideSummary(a.r).headline === '✓ 2 tables, 1 deleted', `11: the headline counts the deletion: "✓ 2 tables, 1 deleted" (got "${styleGuideSummary(a.r).headline}")`);
 
     // A VARIABLE'S VALUE MOVING is not an edit. The host repaints a bound paint's color, and carries a color
@@ -1969,14 +1969,14 @@ const main = async (): Promise<void> => {
       ok(keptAs(r, 'edited') && t.parent !== null, `11: a replaced table with ${what} by hand is kept, reported as edited`);
     }
     const b = await afterEdit((t) => { valueText(t).characters = '#7F7F7F'; });
-    ok(summaryOf(b.r).includes('1 table the generator no longer draws was left in place — edited: Style guide — Legacy'), '11: the summary names the edited table and its reason');
+    ok(summaryOf(b.r).includes('1 table Prism3 no longer draws was left in place — edited: Style guide — Legacy'), '11: the summary names the edited table and its reason');
 
     // MOVED (#2801: a guide sits in its group, which places it): dragged out of its group onto the page, into a designer's
     // frame, onto another page at the same x and y. Moved to another cell of its own group, it is still where the
     // generator keeps it, and is deleted.
     const across = await afterEdit((t, sh) => { const [x, y] = [t.x, t.y]; sh.prim.appendChild(t); t.x = x + 400; t.y = y; });
     ok(keptAs(across.r, 'moved'), '11: a guide dragged out of its group onto the page is kept, reported as moved');
-    ok(summaryOf(across.r).includes('1 table the generator no longer draws was left in place — moved: Style guide — Legacy'), '11: the summary says it was moved, not edited');
+    ok(summaryOf(across.r).includes('1 table Prism3 no longer draws was left in place — moved: Style guide — Legacy'), '11: the summary says it was moved, not edited');
     const down = await afterEdit((t) => { const g = t.parent!; g.gridColumnCount = 2; g.gridColumnSizes = [{ type: 'HUG' }, { type: 'HUG' }]; t.setGridChildPosition(0, 1); });
     ok(JSON.stringify(down.r.deleted) === JSON.stringify([LEGACY]) && down.t.removed, `11: a guide moved to another cell of its own group is still the generator's: deleted (${JSON.stringify(down.r.kept)})`);
     const nested = await afterEdit((t, sh) => {
@@ -1996,7 +1996,7 @@ const main = async (): Promise<void> => {
     dropLegacy(d);
     const rd = await draw(d.api, contract, WITH_CORE);
     ok(!legD.removed && JSON.stringify(rd.stale) === JSON.stringify([LEGACY]) && keptAs(rd, 'unrecorded'), '11: a table with no fingerprint is kept');
-    ok(summaryOf(rd).includes('1 table the generator no longer draws was left in place — drawn before edits were tracked, so the generator never deletes it; delete it by hand if no longer needed: Style guide — Legacy'), '11: the summary says a table from before the fingerprint is never deleted, and to delete it by hand');
+    ok(summaryOf(rd).includes('1 table Prism3 no longer draws was left in place — drawn before edits were tracked, so Prism3 never deletes it; delete it by hand if no longer needed: Style guide — Legacy'), '11: the summary says a table from before the fingerprint is never deleted, and to delete it by hand');
 
     // STALE and unedited, while the run still draws core: deleted.
     const st = await fullFile();
@@ -2031,7 +2031,7 @@ const main = async (): Promise<void> => {
     const re = await draw(e.api, contract, WITH_CORE);
     ok(!foreign.removed && foreign.parent === e.prim && foreign.x === 3000 && foreign.y === 0 && Object.keys(foreign.pluginData).length === 0, '11: a frame the generator did not make, named like its table, is never touched');
     ok(legE.removed && copy.parent === e.prim && JSON.stringify(re.deleted) === JSON.stringify([LEGACY]) && JSON.stringify(re.kept) === JSON.stringify([{ name: LEGACY, reason: 'copied' }]), '11: a duplicate of a generator table is never deleted; the table it copies is');
-    ok(summaryOf(re).includes('1 table the generator no longer draws was left in place — a copy: Style guide — Legacy'), '11: the summary says it is a copy');
+    ok(summaryOf(re).includes('1 table Prism3 no longer draws was left in place — a copy: Style guide — Legacy'), '11: the summary says it is a copy');
 
     // An unedited table the host will not remove is named as such, not as edited.
     const nr = await afterEdit((t) => { (t as unknown as { remove: undefined }).remove = undefined; });
@@ -2043,7 +2043,7 @@ const main = async (): Promise<void> => {
     g0.vars.splice(0);
     const r0 = await draw(g0.api, contract);
     ok(r0.deleted.length === 0 && r0.kept.length === 30 && r0.kept.every((k) => k.reason === 'nothing-drawn') && tablesOn(g0.prim).length + tablesOn(g0.sem).length === 30, `11: a run that draws nothing deletes nothing: 30 tables kept (${r0.deleted.length} deleted)`);
-    ok(summaryOf(r0).includes('30 tables the generator no longer draws were left in place — nothing was drawn this run: ') && summaryOf(r0).includes(' and 27 more'), '11: the summary gives the reason and caps the list at three names');
+    ok(summaryOf(r0).includes('30 tables Prism3 no longer draws were left in place — nothing was drawn this run: ') && summaryOf(r0).includes(' and 27 more'), '11: the summary gives the reason and caps the list at three names');
     // The variables moved to a library: no local collection, no local variable. Every table's collection is gone.
     const lib = await fullFile();
     await draw(lib.api, contract);
@@ -2064,7 +2064,7 @@ const main = async (): Promise<void> => {
     await draw(many.api, contract, { collections: ['color'] });
     for (let i = many.vars.length - 1; i >= 0; i--) if (/^pds3\/color\/(scrim|veil|field|disabled)\//.test(many.vars[i].name)) many.vars.splice(i, 1);
     const rm = await draw(many.api, contract, { collections: ['color'] });
-    ok(rm.deleted.length === 4 && summaryOf(rm).includes('4 tables the generator no longer draws were deleted, unedited: ') && summaryOf(rm).includes(' and 1 more') && styleGuideSummary(rm).headline === '✓ 15 tables, 4 deleted', `11: four deleted: three named and "and 1 more"; headline "✓ 15 tables, 4 deleted" (got "${styleGuideSummary(rm).headline}", ${rm.deleted.length})`);
+    ok(rm.deleted.length === 4 && summaryOf(rm).includes('4 tables Prism3 no longer draws were deleted, unedited: ') && summaryOf(rm).includes(' and 1 more') && styleGuideSummary(rm).headline === '✓ 15 tables, 4 deleted', `11: four deleted: three named and "and 1 more"; headline "✓ 15 tables, 4 deleted" (got "${styleGuideSummary(rm).headline}", ${rm.deleted.length})`);
   }
 
   console.log("12. the owner's grid model: a table dragged wider");
@@ -2185,11 +2185,11 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(p13.unmatched) === JSON.stringify([PRIMARY]) && p13.notes.includes(`No table is titled or keyed "${PRIMARY}"; this run draws no tables`), '13: a name asked for in a run that draws no color is still reported');
 
     // A RENAMED GROUP, drawn under its new title by a filtered run: the new table is created, and the old one, which
-    // the generator no longer draws, stays until an unfiltered run judges it — and the report says so.
+    // Prism3 no longer draws, stays until an unfiltered run judges it — and the report says so.
     for (const v of f13.vars) if (v.name.startsWith('nbds/core/palette/info/')) v.name = v.name.replace('/info/', '/notice/');
     const r6 = await draw(f13.api, contract, { tables: ['Notice — nbds'] });
     ok(r6.tables.length === 1 && r6.tables[0].status === 'created' && !!tableFrame(f13.prim, 'Info — nbds')
-      && styleGuideSummary(r6).summary.includes('Style guide — Info — nbds stays in place: the generator no longer draws it, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete it'),
+      && styleGuideSummary(r6).summary.includes('Style guide — Info — nbds stays in place: Prism3 no longer draws it, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete it'),
       `13: a filtered run that draws a renamed group's new table says the old one stays until a run without a Tables filter (${styleGuideSummary(r6).summary.slice(0, 200)})`);
   }
 
@@ -4204,7 +4204,7 @@ const main = async (): Promise<void> => {
       `37: with no Size=Large header, a group's title uses Size=Medium, and the run says so (${rmh.misses.filter((m) => m.includes('Size=')).join(' / ')})`);
   }
 
-  console.log('38. a group you made gives its inverse guides to Inverse colors (owner decision, 2026-10-19; Q412 A, #2816); a table the generator no longer draws is offered, removed only on confirm');
+  console.log('38. a group you made gives its inverse guides to Inverse colors (owner decision, 2026-10-19; Q412 A, #2816); a table Prism3 no longer draws is offered, removed only on confirm');
   {
     const KEY = 'prism3-style-guide';
     const keyOf = (k: N): string => k.pluginData[KEY] ?? '';
@@ -4324,8 +4324,8 @@ const main = async (): Promise<void> => {
     const rc = await draw(c.api, contract);
     ok(!old.removed && old.parent === box && JSON.stringify(rc.retired) === JSON.stringify([{ id: String(old.id), name: 'Style guide — Inverse' }])
       && rc.kept.some((k) => k.name === 'Style guide — Inverse' && k.reason === 'copied'),
-      `38: a run never removes a table the generator no longer draws by itself; it lists it as an offer (${JSON.stringify(rc.retired)})`);
-    ok(styleGuideSummary(rc).summary.includes('1 table the generator no longer draws can be removed on the Style guides page, once you confirm'),
+      `38: a run never removes a table Prism3 no longer draws by itself; it lists it as an offer (${JSON.stringify(rc.retired)})`);
+    ok(styleGuideSummary(rc).summary.includes('1 table Prism3 no longer draws can be removed on the Style guides page, once you confirm'),
       '38: the run\'s result offers the cleanup');
     // Not confirmed: nothing. Confirmed with a table that is still drawn: that one is left, by id.
     const none = await removeRetiredTables(c.api, contract, []);

@@ -236,7 +236,8 @@ Then run the compile loop. Say in the prose which picks the report left open, so
 ## If you have the MCP surface
 
 `list_levers` enumerates the knobs and their allowed values. `theme_from_brief` takes a
-`design.md` brief (frontmatter and prose) directly — the callable form of this skill's loop.
+`design.md` brief in either dialect directly — the callable form of this skill's loop. For a
+standard brief it also returns `xWarnings`, the `x-prism3:` keys and typography faces it skipped, as the CLI prints them.
 `theme_brand` compiles a `BrandInput` you already hold. Both return the contract results,
 alias integrity and the notes by default; the token tree and the `.ai.json` come back only
 when asked for with `include`, and they are large. To get the actual files, call

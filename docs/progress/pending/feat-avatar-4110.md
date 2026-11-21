@@ -18,7 +18,8 @@ the wireframe in #4148. Engine {{ENGINE_VERSION}}; `CONTRACT_VERSION` 15.2.0 →
   `ICON_PAIRED` in `scale.ts` keeps the #324 pairing with `size.*` to the first five steps.
 - **`person` and `organization`**, two glyphs drawn for this project on the 24px grid (OD-A6 A), approved as drawn (2026-11-20).
 - **`PartDef.corner` takes a box** as well as a glyph. Both executors' corner passes already placed any child by name,
-  so neither executor file changed and `EXECUTOR_REVISION` does not move; only the projector and the validator did.
+  so neither executor file changed; only the projector and the validator did. `EXECUTOR_REVISION` still rises, to 68,
+  because `'avatar'` joins `CANVAS_FURNITURE`, which counts as executor code since #4238 (67 went to Skeleton, #4109).
 
 ### Diagnosis worth keeping
 

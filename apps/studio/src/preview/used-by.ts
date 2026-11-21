@@ -27,7 +27,8 @@ export const USED_BY = {
         "Avatar",
         "SegmentedControl",
         "Pagination",
-        "Banner"
+        "Banner",
+        "Skeleton"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -44,7 +45,8 @@ export const USED_BY = {
         "Avatar",
         "Tag",
         "List",
-        "Slider"
+        "Slider",
+        "Skeleton"
       ],
       "radius.sm": [
         "ProviderLogo",
@@ -58,7 +60,8 @@ export const USED_BY = {
         "Counter",
         "SearchField",
         "CardNumberField",
-        "CodeInput"
+        "CodeInput",
+        "Skeleton"
       ],
       "radius.xl": [
         "Toast"
@@ -83,7 +86,8 @@ export const USED_BY = {
         "Avatar",
         "SegmentedControl",
         "Pagination",
-        "Banner"
+        "Banner",
+        "Skeleton"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -100,7 +104,8 @@ export const USED_BY = {
         "Avatar",
         "Tag",
         "List",
-        "Slider"
+        "Slider",
+        "Skeleton"
       ],
       "radius.sm": [
         "ProviderLogo",
@@ -114,7 +119,8 @@ export const USED_BY = {
         "Counter",
         "SearchField",
         "CardNumberField",
-        "CodeInput"
+        "CodeInput",
+        "Skeleton"
       ],
       "radius.xl": [
         "Toast"
@@ -134,7 +140,8 @@ export const USED_BY = {
         "Avatar",
         "SegmentedControl",
         "Pagination",
-        "Banner"
+        "Banner",
+        "Skeleton"
       ],
       "radius.none": [
         "Button",
@@ -163,14 +170,16 @@ export const USED_BY = {
         "Avatar",
         "Tag",
         "List",
-        "Slider"
+        "Slider",
+        "Skeleton"
       ],
       "radius.sm": [
         "ProviderLogo",
         "Badge",
         "Avatar",
         "SegmentedControl",
-        "Counter"
+        "Counter",
+        "Skeleton"
       ],
       "radius.xl": [
         "Toast"
@@ -204,7 +213,8 @@ export const USED_BY = {
         "Avatar",
         "SegmentedControl",
         "Pagination",
-        "Banner"
+        "Banner",
+        "Skeleton"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -221,14 +231,16 @@ export const USED_BY = {
         "Avatar",
         "Tag",
         "List",
-        "Slider"
+        "Slider",
+        "Skeleton"
       ],
       "radius.sm": [
         "ProviderLogo",
         "Badge",
         "Avatar",
         "SegmentedControl",
-        "Counter"
+        "Counter",
+        "Skeleton"
       ],
       "radius.xl": [
         "Toast"
