@@ -14,11 +14,10 @@ run, STALE once it passes.
 **Trap.** The `test.ts` import of the gate moves every line below it by one, so the public guide's cite of `test.ts`
 (`docs/public/guides/index.md`) moves with it; `lint-guide-claims` names the stale range (delta review on #4289).
 
-**Fix carried here (#4428).** On a tree with `main` merged in, both gates crashed: `aurora.web: no
-aurora.web.dark.overlay.tokens.json in the handoff`. Since #4282 `out/` commits a web-only `<brand>.web.base.tokens.json`,
-and `handoffBrands` (#4286) read every `*.base.tokens.json` as a brand. It now keeps a name only when the full tree
-`<brand>.tokens.json` sits beside it. A `test.ts` arm plants a web base, so the regression fails by name (`#4428 a
-web-only base is not read as a brand`) rather than as a thrown error.
+**Regression arm (#4428).** On a tree with `main` merged in, both gates once crashed on a web-only
+`<brand>.web.base.tokens.json` (#4282) read as a brand. #4155's filter in `handoffBrands` already skips it, so #4289 adds
+no filter and no change note; a `test.ts` arm plants a web base, so dropping that filter fails by name (`#4428 a web-only
+base is not read as a brand`) rather than as a thrown error.
 
 **Checked.** Mutations, each failing by name:
 - prism3's dark `primary` emitted as `oklch(0.25 0.1 266.7)` fails `prism3 dark: primary on background 1.19 < 4.5 — BELOW

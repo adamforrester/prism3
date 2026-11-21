@@ -45539,9 +45539,10 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(k.verdict === 'failing' && k.note.includes('BELOW ACCEPTED 4.24'), `#2997 a KNOWN pair below its accepted floor fails by name (got ${k.verdict}${k.note})`);
 }
 
-// #4428: the shadcn projector's brand walk takes a brand only when its full tree sits beside its base. Since #4282 the
+// #4428: a regression arm for #4155's filter in the shadcn projector's brand walk (`handoffBrands`). Since #4282 the
 // handoff also carries a web-only `<brand>.web.base.tokens.json` with no overlays; read as a brand, it crashed both
 // Chromium gates. A planted web base is skipped, and every brand the walk returns over the committed handoff reads.
+// BY-NAME MUTATION: drop the `.web.base.tokens.json` exclusion from `handoffBrands` → both arms below fail.
 {
   const dir = mkdtempSync(join(tmpdir(), 'prism3-4428-'));
   try {

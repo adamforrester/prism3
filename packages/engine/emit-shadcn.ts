@@ -40,13 +40,13 @@ export type ShadcnMode = keyof typeof SHADCN_MODES;
 type Tree = Record<string, unknown>;
 type Token = { $type?: string; $value?: unknown };
 
-/** The brands the handoff carries: every `<brand>.base.tokens.json` in `dir` whose full tree `<brand>.tokens.json`
- *  sits beside it, sorted by code point. A brand's web base, `<brand>.web.base.tokens.json` (#4155, #4282), shares the
- *  suffix but is not a brand: it has no overlays of its own, and no full tree beside it (#4428). */
+/**
+ * The brands the handoff carries: every `<brand>.base.tokens.json` in `dir`, sorted by code point. A brand's web base,
+ * `<brand>.web.base.tokens.json` (#4155), shares the suffix but is not a brand: it has no overlays of its own.
+ */
 export const handoffBrands = (dir = OUT_DIR): string[] =>
   readdirSync(dir).filter((f) => f.endsWith('.base.tokens.json') && !f.endsWith('.web.base.tokens.json'))
     .map((f) => f.slice(0, -'.base.tokens.json'.length))
-    .filter((b) => existsSync(join(dir, `${b}.tokens.json`)))
     .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
 export type Handoff = { brand: string; root: string; base: Tree; overlays: Partial<Record<string, Tree>> };
