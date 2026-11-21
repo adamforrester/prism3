@@ -32748,7 +32748,7 @@ arm: {
   // structured, actionable error list from an incidental crash. The named errors are the difference
   // between an agent that can fix its input and one that only knows it failed.
   const badPayload = JSON.parse(badRes.content[0].text) as { error?: string; errors?: string[] };
-  ok(/schema validation/i.test(badPayload.error ?? '') && (badPayload.errors?.length ?? 0) >= 3
+  ok(badPayload.error === 'the brand input fails the schema' && (badPayload.errors?.length ?? 0) >= 3
      && badPayload.errors!.some((e) => /missing required 'id'/.test(e)),
     'export_theme: the failure is a NAMED schema error list, not an incidental throw');
 }
@@ -45295,6 +45295,43 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const cell = componentDefs.find((d) => d.id === 'code-input-cell');
   const ladder = ['small', 'medium', 'large', 'x-large'].map((s) => (cell?.tokens as Record<string, string> | undefined)?.[`size.${s}.radius`]);
   ok(JSON.stringify(ladder) === JSON.stringify(['radius.sm', 'radius.sm', 'radius.sm', 'radius.lg']), `#3551 the code input cell's corner ladder is sm, sm, sm, lg, as decided (got ${JSON.stringify(ladder)})`);
+}
+
+// #4200 (owner decisions 3 and 4, 2026-11-19) — score_consumption says when its rate measured nothing (`vacuous: true`,
+// additive: `rate` keeps its 1), and theme_brand's contract failures are data, { role, mode, ratio, against, min }, the
+// fields the CLI's failure line prints (score_consumption's share mode, ratio and min, keyed by `pair`), not the string
+// `dark.text.secondary 4.39<4.5`.
+{
+  const b4200 = { id: 'v4200', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 } };
+  const score = (pairs: object[]) => (mcpCallTool('score_consumption', { brand: b4200, refs: ['color.text.primary'], pairs }).structuredContent as any).contracts;
+  const none = score([{ fg: 'nope', bg: 'background.primary' }]), real = score([{ fg: 'text.primary', bg: 'background.primary' }]);
+  ok(none.checked === 0 && none.rate === 1 && none.vacuous === true, `#4200 score_consumption flags a rate that checked nothing as vacuous (got ${JSON.stringify(none)})`);
+  ok(real.checked > 0 && real.vacuous === false, `#4200 a pair that resolved is not vacuous (got ${JSON.stringify(real)})`);
+  // A pinned action anchor at a light step is reported, never corrected (#1894), so it fails its 3:1 in light.
+  const t = mcpCallTool('theme_brand', { brand: { ...b4200, actionAnchorStep: 100 }, include: [] }).structuredContent as any;
+  const f = t.contracts.failures as any[];
+  ok(f.length > 0 && f.every((x) => typeof x === 'object' && typeof x.role === 'string' && typeof x.mode === 'string'
+      && typeof x.ratio === 'number' && typeof x.against === 'string' && typeof x.min === 'number' && x.ratio < x.min),
+    `#4200 theme_brand reports each contract failure as { role, mode, ratio, against, min } (got ${JSON.stringify(f.slice(0, 2))})`);
+  ok(t.hint?.startsWith('Not included: tokens (~890,000 characters') && /Add them with include/.test(t.hint),
+    `#4200 the omitted-sections hint says what is not included and how to add it, from one size figure (got ${JSON.stringify(t.hint)})`);
+  const desc = toolDefs({}).find((d: any) => d.name === 'theme_brand')!.description as string;
+  ok(desc.includes('roughly 890,000 and 590,000 characters') && /agent link takes the same object as `input`/.test(desc),
+    `#4200 theme_brand states the one size figure the hint uses, and names the agent link's \`input\` alias`);
+}
+
+// #4200 A, B (DRAFT copy) — the CLI and the MCP server say what failed and what to do next: no raw stack trace from
+// file-facts-cli, no "cannot read design file" without the cause, one header per kind of brand failure.
+{
+  const cli = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), 'no-such-brief.md'], { cwd: HERE, encoding: 'utf8' });
+  ok(cli.status === 1 && /cannot read no-such-brief\.md: no such file\. Pass the path to a design\.md/.test(cli.stderr),
+    `#4200 cli.ts names a missing brief and the next step (got ${JSON.stringify(cli.stderr.trim())})`);
+  const ff = spawnSync('npx', ['tsx', resolve(HERE, 'file-facts-cli.ts'), 'no-such-snapshot.json'], { cwd: HERE, encoding: 'utf8' });
+  ok(ff.status === 1 && ff.stderr.trim() === '✖ cannot read snapshot no-such-snapshot.json: no such file',
+    `#4200 file-facts-cli.ts reports a missing snapshot in one line, not a stack (got ${JSON.stringify(ff.stderr.trim().slice(0, 200))})`);
+  const refusal = JSON.parse(mcpCallTool('theme_brand', { brand: { id: 'r4200', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 }, layout: { breakpoints: [320, 768] } } }).content[0].text);
+  ok(refusal.error === 'the engine refused the brand input', `#4200 an engine refusal reads "the engine refused the brand input" (got ${JSON.stringify(refusal.error)})`);
+  ok(JSON.parse(mcpCallTool('nope', {}).content[0].text).error === 'Unknown tool: nope', '#4200 unknown tool has one casing, the protocol error\'s');
 }
 
 // #4207 (owner decision A, 2026-11-19) — `actionPalette` and `roleColors.action` are schema aliases. Two that name
