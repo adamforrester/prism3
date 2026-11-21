@@ -35,6 +35,14 @@ export type ShadowAxis = {
   // attaches `$extensions.prism3.modes.<mode>` from this. Absent ⇒ byte-identical.
   shadowByMode?: Record<string, { appearance: 'light' | 'dark'; colorRgb: RGB; softness: number; tint: { hue: number | null; amount: number }; layers: Record<string, ShadowLayer[]> }>;
 };
+/** A dark-appearance mode's shadow, seeded from the axis's own reduced dark layers (#4131, owner decision A): what the
+ *  built-in `hc-dark` takes in every brand that generates it, so the model "full in light, reduced in dark" holds in
+ *  every dark mode. */
+export const darkShadowSeed = (shadow: ShadowAxis): NonNullable<ShadowAxis['shadowByMode']>[string] => {
+  const layers: Record<string, ShadowLayer[]> = { inset: shadow.inset.dark };
+  for (const s of shadow.steps) layers[s.name] = s.dark;
+  return { appearance: 'dark', colorRgb: shadow.colorRgb, softness: shadow.softness, tint: shadow.tint, layers };
+};
 // Base ramp at softness 1 — [keyY, keyBlur, keySpread, keyAlpha, ambY, ambBlur, ambSpread, ambAlpha].
 // Anchored to Tailwind/Polaris/NB curves; offsetY≈blur×0.6–0.7, spread tightens with size.
 /** One shadow layer's geometry and alpha: `[offsetY, blur, spread, alpha]`. */

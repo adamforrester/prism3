@@ -112,8 +112,8 @@ const emitAndGate = (theme: Theme, resolvedOut: string, designPath: string, sour
   console.log(`  palettes: ${theme.palettes.map((p) => p.palette).join(', ')} (danger ← ${theme.roleToPalette.danger})`);
   console.log(`  aliases: ${stats.resolved}/${stats.aliases} resolve | mode contracts: ${stats.modePass}/${stats.modeChecks} pass`);
   // #4153: every file `emitTheme` writes, not two of them: the full tree, the sidecar, and the base + per-mode overlay
-  // set that a multi-mode build reads (skills/prism3-build-ui rule 3).
-  for (const name of [`${theme.id}.tokens.json`, `${theme.id}.ai.json`, `${theme.id}.base.tokens.json`,
+  // set that a multi-mode build reads (skills/prism3-build-ui rule 3), and the web base beside it (#4155).
+  for (const name of [`${theme.id}.tokens.json`, `${theme.id}.ai.json`, `${theme.id}.base.tokens.json`, `${theme.id}.web.base.tokens.json`,
     ...overlayModes(emitted.tree).map((m) => `${theme.id}.${m}.overlay.tokens.json`)]) console.log(`  [written] ${resolve(resolvedOut, name)}`);
   const broken = stats.broken.length > 0;
   const contractsFail = stats.modePass < stats.modeChecks;
@@ -165,7 +165,12 @@ const main = () => {
   // ---- read ----
   let text: string;
   try { text = readFileSync(resolve(process.cwd(), designPath!), 'utf8'); }
-  catch { return fail(`cannot read design file: ${designPath}`); }
+  // #4200 A (DRAFT): the cause, not just the path. A missing file is the common case and gets the next step.
+  catch (e) {
+    return fail((e as NodeJS.ErrnoException).code === 'ENOENT'
+      ? `cannot read ${designPath}: no such file. Pass the path to a design.md, such as packages/engine/examples/harbor.design.md`
+      : `cannot read ${designPath}: ${(e as Error).message}`);
+  }
 
   // ---- detect dialect: a top-level flat `colors:` map is the standard dialect ----
   let std;
@@ -182,12 +187,13 @@ const main = () => {
     catch (e) { return fail(`could not classify '${std.name}' (standard dialect): ${(e as Error).message}`); }
     const { input, classification, xApplied, xWarnings } = classified;
     console.log(`[standard] '${std.name}' → id '${input.id}' — ${Object.keys(std.colors).length} colours, ${Object.keys(std.typography).length} type tokens; x-prism3: ${xApplied.length ? xApplied.join(', ') : 'none (defaults)'}`);
-    // #2678 (Q-XP1 A): an x-prism3 key the dialect does not read is named here, and the file keeps compiling.
+    // #2678 (Q-XP1 A): an x-prism3 key the dialect does not read is named here, and so is a typography face no category
+    // reads (#4137); the file keeps compiling.
     for (const w of xWarnings) console.log(`  ⚠ ${w}`);
     validateOrExit(input, designPath!);
     let theme: Theme;
     try { theme = brandTheme(input); }
-    catch (e) { return fail(`brandTheme failed for '${input.id}': ${(e as Error).message}`); }
+    catch (e) { return fail(`the engine refused '${input.id}': ${(e as Error).message}`); }   // #4200 B: no internal function name (DRAFT)
     const stats = emitAndGate(theme, resolvedOut, designPath!, 'standard');
     if (fidelity) {
       const { md, anchorDe } = buildFidelityReport(std, classification, input, theme, stats, xApplied);
@@ -200,14 +206,15 @@ const main = () => {
   }
 
   // ---- ENGINE-NATIVE dialect ----
-  if (fidelity) console.error('  (note: --fidelity applies to the standard dialect only; ignored for an engine-native brief)');
+  // #4200 E (DRAFT): voice standard §2 bans "note"; say what happened and why.
+  if (fidelity) console.error('  --fidelity ignored — it diffs a standard-dialect brief, and this one is engine-native');
   let input;
   try { input = parseDesignMd(text).input; }
   catch (e) { return fail(`parse error in ${designPath}: ${(e as Error).message}`); }
   validateOrExit(input, designPath!);
   let theme: Theme;
   try { theme = brandTheme(input); }
-  catch (e) { return fail(`brandTheme failed for '${(input as any).id}': ${(e as Error).message}`); }
+  catch (e) { return fail(`the engine refused '${(input as any).id}': ${(e as Error).message}`); }   // #4200 B (DRAFT)
   emitAndGate(theme, resolvedOut, designPath!, 'engine-native');
   if (componentSpecs) writeComponentSpecs(input as BrandInput, resolvedOut);
 };

@@ -85,6 +85,11 @@ const SHAPES: { kind: string; re: RegExp; what: string }[] = [
   { kind: 'CURVE LITERAL', re: /\b(?:cubic-bezier|steps|linear)\s*\(/g, what: 'a CSS timing function' },
   { kind: 'CURVE LITERAL', re: /(?<![\w-])ease(?:-in-out|-in|-out)?(?![\w-])/g, what: 'a CSS easing keyword' },
   { kind: 'CURVE LITERAL', re: /(?<![\w-])step-(?:start|end)(?![\w-])/g, what: 'a CSS step keyword' },
+  // The bare `linear` keyword (#3592), only where it is a timing function: after a duration (`200ms linear`), inside a
+  // `transition`/`animation`/`*-timing-function` declaration, or as an `easing`/`ease` value. Not after a `.`, so
+  // `motion.easing.linear` stays a token name, and not as a word in prose or a list of shape names (`linear`,
+  // `standard`, … in the skill's easing row), where it names a curve rather than spelling one.
+  { kind: 'CURVE LITERAL', re: /(?:(?<![\w.])(?:\d+(?:\.\d+)?|\.\d+)\s?m?s\s+|(?:timing-function|transition|animation)\s*:[^;\n`]*?(?<![\w.-])|\beas(?:e|ing)\s*[:=]\s*['"])linear(?![\w(-])/gi, what: 'the CSS linear keyword' },
   { kind: 'CURVE LITERAL', re: new RegExp(String.raw`[\[(]\s*${NUM}\s*,\s*${NUM}\s*,\s*${NUM}\s*,\s*${NUM}\s*[\])]`, 'g'), what: 'a four-number curve' },
   { kind: 'SPRING LITERAL', re: new RegExp(String.raw`\b(?:damping|stiffness|mass|bounce|velocity)(?:\s+ratio)?(?:\s+of)?\s*[:=]?\s*${NUM}\b`, 'gi'), what: 'a spring constant' },
   { kind: 'PRIMITIVE STEP', re: /(?<![\w.-])motion\.duration-ms\.[a-z0-9*-]+/g, what: 'a duration primitive, which is a number spelled as a path' },
@@ -296,6 +301,9 @@ const selfCheck = (): string[] => {
     ['a delay of 150MS', 'DURATION LITERAL'],
     ['animation-timing-function: step-end', 'CURVE LITERAL'],
     ['step-start then hold', 'CURVE LITERAL'],
+    ['transition: transform 200ms linear', 'CURVE LITERAL'],
+    ['animation-timing-function: linear;', 'CURVE LITERAL'],
+    ["{ easing: 'linear' }", 'CURVE LITERAL'],
     ['waits 1.5 s', 'DURATION LITERAL'],
     ['after two seconds', 'DURATION LITERAL'],
     ['for 300 milliseconds', 'DURATION LITERAL'],
@@ -310,7 +318,9 @@ const selfCheck = (): string[] => {
   for (const [sample, kind] of fires) if (!kinds(sample).includes(kind)) bad.push(`${kind} no longer fires on "${sample}"`);
   const clean = 'R11 starts `motion.stagger` apart on `motion.transition.enter`; WCAG 2.2.2; a 44px target; the easing role decelerates; #3484.';
   // Dotted versions stay out of the leading-dot arm (#3564): neither half of `v1.2s` is a duration.
-  const noise = [...scanLiterals(clean, 'fixture'), ...scanLiterals('since v1.2s and 0.238.5s builds', 'fixture')];
+  // #3592: `linear` as a token name, in the skill's list of shape names, and as an English word stays clean.
+  const linearNames = 'spin on `motion.easing.linear`; | `motion.easing.*` | `linear`, `standard`, `decelerate` |; a linear bar fills; linear-progress';
+  const noise = [...scanLiterals(clean, 'fixture'), ...scanLiterals('since v1.2s and 0.238.5s builds', 'fixture'), ...scanLiterals(linearNames, 'fixture')];
   if (noise.length) bad.push(`the clean sample fires: ${noise.map((f) => `${f.kind} "${f.text}"`).join(', ')}`);
 
   const brands = new Map([['a', new Set(['motion', 'motion.easing-role', 'motion.easing-role.enter'])], ['b', new Set(['motion', 'motion.easing-role', 'motion.easing-role.enter'])]]);

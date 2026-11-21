@@ -1699,6 +1699,9 @@ export const figmaAnatomyPlan = (
     if (name === 'leadingVisual') return leading;
     if (name === 'trailingVisual') return trailing;
     const p = a.parts[name];
+    // A part BUILT HIDDEN where its variant gate fails (#3058) is in the tree at every member, as a boolean part is;
+    // `gatedHidden` says where it is hidden, and its state gate (if any) still applies below.
+    const soft = p?.kind === 'box' && p.hiddenWhenAbsent === true;
     // VARIANT-GATED PRESENCE (#910), the first presence rule keyed on a coordinate that is not a state.
     // AND across axes, and an axis the caller did not supply reads as ABSENT rather than present — the
     // same answer the `absolute` line below gives when `state` is undefined, and the conservative one:
@@ -1711,6 +1714,7 @@ export const figmaAnatomyPlan = (
         // axis, a state HAS a resting value, and an unsupplied state IS rest everywhere else in this builder
         // (the paint grammar resolves the bare `{slot}` key there, and `lint-paint`'s grid census enumerates
         // rest that way), so the gate reads it as `rest` rather than as absent.
+        if (soft && axis !== STATE_GATE) continue;
         const v = axis === STATE_GATE ? (state ?? 'rest') : axisValue(axis);
         if (v === undefined || !values.includes(v)) return false;
       }
@@ -1722,6 +1726,19 @@ export const figmaAnatomyPlan = (
     // A list since #2318: the field's ring is present at `focus-visible` and at `focus-visible-filled`.
     if (p?.kind === 'absolute') return state !== undefined && whenStates(p).includes(state);
     return !p?.optional;
+  };
+
+  /* #3058: is this part BUILT HIDDEN at this coordinate? A `hiddenWhenAbsent` box whose VARIANT gate fails here, read
+   * by `presentWhen`'s own rule (AND across axes, an unsupplied axis reads as absent). `present()` keeps it in the tree;
+   * this hides it, and the layout reads it as absent (`shown`), as Figma's auto layout does a hidden child. */
+  const gatedHidden = (name: string): boolean => {
+    const p = a.parts[name];
+    if (p?.kind !== 'box' || p.hiddenWhenAbsent !== true) return false;
+    return Object.entries(p.presentWhen ?? {}).some(([axis, values]) => {
+      if (axis === STATE_GATE) return false;
+      const v = axisValue(axis);
+      return v === undefined || !values.includes(v);
+    });
   };
 
   /* WHERE A TRAVELING CHILD PUTS ITS PARENT'S DISTRIBUTION (#990). A switch's thumb declares
@@ -1876,7 +1893,7 @@ export const figmaAnatomyPlan = (
     const uq = up ? a.parts[up] : undefined;
     if (!up || !uq?.layout) throw new Error(`${def.id}: part '${name}' has no laid-out parent to derive its width from`);
     if (uq.layout.direction === 'column') return nestedRowWidth(up) - inlinePadPx(q);
-    const shown = (uq.children ?? []).filter((c) => c !== name && a.parts[c]?.kind !== 'overlay' && a.parts[c]?.kind !== 'absolute' && present(c) && booleanParts.get(c)?.visible !== false);
+    const shown = (uq.children ?? []).filter((c) => c !== name && a.parts[c]?.kind !== 'overlay' && a.parts[c]?.kind !== 'absolute' && present(c) && booleanParts.get(c)?.visible !== false && !gatedHidden(c));
     const gap = shown.length && uq.gap ? spacePx(resolveKey(uq.gap, 'gap')) : 0;
     return nestedRowWidth(up) - shown.reduce((s, c) => s + shownFlowWidth(c), 0) - shown.length * gap - inlinePadPx(q);
   };
@@ -2473,7 +2490,7 @@ export const figmaAnatomyPlan = (
       // `n.visible ?? true`). A boolean part is present at every member (see `present()`), so this rides
       // the tree, not a variant coordinate.
       ...(booleanParts.has(name) ? { visibleProp: booleanParts.get(name)!.prop } : {}),
-      ...(booleanParts.get(name)?.visible === false ? { visible: false as const } : {}),
+      ...(booleanParts.get(name)?.visible === false || gatedHidden(name) ? { visible: false as const } : {}),
       ...(textStyle ? { textStyle } : {}),
       ...(literalFont ? { literalFont } : {}),
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
@@ -6021,6 +6038,21 @@ return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height]
  * which is four short arrays. As a side effect a member this generator never built — a designer's
  * manual copy — parses to no cell and is reported instead of being silently dragged somewhere.
  */
+/**
+ * #2610 — THE NEW-SET PLACEMENT SHIPS IN CHUNK 1 ONLY. Only chunk 1 can create a set (a later chunk that finds none returns
+ * NOT FOUND before the build), so `__prior` and `__place` are dead code everywhere else, and every byte of the shell ships in
+ * every chunk: main's indivisible unit sat 26 bytes under the #1798 ceiling when the header rule needed about 240. So chunk
+ * 1 defines them and every later chunk ships the two no-op stubs below, and `planSetChunks` measures chunk 1's shell on its
+ * own. `__prior` reads the page's top-level boxes before the build loop appends members; `__place` is the plugin's
+ * `placeNewSet`: under a `_section-header` (found by name, in any case, as an instance or a frame) the row's top is the sets'
+ * top, else the header's bottom + 80 (PAGE_HEADER_GAP), and the set takes the first free slot scanning right from the header's
+ * left edge, a slot being free when the set's box widened 160 (SET_GAP) on each side meets no node in the row (#2405, #2598).
+ * With no header, top-aligned with the sets (else all content) and 160 right of everything in its row (#1750). No reach: the
+ * paste draws no labels.
+ */
+const PAYLOAD_PLACE_FIRST = `const __prior=()=>figma.currentPage.children.map(n=>({t:n.type,x:n.x||0,y:n.y||0,w:n.width||0,h:n.height||0,hd:/^(INSTANCE|FRAME)$/.test(n.type)&&/^_section-header$/i.test(n.name)}));
+const __place=(set,prior)=>{const S=prior.filter(b=>b.t==='COMPONENT_SET'&&!b.hd),H=prior.find(b=>b.hd),y=H&&!S.length?H.y+H.h+80:Math.min(...(S.length?S:prior).map(b=>b.y)),B=prior.filter(b=>b.y<y+set.height&&b.y+b.h>y);let x=H?H.x:Math.max(...(B.length?B:prior).map(b=>b.x+b.w))+160;if(H)for(let p=1;p;){p=0;for(const b of B)if(b.x<x+set.width+160&&b.x+b.w+160>x){x=b.x+b.w+160;p=1;}}set.x=x;set.y=y;};`;
+const PAYLOAD_PLACE_LATER = 'const __prior=()=>[],__place=()=>{};';
 const PAYLOAD_CHUNK_BODY = `// FIND OR CREATE. Append mode is chosen by what is in the FILE, not by the chunk index: a re-run of
 // chunk 0 against a set that already exists must append (and then skip everything by name) rather than
 // combine a second set beside the first.
@@ -6054,7 +6086,7 @@ return {set:null,chunk:CHUNK+1,of:TOTAL,added:0,variants:0,axesChanged:{set:SET_
 // when this chunk CREATES the set, which is chunk 1 (a later chunk that finds no set returned above); a set
 // that already exists keeps its position, the "designer's placement wins" rule. Hidden nodes count.
 const created=!set;
-const prior=created?figma.currentPage.children.map(n=>({t:n.type,x:n.x||0,y:n.y||0,w:n.width||0,h:n.height||0})):[];
+const prior=created?__prior():[];
 // SKIP BY NAME. \`combineAsVariants\` accepts a DUPLICATE member name silently, and the set it returns
 // then THROWS on \`componentPropertyDefinitions\` and \`variantGroupProperties\` while
 // \`addComponentProperty\` still succeeds — so a re-run without this produces a set that looks buildable
@@ -6144,13 +6176,13 @@ if(colW.length&&rowH.length&&(Math.round(set.width)<Math.round(wantW)||Math.roun
 // set's row. The plugin measures that gap from each set's labels; the paste draws none, so its new set's edge is its
 // frame, and another set's labels already on the page push it as any node does. A node wholly above or below the row does not push it. AFTER the resize, because the row is
 // the set's height. Written again here rather than shared: the paste script cannot import the plugin, and
-// test.ts compares the two placements.
+// test.ts compares the two placements. The code is \`__place\`, shipped in chunk 1 only (#2610, PAYLOAD_PLACE_FIRST).
 // THE ROW IS CHUNK 1'S HEIGHT. Later chunks grow the set down and right from where this put it, and do not
 // move it; the plugin places once, at the finished height. So a node below chunk 1's rows but inside the
 // finished set's can be covered here where the plugin would have pushed the set past it (#1856).
 // NO POSITION READ-BACK, unlike the plugin: the stub stores x/y as plain fields, so the read-back could not
 // fail in any gate, and it would cost bytes in every chunk.
-if(created&&prior.length){const S=prior.filter(b=>b.t==='COMPONENT_SET'),y=Math.min(...(S.length?S:prior).map(b=>b.y)),B=prior.filter(b=>b.y<y+set.height&&b.y+b.h>y);set.x=Math.max(...(B.length?B:prior).map(b=>b.x+b.w))+160;set.y=y;}
+if(created&&prior.length)__place(set,prior);
 // READ BACK the definitions, GUARDED. A duplicate member name poisons this getter (see above), so an
 // unguarded read throws with no indication of which member caused it — and takes the whole paste's
 // report with it, including the misses already collected.
@@ -6355,6 +6387,7 @@ const REFS_ALL=${JSON.stringify(last ? refs : [])};
 const REF_OVERRIDES_ALL=${JSON.stringify(last ? refOverrides : [])};
 ${PAYLOAD_PREAMBLE}
 ${payloadBuildFor((slice.length ? slice : specs).map((x) => x.root))}
+${index === 0 ? PAYLOAD_PLACE_FIRST : PAYLOAD_PLACE_LATER}
 ${PAYLOAD_CHUNK_BODY}
 ${PAYLOAD_DECLARE_PROPS}
 ${last && hasSlotConstraints(props) ? PAYLOAD_SLOT_SETTINGS + '\n' : ''}${PAYLOAD_WIRE_REFS}
@@ -6373,10 +6406,11 @@ ${PAYLOAD_CHUNK_RETURN}
   // PACK BY MEASURED BYTES. The shell is emitted and measured rather than estimated, then variants are
   // added while they fit — because a per-variant average is wrong by 60% between a slot-less plan and a
   // leading+trailing one, and the point is to be right about the payload that actually ships.
-  const pack = (shell: number) => {
+  // Chunk 1 is packed to its OWN shell (`first`): it alone carries the new-set placement (#2610, PAYLOAD_PLACE_FIRST).
+  const pack = (shell: number, first: number) => {
     const groups: (typeof specs)[] = [];
     let cur: typeof specs = [];
-    let size = shell;
+    let size = first;
     for (const spec of specs) {
       // `+1` for the comma this variant adds to the `PLANS` array literal. One byte per variant, and it
       // is the only part of a chunk's size that is not inside `spec` itself.
@@ -6408,10 +6442,10 @@ ${PAYLOAD_CHUNK_RETURN}
   // — and that total is what packing produces, hence the fixpoint. It converges because a wider shell
   // only ever yields more chunks, `String(n).length` grows in steps, and the loop is bounded by that
   // width; the cap is a backstop, not a limit anything real reaches.
-  let groups = pack(emit([], 0, 1, false).length);
+  let groups = pack(emit([], 1, 2, false).length, emit([], 0, 1, false).length);
   for (let guard = 0; guard < 8; guard++) {
-    const shell = emit([], groups.length - 1, groups.length, false).length;
-    const next = pack(shell);
+    const shell = emit([], Math.max(1, groups.length - 1), Math.max(2, groups.length), false).length;
+    const next = pack(shell, emit([], 0, groups.length, false).length);
     if (next.length === groups.length) { groups = next; break; }
     groups = next;
   }

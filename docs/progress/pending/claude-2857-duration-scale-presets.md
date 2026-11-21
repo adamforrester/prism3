@@ -31,6 +31,8 @@ reduced motion (its reduced step is `normal`, a 50ms fade, not its `slow` step's
 the brand's. The brand-only group's name (`motion.brand`) and fields. The reference brand's mapping waits on the
 brand-team questions.
 
+**The theme skill names both inputs.** `lint-skills` (#4173, merged after this branch opened) requires `prism3-theme` to name every nested `BrandInput` key or list it in `omits:`. The skill's `motionPersonality` row now documents `presets` and `brandOnly`, which the owner approved as brand settings on 2026-11-20. The wording is DRAFT.
+
 **Trap.** #3998 (springs to CSS) also raises the contract to 15.2.0. Whichever lands second re-raises to 15.3.0 and
 re-runs `--accept`. #4096 also raises the agent sidecar schema to `prism3-ai-metadata/0.6`: whichever lands second
 takes 0.7 and re-raises both `$id`s together.

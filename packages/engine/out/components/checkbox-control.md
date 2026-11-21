@@ -44,9 +44,7 @@ Do not place this on its own as a form control. It is the box Checkbox.Row nests
 
 ### Do
 
-- Nest this from Checkbox.Row rather than redrawing the box per host
-- Let the host row expose selection and state and follow its size, so the nested control tracks the row
-- Supply an external aria-label only when using the control genuinely alone, with no labeled row to name it
+- Supply an external `aria-label` only when using the control genuinely alone, with no labeled row to name it
 - Nest it in a table cell, card or list row when the label is decoupled — the host row supplies the name and the collection owns the selection
 
 ### Don't
@@ -93,6 +91,9 @@ The atom has no copy of its own; all label, description and error text belongs t
   - the painted control inlined in a checkbox row
 
 ## Building it in code
+
+- Nest this from Checkbox.Row rather than redrawing the box per host
+- Let the host row expose selection and state and follow its size, so the nested control tracks the row
 
 ### Props
 

@@ -16,7 +16,7 @@
         {
           "name": "list_levers",
           "title": "List brand controls",
-          "description": "List the complete BrandInput surface an agent can set: the lever catalog (grouped, labeled, typed, with enums, defaults and UI ranges — the same manifest the Figma plugin and web playground render from) PLUS the non-lever fields the manifest does not carry (identity, mode set, and the per-mode override layers). Call this first to learn what theme_brand accepts. Pass `describe` with field names to get those fields' full schema descriptions instead.",
+          "description": "List every brand field theme_brand accepts: the levers (typed, with enums, defaults and ranges) and the non-lever fields (id, modes, per-mode overrides). Call first. Pass `describe` with field names for those fields' full schema descriptions instead.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -94,7 +94,7 @@
         {
           "name": "theme_brand",
           "title": "Generate a design-token system",
-          "description": "Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 890,000 and 590,000 characters respectively (~370,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first. Each field description in the `brand` schema below is a one-line summary; list_levers with `describe` returns the full text.",
+          "description": "Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes, each failure as { role, mode, ratio, against, min }), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 890,000 and 590,000 characters respectively (~370,000 tokens combined). Arguments: { brand, include }; the plugin's agent link takes the same object as `input`. Call list_levers to see the controls, or validate_brand to check an input first. Each field description in the `brand` schema below is a one-line summary; list_levers with `describe` returns the full text.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -121,8 +121,97 @@
             "additionalProperties": false
           },
           "output": {
-            "structuredContent": null,
-            "text": "a JSON object in content[0].text; this tool declares no outputSchema"
+            "structuredContent": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "modes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "contracts": {
+                  "type": "object",
+                  "description": "Every declared contrast pair across every mode: how many were checked, how many pass, and each failure.",
+                  "properties": {
+                    "checks": {
+                      "type": "number"
+                    },
+                    "pass": {
+                      "type": "number"
+                    },
+                    "failures": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "checks",
+                    "pass",
+                    "failures"
+                  ]
+                },
+                "aliases": {
+                  "type": "object",
+                  "description": "Alias integrity: how many aliases, how many resolve, and each broken one.",
+                  "properties": {
+                    "total": {
+                      "type": "number"
+                    },
+                    "resolved": {
+                      "type": "number"
+                    },
+                    "broken": {
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "resolved",
+                    "broken"
+                  ]
+                },
+                "omitted": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The sections this result leaves out."
+                },
+                "hint": {
+                  "type": "string",
+                  "description": "How to add the sections it leaves out."
+                },
+                "notes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "With include notes (the default): the decisions log."
+                },
+                "tokens": {
+                  "type": "object",
+                  "description": "With include tokens: the DTCG token tree."
+                },
+                "aiMetadata": {
+                  "type": "object",
+                  "description": "With include aiMetadata: the agent metadata."
+                }
+              },
+              "required": [
+                "id",
+                "modes",
+                "contracts",
+                "aliases",
+                "omitted"
+              ]
+            },
+            "text": "the same object as JSON in content[0].text"
           },
           "source": "packages/engine/mcp.ts#name: 'theme_brand'"
         },
@@ -189,7 +278,7 @@
                 },
                 "contracts": {
                   "type": "object",
-                  "description": "checked / pass / rate / failures / unresolved — omitted when no pairs were given."
+                  "description": "checked / pass / rate / vacuous / failures / unresolved — omitted when no pairs were given. vacuous is true when no pair resolved in any mode, so rate 1 measured nothing."
                 }
               },
               "required": [
@@ -230,8 +319,102 @@
             "additionalProperties": false
           },
           "output": {
-            "structuredContent": null,
-            "text": "a JSON object in content[0].text; this tool declares no outputSchema"
+            "structuredContent": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "modes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "contracts": {
+                  "type": "object",
+                  "description": "Every declared contrast pair across every mode: how many were checked, how many pass, and each failure.",
+                  "properties": {
+                    "checks": {
+                      "type": "number"
+                    },
+                    "pass": {
+                      "type": "number"
+                    },
+                    "failures": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "checks",
+                    "pass",
+                    "failures"
+                  ]
+                },
+                "aliases": {
+                  "type": "object",
+                  "description": "Alias integrity: how many aliases, how many resolve, and each broken one.",
+                  "properties": {
+                    "total": {
+                      "type": "number"
+                    },
+                    "resolved": {
+                      "type": "number"
+                    },
+                    "broken": {
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "resolved",
+                    "broken"
+                  ]
+                },
+                "omitted": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The sections this result leaves out."
+                },
+                "hint": {
+                  "type": "string",
+                  "description": "How to add the sections it leaves out."
+                },
+                "notes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "With include notes (the default): the decisions log."
+                },
+                "tokens": {
+                  "type": "object",
+                  "description": "With include tokens: the DTCG token tree."
+                },
+                "aiMetadata": {
+                  "type": "object",
+                  "description": "With include aiMetadata: the agent metadata."
+                },
+                "derivedBrandInput": {
+                  "type": "object",
+                  "description": "The BrandInput the brief was read as."
+                }
+              },
+              "required": [
+                "id",
+                "modes",
+                "contracts",
+                "aliases",
+                "omitted",
+                "derivedBrandInput"
+              ]
+            },
+            "text": "the same object as JSON in content[0].text"
           },
           "source": "packages/engine/mcp.ts#name: 'theme_from_brief'"
         },
@@ -386,7 +569,7 @@
         },
         {
           "name": "figma_run",
-          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot, activity, panels-clean, context, set-override. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first, and echo its previewHash.",
+          "description": "Run one agent-link command in the connected plugin and return its result envelope (v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result {verdict, data, logs} | error, progress). Commands: status, apply-theme, build-components, file-setup, style-guide, prune, readback, update-components, capture-baseline, adopt-members, draw-specs, inspect, component-keys, audit-frames, snapshot, activity, panels-clean, context, set-override. The plugin runs it through the same handler the panel's button reaches. 'prune' with confirm: true deletes — preview with confirm: false first, and echo its previewHash. apply-theme and prune take the brand as args.input, the object the engine's MCP tools call `brand`.",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -554,7 +737,7 @@
         "writes": "Variables, collections, text styles and effect styles for the brand, as the panel's Apply does.",
         "refuses": [
           {
-            "message": "apply-theme needs args.input: a BrandInput object, as the UI's Apply sends it",
+            "message": "apply-theme needs args.input: a BrandInput object, as the UI's Apply sends it (the object the MCP tools call brand)",
             "source": "apps/plugin/src/agent-protocol.ts#parseCommand.apply-theme"
           }
         ],
@@ -649,7 +832,7 @@
         "writes": "With confirm: false, nothing: a preview of what would go, whose result carries a previewHash. With confirm: true and that previewHash, saves a named version, then deletes the variables and styles the brand no longer emits, recomputed from a fresh read; refused when the file does not hold the brand sent, or no longer hashes the same.",
         "refuses": [
           {
-            "message": "prune needs args.input: a BrandInput object",
+            "message": "prune needs args.input: a BrandInput object (the object the MCP tools call brand)",
             "source": "apps/plugin/src/agent-protocol.ts#parseCommand.prune"
           },
           {

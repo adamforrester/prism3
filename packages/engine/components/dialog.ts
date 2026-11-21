@@ -11,11 +11,11 @@
  * dialog) are small-viewport placements a product opts into per use; end (a side sheet) is a wide-screen placement for a
  * panel such as sign-in or filters. In code the placement can be set per breakpoint, but NOTHING SWITCHES
  * AUTOMATICALLY: a dialog stays centered on a phone unless the product chooses otherwise (Q303.7), and an end panel
- * stays an end panel. `size` (`medium | small | large`, the default first as the proposal's table lists it) sets the
- * center panel's width, 400 / 560 / 720px, as def-level literals with no new token (Q303.5 A). Bottom and full are full
- * width, full is full height too, and end is one width at full height (Q489 A), so none of the three takes a size:
- * `excludeCoordinates` removes their small and large members, and the set is 12 center members + 4 bottom + 4 full +
- * 4 end = 24. `footer` (`inline | stacked | fill | none`, Q303.6 A; `fill` by Q492 B, #2880) lays out the actions. No
+ * stays an end panel. `size` (`small | medium | large`) is a CODE prop only (#3392 A, owner 2026-11-18, superseding
+ * Q303/Q489 for the axis): it only set the center panel's width, so it is no variant. The designer or the container
+ * sets the width, and 400 / 560 / 720px are documented as the recommended sizes; a centered member is built at 560.
+ * Bottom and full are full width, full is full height too, and end is one width at full height (Q489 A). The set is
+ * 4 center members + 4 bottom + 4 full + 4 end = 16. `footer` (`inline | stacked | fill | none`, Q303.6 A; `fill` by Q492 B, #2880) lays out the actions. No
  * state axis: a dialog has no hover, press or disabled of its own; its close button and footer buttons carry theirs.
  *
  * ── THE BACKDROP IS NOT IN THE COMPONENT (Q303.2 A and Q303.3 A) ─────────────────────────────────────────────────
@@ -31,7 +31,7 @@
  *
  * Center rounds all four corners, bottom its top two, full and end none (Q490 A: an end panel meets the top and bottom
  * of the screen, as full does), each on `radius.2xl` or `radius.none`, bound top and bottom apart (`radiusEdges`). The
- * member's size comes from `builtSize`: a center member is built at its size's width; a bottom or full member at 360, a
+ * member's size comes from `builtSize`: a center member is built at 560, the recommended medium width; a bottom or full member at 360, a
  * small phone's width and the narrowest common one above the 320px reflow floor; a full member at 640 tall too; an end
  * member at 480 wide (Q489 A) and 800 tall. Full and end grow the body to take the height, so the footer sits at the
  * bottom. The phone numbers are this build's and are held for the owner on #2609; the end member's 800 height, its cap
@@ -77,19 +77,16 @@ export const dialog: ComponentDef = {
     { name: 'actions', type: 'slot', anyOf: ['button', 'button-destructive', 'button-neutral'], minItems: 1, maxItems: 3, required: false, description: 'The footer buttons, one to three Button elements, laid out by a Button group. Inline and fill, the main action last (Cancel, then Save); stacked, the main action first. Fill suits two. Name each by what it does.' },
     { name: 'role', type: "enum: 'dialog' | 'alertdialog'", values: ['dialog', 'alertdialog'], default: 'dialog', required: false, description: 'dialog for a task or form. alertdialog for a confirmation that interrupts and needs an answer: it hides the close button, a backdrop click does not close it, and focus starts on the least destructive action.' },
     { name: 'placement', type: "enum: 'center' | 'bottom' | 'full' | 'end'", values: ['center', 'bottom', 'full', 'end'], default: 'center', required: false, description: 'Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens; end (a side sheet) runs the full height of the screen at the end edge, the right in left-to-right text. Set per breakpoint; nothing switches automatically.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The width of a centered panel. The recommended widths are 400px (small), 560px (medium, the default) and 720px (large); in a design file the designer sets the width. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it.' },
     { name: 'footer', type: "enum: 'inline' | 'stacked' | 'fill' | 'none'", values: ['inline', 'stacked', 'fill', 'none'], default: 'inline', required: false, description: 'How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; fill is a row whose buttons share the width equally, the main action last; none is for a dialog whose body holds its own actions.' },
   ],
 
   states: [],
   variants: {
     placement: ['center', 'bottom', 'full', 'end'],
-    // Medium first, so Figma's default member is the default size (the proposal's table, approved by Q303); the code
-    // enum above keeps the ladder's order, as the fields' do (`lint-rung-names.ts` DEFAULT_FIRST).
-    size: ['medium', 'small', 'large'],
     footer: ['inline', 'stacked', 'fill', 'none'],
   },
-  axisKinds: { placement: 'authoring', size: 'authoring', footer: 'authoring' },
+  axisKinds: { placement: 'authoring', footer: 'authoring' },
 
   paintKeys: ['{slot}'],
 
@@ -153,7 +150,8 @@ export const dialog: ComponentDef = {
         // and end the body takes the height the header and footer do not.
         builtSize: {
           axis: 'placement',
-          widths: { center: { medium: 560, small: 400, large: 720 }, bottom: 360, full: 360, end: 480 },
+          // #3392 A: a centered panel is built at the recommended medium width; the designer or the container sets it.
+          widths: { center: 560, bottom: 360, full: 360, end: 480 },
           heights: { full: 640, end: 800 },
           grow: 'body',
         },
@@ -419,10 +417,9 @@ export const dialog: ComponentDef = {
   },
 
   figmaProperties: {
-    variantAxes: ['placement', 'size', 'footer'],
-    // Size is the center panel's alone (Q303.5 A, Q489 A): bottom and full are full width and end is one width, so they
-    // keep only the default size.
-    excludeCoordinates: [{ placement: ['bottom', 'full', 'end'], size: ['small', 'large'] }],
+    // #3392 A (owner, 2026-11-18): `size` is not a variant. It only set the built width, so the designer or the
+    // container sets the width, and the code prop's three widths are recommendations (superseding Q303/Q489 for the axis).
+    variantAxes: ['placement', 'footer'],
     gridAxis: 'footer',
     texts: {
       title: { part: 'title', default: 'Dialog title' },
@@ -472,6 +469,8 @@ export const dialog: ComponentDef = {
       'Put the main action last in an inline or fill footer (Cancel, then Save), and on top when stacked',
       'Use the fill footer for two buttons that share the width, such as Clear all and Apply, and stacked for long labels',
       'Let only the body scroll, and keep the footer in view',
+    ],
+    implementation: [
       'Return focus to the control that opened the dialog',
     ],
     dont: [
@@ -532,6 +531,7 @@ export const dialog: ComponentDef = {
       'Owner decision Q-M5 A (2026-11-07, #3413; #3488), amending Q491 A: under reduced motion every placement and the backdrop fade only, on `motion.duration-reduced.normal`, instead of opening and closing at once. A fade is not vestibular motion, and an instant swap of a full-screen layer loses the cue that a new layer opened. The movement is substituted, not deleted (`prism3-motion` R7), as Toast already does.',
       'Owner decision Q721 A (2026-10-27, #3049; Q3049.1 C, Q3049.2 A, Q3049.3 A, Q3049.4): the panel fills with its own role, `color.foreground.raised`, not the card surface. It holds the card surface unless the brand sets `raisedSurface` to `page` or `white`, which acts in light and hc-light only, so every dialog keeps its lift in dark.',
       'Owner decision Q492 B (2026-10-20, on #2877), built on #2880 with every recommendation accepted (2026-10-21): a fourth footer, `fill`, in the order inline, stacked, fill, none, that nests the Button group at `layout=fill` on every placement. The halves stay equal at every width and a long label wraps inside its button; nothing switches to stacked by itself, and the docs say to pick stacked for long labels. One to three buttons, as the `actions` slot allows, two being the case it is for. The defaults are Cancel then Save, with Cancel a Button.Neutral where the file has it.',
+      'Owner decision #3392 A (2026-11-18), superseding Q303/Q489 for the axis: `size` is not a variant. It changed only the centered panel\'s built width, so Dialog is one set of 16 members, the designer or the container sets the width, and 400, 560 and 720px are the recommended sizes. The code prop stays. An Update file moves each existing `size=medium` member off the axis in place and removes the `size=small` and `size=large` members.',
     ],
   },
 };

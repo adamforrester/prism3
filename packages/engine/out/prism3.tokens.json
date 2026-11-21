@@ -22921,6 +22921,24 @@
                     "spread": "0px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#0a122808",
+                    "offsetX": "0px",
+                    "offsetY": "1px",
+                    "blur": "2px",
+                    "spread": "0px"
+                  },
+                  {
+                    "color": "#0a122805",
+                    "offsetX": "0px",
+                    "offsetY": "1px",
+                    "blur": "3px",
+                    "spread": "0px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -22963,6 +22981,24 @@
             "layers": 2,
             "modes": {
               "dark": {
+                "$value": [
+                  {
+                    "color": "#0a12280a",
+                    "offsetX": "0px",
+                    "offsetY": "1px",
+                    "blur": "2px",
+                    "spread": "-1px"
+                  },
+                  {
+                    "color": "#0a122808",
+                    "offsetX": "0px",
+                    "offsetY": "2px",
+                    "blur": "6px",
+                    "spread": "-1px"
+                  }
+                ]
+              },
+              "hc-dark": {
                 "$value": [
                   {
                     "color": "#0a12280a",
@@ -23037,6 +23073,24 @@
                     "spread": "-3px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#0a12280f",
+                    "offsetX": "0px",
+                    "offsetY": "2px",
+                    "blur": "4px",
+                    "spread": "-2px"
+                  },
+                  {
+                    "color": "#0a12280a",
+                    "offsetX": "0px",
+                    "offsetY": "4px",
+                    "blur": "12px",
+                    "spread": "-3px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -23079,6 +23133,24 @@
             "layers": 2,
             "modes": {
               "dark": {
+                "$value": [
+                  {
+                    "color": "#0a122812",
+                    "offsetX": "0px",
+                    "offsetY": "3px",
+                    "blur": "6px",
+                    "spread": "-3px"
+                  },
+                  {
+                    "color": "#0a12280d",
+                    "offsetX": "0px",
+                    "offsetY": "8px",
+                    "blur": "20px",
+                    "spread": "-5px"
+                  }
+                ]
+              },
+              "hc-dark": {
                 "$value": [
                   {
                     "color": "#0a122812",
@@ -23153,6 +23225,24 @@
                     "spread": "-8px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#0a122817",
+                    "offsetX": "0px",
+                    "offsetY": "4px",
+                    "blur": "8px",
+                    "spread": "-4px"
+                  },
+                  {
+                    "color": "#0a122812",
+                    "offsetX": "0px",
+                    "offsetY": "14px",
+                    "blur": "32px",
+                    "spread": "-8px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -23211,6 +23301,24 @@
                     "spread": "-12px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#0a12281c",
+                    "offsetX": "0px",
+                    "offsetY": "6px",
+                    "blur": "12px",
+                    "spread": "-6px"
+                  },
+                  {
+                    "color": "#0a122817",
+                    "offsetX": "0px",
+                    "offsetY": "22px",
+                    "blur": "52px",
+                    "spread": "-12px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -23247,6 +23355,18 @@
             "layers": 1,
             "modes": {
               "dark": {
+                "$value": [
+                  {
+                    "color": "#0a12284d",
+                    "offsetX": "0px",
+                    "offsetY": "2px",
+                    "blur": "4px",
+                    "spread": "0px",
+                    "inset": true
+                  }
+                ]
+              },
+              "hc-dark": {
                 "$value": [
                   {
                     "color": "#0a12284d",
@@ -24190,7 +24310,7 @@
       "round": {
         "$type": "dimension",
         "$value": "{pds3.core.dimension.128}",
-        "$description": "radius round — 128px (pill)",
+        "$description": "radius round — 128px (pill. For small fixed-size parts, such as a switch track, a radio or a badge count. A pill button binds `radius.capsule`)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -24203,7 +24323,7 @@
       "capsule": {
         "$type": "dimension",
         "$value": "999px",
-        "$description": "radius capsule — 999px (off-grid literal)",
+        "$description": "radius capsule — 999px (off-grid literal. The pill a button binds under `controlShape: pill`, full at any height. Small fixed-size parts bind `radius.round`)",
         "$extensions": {
           "prism3": {
             "generated": true,
@@ -24782,7 +24902,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.238.0",
+      "version": "0.239.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

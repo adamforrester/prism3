@@ -51,7 +51,7 @@ import { materializeForBrand } from './src/brand-def';
 import type { BrandInput } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { runApplyTheme, themePlans } from './src/apply-theme';
-import { pack, unpack, componentFigma } from './src/mcp-steps';
+import { pack, unpack, componentFigma, runComponentEmit } from './src/mcp-steps';
 import { themeDue, emissionOf, EMISSION_KEY } from './src/theme-emission';
 import { NS } from './src/persist-figma';
 import { fixHostMethods } from './component-shim';
@@ -60,7 +60,7 @@ import type { FileShimOpts as Opts } from './file-shim';
 import type { StepReport, Ledger } from './src/mcp-steps';
 import {
   themeScripts, themeCleanupScript, componentScripts, componentCleanupScripts, number, buildOrder, compareReadback,
-  mergeLedgers, brandFromDesignMd, summarize, ENGINE_VERSION, SCRIPT_CEILING, bundleStep,
+  mergeLedgers, brandFromDesignMd, summarize, ENGINE_VERSION, SCRIPT_CEILING, bundleStep, emitPitch,
 } from './mcp-paste';
 
 let failed = 0;
@@ -107,7 +107,9 @@ const snapshot = (f: FileShim) => {
     const c = colById.get(v.variableCollectionId);
     return {
       key: `${c?.name}/${v.name}`, type: v.resolvedType, scopes: [...v.scopes], hidden: v.hiddenFromPublishing, description: v.description,
-      values: Object.fromEntries(Object.entries(v.valuesByMode).map(([m, x]) => [modeName(c, m), val(x)]).sort()),
+      // `deep`, not `val` (#4157): a wash's value nests its aliases ({ color, opacity }), and those ids differ between two
+      // shims too, as soon as one side makes an object the other does not (the plugin's mode probe).
+      values: Object.fromEntries(Object.entries(v.valuesByMode).map(([m, x]) => [modeName(c, m), deep(x)]).sort()),
     };
   }).sort((a, b) => (a.key < b.key ? -1 : 1));
   const styles = Object.fromEntries((['effect', 'paint', 'grid', 'text'] as const).map((k) => [k, f.styles[k].map((s) => {
@@ -627,6 +629,135 @@ await section('size/one member', async () => {
   ok(budget < alone && alone < CEILING, `size/one member: premise — budget < alone < ceiling: ${budget} < ${alone} < ${CEILING}, so only the budget catches the smallest badge member`);
   ok(/^badge components: member '[^']*type=status[^']*' alone makes a \d+-character chunk, over its \d+-character budget \(the 32000 ceiling less the script's own \d+\), and a member cannot be split$/.test(thrown),
     `size/one member: a member that will not fit alone throws, naming the def and the member (${thrown ? `"${thrown.slice(0, 220)}"` : 'no throw'})`);
+});
+
+/* ── emit/brand marks + emit/spinner (#3139) ─────────────────────────────────────────────────────────── */
+// A standalone-component def (`emitAsComponents`) pasted through the MCP path lays out on a grid, sliced across several
+// `runComponentEmit` scripts. Its pitch was a fixed 48, which fit the 24px icons and put each wider brand mark over its
+// neighbor. `driveEmit` runs `runComponentEmit` itself, slice by slice, with the data each emitted script carries (`__D`),
+// on a page stub. Each member's payload is stood in by a node at a box the CALLER supplies, never the pitch the scripts
+// carry. The expectation is geometric, read off the placed nodes: no two overlap, and every member was placed, so an empty
+// page cannot pass.
+const driveEmit = async (name: string, defId: string, input: BrandInput, boxOf: (plan: any) => [number, number], minSlices: number): Promise<void> => {
+  const plans = figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === defId)!, input), { swapTarget: SWAP_TARGET });
+  const emits = number(componentScripts(input, [defId])).filter((s) => s.kind === 'component-emit');
+  const page: { name: string; type: string; children: any[] } = { name: 'marks', type: 'PAGE', children: [] };
+  const byId = new Map<string, any>();
+  const host: any = {
+    root: { children: [page], findAllWithCriteria: () => [], findAll: () => [], insertChild(i: number, n: any) { const c = host.root.children; const at = c.indexOf(n); if (at >= 0) c.splice(at, 1); c.splice(i, 0, n); } },
+    currentPage: Object.assign(page, { findChild: (fn: (n: any) => boolean) => page.children.find(fn) ?? null }),
+    createPage: () => { const pg: any = { name: '', type: 'PAGE', children: [] }; host.root.children.push(pg); return pg; },
+    createPageDivider: (n?: string) => { const pg: any = { name: n ?? '', type: 'PAGE_DIVIDER', children: [] }; host.root.children.push(pg); return pg; },
+    setCurrentPageAsync: async () => {}, loadAllPagesAsync: async () => {},
+    getNodeByIdAsync: async (id: string) => byId.get(id) ?? null,
+  };
+  (globalThis as any).figma = host;
+  const reports: StepReport[] = [];
+  for (const s of emits) {
+    const d = JSON.parse(/^const __D=(.*);$/m.exec(s.js)![1]);
+    const members = (unpack(d) as { members: { index: number }[] }).members;
+    const payloads = members.map((m) => async () => {
+      const [width, height] = boxOf(plans[m.index]);
+      const node = { id: `n${m.index}`, type: 'COMPONENT', name: '', x: 0, y: 0, width, height };
+      page.children.push(node);
+      byId.set(node.id, node);
+      return { id: node.id, misses: [] };
+    });
+    reports.push(await runComponentEmit(d, payloads as never));
+  }
+  const marks = page.children.filter((n) => n.type === 'COMPONENT' && String(n.name).startsWith(`${defId}/`));
+  ok(emits.length >= minSlices && marks.length === plans.length && marks.every((n) => n.width > 0 && n.height > 0) && reports.every((r) => !r.threw),
+    `${name}: the def is pasted in ${emits.length} slice(s) and every one of its ${plans.length} members is placed, at a nonzero box (${marks.length} placed; ${reports.filter((r) => r.threw).map((r) => r.threw).join('; ') || 'nothing threw'})`);
+  // Clearing is not enough: the plugin's grid keeps a 24px gap between neighbors (#3134), a literal here, so a pitch that only
+  // just clears the members in one column (a 2×2 spinner grid at 25) fails too. Each box is widened by the gap on its right
+  // and bottom; a gap of exactly 24 passes.
+  const GAP = 24;
+  const over: string[] = [];
+  marks.forEach((a, i) => marks.slice(i + 1).forEach((b) => {
+    if (a.x < b.x + b.width + GAP && b.x < a.x + a.width + GAP && a.y < b.y + b.height + GAP && b.y < a.y + a.height + GAP) over.push(`${a.name} × ${b.name}`);
+  }));
+  ok(over.length === 0, `${name}: no two ${name === 'emit/brand marks' ? 'marks' : 'members'} overlap or come within the plugin's 24px gap (${over.length} pair(s) too close${over.length ? `, first ${over[0]}` : ''})`);
+};
+
+// Provider-logo: every member has an artboard (`glyphViewBox`), the box the executors build its frame at. Mutation: the 48
+// put back in `runComponentEmit` → `emit/brand marks: no two marks overlap or come within the plugin's 24px gap`.
+await section('emit/brand marks', async () => {
+  await driveEmit('emit/brand marks', 'provider-logo', PARITY[1][1], (p) => p.root.glyphViewBox ?? [0, 0], 2);
+});
+
+// Spinner: no artboard, so `emitPitch` takes the bound branch, resolving each size's `icon/size/*` through the brand's tree.
+// THE ORACLE is the host, not that tree: the brand's theme is pasted into a file shim, and each stand-in is sized from the
+// `icon/size/*` variable the shim holds, aliases followed by id, so a wrong resolution in `emitPitch` cannot size its own
+// check. Mutations: `emitPitch`'s bound width read as 1 → `emit/spinner: no two members overlap or come within the plugin's 24px gap`; the throw dropped →
+// `emit/no box: a member with neither box throws by name`.
+await section('emit/spinner', async () => {
+  const input = PARITY[1][1];
+  const f = fresh();
+  await runAll(writes(input), f);
+  const byId = new Map(f.vars.map((v) => [v.id, v] as const));
+  const literal = (v: any): number[] => Object.values(v?.valuesByMode ?? {}).flatMap((x: any) =>
+    typeof x === 'number' ? [x] : x?.type === 'VARIABLE_ALIAS' ? literal(byId.get(x.id)) : []);
+  const sizeOf = (bound: string): number => {
+    const vs = f.vars.filter((v) => v.name === bound || String(v.name).endsWith(`/${bound}`));
+    const xs = [...new Set(vs.flatMap(literal))];
+    if (vs.length !== 1 || xs.length !== 1) throw new Error(`emit/spinner: '${bound}' is not one variable with one size in the shim (${vs.length} variable(s), sizes ${JSON.stringify(xs)})`);
+    return xs[0];
+  };
+  const plans = figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === 'spinner')!, input), { swapTarget: SWAP_TARGET });
+  const sizes = plans.map((p) => `${p.root.bound?.width}=${p.root.bound?.width ? sizeOf(p.root.bound.width) : '?'}`);
+  // The premise: spinner reaches the bound branch (no artboard), and its sizes differ, so a pitch fit to the smallest overlaps.
+  ok(plans.length > 1 && plans.every((p) => !p.root.glyphViewBox && p.root.bound?.width && p.root.bound?.height) && new Set(sizes).size === plans.length,
+    `emit/spinner: premise — every member is sized by its bound, not an artboard, at distinct sizes (${sizes.join(', ')})`);
+  await driveEmit('emit/spinner', 'spinner', input, (p) => [sizeOf(p.root.bound.width), sizeOf(p.root.bound.height)], 1);
+});
+
+await section('emit/no box', async () => {
+  const input = PARITY[1][1];
+  const plans = figmaAnatomySet(materializeForBrand(componentDefs.find((d) => d.id === 'spinner')!, input), { swapTarget: SWAP_TARGET });
+  const boxless = { ...plans[0], root: { ...plans[0].root, bound: undefined, glyphViewBox: undefined } };
+  let thrown = '';
+  try { emitPitch(input, [plans[1], boxless as never]); } catch (e) { thrown = (e as Error).message; }
+  ok(/^emitPitch: \S+ has no box to lay out by \(no glyphViewBox, and no bound width and height that resolve in '[^']+'\)$/.test(thrown),
+    `emit/no box: a member with neither box throws by name (${thrown ? `"${thrown.slice(0, 200)}"` : 'no throw'})`);
+});
+
+/* ── font cut spelling: the paste's font step writes each cut in its family's spelling (#3861) ─────────── */
+await section('font cut spelling', async () => {
+  // A host whose families spell a multi-word cut without its space (`SemiBold`, as Playfair does) where the engine
+  // writes `Semi Bold`. Apply Theme resolves the cut variables before its variable stage (#1728); the paste's font step
+  // now does too, from the cut → family pairing it carries. A paste stopped right after its font step must leave no cut
+  // variable naming a style its family lacks. THE ORACLE is the host: each value is looked up in the shim's own face
+  // list for that cut's family, never through `resolveCutPlan`. Mutations: `runFont` writing `d.plans` as built, or the font step shipped without `cutPairs` →
+  // `font cut spelling/after the font step`.
+  const brand = PARITY[0][1];
+  const tp = themePlans(brand).textPlan;
+  const respell = (style: string): string => style.replace(/ /g, '');
+  const faces = FACES.map((f) => ({ family: f.family, style: respell(f.style) }));
+  const B = new FileShim({});
+  B.faces = faces;
+  const all = writes(brand);
+  const fontAt = all.findIndex((s) => s.kind === 'font');
+  await runAll(all.slice(0, fontAt + 1), B);
+  const pairs = new Map(tp.filter((r) => r.fontStyleVar && r.fontFamilyVar).map((r) => [r.fontStyleVar!, r.fontFamilyVar!] as const));
+  const byName = new Map(B.vars.map((v) => [v.name, v] as const));
+  const lit = (v: any, mode: string): string | null => { const x = v?.valuesByMode?.[mode]; return typeof x === 'string' ? x : null; };
+  const has = (family: string, style: string): boolean => faces.some((f) => f.family === family && f.style === style);
+  const read: string[] = [];
+  const wrong: string[] = [];
+  for (const [cutName, famName] of pairs) {
+    const cv = byName.get(cutName), fv = byName.get(famName);
+    if (!cv || !fv) continue;
+    for (const mode of Object.keys(cv.valuesByMode)) {
+      const cut = lit(cv, mode), fam = lit(fv, mode);
+      if (cut === null || fam === null) continue;
+      read.push(`${cutName}=${cut}`);
+      if (!has(fam, cut)) wrong.push(`${cutName}: ${fam} ${cut}`);
+    }
+  }
+  // The premise: the engine plans multi-word cuts this host spells without the space, so the arm is not vacuous.
+  const planned = themePlans(brand).fontPlan.flatMap((c) => c.rows.filter((r) => pairs.has(r.name)).flatMap((r) => r.valuesByMode)).filter((v) => typeof v === 'string' && / /.test(v)).length;
+  ok(read.length > 0 && planned > 0, `font cut spelling: premise — the engine plans ${planned} multi-word cut values, which this host spells without the space (${read.length} cut values read)`);
+  ok(read.length > 0 && wrong.length === 0, `font cut spelling/after the font step: every cut variable names a style its family has (${wrong.length} not: ${JSON.stringify(wrong.slice(0, 3))})`);
 });
 
 console.log(`${failed ? `\n${failed} FAILED` : '\nmcp-paste: all assertions pass'} — ${executed} assertions executed`);

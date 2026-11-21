@@ -565,7 +565,31 @@ export const aliasFaults = (tree: any): { aliases: { path: string; ref: string; 
   return { aliases, faults };
 };
 
-export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats: Stats } => {
+type BuiltTree = { tree: any; modes: ModeResult[]; stats: Stats };
+
+/** #4230: ONE TREE PER THEME, WHILE A CALLER ASKS FOR IT. Each Figma emitter starts from `buildTree(theme)`, so the
+ *  plugin's Apply Theme (`themePlans`, seven plans over one theme) built the same tree about nine times: 129 ms of its
+ *  158 ms. Inside `withSharedTree(f)`, a theme's tree is built once and handed to every caller; outside it nothing is
+ *  kept, so a caller that changes the tree it was given (a test plants a fault in it) changes no one else's. Scoped,
+ *  not global, for that reason: the cache holds only for the synchronous run of `f`. `treeBuilds` counts the builds,
+ *  so a test can hold the sharing by a number rather than a timing. */
+let shared: WeakMap<Theme, BuiltTree> | null = null;
+let builds = 0;
+export const treeBuilds = (): number => builds;
+export const withSharedTree = <T>(f: () => T): T => {
+  const was = shared;
+  shared ??= new WeakMap();
+  try { return f(); } finally { shared = was; }
+};
+export const buildTree = (theme: Theme): BuiltTree => {
+  if (!shared) return buildTreeOnce(theme);
+  let t = shared.get(theme);
+  if (!t) shared.set(theme, t = buildTreeOnce(theme));
+  return t;
+};
+
+const buildTreeOnce = (theme: Theme): BuiltTree => {
+  builds++;
   const root = theme.root;
 
   // ---- colour primitives (the reference tier) → `palette.*` ----
@@ -763,10 +787,17 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const radius: Record<string, Token> = {};
   const wireframe = theme.modes.includes('wireframe');
   const radiusByMode = theme.dims.radiusByMode ?? {};
+  // #4161 (owner decision A): the two pill rungs say which one a pill control binds, so `round` is not read as a circle
+  // and neither is picked for the other's job (scale.ts `radiusScale` has why there are two).
+  const PILL_USE: Record<string, string> = {
+    round: '. For small fixed-size parts, such as a switch track, a radio or a badge count. A pill button binds `radius.capsule`',
+    capsule: '. The pill a button binds under `controlShape: pill`, full at any height. Small fixed-size parts bind `radius.round`',
+  };
   for (const r of theme.dims.radius) {
+    const use = PILL_USE[r.name] ?? '';
     const leaf = gridSet.has(r.px)
-      ? dimAlias(`${root}.${CORE_TIER}.dimension.${r.px}`, `radius ${r.name} — ${r.px}px${r.pill ? ' (pill)' : ''}`, { px: r.px, radiusScale: theme.dims.radiusScaleValue })
-      : dimLeaf(r.px, `radius ${r.name} — ${r.px}px (off-grid literal)`);
+      ? dimAlias(`${root}.${CORE_TIER}.dimension.${r.px}`, `radius ${r.name} — ${r.px}px${r.pill ? ` (pill${use})` : ''}`, { px: r.px, radiusScale: theme.dims.radiusScaleValue })
+      : dimLeaf(r.px, `radius ${r.name} — ${r.px}px (off-grid literal${use})`);
     const modeOverrides: Record<string, unknown> = {};
     if (wireframe && r.px !== 0)
       modeOverrides.wireframe = { $value: `{${root}.${CORE_TIER}.dimension.0}`, px: 0 };

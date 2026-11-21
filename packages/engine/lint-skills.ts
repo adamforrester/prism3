@@ -20,7 +20,9 @@
  * is the only reason the coverage check below exists at all. So there are two different scans:
  *
  *   1-3. REFERENCE checks — a name the skill quotes must still exist (dead references).
- *   4.   COVERAGE check   — a surface the engine grew must appear in the skill that documents it.
+ *   4.   COVERAGE check   — a surface the engine grew must appear in the skill that documents it, NAMED as a
+ *        property (a code span or a fenced example's top-level key, never an English word), and one level down
+ *        for `NESTED_COVERAGE`'s parents (#4173).
  *   5.   IDENTIFIER check — an all-caps name a skill quotes (`MUST_COVER`, `ENGINE_VERSION`) is declared
  *        in the source file the skill places it in, or in some source file when it names none (#1725).
  *   6.   DISCOVERY check  — every skill under `skills/` has a `.claude/skills/<name>` symlink to it, so a
@@ -390,6 +392,8 @@ export const scanText = (text: string, rel: string, findings: Finding[], ctx: Id
  * surface — and the untested scan is disproportionately likely to be the interesting one, because the
  * interesting one is usually the one shaped differently enough to sit outside the common path.
  */
+/** The BrandInput properties whose OWN keys the coverage scan asks for, one level down (#4173). */
+export const NESTED_COVERAGE = ['typography', 'layout', 'motionPersonality'] as const;
 /** Enum rows the coverage scan read from REAL skills (the self-check's samples are not counted). */
 let enumRowsRead = 0;
 export const scanCoverage = (text: string, rel: string, findings: Finding[]): void => {
@@ -420,7 +424,17 @@ export const scanCoverage = (text: string, rel: string, findings: Finding[]): vo
     const body = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
     // An `omits:` entry must be a property (#2677). An entry naming nothing exempts nothing, and reads as a
     // decision about a surface that does not exist: `prism3-theme` carried `inverse` for months.
-    for (const o of declaredOmit) if (!(o in schema.properties)) findings.push({ file: rel, kind: 'dead omission', detail: `\`omits:\` names \`${o}\`, which is not a BrandInput property. Remove it` });
+    // A dotted entry (`typography.faces`) omits one nested input of a NESTED_COVERAGE parent (#4173), resolved one
+    // `properties` level per segment, like the enum rows below.
+    const schemaAt = (path: string): unknown => path.split('.').reduce<{ properties?: Record<string, unknown> } | undefined>(
+      (node, key) => node?.properties?.[key] as { properties?: Record<string, unknown> } | undefined, schema);
+    for (const o of declaredOmit) {
+      if (!schemaAt(o)) findings.push({ file: rel, kind: 'dead omission', detail: `\`omits:\` names \`${o}\`, which is not a BrandInput property. Remove it` });
+      // A dotted entry outside NESTED_COVERAGE's parents (or deeper than one level) resolves, but the scan never reads
+      // that input, so it exempts nothing (#4273 review: `omits: surfaces.light` went unflagged).
+      else if (o.includes('.') && (o.split('.').length !== 2 || !(NESTED_COVERAGE as readonly string[]).includes(o.split('.')[0])))
+        findings.push({ file: rel, kind: 'dead omission', detail: `\`omits:\` names \`${o}\`, a nested input the coverage scan never reads (only one level under ${NESTED_COVERAGE.join(', ')}), so it exempts nothing. Remove it` });
+    }
     // A table row documenting an ENUM property lists every value (#2677). A row whose first cell is the
     // backticked property is the skill's statement of what the property takes; a value the schema gained
     // later and the row never learned is a choice the skill hides. `controlShape` gained `boxed` and
@@ -437,11 +451,46 @@ export const scanCoverage = (text: string, rel: string, findings: Finding[]): vo
       if (rel !== 'self-check') enumRowsRead++;
       for (const v of def?.enum ?? []) if (!row[2].includes(`\`${String(v)}\``)) findings.push({ file: rel, kind: 'incomplete enum', detail: `the \`${row[1]}\` row does not list \`${String(v)}\`, one of the values the schema accepts (${(def!.enum ?? []).join(', ')})` });
     }
+    // WHAT COUNTS AS DOCUMENTING A PROPERTY (#4173). A word in prose did, and an English word is not a lever:
+    // "four modes" covered `modes` and "`[{ name, oklch … }]`" covered `name`, while the skill never documented
+    // either, so the scan could not fire on short, common property names (`docs/34`: the oracle was shared with
+    // unrelated text). A property is documented only where the skill NAMES it as one:
+    //   - an inline code span that IS its path, or its path then a dotted child (`modes`, `typography.lineHeights`;
+    //     `typography.captionFloor` names `typography` too). A span with the name inside it (`[{ name, … }]`) or
+    //     a value after it (`name: accent`, a brand color's name) does not count;
+    //   - a key line of a fenced example at the block's own base indentation (`id: <brand-slug>`), never a key
+    //     nested deeper in it (a gradient's `name:` is not the brand's `name`);
+    //   - for a NESTED key, also a code span on a table row whose first cell is its parent: that row's shape
+    //     cell is the skill's statement of the parent's keys (`{ families, weightRoles, … }`).
+    // Fenced blocks are cut out before code spans are read, so a fence's backticks cannot pair with prose.
+    const fences = [...body.matchAll(/^([ \t]*)```[^\n]*\n([\s\S]*?)^[ \t]*```/gm)];
+    const prose = body.replace(/^[ \t]*```[^\n]*\n[\s\S]*?^[ \t]*```.*$/gm, '');
+    const spans = [...prose.matchAll(/`([^`\n]+)`/g)].map((m) => m[1].trim());
+    const fenceKeys = new Set(fences.flatMap((f) => {
+      const lines = f[2].split('\n').filter((l) => l.trim() && !l.trim().startsWith('#'));
+      const base = Math.min(...lines.map((l) => l.match(/^[ \t]*/)![0].length));
+      return lines.filter((l) => l.match(/^[ \t]*/)![0].length === base).map((l) => l.trim().match(/^([A-Za-z]+):/)?.[1]).filter(Boolean) as string[];
+    }));
+    const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const named = (path: string): boolean => spans.some((c) => c === path || c.startsWith(`${path}.`));
+    const rowSpans = (parent: string): string[] =>
+      [...prose.matchAll(/^\|\s*`([A-Za-z.]+)`\s*\|(.*)$/gm)].filter((r) => r[1] === parent).flatMap((r) => [...r[2].matchAll(/`([^`\n]+)`/g)].map((m) => m[1]));
+    const uncovered = (path: string) => findings.push({ file: rel, kind: 'uncovered input surface', detail: `\`${path}\` is a BrandInput property this skill never names (in a code span, a table row's first cell or a fenced example's top-level key) — document it, or add it to the frontmatter \`omits:\` list` });
     for (const prop of Object.keys(schema.properties)) {
       if (declaredOmit.has(prop)) continue;
-      // Word-boundary match so `surfaces` does not satisfy `surface`.
-      if (!new RegExp(`\\b${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(body)) {
-        findings.push({ file: rel, kind: 'uncovered input surface', detail: `\`${prop}\` is a BrandInput property this skill never mentions — document it, or add it to the frontmatter \`omits:\` list` });
+      if (!named(prop) && !fenceKeys.has(prop)) uncovered(prop);
+    }
+    // ONE LEVEL DOWN (#4173), for the parents whose keys are separate authoring choices. Before this only
+    // `schema.properties` was read, so twelve nested inputs (`typography.lineHeights`, `layout.columns`,
+    // `motionPersonality.easingRoles`, …) were never asked for. The parents are listed, not inferred: a nested
+    // object like `primary: {l,c,h}` is one value, not three levers.
+    for (const parent of NESTED_COVERAGE) {
+      if (declaredOmit.has(parent)) continue;
+      const row = rowSpans(parent);
+      for (const key of Object.keys((schema.properties[parent] as { properties?: object })?.properties ?? {})) {
+        const path = `${parent}.${key}`;
+        if (declaredOmit.has(path)) continue;
+        if (!named(path) && !row.some((c) => new RegExp(`(?<![A-Za-z0-9_.-])${esc(key)}(?![A-Za-z0-9_-])`).test(c))) uncovered(path);
       }
     }
   }
@@ -699,6 +748,21 @@ const selfCheck = (): string[] => {
     if (!cov('---\n| `typography.captionFloor` | `11` | x |\n').includes('incomplete enum')) bad.push('a nested enum row missing a value (`typography.captionFloor` without `10`) passes');
     if (cov('---\n| `typography.captionFloor` | `11` \\| `10` | x |\n').includes('incomplete enum')) bad.push('a complete nested enum row is flagged');
     if (!cov('---\n| `density` | `comfortable` \\| `compact` | `spacious` is for reading |\n').includes('incomplete enum')) bad.push('a value quoted only in the description cell (`spacious`) counts as listed');
+    // #4173: an English word, a name inside a span, or a nested key in an example is not documenting a property.
+    const flagged = (b: string, path: string) => sampleCoverage(`---\ndocuments: brandInput\n${b}`).some((f) => f.kind === 'uncovered input surface' && f.detail.startsWith(`\`${path}\` `));
+    if (!flagged('---\nfour modes in plain prose\n', 'modes')) bad.push('#4173: "four modes" in plain prose counts as documenting `modes`');
+    if (flagged('---\n| `modes` | `light` | which modes ship |\n', 'modes')) bad.push('#4173: a table row whose first cell is `modes` does not count as documenting it');
+    if (!flagged('---\n| `brandColors` | `[{ name, oklch: {l,c,h} }]` | accents |\nas `name: accent`\n', 'name')) bad.push('#4173: a span with `name` inside it, or `name: accent`, counts as documenting the brand\'s `name`');
+    if (!flagged('---\n```yaml\ngradients:\n  - name: x\n```\n', 'name')) bad.push('#4173: a key nested in a fenced example (`  - name:`) counts as documenting `name`');
+    if (flagged('---\n```yaml\nid: x\nname: X\n```\n', 'name')) bad.push('#4173: a fenced example\'s top-level key (`name: X`) does not count as documenting `name`');
+    if (!flagged('---\n| `typography` | `{ families }` | x |\n', 'typography.lineHeights')) bad.push('#4173: a nested input (`typography.lineHeights`) the skill never names passes — the scan stopped at the top level');
+    if (flagged('---\n| `typography` | `{ families, lineHeights }` | x |\n', 'typography.lineHeights')) bad.push('#4173: a nested key on its parent\'s table row does not count');
+    if (flagged('---\nset `typography.lineHeights` here\n', 'typography.lineHeights')) bad.push('#4173: a dotted code span (`typography.lineHeights`) does not count');
+    if (!flagged('---\n| `layout` | `{ lineHeights }` | x |\n', 'typography.lineHeights')) bad.push('#4173: a nested key on ANOTHER parent\'s row counts for this one');
+    if (flagged('omits: typography.lineHeights\n---\n', 'typography.lineHeights')) bad.push('#4173: a dotted `omits:` entry does not exempt its nested input');
+    if (!cov('omits: typography.notAKey\n---\n').includes('dead omission')) bad.push('#4173: a dotted `omits:` entry naming no nested input passes');
+    if (!cov('omits: surfaces.light\n---\n').includes('dead omission')) bad.push('#4173: a dotted `omits:` entry under a parent the scan never reads (`surfaces.light`) passes, though it exempts nothing');
+    if (cov('omits: typography.faces\n---\n').includes('dead omission')) bad.push('#4173: a dotted `omits:` entry under a NESTED_COVERAGE parent is flagged as dead');
   }
   const everyProp = Object.keys(
     JSON.parse(readFileSync(resolve(repo, 'packages/engine/schema/theme-schema.json'), 'utf8')).properties,
@@ -741,7 +805,7 @@ const selfCheck = (): string[] => {
   // prop reads as documented. Cheap, and the failure it prevents is the quiet kind — a prop counted
   // as covered because some unrelated longer word happens to contain it.
   if (
-    !sampleCoverage(`---\ndocuments: brandInput\n---\n\nzzz${someProp} and ${someProp}zzz\n`)
+    !sampleCoverage(`---\ndocuments: brandInput\n---\n\n\`zzz${someProp}\` and \`${someProp}zzz\`\n`)
       .some((f) => f.detail.includes(`\`${someProp}\``))
   ) {
     bad.push(`\`${someProp}\` glued inside a longer word now counts as documenting it — the coverage match lost a word boundary`);
@@ -756,7 +820,7 @@ const selfCheck = (): string[] => {
     JSON.parse(readFileSync(resolve(repo, 'packages/engine/schema/theme-schema.json'), 'utf8')).properties,
   ).filter((p) => p !== someProp).join(', ');
   if (
-    sampleCoverage(`---\ndocuments: brandInput\nomits: ${allButSome}\n---\n\ncovers ${someProp} in full\n\n---\n\nclosing\n`).length
+    sampleCoverage(`---\ndocuments: brandInput\nomits: ${allButSome}\n---\n\ncovers \`${someProp}\` in full\n\n---\n\nclosing\n`).length
   ) {
     bad.push('a property documented ABOVE a body `---` rule is flagged as uncovered — the frontmatter strip went greedy and ate the body');
   }
