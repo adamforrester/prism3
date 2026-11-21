@@ -62,7 +62,7 @@ import {
   ROOT, FONTS_DIR, CHROME_FONTS, C, P, loadModes, resolve, fontFaceCss, fontVarsCss, themeBlock, brandLeaks, BRAND_ALLOW,
   scanRawStrict, ratio, fmtRatio,
 } from './tokens.mjs';
-import { glyphGaps, glyphWatchFiles } from './glyphs.mjs';
+import { chromeTexts, glyphGaps, glyphWatchFiles } from './glyphs.mjs';
 import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS as MOCKUP_PAIRS, PRODUCT_PAIRS, DECORATIVE, INACTIVE, SANCTIONED_SHADOWS } from './spec.mjs';
 
 const PAIRS = [...MOCKUP_PAIRS, ...PRODUCT_PAIRS];
@@ -344,9 +344,10 @@ const watchFiles = () => [
 
 /**
  * Builds the chrome CSS and runs every check. Returns `{ css, errors }`; `css` is null when anything
- * failed. Exported so a Node test can call it without esbuild. `names` defaults to SHELL_VARS.
+ * failed. Exported so a Node test can call it without esbuild. `names` defaults to SHELL_VARS. `outDir` is the
+ * emission directory, given only by a test (#3914); the build reads `packages/engine/out`.
  */
-export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_FILE } = {}) {
+export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_FILE, outDir } = {}) {
   const errors = [];
   const fail = (check, msg) => errors.push(`[${check}] ${msg}`);
 
@@ -361,7 +362,7 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
   }
 
   // [glyphs] every code point the chrome can be handed is in the embedded UI face (oracle: its cmap).
-  if (!errors.length) for (const msg of glyphGaps()) fail('glyphs', msg);
+  if (!errors.length) for (const msg of glyphGaps({ source: chromeTexts(outDir) })) fail('glyphs', msg);
 
   // [license] each face's OFL file must exist and carry a copyright line; the notice is built from it.
   const notices = [];
@@ -393,7 +394,7 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
   if (errors.length) return { css: null, errors };
 
   let modes;
-  try { modes = loadModes(); } catch (e) {
+  try { modes = loadModes(outDir); } catch (e) {
     fail('map', `cannot load the default theme from packages/engine/out: ${e.message}`);
     return { css: null, errors };
   }
