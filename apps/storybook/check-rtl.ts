@@ -37,7 +37,7 @@
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { at, context, dirsFor, DROPPED, main, open, result, stories, type Dir, type Plant, type Story, type Result } from './a11y-harness.ts';
+import { at, context, dirsFor, DROPPED, main, open, result, stateOf, stories, type Dir, type Plant, type Story, type Result } from './a11y-harness.ts';
 
 type Box = { left: number; right: number; width: number };
 const STATUS = ['error', 'warning', 'success', 'shown-error'];
@@ -56,7 +56,7 @@ const PAIRS = (s: Story): { a: string; b: string; what: string }[] => {
   if (s.case === 'with-icons') out.push({ a: `${P}__leading-visual`, b: 'input', what: 'the leading visual is not at the inline start of the input' });
   if (s.case === 'with-icons' && s.component === 'text-field') out.push({ a: 'input', b: `${P}__trailing-visual`, what: 'the trailing visual is not at the inline end of the input' });
   if (s.case === 'required') out.push({ a: '.p3-field-label__label', b: '.p3-field-label__indicator', what: 'the required indicator is not at the inline end of the label' });
-  if (STATUS.includes(s.case)) out.push({ a: '.p3-field-message__glyph-cell', b: '.p3-field-message__caption-cell', what: 'the status glyph is not at the inline start of the message' });
+  if (STATUS.includes(stateOf(s))) out.push({ a: '.p3-field-message__glyph-cell', b: '.p3-field-message__caption-cell', what: 'the status glyph is not at the inline start of the message' });
   if (s.component === 'password-field') out.push({ a: `${P}__label-cell`, b: `${P}__toggle`, what: 'the Show/Hide button is not at the inline end of the label row' });
   return out;
 };

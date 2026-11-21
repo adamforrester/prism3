@@ -184,14 +184,19 @@ const checkField = async (comp: string, e: { forms: string[]; cases: string[] })
     for (const c of e.cases) {
       const sid = id(comp, form, c);
       if (!built.has(sid)) continue;
-      const r = (got[c] = await readField(comp, sid, FORCED[c], c.startsWith('shown')));
+      // a `<state>-no-message` case is that state with the message off (#4432 decision 3 A)
+      const state = c.replace(/-no-message$/, '');
+      const noMessage = state !== c;
+      const r = (got[c] = await readField(comp, sid, FORCED[state], c.startsWith('shown')));
       if (r.error) { failures.push(`${sid}: ${r.error}`); delete got[c]; continue; }
       ok(r.inElement === (form === 'element'), `${sid}: the .p3-${comp} is ${r.inElement ? '' : 'not '}inside <p3-${comp}>`);
       const x = r.facts!;
-      const status = STATUS[c] ?? 'default';
-      // The error wiring, owner decision #1712 A.
+      const status = STATUS[state] ?? 'default';
+      // The error wiring, owner decision #1712 A. With the message off at default, there is no message and nothing
+      // describes the input; at a validation status the message is written anyway (Q-POC2 A).
       ok(x.labelsInput, `${sid}: the label does not name the input (label for / input.labels)`);
-      ok(x.describesMessage, `${sid}: aria-describedby "${x.describedBy}" does not name the field's message`);
+      if (noMessage && status === 'default') ok(x.messageText === null && x.describedBy === null, `${sid}: the message is off, but the field shows one (${JSON.stringify(x.messageText)}) or aria-describedby names one ("${x.describedBy}")`);
+      else ok(x.describesMessage, `${sid}: aria-describedby "${x.describedBy}" does not name the field's message`);
       ok(x.invalid === (status === 'error' ? 'true' : null), `${sid}: aria-invalid is ${x.invalid} at ${status}, #1712 A wants ${status === 'error' ? '"true"' : 'none'}`);
       ok(x.invalidAnywhere === 0, `${sid}: aria-invalid sits on ${x.invalidAnywhere} element(s) other than the input`);
       ok(x.live.length === 0, `${sid}: the field holds a live region, which #1712 A rules out: ${x.live.join(' | ')}`);
@@ -214,6 +219,11 @@ const checkField = async (comp: string, e: { forms: string[]; cases: string[] })
       if (borders.every(Boolean)) ok(new Set(borders).size === 4, `${comp} ${form}: rest, error, warning and success share a border color (${borders.join(', ')})`);
     }
     if (f('disabled')) ok(f('disabled')!.disabled, `${at('disabled')}: the input is not disabled`);
+    if (f('disabled-no-message')) ok(f('disabled-no-message')!.disabled, `${at('disabled-no-message')}: the input is not disabled`);
+    // each state with the message off draws the box its state draws with the message on: the state was forced
+    for (const s of ['rest', 'hover', 'focus-visible', 'disabled', 'error']) if (box(s) && box(`${s}-no-message`)) {
+      ok(JSON.stringify(box(`${s}-no-message`)) === JSON.stringify(box(s)), `${at(`${s}-no-message`)}: the box differs from ${s}'s, so the state is not the one its name says`);
+    }
     if (f('read-only')) ok(f('read-only')!.readOnly && !f('read-only')!.disabled, `${at('read-only')}: the input is not read-only`);
     if (f('pending')) ok(f('pending')!.busy === 'true' && f('pending')!.spinner, `${at('pending')}: aria-busy ${f('pending')!.busy}, spinner shown ${f('pending')!.spinner}`);
     if (f('rest')) ok(!f('rest')!.spinner && !f('rest')!.indicator, `${at('rest')}: rest shows the spinner or the required marker`);

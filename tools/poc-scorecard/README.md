@@ -23,4 +23,5 @@ npx tsx tools/poc-scorecard/scorecard.ts --self-test                            
   `apps/storybook/ARM-CONTRACT.md`.
 
 Arm 1's setup: run `npm ci`, then the record step. The Storybook rows rebuild the Storybook first. The Figma geometry
-row reads FAIL until the Mac job commits `apps/storybook/figma-geometry.json`.
+row reads FAIL while any difference stands, and its line carries both counts, `N of M comparisons differ, in K
+findings`: K counts each root cause once (`compare-figma-geometry.ts`, ROOT CAUSES).

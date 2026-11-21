@@ -14,6 +14,8 @@ export const EXPECTED: Record<string, { forms: string[]; cases: string[] }> = {
 };
 // The fields' cases (`stories/fields.js`), written again here by hand.
 export const FIELD_CASES = ['rest', 'filled', 'hover', 'focus-visible', 'error', 'warning', 'success', 'disabled', 'read-only',
-  'pending', 'required', 'small', 'medium', 'large', 'with-icons'];
+  'pending', 'required', 'small', 'medium', 'large', 'with-icons',
+  // each KPI 2 state with the message off, as Figma's members are built (#4432 decision 3 A)
+  'rest-no-message', 'hover-no-message', 'focus-visible-no-message', 'disabled-no-message', 'error-no-message'];
 EXPECTED['text-field'] = { forms: ['element', 'html'], cases: FIELD_CASES };
 EXPECTED['password-field'] = { forms: ['element', 'html'], cases: [...FIELD_CASES, 'shown', 'shown-error'] };

@@ -37,14 +37,14 @@
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { at, context, DIRS, dirsFor, DROPPED, main, open, result, stories, type Dir, type Plant, type Story, type Result } from './a11y-harness.ts';
+import { at, context, DIRS, dirsFor, DROPPED, main, open, result, stateOf, stories, type Dir, type Plant, type Story, type Result } from './a11y-harness.ts';
 
 const NAME: Record<string, string> = { pending: 'Saving', 'with-visuals': 'Add item' };
 const LABEL: Record<string, string> = { 'text-field': 'Email address', 'password-field': 'Password' };
 
 /** The Tab stops a case must have, written from the defs. */
 const DEF_ORDER = (s: Story): string[] => {
-  if (s.case === 'disabled') return [];
+  if (stateOf(s) === 'disabled') return [];
   if (s.component === 'button') return [`button "${NAME[s.case] ?? 'Save changes'}"`];
   const box = `textbox "${LABEL[s.component]}"`;
   if (s.component === 'text-field') return [box];
@@ -53,7 +53,7 @@ const DEF_ORDER = (s: Story): string[] => {
 /** KNOWN (#3967): today's order where it differs from the def. Each must still hold, or the check fails. */
 const KNOWN: { issue: string; applies: (s: Story) => boolean; order: (s: Story) => string[] } = {
   issue: '#3967',
-  applies: (s) => s.component === 'password-field' && s.case !== 'disabled',
+  applies: (s) => s.component === 'password-field' && stateOf(s) !== 'disabled',
   order: (s) => [...DEF_ORDER(s)].reverse(),
 };
 
