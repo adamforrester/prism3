@@ -234,6 +234,10 @@ export type ActivityLend = { readonly read: ActivitySource; readonly closeDetail
   /** #3326: a cause's subject (a def id) in the panel's words, the set's name. Absent, the id is shown. */
   readonly nameOf?: (id: string) => string;
   readonly again?: { readonly can: (k: RowKey) => boolean; readonly run: (k: RowKey) => void };
+  /** #3119 (owner decision 2026-11-18 A): "Show the set in Figma" on a Build set result that is not clean. `def` is the set
+   *  to offer, or null to offer none: no set named, or the file does not hold it. `can` says whether it may run now
+   *  (nothing else running), `show` asks the host. Absent (the web), never offered. */
+  readonly showSet?: { readonly def: () => string | null; readonly can: () => boolean; readonly show: (def: string) => void };
   /** #2069 (Q116 A): open Report a problem, from the button at the foot of the open drawer. Absent, no button. */
   readonly report?: (opener: HTMLElement) => void;
   /** #533 (Q110 A): a run the panel started has ended and nothing else runs; `line` is its short line (`noticeLine`). Read
@@ -249,6 +253,9 @@ export const AGAIN: Readonly<Partial<Record<RowKey, string>>> = {
 };
 /** Q3113.4 A: every bad result's last next step (DRAFT wording). */
 export const COPY_DETAILS = 'Copy details';
+/** #3119 (owner decision 2026-11-18 A): a Build set result's next step that shows its set (wording approved
+ *  by the owner 2026-11-18, on the PR). Offered only while the file holds the set. */
+export const SHOW_SET = 'Show the set in Figma';
 
 /** How a result reads (Q3113.2 A): clean, a warning or a failure. A write's verdict is `ok: false` for a failure and a
  *  warning alike. A bad result is a warning when its headline leads with "⚠" and it reports nothing it was asked to make as
@@ -588,6 +595,17 @@ export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narr
       const can = again.can(k);
       if (!can) b.setAttribute('aria-disabled', 'true');
       b.onclick = () => { if (again.can(k)) again.run(k); };
+      box.append(b);
+    }
+    // #3119: a Build set result shows its set, after running it again and before Copy details, and only while the file
+    // holds it (`showSet.def`). An agent's build too: showing the set does not depend on whose input built it.
+    const showSet = opts.lend.showSet;
+    const setDef = k === 'components' ? showSet?.def() ?? null : null;
+    if (showSet && setDef !== null) {
+      const b = hook(h('button', 'p3-btn', SHOW_SET), 'op-show-set');
+      b.type = 'button';
+      if (!showSet.can()) b.setAttribute('aria-disabled', 'true');
+      b.onclick = () => { if (showSet.can()) showSet.show(setDef); };
       box.append(b);
     }
     const copy = hook(h('button', 'p3-btn p3-btn-ghost', COPY_DETAILS), 'op-copy');

@@ -1517,10 +1517,12 @@
           "via": "Update file: the sets the file lacks, listed in its checklist. Each family gets a usage panel with numbered anatomy markers, a parts list and the release it last changed in",
           "sources": [
             "apps/plugin/src/write-components.ts",
-            "apps/plugin/src/doc-panel.ts"
+            "apps/plugin/src/doc-panel.ts",
+            "apps/plugin/src/show-set.ts"
           ],
           "messages": [
-            "build-components"
+            "build-components",
+            "show-set"
           ]
         },
         "agent": {

@@ -75,6 +75,7 @@ import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleNames } from './list-fonts';
 import { restoreInput, holdsInput, canon } from './persist-figma';
 import { readUpdatesOff, writeUpdatesOff, type UpdatesOff } from './updates-off';
+import { setNodeOf, showSetNode } from './show-set';
 import { planOverride, overrideVerdict, overrideData, wholeRunRefusal, confirmMoved, type OverrideChange, type OverrideRefusal } from './set-override';
 import { declaredModesOf, failedChecks, seedSummary } from './seed-modes';
 import { PACE_MS, pacer } from './pace';
@@ -1618,6 +1619,38 @@ const restampQuiet = (): void => {
 /** `fn`, then the quiet re-record (Q811 A): for Theme and the build, two writes Update file runs. The in-place update
  *  calls it after its apply only, since its check is a read. */
 const thenRestamp = <A extends unknown[]>(fn: (...a: A) => Promise<void>) => async (...a: A): Promise<void> => { try { await fn(...a); } finally { restampQuiet(); } };
+/** #3119: the node that holds `defId`'s set, from a fresh search of every page (`searchPagesYielding`, one page a turn),
+ *  by `readPresent`'s rule (`setNodeOf`); `null` for no such set, or a def that draws none. Not the cached read: it runs
+ *  straight after a build, which the cache may predate. */
+const findSetNode = async (defId: string): Promise<unknown | null> => {
+  const d = componentDefs.find((x) => x.id === defId);
+  if (!d?.figmaProperties) return null;
+  return setNodeOf(await searchPagesYielding(['COMPONENT', 'COMPONENT_SET']), d.id, !!d.figmaProperties.emitAsComponents, formerDefIds(d.id));
+};
+/** #3119: tell the panel whether the file holds `defId`'s set (`set-in-file`). A search that throws says it does not, so
+ *  the drawer offers nothing it cannot show. */
+const tellSetInFile = async (defId: string): Promise<void> => {
+  let inFile = false;
+  try { inFile = (await findSetNode(defId)) !== null; } catch { /* unreadable → not offered */ }
+  postToUi({ type: 'set-in-file', def: defId, inFile });
+};
+/** #3119: a Build set (the panel's or an agent's, the same entry), then `set-in-file` for the set it built, so a bad
+ *  result offers "Show the set in Figma" only when the set is there. Outside the guard: the search is a read, and the
+ *  next write need not wait on it. No def builds Button, as `buildComponents` decides. */
+const thenTellSet = <R extends unknown[]>(fn: (defId: string | undefined, ...rest: R) => Promise<void>) =>
+  async (defId: string | undefined, ...rest: R): Promise<void> => { try { await fn(defId, ...rest); } finally { await tellSetInFile(defId ?? button.id); } };
+/** #3119: "Show the set in Figma". Reads and changes the view, never the file. Refused quietly while a write holds the
+ *  file (its own page moves are the write's), and answered `set-in-file` false when the set is gone, so the offer goes. */
+const showSet = async (defId: string): Promise<void> => {
+  if (guard.held()) return;
+  let node: unknown | null = null;
+  try { node = await findSetNode(defId); } catch { node = null; }
+  if (node === null) { postToUi({ type: 'set-in-file', def: defId, inFile: false }); return; }
+  await showSetNode({
+    setCurrentPageAsync: (p) => figma.setCurrentPageAsync(p as PageNode),
+    scrollAndZoomIntoView: (ns) => figma.viewport.scrollAndZoomIntoView(ns as SceneNode[]),
+  }, node);
+};
 /** `atOpen`: the read after open (#3110), as against an answer to the panel's own `file-sets-request`. It now yields, so
  *  a request asked meanwhile can be answered first; the panel tells the two apart by this. */
 const fileSets = async (input?: BrandInput, atOpen = false): Promise<void> => {
@@ -2438,7 +2471,7 @@ const setUpdatesOffGuarded = guarded('build-components', setUpdatesOff);
 
 export const ACTIONS: AgentActions = {
   applyTheme: guarded('apply-theme', thenRestamp(applyTheme)),
-  buildComponents: guarded('build-components', thenRestamp(buildComponents)),
+  buildComponents: thenTellSet(guarded('build-components', thenRestamp(buildComponents))),
   fileSetup: guarded('file-setup', fileSetup),
   styleGuide: guarded('style-guide', styleGuide),
   prune: guarded('prune', prune, (_input, confirm) => confirm),
@@ -2632,6 +2665,10 @@ onUiMessage((msg: UiToMain) => {
     case 'add-queue':
       // #3129 Q833 A: Components' boxes and Update file's Remove, Remove all and Add all. Writes no layer: never guarded.
       void addQueue(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], msg.on === true);
+      return;
+    case 'show-set':
+      // #3119: "Show the set in Figma", from a bad Build set result in the Activity drawer.
+      if (typeof msg.def === 'string') void showSet(msg.def);
       return;
     case 'updates-off':
       // #2956: Update file's "Turn off updates" / "Turn updates back on". A write of plugin data on the set: guarded.

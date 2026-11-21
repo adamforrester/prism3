@@ -7,7 +7,7 @@
     { "file": "test-build-identity.ts", "floor": 152 },
     { "file": "test-em-percent.ts", "floor": 27 },
     { "file": "test-outline-roles.ts", "floor": 36 },
-    { "file": "test-write-adapter.ts", "floor": 123 },
+    { "file": "test-write-adapter.ts", "floor": 129 },
     { "file": "test-store.ts", "floor": 78 },
     { "file": "test-host-session.ts", "floor": 322 },
     { "file": "test-style-guides.ts", "floor": 25 },

@@ -177,6 +177,10 @@ export type UiToMain =
   /** #2956 (owner decisions 2026-11-17): Update file's "Turn off updates" (`off` true) and "Turn updates back on" (`off`
    *  false) on the set for `def`. Writes the set's mark only (`updates-off.ts`). Guarded; answered with one `updates-off`. */
   | { type: 'updates-off'; def: string; off: boolean }
+  /** #3119 (owner decision 2026-11-18 A): "Show the set in Figma", from a bad Build set result: make the page holding
+   *  `def`'s set current and fit the viewport to the set. Writes nothing. Answered with `set-in-file` only when the
+   *  file no longer holds the set, so the drawer stops offering it. */
+  | { type: 'show-set'; def: string }
   /** #3309: the panel's own summary of a run of several writes, which only the panel computes: a build of several sets
    *  (`components`) or Update file's run (`update`), as the Activity drawer and the status strip show it. Kept in the
    *  main thread's activity log for the agent link's `activity` command. Writes nothing; never refused. */
@@ -663,6 +667,9 @@ export type MainToUi =
   | { type: 'add-queue'; queued: string[]; error?: string }
   /** #2956: the answer to `updates-off`: the set and what was asked; `error` when it could not be written. */
   | { type: 'updates-off'; def: string; off: boolean; ok: boolean; error?: string }
+  /** #3119: whether the file holds `def`'s set, posted after every Build set (the panel's or an agent's) and when a
+   *  `show-set` finds none. The drawer offers "Show the set in Figma" on a bad build only while this says it does. */
+  | { type: 'set-in-file'; def: string; inFile: boolean }
   /** #2909 Q2909.8 A: one set's hand edits from the background pass (`handEditsOf`), or the pass's end (`done`). */
   | { type: 'hand-edits'; def: string; members: number; edited: number }
   | { type: 'hand-edits'; done: true }

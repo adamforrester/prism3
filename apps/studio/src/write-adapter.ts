@@ -117,6 +117,8 @@ export type HostMessage =
   | { kind: 'add-queue'; queued: readonly string[]; error: string | null }
   // #2956 — the answer to "Turn off updates" / "Turn updates back on": the set, what was asked, and why it failed.
   | { kind: 'updates-off'; def: string; off: boolean; error: string | null }
+  // #3119 — whether the file holds the set a Build set built, or a "Show the set in Figma" looked for.
+  | { kind: 'set-in-file'; def: string; inFile: boolean }
   // #2909 Q2909.8 A — one set's hand edits from the background pass after load, or its end.
   | { kind: 'hand-edits'; def: string; members: number; edited: number }
   | { kind: 'hand-edits-done' }
@@ -235,6 +237,9 @@ export interface HostCommit {
   postAddQueue(ids: readonly string[], on: boolean): void;
   /** #2956: turn the set's updates off (`off`) or back on (`updates-off`). Figma only; inert on the web. */
   postUpdatesOff(def: string, off: boolean): void;
+  /** #3119: "Show the set in Figma" (`show-set`): the set's page made current, the view fitted to it. Figma only; inert
+   *  on the web. */
+  postShowSet(def: string): void;
   /** #3309: the panel's own summary of a run of several writes (`activity-note`), kept by the main thread for the agent
    *  link's `activity` command. Figma only; inert on the web. */
   noteActivity(op: 'components' | 'update', ok: boolean, headline: string, lines: readonly string[]): void;
@@ -637,6 +642,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // none. Ids that are not strings are dropped.
   // #2956. An answer with no set is dropped; one that is not ok carries its reason, or a fixed one.
   'updates-off': (m) => (isId(m.def) ? { kind: 'updates-off', def: m.def, off: m.off === true, error: m.ok === true ? null : str(m.error) && m.error ? m.error : 'not written' } : null),
+  // #3119. An answer with no set is dropped; anything but `true` reads as not in the file, so nothing unshowable is offered.
+  'set-in-file': (m) => (isId(m.def) ? { kind: 'set-in-file', def: m.def, inFile: m.inFile === true } : null),
   'add-queue': (m) => (Array.isArray(m.queued) ? { kind: 'add-queue', queued: idsOf(m.queued), error: str(m.error) && m.error ? m.error : null } : null),
   // #2909 Q2909.8 A. A reading with a field of the wrong type is dropped: a guessed count would be a status nobody read.
   'hand-edits': (m) => {
@@ -744,6 +751,9 @@ const figmaCommit = (): HostCommit => ({
   postUpdatesOff(def, off) {
     post({ type: 'updates-off', def, off });
   },
+  postShowSet(def) {
+    post({ type: 'show-set', def });
+  },
   noteActivity(op, ok, headline, lines) {
     post({ type: 'activity-note', op, ok, headline, lines: [...lines] });
   },
@@ -802,6 +812,7 @@ const webCommit = (): HostCommit => ({
   requestHandEdits() {/* no file on web (#2909) */},
   postAddQueue() {/* no file on web (#3129 Q3129.12 A) */},
   postUpdatesOff() {/* no file on web */},
+  postShowSet() {/* no file on web */},
   noteActivity() {/* no main thread on web (#3309) */},
   noteRunEnded() {/* no main thread on web (#533) */},
   requestUpdateCheck() {/* no file on web (#2909) */},

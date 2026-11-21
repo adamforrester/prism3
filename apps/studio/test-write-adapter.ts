@@ -291,6 +291,13 @@ accepts('file-due with the add queue', { type: 'file-due', seq: 2, present: [], 
   { kind: 'file-due', seq: 2, present: [], theme: false, error: null, due: {}, queued: [] });
 accepts('add-queue, the answer to a queue write', { type: 'add-queue', queued: ['tag'] }, { kind: 'add-queue', queued: ['tag'], error: null });
 drops('the panel\'s own add-queue request, which carries no queue', wire({ type: 'add-queue', ids: ['tag'], on: true }));
+// #3119: whether the file holds a set. Only `inFile: true` reads as in the file, so the drawer never offers a set it
+// cannot show; an answer with no set is dropped. Mutation `m.inFile === true` → `m.inFile !== false` (`write-adapter.ts`)
+// fails `accepts set-in-file with a non-boolean inFile reads as not in the file`, by name.
+accepts('set-in-file true', { type: 'set-in-file', def: 'badge', inFile: true }, { kind: 'set-in-file', def: 'badge', inFile: true });
+accepts('set-in-file false', { type: 'set-in-file', def: 'badge', inFile: false }, { kind: 'set-in-file', def: 'badge', inFile: false });
+accepts('set-in-file with a non-boolean inFile reads as not in the file', { type: 'set-in-file', def: 'badge', inFile: 'yes' }, { kind: 'set-in-file', def: 'badge', inFile: false });
+drops('set-in-file that names no set', wire({ type: 'set-in-file', inFile: true }));
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

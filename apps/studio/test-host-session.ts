@@ -42,13 +42,13 @@ const ok = (cond: boolean, label: string): void => {
 };
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 /** A session as plain data, with the Map spelled out, so two sessions compare by value. */
-const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFontStyles], hostFontStyleNames: [...s.hostFontStyleNames], setBuilds: [...s.setBuilds], handEdits: [...s.handEdits] });
+const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFontStyles], hostFontStyleNames: [...s.hostFontStyleNames], setBuilds: [...s.setBuilds], setInFile: [...s.setInFile], handEdits: [...s.handEdits] });
 
 /** Every kind the UI's handler receives, written out here rather than read from the code under test. */
 const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list', 'doc-settings', 'file-sets',
-  'hand-edits', 'hand-edits-done', 'update-check', 'update-check-progress', 'file-due', 'add-queue', 'updates-off', 'panels-clean-result',
+  'hand-edits', 'hand-edits-done', 'update-check', 'update-check-progress', 'file-due', 'add-queue', 'updates-off', 'set-in-file', 'panels-clean-result',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
@@ -68,7 +68,7 @@ ok(typeof (globalThis as { document?: unknown }).document === 'undefined', 'prem
 const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, collisions: null, collisionsChosen: null, componentState: null, componentUpdate: null, componentLatest: null, specsState: null, overrideState: null,
-  fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
+  fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], componentSet: null, setInFile: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], hostFontStyleNames: [], agentRun: null, refused: null, docSettings: null, fileSets: null, liveDue: null, panelsClean: { busy: false, count: null, verdict: null }, addQueue: null, updatesOffError: null,
   handEdits: [], handPass: 'idle', updateCheck: null, updateProgress: null,
 }), 'initial session: every slot empty');
@@ -170,6 +170,16 @@ for (const c of verdictCases) {
   ok(unnamed.next.setBuilds.size === 0, `#2087: an agent's build that names no set records nothing (${JSON.stringify([...unnamed.next.setBuilds])})`);
   const update = step(step(init, { kind: 'agent-started', id: 'u1', cmd: 'update-components', def: 'tag' }).next, { kind: 'component-result', ok: true, completed: true, headline: '✓', summary: 'x' });
   ok(update.next.setBuilds.size === 0, `#2087: only a build-components run is attributed, not another components command (${JSON.stringify([...update.next.setBuilds])})`);
+  // #3119: the verdict says which set it was about (the panel's own build, or an agent's that named one), for the
+  // drawer's "Show the set in Figma"; one that names no set offers none.
+  ok(issues.next.componentSet === 'badge' && byAgent.next.componentSet === 'button' && unnamed.next.componentSet === null,
+    `#3119: a build verdict records the set it was about: the panel's badge, the agent's button, none for an unnamed agent build (${issues.next.componentSet}, ${byAgent.next.componentSet}, ${unnamed.next.componentSet})`);
+  // #3119: the main thread's word on whether the file holds a set, kept per set, the latest winning; it repaints the drawer.
+  const said = step(issues.next, { kind: 'set-in-file', def: 'badge', inFile: true });
+  ok(said.next.setInFile.get('badge') === true && same(said.topics, ['host']), `#3119: set-in-file records badge as in the file and repaints the drawer ('host') (${JSON.stringify([...said.next.setInFile])}, ${JSON.stringify(said.topics)})`);
+  const gone = step(step(said.next, { kind: 'set-in-file', def: 'tag', inFile: true }).next, { kind: 'set-in-file', def: 'badge', inFile: false });
+  ok(same([...gone.next.setInFile], [['badge', false], ['tag', true]]), `#3119: a later set-in-file replaces that set's word and keeps the others' (${JSON.stringify([...gone.next.setInFile])})`);
+  ok(gone.next.componentSet === 'badge' && gone.next.componentState === issues.next.componentState, '#3119: set-in-file leaves the verdict and its set as they were');
   // The panel's request declined behind an agent's run: no build of its own is coming, so it forgets the set.
   const declined = step({ ...agentRun, componentState: 'pending', componentDef: 'tag' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: 'busy' });
   ok(declined.next.componentDef === null && declined.next.componentState === null, 'G9: a declined panel build forgets the set it posted');

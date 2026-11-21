@@ -55,6 +55,7 @@
     { "file": "test-run-progress.ts", "floor": 66 },
     { "file": "test-open-large-file.ts", "floor": 73 },
     { "file": "test-theme-pref.ts", "floor": 6 },
+    { "file": "test-show-set.ts", "floor": 15 },
     { "file": "test-open-docs.ts", "floor": 6 },
     { "file": "test-activity-height.ts", "floor": 6 },
     { "file": "test-manifest.ts", "floor": 9 },

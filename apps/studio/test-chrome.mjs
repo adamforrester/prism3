@@ -14993,6 +14993,101 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 } // 3117
 
 // =============================================================================================
+// #3119 (owner decision 2026-11-18, A): a Build set result that is not clean offers "Show the set in Figma" (wording approved 2026-11-18),
+// only while the file holds the set. The main thread says whether it does after every Build set (`set-in-file`, the
+// plugin's `test-show-set.ts` holds that half); the drawer offers the button from that word alone, and a click posts
+// `show-set` with the set's id. Plugin, both themes, 1280 and 380, an agent's Build set of Badge (its start names the set,
+// #2087), driven by the messages the main thread sends. EXPECTED (literal rules, typed here):
+//   · before any `set-in-file`, no button; once it says the set is in the file, the button, labeled SHOW_3119, between
+//     the result's other next steps' first and Copy details (an agent's result offers no Build again, so it leads);
+//   · a click posts exactly `{ type: 'show-set', def: 'badge' }`;
+//   · while another write runs, the button is aria-disabled and a click posts nothing; once it ends, it is available;
+//   · `set-in-file` false (the set gone, or a show that found none) takes the button away;
+//   · a clean result for the same set, with the set in the file, offers no next steps, so no button.
+// ACTUAL: the drawn drawer and the posts.
+// Mutations, failing here by name (measured 2026-11-18): main's `activity.ts` and `main.ts` (no button) → 8 of 12, `#3119
+// figma light 1280: once the file holds the set, a bad build offers "Show the set in Figma", before Copy details
+// ([["op-copy","Copy details"]])` and the click's step stopping by name, on every theme and width; the lend's `def` not
+// reading `setInFile` → 8 of 24, `#3119 … before the main thread says the set is in the file, no button` and `… set-in-file
+// false takes the button away`.
+// The review of #4066 (should-fix 1), the busy gate (measured 2026-11-18, 32 assertions): the button's `aria-disabled` line
+// dropped (`activity.ts`) → 4 of 32, `#3119 figma light 1280: while another write runs, the button is aria-disabled and a
+// click posts nothing (aria-disabled none, posted [])` on every theme and width; `activityShowSet.can` returning true
+// (`main.ts`) → the same 4, posting `show-set`.
+if (runs('3119')) {
+console.log(`\nShow the set in Figma (#3119)\n${'='.repeat(78)}`);
+const SHOW_3119 = 'Show the set in Figma';
+const ROW_3119 = '[data-p3="activity-drawer"] [data-p3="activity-op"][data-op="components"]';
+const read3119 = (page) => page.evaluate((row) => {
+  const r = document.querySelector(row);
+  const next = r?.querySelector('[data-p3="op-next"]');
+  const btns = next ? [...next.querySelectorAll('button')].filter((b) => b.checkVisibility()).map((b) => [b.dataset.p3, b.textContent]) : [];
+  return { row: !!r, kind: r?.dataset.kind ?? null, next: !!next, btns, show: btns.find(([k]) => k === 'op-show-set')?.[1] ?? null };
+}, ROW_3119);
+for (const theme of ['light', 'dark']) for (const w of [1280, 380]) {
+  const where = `#3119 figma ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w, h: w === 380 ? 760 : 900 });
+  let step = 'open';
+  try {
+    await page.evaluate(() => {
+      window.__shows = [];
+      window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'show-set') window.__shows.push(JSON.parse(JSON.stringify(m))); });
+    });
+    step = 'a bad build';
+    await postMsg(page, { type: 'agent-started', id: 'm3119', cmd: 'build-components', def: 'badge' });
+    await postMsg(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ built 20, 1 missed', summary: 'Badge: 1 member missed.', lines: ['Badge: 1 member missed.'],
+      causes: [{ kind: 'warn', subject: 'badge', what: 'built with problems', reasons: ['A member was missed.'] }] });
+    await postMsg(page, { type: 'agent-finished', id: 'm3119', cmd: 'build-components' });
+    await hooks.need(page, `${ROW_3119} [data-p3="op-next"]`, WAIT);
+    const before = await read3119(page);
+    ok(before.next && before.show === null, `${where}: before the main thread says the set is in the file, no button (${JSON.stringify(before)})`);
+    step = 'set-in-file true';
+    await postMsg(page, { type: 'set-in-file', def: 'badge', inFile: true });
+    await page.waitForFunction((row) => !!document.querySelector(`${row} [data-p3="op-show-set"]`), ROW_3119, { timeout: 5000 }).catch(() => {});
+    const offered = await read3119(page);
+    const keys = offered.btns.map(([k]) => k);
+    ok(offered.show === SHOW_3119 && keys.indexOf('op-show-set') >= 0 && keys.indexOf('op-show-set') < keys.indexOf('op-copy'),
+      `${where}: once the file holds the set, a bad build offers "${SHOW_3119}", before Copy details (${JSON.stringify(offered.btns)})`);
+    step = 'the click';
+    await hooks.click(page.locator(`${ROW_3119} [data-p3="op-show-set"]`), WAIT);
+    const shows = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__shows.slice()), 50)));
+    ok(JSON.stringify(shows) === JSON.stringify([{ type: 'show-set', def: 'badge' }]), `${where}: a click posts show-set for the set, once (${JSON.stringify(shows)})`);
+    // While another write runs (an agent's Theme), the button reads unavailable (`showSet.can()`) and a click, activated in
+    // the page, posts nothing; once it ends, the button is available again.
+    step = 'another write running';
+    await postMsg(page, { type: 'agent-started', id: 'm3119t', cmd: 'apply-theme' });
+    await page.waitForFunction((row) => document.querySelector(`${row} [data-p3="op-show-set"]`)?.getAttribute('aria-disabled') === 'true', ROW_3119, { timeout: 5000 }).catch(() => {});
+    const busy = await page.evaluate((row) => { const n = document.querySelector(`${row} [data-p3="op-show-set"]`); return n ? n.getAttribute('aria-disabled') ?? 'none' : 'no button'; }, ROW_3119);
+    await page.evaluate((row) => { window.__shows.length = 0; const n = document.querySelector(`${row} [data-p3="op-show-set"]`); if (n) HTMLElement.prototype.click.call(n); }, ROW_3119);
+    const busyShows = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__shows.slice()), 50)));
+    ok(busy === 'true' && busyShows.length === 0,
+      `${where}: while another write runs, the button is aria-disabled and a click posts nothing (aria-disabled ${busy}, posted ${JSON.stringify(busyShows)})`);
+    await postMsg(page, { type: 'agent-finished', id: 'm3119t', cmd: 'apply-theme' });
+    await page.waitForFunction((row) => { const n = document.querySelector(`${row} [data-p3="op-show-set"]`); return !!n && n.getAttribute('aria-disabled') === null; }, ROW_3119, { timeout: 5000 }).catch(() => {});
+    const free = await read3119(page);
+    ok(free.show === SHOW_3119 && await page.evaluate((row) => document.querySelector(`${row} [data-p3="op-show-set"]`)?.getAttribute('aria-disabled') === null, ROW_3119),
+      `${where}: once the other write ends, the button is available again (${JSON.stringify(free.btns)})`);
+    step = 'set-in-file false';
+    await postMsg(page, { type: 'set-in-file', def: 'badge', inFile: false });
+    await page.waitForFunction((row) => !document.querySelector(`${row} [data-p3="op-show-set"]`), ROW_3119, { timeout: 5000 }).catch(() => {});
+    const gone = await read3119(page);
+    ok(gone.next && gone.show === null, `${where}: set-in-file false takes the button away (${JSON.stringify(gone)})`);
+    step = 'a clean build';
+    await postMsg(page, { type: 'agent-started', id: 'm3119b', cmd: 'build-components', def: 'badge' });
+    await postMsg(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 20', summary: 'Built Badge.', lines: ['Built Badge.'] });
+    await postMsg(page, { type: 'agent-finished', id: 'm3119b', cmd: 'build-components' });
+    await postMsg(page, { type: 'set-in-file', def: 'badge', inFile: true });
+    await page.waitForFunction((row) => document.querySelector(row)?.dataset.kind === 'ok', ROW_3119, { timeout: 5000 }).catch(() => {});
+    const clean = await read3119(page);
+    ok(clean.kind === 'ok' && clean.show === null, `${where}: a clean build of a set the file holds offers no button (${JSON.stringify(clean)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+} // 3119
+
+// =============================================================================================
 // #3263 (owner decision 2026-11-18, A): a pressed Personality chip (`toggleChip`, Brand) draws no check glyph, and shows
 // it is pressed through its edge, and its `Highlight` fill under forced colors, so a press never changes the chip's
 // width. Before, the pressed chip drew a 16px check plus its 4px gap, 20px wider than unpressed, and the words are
