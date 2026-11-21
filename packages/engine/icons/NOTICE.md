@@ -76,7 +76,7 @@ glyph for the need, and all three are covered by this repository's own license, 
 - `person-line.svg` and `organization-line.svg`, the `person` and `organization` icons, Avatar's last fallback
   (#4110, owner decision OD-A6 A): a head over shoulders, and a building with four windows and a door. Drawn on the
   same 24px grid at the 2-unit line weight, with no Remix artwork in them, under the standing rule above. The
-  drawings are a DRAFT, held for the owner's review.
+  owner approved the drawings as drawn on 2026-11-20.
 
 ## Provider logos are not in this set, and cannot be
 

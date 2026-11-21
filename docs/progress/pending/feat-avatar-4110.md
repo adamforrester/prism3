@@ -16,7 +16,7 @@ the wireframe in #4148. Engine {{ENGINE_VERSION}}; `CONTRACT_VERSION` 15.1.0 →
   drawn here. A Figma-only `presence` boolean shows it, off by default.
 - **`icon.size.2xl`, 64px** (OD-A3 A): the x-large avatar. The other four sizes bind `icon.size.sm` … `.xl`.
   `ICON_PAIRED` in `scale.ts` keeps the #324 pairing with `size.*` to the first five steps.
-- **`person` and `organization`**, two glyphs drawn for this project on the 24px grid (OD-A6 A), DRAFT artwork.
+- **`person` and `organization`**, two glyphs drawn for this project on the 24px grid (OD-A6 A), approved as drawn (2026-11-20).
 - **`PartDef.corner` takes a box** as well as a glyph. Both executors' corner passes already placed any child by name,
   so neither executor file changed and `EXECUTOR_REVISION` does not move; only the projector and the validator did.
 
@@ -38,12 +38,14 @@ the wireframe in #4148. Engine {{ENGINE_VERSION}}; `CONTRACT_VERSION` 15.1.0 →
 The x-large token is `icon.size.2xl` (OD-A3.1 A). The `shape` values align on Icon button's words, `circular | square`
 (was `circle`), so `lint-axis-values.ts` registers Avatar's set as `reordered` (it leads with `circular`, the code
 default) rather than overlapping. Presence maps online = success, away = warning, busy = danger, offline = neutral.
-The x-large initials stay on `type.label.lg`, and the glyph sizes stay as built. The DRAFT copy is approved. Still
-open: one initial in Figma at the small sizes, the page, and the glyph artwork.
+The x-large initials stay on `type.label.lg`, and the glyph sizes stay as built. The DRAFT copy is approved.
+Owner decision (2026-11-20): "JD" at every Figma size, with the one-letter rule in code; Avatar's own page beside
+Badge under Components; the person and organization glyphs approved as drawn; the presence-dot, badge-dot and shape
+descriptions approved as written.
 
 After review: the initials-contrast arm in `test.ts` reads the ink and the backdrop off the projected plans (what the def binds), not as typed role names, and measures them in all five emitted brands (wendys added), 20 cells. Rebinding the initials to `color.text.tertiary` now fails `#4110 avatar: the initials' ink clears 4.5:1 on the backdrop the def binds` by name (2.79:1 in prism3 light); before, every `#4110` arm passed and only the paint census, which `--accept` rewrites, moved.
 
 After the delta review: the presence mapping ships. The `presence` prop description and the presence dot's part note
-both say online = success, away = warning, busy = danger, offline = neutral (DRAFT wording), so a developer reading the
+both say online = success, away = warning, busy = danger, offline = neutral (approved as written, 2026-11-20), so a developer reading the
 spec and a designer picking the dot's tone on the instance both see it; before, it lived only in `notes`, which does
 not ship. A `test.ts` arm reads it from `out/components/avatar.md` and fails by name when either line drifts.

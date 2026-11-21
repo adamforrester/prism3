@@ -334,18 +334,15 @@ export const avatar: ComponentDef = {
   },
 
   notes: {
-    contested: [
-      'OWNER DECISION, the initials at x-small and small. The Figma text is one default, "JD", at every size, since a set-level text property holds one default. The one-letter rule is applied in code. Alternative: a second, Figma-only text part showing "J" at the two small sizes.',
-      'OWNER DECISION, the page. Built on its own "Avatar" page under Components, beside Badge.',
-    ],
+    contested: [],
     unverified: [
       'The presence ring at the bounding square\'s corner sits partly over the circle\'s edge at x-small and clear of it at x-large; the code pulls it in toward the curve. The Figma placement has not been checked on a live host.',
-      'The person and organization glyphs are DRAFT artwork, drawn for this project on the 24px grid; the drawing is the owner\'s call.',
       'The KB brief was not read directly by the build lane (no access to the knowledge-base repository in this session); the brief\'s positions here come from the proposal\'s paraphrase of it (#4110).',
     ],
     evolution: [
       'Built from the proposal (#4110) with every owner decision at its recommendation (OD-A1 to OD-A8, all A, 2026-11-19): Avatar only, circle and square, five sizes on the icon ladder plus one minted 64px step, one initial below medium, one neutral backdrop, person and organization glyphs, a nested Badge dot for presence, and a required name with a decorative flag.',
       'Owner decisions on the PR (2026-11-20): the x-large token is `icon.size.2xl` (OD-A3.1 A); the shape values align on Icon button\'s words, `circular | square`, one convention across the library; presence maps online = success, away = warning, busy = danger, offline = neutral; the x-large initials stay on `type.label.lg`; the glyph sizes stay as built (`icon.size.xs`, `xs`, `sm`, `md`, `xl`).',
+      'Owner decision (2026-11-20): the Figma text is one default, "JD", at every size, since a set-level text property holds one default; the one-letter rule at x-small and small is applied in code. Avatar has its own page under Components, beside Badge. The person and organization glyphs are approved as drawn, on the 24px grid. The presence-dot, badge-dot and shape descriptions are approved as written.',
       'The corner pin (`PartDef.corner`), first a glyph-only placement for the textarea grip, takes a box too, for the presence ring. Both executors already placed the pinned node by name, whatever its type.',
     ],
   },
