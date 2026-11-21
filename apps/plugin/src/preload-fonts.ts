@@ -147,10 +147,10 @@ export const facesToPreload = (
  * face is looked up. Two candidates that resolve to one face load it once; if that load fails, each
  * named candidate among them is still reported, whichever candidate made the attempt.
  *
- * The verdict's "N font styles name-resolved" stays the text-style pass's count alone. It counts STYLES
- * whose baked name was corrected; this resolves candidate FACES (file and crossed pairs included, and a
- * theme face the text-style pass will resolve again), so adding the two would count one correction twice
- * in a unit the sentence does not name.
+ * The verdict's "N font style names matched to the installed font" (#4185) stays the text-style pass's
+ * count alone. It counts STYLES whose baked name was corrected; this resolves candidate FACES (file and
+ * crossed pairs included, and a theme face the text-style pass will resolve again), so adding the two would
+ * count one correction twice in a unit the sentence does not name.
  */
 export const preloadFonts = async (
   plan: TextStylePlan,
@@ -189,6 +189,15 @@ export const availableStylesByFamily = async (
   }
 };
 
+/** The text plan's cut → family pairing (`fontStyleVar` → `fontFamilyVar`), each pair once: all `resolveCutPlan` reads
+ *  of the text plan. The agent paste's font step carries this instead of the whole text plan (#3861). */
+export const cutPairsOf = (text: TextStylePlan): [string, string][] => {
+  const out = new Map<string, string>();
+  for (const r of text) if (r.fontStyleVar && r.fontFamilyVar) out.set(r.fontStyleVar, r.fontFamilyVar);
+  return [...out];
+};
+const isPairs = (t: TextStylePlan | readonly (readonly [string, string])[]): t is readonly (readonly [string, string])[] => Array.isArray(t[0]);
+
 /**
  * THE CUT VARIABLES, IN EACH FAMILY'S OWN SPELLING, BEFORE THE VARIABLE STAGE WRITES THEM (#1728).
  *
@@ -207,12 +216,11 @@ export const availableStylesByFamily = async (
  */
 export const resolveCutPlan = (
   plans: readonly VarCollectionPlan[],
-  text: TextStylePlan,
+  text: TextStylePlan | readonly (readonly [string, string])[],
   stylesByFamily: ReadonlyMap<string, readonly string[]> | undefined,
 ): { plans: VarCollectionPlan[]; resolved: number } => {
   if (!stylesByFamily) return { plans: [...plans], resolved: 0 };
-  const familyVarOf = new Map<string, string>();
-  for (const r of text) if (r.fontStyleVar && r.fontFamilyVar) familyVarOf.set(r.fontStyleVar, r.fontFamilyVar);
+  const familyVarOf = new Map<string, string>(isPairs(text) ? text : cutPairsOf(text));
   const rowOf = new Map(plans.flatMap((p) => p.rows.map((r) => [r.name, { plan: p, row: r }] as const)));
   let resolved = 0;
   const out = plans.map((p) => ({

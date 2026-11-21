@@ -8,12 +8,12 @@ import { radiusScale, componentSizes, type RadiusStep, type SizeStep, controlSiz
 import { inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName } from './modes';
 import { resolveVocabulary } from './vocabulary';
-import { type BrandInputAuthored, type Theme, type BrandInput, ALL_MODES, VALID_MODES, validOutlineHoverFill, validOutlineWash, outlineWashSteps, OUTLINE_INTERACTION_VALUES, RAISED_SURFACE_VALUES, SCRIM_STRENGTH_VALUES, SECONDARY_TEXT_GROUND_VALUES, validGlassRoles, n2, n4, type PaletteBuild, type Role, type InteractivePalette, type InverseSurfaceSpec, type SurfaceStep, CORE_TIER } from './theme-types';
+import { type BrandInputAuthored, type Theme, type BrandInput, ALL_MODES, VALID_MODES, validOutlineHoverFill, validOutlineWash, outlineWashSteps, OUTLINE_INTERACTION_VALUES, RAISED_SURFACE_VALUES, SCRIM_STRENGTH_VALUES, SECONDARY_TEXT_GROUND_VALUES, INTERACTIVE_GROUND_VALUES, validGlassRoles, n2, n4, type PaletteBuild, type Role, type InteractivePalette, type InverseSurfaceSpec, type SurfaceStep, CORE_TIER } from './theme-types';
 import { PALETTE_NAME_RE, RESERVED_PALETTES, STATUS_DEFAULTS, statusRamp, inRedTerritory, hueDist, RED_CHROMA_FLOOR, normalizeDisabledStrategy, normalizeDisabledMin } from './theme-color';
 import { buildDims } from './theme-dims';
 import { buildMotion, type MotionAxis } from './theme-motion';
 import { LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, DISPLAY_VARIANTS, buildTypography, withLabelDefault, WEIGHT_ROLE_DEFAULT, type FontFamilyBinding, type WeightRole, deriveFamilies, WEIGHT_ROLE_ORDER, type TypeGroup, deriveTypefaces, PER_MODE_SIZE_GROUPS, type PerModeSizeGroup, HEADING_SIZE_FLOOR, mobileEndpoint, TYPE_GROUPS } from './theme-type';
-import { buildShadow, type ShadowAxis, type ShadowStep, type ShadowLayer } from './theme-shadow';
+import { buildShadow, darkShadowSeed, type ShadowAxis, type ShadowStep, type ShadowLayer } from './theme-shadow';
 import { buildLayout, gridGapNotes } from './theme-layout';
 import { buildGradient } from './theme-gradient';
 
@@ -284,6 +284,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'raisedSurface', value: input.raisedSurface, options: RAISED_SURFACE_VALUES },
     { path: 'scrimStrength', value: input.scrimStrength, options: SCRIM_STRENGTH_VALUES },
     { path: 'secondaryTextGround', value: input.secondaryTextGround, options: SECONDARY_TEXT_GROUND_VALUES },
+    { path: 'interactiveGround', value: input.interactiveGround, options: INTERACTIVE_GROUND_VALUES },
     { path: 'radioDot', value: input.radioDot, options: RADIO_DOT_SHARES },
   ];
   for (const { path, value, options } of enumLevers) {
@@ -408,6 +409,11 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   palettes.push(status('success'), status('warning'), status('info'));
 
   // ---- action role (decoupled from brand) ----
+  // #4207 (owner decision A, 2026-11-19): `actionPalette` and `roleColors.action` are schema aliases, so two that
+  // name DIFFERENT palettes are refused, naming both. Before, `roleColors.action` won silently, and the action note
+  // below described a lever the brand never authored. Equal values are the same instruction twice, and pass. DRAFT.
+  if (input.actionPalette !== undefined && input.roleColors?.action !== undefined && input.actionPalette !== input.roleColors.action)
+    throw new Error(`actionPalette is '${input.actionPalette}' and roleColors.action is '${input.roleColors.action}'; both set the action palette, so set one of them, or give both the same palette.`);
   const actionPalette = input.actionPalette ?? 'primary';
   if (!palettes.some((p) => p.palette === actionPalette)) {
     throw new Error(`actionPalette '${actionPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
@@ -668,6 +674,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     for (const s of shadow.steps) layers[s.name] = s.dark;
     shadowByMode[cm.name] = { appearance: 'dark', colorRgb: shadow.colorRgb, softness: shadow.softness, tint: shadow.tint, layers };
   }
+  // The built-in `hc-dark` is a dark-appearance mode too (#4131, owner decision A): it takes the same
+  // global reduced dark layers, so the shadow model holds in every dark mode. It is generate-only, so it
+  // never carries an override of its own.
+  if (modes.includes('hc-dark') && !shadowByMode['hc-dark']) shadowByMode['hc-dark'] = darkShadowSeed(shadow);
   if (Object.keys(shadowByMode).length) shadow.shadowByMode = shadowByMode;
   const gradient = buildGradient(input.gradients, palettes, root);
   const [firstGradient] = gradient.gradients;
@@ -984,9 +994,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // the fill at the same step, and the note below fires for either (owner decision pending on #1896).
   const resolvedAction = roleToPalette.action;
   const actionBrandColor = (input.brandColors ?? []).find((b) => b.name === resolvedAction);
-  const actionAnchorStep = resolvedAction === 'primary' ? anchorStep
-    : actionBrandColor ? autoPlaceStep(actionBrandColor.oklch.l)
-    : 500;
+  const actionAnchorStep = interactiveStepFor(resolvedAction);   // #4214: the helper's three cases, never a copy
   // A pinned `actionAnchorStep` is applied exactly (`modes.ts` `restFill`, `exact`, #331) and never moved, so
   // the note reports the pin, not the auto-placed step, and drops the auto-move clause (#1894). Its floor miss
   // is reported as the role's own ratio. Wording: DRAFT for the owner (#1894 Q-block). The pin applies on ANY
@@ -1009,10 +1017,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const linkPalette = input.linkPalette ?? roleToPalette.action;
   if (!palettes.some((p) => p.palette === linkPalette))
     throw new Error(`linkPalette '${linkPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
-  const linkBrandColor = (input.brandColors ?? []).find((b) => b.name === linkPalette);
-  const linkAnchorStep = linkPalette === 'primary' ? anchorStep
-    : linkBrandColor ? autoPlaceStep(linkBrandColor.oklch.l)
-    : 500;
+  const linkAnchorStep = interactiveStepFor(linkPalette);   // #4214: the helper's three cases, never a copy
   // Compared against the RESOLVED action palette, not the `actionPalette` lever (#1895, owner 2026-10-01):
   // with `roleColors.action` set the two differ, and the note must say whether links match the color the
   // action fill actually uses.
@@ -1065,6 +1070,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
     ...(input.scrimStrength ? { scrimStrength: input.scrimStrength } : {}),
     ...(input.secondaryTextGround ? { secondaryTextGround: input.secondaryTextGround } : {}),
+    ...(input.interactiveGround ? { interactiveGround: input.interactiveGround } : {}),
     ...(glassRoles ? { glassRoles } : {}),
     ...(radioDot !== RADIO_DOT_DEFAULT ? { radioDot } : {}),
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,

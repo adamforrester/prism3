@@ -18226,6 +18226,28 @@
             }
           }
         },
+        "1170": {
+          "$type": "duration",
+          "$value": "1170ms",
+          "$description": "duration primitive — 1170ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 1170
+            }
+          }
+        },
+        "1430": {
+          "$type": "duration",
+          "$value": "1430ms",
+          "$description": "duration primitive — 1430ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 1430
+            }
+          }
+        },
         "1600": {
           "$type": "duration",
           "$value": "1600ms",
@@ -18234,6 +18256,17 @@
             "prism3": {
               "generated": true,
               "ms": 1600
+            }
+          }
+        },
+        "1690": {
+          "$type": "duration",
+          "$value": "1690ms",
+          "$description": "duration primitive — 1690ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 1690
             }
           }
         },
@@ -18319,6 +18352,42 @@
               "role": "semantic",
               "aliasOf": "hds.motion.duration-ms.1040",
               "ms": 1040
+            }
+          }
+        },
+        "long": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.1170}",
+          "$description": "motion duration long — 1170ms (tempo: relaxed)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.1170",
+              "ms": 1170
+            }
+          }
+        },
+        "longer": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.1430}",
+          "$description": "motion duration longer — 1430ms (tempo: relaxed)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.1430",
+              "ms": 1430
+            }
+          }
+        },
+        "longest": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.1690}",
+          "$description": "motion duration longest — 1690ms (tempo: relaxed)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.1690",
+              "ms": 1690
             }
           }
         },
@@ -18412,6 +18481,42 @@
           "$type": "duration",
           "$value": "{hds.motion.duration-ms.0}",
           "$description": "reduce-motion slower — 0ms (eliminated — substitute a cross-fade)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.0",
+              "ms": 0
+            }
+          }
+        },
+        "long": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.0}",
+          "$description": "reduce-motion long — 0ms (eliminated — substitute a cross-fade)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.0",
+              "ms": 0
+            }
+          }
+        },
+        "longer": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.0}",
+          "$description": "reduce-motion longer — 0ms (eliminated — substitute a cross-fade)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.0",
+              "ms": 0
+            }
+          }
+        },
+        "longest": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.0}",
+          "$description": "reduce-motion longest — 0ms (eliminated — substitute a cross-fade)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -21073,6 +21178,24 @@
                     "spread": "0px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#0e0c0a08",
+                    "offsetX": "0px",
+                    "offsetY": "1px",
+                    "blur": "2px",
+                    "spread": "0px"
+                  },
+                  {
+                    "color": "#0e0c0a05",
+                    "offsetX": "0px",
+                    "offsetY": "1px",
+                    "blur": "3px",
+                    "spread": "0px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -21115,6 +21238,24 @@
             "layers": 2,
             "modes": {
               "dark": {
+                "$value": [
+                  {
+                    "color": "#0e0c0a0a",
+                    "offsetX": "0px",
+                    "offsetY": "1px",
+                    "blur": "2px",
+                    "spread": "-1px"
+                  },
+                  {
+                    "color": "#0e0c0a08",
+                    "offsetX": "0px",
+                    "offsetY": "2px",
+                    "blur": "6px",
+                    "spread": "-1px"
+                  }
+                ]
+              },
+              "hc-dark": {
                 "$value": [
                   {
                     "color": "#0e0c0a0a",
@@ -21189,6 +21330,24 @@
                     "spread": "-3px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#0e0c0a0f",
+                    "offsetX": "0px",
+                    "offsetY": "2px",
+                    "blur": "4px",
+                    "spread": "-2px"
+                  },
+                  {
+                    "color": "#0e0c0a0a",
+                    "offsetX": "0px",
+                    "offsetY": "4px",
+                    "blur": "12px",
+                    "spread": "-3px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -21231,6 +21390,24 @@
             "layers": 2,
             "modes": {
               "dark": {
+                "$value": [
+                  {
+                    "color": "#0e0c0a12",
+                    "offsetX": "0px",
+                    "offsetY": "3px",
+                    "blur": "6px",
+                    "spread": "-3px"
+                  },
+                  {
+                    "color": "#0e0c0a0d",
+                    "offsetX": "0px",
+                    "offsetY": "8px",
+                    "blur": "20px",
+                    "spread": "-5px"
+                  }
+                ]
+              },
+              "hc-dark": {
                 "$value": [
                   {
                     "color": "#0e0c0a12",
@@ -21305,6 +21482,24 @@
                     "spread": "-8px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#0e0c0a17",
+                    "offsetX": "0px",
+                    "offsetY": "4px",
+                    "blur": "8px",
+                    "spread": "-4px"
+                  },
+                  {
+                    "color": "#0e0c0a12",
+                    "offsetX": "0px",
+                    "offsetY": "14px",
+                    "blur": "32px",
+                    "spread": "-8px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -21363,6 +21558,24 @@
                     "spread": "-12px"
                   }
                 ]
+              },
+              "hc-dark": {
+                "$value": [
+                  {
+                    "color": "#0e0c0a1c",
+                    "offsetX": "0px",
+                    "offsetY": "6px",
+                    "blur": "12px",
+                    "spread": "-6px"
+                  },
+                  {
+                    "color": "#0e0c0a17",
+                    "offsetX": "0px",
+                    "offsetY": "22px",
+                    "blur": "52px",
+                    "spread": "-12px"
+                  }
+                ]
               }
             },
             "figma": {
@@ -21399,6 +21612,18 @@
             "layers": 1,
             "modes": {
               "dark": {
+                "$value": [
+                  {
+                    "color": "#0e0c0a4d",
+                    "offsetX": "0px",
+                    "offsetY": "2px",
+                    "blur": "4px",
+                    "spread": "0px",
+                    "inset": true
+                  }
+                ]
+              },
+              "hc-dark": {
                 "$value": [
                   {
                     "color": "#0e0c0a4d",
@@ -22196,7 +22421,7 @@
       "round": {
         "$type": "dimension",
         "$value": "{hds.core.dimension.128}",
-        "$description": "radius round — 128px (pill)",
+        "$description": "radius round — 128px (pill. For small fixed-size parts, such as a switch track, a radio or a badge count. A pill button binds `radius.capsule`)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22209,7 +22434,7 @@
       "capsule": {
         "$type": "dimension",
         "$value": "999px",
-        "$description": "radius capsule — 999px (off-grid literal)",
+        "$description": "radius capsule — 999px (off-grid literal. The pill a button binds under `controlShape: pill`, full at any height. Small fixed-size parts bind `radius.round`)",
         "$extensions": {
           "prism3": {
             "generated": true,
@@ -22788,7 +23013,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.238.0",
+      "version": "0.239.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

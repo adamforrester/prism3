@@ -1,6 +1,6 @@
 # Spinner
 
-> Indeterminate loading indicator on the icon ladder. Announces "Loading" unless its host hides it.
+> Indeterminate loading indicator in the icon sizes. Announces "Loading" unless its host hides it.
 
 - **ID:** `spinner`
 - **Category:** foundations
@@ -37,10 +37,7 @@ Use a spinner for a short wait with no known end — about 200ms to 5s — insid
 ### Do
 
 - Put the spinner in the host's own icon slot at that slot's icon size, so nothing around it moves
-- Let the host delay showing it, so a fast operation does not flash a spinner
 - Give a standalone spinner a specific label ("Loading results") when the work is known
-- Set aria-hidden="true" on a spinner inside a host that announces its own busy state (aria-busy, a Button's isPending)
-- Keep the turn under reduced motion, slowed to the reduced duration
 
 ### Don't
 
@@ -86,6 +83,10 @@ Label: specific and in sentence case — "Loading results", "Updating profile" �
   - a static loading glyph in the icon set
 
 ## Building it in code
+
+- Let the host delay showing it, so a fast operation does not flash a spinner
+- Set aria-hidden="true" on a spinner inside a host that announces its own busy state (aria-busy, a Button's isPending)
+- Keep the turn under reduced motion, slowed to the reduced duration
 
 ### Props
 

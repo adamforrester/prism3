@@ -25,6 +25,8 @@
  * replaced it (marked where it does). It ships in the bundle.
  */
 
+import { must } from '../must';
+
 /** The Links copy (S5.2), shared by the levers' Links section and the preview's (owner decision Q23). APPROVED. */
 export const LINKS_DESC = 'The link color in each state, on the page and on the inverse fill.';
 /** The Icons copy (S5.2), APPROVED. Interactive no longer draws an Icons section, levers or preview (the owner's
@@ -195,7 +197,7 @@ export const DOMAINS = [
         sections: [
           // S4f (QA-B10): the scrim left Background fills for its own read-only section, so Background fills' description
           // dropped its scrim clause (the owner's Q26 intro again), as the preview's Background section's did (Q23).
-          { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
+          { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }, { ctl: 'controlGround', keys: ['interactiveGround'] }] },
           // #3050 (owner Q825 B): Scrim strength's one home, the Scrim section, above the scrim's read-only row.
           { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim', keys: ['scrimStrength'] }] },
           // #3073 (owner Q806, Q807 A): the shipped white glass, read-only, and the glass fills a brand adds (`glassRoles`).
@@ -481,7 +483,7 @@ export const TABS: readonly { readonly id: TabId; readonly label: string; readon
 /** The place a tab click lands on: the tab, or its first sub-page. */
 export const placeOfTab = (id: TabId): Place => {
   const t = TABS.find((x) => x.id === id)!;
-  return t.subs ? { tab: id, sub: t.subs[0].id } : { tab: id };
+  return t.subs ? { tab: id, sub: must(t.subs[0], `${id}'s first sub-page`).id } : { tab: id };
 };
 
 /** Every place, in tab order: a tab without sub-pages, or each sub-page of a tab with them. */

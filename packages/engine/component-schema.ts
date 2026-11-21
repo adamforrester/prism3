@@ -1099,6 +1099,14 @@ export type PartFields = {
    *  reads `rest`: unlike a variant axis a state has a resting value, and the paint grammar already treats
    *  an unsupplied state as rest. */
   presentWhen?: Record<string, readonly string[]>;
+  /** #3058 (owner decision 2026-11-18 A): where `presentWhen`'s VARIANT gate leaves a member out, the part is BUILT
+   *  HIDDEN there (`visible: false`) instead of left out of the tree. Figma carries an instance's override on a node
+   *  across a variant switch by the node's name, so a node that is absent from one member drops whatever a designer put
+   *  in it on the way through: Accordion's panel slot came back as its placeholder after collapsed and expanded again.
+   *  Hidden, it lays out as absent (auto layout skips it, so the member's footprint is unchanged) and keeps its content.
+   *  A box's only: the case is a slot's content, and a box is what becomes a slot. Needs a `presentWhen` to soften; a
+   *  STATE gate stays a presence gate, since a state is never an instance's authored content. */
+  hiddenWhenAbsent?: true;
   /** VARIANT-GATED POSITION (#990): axis → value → where along its PARENT's main axis this part sits.
    *  A switch's thumb says `{ selection: { off: 'start', on: 'end' } }` — ONE part, in two places.
    *
@@ -1495,7 +1503,7 @@ export type BoxKey =
   | 'contentSlot' | 'slotSettings' | 'preferred' | 'preferredWhenBuilt' | 'paintSlots' | 'paintGroup' | 'gradient'
   | 'clipsContent' | 'scroll' | 'minWidth' | 'placementWidth' | 'placementHeight' | 'directionWhen' | 'sizingWhen'
   | 'builtSize' | 'elevation' | 'radiusEdges' | 'minHeight' | 'minWidthKey' | 'minWidthRatio' | 'flush' | 'center'
-  | 'aspectRatio' | 'foot' | 'footShare';
+  | 'aspectRatio' | 'foot' | 'footShare' | 'hiddenWhenAbsent';
 export type TextKey =
   | 'innerTarget' | 'size' | 'presentWhen' | 'positionWhen' | 'literal' | 'paintSlot' | 'type'
   | 'verticalAlign' | 'wrap' | 'lines' | 'characters';
@@ -2205,6 +2213,12 @@ export type ComponentDef = {
     usage: string;
     do?: string[];
     dont?: string[];
+    /** How to build it in code (#2778, owner decision A on Q362): the rules a developer, or an agent writing the
+     *  component's code, acts on and a designer placing it does not (DOM and ARIA wiring, state ownership, events,
+     *  CSS technique, what each brand setting builds). Ships in `components.ai.json` and on the docs page's
+     *  "Building it in code" section. `do` / `dont` keep the usage rules and the ones both readers act on; ARIA's
+     *  contract stays in `accessibility.aria`; what Figma cannot carry and its history stay in `codeOnly` / `notes`. */
+    implementation?: string[];
     contentGuidelines?: string;
   };
 
@@ -2264,8 +2278,8 @@ export type ComponentDef = {
    *
    *  `contested` HOLDS ONLY OPEN OR ARGUED ITEMS (#1700). A decision this def has settled moves to
    *  `evolution`, which is where "why is it like this now" is answered. `validateComponentDef` refuses a
-   *  `contested` entry with a sentence that opens `Settled` / `Resolved` / `RESOLVED` / `CLOSED`, and an
-   *  `unverified` entry with one that opens `Resolved` / `RESOLVED`. It reads every sentence, not only the entry's
+   *  `contested` entry with a sentence that opens with a verdict (`DECIDED_VERBS`: settled, resolved, closed,
+   *  decided, chosen, in any case; #1716), and an `unverified` entry with one that opens `resolved`. It reads every sentence, not only the entry's
    *  first word: the entries this rule was written for lead with the question and settle it in the
    *  second sentence ("Where the ring is drawn — … Settled here as the offset sibling"), so a first-word
    *  check passes the very case it exists for (`docs/34` shape 14).
@@ -2314,6 +2328,28 @@ export const SUMMARY_MAX = 100;
  *  host's size reaches its items. The cap grows by that sentence, so the host's own line keeps the room every
  *  other summary has. `lint-component-docs.ts` holds the sentence itself, as its own literal. */
 export const ITEMS_SIZE_NOTE_LENGTH = " Size applies to the items you haven't edited. After editing an item, select the items and set their size.".length;
+/** #1716 — the verbs a decided `notes` entry opens a sentence with, matched in any case. `contested` refuses
+ *  all of them; `unverified` refuses `resolved` alone (#1700). */
+export const DECIDED_VERBS = ['settled', 'resolved', 'closed', 'decided', 'chosen'] as const;
+export const RESOLVED_VERBS = ['resolved'] as const;
+/** A period that ends one of these is not a sentence break ("e.g. Resolved later?" is one sentence). */
+const ABBREVIATION_END = /\b(?:e\.g|i\.e|vs|cf|etc|approx|incl|viz)\.$/i;
+/** #1716 — the first verb of `verbs` that OPENS a clause of `entry`, as written, or null. A clause opens at the
+ *  entry's start, after `.` `!` `?` or `;` and a space (not after an abbreviation's period), or after an em dash
+ *  and a space. A colon is not a break: "Brief §4: Settled in the brief, argued here" is one argued sentence. A
+ *  verb inside a clause is prose, not a verdict ("fonts are settled as dead; the font model is not"). */
+export const verdictOpening = (entry: string, verbs: readonly string[]): string | null => {
+  const opener = new RegExp(`^(${verbs.join('|')})\\b`, 'i');
+  const starts = [0];
+  const breaks = /([.!?;])\s+|—\s+/g;
+  for (let m = breaks.exec(entry); m; m = breaks.exec(entry)) {
+    if (m[1] === '.' && ABBREVIATION_END.test(entry.slice(0, m.index + 1))) continue;
+    starts.push(m.index + m[0].length);
+  }
+  for (const at of starts) { const w = entry.slice(at).match(opener); if (w) return w[1]!; }
+  return null;
+};
+
 export const summaryMaxOf = (def: Pick<ComponentDef, 'props'>): number =>
   def.props?.some((p) => p.name === 'items' && p.type === 'slot') && def.props.some((p) => p.name === 'size') ? SUMMARY_MAX + ITEMS_SIZE_NOTE_LENGTH : SUMMARY_MAX;
 
@@ -2358,16 +2394,16 @@ export const validateComponentDef = (
     if (!/^[a-z][a-z0-9-]*$/.test(a)) errors.push(`alias '${a}' is not kebab-case — an alias is a name (\`loading-indicator\`); a phrase belongs in ai.triggerKeywords (#1700)`);
   // #1700 — `contested` holds only open or argued items; a settled one belongs in `evolution`. Every
   // sentence is read, not only the first word: the entries this was written for put the question first
-  // and "Settled here as …" second (see `notes` on `ComponentDef`).
-  const SETTLED_OPENING = /(?:^|[.;:!?]\s+|—\s+)(Settled|Resolved|RESOLVED|CLOSED)\b/;
-  const RESOLVED_OPENING = /(?:^|[.;:!?]\s+|—\s+)(Resolved|RESOLVED)\b/;
+  // and "Settled here as …" second (see `notes` on `ComponentDef`). #1716 widened the verbs to the ones
+  // decided entries actually used ("Decided:", "Chosen:", "— settled as …"), and made the split respect
+  // abbreviations and colons ("e.g. Resolved later?", "Brief §4: Settled in the brief, argued here").
   (def.notes?.contested ?? []).forEach((e, i) => {
-    const m = e.match(SETTLED_OPENING);
-    if (m) errors.push(`notes.contested[${i}] has a sentence opening '${m[1]}' — contested holds only open or argued items; a settled decision moves to notes.evolution (#1700)`);
+    const w = verdictOpening(e, DECIDED_VERBS);
+    if (w) errors.push(`notes.contested[${i}] has a sentence opening '${w}' — contested holds only open or argued items; a settled decision moves to notes.evolution (#1700, #1716)`);
   });
   (def.notes?.unverified ?? []).forEach((e, i) => {
-    const m = e.match(RESOLVED_OPENING);
-    if (m) errors.push(`notes.unverified[${i}] has a sentence opening '${m[1]}' — a resolved item is no longer unverified; it moves to notes.evolution (#1700)`);
+    const w = verdictOpening(e, RESOLVED_VERBS);
+    if (w) errors.push(`notes.unverified[${i}] has a sentence opening '${w}' — a resolved item is no longer unverified; it moves to notes.evolution (#1700)`);
   });
   req(!!def.description, 'description is required');
   req(typeof def.summary === 'string' && def.summary.length > 0, 'summary is required — the one-line Figma description');
@@ -4907,13 +4943,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // which only a TEXT node takes, so only a `text` part carries one (Q-PU2 A; since #3783 `figmaAnatomyPlan` reads it on
   // no other kind either). The union under `PartFields` says the same at the type layer, and `lint-part-union` proves
   // it does.
-  const KIND_ONLY: readonly { field: 'radius' | 'replaces' | 'overlaysWhenAbsent' | 'when' | 'children' | 'type'; kinds: readonly PartKind[]; asked?: readonly PartKind[]; why: string }[] = [
+  const KIND_ONLY: readonly { field: 'radius' | 'replaces' | 'overlaysWhenAbsent' | 'when' | 'children' | 'type' | 'hiddenWhenAbsent'; kinds: readonly PartKind[]; asked?: readonly PartKind[]; why: string }[] = [
     { field: 'radius', kinds: ['box'], why: "the corners are bound only on a box's frame" },
     { field: 'replaces', kinds: ['overlay'], why: 'only an overlay takes another part\'s cell' },
     { field: 'overlaysWhenAbsent', kinds: ['overlay'], why: "it is an overlay's fallback when none of its 'replaces' is present" },
     { field: 'when', kinds: ['overlay', 'absolute'], why: "only those two kinds are gated by state; an in-flow part gates on it through 'presentWhen'" },
     { field: 'children', kinds: ['box'], asked: ['text', 'slot', 'overlay'], why: 'only a box builds a frame that holds children — a text node holds none, and a slot or overlay is an instance, which takes no appends' },
     { field: 'type', kinds: ['text'], why: 'it names a text style, and only a text node takes one — a frame or an instance has no text style to set' },
+    { field: 'hiddenWhenAbsent', kinds: ['box'], why: "it keeps a slot's content across a variant switch, and only a box becomes a slot (#3058)" },
   ];
   for (const [n, p] of Object.entries(parts)) {
     for (const k of KIND_ONLY)
@@ -4923,6 +4960,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
 
   // Only a box lays out children; a text/slot/overlay/absolute carrying layout means the tree is
   // mis-shaped and the materializer would emit an auto-layout frame where a leaf belongs.
+  // #3058: `hiddenWhenAbsent` softens a VARIANT gate, so a part without one has nothing to soften, and a gate on the
+  // state alone is a presence rule it does not reach.
+  for (const [n, p] of Object.entries(parts))
+    if (p.hiddenWhenAbsent !== undefined && (p.hiddenWhenAbsent !== true || !Object.keys(p.presentWhen ?? {}).some((a) => a !== STATE_GATE)))
+      e.push(`anatomy part '${n}' declares 'hiddenWhenAbsent' without a variant gate in 'presentWhen' to soften — it takes \`true\` alone, on a part that a variant axis gates`);
   for (const [n, p] of Object.entries(parts)) {
     // ---- VARIANT-GATED PRESENCE (#910) ----
     // Six rules, and each one is a way the field can be authored so that it validates and then makes the

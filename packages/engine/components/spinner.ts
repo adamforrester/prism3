@@ -59,7 +59,8 @@ export const spinner: ComponentDef = {
   // owner-decided 2026-09-26), which keys on the id, not on this.
   category: 'foundations',
   status: 'draft',
-  summary: 'Indeterminate loading indicator on the icon ladder. Announces "Loading" unless its host hides it.',
+  // The owner approved this wording on 2026-11-18 (#2092 A), replacing "on the icon ladder": visible copy says sizes, not ladder.
+  summary: 'Indeterminate loading indicator in the icon sizes. Announces "Loading" unless its host hides it.',
   description:
     'A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button\'s leading visual, a field\'s trailing slot. On its own it announces a polite "Loading", or a more specific label, through a status region that is already on the page; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.',
 
@@ -126,7 +127,7 @@ export const spinner: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) linear infinite`, one turn per `motion.duration.spin`, a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here.',
+          'rotation — the whole behavior. In code the spinner turns continuously: `animation: spin var(--motion-duration-spin) var(--motion-easing-linear) infinite`, one turn per `motion.duration.spin`, a `@keyframes spin { to { transform: rotate(1turn) } }` on the SVG. Figma holds one rest position per size; a prototype rotation loop for presentations is optional and not built here.',
       },
       {
         class: 'motion',
@@ -202,8 +203,10 @@ export const spinner: ComponentDef = {
     usage: 'Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite "Loading", or a more specific label, through a status region that exists, empty, before it shows; inside a host that announces its own busy state, such as a Button\'s isPending, the host sets aria-hidden="true" on it.',
     do: [
       'Put the spinner in the host\'s own icon slot at that slot\'s icon size, so nothing around it moves',
-      'Let the host delay showing it, so a fast operation does not flash a spinner',
       'Give a standalone spinner a specific label ("Loading results") when the work is known',
+    ],
+    implementation: [
+      'Let the host delay showing it, so a fast operation does not flash a spinner',
       'Set aria-hidden="true" on a spinner inside a host that announces its own busy state (aria-busy, a Button\'s isPending)',
       'Keep the turn under reduced motion, slowed to the reduced duration',
     ],

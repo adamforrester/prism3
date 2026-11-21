@@ -46,6 +46,7 @@ import { emissionOf } from './src/theme-emission';
 import { preflightPlanOf, bindingCollectionsOf } from './src/preflight';
 import type { PreflightPlan } from './src/preflight';
 import { pack, packNames } from './src/mcp-steps';
+import { cutPairsOf } from './src/preload-fonts';
 import { reactionMap } from './src/reactions';
 import type { Ledger, StepReport } from './src/mcp-steps';
 import { orphansOf, strandedCollections } from './src/write-figma';
@@ -54,7 +55,7 @@ import { materializeForBrand } from './src/brand-def';
 import { missingDependencies, SWAP_TARGET } from './src/build-deps';
 import { leafForDef, leafPageName } from './src/file-taxonomy';
 import { figmaAnatomySet, figmaVarName, planComponentName, planSetChunks, planSetLayout, planToPluginJs, type AnatomyPlan, componentDefs, type ComponentDef } from '@prism3/engine/components';
-import { type BrandInput, ENGINE_VERSION, parseDesignMd, parseStandardDesignMd, isStandardDesignMd, standardToBrandInput } from '@prism3/engine';
+import { type BrandInput, ENGINE_VERSION, parseDesignMd, parseStandardDesignMd, isStandardDesignMd, standardToBrandInput, brandTheme, buildTree, pxOf, subNode } from '@prism3/engine';
 import type { WritePlan, FloatCollectionPlan, StylesPlan, GridStylePlan, TextStylePlan } from '@prism3/engine/figma';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -289,7 +290,8 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
   });
 
   // FONT — one script, by construction (see the header).
-  const fontData = { ...common('font variables'), fonts, plans: p.fontPlan };
+  // #3861: the text plan's cut → family pairing rides along, so the step writes each cut in its family's own spelling.
+  const fontData = { ...common('font variables'), fonts, plans: p.fontPlan, cutPairs: cutPairsOf(p.textPlan) };
   const fontJs = assemble('runFont', fontData);
   if (fontJs.length + NUMBER_SLACK > SCRIPT_CEILING) throw new Error(`font variables: the one font script is ${fontJs.length} characters, over the ${SCRIPT_CEILING} ceiling, and it cannot be split (its aliases cross its two collections)`);
   out.push({ phase: 'theme', kind: 'font', label: 'font variables', purpose: 'Writes the font family/size/weight variables (`core` font group) and the fluid type sets.', expect: '{ ok: true, misses: [], refused: [] }', js: fontJs });
@@ -388,6 +390,29 @@ export const namesFor = (input: BrandInput, def: ComponentDef): string[] => {
   return [planSetLayout(plans, 'mcp-paste').component];
 };
 
+/**
+ * THE STANDALONE GRID'S PITCH, FROM THE PLANS (#3139). The plugin measures it on the page (#3134, `write-components.ts`):
+ * the widest and tallest component of the def plus a 24px gap. The paste cannot: it slices a def's members across several
+ * `runComponentEmit` scripts, and each sees only its own slice, so a pitch measured per script would differ from slice to
+ * slice and still overlap. So it is read here, offline, from each member's own box: a glyph's artboard (`glyphViewBox`,
+ * which the executors build the frame at), else the root's bound width and height resolved through the brand's tree (the
+ * spinner's `icon/size/*`). A member whose box neither gives fails here, by name, rather than ship a guess.
+ */
+export const emitPitch = (input: BrandInput, plans: AnatomyPlan[]): { x: number; y: number } => {
+  const GAP = 24; // the plugin's gap, `write-components.ts` (#3134)
+  let tree: ReturnType<typeof buildTree>['tree'] | undefined;
+  const px = (name: string): number => {
+    tree ??= buildTree(brandTheme(input)).tree;
+    return pxOf(tree, subNode(tree, `${input.root ?? 'prism'}.${name.replace(/\//g, '.')}`));
+  };
+  const boxes = plans.map((p) => {
+    const box = p.root.glyphViewBox ?? [p.root.bound?.width ? px(p.root.bound.width) : 0, p.root.bound?.height ? px(p.root.bound.height) : 0];
+    if (!(box[0] > 0 && box[1] > 0)) throw new Error(`emitPitch: ${planComponentName(p)} has no box to lay out by (no glyphViewBox, and no bound width and height that resolve in '${input.id}')`);
+    return box;
+  });
+  return { x: Math.max(...boxes.map((b) => b[0])) + GAP, y: Math.max(...boxes.map((b) => b[1])) + GAP };
+};
+
 /** `chunkCeiling` lowers the ceiling a set's chunk scripts pack to (never raises it), as `sliceCeiling` does for the
  *  theme: the gate uses it to reach the one-member chunk that cannot fit (#3418). */
 type ComponentOpts = { chunkCeiling?: number };
@@ -407,7 +432,8 @@ export const componentScripts = (input: BrandInput, requested: 'all' | string[],
     byPage.set(page, pg);
     if (def.figmaProperties?.emitAsComponents) {
       const members = plans.map((p, index) => ({ name: names[index], index, js: planToPluginJs(p) }));
-      const data = (slice: typeof members) => ({ step: 0, of: 0, label: def.id, def: def.id, count: plans.length, description: def.summary, members: slice.map(({ name, index }) => ({ name, index })) });
+      const pitch = emitPitch(input, plans);
+      const data = (slice: typeof members) => ({ step: 0, of: 0, label: def.id, def: def.id, count: plans.length, pitch, description: def.summary, members: slice.map(({ name, index }) => ({ name, index })) });
       const slices = sliceBy(members, (s) => assemble('runComponentEmit', data(s), s.map((m) => m.js)), `${def.id} components`);
       slices.forEach((s, i) => out.push({
         phase: 'components', kind: 'component-emit', label: `${def.id} ${i + 1}/${slices.length}`, def: def.id, names: s.map((m) => m.name), planned: plans.length,

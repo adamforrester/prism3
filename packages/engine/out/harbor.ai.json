@@ -1,8 +1,8 @@
 {
-  "$schema": "prism3-ai-metadata/0.5",
+  "$schema": "prism3-ai-metadata/0.6",
   "brand": "harbor",
   "generated": true,
-  "note": "Agent-readable metadata, companion to harbor.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, background-blur, focus-ring, icon, control and grid roles, and the type line boxes), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
+  "note": "Agent-readable metadata, companion to harbor.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, background-blur, focus-ring, icon, control and grid roles, and the type line boxes), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). The primitive families are `core.palette`, `core.dimension`, `core.font`, `opacity`, `motion.duration-ms`, `motion.easing`, `motion.spring`, `shadow`, `breakpoint`, `container`. Not every one sits under `core`: a family outside it is still a primitive, so read the tier, not the path. A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. `motion_presets` names, for each motion preset, the duration step it plays on (the brand's mapping), its easing role and its reduced-motion duration. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
   "color_fields": [
     "$description",
     "meaning",
@@ -8451,13 +8451,13 @@
       "resolves_to": "{hds.core.dimension.16}"
     },
     "radius.round": {
-      "$description": "radius round — 128px (pill)",
+      "$description": "radius round — 128px (pill. For small fixed-size parts, such as a switch track, a radio or a badge count. A pill button binds `radius.capsule`)",
       "meaning": "Corner-radius role — round",
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "{hds.core.dimension.128}"
     },
     "radius.capsule": {
-      "$description": "radius capsule — 999px (off-grid literal)",
+      "$description": "radius capsule — 999px (off-grid literal. The pill a button binds under `controlShape: pill`, full at any height. Small fixed-size parts bind `radius.round`)",
       "meaning": "Corner-radius role — capsule",
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "999px"
@@ -8758,6 +8758,24 @@
       "when_to_use": "How long a transition runs. Under reduced motion, use `motion.duration-reduced.slower`.",
       "resolves_to": "{hds.motion.duration-ms.1040}"
     },
+    "motion.duration.long": {
+      "$description": "motion duration long — 1170ms (tempo: relaxed)",
+      "meaning": "Motion duration role — long",
+      "when_to_use": "How long a transition runs. Under reduced motion, use `motion.duration-reduced.long`.",
+      "resolves_to": "{hds.motion.duration-ms.1170}"
+    },
+    "motion.duration.longer": {
+      "$description": "motion duration longer — 1430ms (tempo: relaxed)",
+      "meaning": "Motion duration role — longer",
+      "when_to_use": "How long a transition runs. Under reduced motion, use `motion.duration-reduced.longer`.",
+      "resolves_to": "{hds.motion.duration-ms.1430}"
+    },
+    "motion.duration.longest": {
+      "$description": "motion duration longest — 1690ms (tempo: relaxed)",
+      "meaning": "Motion duration role — longest",
+      "when_to_use": "How long a transition runs. Under reduced motion, use `motion.duration-reduced.longest`.",
+      "resolves_to": "{hds.motion.duration-ms.1690}"
+    },
     "motion.duration.spin": {
       "$description": "motion duration spin — 800ms per full turn of a spinner, linear, the same at every tempo",
       "meaning": "Motion duration role — one full turn of a spinner",
@@ -8804,6 +8822,24 @@
       "$description": "reduce-motion slower — 0ms (eliminated — substitute a cross-fade)",
       "meaning": "Reduced-motion duration role — slower",
       "when_to_use": "The duration of `motion.duration.slower` when the user prefers reduced motion.",
+      "resolves_to": "{hds.motion.duration-ms.0}"
+    },
+    "motion.duration-reduced.long": {
+      "$description": "reduce-motion long — 0ms (eliminated — substitute a cross-fade)",
+      "meaning": "Reduced-motion duration role — long",
+      "when_to_use": "The duration of `motion.duration.long` when the user prefers reduced motion.",
+      "resolves_to": "{hds.motion.duration-ms.0}"
+    },
+    "motion.duration-reduced.longer": {
+      "$description": "reduce-motion longer — 0ms (eliminated — substitute a cross-fade)",
+      "meaning": "Reduced-motion duration role — longer",
+      "when_to_use": "The duration of `motion.duration.longer` when the user prefers reduced motion.",
+      "resolves_to": "{hds.motion.duration-ms.0}"
+    },
+    "motion.duration-reduced.longest": {
+      "$description": "reduce-motion longest — 0ms (eliminated — substitute a cross-fade)",
+      "meaning": "Reduced-motion duration role — longest",
+      "when_to_use": "The duration of `motion.duration.longest` when the user prefers reduced motion.",
       "resolves_to": "{hds.motion.duration-ms.0}"
     },
     "motion.duration-reduced.spin": {
@@ -8887,6 +8923,58 @@
       "meaning": "Stagger delay role",
       "when_to_use": "The delay between items that animate in sequence.",
       "resolves_to": "{hds.motion.duration-ms.50}"
+    }
+  },
+  "motion_presets": {
+    "state": {
+      "duration": "motion.duration.fast",
+      "easing": "motion.easing-role.default",
+      "reduced_duration": "motion.duration-reduced.fast"
+    },
+    "fade": {
+      "duration": "motion.duration.normal",
+      "easing": "motion.easing-role.enter",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "crossfade": {
+      "duration": "motion.duration.normal",
+      "easing": "motion.easing-role.default",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "move": {
+      "duration": "motion.duration.moderate",
+      "easing": "motion.easing-role.default",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "reveal": {
+      "duration": "motion.duration.slow",
+      "easing": "motion.easing-role.enter",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "draw": {
+      "duration": "motion.duration.slow",
+      "easing": "motion.easing-role.default",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "surface": {
+      "duration": "motion.duration.moderate",
+      "easing": "motion.easing-role.enter",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "expand": {
+      "duration": "motion.duration.normal",
+      "easing": "motion.easing-role.default",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "step": {
+      "duration": "motion.duration.moderate",
+      "easing": "motion.easing-role.default",
+      "reduced_duration": "motion.duration-reduced.normal"
+    },
+    "settle": {
+      "duration": "motion.duration.slow",
+      "easing": "motion.easing-role.enter",
+      "reduced_duration": "motion.duration-reduced.normal"
     }
   },
   "primitives": {
@@ -12107,6 +12195,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
+        "motion.duration-reduced.long",
+        "motion.duration-reduced.longer",
+        "motion.duration-reduced.longest",
         "motion.duration-reduced.moderate",
         "motion.duration-reduced.normal",
         "motion.duration-reduced.slow",
@@ -12191,6 +12282,24 @@
         "motion.duration.slower"
       ]
     },
+    "motion.duration-ms.1170": {
+      "$description": "duration primitive — 1170ms (literal; the semantic tier names the use)",
+      "meaning": "Motion duration primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
+      "aliased_by": [
+        "motion.duration.long"
+      ]
+    },
+    "motion.duration-ms.1430": {
+      "$description": "duration primitive — 1430ms (literal; the semantic tier names the use)",
+      "meaning": "Motion duration primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
+      "aliased_by": [
+        "motion.duration.longer"
+      ]
+    },
     "motion.duration-ms.1600": {
       "$description": "duration primitive — 1600ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
@@ -12198,6 +12307,15 @@
       "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
       "aliased_by": [
         "motion.duration.sweep"
+      ]
+    },
+    "motion.duration-ms.1690": {
+      "$description": "duration primitive — 1690ms (literal; the semantic tier names the use)",
+      "meaning": "Motion duration primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — reference a `motion.duration.*` role (or its `motion.duration-reduced.*` twin), not the raw step.",
+      "aliased_by": [
+        "motion.duration.longest"
       ]
     },
     "motion.duration-ms.2600": {

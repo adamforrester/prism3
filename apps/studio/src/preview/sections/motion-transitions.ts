@@ -17,6 +17,7 @@
 import type { Theme } from '@prism3/engine';
 import { el, hook, subHead, tokenPillBadged, tokenPillWrapping, viewOnly } from './kit';
 import { curveOfRole, motionStageSvg } from './motion-curves';
+import { must } from '../../must';
 
 /** The playback divisors the Slow motion select offers, real speed first (D9: Off, 1/2, 1/4, 1/8). */
 export const MOTION_SLOWMO_OPTIONS = [1, 2, 4, 8];
@@ -37,11 +38,13 @@ export const motionTransitionsSection = (
   wrap.append(subHead(copy.title), el('p', 'dm-desc', copy.desc));
 
   const bar = el('div', 'mo-toolbar');
-  const btn = hook(el('button', 'mo-replay', playback.played ? copy.replay : copy.play), 'motion-play') as HTMLButtonElement;
+  // #4188: the chrome's own page button and select, as every control beside the preview is (they steer the preview;
+  // they are not specimens).
+  const btn = hook(el('button', 'p3-btn p3-btn-page p3-mo-play', playback.played ? copy.replay : copy.play), 'motion-play') as HTMLButtonElement;
   btn.type = 'button';
   const slowLabel = el('label', 'mo-slowmo');
   slowLabel.append(document.createTextNode(`${copy.slow} `));
-  const select = hook(viewOnly(el('select', 'mo-slowmo-sel')), 'motion-slowmo') as HTMLSelectElement;
+  const select = hook(viewOnly(el('select', 'p3-select p3-mo-slowmo')), 'motion-slowmo') as HTMLSelectElement;
   for (const v of MOTION_SLOWMO_OPTIONS) {
     const opt = el('option', undefined, v === 1 ? copy.off : `1/${v}`) as HTMLOptionElement;
     opt.value = String(v);
@@ -60,7 +63,7 @@ export const motionTransitionsSection = (
     const ms = durOf(t.duration);
     const playMs = ms * playback.slowmo;
     const curve = curveOfRole(mo, mode, t.name);
-    const curveBez = mo.easing[curve] ?? mo.easing.standard;
+    const curveBez = must(mo.easing[curve] ?? mo.easing.standard, `the ${curve} curve`);
     const anim = `mo-trace-x ${playMs}ms linear both, mo-trace-y ${playMs}ms cubic-bezier(${curveBez.join(', ')}) both`;
     const col = hook(el('div', 'mo-col'), 'transition');
     col.dataset.transition = t.name;

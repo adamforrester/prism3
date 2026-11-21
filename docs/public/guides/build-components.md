@@ -10,13 +10,13 @@ Building needs the Figma plugin. On the web, the Components area lists the same 
 
 ## Choose the sets to add
 
-1. Open **Components** in the rail. The list reads "Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:137 -->
-2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:140-141 -->
+1. Open **Components** in the rail. The list reads "Tick a set or a family to add it to this file; sets it needs come with it. Update file adds them." <!-- src: apps/studio/src/state/component-groups.ts:138 -->
+2. Tick each family or set you want. A tier's caption has **Select all**, or **Deselect all** once anything in it is ticked. <!-- src: apps/studio/src/state/component-groups.ts:141-142 -->
 3. Choose **Update file** in the top bar. The ticked sets are listed under **Components** › **To add**. <!-- src: apps/studio/src/state/update-file.ts:349-350 -->
 4. Choose **Update file** in the dialog to build them. <!-- src: apps/studio/src/state/update-file.ts:426 -->
 
 Each set in the list carries its state in this file: **To add**, **Needed**, **Not in file**, **Due**, **Kept edits**, **Updates off**, **Hand-edited**, **Not checked yet** or **Up to date**. <!-- src: apps/studio/src/state/update-file.ts:409 -->
-A set already in the file has a checked box you can't change, and **In file** comes first among its states. A family partly in the file can still be ticked, to add the sets it lacks. <!-- src: apps/studio/src/state/component-groups.ts:149 -->
+A set already in the file has a checked box you can't change, and **In file** comes first among its states. A family partly in the file can still be ticked, to add the sets it lacks. <!-- src: apps/studio/src/state/component-groups.ts:150 -->
 
 The sets you tick are kept in the file, not in the panel, so a teammate who opens Update file sees the same list. A set leaves the list once it is built whole; one that fails or is stopped stays on it. <!-- src: apps/plugin/src/add-queue.ts:1-11#32cbe7e4 -->
 
@@ -25,13 +25,13 @@ On a file that isn't set up yet, the same run sets it up first. See [Set up a fi
 
 ## What a build does
 
-For each set, the plugin: <!-- src: apps/plugin/src/main.ts:915-1038#34f3a25b -->
+For each set, the plugin: <!-- src: apps/plugin/src/main.ts:918-1041#34f3a25b -->
 
 - builds any set the chosen one contains first, such as the icon and focus ring inside a button;
 - creates the set's page if the file does not have it, and switches Figma to that page;
 - builds the set, its properties and its prototype interactions;
 - adds the page header and the labels beside the set;
-- draws the family's usage panel beside its lead, while Docs has usage panels on. <!-- src: apps/plugin/src/main.ts:1003-1004#03cbfa05 --> A family has one panel, beside its lead set: the Buttons page has one, beside Button, and the other sets on the page have none of their own. An icon, the spinner and a provider logo are single components, with no set and no panel. <!-- src: apps/plugin/src/doc-panel.ts:225-226#b6f87a5f -->
+- draws the family's usage panel beside its lead, while Docs has usage panels on. <!-- src: apps/plugin/src/main.ts:1006-1007#03cbfa05 --> A family has one panel, beside its lead set: the Buttons page has one, beside Button, and the other sets on the page have none of their own. An icon, the spinner and a provider logo are single components, with no set and no panel. <!-- src: apps/plugin/src/doc-panel.ts:225-226#b6f87a5f -->
 
 A new set's description in Figma is its one-line summary from the engine. A description you wrote on an existing set is kept. <!-- src: apps/plugin/src/write-components.ts:149-150#7bb3ec74 -->
 
@@ -65,3 +65,13 @@ Only one write runs at a time, from the panel or an agent: a build asked for whi
 
 Sets build onto pages under Components (such as `↳ Buttons`, `↳ Checkbox`, `↳ Tabs`) and Subcomponents (such as `↳ Focus Ring`, `↳ Field Label`, `↳ Spinner`). <!-- src: apps/plugin/src/file-taxonomy.ts:92-190 -->
 Icons and provider logos build onto `↳ Icons & assets` under Foundations. <!-- src: apps/plugin/src/file-taxonomy.ts:87 -->
+
+## Specs for your components
+
+<!-- DRAFT copy for the owner (#2996, Q2996.1 hybrid A): the wording, where it sits and the file's path are the owner's to decide. -->
+
+Use Spectacular for any component's spec. It reads a component set in your Figma file and writes its anatomy, props and styles.
+
+Prism3's own components also come with a supplement, starting with Button. It adds what a Figma file can't hold: accessibility, the props and states that exist only in code, motion, right-to-left rules, and the CSS and DTCG name of each token the component uses. It uses the element and prop names Spectacular writes, so you can read the two side by side. Everything it adds sits under `com.prism3`. <!-- src: packages/engine/spec-supplement.ts:64 -->
+
+For a component your team builds itself, Spectacular Pro adds token references to its spec. Prism3 has no supplement for those.

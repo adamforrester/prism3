@@ -509,7 +509,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { launchWithoutWebFonts } from './test-web-fonts-stub.mjs';
 import { hookGuard } from './test-hooks.mjs';
-import { INPUT_MS, makeBounded, watchStalls } from './test-bounded.mjs';
+import { INPUT_MS, makeBounded, rendersFrame, watchStalls } from './test-bounded.mjs';
 import { P, loadModes, resolve as resolveToken } from './chrome/tokens.mjs';
 import { assertBundleFresh, PLUGIN_UI_SOURCE_ROOTS, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 import { SHARDS } from './chrome-shards.mjs';
@@ -1127,6 +1127,25 @@ const open = async ({ host, theme, w, h, store, query = '', brand = 'prism3', pr
   return { ctx, page, errors };
 };
 
+/** A WAIT WITH A BOUND OF ITS OWN (#4127). A `page.evaluate` has no timeout: one awaiting a frame that never comes, or a
+ *  font load that never ends, waits until the section watchdog (#3044) stops the run 600s later, and that names only the
+ *  last check that passed. Section 21 stalled that way three times in 26 hours on CI, after its QA-B17 check had passed,
+ *  so the log blamed a check that held. `within` races `work` against `ms` and throws on the bound with `label` and
+ *  whether the page still renders a frame (busy, waiting on something else) or none (stuck). The case's own catch
+ *  reports it by name. 30s matches Playwright's own action timeout, the bound every click on the same path already has.
+ *  The message carries no issue number: the label names the step, and `lint-test-arms` reads `#4127` in a literal as
+ *  the arm itself, so a number here would keep the registry line green with the self-check arm deleted (review). */
+const STEP_MS = 30000;
+const within = async (page, label, work, ms = STEP_MS) => {
+  let timer;
+  const out = await Promise.race([work.then((v) => ({ v }), (e) => ({ e })), new Promise((r) => { timer = setTimeout(() => r(null), ms); })]);
+  clearTimeout(timer);
+  if (out && 'e' in out) throw out.e;
+  if (out) return out.v;
+  const live = await rendersFrame(page);
+  throw new Error(`${label} did not settle within ${ms / 1000}s; the page ${live ? 'still renders frames, so the wait was on something else' : 'renders no frame'}`);
+};
+
 /** Reach a place through the tab row (the select, when narrow), and wait for the frame to show it. */
 const goPlace = async (page, place) => {
   const { narrow, rail, at } = await page.evaluate(() => { const f = document.querySelector('[data-p3="frame"]'); return { narrow: f?.dataset.w === 'narrow', rail: f?.dataset.shell === 'rail', at: f?.dataset.place ?? '' }; });
@@ -1141,7 +1160,7 @@ const goPlace = async (page, place) => {
   }
   if (subSel) await hooks.click(page.locator(subSel));
   await page.waitForFunction((p) => document.querySelector('[data-p3="frame"]')?.dataset.place === p, place);
-  await page.evaluate(() => document.fonts.ready);
+  await within(page, `goPlace(${place}): the fonts`, page.evaluate(() => document.fonts.ready.then(() => true)));
 };
 
 /** Wait until the mode control has settled on radios or the select. The control measures itself after it is drawn and on
@@ -2293,10 +2312,15 @@ for (const theme of ['light', 'dark']) {
       return { layout: document.querySelector('[data-p3="frame"]').dataset.layout, nav: line('[data-p3="tab-row"]'), head: line('[data-p3="preview-head"]'), sub: line('[data-p3="sub-nav"]') };
     });
     ok(g.layout === 'panes', `Q2 ${where}: the page renders the two panes itself, nothing forced (layout "${g.layout}")`);
-    ok(g.nav?.shown && g.head?.shown, `Q2 ${where}: both header rows render in the two-pane layout`);
-    ok(g.nav?.border === '1px' && g.head?.border === '1px', `Q2 ${where}: both rows draw a bottom divider (${g.nav?.border}, ${g.head?.border})`);
-    const gap = g.nav && g.head ? Math.abs(g.nav.bottom - g.head.bottom) : Infinity;
-    ok(gap <= ALIGN_TOLERANCE, `Q2 ${where}: the tab row's divider and the preview title row's divider are ${gap.toFixed(2)}px apart (tolerance ${ALIGN_TOLERANCE}px)`);
+    // #4192 F1 (owner decision 2026-11-19, A): Components draws no preview header, so Q2's shared divider is a Theme
+    // page's; on Components the header's absence is the measure (section 3149 holds where its body goes).
+    if (place === 'components') hooks.absent(ok, { seen: !!g.nav?.shown, state: 'the tab row' }, !g.head?.shown, `Q2 ${where}: #4192 F1 A: Components draws no preview header row`);
+    else {
+      ok(g.nav?.shown && g.head?.shown, `Q2 ${where}: both header rows render in the two-pane layout`);
+      ok(g.nav?.border === '1px' && g.head?.border === '1px', `Q2 ${where}: both rows draw a bottom divider (${g.nav?.border}, ${g.head?.border})`);
+      const gap = g.nav && g.head ? Math.abs(g.nav.bottom - g.head.bottom) : Infinity;
+      ok(gap <= ALIGN_TOLERANCE, `Q2 ${where}: the tab row's divider and the preview title row's divider are ${gap.toFixed(2)}px apart (tolerance ${ALIGN_TOLERANCE}px)`);
+    }
     if (place.startsWith('color-')) ok(g.sub?.shown && g.sub.bottom > g.nav.bottom, `Q1 ${where}: the Color sub-nav sits under the tab row's divider`);
     // Q2's second case, measured for real from S3: Brand is the first moved page without the sub-nav, so the
     // tab row alone meets the preview title row. The sub-nav must be absent, or this is the first case again.
@@ -3031,8 +3055,11 @@ for (const theme of ['light', 'dark']) {
   const onDisk = (() => { try { return statSync(join(REPO, 'docs/public/index.html')).isFile(); } catch { return false; } })();
   ok(onDisk, `the Docs target ${LANDING} names a file on disk (docs/public/index.html)`);
   for (const host of ['web', 'figma']) {
-    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
-    if (host === 'figma') await page.evaluate(() => { window.__docsPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && m.type !== 'ui-ready') window.__docsPosts.push(m); }); });
+    // #3340: the plugin's posts are recorded from boot, so the example pick's own recount (`due-request`, posted
+    // `DUE_DEBOUNCE_MS` after the pick, #3081) is seen landing before Docs is clicked. Listened for only after `open`, it
+    // could land inside the click's read window on a slow machine and read as a post the click made.
+    const listenFromBoot = (pg) => pg.addInitScript(() => { window.__docsPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && m.type !== 'ui-ready') window.__docsPosts.push(m); }); });
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, prep: host === 'figma' ? listenFromBoot : undefined });
     // #2909: Docs is the rail foot's Help, just before Appearance: after the Agent tile in the plugin, on both hosts since
     // Q2909.9 A.
     const tileOf = await page.evaluate(() => {
@@ -3056,8 +3083,12 @@ for (const theme of ['light', 'dark']) {
       const before = page.url();
       const opened = [];
       ctx.on('page', (pg) => opened.push(pg.url()));
+      // #3340: wait for the pick's recount to land, then read only what is posted after the click.
+      const settled = await page.waitForFunction(() => window.__docsPosts.some((m) => m.type === 'due-request'), null, { timeout: 10000 }).then(() => true, () => false);
+      ok(settled, `#3340 figma: the example pick's recount (due-request) lands before Docs is clicked (posted ${JSON.stringify(await page.evaluate(() => window.__docsPosts.map((m) => m.type)))})`);
+      const mark = await page.evaluate(() => window.__docsPosts.length);
       await hooks.click(page.locator('[data-p3="docs-open"]'));
-      const posts = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__docsPosts.slice()), 50)));
+      const posts = await page.evaluate((k) => new Promise((r) => setTimeout(() => r(window.__docsPosts.slice(k)), 50)), mark);
       ok(JSON.stringify(posts) === JSON.stringify([{ type: 'open-docs' }]) && opened.length === 0 && page.url() === before,
         `figma: Docs posts {"type":"open-docs"} to the main thread and opens nothing in the panel (posted ${JSON.stringify(posts)}; opened ${JSON.stringify(opened)})`);
     }
@@ -5332,7 +5363,9 @@ const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', 
   // #3073: the Glass section is the glassRoles lever's block, holding the shipped glass read-only and the brand's own.
   ['glassRoles', '[data-p3="lever-glass-roles"]'],
   // #3050: the Scrim section is the scrimStrength lever's block, its chips above the scrim's read-only row.
-  ['scrimStrength', '[data-p3="lever-scrim-strength"]']];
+  ['scrimStrength', '[data-p3="lever-scrim-strength"]'],
+  // #3339: Background fills holds Controls sit on (`interactiveGround`) under the contrast floor.
+  ['interactiveGround', '[data-p3="lever-interactive-ground"]']];
 /** S4f (QA-B1): Background fills' rows, by the role each names: the three page tiers (Primary was "Page", QA-B3),
  *  the contrast floor (a setting, named by its input), and the inverse fill's three tiers. Literal. */
 const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'background.tertiary', 'surfaces.floorStep',
@@ -5906,6 +5939,36 @@ if (runs('18')) {
     ok(false, `#3050 Scrim: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 18-scrim
+// #3339 (owner C; DRAFT copy): Surfaces & fills › Background fills › Controls sit on. Two chips, Every surface checked on
+// a brand without the setting; The page only writes `interactiveGround: 'page'`, Every surface writes 'floor'. The labels
+// are literals from the build PR's draft; ACTUAL is the persisted brand and the DOM.
+if (runs('18')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    const read = () => page.evaluate(() => {
+      const b = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-interactive-ground"]');
+      return {
+        section: b?.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent ?? null,
+        chips: [...(b?.querySelectorAll('[data-p3^="interactive-ground-choice-"]') ?? [])].map((n) => [n.textContent, n.getAttribute('aria-checked')]),
+      };
+    });
+    const r0 = await read();
+    ok(r0.section === 'Background fills' && JSON.stringify(r0.chips) === JSON.stringify([['Every surface', 'true'], ['The page only', 'false']]),
+      `#3339: Surfaces & fills › Background fills holds Controls sit on's chips, Every surface checked on a brand without the setting (${JSON.stringify(r0)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-page"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-page"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+    const pg = await persisted(page);
+    ok(pg?.interactiveGround === 'page' && (await read()).chips[1]?.[1] === 'true', `#3339: The page only writes interactiveGround: page (${pg?.interactiveGround})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-floor"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-floor"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+    const fl = await persisted(page);
+    ok(fl?.interactiveGround === 'floor', `#3339: Every surface writes interactiveGround: floor (${fl?.interactiveGround})`);
+    ok(errors.length === 0, `#3339 Controls sit on: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3339 Controls sit on: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 18-interactive-ground
 // =============================================================================================
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)
@@ -8870,8 +8933,9 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     const setTop = (hook, y) => page.evaluate(([h, v]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.scrollTop = v; return Math.round(n.scrollTop); }, [hook, y]);
     /** Every animation frame's scrollTop of a pane, until it has held still for ten frames (how a check waits
      *  for a scroll to finish), with the glide log of each pane taken since the last call (what it checks). */
-    const frames = async (which) => {
-      const tops = await page.evaluate((w) => new Promise((res) => {
+    // #4127: bounded by `within`, named by `step`; a frame that never comes fails here in seconds, not at the watchdog.
+    const frames = async (which, step = `frames('${which}')`, ms = STEP_MS) => {
+      const tops = await within(page, `${step}: the ${which} pane's frames`, page.evaluate((w) => new Promise((res) => {
         const b = document.querySelector(w === 'levers' ? '[data-p3="levers-pane"]' : '[data-p3="preview-body"]');
         const t = [Math.round(b.scrollTop)];
         let still = 0;
@@ -8882,12 +8946,29 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
           if (still >= 10 || t.length > 400) res(t); else requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
-      }), which);
-      const g = glideOf(await takeGlideLog(page), which === 'levers' ? 'levers-pane' : 'preview-body', MOTION_MS, MOTION.ease);
+      }), which), ms);
+      const g = glideOf(await within(page, `${step}: the glide log`, takeGlideLog(page)), which === 'levers' ? 'levers-pane' : 'preview-body', MOTION_MS, MOTION.ease);
       return { tops, g };
     };
     const between = (tops) => new Set(tops.filter((t) => t !== tops[0] && t !== tops[tops.length - 1])).size;
     const lands = (s) => s.inView && (Math.abs(s.rel - s.pad) <= 2 || s.top >= s.max - 1);
+
+    // #4127: a frame wait that never settles stops within its own bound and names its step. Before, it waited until
+    // the section watchdog stopped the run 600s later, naming only the last check that PASSED (QA-B17's "Jump to:",
+    // three CI runs in 26 hours). The page's frames are stopped here (`requestAnimationFrame` holds its callbacks) and
+    // restored after; the expected words are typed here, not imported. Mutation this fails by name: the bound
+    // dropped from `frames` → this section stops at the watchdog with this arm as its last step.
+    {
+      // Held, not dropped: a frame requested and never produced keeps its callback, and so the wait's promise, reachable.
+      // A dropped callback lets the page collect the promise, and Playwright rejects it about 30s later (measured).
+      await page.evaluate(() => { window.__p3Raf = window.requestAnimationFrame; window.__p3Held = []; window.requestAnimationFrame = (cb) => window.__p3Held.push(cb); });
+      const t0 = Date.now();
+      const stall = await frames('preview', '#4127 self-check', 3000).then(() => 'returned', (e) => String(e?.message ?? e));
+      const took = Date.now() - t0;
+      await page.evaluate(() => { const held = window.__p3Held; window.requestAnimationFrame = window.__p3Raf; window.__p3Held = []; held.forEach((cb) => window.requestAnimationFrame(cb)); });
+      ok(stall.startsWith("#4127 self-check: the preview pane's frames did not settle within 3s; the page renders no frame") && took < 15000,
+        `#4127: a frame wait that never settles fails by name within its bound, not at the 600s watchdog (${took}ms: ${stall.slice(0, 160)})`);
+    }
 
     await installGlideLog(page);
     await goPlace(page, 'color-fills');
@@ -9028,14 +9109,16 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     // type scale to Scale; a limit (the caption floor) to Scale too, its pair by the scope (§3); a weight tick to
     // Weights and styles. Pairs typed here.
     await goPlace(page, 'type');
-    await openTypeAdvanced(page);
+    await within(page, 'Type: opening the advanced scale and sections', openTypeAdvanced(page), 2 * STEP_MS);
+    // #4127: each wait on the way names its step, so a stall here fails by name, not at the 600s watchdog.
     const typeEdit = async (what, sel, want) => {
-      await setTop('preview-body', 0);
-      const t0 = await sec(want);
-      await takeGlideLog(page);
-      await hooks.click(page.locator(sel));
-      const f = await frames('preview');
-      const t1 = await sec(want);
+      const step = `Type: ${what}`;
+      await within(page, `${step}: the preview to its top`, setTop('preview-body', 0));
+      const t0 = await within(page, `${step}: reading ${want} before`, sec(want));
+      await within(page, `${step}: emptying the glide log`, takeGlideLog(page));
+      await within(page, `${step}: the click on ${sel}`, hooks.click(page.locator(sel)), 2 * STEP_MS);
+      const f = await frames('preview', step);
+      const t1 = await within(page, `${step}: reading ${want} after`, sec(want));
       ok(t0.found && !t0.inView && lands(t1) && t1.view === 'type' && t1.place === 'type',
         `QA-B9: editing ${what} on Type brings the preview's ${want} section into view, on the same page (from below the fold: ${!t0.inView}; top at ${t1.rel}px, scrollTop ${t1.top} of ${t1.max}; ${t1.place} / ${t1.view})`);
       return f;
@@ -11469,7 +11552,7 @@ const STRIP_PROBE = () => {
   const ink = parse(getComputedStyle(text).color), glyphInk = parse(getComputedStyle(e.querySelector('svg')).color);
   const r = e.getBoundingClientRect(), bar = document.querySelector('[data-p3="top-bar"]').getBoundingClientRect();
   const frame = document.querySelector('[data-p3="frame"]').getBoundingClientRect();
-  return { mounted: true, shown: !e.hidden && getComputedStyle(e).display !== 'none', text: text.textContent, groundLum: Math.round(lum(g) * 1000) / 1000,
+  return { mounted: true, shown: !e.hidden && getComputedStyle(e).display !== 'none', text: text.textContent, detail: e.querySelector('.p3-errstrip-detail-text')?.textContent ?? null, groundLum: Math.round(lum(g) * 1000) / 1000,
     textR: ink ? ratio(over(ink, g), g) : 0, glyphR: glyphInk ? ratio(over(glyphInk, g), g) : 0,
     fullWidth: Math.abs(r.left - frame.left) <= 1 && Math.abs(r.right - frame.right) <= 1, underBar: Math.abs(r.top - bar.bottom) <= 1,
     rect: [Math.round(r.left), Math.round(r.top), Math.round(r.right)], barBottom: Math.round(bar.bottom) };
@@ -11744,7 +11827,7 @@ for (const { w, h } of WIDTHS) {
         else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), S131_REFUSED);
         await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && !e.hidden; }, null, { timeout: 5000 }).catch(() => {});
         const st = await page.evaluate(STRIP_PROBE);
-        ok(st.mounted && st.shown && /background\.secondary/.test(st.text ?? ''), `${where}: the error strip shows the refusal, naming the field ("${String(st.text).slice(0, 70)}")`);
+        ok(st.mounted && st.shown && /background\.secondary/.test((host === 'web' ? st.text : st.detail) ?? ''), `${where}: the error strip shows the refusal, naming the field (#4222: a refused restore's under Details) ("${String(host === 'web' ? st.text : st.detail).slice(0, 70)}")`);
         ok(theme === 'dark' ? st.groundLum < DARK_GROUND_MAX : st.groundLum > LIGHT_GROUND_MIN,
           `${where}: the error strip's ground follows the ${theme} theme (luminance ${st.groundLum}, ${theme === 'dark' ? `below ${DARK_GROUND_MAX}` : `above ${LIGHT_GROUND_MIN}`})`);
         ok(st.textR >= TEXT_MIN && st.glyphR >= NONTEXT_MIN, `${where}: the error strip's line clears ${TEXT_MIN}:1 (${st.textR}:1) and its glyph ${NONTEXT_MIN}:1 (${st.glyphR}:1)`);
@@ -11775,6 +11858,34 @@ for (const { w, h } of WIDTHS) {
             `${where} / error strip: the chrome around the plugin's strip draws no dim strip text, no shadow and no inline value (${dim.map((t) => `${t.el} ${t.r}:1`).join(' | ') || 'clean'})`);
         }
         if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-strip.png`) });
+        // #4222 (owner A): a refused restore's strip says its own frame; the engine's sentence sits under it, behind a
+        // closed Details the alert does not read. The words checked absent are the issue's: the sentence is the author's.
+        if (host === 'figma') {
+          const rd = await page.evaluate(() => {
+            const e = document.querySelector('[data-p3="error-bar"]'), d = e?.querySelector('[data-p3="error-detail"]');
+            return { line: e?.querySelector('.p3-errstrip-text')?.textContent ?? '', summary: d?.querySelector('summary')?.textContent ?? null, open: d?.open ?? null,
+              detail: d?.querySelector('[data-p3="error-detail-text"]')?.textContent ?? '', role: e?.getAttribute('role') };
+          });
+          ok(rd.line === "This file's saved brand didn't resolve. Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.",
+            `${where}: #4222 the refused restore's line is the strip's own frame, with none of the engine's words ("${rd.line.slice(0, 90)}")`);
+          ok(rd.summary === 'Details' && rd.open === false && /GROUND/.test(rd.detail) && /background\.secondary/.test(rd.detail) && rd.role === 'alert',
+            `${where}: #4222 the engine's sentence is under a closed Details in the alert (${JSON.stringify({ ...rd, line: undefined, detail: rd.detail.slice(0, 50) })})`);
+          // #4206 (owner A): a brand stored before #3707 (an empty link list) loads, migrated, and the strip says what changed.
+          const LEGACY = { ...S131_REFUSED, id: 'legacy-brand', overrides: undefined, typography: { links: [] } };
+          await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LEGACY);
+          await page.waitForFunction(() => /updated to load/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+          const lg = await page.evaluate(() => {
+            const e = document.querySelector('[data-p3="error-bar"]');
+            return { shown: !!e && !e.hidden, line: e?.querySelector('.p3-errstrip-text')?.textContent ?? '', close: e?.querySelector('[data-p3="restore-migrated-close"]')?.textContent ?? null,
+              detail: !!e?.querySelector('[data-p3="error-detail"]'), brand: document.querySelector('[data-p3="brand-switcher"]')?.textContent ?? '' };
+          });
+          ok(lg.shown && lg.line.startsWith("This file's saved brand was updated to load") && /Link styles use the default text types/.test(lg.line) && lg.close === 'Close' && !lg.detail && lg.brand.includes('legacy-brand'),
+            `${where}: #4206 a stored brand with an empty link list loads, and the strip names the change with a Close (${JSON.stringify({ ...lg, line: lg.line.slice(0, 90) })})`);
+          await hooks.click(page.locator('[data-p3="restore-migrated-close"]'));
+          await page.waitForFunction(() => document.querySelector('[data-p3="error-bar"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+          const gone = await page.evaluate(() => document.querySelector('[data-p3="error-bar"]')?.hidden ?? null);
+          ok(gone === true, `${where}: #4206 Close takes the migration note down (hidden ${gone})`);
+        }
 
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
@@ -16411,6 +16522,9 @@ for (const [theme, H] of [['light', 420], ['dark', 420], ['light', 300]]) {
   try {
     await page.evaluate((input) => window.postMessage({ pluginMessage: { type: 'restore-input', input } }, '*'), REFUSED_2105);
     await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    // #4222: the line is the strip's short frame now, and the refusal's own words are under Details. Opened, they are the
+    // long text #2105 measured, so the cap below is held against them.
+    await page.evaluate(() => { const d = document.querySelector('[data-p3="error-detail"]'); if (d) d.open = true; return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
     const g = await page.evaluate(() => {
       const r = (s) => { const n = document.querySelector(s); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: b.height }; };
       const err = document.querySelector('[data-p3="error-bar"]');
@@ -18001,6 +18115,48 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
+// #2641 / #2745: a drag that holds still mid-gesture for longer than the store's quiet window (`QUIET_MS`, 400 ms in
+// `lever-kit.ts`) still stores ONE write. The pause stands in for a frame that runs long under load: before the fix,
+// the quiet timer released the hold mid-drag (one write) and the pointer's release wrote again (two), which is the
+// "2 written" the arm above caught once in a loaded run. The pause is a forced delay on purpose (it reproduces the
+// race on any machine); EXPECTED, one write and the stored value equal to the drawn one, is typed here.
+// MUTATION: `perFrame` arming the quiet timer while the pointer is pressed (`if (!pressed)` removed) → this arm fails.
+{
+  const where = '§46 web light 1280';
+  const PAUSE_MS = 900;
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  let step = 'install the counters';
+  try {
+    await page.evaluate(COUNT);
+    step = 'drag Shape\'s softness with a pause mid-gesture';
+    await goPlace(page, 'shape');
+    const sel = '[data-p3="radius-scale-slider"]';
+    await hooks.need(page, sel, BOUND);
+    const el = page.locator(sel);
+    await el.scrollIntoViewIfNeeded();
+    const g = await el.evaluate((n) => { const r = n.getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width, v: Number(n.value), min: Number(n.min), max: Number(n.max), step: Number(n.step) || 1 }; });
+    const at = g.x + ((g.v - g.min) / (g.max - g.min)) * g.w;
+    const to = at + (g.x + g.w - at) * 0.75;
+    await zero(page);
+    await page.mouse.move(at, g.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 12; i++) {
+      await page.mouse.move(at + ((to - at) * i) / 12, g.y);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+      if (i === 6) await page.waitForTimeout(PAUSE_MS);   // the pointer held still, pressed, past the quiet window
+    }
+    await page.mouse.up();
+    await settle(page);
+    const after = await el.evaluate((n) => Number(n.value));
+    const w = await writes(page);
+    const stored = (await persisted(page))?.radiusScale ?? null;
+    ok(after - g.v > g.step * 1.5 && w === 1 && stored === after,
+      `${where} Shape: a drag that pauses mid-gesture past the quiet window stores one write, where it ends (#2641: ${w} written; ${g.v} → ${after}, stored ${stored})`);
+    ok(errors.length === 0, `${where} #2641: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where} #2641: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 }
 } // 46
 // =============================================================================================
@@ -19025,11 +19181,11 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await p3.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(m.seq); }); });
       await postMsg(p3, FILE);
       await postMsg(p3, { type: 'restore-input', input: REFUSED_3081 });
-      await p3.waitForFunction(() => /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+      await p3.waitForFunction(() => /didn't resolve\. Update file and Clean up are off until a brand loads/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
       await goPlace(p3, 'components');
       await p3.evaluate(() => { const n = document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]'); if (n) HTMLElement.prototype.click.call(n); });
       await p3.waitForTimeout(600);
-      const failedAt = await p3.evaluate(() => ({ asked: window.__due.length, unresolved: /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''),
+      const failedAt = await p3.evaluate(() => ({ asked: window.__due.length, unresolved: /didn't resolve\. Update file and Clean up are off until a brand loads/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''),
         changed: document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]')?.getAttribute('aria-checked') ?? null }));
       await postMsg(p3, { type: 'file-due', seq: 1, present: FILE.present, theme: true, due: { ...DUE, tag: { state: 'due', reason: 'definition' } } });
       await p3.waitForTimeout(300);
@@ -21481,24 +21637,32 @@ console.log(`\n#3199 — Badge's inline style, laid out by the browser: the dot 
 } // 3199
 
 // =============================================================================================
-// #3149 — Components' preview header: no Inspect, the empty row kept at wide widths and collapsed at 380
-// (Q3149.1–.4, all A, the owner, 2026-11-01)
+// #3149 — Components' preview header: no Inspect, and no empty row (Q3149.2–.4 A, the owner, 2026-11-01; #4192 F1 A,
+// 2026-11-19, which reverses Q3149.1's wide row); plus #4192 F2 (Export's grounds) and #4188 (the preview's controls and tables)
 // =============================================================================================
 // WHAT THIS HOLDS. Inspect comes off the Components page's preview header on both hosts (Q3149.2 A, Q3149.4 A), and only
-// there: a Theme page keeps it, with the build stamp and the privacy note at its foot (Q3149.3 A). Since #3129 R3 and R4
-// Inspect was all that header held, so the row is now empty: at 1280 it stays, its bottom edge on the levers header's, so
-// the two dividers still meet at one y (Q2); at 380, on the Preview pane, it collapses (Q3149.1 A).
+// there: a Theme page keeps it, with the build stamp and the privacy note at its foot (Q3149.3 A). Inspect was all that
+// header held, so on Components the header is not drawn at any width (#4192 F1 A): at 1280 the preview body takes its grid
+// row, starting where the levers header does; at 380, on the Preview pane, the row is gone too. At 1280 it also holds
+// Export's grounds in Theme's order (#4192 F2 A), and #4188 A: the preview's two selects at the levers' size, Play a chrome
+// button on the Slow motion select's middle, and the preview tables' one uppercase 10px header, which Inspect's own
+// Contrast and Tokens tables do not take ("preview tables").
 // INDEPENDENCE (docs/34): the expectations are the decision's, typed here. Each absence reads against a Theme page's
-// header measured in the same run (`hooks.absent`), and the 1280 row's edge against the levers header, not against itself.
+// header measured in the same run (`hooks.absent`); the body's top against the levers header; the selects against a lever's
+// select; Export's grounds against the Brand page's panes; Inspect's headers against the preview table's band.
 //
 // Mutations, each after a `wip:` commit, each failing by name:
 //   · Inspect restored on Components (the `.p3-popwrap` rule in `chrome.css` dropped) → `3149 <host> 1280: Q3149.2 A:
-//     Components shows no Inspect` on both hosts (at 380 the collapsed row hides it all the same);
-//   · the row kept at 380 (the narrow collapse rule dropped) → `3149 <host> 380: Q3149.1 A: the empty header row collapses`;
-//   · the row collapsed at every width (the collapse rule unscoped from the narrow tier) → `3149 <host> 1280: Q3149.1 A:
-//     the empty header row stays`.
+//     Components shows no Inspect` on both hosts (at 380 the absent row hides it all the same);
+//   · the header drawn again (F1's `.p3-preview-head` rule dropped) → `3149 <host> 380: Q3149.1 A: the empty header row
+//     collapses` and `3149 <host> 1280: #4192 F1 A: Components draws no empty preview header`;
+//   · F1's grid override dropped → `3149 <host> 1280: #4192 F1 A: Components draws no empty preview header; its preview
+//     body takes the row`;
+//   · a top margin on Play → `3149 <host> 1280: #4188 Play sits on the Slow motion select's middle`;
+//   · the Durations header rule unscoped to `.ctable` → `3149 <host> 1280: #4188 Inspect's Contrast and Tokens tables keep
+//     their own header`; the rule dropped → `3149 <host> 1280: #4188 the preview's tables share one header`.
 if (runs('3149')) {
-console.log(`\n#3149 — Components' preview header: no Inspect; the row kept at 1280, collapsed at 380\n${'='.repeat(78)}`);
+console.log(`\n#3149 — Components' preview header: no Inspect, no empty row; Export's grounds; the preview's controls and tables\n${'='.repeat(78)}`);
 /** The preview header and its Inspect, read where they are drawn, beside the levers header's bottom edge. */
 const headNow = (page) => page.evaluate(() => {
   const head = document.querySelector('[data-p3="preview-head"]');
@@ -21507,7 +21671,10 @@ const headNow = (page) => page.evaluate(() => {
   const r = head?.getBoundingClientRect();
   return { headShown: !!head?.checkVisibility(), headH: Math.round(r?.height ?? 0), headBottom: Math.round(r?.bottom ?? -1),
     navBottom: Math.round(nav?.getBoundingClientRect().bottom ?? -2), inspect: !!inspect?.checkVisibility(),
-    body: !!document.querySelector('[data-p3="preview-body"]')?.checkVisibility() };
+    body: !!document.querySelector('[data-p3="preview-body"]')?.checkVisibility(),
+    // #4192: where the preview body and the levers header start, so the body taking the header's row is measured.
+    bodyTop: Math.round(document.querySelector('[data-p3="preview-body"]')?.getBoundingClientRect().top ?? -1),
+    navTop: Math.round(nav?.getBoundingClientRect().top ?? -2) };
 });
 for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
   const where = `3149 ${host} ${w}`;
@@ -21521,6 +21688,9 @@ for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
     await settle(page);
     const theme = await headNow(page);
     ok(theme.headShown && theme.inspect, `${where}: Q3149.2 A: a Theme page (Brand) keeps Inspect in its preview header (${JSON.stringify(theme)})`);
+    // #4192 F2's oracle, read on this Theme page: the levers ground and the preview's page ground as drawn.
+    const grounds = await page.evaluate(() => ({ levers: getComputedStyle(document.querySelector('[data-p3="levers-pane"]')).backgroundColor,
+      preview: getComputedStyle(document.querySelector('[data-p3="preview-body"]')).backgroundColor }));
     if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
     step = 'Components';
     await goPlace(page, 'components');
@@ -21531,11 +21701,68 @@ for (const host of ['figma', 'web']) for (const w of [1280, 380]) {
     hooks.absent(ok, { seen: theme.inspect && comp.body, state: 'a Theme page\'s Inspect, shown, and Components\' preview' }, !comp.inspect,
       `${where}: Q3149.2 A: Components shows no Inspect (${JSON.stringify(comp)})`);
     if (!narrow) {
-      ok(comp.headShown && comp.headH > 0 && Math.abs(comp.headBottom - comp.navBottom) <= 1,
-        `${where}: Q3149.1 A: the empty header row stays, its bottom edge on the levers header's, so the dividers meet (${JSON.stringify(comp)})`);
+      // #4192 F1 (owner decision 2026-11-19, A) reverses Q3149.1's wide row: the header that holds nothing is gone, and
+      // the preview body starts where the levers header does, so the family's own title is the pane's first line.
+      hooks.absent(ok, { seen: theme.headShown && comp.body, state: 'a Theme page\'s preview header, and Components\' preview' }, !comp.headShown && comp.headH === 0 && Math.abs(comp.bodyTop - comp.navTop) <= 1,
+        `${where}: #4192 F1 A: Components draws no empty preview header; its preview body takes the row (${JSON.stringify(comp)})`);
     } else {
       hooks.absent(ok, { seen: theme.headShown && comp.body, state: 'a Theme page\'s preview header, and Components\' Preview pane' }, !comp.headShown && comp.headH === 0,
         `${where}: Q3149.1 A: the empty header row collapses on the Preview pane (${JSON.stringify(comp)})`);
+    }
+    if (!narrow) {
+      // #4192 F2 (owner decision 2026-11-19, A): Export lays its grounds out in Theme's order, the settings on the levers
+      // ground and the result on the page ground. The oracle is the Brand page's two panes, measured above.
+      step = 'Export';
+      await hooks.click(page.locator('[data-p3="rail-export"]'));
+      await hooks.need(page, '.p3-export-out');
+      const ex = await page.evaluate(() => {
+        const out = document.querySelector('.p3-export-out');
+        const set = [...(out?.parentElement?.children ?? [])].find((c) => c !== out && c.classList.contains('p3-bardlg-col'));
+        return { settings: set ? getComputedStyle(set).backgroundColor : null, result: out ? getComputedStyle(out).backgroundColor : null };
+      });
+      ok(grounds.levers !== grounds.preview && ex.settings === grounds.levers && ex.result === grounds.preview,
+        `${where}: #4192 F2 A: Export's settings sit on the levers ground and its result on the page ground, as Theme's panes do (${JSON.stringify({ ex, grounds })})`);
+      // #4188 (owner decision 2026-11-19, A): the controls inside the preview pane are the chrome's, the size every
+      // select in the levers is, and the preview's tables share one header: the uppercase tracked band on the chrome's
+      // type scale. Oracles, measured here: a select in the levers pane, and the Type tables' header.
+      const box = (sel) => page.evaluate((q) => { const e = document.querySelector(q); if (!e) return null; const cs = getComputedStyle(e);
+        const r = e.getBoundingClientRect();
+        return { h: Math.round(r.height), mid: Math.round((r.top + r.height / 2) * 10) / 10, fs: cs.fontSize, tt: cs.textTransform, cls: String(e.className) }; }, sel);
+      step = 'Type';
+      await goPlace(page, 'type');
+      await settle(page);
+      const lever = await box('[data-p3="levers-pane"] .p3-select');
+      const mtblHead = await box('.mtbl-tbl thead th');
+      step = 'Depth & motion';
+      await goPlace(page, 'depth');
+      await settle(page);
+      const play = await box('[data-p3="motion-play"]'), slow = await box('[data-p3="motion-slowmo"]'), ctHead = await box('.ctable tr:first-child > th');
+      step = 'Brand';
+      await goPlace(page, 'brand');
+      await settle(page);
+      const ground = await box('[data-p3="style-guide-ground"]');
+      ok(!!lever && !!ground && !!slow && ground.h === lever.h && ground.fs === lever.fs && slow.h === lever.h && slow.fs === lever.fs && /\bp3-btn\b/.test(play?.cls ?? ''),
+        `${where}: #4188 the preview's selects and Play are the chrome's, the levers' size (${JSON.stringify({ lever, ground, slow, play })})`);
+      ok(!!mtblHead && !!ctHead && mtblHead.fs === ctHead.fs && mtblHead.tt === 'uppercase' && ctHead.tt === 'uppercase' && mtblHead.fs === '10px',
+        `${where}: #4188 the preview's tables share one header, uppercase on the chrome's 10px (${JSON.stringify({ mtblHead, ctHead })})`);
+      // #4188: Play stands in the toolbar on the Slow motion select's middle, as the legacy button did (main's `.dm-block
+      // .mo-replay{margin-top:0}`): a chrome button pushed down by a margin fails here.
+      ok(!!play && !!slow && Math.abs(play.mid - slow.mid) <= 1,
+        `${where}: #4188 Play sits on the Slow motion select's middle, within 1px (${JSON.stringify({ play: play?.mid, slow: slow?.mid })})`);
+      // #4188 A is "preview tables": Inspect opens over the page as a lent host, not the preview, so its Contrast and Tokens
+      // tables (`.ctable` too) keep their own header. Oracle: the preview table's band read above.
+      step = 'Inspect';
+      await hooks.click(page.locator('[data-p3="inspect-open"]'));
+      await hooks.click(page.locator('[data-p3="inspect-option-contrast"]'));
+      await hooks.need(page, '[data-p3="inspect-contrast-table"] table');
+      const inContrast = await box('[data-p3="inspect-contrast-table"] table tr:first-child > th');
+      await hooks.click(page.locator('[data-p3="inspect-tab-tokens"]'));
+      await hooks.need(page, '[data-p3="inspect-token-list"] table');
+      const inTokens = await box('[data-p3="inspect-token-list"] table tr:first-child > th');
+      await hooks.click(page.locator('[data-p3="inspect-close"]'));
+      const band = (b) => !!b && b.tt === mtblHead?.tt && b.fs === mtblHead?.fs;
+      ok(!!mtblHead && !!inContrast && !!inTokens && !band(inContrast) && !band(inTokens),
+        `${where}: #4188 Inspect's Contrast and Tokens tables keep their own header, not the preview tables' uppercase 10px band (${JSON.stringify({ inContrast, inTokens, mtblHead })})`);
     }
     ok(errors.length === 0, `${where}: no console errors (${errors.slice(0, 2).join(' · ')})`);
   } catch (e) {
@@ -22224,7 +22451,7 @@ if (runs('2069')) {
     await page.waitForFunction(() => window.__issues.length > 0, null, WAIT).catch(() => {});
     const posts = await page.evaluate(() => window.__issues);
     const body = posts.length ? decodeURIComponent(String(posts[0].url).split('&body=')[1] ?? '') : '';
-    ok(posts.length === 1 && String(posts[0].url).startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && body === REPORT_PASTE,
+    ok(posts.length === 1 && String(posts[0].url).startsWith('https://github.com/prism-ds/prism3/issues/new?title=Problem%20report&body=') && body === REPORT_PASTE,
       `#2069 ${where}: Open a prefilled issue posts open-issue with the title and the paste line alone (${posts.length} posts, body ${JSON.stringify(body.slice(0, 160))})`);
     const clip = await page.evaluate(() => ({ clip: window.__clip, copy: document.querySelector('[data-p3="report-copy"]')?.textContent ?? null }));
     ok(clip.clip.length === 1 && clip.clip[0] === t1 && clip.copy === 'Copied',
@@ -22270,7 +22497,7 @@ if (runs('2069')) {
       const opened = await page.evaluate(() => window.__opened);
       const body = opened.length ? decodeURIComponent(opened[0].u.split('&body=')[1] ?? '') : '';
       const clip = await page.evaluate(() => window.__clip);
-      ok(opened.length === 1 && opened[0].u.startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && opened[0].t === '_blank' && body === REPORT_PASTE
+      ok(opened.length === 1 && opened[0].u.startsWith('https://github.com/prism-ds/prism3/issues/new?title=Problem%20report&body=') && opened[0].t === '_blank' && body === REPORT_PASTE
         && clip.length === 1 && clip[0] === d0.text,
         `#3524 ${where}: Open a prefilled issue opens the issue form in a new tab with the title and the paste line alone, the report shown on the clipboard (${opened.length} opened, ${clip.length} copies)`);
       step = 'escape';
@@ -23542,6 +23769,93 @@ if (runs('4235')) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 4235
+// #3977 (owner decision 2026-11-18, Q-EB1 A, copy APPROVED): A FEW WORDS UNDER EACH EXAMPLE BRAND, so a designer knows
+// what an example is before opening it. Held on both hosts, both themes, at 1280, in both places the examples are listed
+// (the brand menu, and the start window "+ New brand" opens):
+//   · the listed examples are exactly the three below, each once (REPRESENTED: a list that lost one, or grew one with
+//     no approved line, fails by name);
+//   · each example's line reads the approved copy, sits under its name, and is muted: the chrome's secondary text ink
+//     (a `.p3-sub` probe's), not the name's, at no larger a size (recessive, voice-standard §1);
+//   · in the start window, the line describes the chip (`aria-describedby`), so a screen reader hears it too.
+// The approved strings are typed here, never read from `example-registry.ts`: a line deleted or reworded there fails
+// here by its example's name (docs/34). A mutation that drops the line → `#3977 … aurora has its line`.
+const EXAMPLE_LINE_GAP = 20;   // px, the least gap between two examples' lines on one row (owner decision 2026-11-20)
+const EXAMPLE_LINES = { prism3: 'The default. Saturated blue, balanced.', aurora: 'Soft purple, rounder, quick.', harbor: 'Muted teal, calm, square.' };
+if (runs('3977')) {
+  console.log(`\nA few words under each example brand (#3977)\n${'='.repeat(78)}`);
+  /** Each listed example: its name, its line, where the line sits and how it is set. `at` is the list read: the brand
+   *  menu's items, whose line is inside the item, or the start window's chips, whose line sits beside the chip. */
+  const readLines = (page, at) => page.evaluate((menu) => {
+    const items = menu ? document.querySelectorAll('[data-p3="brand-menu"] [data-p3="brand-menu-example"]') : document.querySelectorAll('[data-p3="start-example"]');
+    // The chrome's secondary text ink, read off a probe in the list's own theme: `.p3-sub`, the muted line under a lever.
+    const probe = document.createElement('span');
+    probe.className = 'p3-sub';
+    probe.textContent = 'probe';
+    (items[0]?.closest('[data-theme]') ?? document.querySelector('[data-p3="frame"]') ?? document.body).append(probe);
+    const secondary = getComputedStyle(probe).color;
+    probe.remove();
+    return [...items].filter((n) => n.getClientRects().length > 0).map((item) => {
+      const name = menu ? item.querySelector('.p3-menu-label') : item.querySelector('span:not(.p3-start-dot)');
+      const desc = menu ? item.querySelector('[data-p3="brand-menu-example-desc"]') : item.parentElement?.querySelector('[data-p3="start-example-desc"]') ?? null;
+      const nb = name?.getBoundingClientRect(), db = desc?.getBoundingClientRect();
+      const ncs = name && getComputedStyle(name), dcs = desc && getComputedStyle(desc);
+      return {
+        name: name?.textContent.trim() ?? null, desc: desc?.textContent ?? null,
+        below: !!nb && !!db && db.width > 0 && db.top >= nb.bottom - 0.5,
+        muted: !!ncs && !!dcs && dcs.color !== ncs.color && dcs.color === secondary && parseFloat(dcs.fontSize) <= parseFloat(ncs.fontSize),
+        ink: dcs ? `${dcs.color} ${dcs.fontSize}` : null, nameInk: ncs ? `${ncs.color} ${ncs.fontSize}` : null, secondary,
+        describes: item.getAttribute('aria-describedby') ? document.getElementById(item.getAttribute('aria-describedby')) === desc : null,
+      };
+    });
+  }, at === 'brand menu');
+  const hold = (where, at, rows, { describes }) => {
+    const names = rows.map((r) => r.name);
+    ok(JSON.stringify([...names].sort()) === JSON.stringify(Object.keys(EXAMPLE_LINES).sort()),
+      `#3977 ${where} / ${at}: lists exactly the examples with an approved line, each once — lists ${JSON.stringify(names)}`);
+    for (const ex of Object.keys(EXAMPLE_LINES)) {
+      const r = rows.find((x) => x.name === ex);
+      ok(!!r && r.desc === EXAMPLE_LINES[ex], `#3977 ${where} / ${at}: ${ex} has its line, "${EXAMPLE_LINES[ex]}" — reads ${JSON.stringify(r?.desc ?? null)}`);
+      ok(!!r && r.below, `#3977 ${where} / ${at}: ${ex}'s line sits under its name (${JSON.stringify(r)})`);
+      ok(!!r && r.muted, `#3977 ${where} / ${at}: ${ex}'s line is muted, the chrome's secondary ink (${r?.secondary}) and no larger than its name — line ${r?.ink}, name ${r?.nameInk}`);
+      if (describes) ok(!!r && r.describes === true, `#3977 ${where} / ${at}: ${ex}'s chip is described by its line (aria-describedby) — ${JSON.stringify(r?.describes ?? null)}`);
+    }
+  };
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3977 ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'brand menu';
+    try {
+      await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+      await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example-desc"]');
+      hold(where, 'brand menu', await readLines(page, 'brand menu'), { describes: false });
+      step = 'start window';
+      await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+      await hooks.need(page, '[data-p3="start-example-desc"]');
+      hold(where, 'start window', await readLines(page, 'start window'), { describes: true });
+      // Owner decision 2026-11-20 (A): the examples' lines must not run together across a row into one sentence (they
+      // did at 8px). Read from the rendered boxes: every pair of lines side by side on one row is at least
+      // EXAMPLE_LINE_GAP apart. 20px is over 1.5em of the 12px line, well past a sentence's space (a few px), so the
+      // eye reads a new column, not the next clause; it sits under the chrome's 24px step so sub-pixel layout can't flake.
+      const pairs = await page.evaluate(() => {
+        const rs = [...document.querySelectorAll('[data-p3="start-example-desc"]')].filter((n) => n.getClientRects().length > 0)
+          .map((n) => { const b = n.getBoundingClientRect(); return { text: n.textContent, left: b.left, right: b.right, top: b.top }; });
+        const out = [];
+        for (const a of rs) for (const b of rs) {
+          if (a === b || Math.abs(a.top - b.top) > 2 || b.left < a.right - 0.5) continue;
+          if (rs.some((c) => c !== a && c !== b && Math.abs(c.top - a.top) <= 2 && c.left >= a.right - 0.5 && c.right <= b.left + 0.5)) continue;
+          out.push({ from: a.text, to: b.text, gap: Math.round((b.left - a.right) * 10) / 10 });
+        }
+        return out;
+      });
+      const tightest = pairs.reduce((m, p) => (!m || p.gap < m.gap ? p : m), null);
+      ok(!!tightest && tightest.gap >= EXAMPLE_LINE_GAP,
+        `#3977 ${where} / start window: adjacent example lines on one row are at least ${EXAMPLE_LINE_GAP}px apart, so they don't read as one sentence — ${tightest ? `tightest ${tightest.gap}px, "${tightest.from}" → "${tightest.to}"` : 'NOT MEASURED: no two lines shared a row'}`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3977
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

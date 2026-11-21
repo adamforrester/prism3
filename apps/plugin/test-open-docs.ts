@@ -77,7 +77,7 @@ ok(JSON.stringify(opened) === JSON.stringify([EXPECTED, EXPECTED]), `an address 
 
 // ── #2069 (Q116 A): Report a problem's prefilled issue. The panel builds the address; the main thread opens it only when
 // it is the issue form on this repo. The prefix is a literal typed here.
-const ISSUE = 'https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=Build%3A%20x';
+const ISSUE = 'https://github.com/prism-ds/prism3/issues/new?title=Problem%20report&body=Build%3A%20x';
 opened.length = 0;
 send({ type: 'open-issue', url: ISSUE });
 await settle();

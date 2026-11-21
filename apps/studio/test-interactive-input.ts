@@ -703,5 +703,62 @@ console.log('\n14. #3608: "Add button set" lists a palette whose name a column a
   ok(!disabledTaken.length, `#3608 every palette the add row disables is one the engine refuses (taken: ${JSON.stringify(disabledTaken)})`);
 }
 
+console.log('\n15. #4210: "Add button set" on a brand with the legacy accentPalette keeps its Accent set');
+{
+  // THE FIXTURE is the issue's repro: brand colors teal and coral, `accentPalette: 'teal'`, so the engine builds one
+  // interactive column named `accent` on teal (docs/20 §3). The Accent set carries a Dark anchor and a Light border
+  // override, both keyed `accent`. Expected values are literals typed here; "builds" and "resolves" are the engine's own.
+  const FILL = (c: string): string => `interactive.${c}.fill.rest`, BORDER = (c: string): string => `interactive.${c}.border.rest`;
+  const pathOf = (mode: string, role: string): string => {
+    try { return (resolveAllModes(brandTheme(structuredClone(store.brandState))).find((m) => m.mode === mode)?.roles as Record<string, { path?: string } | undefined>)?.[role]?.path ?? 'none'; } catch (e) { return `REFUSED: ${(e as Error).message}`; }
+  };
+  reset();
+  (store.brandState.brandColors ??= []).push({ name: 'teal', oklch: { l: 0.6, c: 0.11, h: 190 } }, { name: 'coral', oklch: { l: 0.68, c: 0.15, h: 30 } });
+  delete store.brandState.interactivePalettes;
+  store.brandState.accentPalette = 'teal';
+  store.brandState.modeAnchors = { dark: { accent: 400 } };
+  store.brandState.overrides = { light: { [BORDER('accent')]: { palette: 'teal', step: '700' } } };
+  store.rebuild();
+  ok(takes() && pathOf('dark', FILL('accent')).endsWith('.palette.teal.400'), `#4210 premise: the legacy accent column builds on teal 400 in dark (${pathOf('dark', FILL('accent'))})`);
+  const action = store.theme.roleToPalette.action;
+  const listed = I.addSetOptions(action).map((o) => o.palette);
+  ok(!listed.includes('teal') && listed.includes('coral'), `#4210 the add row treats the accent's palette as a column: teal not offered, coral offered (${JSON.stringify(listed)})`);
+  const accentOpt = I.addSetOptions(action).find((o) => o.palette === 'accent');
+  ok(accentOpt?.taken === true, `#4210 the brand color named accent is listed disabled, as the accent column carries its name (#3608) (${JSON.stringify(accentOpt)})`);
+  I.addAccent('coral');
+  ok(same(store.brandState.interactivePalettes, [{ name: 'accent', palette: 'teal' }, { palette: 'coral' }]) && store.brandState.accentPalette === undefined,
+    `#4210 adding coral folds the accent column in first: [accent/teal, coral] and no accentPalette (${JSON.stringify(store.brandState.interactivePalettes)} ${JSON.stringify(store.brandState.accentPalette)})`);
+  ok(takes(), '#4210 the brand with both sets builds');
+  const afill = pathOf('dark', FILL('accent')), aborder = pathOf('light', BORDER('accent')), cfill = pathOf('light', FILL('coral'));
+  ok(afill.endsWith('.palette.teal.400') && aborder.endsWith('.palette.teal.700') && cfill.includes('.palette.coral.'),
+    `#4210 the Accent set keeps its Dark anchor and Light border override, and Coral is a set of its own (${afill}, ${aborder}, ${cfill})`);
+}
+
+console.log('\n16. #4294: the Light anchor of a legacy `accentPalette` brand\'s accent column is written, by folding it first');
+{
+  // THE FIXTURE is the issue's: a brand on the legacy single-column field (`accentPalette`, no `interactivePalettes`),
+  // whose `accent` column the engine builds through its back-compat. The expected fold is a literal typed here, the
+  // shape the engine's back-compat is byte-identical to (`test.ts`, `interactivePalettes: back-compat accentPalette`).
+  // "It resolves to the pick" is the engine's own `resolveAllModes`.
+  const legacy = (): void => { reset(); store.brandState.accentPalette = 'accent'; store.rebuild(); };
+  legacy();
+  const LEGACY = JSON.stringify(store.brandState);
+  ok(takes() && resolvedStep('interactive.accent.fill.rest', 'light') !== undefined && store.brandState.interactivePalettes === undefined,
+    `premise: the legacy brand builds an accent column with no interactivePalettes (${resolvedStep('interactive.accent.fill.rest', 'light')})`);
+  I.setAnchor('light', 'accent', 550);
+  ok(same(store.brandState.interactivePalettes, [{ name: 'accent', palette: 'accent', anchorStep: 550 }]) && store.brandState.accentPalette === undefined,
+    `#4294 setAnchor(light, accent) on a legacy brand folds accentPalette into interactivePalettes and writes the anchor (${JSON.stringify(store.brandState.interactivePalettes)}, accentPalette ${JSON.stringify(store.brandState.accentPalette)})`);
+  ok(takes() && resolvedStep('interactive.accent.fill.rest', 'light') === '550',
+    `#4294 the engine resolves the legacy accent's Light fill to the anchor 550 (${resolvedStep('interactive.accent.fill.rest', 'light')})`);
+  ok(I.anchorOf('light', 'accent') === 550, `#4294 anchorOf(light, accent) reads the pinned anchor back (${I.anchorOf('light', 'accent')})`);
+  legacy();
+  I.setAnchor('light', 'accent', undefined);
+  ok(JSON.stringify(store.brandState) === LEGACY, '#4294 Auto on a legacy brand with no anchor changes nothing: no fold');
+  legacy();
+  I.setAnchor('light', 'primary', 700);
+  ok(store.brandState.accentPalette === 'accent' && store.brandState.interactivePalettes === undefined,
+    '#4294 an anchor on another column leaves the legacy field as it is');
+}
+
 console.log(`\n${executed - failed}/${executed} interactive-input assertions passed.`);
 if (failed) process.exit(1);

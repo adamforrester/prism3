@@ -47,7 +47,6 @@ Use for a self-evident action where space is tight and a text label would be red
 
 - Always give it an accessible name (a verb)
 - Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead
-- Expand the hit area to meet target-size minimums even when the icon is visually small
 - Confirm a destructive icon action that cannot be undone — the confirmation carries a neutral escape ("Cancel" / "Keep"), since a lone trash glyph offers none
 
 ### Don't
@@ -97,6 +96,8 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
   - a `<button>` holding only an `<svg>` and no accessible name
 
 ## Building it in code
+
+- Expand the hit area to meet target-size minimums even when the icon is visually small
 
 ### Props
 
