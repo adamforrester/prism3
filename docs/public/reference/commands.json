@@ -100,7 +100,7 @@
             "properties": {
               "brand": {
                 "$ref": "packages/engine/schema/theme-schema.json",
-                "description": "A BrandInput, the shape in packages/engine/schema/theme-schema.json, which tools/list sends compacted: each description cut to its one-line summary, every other keyword unchanged."
+                "description": "A BrandInput, the shape in packages/engine/schema/theme-schema.json, which tools/list sends compacted: one-line summaries for each top-level field and beneath the required ones, the rest of the prose left to list_levers describe, every other keyword unchanged."
               },
               "include": {
                 "type": "array",

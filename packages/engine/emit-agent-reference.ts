@@ -11,7 +11,8 @@
  *   · MCP tools — `toolDefs()` in `mcp.ts` and `TOOLS` in `tools/figma-bridge/server.ts`, the same arrays
  *     `tools/list` answers with, so a name, description or schema here is the one a client receives. One
  *     exception: `theme_brand.brand` is a `$ref` to `theme-schema.json`, and the wire carries that schema
- *     compacted (`compactSchema` in `mcp.ts`: descriptions cut to their summaries), not the file itself.
+ *     compacted (`compactSchema` in `mcp.ts`: descriptions cut to their summaries, and those beneath an optional
+ *     field dropped), not the file itself.
  *   · agent-link commands — `AGENT_COMMANDS` and the `AgentArgs` type in `apps/plugin/src/agent-protocol.ts`
  *     (each command's args and its doc comment), the `bad-args` refusals in `parseCommand`, the error codes
  *     of `AgentErrorCode`, and the mailbox layout `MAILBOX`. The dev-only `run-code` comes from
@@ -72,10 +73,11 @@ const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** The BrandInput schema is 40 KB inlined; the reference points at it instead, by the path a reader can open.
  *  `theme_brand.brand` is the one place it appears, and the wire does not carry the file as it stands: `mcp.ts`
- *  sends `compactSchema(theme-schema)`, each description cut to its one-line summary and every other keyword
- *  unchanged. The description says so, in one sentence, because `compactSchema` runs over this object too and
- *  keeps only a description's first sentence. */
-const BRAND_SCHEMA_REF = { $ref: 'packages/engine/schema/theme-schema.json', description: 'A BrandInput, the shape in packages/engine/schema/theme-schema.json, which tools/list sends compacted: each description cut to its one-line summary, every other keyword unchanged.' };
+ *  sends `compactSchema(theme-schema)`: each top-level field's description and every description beneath a
+ *  required field cut to its one-line summary, the descriptions beneath an optional field dropped, and every
+ *  other keyword unchanged. The description says so, in one sentence, because `compactSchema` runs over this
+ *  object too and keeps only a description's first sentence. */
+const BRAND_SCHEMA_REF = { $ref: 'packages/engine/schema/theme-schema.json', description: 'A BrandInput, the shape in packages/engine/schema/theme-schema.json, which tools/list sends compacted: one-line summaries for each top-level field and beneath the required ones, the rest of the prose left to list_levers describe, every other keyword unchanged.' };
 
 type Tool = { name: string; title?: string; description: string; inputSchema: unknown; outputSchema?: unknown };
 const mcpTool = (file: string, t: Tool) => ({
