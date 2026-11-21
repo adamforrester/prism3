@@ -904,7 +904,8 @@ export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narr
       delete goingDot.dataset.p3;
       leave(goingDot);
     } else chevron.before(...lead0, runs);
-    chevron.after(h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
+    // No hidden "Expand / Collapse Activity" after the chevron (#4226): the button's name is its visible "Activity", and
+    // `aria-expanded` says whether it is open.
     // The sheet's header row carries the same counts and the agent dot (Q3113.8 A).
     const sheetLink = linkEl();
     sheetCounts.replaceChildren(...countEls(), ...(sheetLink ? [sheetLink] : []));
