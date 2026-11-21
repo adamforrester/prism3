@@ -9,7 +9,7 @@
     { "file": "test-outline-roles.ts", "floor": 36 },
     { "file": "test-write-adapter.ts", "floor": 123 },
     { "file": "test-store.ts", "floor": 78 },
-    { "file": "test-host-session.ts", "floor": 316 },
+    { "file": "test-host-session.ts", "floor": 322 },
     { "file": "test-style-guides.ts", "floor": 25 },
     { "file": "test-update-file.ts", "floor": 166 },
     { "file": "test-status-strip.ts", "floor": 39 },
