@@ -139,7 +139,8 @@ const NOT_EN_GB = new Set([
   'surprise', 'surprises', 'surprised', 'surprising', 'wise', 'otherwise', 'likewise', 'clockwise', 'rise', 'rises',
   'arise', 'arises', 'arising', 'promise', 'promises', 'promised', 'promising', 'precise', 'concise',
   'exercise', 'exercises', 'exercised', 'exercising', 'premise', 'premises', 'compromise', 'compromises',
-  'revise', 'revised', 'revises', 'devise', 'devised', 'devises', 'supervise', 'enterprise', 'expertise',
+  // `devising` joined in Q181 A (#3574): the `-ing` form of a listed en-US verb (`revising` is listed below).
+  'revise', 'revised', 'revises', 'devise', 'devised', 'devises', 'devising', 'supervise', 'enterprise', 'expertise',
   'noise', 'raise', 'raises', 'raised', 'advertise', 'advertised', 'advertises', 'praise', 'praised',
   'cruise', 'paradise', 'franchise', 'merchandise', 'poise', 'poised', 'guise', 'disguise', 'excise',
   'incise', 'anise', 'demise', 'chastise', 'baptise',

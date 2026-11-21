@@ -6,9 +6,9 @@ To write the brand you set in the studio into the open Figma file, choose **Upda
 The item reads "The brand's variables and styles. Layers bound to them restyle at once." <!-- src: apps/studio/src/state/update-file.ts:343-344 -->
 It is ticked when the dialog opens only if the file's variables differ from the brand. <!-- src: apps/studio/src/state/update-file.ts:179-186#dcd3d3c6 -->
 When they already match, it is unticked and reads "Up to date"; tick it to write the brand again. <!-- src: apps/studio/src/state/update-file.ts:346 -->
-It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:112#1bd757c2 -->
+It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:113#1bd757c2 -->
 
-Each run checks the file first and writes only once nothing conflicts, or once you have chosen what happens to each conflict. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:78-123#82e91aee --> <!-- src: apps/plugin/src/preflight.ts:171-230#328537d5 -->
+Each run checks the file first and writes only once nothing conflicts, or once you have chosen what happens to each conflict. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:79-124#82e91aee --> <!-- src: apps/plugin/src/preflight.ts:171-230#328537d5 -->
 The rest of the checklist, and how a run works, is in [Update a Figma file](update-a-file-safely.md).
 
 ## What gets written
@@ -17,11 +17,11 @@ The rest of the checklist, and how a run works, is in [Update a Figma file](upda
 |---|---|
 | Variable collections | `core`, holding the palette ramps, base dimensions and fonts; `color`, holding every color role; `layout`; `type-sets`; and one collection each for space, size, radius, border width, focus, opacity, motion, icon and control sizes. <!-- src: packages/engine/emit-figma.ts:173-258 --> |
 | Modes | On `color`, one mode per appearance mode the brand ships, such as light, dark and the high-contrast pair. On `layout`, one mode per breakpoint. On `type-sets`, a desktop and a mobile mode. <!-- src: packages/engine/emit-figma.ts:173-258 --> |
-| Text styles | One per text role, bound to the font variables, so changing a variable restyles the text. <!-- src: apps/plugin/src/apply-theme.ts:176-179#a571c20a --> |
-| Effect styles | The shadow ramp. <!-- src: apps/plugin/src/apply-theme.ts:120-197#7ecb2856 --> |
-| Paint styles | Gradients, when the brand turns them on. <!-- src: apps/plugin/src/apply-theme.ts:120-197#7ecb2856 --> |
+| Text styles | One per text role, bound to the font variables, so changing a variable restyles the text. <!-- src: apps/plugin/src/apply-theme.ts:177-180#a571c20a --> |
+| Effect styles | The shadow ramp. <!-- src: apps/plugin/src/apply-theme.ts:121-198#7ecb2856 --> |
+| Paint styles | Gradients, when the brand turns them on. <!-- src: apps/plugin/src/apply-theme.ts:121-198#7ecb2856 --> |
 | Grid styles | One per breakpoint, from the same layout values as the `layout` collection. A grid style can't switch modes, so each breakpoint gets its own. <!-- src: packages/engine/emit-figma-styles.ts:289-302 --> |
-| The brand itself | The settings you applied, saved in the file, so the plugin reopens on this brand next time. <!-- src: apps/plugin/src/apply-theme.ts:190-192#ede61fb0 --> <!-- src: apps/plugin/src/persist-figma.ts:29-34#ba150bb3 --> |
+| The brand itself | The settings you applied, saved in the file, so the plugin reopens on this brand next time. <!-- src: apps/plugin/src/apply-theme.ts:191-193#ede61fb0 --> <!-- src: apps/plugin/src/persist-figma.ts:29-34#ba150bb3 --> |
 
 Every collection and style Prism3 creates carries a small mark that says Prism3 made it. That mark is how later runs tell Prism3's content from yours. <!-- src: apps/plugin/src/provenance.ts:1-57#dce1a9a1 -->
 
@@ -55,7 +55,7 @@ Each conflict says why: <!-- src: apps/plugin/src/preflight.ts:197#bdc1c449 --> 
 - `already in this file, not created by Prism3`: a collection or style with that name exists and carries no Prism3 mark.
 - `Prism3 writes`: a variable with that name exists with a different type. The conflict names both types and the collection.
 
-The plugin then lists the conflicts and asks what to do with each: **Skip** leaves the item as it is and writes the rest, and **Rename** writes Prism3's own beside it under a new name. One choice can cover them all. Until each conflict has a choice, nothing is written, and Cancel leaves the file as it is. The choice holds for that run only. <!-- src: apps/studio/src/state/collisions.ts:48 -->
+The plugin then lists the conflicts and asks what to do with each: **Skip** leaves the item as it is and writes the rest, and **Rename** writes Prism3's own beside it under a new name. One choice can cover them all. Until each conflict has a choice, nothing is written, and Cancel leaves the file as it is. The choice holds for that run only. <!-- src: apps/studio/src/state/collisions.ts:50 -->
 
 Or rename or remove the named items yourself, then run Update file again. A file with its own library collections can take Prism3's alongside them as long as no names collide. <!-- src: apps/plugin/src/preflight.ts:171-230#328537d5 -->
 
@@ -65,11 +65,11 @@ Three more cases stop the theme before it starts:
 
 - The file's Figma plan allows fewer modes per collection than the theme writes. The line names both numbers and the next step: "Move the file to a team on a plan with more modes." Nothing is written, and no version is saved. <!-- src: apps/plugin/src/preflight.ts:274 -->
 - Another write is running, from an agent: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->
-- The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1953 -->
+- The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1955 -->
 
 ## Writing it again
 
 Run Update file with **Theme** ticked after any change. <!-- src: apps/studio/src/state/update-file.ts:343 -->
-Content Prism3 wrote is updated in place, and a renamed token moves to its new name rather than being written twice. <!-- src: apps/plugin/src/apply-theme.ts:102-115#989ee5d0 -->
+Content Prism3 wrote is updated in place, and a renamed token moves to its new name rather than being written twice. <!-- src: apps/plugin/src/apply-theme.ts:103-116#989ee5d0 -->
 
 A token the brand no longer produces is reported, not deleted. To remove those, use the **Clean up** tab: see [Update a Figma file](update-a-file-safely.md#remove-what-the-brand-no-longer-uses). <!-- src: apps/studio/src/state/update-file.ts:334 -->
