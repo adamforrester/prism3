@@ -460,7 +460,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     ].map((o) => ({ ...o, names: unlessRenamedPlanned(o.names, plannedVariables) })).filter((o) => o.names.length);
     const orphanCount = allOrphans.reduce((n, o) => n + o.names.length, 0);
     const orphanNote = orphanCount
-      ? `⚠ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
+      ? `⚠ ${orphanCount} variables the brand no longer writes (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}). Nothing was deleted — Update file › Clean up lists them`
       : '';
     // ORPHAN STYLES (#1737) — the same drift among styles. A style the plan does not write is never touched, so an earlier
     // brand's `body/md/emphasis` stays in the picker. Counted with Prune's own rule (`orphanStyles`: inside a group the
@@ -502,7 +502,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     // still exist and every binding into them still resolves. It is stale, not broken, and the
     // decision to remove it is the designer's, since it may hold variables they bound by hand.
     const strandedNote = stranded.length
-      ? `⚠ ${stranded.length} collection${stranded.length === 1 ? '' : 's'} in this file that no plan writes (${stranded.slice(0, 3).join(', ')}${stranded.length > 3 ? '…' : ''}) — left over from an earlier version or hand-made; nothing was deleted`
+      ? `⚠ ${stranded.length} collection${stranded.length === 1 ? '' : 's'} in this file that Prism3 doesn't write (${stranded.slice(0, 3).join(', ')}${stranded.length > 3 ? '…' : ''}) — left over from an earlier version or hand-made; nothing was deleted`
       : '';
     // Rename migrations (#1013) — the other half of the orphan report above. A variable the plan renamed
     // is moved in place (id preserved, so every binding a designer made comes with it) rather than left
@@ -753,7 +753,7 @@ const prune = async (input: BrandInput, confirm: boolean, previewHash: string | 
     // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch. Once removals began,
     // with the running counts (#3697 R6): a half-pruned file never reads as 0 removed.
     const why = failureDetail(e);   // #3697 H4: as `applyTheme`'s
-    if (!removing) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: `prune failed: ${why}` }); return; }
+    if (!removing) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: `Clean up failed: ${failureDetail(e)}` }); return; }
     sink.data({ pruneApplied: counts });
     sink.post({ type: 'prune-result', ok: false, applied: true, count: counts.variables + counts.collections + counts.modes + counts.styles, summary: PRUNE_COPY.stopped(counts, why) });
   }
@@ -2179,7 +2179,7 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
       // not by parsing the sentence: it is what stops "no theme here" being reported as knobs that
       // could not be recovered (#722).
       sink.data({ readback: { present: false } });
-      sink.post({ type: 'seed-info', ok: true, present: false, summary: 'No existing Prism3 theme in this file — start from the knobs.', failed: 0 });
+      sink.post({ type: 'seed-info', ok: true, present: false, summary: 'No Prism3 theme in this file. The settings start from defaults.', failed: 0 });
       return;
     }
     // The saved brand's declared modes against the file's (#1662 follow-up): resolved here from the persisted
@@ -2292,9 +2292,9 @@ const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void>
     const { removed, left } = await removeRetiredTables(figma, savedContract().contract, ids);
     const n = removed.length;
     const summary = n ? `${n} table${n === 1 ? '' : 's'} removed: ${removed.join(', ')}` : 'No table removed';
-    sink.post({ type: 'style-guide-cleanup-result', ok: left.length === 0, removed: ids.filter((id) => !left.includes(id)), summary: left.length ? `${summary}. ${left.length} left in place: the generator draws ${left.length === 1 ? 'it' : 'them'} again, or ${left.length === 1 ? 'it is' : 'they are'} gone` : summary });
+    sink.post({ type: 'style-guide-cleanup-result', ok: left.length === 0, removed: ids.filter((id) => !left.includes(id)), summary: left.length ? `${summary}. ${left.length} not removed: Prism3 draws ${left.length === 1 ? 'it' : 'them'} again, or ${left.length === 1 ? 'it was' : 'they were'} already deleted` : summary });
   } catch (e) {
-    sink.post({ type: 'style-guide-cleanup-result', ok: false, removed: [], summary: `Cleanup failed: ${failureDetail(e)}` });
+    sink.post({ type: 'style-guide-cleanup-result', ok: false, removed: [], summary: `Clean up failed: ${failureDetail(e)}` });
   }
 };
 
@@ -2680,7 +2680,7 @@ onUiMessage((msg: UiToMain) => {
     case 'doc-settings-save':
       // #2909 (Q2909.23 A): Documentation's settings, kept in the file. A read of nothing else; never guarded.
       try { postToUi({ type: 'doc-settings', settings: writeDocSettings(figma.root, msg.settings) }); }
-      catch (e) { postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root), error: `Couldn't save the settings in this file (${(e as Error)?.message ?? String(e)}).` }); }
+      catch (e) { postToUi({ type: 'doc-settings', settings: readDocSettings(figma.root), error: `Couldn't save the Docs settings in this file (${(e as Error)?.message ?? String(e)}). Check you can edit this file, then try again.` }); }
       return;
     case 'set-activity-height':
       // The Activity drawer's height, kept per person (#2176).

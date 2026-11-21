@@ -45,7 +45,7 @@ export const versionOf = (r: VersionRun): { title: string; description: string }
   const pages = r.run === 'update' && r.pageOrder && n > 0 ? ' Page order.' : '';
   // The About frame (#2858) and the library cover (#2859) ride the description, never the title. An Update that is
   // only either saves no version (Q498 B), so neither is ever all a title has to name.
-  const page = r.run === 'update' ? `${r.about ? ' About frame.' : ''}${r.cover ? ' Cover.' : ''}${r.pageMoves ? ' Sets moved to their pages.' : ''}${r.headers ? ' Section headers placed.' : ''}` : '';
+  const page = r.run === 'update' ? `${r.about ? ' About this library.' : ''}${r.cover ? ' Cover.' : ''}${r.pageMoves ? ' Sets moved to their pages.' : ''}${r.headers ? ' Section headers placed.' : ''}` : '';
   return { title: `${MARKER} ${verb} ${what}`, description: `${engine}${list}${pages}${page}` };
 };
 
