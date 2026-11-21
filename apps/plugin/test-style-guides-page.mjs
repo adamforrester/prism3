@@ -437,7 +437,7 @@ console.log('\nthe retired tables, in Update file › Clean up (Q668 A, Q412 A)'
   const offer = await page.evaluate(() => ({ text: document.querySelector('[data-p3="clean-tables"]')?.textContent ?? '', names: [...document.querySelectorAll('[data-p3="clean-tables"] li')].map((li) => li.textContent),
     label: document.querySelector('[data-p3="clean-tables-confirm"]')?.textContent ?? null }));
   let st = await read(page);
-  ok(offer.text.includes('2 style-guide tables the generator no longer draws.') && JSON.stringify(offer.names) === JSON.stringify(['Style guide — Inverse', 'Style guide — Legacy']) && sentOf(st, 'style-guide-cleanup').length === 0,
+  ok(offer.text.includes('2 style-guide tables Prism3 no longer draws.') && JSON.stringify(offer.names) === JSON.stringify(['Style guide — Inverse', 'Style guide — Legacy']) && sentOf(st, 'style-guide-cleanup').length === 0,
     `Q668 A, Q412 A: Clean up lists each retired table by name, and removes nothing (${JSON.stringify(offer)})`);
   await hooks.click(page.locator('[data-p3="clean-tables-confirm"]'));
   await posted(page, 'style-guide-cleanup', 1);
@@ -476,7 +476,7 @@ console.log('\nthe Usage panels and Cover switches (Q667 A, #2977)');
   ok(canon(lastSave(st)) === canon({ panels: false, cover: false, styleGuide: SAVED }), `#2977: the cover switch saves the whole record, cover off, panels as the file now has them (${JSON.stringify(lastSave(st))})`);
   await hooks.click(page.locator('[data-p3="docs-tab-specs"]'));
   const specs = await page.evaluate(() => document.querySelector('[data-p3="docs-specs"]')?.textContent ?? null);
-  ok(specs === 'Spec sheetsMeasured specs for each component set on this page, drawn beside its usage panel. Build and Update file never draw them.Draw specs… Drawing specs',
+  ok(specs === 'Spec drawingsMeasured specs for each component set on this page, drawn beside its usage panel. Build and Update file never draw them.Draw specs… Drawing specs',
     `#2830 Q2830.3 A: Specs offers Draw specs, its words DRAFT placeholders (Q685 A) (${JSON.stringify(specs)})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();

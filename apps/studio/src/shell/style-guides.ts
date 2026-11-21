@@ -46,7 +46,7 @@ export type StyleGuidesLend = {
     /** The writes that change what the catalog holds (Apply Theme's and Set up file's slots): when one lands, the page
      *  asks for the catalog again. */
     readonly writes: readonly unknown[];
-    /** The cleanup offer (Q412 A, #2816): the tables the generator no longer draws that the last run left in place. */
+    /** The cleanup offer (Q412 A, #2816): the tables Prism3 no longer draws that the last run left in place. */
     readonly retired: readonly { readonly id: string; readonly name: string }[];
     /** The confirmed cleanup: `pending` while the host removes, then its sentence. */
     readonly cleanup: 'pending' | { readonly ok: boolean; readonly summary: string } | null;
@@ -634,7 +634,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     const n = r.retired.length;
     if (!n) return wrap;
     const tables = `${n} table${n === 1 ? '' : 's'}`;
-    wrap.append(h('p', 'p3-sg-note', `${tables} the generator no longer draws ${n === 1 ? 'was' : 'were'} left in place.`));
+    wrap.append(h('p', 'p3-sg-note', `${tables} Prism3 no longer draws ${n === 1 ? 'was' : 'were'} left in place.`));
     const off = r.busy || r.cleanup === 'pending' || r.off !== null;
     if (!S.confirmCleanup) {
       const review = btn('p3-btn p3-btn-page', 'sg-cleanup-review', 'Review and remove…', () => { S.confirmCleanup = true; paint(); });
