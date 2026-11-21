@@ -761,9 +761,10 @@ export const CONTRACT_VERSION = '15.2.0';
  * 1.2.0 (the contract, MINOR): `popover` added (#4252).
  * 2.0.0 (the contract, MAJOR): `dialog`'s `size` variant axis removed (#4091, #3392 A: a width-only size is no variant).
  * 1.6.0 (the schema, MINOR): #4099's `prism3-component-defs/1.6`, the `docs.implementation` field added.
+ * 2.1.0 (the contract, MINOR): `skeleton` added (#4295).
  */
 export const COMPONENT_SCHEMA_VERSION = '1.6.0';
-export const COMPONENT_CONTRACT_VERSION = '2.0.0';
+export const COMPONENT_CONTRACT_VERSION = '2.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

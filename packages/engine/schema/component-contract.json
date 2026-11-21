@@ -1,5 +1,5 @@
 {
-  "componentContractVersion": "2.0.0",
+  "componentContractVersion": "2.1.0",
   "componentSchemaVersion": "1.6.0",
   "note": "Written by packages/engine/component-contract.ts --accept alone; do not hand-edit, and never regenerate it. `components` is the component-contract surface: per component, its name and status, its props (type, required, default, values), states, variant axes and values, and slots. `schema.shape` is the component schema: the shape of one published entry, read from the JSON schema named in `schema.source`, with its prose left out. Removing or renaming a name is a MAJOR change, adding one is MINOR, and moving a default is a PATCH; docs/30 has the full table.",
   "schema": {
@@ -4881,6 +4881,62 @@
           "neutral",
           "outline",
           "white"
+        ]
+      },
+      "slots": []
+    },
+    "skeleton": {
+      "name": "Skeleton",
+      "status": "draft",
+      "props": {
+        "animation": {
+          "type": "enum",
+          "default": "pulse",
+          "values": [
+            "none",
+            "pulse",
+            "shimmer"
+          ]
+        },
+        "height": {
+          "type": "string"
+        },
+        "lines": {
+          "type": "number",
+          "default": 3
+        },
+        "shape": {
+          "type": "enum",
+          "default": "text",
+          "values": [
+            "circle",
+            "rect",
+            "text"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "small"
+          ]
+        },
+        "width": {
+          "type": "string",
+          "default": "100%"
+        }
+      },
+      "states": [],
+      "variants": {
+        "shape": [
+          "circle",
+          "rect",
+          "text"
+        ],
+        "size": [
+          "medium",
+          "small"
         ]
       },
       "slots": []

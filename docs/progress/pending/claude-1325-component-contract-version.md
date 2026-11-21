@@ -6,11 +6,12 @@ file landed first, as #3992.
 
 ### What landed
 
-- `version.ts` gains `COMPONENT_CONTRACT_VERSION` (2.0.0) and `COMPONENT_SCHEMA_VERSION` (1.6.0), apart from the token
+- `version.ts` gains `COMPONENT_CONTRACT_VERSION` (2.1.0) and `COMPONENT_SCHEMA_VERSION` (1.6.0), apart from the token
   `CONTRACT_VERSION`. The first baseline was cut at 1.0.0 and 1.4.0, the shape the export then declared. Moves on `main`
   landed before this did, and the gate classified them on each refresh: `tag-group` and `dialog`'s
   `hideTitle` prop (#4057) were added (contract 1.1.0), `popover` was added (#4252, contract 1.2.0),
   `dialog`'s `size` variant axis was removed (#4091, #3392 A; contract 2.0.0, the first MAJOR),
+  `skeleton` was added (#4295, contract 2.1.0),
   #4074's `prism3-component-defs/1.5` added the button's `borderWeight` setting (schema 1.5.0),
   and #4099's `prism3-component-defs/1.6` added the `docs.implementation` field (schema 1.6.0). So the schema number still equals the export's `format`, and a consumer reading it sees no move.
 - `component-contract.ts` builds both surfaces live and gates them against `schema/component-contract.json`, which only
@@ -56,4 +57,5 @@ file landed first, as #3992.
 - Owner decision Q-CV2 (2026-11-18), confirmed as built: projected Figma property and layer names stay outside the
   component contract for now, and are detected under `ENGINE_VERSION`, not classified. Drafts are in the guarantee,
   with status recorded, and the contract started at 1.0.0. A moved default is PATCH.
-- Owner decision (2026-11-20), contract version → A: ship the component contract at 2.0.0, as built.
+- Owner decision (2026-11-20), contract version → A: ship the component contract at 2.0.0, as built. A later
+  MINOR on top of it (2.1.0, `skeleton`) is the gate's mechanical result and does not reopen that decision.
