@@ -39,11 +39,6 @@ Shown on the default member: size `medium`.
 
 Part of a Slider. The Slider places one thumb for a single value and two for a range, and sets each thumb's name, value, size and state.
 
-### Do
-
-- Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward
-- Let the Slider name each thumb, so a range announces "Minimum" and "Maximum", not "slider, slider"
-
 ### Don't
 
 - Place a thumb outside a Slider
@@ -83,6 +78,9 @@ No copy of its own.
   - the browser's own range thumb, restyled per engine
 
 ## Building it in code
+
+- Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward
+- Let the Slider name each thumb, so a range announces "Minimum" and "Maximum", not "slider, slider"
 
 ### Props
 
