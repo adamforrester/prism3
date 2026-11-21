@@ -528,9 +528,11 @@ export const radioRow: ComponentDef = {
       'Ship options inside a group — the group owns the shared name, the single value, validation and the tab stop',
       'Give the group a label; without one, assistive tech announces "radio button, 1 of 3" with no idea what the choice is',
       'Give an optional group an explicit "None" option — a radio cannot be deselected, so a stray click is otherwise permanent',
+      'Start empty to force a deliberate choice; pre-select only a genuinely safe default',
+    ],
+    implementation: [
       'Keep `onChange` cheap, since selection follows focus and a screen-reader user arrowing through fires it at every step',
       'On focus restore, focus the checked option rather than the first',
-      'Start empty to force a deliberate choice; pre-select only a genuinely safe default',
     ],
     dont: [
       'Set checked, `onChange` or name on an option — all three belong to the group, and an option setting its own name breaks exclusivity outright',
