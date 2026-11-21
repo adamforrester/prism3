@@ -404,6 +404,29 @@ export const mountFrame = (app: HTMLElement, opts: {
   previewBody.setAttribute('role', 'group');
   previewBody.setAttribute('aria-labelledby', 'p3-preview-title');
   preview.append(previewHead, previewBody);
+  // #4223: a keyboard must be able to scroll the body. Chromium (from v130) and Firefox make a scroller a Tab stop by
+  // themselves when it overflows and holds nothing focusable; Safari does not. So the body is given that same stop
+  // under that same rule, and only then: a stop on a body that holds controls, or does not scroll, would move every
+  // page's Tab order for nothing.
+  let bodyStopQueued = false;
+  const syncBodyStop = (): void => {
+    bodyStopQueued = false;
+    // The body's own box rarely changes size when its content does, so the observer watches its children too.
+    for (const c of previewBody.children) bodyStopSize.observe(c);
+    const scrolls = previewBody.scrollHeight > previewBody.clientHeight + 1 || previewBody.scrollWidth > previewBody.clientWidth + 1;
+    const holdsStop = scrolls && [...previewBody.querySelectorAll<HTMLElement>(OPERABLE)]
+      .some((n) => n.tabIndex >= 0 && !(n as HTMLButtonElement).disabled && n.getClientRects().length > 0);
+    const stop = scrolls && !holdsStop;
+    if (stop && previewBody.getAttribute('tabindex') !== '0') previewBody.tabIndex = 0;
+    else if (!stop && previewBody.hasAttribute('tabindex')) previewBody.removeAttribute('tabindex');
+  };
+  const queueBodyStop = (): void => { if (!bodyStopQueued) { bodyStopQueued = true; requestAnimationFrame(syncBodyStop); } };
+  const bodyStopSize = new ResizeObserver(queueBodyStop);
+  bodyStopSize.observe(previewBody);
+  const bodyStopDraw = new MutationObserver(queueBodyStop);
+  bodyStopDraw.observe(previewBody, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'open', 'disabled'] });
+  document.fonts.addEventListener('loadingdone', queueBodyStop);
+  cleanups.push(() => bodyStopSize.disconnect(), () => bodyStopDraw.disconnect(), () => document.fonts.removeEventListener('loadingdone', queueBodyStop));
   panes.append(levers, preview);
 
   // ── Inspect (F1): over the preview ────────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@
  * Every string is a DRAFT placeholder (#1909: the layout and copy are the owner's call), in `COLLISION_COPY`.
  */
 import type { CollisionChoices, CollisionView } from '../write-adapter';
+import { must } from '../must';
 
 export type CollisionChoice = 'skip' | 'rename';
 /** The choices made so far: a row with no entry has none, and that row holds the apply refused. */
@@ -27,13 +28,14 @@ export const pickAll = (rows: readonly CollisionView[], c: CollisionChoice): Pic
 
 /** What the "Apply to all" control reads: the choice every row shares, else none (mixed, or some still unchosen). */
 export const sharedPick = (rows: readonly CollisionView[], picks: Picks): CollisionChoice | null => {
-  const first = rows.length ? picks[rows[0].key] : undefined;
+  const r0 = rows[0];
+  const first = r0 ? picks[r0.key] : undefined;
   return first && rows.every((r) => picks[r.key] === first) ? first : null;
 };
 
 /** The choices to post: one per listed row, nothing else, and nothing at all until every row has one. */
 export const choicesToPost = (rows: readonly CollisionView[], picks: Picks): CollisionChoices | null =>
-  allChosen(rows, picks) ? Object.fromEntries(rows.map((r) => [r.key, picks[r.key]])) : null;
+  allChosen(rows, picks) ? Object.fromEntries(rows.map((r) => [r.key, must(picks[r.key], `${r.key}'s choice`)])) : null;
 
 /** What the panel posts (the review of #3518): the choices the refusal says that apply already used, then this list's.
  *  So a Rename onto a name someone else holds asks only for the new name, and the apply can finish. */

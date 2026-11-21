@@ -167,7 +167,12 @@ const main = () => {
   // ---- read ----
   let text: string;
   try { text = readFileSync(resolve(process.cwd(), designPath!), 'utf8'); }
-  catch { return fail(`cannot read design file: ${designPath}`); }
+  // #4200 A (DRAFT): the cause, not just the path. A missing file is the common case and gets the next step.
+  catch (e) {
+    return fail((e as NodeJS.ErrnoException).code === 'ENOENT'
+      ? `cannot read ${designPath}: no such file. Pass the path to a design.md, such as packages/engine/examples/harbor.design.md`
+      : `cannot read ${designPath}: ${(e as Error).message}`);
+  }
 
   // ---- detect dialect: a top-level flat `colors:` map is the standard dialect ----
   let std;
@@ -190,7 +195,7 @@ const main = () => {
     validateOrExit(input, designPath!);
     let theme: Theme;
     try { theme = brandTheme(input); }
-    catch (e) { return fail(`brandTheme failed for '${input.id}': ${(e as Error).message}`); }
+    catch (e) { return fail(`the engine refused '${input.id}': ${(e as Error).message}`); }   // #4200 B: no internal function name (DRAFT)
     const stats = emitAndGate(theme, resolvedOut, designPath!, 'standard');
     if (fidelity) {
       const { md, anchorDe } = buildFidelityReport(std, classification, input, theme, stats, xApplied);
@@ -203,14 +208,15 @@ const main = () => {
   }
 
   // ---- ENGINE-NATIVE dialect ----
-  if (fidelity) console.error('  (note: --fidelity applies to the standard dialect only; ignored for an engine-native brief)');
+  // #4200 E (DRAFT): voice standard §2 bans "note"; say what happened and why.
+  if (fidelity) console.error('  --fidelity ignored — it diffs a standard-dialect brief, and this one is engine-native');
   let input;
   try { input = parseDesignMd(text).input; }
   catch (e) { return fail(`parse error in ${designPath}: ${(e as Error).message}`); }
   validateOrExit(input, designPath!);
   let theme: Theme;
   try { theme = brandTheme(input); }
-  catch (e) { return fail(`brandTheme failed for '${(input as any).id}': ${(e as Error).message}`); }
+  catch (e) { return fail(`the engine refused '${(input as any).id}': ${(e as Error).message}`); }   // #4200 B (DRAFT)
   emitAndGate(theme, resolvedOut, designPath!, 'engine-native');
   if (componentSpecs) writeComponentSpecs(input as BrandInput, resolvedOut);
 };

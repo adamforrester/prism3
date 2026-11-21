@@ -546,6 +546,7 @@ export const MOTION_FIGMA_COVERAGE: Record<string, { figma: 'TIMING' | 'EASING' 
   'spring-duration': { none: 'not yet: the paired TIMING a Figma spring needs is G5 (#3485), named by the owner; it will take its number from spring.ts, as this does' },
   'spring-easing': { none: 'a CSS stand-in for the spring: Figma runs the spring natively, as motion/spring/<name>' },
   transition: { none: 'Figma has no composite variable; a transition is its duration and its easing role, both emitted' },
+  brand: { none: 'the brand-only group (#2857) is custom-typed one-offs with no Figma variable type yet; emitted only for a brand that sets it' },
 };
 
 /** Milliseconds from a DTCG duration `$value` — a `"200ms"` literal or a `{…}` alias to one. */

@@ -3,7 +3,7 @@
 Owner decision Q-SP1 E: each `motion.spring.*` ships in `@prism3/tokens` as a transition CSS can play, a
 `linear()` easing and its settling duration, while the damping and stiffness stay in the DTCG tree and Figma.
 Six guaranteed names, `motion.spring-easing.{snappy,gentle,bouncy}` and `motion.spring-duration.{…}`, so
-`CONTRACT_VERSION` 15.1.0 → 15.2.0 (MINOR). Engine {{ENGINE_VERSION}}.
+`CONTRACT_VERSION` 15.2.0 → 15.3.0 (MINOR). Engine {{ENGINE_VERSION}}.
 
 ### The derivation, and the two technical calls
 

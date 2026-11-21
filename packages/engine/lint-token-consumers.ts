@@ -120,7 +120,7 @@ export const UNREAD_BY_DESIGN: readonly Unread[] = [
   { match: 'grid.**', count: 5,
     reason: 'The layout grid\'s columns, gutter and margin per breakpoint: for consumers\' page layouts. No component lays out a page grid.' },
   { match: 'motion.**', count: 16,
-    reason: 'Steps of the motion scale (durations, reduced-motion durations, easing, springs and their CSS curves and settle times, stagger, transitions) no component names. Emitted whole for consumers\' own motion.' },
+    reason: 'Steps of the motion scale (durations, reduced-motion durations, easing, springs and their CSS curves and settle times, stagger, transitions) no component names, among them the long steps (#2857) motion presets map to. Emitted whole for consumers\' own motion.' },
   { match: 'opacity.*', count: 11,
     reason: 'Steps of the opacity scale no component or role uses. Emitted whole for consumers.' },
   { match: 'radius.*', count: 2,

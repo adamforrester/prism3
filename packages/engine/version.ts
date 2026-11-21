@@ -718,13 +718,22 @@ export const ENGINE_VERSION = '0.239.0';
  * break a reference. Nothing is removed or retyped. It is a step of the scale, not of the density ladder (`scale.ts`).
  */
 /**
- * 15.2.0 (#3510, owner Q-SP1 E, 2026-11-18): MINOR. Each spring joins the guaranteed surface as a pair CSS can play:
+ * 15.2.0 (#2857, owner Q-MP7 option 3, 2026-11-19): MINOR. The semantic duration scale gains three long steps past
+ * `slower`: `motion.duration.{long,longer,longest}` (900, 1100 and 1300ms at the standard tempo, scaled by tempo like
+ * every step) and their `motion.duration-reduced.*` twins (0ms, the reduce-motion rule for every step above 200ms).
+ * Motion presets and components share this one scale. Six added paths; an added path cannot break a reference.
+ * Nothing is removed or retyped. The names and values are DRAFT for the owner. The brand-only group
+ * (`motion.brand.*`) is not on the surface: no corpus member emits it. A MAJOR (#4165 with #1421) is being batched
+ * separately and is not part of this raise.
+ */
+/**
+ * 15.3.0 (#3510, owner Q-SP1 E, 2026-11-18): MINOR. Each spring joins the guaranteed surface as a pair CSS can play:
  * `motion.spring-easing.{snappy,gentle,bouncy}`, the spring sampled into a CSS `linear()` curve (a custom
  * `linearEasing` type, since DTCG has none for it), and `motion.spring-duration.{snappy,gentle,bouncy}`, the time
  * the spring takes to settle, a DTCG `duration`. Both come from `spring.ts`. Six added paths; an added path cannot
  * break a reference. Nothing is removed or retyped: `motion.spring.*` keeps its damping and stiffness.
  */
-export const CONTRACT_VERSION = '15.2.0';
+export const CONTRACT_VERSION = '15.3.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
