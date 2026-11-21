@@ -43,7 +43,8 @@ import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration 
 import { applyStylesPlan } from './src/write-styles';
 import { applyGridStylePlan, gridSkippedNote } from './src/write-grid-styles';
 import { applyTextStylePlan } from './src/write-text-styles';
-import { guardApply, preflightPlanOf, conflictSummary, type PreflightPlan } from './src/preflight';
+import { guardApply, preflightPlanOf, conflictSummary, modesNeeded, modeLimitOf, type PreflightPlan } from './src/preflight';
+import { preflightApiOf } from './src/theme-ports';
 import { runApplyTheme } from './src/apply-theme';
 import { conflictKey, choiceNote, renamedOf, type CollisionChoices } from './src/collision-choice';
 import { computePrunePlan, type PruneInput } from './src/prune-figma';
@@ -816,6 +817,42 @@ for (const c of ['skip', 'rename'] as const) {
   ok(stopIds.length > 0 && into(stopIds) === 0, `#1904 gradient stops: ${into(stopIds)} of ${stopIds.length} stop bindings landed in the stranded collection`);
   ok(blurIds.length > 0 && into(blurIds) === 0, `#1904 glass blur: ${into(blurIds)} of ${blurIds.length} radius bindings landed in the stranded collection`);
   ok(washIds.length > 0 && into(washIds) === 0, `#1904 wash opacity: ${into(washIds)} of ${washIds.length} opacity aliases landed in the stranded collection`);
+}
+
+// ── THE MODE CAPACITY (#4157) ──
+// `modesNeeded` is what the file's collections will hold once the apply has run, for each collection it adds a mode to;
+// `modeLimitOf` asks the host's probe only when there is one. Expected values are literals typed here: a fresh file's
+// `color` collection gets the four color modes, and a Prism3 file the apply already wrote needs no mode added at all.
+{
+  const plan = (): PreflightPlan => {
+    const t = brandTheme(structuredClone(PRISM3));
+    const fc = buildFigmaColor(t);
+    return preflightPlanOf({ color: buildWritePlan(fc), float: buildFloatWritePlan(t), font: buildFontVarPlan(t), motion: buildMotionVarPlan(t),
+      styles: buildStylesPlan(t), grid: buildGridStylePlan(t), text: buildTextStylePlan(t) });
+  };
+  const p = plan();
+  const colorModes = p.modes?.find((m) => m.collection === 'color')?.names ?? [];
+  ok(JSON.stringify(colorModes) === JSON.stringify(['light', 'dark', 'hc-light', 'hc-dark']), `#4157 premise: the plan reconciles the four color modes into color (${JSON.stringify(colorModes)})`);
+  const fresh = modesNeeded(p, []);
+  ok(fresh.length > 0 && fresh.includes(4) && fresh.every((n) => n > 1), `#4157 fresh file: every collection of more than one mode needs its count, color 4 (${JSON.stringify(fresh)})`);
+  const f = new FileShim();
+  const first = await apply(f);
+  const asked: number[] = [];
+  const api = { ...preflightApiOf(f as any), modeCap: async (n: number) => { asked.push(n); return 1; } };
+  const again = modesNeeded(p, await f.getLocalVariableCollectionsAsync());
+  ok(first.ok && again.length === 0 && (await modeLimitOf(p, api)) === null && asked.length === 0,
+    `#4157 a Prism3 file the apply already wrote adds no mode, so the probe is never asked (needs ${JSON.stringify(again)}, asked ${JSON.stringify(asked)})`);
+  const color = f.collections.find((c) => c.name === 'color');
+  color.modes = color.modes.slice(0, 2);
+  const short = modesNeeded(p, await f.getLocalVariableCollectionsAsync());
+  ok(JSON.stringify(short) === '[4]', `#4157 a color collection holding 2 of its 4 modes needs 4 (${JSON.stringify(short)})`);
+  const lim = await modeLimitOf(p, api);
+  ok(JSON.stringify(lim) === '{"allowed":1,"needed":4}' && JSON.stringify(asked) === '[4]', `#4157 a cap of 1 against that need is a limit, asked once for 4 (${JSON.stringify(lim)}, asked ${JSON.stringify(asked)})`);
+  // reconcileModes' step 2: a lone mode under a name the plan doesn't use is renamed, not added beside, so a color
+  // collection holding one mode called "Foo" grows to 4, not 5 (#4157 review). Off by one here, a file that fits is refused.
+  color.modes = [{ ...color.modes[0], name: 'Foo' }];
+  const lone = modesNeeded(p, await f.getLocalVariableCollectionsAsync());
+  ok(JSON.stringify(lone) === '[4]', `#4157 a color collection holding one mode under a name the plan doesn't use is renamed, so it needs 4 (${JSON.stringify(lone)})`);
 }
 
 // ── #1908 A GRADIENT AT A NEGATIVE OR EXPONENT ANGLE, BEFORE THE MARK: still Prism3's ────────────────────

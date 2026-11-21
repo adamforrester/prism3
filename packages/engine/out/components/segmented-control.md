@@ -44,7 +44,6 @@ Use a segmented control for a choice between two to five short options that chan
 - Name what is being chosen, with a visible label or an accessible name
 - Use two to five options with short, one-line labels
 - Select a sensible option from the start
-- Use the form behavior when the value is submitted with a form
 
 ### Don't
 
@@ -95,6 +94,8 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
   - a row of buttons with a hand-rolled active state and no group semantics
 
 ## Building it in code
+
+- Use the form behavior when the value is submitted with a form
 
 ### Props
 

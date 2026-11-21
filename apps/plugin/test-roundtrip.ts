@@ -42,7 +42,7 @@ import { applyComponentPlan } from './src/write-components';
 import { makeShim, varValue } from './component-shim';
 import { materializeForBrand, materializerFor } from './src/brand-def';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
-import { planTargets, prebuildDependencies } from './src/build-deps';
+import { planTargets, prebuildDependencies, SWAP_TARGET } from './src/build-deps';
 import { reactionMap } from './src/reactions';
 import { readSpecTag } from './src/spec-tag';
 import { snapshotMember } from './src/member-baseline';
@@ -55,10 +55,11 @@ const INVENTORY = process.argv.includes('--inventory');
  *  a clause with no subject and is reported as such rather than counted as coverage. */
 const EXERCISED: Record<string, number> = {};
 
-/** The FPO component the plugin nominates for every swap slot — the same constant
- *  `apps/plugin/src/main.ts` uses, restated here because a harness that builds a DIFFERENT plan from
- *  the one the product builds is measuring something nobody ships. */
-const SWAP_TARGET = 'FPO-default-icon';
+/** The FPO component the plugin nominates for every swap slot is `SWAP_TARGET` from `build-deps.ts`, the constant
+ *  `main.ts` passes, IMPORTED rather than restated (#3972): a harness that builds a DIFFERENT plan from the one the
+ *  product builds is measuring something nobody ships, and the restatement had drifted (`FPO-default-icon` against
+ *  the plugin's `icon/FPO-default-icon`). The import is safe for independence (docs/34): the name is an INPUT to both
+ *  sides, the plan and the shim's file, never derived from what this harness checks. */
 
 /**
  * The corpus: every def the engine PROJECTS into a Figma set.
@@ -3331,6 +3332,22 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     `#3347 self-check: with the toggle's padding override cleared, the measured-floor shim reads the label row the real file did, ${MEASURED_UNFIXED} (got ${selfCheck})`);
   ok(members.length === 84 && off.length === 0,
     `#3347 password-field label row: on all ${members.length} members the row is the size's label line, small 18 / medium 21 / large 24, hugging, with the stretched Show button as tall as the row (Q380 A) (${off.length} off — ${off.slice(0, 3).join(' | ') || `measured ${JSON.stringify(seen)}`})`);
+}
+
+// #3972: THE ROUND TRIP PLANS WITH THE PRODUCT'S SWAP TARGET. Every swap part of every projected def nominates the name
+// the plugin nominates, `icon/FPO-default-icon`, typed here (`build-deps.ts`'s value; `test-write-components.ts` holds it
+// to the icon def's own names). Mutation: the harness's own restated `FPO-default-icon` back → `#3972 swap target`.
+{
+  const seen = new Map<string, number>();
+  const walk = (n: { swapTarget?: string; children?: unknown[] }): void => {
+    if (n.swapTarget) seen.set(n.swapTarget, (seen.get(n.swapTarget) ?? 0) + 1);
+    for (const c of (n.children ?? []) as { swapTarget?: string; children?: unknown[] }[]) walk(c);
+  };
+  for (const p of ALL_PLANS()) walk(p.root as never);
+  // Parts that swap to a fixed component (a spinner size, a glyph) name that component; the nominated FPO is the rest.
+  const fpo = [...seen].filter(([name]) => /FPO-default-icon/.test(name));
+  ok(fpo.length === 1 && fpo[0][0] === 'icon/FPO-default-icon' && fpo[0][1] > 0,
+    `#3972 swap target: every swap part the round trip plans for the FPO nominates icon/FPO-default-icon, as the plugin does (${JSON.stringify(fpo)})`);
 }
 
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');

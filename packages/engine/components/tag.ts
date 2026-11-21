@@ -567,10 +567,12 @@ export const tag: ComponentDef = {
     usage: 'Use a tag for something a user acts on in place. Use a select tag for a lightweight filter or choice the user toggles; use a dismissible tag for an applied filter they can remove, or a recipient or keyword entered into a field. Put tags in a group with at least 8px between them, and let the group own selection, arrow-key movement and focus after removal. If nobody acts on it, it is a badge; if it runs an action, it is a button.',
     do: [
       'Name the remove control "Remove" followed by the label',
-      'Move focus to the next tag after a removal, else the previous one, else the group',
       'Keep the check mark on a selected tag unless the tint and outline already read clearly in context',
       'Keep at least 8px between tags in a group',
       'Let a long label wrap, so the full text stays visible',
+    ],
+    implementation: [
+      'Move focus to the next tag after a removal, else the previous one, else the group',
     ],
     dont: [
       'Use a tag for a status nobody can act on. That is a badge.',

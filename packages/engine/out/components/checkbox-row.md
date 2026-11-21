@@ -45,9 +45,6 @@ Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember 
 
 ### Do
 
-- Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond
-- Set `aria-checked="mixed"` explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech
-- Let the group own required, validation and the value array; a row inside a group never manages its own error
 - Accept rich content in the label, so a consent line can carry the link it needs
 - Phrase the label positively, and state exactly what is being agreed to on a consent checkbox
 
@@ -101,6 +98,10 @@ The label states what becomes true when checked. Group errors read "Select at le
   - a `role="checkbox"` div where a styled native input would do
 
 ## Building it in code
+
+- Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond
+- Set `aria-checked="mixed"` explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech
+- Let the group own required, validation and the value array; a row inside a group never manages its own error
 
 ### Props
 
