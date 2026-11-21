@@ -45303,6 +45303,12 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const aiSchema = JSON.parse(readFileSync(resolve(HERE, 'schema', 'ai-metadata.schema.json'), 'utf8'));
   const aiErrs = validateJsonSchema(aiSchema, buildAiMetadata(mappedTheme, buildTree(mappedTheme).tree));
   ok(aiErrs.length === 0, `#3076 a mapped brand's .ai.json is valid against ai-metadata.schema.json (${aiErrs.slice(0, 3).join('; ')})`);
+  // ONE SCHEMA VERSION, ONE SHAPE. #2857 took `prism3-ai-metadata/0.6` for `motion_presets`, so the icons block is the
+  // next version, 0.7. Both lines are typed here, never read from ai-metadata.ts: a merge that leaves both fields under
+  // one id (git merges the two identical `0.6` lines silently) fails this arm by name.
+  const aiDoc = buildAiMetadata(mappedTheme, buildTree(mappedTheme).tree) as any;
+  ok(aiDoc.$schema === 'prism3-ai-metadata/0.7' && aiSchema.$id === 'prism3-ai-metadata/0.7' && 'icons' in aiDoc && 'motion_presets' in aiDoc,
+    `#3076 the icons block takes its own sidecar schema version, 0.7, after #2857's motion_presets took 0.6 (got $schema ${aiDoc.$schema}, $id ${aiSchema.$id})`);
   const xErrs = validateJsonSchema(JSON.parse(readFileSync(resolve(HERE, 'schema', 'component-defs.schema.json'), 'utf8')), JSON.parse(JSON.stringify(xdoc)));
   ok(xErrs.length === 0, `#3076 a mapped brand's component export is valid against component-defs.schema.json (${xErrs.slice(0, 3).join('; ')})`);
   // DUPLICATE ART IS REPORTED, NEVER REFUSED (owner decision 2026-11-20 A). Each brand glyph below is typed by hand as a
