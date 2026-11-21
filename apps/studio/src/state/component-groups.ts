@@ -50,6 +50,7 @@
  * the copy off. US English, `docs/voice-standard.md`.
  */
 import type { Catalog, CatalogEntry } from './component-catalog';
+import { must } from '../must';
 
 export type GroupKind = 'components' | 'subcomponents';
 
@@ -198,7 +199,7 @@ export const groupsOf = (catalog: Catalog): GroupSection[] => {
   const rows: GroupRow[] = [...byKey].map(([key, g]) => {
     const ids = [...g.ids].sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'en'));
     const pageIsComponents = g.section === 'Components' || g.section === 'Subcomponents';
-    const label = g.page && (pageIsComponents || ids.length > 1) ? sentenceCase(g.page) : words(nameOf(ids[0]));
+    const label = g.page && (pageIsComponents || ids.length > 1) ? sentenceCase(g.page) : words(nameOf(must(ids[0], `${key}'s first id`)));
     return { key, label, page: g.page, kind: g.kind, ids, family: ids.length > 1 };
   });
   const sectionOf = (r: GroupRow): SectionKind =>
