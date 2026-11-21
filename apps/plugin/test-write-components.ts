@@ -4057,6 +4057,22 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
     ok(setOf(pg)?.description === fm.summary && recOf(setOf(pg)) === fm.summary,
       `#1623 empty filled on a hand-made set: a set with no stamped member and no description takes the summary, recorded ("${setOf(pg)?.description}")`);
   }
+
+  // #2865 delta review nit: the designer mark is for a set Prism3 never built. A stamped set whose unrecorded description
+  // meets a build with no `description` option keeps no mark, so a later build still reads that description as Prism3's.
+  // Mutation: `!setBuiltByUs &&` dropped from the mark's guard → `#2865 built set not marked theirs`.
+  {
+    const pg: Page = { children: [] };
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    const set = setOf(pg)!;
+    set.description = 'An earlier summary.';
+    (set.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'description', '');
+    await run(fmPlans, { ...fmVars, page: pg });
+    const stamped = ((setOf(pg)!.children ?? []) as Record<string, unknown>[]).some((c) => !!(c.getSharedPluginData as (a: string, b: string) => string)('prism3', 'memberStamp'));
+    const rec = recOf(setOf(pg));
+    ok(stamped && rec !== '\u0001theirs',
+      `#2865 built set not marked theirs: a build with no description into a set Prism3 stamped leaves its unrecorded description unmarked (record ${JSON.stringify(rec)}; stamped ${stamped})`);
+  }
 }
 
 // ---- #1611: THE FOOTPRINT HOLDS ACROSS RUNTIME AXES, NOT AUTHORING AXES --------------------
