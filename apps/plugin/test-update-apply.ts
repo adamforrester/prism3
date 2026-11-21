@@ -7396,7 +7396,7 @@ section('description — a def summary that moved reaches a set whose members ar
     const p = pre.sets[0];
     const v = previewVerdict(pre);
     ok(p.counts.update === 0 && JSON.stringify(p.description) === JSON.stringify({ to: summary, from: [OLD], nodes: 1 })
-      && v.lines.includes(`tag: 45 members. description to update.`) && v.lines.includes(`tag · description: the summary says "${summary}", the file has "${OLD}".`),
+      && v.lines.includes(`tag: 45 variants. description to update.`) && v.lines.includes(`tag · description: the summary says "${summary}", the file has "${OLD}".`),
       `description/planned: with every member current, the check lists the description as the set's one change (${JSON.stringify(p.description)}; ${JSON.stringify(v.lines.slice(0, 2))})`);
     const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre));
     const a = applyVerdict(res);
