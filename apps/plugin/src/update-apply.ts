@@ -156,6 +156,9 @@ export type SetOutcome = {
   /** #2956 — this run turned the set's updates off by itself: it skipped a member whose hand edits the update could not
    *  apply around (`aroundEdits`). The rest of the set was written as usual. Absent otherwise. */
   turnedOff?: true;
+  /** #3907 — of `skipped`, the members the dry run read as behind today's plan whatever their hand edits (`behind` on
+   *  its states): left out of date, so the ledger does not record the set as built from today's def. Absent when none. */
+  behind?: string[];
   /** Members updated with no as-built record, so with no hand-edit check (`choices.noBaseline`, default `update`). */
   unrecorded: string[];
   /** Of `unrecorded`, those whose record was from an earlier format (#2379 review). */
@@ -328,7 +331,7 @@ export { nestedFirst };
 const preflight = (p: SetPreview): string | null => (p.blockers.length ? p.blockers.join('; ') : null);
 
 /** Which members this update configures, which it leaves, and why, from the dry run alone. */
-const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>; skipped: SetOutcome['skipped']; around: string[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
+const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>; skipped: SetOutcome['skipped']; around: string[]; behind: string[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
   const byMember = new Map<string, SetPreview['handEdits']>();
   for (const h of p.handEdits) byMember.set(h.member, [...(byMember.get(h.member) ?? []), h]);
   const members = new Map<string, { keep: Set<string>; accept?: boolean; edited?: Set<string> }>();
@@ -364,8 +367,8 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
       // such a destination (`reactions.ts`).
       const d = s.damaged ?? [];
       skipped.push({ member: s.member, reason: 'a layer was added or removed by hand'
-        + (d.length ? `, and it draws other than its plan (${d.slice(0, 3).join('; ')}${d.length > 3 ? '; …' : ''})` : '')
-        + (s.dangling ? `, and its ${REACTIONS} point at a member no longer in the set` : '') });
+        + (d.length ? `, and it draws other than Prism3 expects (${d.slice(0, 3).join('; ')}${d.length > 3 ? '; …' : ''})` : '')
+        + (s.dangling ? `, and its ${REACTIONS} point at a variant no longer in the set` : '') });
       around.push(s.member);
       continue;
     }
@@ -389,7 +392,10 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
   // Every member the dry run read as not built by Prism3 is named, the ones off the plan too (a designer's own icon
   // under the def's prefix, #2296): the update never writes them, and the verdict says so rather than leaving them out.
   for (const u of p.unstamped) if (!skipped.some((x) => x.member === u)) skipped.push({ member: u, reason: 'not built by Prism3' });
-  return { members, skipped, around, kept, unrecorded, restamp, earlierRecord };
+  // #3907: a skipped member the dry run read as behind its plan is left out of date by this run.
+  const left = new Set(skipped.map((x) => x.member));
+  const behind = p.states.filter((s) => s.behind && left.has(s.member)).map((s) => s.member);
+  return { members, skipped, around, behind, kept, unrecorded, restamp, earlierRecord };
 };
 
 /** THE LEDGER AFTER AN APPLY (#2909 Q2909.8 A; #3421, owner decision Q39 A): each set the apply acted on, recorded as
@@ -406,7 +412,9 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
  *  kept set; it never reads one current while its edits keep the plan out. */
 export const ledgerAfter = (outcomes: readonly SetOutcome[], entryOf: (def: string) => LedgerEntry | null, was: Ledger = {}): Record<string, LedgerEntry> =>
   // #2956: a set left because its updates are off was not written, so its entry stands.
-  Object.fromEntries(outcomes.filter((o) => !o.refused && !o.stopped && !o.off).flatMap((o) => {
+  // #3907: so does a set whose run skipped a member still behind its plan: recorded as current, Update file's due read
+  // would stop offering it while that member is out of date (and, once its updates are turned back on, never again).
+  Object.fromEntries(outcomes.filter((o) => !o.refused && !o.stopped && !o.off && !o.behind?.length).flatMap((o) => {
     const e = entryOf(o.def);
     if (!e) return [];
     const { held: _now, ...rest } = e;
@@ -566,6 +574,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
   const work = plan(p, opts.handEdits, opts.noBaseline);
   out.skipped = work.skipped;
   if (work.around.length) out.aroundEdits = work.around;
+  if (work.behind.length) out.behind = work.behind;
   out.unrecorded = work.unrecorded;
   if (work.earlierRecord.length) out.earlierRecord = work.earlierRecord;
   out.kept = work.kept;
@@ -845,7 +854,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
       if (d.field === 'member') continue;
       const at = rel(d.path);
       if ([...keep].some((k) => at === k || at.startsWith(`${k}/`))) continue;
-      out.content.push(`${faultAt(name, at)}.${d.field}: ${d.actual} (the plan says ${d.expected})`);
+      out.content.push(`${faultAt(name, at)}.${d.field}: ${d.actual} (Prism3 expects ${d.expected})`);
     }
     // A PAINT THE PLAN DOES NOT GIVE (#2369). `diffAnatomy` reads the paints a plan declares, so a node the plan
     // leaves unpainted is never checked, and a fill a superseded plan gave it would pass. Read here off the live
@@ -854,8 +863,8 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
       if (!hn || pn.type !== 'FRAME' || [...keep].some((k) => at === k || at.startsWith(`${k}/`))) return;
       const shown = (ps: unknown): number => (Array.isArray(ps) ? ps.filter((x) => (x as { visible?: boolean })?.visible !== false).length : 0);
       // A literal paint (`literalPaints`, #2343 PR 5; WalletButton's ground since #3174) is a paint the plan gives too.
-      if (!pn.paints?.fills && !pn.gradientFill && !pn.literalPaints?.fills && shown(hn.fills)) out.content.push(`${faultAt(name, at)}.fills: ${shown(hn.fills)} paint(s) (the plan says none)`);
-      if (!pn.paints?.strokes && !pn.literalPaints?.strokes && shown(hn.strokes)) out.content.push(`${faultAt(name, at)}.strokes: ${shown(hn.strokes)} paint(s) (the plan says none)`);
+      if (!pn.paints?.fills && !pn.gradientFill && !pn.literalPaints?.fills && shown(hn.fills)) out.content.push(`${faultAt(name, at)}.fills: ${shown(hn.fills)} paint(s) (Prism3 expects none)`);
+      if (!pn.paints?.strokes && !pn.literalPaints?.strokes && shown(hn.strokes)) out.content.push(`${faultAt(name, at)}.strokes: ${shown(hn.strokes)} paint(s) (Prism3 expects none)`);
       const kids = (hn.children ?? []) as (LiveNode & { fills?: unknown; strokes?: unknown })[];
       for (const c of pn.children ?? []) unpainted(c, kids.find((k) => String(k.name ?? '') === c.name), at === '.' ? c.name : `${at}/${c.name}`);
     };
@@ -868,7 +877,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, pr
     const want = plannedRx.get(name);
     if (want && snap.reactions && !keep.has(REACTIONS_PATH)) {
       const planned = want.map((r) => plannedRead(name, r));
-      if (reactionVerdict(planned, snap.reactions).differs) out.content.push(`${name}/${REACTIONS}: ${reactionsText(snap.reactions)} (the plan says ${reactionsText(planned)})`);
+      if (reactionVerdict(planned, snap.reactions).differs) out.content.push(`${name}/${REACTIONS}: ${reactionsText(snap.reactions)} (Prism3 expects ${reactionsText(planned)})`);
     }
   }
   if (work.restamp.length) await restampMembers(now, work.restamp, plans, out, hostOf);
@@ -1003,6 +1012,8 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
   const changed = changedSets(res.outcomes);
   res.publish = publishDescription({
     title: res.version, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
+    // #2882 (owner decision A): each set's range starts at its own members' stamps, as the check read them.
+    stampedBy: Object.fromEntries(preview.sets.filter((s) => changed.includes(s.set) && s.engines).map((s) => [s.set, s.engines!])),
     consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.filter(breaksConsumers).length ?? 0), 0),   // #3711 (Q-UF1 A): a retired member is not breaking
   });
 };
@@ -1078,7 +1089,7 @@ export const applyUpdate = async (
     if (nothing) {
       // A set left alone must not leave a difference the dry run named: each is a failure of this set, by name,
       // the way verify's content check names a field an applied member still holds. Never "already up to date".
-      const left = p.changes.filter((c) => c.field !== 'stamp').map((c) => `${c.sample[0] ?? p.set}/${c.part}.${c.field}: ${c.from} (the plan says ${c.to})`);
+      const left = p.changes.filter((c) => c.field !== 'stamp').map((c) => `${c.sample[0] ?? p.set}/${c.part}.${c.field}: ${c.from} (Prism3 expects ${c.to})`);
       res.outcomes.push({ def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: left, misses: [], asPreviewed: { line: previewLine(p), upToDate: setUpToDate(p) } });
       continue;
     }
@@ -1296,7 +1307,7 @@ export const heldLine = (set: string, h: { members: readonly string[] | number; 
   const k = typeof h.members === 'number' ? h.members : h.members.length;
   // Every change named: the gate's rule is that no change a kept edit holds back goes unsaid (#3421 item 4).
   const named = h.changes.join(', ');
-  return `${set}: hand edits kept on ${n(k, 'member')} keep out ${h.changes.length} of the plan's values (${named}). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.`;
+  return `${set}: hand edits kept on ${n(k, 'variant')} keep out ${h.changes.length} of Prism3's values (${named}). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.`;
 };
 
 const NOT_RECORDED = '.asBuilt -> NOT RECORDED';
@@ -1372,7 +1383,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
     for (const u of o.unkept ?? []) lines.push(unkeptLine(o.set, u));
     if (o.stopped) {
       causes.push(cause('bad', o.def, CAUSE_WHAT.stopped, [o.stopped]));
-      lines.push(`${o.set}: stopped (${o.stopped}). ${n(o.updated.length, 'member')} updated; the rest are unchanged and still read as out of date. Run the update again to finish, or undo once to revert it.`);
+      lines.push(`${o.set}: stopped (${o.stopped}). ${n(o.updated.length, 'variant')} updated; the rest are unchanged and still read as out of date. Run Update file again to finish, or undo once to revert it.`);
       continue;
     }
     const parts = [
@@ -1387,7 +1398,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
       // Wording approved, Q246 A (#2542, Q245.2 A), the dry run's "moves to its place on the page" as done.
       o.setMoved ? 'the set moved to its place on the page' : '',
       ...furnitureParts(o.furniture, 'drawn', 'cleared'),
-      o.kept.length ? `${n(o.kept.length, 'hand edit')} ${o.handEdits === 'overwrite' ? 'overwritten' : o.handEdits === 'accept' ? 'accepted as built' : 'kept'}${keptProps(o)}` : '',
+      o.kept.length ? `${n(o.kept.length, 'hand edit')} ${o.handEdits === 'overwrite' ? 'overwritten' : o.handEdits === 'accept' ? 'accepted as baseline' : 'kept'}${keptProps(o)}` : '',
       o.unrecorded.length - (o.earlierRecord?.length ?? 0) ? `${o.unrecorded.length - (o.earlierRecord?.length ?? 0)} of them without an as-built record` : '',
       // The owner's wording (2026-10-09).
       o.earlierRecord?.length ? `${o.earlierRecord.length} of them recorded by an earlier plugin version` : '',
@@ -1406,18 +1417,18 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
     if (o.carried) lines.push(`${o.set}: ${n(o.carried.instances, 'instance')} carried into the slot, ${n(o.carried.items, 'item')} in all.${o.carried.limits.length ? ` Outside the slot's limits: ${o.carried.limits.join('; ')}.` : ''}`);
     const at = lines.length;
     if (o.identity.length) lines.push(`${o.set}: component IDs changed — ${o.identity.slice(0, 3).join('; ')}${o.identity.length > 3 ? '; …' : ''}.`);
-    if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still ${o.content.length === 1 ? 'differs' : 'differ'} from the plan — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
+    if (o.content.length) lines.push(`${o.set}: ${n(o.content.length, 'field')} still ${o.content.length === 1 ? 'differs' : 'differ'} from what Prism3 expects — ${o.content.slice(0, 3).join('; ')}${o.content.length > 3 ? '; …' : ''}.`);
     // DRAFT wording for the owner (#2477, the issue's option A): a member written but not finished, by name.
     const { members, others } = unfinishedOf(o);
     if (members.length) {
       lines.push(members.length === 1
-        ? `${o.set}: 1 member not finished — ${members[0]} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`
-        : `${o.set}: ${members.length} members not finished — ${members.join(', ')} (their as-built records could not be written). They still read as out of date; run the update again to finish them.`);
+        ? `${o.set}: 1 variant not finished — ${members[0]} (its as-built record could not be written). It still reads as out of date; run Update file again to finish it.`
+        : `${o.set}: ${members.length} variants not finished — ${members.join(', ')} (their as-built records could not be written). They still read as out of date; run Update file again to finish them.`);
     }
     // DRAFT wording for the owner (#2477): any other miss the build's pass reported, with its own reason.
     // #2956 point 4 (Q1 A, DRAFT wording for the owner): what the build left because the member is hand-edited, apart
     // from the misses and never ⚠.
-    if (o.editedMisses?.length) lines.push(`${o.set}: not written because the member is hand-edited — ${o.editedMisses.slice(0, 3).join('; ')}${o.editedMisses.length > 3 ? '; …' : ''}.`);
+    if (o.editedMisses?.length) lines.push(`${o.set}: not written because the variant is hand-edited — ${o.editedMisses.slice(0, 3).join('; ')}${o.editedMisses.length > 3 ? '; …' : ''}.`);
     if (others.length) lines.push(`${o.set}: ${n(others.length, 'part')} not written as planned — ${others.slice(0, 3).join('; ')}${others.length > 3 ? '; …' : ''}.`);
     // The set is not verified by exactly the lines above (identity, content, a member not finished, a part not written).
     if (o.identity.length || o.content.length || o.misses.length) {
@@ -1439,7 +1450,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
     // A stop the person asked for: each set it left is not updated, and the stop is the reason.
     for (const def of r.halted.leftDefs) causes.push(cause('warn', def, CAUSE_WHAT.notUpdated, [haltedLine(r.halted)]));
   }
-  if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
+  if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}. Build them first, then run Update file again.`);
   // #2858: the Cover page's About frame, drawn last.
   // #2859: the library cover, kept current before it.
   if (r.cover && coverLine(r.cover)) lines.push(coverLine(r.cover));
@@ -1473,7 +1484,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; completed: boolean;
                       // DRAFT wording for the owner (#3172): a run whose only work was a block header.
                       : headers ? `✓ ${n(headers, 'section header')} placed`
                       // DRAFT wording for the owner (#2803, Q379 A): a run whose only work was the canvas furniture.
-                      : furnished ? `✓ canvas furniture drawn for ${n(furnished, 'set')}`
+                      : furnished ? `✓ labels and panels drawn for ${n(furnished, 'set')}`
                         // DRAFT wording for the owner (#2858): a run whose only work was the About frame.
                         : r.about?.drawn ? `✓ ${ABOUT_NAME} drawn`
                           // DRAFT wording for the owner (#2859): a run whose only work was the cover.

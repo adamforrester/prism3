@@ -84,7 +84,7 @@ export const HISTORY_MAX = 5;
 /** Concept v6's operation titles (`OP_TITLE`). The drawer lists operations in the order they first ran. */
 export const OP_TITLE: Readonly<Record<OpKey, string>> = {
   // "Style guides" since S11.2 (owner decision P11), matching the Build style guides page.
-  'apply': 'Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guides', prune: 'Prune stale', readback: 'Read-back',
+  'apply': 'Apply theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guides', prune: 'Clean up', readback: 'Read-back',  // #4184 (owner decision 2026-11-19): "Apply theme" and "Clean up", one name per feature (was "Theme", "Prune stale").
   // #2830 Q713 A: Documentation › Specs' Draw specs, a row of its own. DRAFT wording (Q685 A).
   specs: 'Specs',
   // #3394 Q3394.7 A: the agent link's color overrides, their own row.
@@ -403,7 +403,7 @@ export const mountActivity = (opts: { readonly lend: ActivityLend; readonly narr
   const sheetHead = hook(h('div', 'p3-drawer-head'), 'activity-sheet-head');
   const sheetCounts = h('span', 'p3-drawer-counts');
   // Shown while nothing has run: concept v6's line. Plugin only: the studio mounts no drawer (#3011, Q121 A).
-  const note = hook(h('p', 'p3-note p3-drawer-note', 'Results of Apply, Build and Prune appear here after they run.'), 'activity-note');
+  const note = hook(h('p', 'p3-note p3-drawer-note', 'Each Update file run, and the steps it takes, appear here.'), 'activity-note');
   // The agent link's full status line (#2213, AS1 A): the open drawer's first line, above the runs, while the plugin
   // reports one.
   const linkDetail = hook(h('p', 'p3-note p3-drawer-note p3-drawer-linkline'), 'activity-agent-detail');

@@ -300,7 +300,7 @@ section('draw — the executor places, tags, redraws and clears');
   ok(buildItems.length === 1 && buildItems[0] === both,
     `templates/missing build: one line for the run, naming both templates and Set up file (${JSON.stringify(buildItems)})`);
   const updateItems = furnitureItems([none], 'update');
-  ok(updateItems.length === 1 && updateItems[0] === both.replace('then build again', 'then update again'),
+  ok(updateItems.length === 1 && updateItems[0] === both.replace('then build again', 'then run Update file again'),
     `templates/missing update: the update's line asks for an update again (${JSON.stringify(updateItems)})`);
   // Only `_Label` missing: the backdrop is drawn, and the line names the labels alone.
   const noLabel = await drawFurniture(fakeTemplates({ labels: false }), set, handLayout, 'grid');
@@ -327,11 +327,11 @@ section('draw — the executor places, tags, redraws and clears');
   ]), `templates/cause build: one cause per set that lacked a template, the template line its reason (${JSON.stringify(built.causes)})`);
   const updated = withTemplateWarning({ ok: true, headline: '✓ updated 3 in place', causes: [] as Cause[] }, [noLabel], 'update');
   ok(JSON.stringify(updated.causes) === JSON.stringify([{ kind: 'warn', subject: 'grid', what: 'updated with problems',
-    reasons: ['No canvas labels drawn: this file has no _Label component. Run Set up file, then update again.'] }]),
+    reasons: ['No canvas labels drawn: this file has no _Label component. Run Set up file, then run Update file again.'] }]),
     `templates/cause update: the update's cause names the set and the update's line (${JSON.stringify(updated.causes)})`);
   // A set the verdict already holds a cause for keeps one cause: its reasons first, the template line after.
   const merged = withTemplateWarning({ ok: false, headline: '⚠ 1 set not verified', causes: [{ kind: 'warn', subject: 'grid', what: 'not verified', reasons: ['1 field still differs'] }] as Cause[] }, [none], 'update');
-  ok(merged.causes.length === 1 && merged.causes[0].what === 'not verified' && JSON.stringify(merged.causes[0].reasons) === JSON.stringify(['1 field still differs', `${both.replace('then build again', 'then update again')}.`]),
+  ok(merged.causes.length === 1 && merged.causes[0].what === 'not verified' && JSON.stringify(merged.causes[0].reasons) === JSON.stringify(['1 field still differs', `${both.replace('then build again', 'then run Update file again')}.`]),
     `templates/cause merge: one cause per set, the template line after the set's own reason (${JSON.stringify(merged.causes)})`);
   const clean = { ok: true, headline: '✓ built 8', causes: [] as Cause[] };
   ok(withTemplateWarning(clean, [o, again], 'build') === clean, `templates/cause none: a file with both templates leaves the verdict and its causes as they were`);
@@ -348,9 +348,9 @@ section('draw — the executor places, tags, redraws and clears');
     { kind: 'note', subject: null, what: `${HEAD}.`, reasons: ['Run Set up file, then build again.'] },
     { kind: 'warn', subject: 'badge', what: 'built with problems', reasons: ['No canvas labels drawn: this file has no _Label component. Run Set up file, then build again.'] },
   ]), `#3467 doc-block/label still warns: _Label missing too, the run is ⚠ for _Label alone, the usage panels a note (${JSON.stringify(bothB.causes)})`);
-  ok(docBlockLine([noBlock], 'build', { theme: false, lacks: ['badge', 'tag', 'list-item', 'divider'] }) === `${HEAD}, and it is built from the theme. Apply the theme, then build again`,
+  ok(docBlockLine([noBlock], 'build', { theme: false, lacks: ['badge', 'tag', 'list-item', 'divider'] }) === `${HEAD}, and it is built from the theme. Run Update file with Theme ticked, then build again`,
     `#3467 doc-block/fix no theme: the theme first ("${docBlockLine([noBlock], 'build', { theme: false, lacks: ['badge'] })}")`);
-  ok(docBlockLine([noBlock], 'update', { theme: true, lacks: ['list-item'] }) === `${HEAD}. Build list-item, then run Set up file and update again`,
+  ok(docBlockLine([noBlock], 'update', { theme: true, lacks: ['list-item'] }) === `${HEAD}. Build list-item, then run Set up file and run Update file again`,
     `#3467 doc-block/fix sets: the sets it lacks, then Set up file ("${docBlockLine([noBlock], 'update', { theme: true, lacks: ['list-item'] })}")`);
   ok(docBlockLine([noBlock], 'build', { theme: true, lacks: [] }) === `${HEAD}. Run Set up file, then build again`,
     `#3467 doc-block/fix ready: everything in the file, Set up file alone ("${docBlockLine([noBlock], 'build', { theme: true, lacks: [] })}")`);
@@ -509,11 +509,11 @@ section('group / panel / backdrop — Button, built by the real executor');
   const c0 = pre.counts;
   ok(c0.move === MOVES && c0.current === 576 && c0.update + c0.add + c0.drop + c0.rename + c0.handEdited + c0.noBaseline + c0.unstamped + c0.revisionUnknown === 0 && pre.moves.length === 0 && pre.positions?.length === MOVES,
     `group/existing dry run: an old-layout Button reports ${MOVES} moves and nothing else — no rename, add, drop or hand edit (${JSON.stringify(c0)})`);
-  ok(previewLine(pre) === `button: 576 members. ${MOVES} to move.` && previewVerdict({ sets: [pre], missing: [], refused: [] }).headline === 'Would change 1 of 1',
+  ok(previewLine(pre) === `button: 576 variants. ${MOVES} to move.` && previewVerdict({ sets: [pre], missing: [], refused: [] }).headline === 'Would change 1 of 1',
     `group/existing dry run line: the moves are named (${previewLine(pre)})`);
   // FURNITURE ONLY OVER ONE INVERSE BLOCK: on the ungrouped set nothing is drawn, so no backdrop or bracket per band.
   const un = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'button');
-  ok(furnitureOn(page).length === 0 && un.backdrops + un.rows + un.columns === 0 && un.skipped.length === 1 && /inverse rows are not in one block yet/.test(un.skipped[0]),
+  ok(furnitureOn(page).length === 0 && un.backdrops + un.rows + un.columns === 0 && un.skipped.length === 1 && /inverse rows aren't together yet/.test(un.skipped[0]),
     `furniture/ungrouped: an ungrouped set gets no labels and no backdrop, and says why (${furnitureOn(page).length}, ${JSON.stringify(un.skipped)})`);
 
   // THE UPDATE'S APPLY moves them: the grid re-laid in place, every id kept, nothing rewritten.
@@ -526,7 +526,7 @@ section('group / panel / backdrop — Button, built by the real executor');
   const v1 = applyVerdict(res);
   ok(v1.ok && v1.headline === `✓ moved ${MOVES}` && v1.lines[0] === `button: ${MOVES} moved.`, `update/apply verdict: ${v1.headline} / ${v1.lines[0]}`);
   const next = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
-  ok(next.counts.move === undefined && next.positions === undefined && previewLine(next) === 'button: up to date (576 members).',
+  ok(next.counts.move === undefined && next.positions === undefined && previewLine(next) === 'button: up to date (576 variants).',
     `update/next dry run: reads current after the apply (${previewLine(next)})`);
 
   // A MEMBER PRISM3 DIDN'T BUILD, ON A PLANNED COORDINATE AND OFF THE GRID (#2471 review): Prism3 never touches a
@@ -562,7 +562,7 @@ section('group / panel / backdrop — Button, built by the real executor');
     // And a set that IS up to date still reads so, on the dry run and on the apply.
     const p5 = (await previewUpdate(host, [{ def: 'button', plans }]));
     const r5 = applyVerdict(await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf(p5)));
-    ok(previewLine(p5.sets[0]) === 'button: up to date (576 members).' && r5.headline === '✓ already up to date' && r5.lines[0] === 'button: already up to date.',
+    ok(previewLine(p5.sets[0]) === 'button: up to date (576 variants).' && r5.headline === '✓ already up to date' && r5.lines[0] === 'button: already up to date.',
       `unbuilt/up to date: with the member Prism3's again, the dry run reads up to date and the apply "already up to date" (${previewLine(p5.sets[0])} | ${r5.headline} | ${r5.lines[0]})`);
   }
   // ITS HEIGHT STILL COUNTS (#2471 review, UI lane): a member Prism3 didn't build is never moved, but the executor's
@@ -584,7 +584,7 @@ section('group / panel / backdrop — Button, built by the real executor');
     const grew = Number(own.height);
     const at = JSON.stringify([own.x, own.y]);
     const p3 = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
-    ok(grew === hWas + 40 && previewLine(p3) === 'button: 576 members. 558 to move, 1 not built by Prism3.' && !p3.positions?.includes(String(own.name)),
+    ok(grew === hWas + 40 && previewLine(p3) === 'button: 576 variants. 558 to move, 1 not built by Prism3.' && !p3.positions?.includes(String(own.name)),
       `unbuilt/row height: a member Prism3 didn't build, taller than its row, moves every row below it, and is not itself a move (${hWas} → ${grew}px; ${previewLine(p3)})`);
     const r3 = await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf(await previewUpdate(host, [{ def: 'button', plans }])));
     const v3 = applyVerdict(r3);
@@ -609,7 +609,7 @@ section('group / panel / backdrop — Button, built by the real executor');
     Object.defineProperty(own, 'width', { configurable: true, enumerable: wDesc.enumerable, get: () => wWas + 400 });
     const grew = Number(own.width);
     const p4 = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
-    ok(grew === wWas + 400 && previewLine(p4) === 'button: 576 members. 480 to move, 1 not built by Prism3.' && !p4.positions?.includes(String(own.name)),
+    ok(grew === wWas + 400 && previewLine(p4) === 'button: 576 variants. 480 to move, 1 not built by Prism3.' && !p4.positions?.includes(String(own.name)),
       `unbuilt/column width: a member Prism3 didn't build, wider than its column, moves every column to its right, and is not itself a move (${wWas} → ${grew}px; ${previewLine(p4)})`);
     own.setSharedPluginData(NS, STAMP_KEY, stampWas);
     Object.defineProperty(own, 'width', wDesc);
@@ -755,7 +755,7 @@ section('columns — radio-control: every column label reads in full, the column
   // AN EXISTING FILE: the set as a build before this fix left it, its grid unwidened. The update corrects it in place:
   // the apply (nothing to write) then the furniture, as `main.ts` runs an update.
   const pre = (await previewUpdate(host, targets)).sets[0];
-  ok(!!pre && previewLine(pre) === `radio-control: up to date (${members.length} members).`, `premise: a set built before the fix reads up to date (${pre ? previewLine(pre) : 'no set read'})`);
+  ok(!!pre && previewLine(pre) === `radio-control: up to date (${members.length} variants).`, `premise: a set built before the fix reads up to date (${pre ? previewLine(pre) : 'no set read'})`);
   await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)));
   const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'radio-control');
   const cols = furnitureOn(page).filter((n) => Number(n.y) < Number(set.y));
@@ -779,7 +779,7 @@ section('columns — radio-control: every column label reads in full, the column
   ok(members.every((m) => ids.get(String(m.name)) === String(m.id)), `columns/in place: every member keeps its id`);
   // THE NEXT DRY RUN READS THE WIDENED GRID AS UP TO DATE: no member to move back.
   const next = (await previewUpdate(host, targets)).sets[0];
-  ok(!!next && previewLine(next) === `radio-control: up to date (${members.length} members).` && !next.counts.move,
+  ok(!!next && previewLine(next) === `radio-control: up to date (${members.length} variants).` && !next.counts.move,
     `columns/converges: the next dry run reads up to date, nothing to move (${next ? previewLine(next) : 'no set read'})`);
   // AND THE NEXT UPDATE'S LAY OUT PASS KEEPS IT: the executor reads the recorded width, before any furniture redraw.
   // An update with nothing to write never lays the grid out, so one member is stamped by an earlier executor revision:
@@ -1077,7 +1077,7 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
       ok(res.outcomes[0]?.moved === want, `rollout/${id} apply: ${want} moved (${applyVerdict(res).lines[0]})`);
     }
     const next = (await previewUpdate(host, targets)).sets[0];
-    ok(!!next && previewLine(next) === `${id}: up to date (${members.length} members).` && members.every((m) => Number(m.x) === built.get(String(m.name))!.x && Number(m.y) === built.get(String(m.name))!.y),
+    ok(!!next && previewLine(next) === `${id}: up to date (${members.length} variants).` && members.every((m) => Number(m.x) === built.get(String(m.name))!.x && Number(m.y) === built.get(String(m.name))!.y),
       `rollout/${id} converges: the next dry run reads up to date, every member back where a fresh build puts it (${next ? previewLine(next) : 'no set read'})`);
 
     const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
@@ -1426,14 +1426,14 @@ section('due — furniture the page lacks is listed by the dry run, drawn by the
     `premise: Button's labels are drawn and its backdrop is not, for want of the template (${first.columns} + ${first.rows}, ${first.backdrops}; missing ${JSON.stringify(first.missing)})`);
   // A template the file still lacks is not a change: the apply could not draw it.
   const absent = await previewUpdate(host, targets);
-  ok(!absent.sets[0].furniture && previewLine(absent.sets[0]) === 'button: up to date (576 members).',
+  ok(!absent.sets[0].furniture && previewLine(absent.sets[0]) === 'button: up to date (576 variants).',
     `due/template absent: a backdrop with no template to draw it from is not listed (${previewLine(absent.sets[0])})`);
   withBackdrop = true;
   const members = (): string => JSON.stringify((set.children as FNode[]).map((m) => [m.id, m.x, m.y, (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)]));
   const membersWas = members();
   const pre = await previewUpdate(host, targets);
   const v = previewVerdict(pre);
-  ok(JSON.stringify(pre.sets[0].furniture) === JSON.stringify({ labels: 0, backdrops: 1, clear: 0 }) && previewLine(pre.sets[0]) === 'button: 576 members. 1 backdrop to draw.' && v.headline === 'Would change 1 of 1',
+  ok(JSON.stringify(pre.sets[0].furniture) === JSON.stringify({ labels: 0, backdrops: 1, clear: 0 }) && previewLine(pre.sets[0]) === 'button: 576 variants. 1 backdrop to draw.' && v.headline === 'Would change 1 of 1',
     `due/dry run lists: with the template added, the dry run lists the one backdrop to draw and nothing else (${JSON.stringify(pre.sets[0].furniture)}; ${previewLine(pre.sets[0])}; ${v.headline})`);
   const versions = (api as { _versions?: string[] })._versions;
   const res = await applyUpdate(host as never, api as never, targets, previewHashOf(pre));
@@ -1441,7 +1441,7 @@ section('due — furniture the page lacks is listed by the dry run, drawn by the
   const av = applyVerdict(res);
   const bds = furnitureOn(page).filter((n) => tagOf(n).kind === 'backdrop');
   ok(!res.refusedAll && drawn[0]?.backdrops === 1 && bds.length === 1 && members() === membersWas
-    && av.headline === '✓ canvas furniture drawn for 1 set' && av.lines[0] === 'button: 1 backdrop drawn.' && (versions ?? []).at(-1) === 'Saved before Prism3 updated button',
+    && av.headline === '✓ labels and panels drawn for 1 set' && av.lines[0] === 'button: 1 backdrop drawn.' && (versions ?? []).at(-1) === 'Saved before Prism3 updated button',
     `due/apply draws: the apply saves a version and draws the backdrop, and every member keeps its id, place and stamp (${res.refusedAll ?? 'applied'}; ${bds.length} backdrop(s); ${av.headline} / ${av.lines[0]}; ${JSON.stringify((versions ?? []).at(-1))})`);
   const next = await previewUpdate(host, targets);
   ok(!next.sets[0].furniture && previewVerdict(next).headline === '✓ All sets up to date',
@@ -1449,7 +1449,7 @@ section('due — furniture the page lacks is listed by the dry run, drawn by the
   // STALE: the designer moves the set; its furniture stays behind, so every part is listed again, and one apply converges.
   set.x = Number(set.x) + 500;
   const moved = await previewUpdate(host, targets);
-  ok(JSON.stringify(moved.sets[0].furniture) === JSON.stringify({ labels: 41, backdrops: 1, clear: 42 }) && previewLine(moved.sets[0]) === 'button: 576 members. 41 canvas labels to draw, 1 backdrop to draw.',
+  ok(JSON.stringify(moved.sets[0].furniture) === JSON.stringify({ labels: 41, backdrops: 1, clear: 42 }) && previewLine(moved.sets[0]) === 'button: 576 variants. 41 canvas labels to draw, 1 backdrop to draw.',
     `due/stale: furniture left where the set was is listed to draw again (${JSON.stringify(moved.sets[0].furniture)}; ${previewLine(moved.sets[0])})`);
   const res2 = await applyUpdate(host as never, api as never, targets, previewHashOf(moved));
   await furnishUpdate(fApi, res2, targets);

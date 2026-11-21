@@ -403,7 +403,7 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         break;
       }
       case 'styles':
-        blocks.push({ type: 'Paragraph', text: 'Every member is in the set to the left.', size: SIZE });
+        blocks.push({ type: 'Paragraph', text: 'Every variant is in the set to the left.', size: SIZE });
         for (const a of s.axes) blocks.push({ type: 'Chips', label: sentence(a.axis), chips: a.values.map(sentence), note: a.kind === 'runtime' ? 'Changes while in use' : 'Chosen once, when placed' });
         if (s.states.length) blocks.push({ type: 'Chips', label: 'States', chips: s.states.map(sentence) });
         break;
@@ -1710,8 +1710,8 @@ export const drawDocPanel = async (
     delete out.marked;
     const hit = hits[0];
     out.skipped.push(updateMakesRoom(set, hits, kids)
-      ? `No usage panel for ${def.id}: "${hit.name ?? 'a layer'}" sits right of the set, where the panel goes. Run Update to make room, then the panel is drawn`
-      : `No usage panel for ${def.id}: "${hit.name ?? 'a layer'}" sits right of the set, where the panel goes. Move it, then build or update again`);
+      ? `No usage panel for ${def.id}: "${hit.name ?? 'a layer'}" sits right of the set, where the panel goes. Run Update file to make room, then the panel is drawn`
+      : `No usage panel for ${def.id}: "${hit.name ?? 'a layer'}" sits right of the set, where the panel goes. Move it, then build again or run Update file`);
     return out;
   }
   writeBlocked(parent, String(set.id ?? ''), null);

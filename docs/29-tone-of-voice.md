@@ -328,6 +328,23 @@ Two readings, and they need adjudicating rather than leaving:
 Reading 1 is the better system, so the fix is likely to **sharpen doc 26's rule to scope it
 to labels explicitly**, not to purge "ink" from descriptions. Flagged, not decided.
 
+### 6b. One name per feature (#4184, decided 2026-11-19)
+
+The overnight copy audit (#4104) found six features carrying two to six names across the
+Studio, the plugin and the guides, and hints naming controls that are not on screen
+("Update components", "Apply theme saves one"). §4's plugin job is *let them act without
+stopping to learn*: a designer who reads "Prune stale" in Activity and clicks **Clean up** in
+the dialog has to work out that the two are one thing, and a hint that names a missing control
+leaves the next action untaken (§5, Error).
+
+The rule that follows: **the name on the control is the name everywhere.** Every pointer, busy
+message, error line and guide uses the word the designer clicks, in full, with no short form,
+because the canvas and the Activity drawer have no first mention to shorten from. Engine
+vocabulary ("plan", "member", "knobs") stays in code and in the developer docs, where the reader
+is integrating, not mid-task. The canonical list is `voice-standard.md` §7; the owner's
+choices, option by option, are on #4184. `apps/studio/test-canonical-names.ts` holds the shipped
+strings to it.
+
 ---
 
 ## 7. Enforcement, or this decays

@@ -382,13 +382,13 @@ export const UPDATE_COPY = {
    *  edits section; and each kept set's line. */
   handHint: {
     keep: 'Keep: each edit stays. A set whose edits hold back changes is listed under Kept edits until resolved.',
-    overwrite: 'Overwrite: the plan’s values replace each edit.',
+    overwrite: 'Overwrite: Prism3’s values replace each edit.',
     accept: 'Accept as baseline: each edit stays and becomes the record, so it is no longer listed.',
   } as Record<HandEditChoice, string>,
   kept: 'Kept edits',
-  keptSub: (n: number): string => `${plural(n)} ${n === 1 ? 'holds' : 'hold'} hand edits over changes the plan makes. Each stays here until Overwrite or Accept as baseline is chosen for it.`,
+  keptSub: (n: number): string => `${plural(n)} ${n === 1 ? 'holds' : 'hold'} hand edits over changes Prism3 makes. Each stays here until Overwrite or Accept as baseline is chosen for it.`,
   keptLine: (h: { readonly members: number; readonly changes: readonly string[] }): string =>
-    `${h.members} member${h.members === 1 ? ' keeps' : 's keep'} out ${h.changes.length} of the plan’s values${h.changes.length ? `: ${h.changes.slice(0, 3).join(', ')}${h.changes.length > 3 ? `, ${h.changes.length - 3} more` : ''}` : ''}`,
+    `${h.members} variant${h.members === 1 ? ' keeps' : 's keep'} out ${h.changes.length} of Prism3’s values${h.changes.length ? `: ${h.changes.slice(0, 3).join(', ')}${h.changes.length > 3 ? `, ${h.changes.length - 3} more` : ''}` : ''}`,
   keptChoice: (name: string): string => `Hand edits on ${name}`,
   /** #2956 (owner decisions 2026-11-17, approved): the state, its two actions and the quiet reason line, shown only when
    *  the update turned it off by itself. The group's line and the actions' accessible names are DRAFT. */
@@ -437,7 +437,7 @@ export const UPDATE_COPY = {
   cleanLead: 'Things Prism3 wrote earlier and no longer writes. Nothing here rides Update file.',
   cleanChecking: 'Checking for stale items…',
   cleanNone: 'Nothing stale in this file.',
-  cleanRetired: (n: number): string => `${n} style-guide table${n === 1 ? '' : 's'} the generator no longer draws.`,
+  cleanRetired: (n: number): string => `${n} style-guide table${n === 1 ? '' : 's'} Prism3 no longer draws.`,
   removeTables: (n: number): string => `Remove ${n} table${n === 1 ? '' : 's'}`,
   /** #3711 (Q-UF2 A), DRAFT: the button while the update passes changes on to files that use the library, and the
    *  callout above it that names each one. */
@@ -467,7 +467,7 @@ const listCount = (list: string): number => { const parts = list.split(', '); co
 const s_ = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 /** #3713: the blocker lines Theme's run clears (the variables and the text and effect styles it writes), matched by the
  *  same words `blockedWhy` reads them by. With Theme ticked they no longer block, so the row skips them. */
-const THEME_CLEARS = /^(?:\d+ variables? the plan binds (?:is|are) not in this file|(?:text|effect) styles? not in this file: )/;
+const THEME_CLEARS = /^(?:\d+ variables? Prism3 binds (?:is|are) not in this file|(?:text|effect) styles? not in this file: )/;
 /** #3713: one of the check's blocker lines (`update-plan.ts`, `fileBlockers` and `setRefusal`) in plain words, as the
  *  clause after "Can’t update yet —", with the step that clears it where Studio or Figma offers one. The words are the
  *  owner's (#3721, D3721.1–.6, 2026-11-12), except the unknown-shape line, which is DRAFT. A line of a shape not known
@@ -475,26 +475,26 @@ const THEME_CLEARS = /^(?:\d+ variables? the plan binds (?:is|are) not in this f
  *  shapes are matched by their words, so a reworded blocker falls through to the fixed line, never to a wrong reason. */
 export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) => id): { readonly why: string; readonly next: string | null } => {
   let m: RegExpMatchArray | null;
-  if ((m = line.match(/^Not in this file: (.+)\. Build (.+) first, then run the update again$/)))
+  if ((m = line.match(/^Not in this file: (.+)\. Build (.+) first, then run Update file again$/)))
     return { why: `it needs ${setNames(m[2], nameOf)}, which this file doesn’t have.`, next: `Tick ${setNames(m[2], nameOf)} on Components first.` };
-  if ((m = line.match(/^(\d+) variables? the plan binds (?:is|are) not in this file/)))
+  if ((m = line.match(/^(\d+) variables? Prism3 binds (?:is|are) not in this file/)))
     return { why: `it needs ${s_(Number(m[1]), 'variable', 'variables')} this file doesn’t have.`, next: 'Tick Theme to write them.' };
   if ((m = line.match(/^(text|effect) styles? not in this file: (.+)$/)))
     return { why: `it needs ${listCount(m[2]) === 1 ? `a ${m[1]} style` : `${m[1]} styles`} this file doesn’t have: ${m[2]}.`, next: 'Tick Theme to write them.' };
-  if ((m = line.match(/^components? the plan swaps to (?:is|are) not in this file: (.+)$/)))
+  if ((m = line.match(/^components? Prism3 swaps to (?:is|are) not in this file: (.+)$/)))
     return { why: `it swaps to ${setNames(m[1], nameOf)}, which this file doesn’t have.`, next: `Tick ${setNames(m[1], nameOf)} on Components first.` };
   if ((m = line.match(/^fonts: (.+) will not load/)))
     return { why: `these fonts won’t load: ${m[1]}.`, next: 'Install or turn them on in Figma, then open this again.' };
-  if (/^an axis the plan removed would collapse members/.test(line))
+  if (/^an axis Prism3 removed would collapse variants/.test(line))
     return { why: 'a property it drops would merge variants into one.', next: null };
   // D3721.4: only the agent's Adopt clears this, and Studio has none; its write path is #3714.
   if ((m = line.match(/^the axes change, and (\d+) members? not built by Prism3/)))
     return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'Studio can’t do this yet.' };
   if ((m = line.match(/^renaming (.+) would give it the name of another member \((.+)\)$/)))
     return { why: `renaming ${m[1]} would clash with ${m[2]}.`, next: 'Rename or remove one of them in Figma.' };
-  if ((m = line.match(/^(\d+) members share the coordinate (\S+)/)))
+  if ((m = line.match(/^(\d+) variants share the coordinate (\S+)/)))
     return { why: `${m[1]} variants share one name, ${m[2]}.`, next: 'Rename or remove the extra one in Figma.' };
-  if (/^the members disagree on the axis list/.test(line))
+  if (/^the variants disagree on the axis list/.test(line))
     return { why: 'its variants don’t all have the same properties.', next: 'Fix the variant names in Figma.' };
   // DRAFT (D3721.1 b: the decision is the owner's, these words are not yet): Report a problem is the control's own name.
   return { why: 'the check gave a reason Studio doesn’t recognize.', next: 'Report it with Report a problem.' };

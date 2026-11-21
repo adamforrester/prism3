@@ -27,6 +27,8 @@
  *                `orphan/hand-renamed`, `orphan/under a layer dry run`; the skip without it → `orphan/under a layer skip`.
  *   hand/…       a reaction removed by hand is a hand edit at its own path, kept by default and still reported;
  *                overwritten on request, then current. Mutation: reactions dropped from the record → `hand/detected`.
+ *                With a layer added by hand too, the member is skipped but not behind its plan (#3907), so the set is
+ *                still recorded as current. Mutation: `behind` counting hand-edited reactions → `hand/not behind`.
  *   converge/…   a set built before reactions existed (no reactions, no reactions in its records, an older executor
  *                revision) is named by the dry run, updated, verified, and then reads up to date. Mutations: the
  *                executor skips in-place members → `converge/written`, `converge/up to date`.
@@ -51,7 +53,7 @@ import { BASELINE_KEY, writeBaseline } from './src/member-baseline';
 import { EXECUTOR_REVISION } from './src/executor-revision';
 import { makeShim, type Node, type Page } from './component-shim';
 import { previewUpdate, previewVerdict, type UpdateTarget } from './src/update-plan';
-import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
+import { applyUpdate, applyVerdict, ledgerAfter, previewHashOf, type ApplyHost } from './src/update-apply';
 import { REACTIONS_PATH, reactionMap } from './src/reactions';
 
 let failed = 0;
@@ -318,7 +320,7 @@ section('orphan — a destination the host still resolves, to a node with no par
       for (const n of w.page.children) if (n.type === 'COMPONENT_SET') (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'updatesOff', '');
       const { res } = await confirm(w, TAG, { handEdits: choice });
       const why = res.outcomes[0]?.skipped.find((x) => x.member === T('rest'))?.reason ?? '';
-      ok(why === 'a layer was added or removed by hand, and its prototype reactions point at a member no longer in the set' && dumpOf(rest) === before,
+      ok(why === 'a layer was added or removed by hand, and its prototype reactions point at a variant no longer in the set' && dumpOf(rest) === before,
         `orphan/under a layer skip (${choice}): the skip names the layer and the dangling reactions, and the member is left exactly (${why || 'not skipped'}; ${dumpOf(rest) === before ? 'untouched' : 'written'})`);
     }
   } finally { delete (globalThis as any).figma; }
@@ -346,6 +348,28 @@ section('hand — a reaction removed by hand is a hand edit, with the usual choi
   ok(last.counts.current === 45, `hand/current: then all 45 current (${JSON.stringify(last.counts)})`);
 }
 
+{
+  // #4381 review S1 (#3907): A MEMBER THAT DIFFERS ONLY BY THE DESIGNER'S OWN EDITS IS NOT BEHIND. Its reactions edited by
+  // hand and a layer added by hand, its plan unchanged: the apply skips it for the layer, but nothing of Prism3's is out
+  // of date on it, so the set is still recorded as built from today's def. Before the fix, the hand-edited reactions
+  // read as `behind` and the set stayed due on every run. Expected values typed here. Mutation: `behind` counts
+  // reactions that are a hand edit → `hand/not behind`.
+  const w = await world(TAG);
+  const rest = member(w, T('rest'));
+  await (rest.setReactionsAsync as (r: unknown[]) => Promise<void>)(reactionsOf(rest).filter((r) => r.trigger.type === 'ON_PRESS'));
+  const extra = (w.api.createFrame as () => Node)();
+  extra.name = 'designer note';
+  (rest.appendChild as (c: Node) => void)(extra);
+  const e = { engine: 'e1', def: 'today', rev: 1 } as never;
+  const { pre, res } = await confirm(w, TAG);
+  const st = pre.sets[0].states.find((s) => s.member === T('rest'));
+  const o = res.outcomes[0];
+  const ledger = ledgerAfter(res.outcomes, () => e, { [TAG]: { engine: 'e1', def: 'earlier', rev: 1 } } as never);
+  ok(st?.state === 'handEdited' && !st.behind && o.skipped.some((x) => x.member === T('rest') && x.reason === 'a layer was added or removed by hand')
+    && !o.behind && JSON.stringify(ledger[TAG]) === JSON.stringify(e),
+    `hand/not behind: a member differing only by its hand-edited reactions and a layer added by hand is skipped, and the set is recorded as built from today's def (${JSON.stringify(st)}; ${JSON.stringify(o.behind ?? null)}; ${JSON.stringify(ledger[TAG] ?? null)})`);
+}
+
 /* ── converge ───────────────────────────────────────────────────────────────────────────────────────────── */
 section('converge — a set built before reactions existed is updated once, then reads up to date');
 {
@@ -364,8 +388,8 @@ section('converge — a set built before reactions existed is updated once, then
   ok(membersOf(w).every((m) => reactionsOf(m).length === 0), 'premise: no member carries a reaction');
   const { pre, res } = await confirm(w, TAG);
   const lines = previewVerdict(pre).lines.filter((l) => l.includes('prototype reactions'));
-  ok(lines.length === 2 && lines.some((l) => l === `tag · the member · prototype reactions: the plan says While hovering → state=hover; While pressing → state=pressed, the file has none (9 members).`)
-    && lines.some((l) => l === `tag · the member · prototype reactions: the plan says While pressing → state=pressed, the file has none (9 members).`), `converge/dry run: the missing reactions are named, plan against file (${lines.join(' | ')})`);
+  ok(lines.length === 2 && lines.some((l) => l === `tag · the member · prototype reactions: Prism3 expects While hovering → state=hover; While pressing → state=pressed, the file has none (9 variants).`)
+    && lines.some((l) => l === `tag · the member · prototype reactions: Prism3 expects While pressing → state=pressed, the file has none (9 variants).`), `converge/dry run: the missing reactions are named, plan against file (${lines.join(' | ')})`);
   ok(pre.sets[0].handEdits.length === 0, `converge/no hand edits: a record from before reactions claims nothing about them (${JSON.stringify(pre.sets[0].handEdits.slice(0, 2))})`);
   ok(applyVerdict(res).ok, `converge/apply: ${applyVerdict(res).headline} (${applyVerdict(res).lines.join(' | ')})`);
   const total = membersOf(w).reduce((k, m) => k + reactionsOf(m).length, 0);
@@ -410,7 +434,7 @@ section('touch — Rest keeps While pressing, and a file built under the hover-o
   ok(seeded === 9 && JSON.stringify(named(w, member(w, S('rest')))) === JSON.stringify([`ON_HOVER→${S('hover')}`]), `premise: 9 Rest members seeded hover-only, ${S('rest')} among them (${named(w, member(w, S('rest'))).join('; ')})`);
   const { pre, res } = await confirm(w, TAG);
   const lines = previewVerdict(pre).lines.filter((l) => l.includes('prototype reactions'));
-  ok(lines.length === 1 && lines[0] === 'tag · the member · prototype reactions: the plan says While hovering → state=hover; While pressing → state=pressed, the file has While hovering → state=hover (9 members).',
+  ok(lines.length === 1 && lines[0] === 'tag · the member · prototype reactions: Prism3 expects While hovering → state=hover; While pressing → state=pressed, the file has While hovering → state=hover (9 variants).',
     `touch/dry run: the missing press reaction on Rest is named as a reaction difference (${lines.join(' | ')})`);
   ok(pre.sets[0].handEdits.length === 0 && pre.sets[0].states.filter((x) => x.state === 'update').length === 9, `touch/not hand-edited: the 9 Rest members read to update, none hand-edited (${JSON.stringify(pre.sets[0].counts)}; ${JSON.stringify(pre.sets[0].handEdits.slice(0, 2))})`);
   ok(applyVerdict(res).ok, `touch/apply: ${applyVerdict(res).headline} (${applyVerdict(res).lines.join(' | ')})`);
