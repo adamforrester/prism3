@@ -22,6 +22,7 @@ import { resolveAllModes, type Theme } from '@prism3/engine';
 import { brandState, setPath, theme } from './store';
 import { setRoleOverride, stepsOf } from './fills-input';
 import { commitAtomic, removeColumn } from './name-refs';
+import { must } from '../must';
 
 /** The last dot-segment of a token path: the palette step key (`…primary.650` → `650`). */
 export const stepKeyOf = (path: string | undefined): string => (path ? path.split('.').pop()! : '');
@@ -82,7 +83,7 @@ export const anchorOf = (mode: string, col: string): number | undefined => {
   if (col === 'primary') return brandState.actionAnchorStep;
   if (col === 'destructive') return brandState.destructiveAnchorStep;
   const i = accentIndex(col);
-  return i < 0 ? undefined : brandState.interactivePalettes![i].anchorStep;
+  return i < 0 ? undefined : must(brandState.interactivePalettes?.[i], `accent ${col}`).anchorStep;
 };
 /** Pin column `col`'s fill anchor in `mode`, or clear it (`undefined`). Light writes the column's global
  *  field (`actionAnchorStep`, `destructiveAnchorStep`, or the accent's `anchorStep`); any other mode writes
@@ -117,7 +118,7 @@ export const setAnchor = (mode: string, col: string, v: number | undefined): voi
 export const setInverseFillSource = (mode: string, role: string, assignedPalette: string, value: string): void => {
   if (value === '') return setRoleOverride(mode, role, assignedPalette, undefined);
   const [pal, step] = value.split('::');
-  setRoleOverride(mode, role, pal, step);
+  setRoleOverride(mode, role, must(pal, 'the palette'), step);
 };
 
 // ── links (legacy `setLinkRung`, `setLinkFamilyOverride`) ──────────────────────────────────────────
@@ -161,7 +162,7 @@ const RESERVED_COLUMNS = new Set(['primary', 'neutral', 'destructive']);
  *  `taken` (#3608, the owner's Q-AB1 B: offered disabled, with a reason, never hidden): `addAccent` adds an unnamed
  *  column, which the engine names after its palette, and the engine refuses a duplicate column name. */
 export const addSetOptions = (actionPalette: string): { palette: string; taken: boolean }[] => {
-  const cols = brandState.interactivePalettes ?? [];
+  const cols = columnsOf();
   const already = new Set(cols.map((e) => e.palette));
   const named = new Set(cols.map((e) => e.name).filter((n): n is string => n !== undefined));
   return ['primary', ...(brandState.brandColors ?? []).map((x) => x.name)]
@@ -170,8 +171,18 @@ export const addSetOptions = (actionPalette: string): { palette: string; taken: 
 };
 /** The palettes "Add button set" can add: `addSetOptions` less the taken ones. */
 export const promotablePalettes = (actionPalette: string): string[] => addSetOptions(actionPalette).filter((o) => !o.taken).map((o) => o.palette);
-/** Promote `palette` to an interactive column; the engine names it after the palette. */
+/** The brand's interactive columns as the engine builds them: `interactivePalettes`, or else the legacy `accentPalette`'s
+ *  one column, named `accent` (docs/20 §3, the engine's back-compat; `name-refs.ts` reads it the same way). */
+const columnsOf = (): { name?: string; palette: string }[] =>
+  brandState.interactivePalettes ?? (brandState.accentPalette !== undefined ? [{ name: 'accent', palette: brandState.accentPalette }] : []);
+/** Promote `palette` to an interactive column; the engine names it after the palette. #4210 (owner, A): a brand on the
+ *  legacy `accentPalette` has its `accent` column folded into `interactivePalettes` first, under the same name, so the
+ *  new list does not replace it and every `accent`-keyed anchor and override still names a column. */
 export const addAccent = (palette: string): void => {
+  if (brandState.interactivePalettes === undefined && brandState.accentPalette !== undefined) {
+    brandState.interactivePalettes = [{ name: 'accent', palette: brandState.accentPalette }];
+    delete brandState.accentPalette;
+  }
   const arr = brandState.interactivePalettes ?? (brandState.interactivePalettes = []);
   arr.push({ palette });
 };

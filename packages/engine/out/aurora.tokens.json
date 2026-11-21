@@ -18653,6 +18653,17 @@
             }
           }
         },
+        "720": {
+          "$type": "duration",
+          "$value": "720ms",
+          "$description": "duration primitive — 720ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 720
+            }
+          }
+        },
         "800": {
           "$type": "duration",
           "$value": "800ms",
@@ -18661,6 +18672,28 @@
             "prism3": {
               "generated": true,
               "ms": 800
+            }
+          }
+        },
+        "880": {
+          "$type": "duration",
+          "$value": "880ms",
+          "$description": "duration primitive — 880ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 880
+            }
+          }
+        },
+        "1040": {
+          "$type": "duration",
+          "$value": "1040ms",
+          "$description": "duration primitive — 1040ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 1040
             }
           }
         },
@@ -18760,6 +18793,42 @@
             }
           }
         },
+        "long": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.720}",
+          "$description": "motion duration long — 720ms (tempo: snappy)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.motion.duration-ms.720",
+              "ms": 720
+            }
+          }
+        },
+        "longer": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.880}",
+          "$description": "motion duration longer — 880ms (tempo: snappy)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.motion.duration-ms.880",
+              "ms": 880
+            }
+          }
+        },
+        "longest": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.1040}",
+          "$description": "motion duration longest — 1040ms (tempo: snappy)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.motion.duration-ms.1040",
+              "ms": 1040
+            }
+          }
+        },
         "spin": {
           "$type": "duration",
           "$value": "{ads.motion.duration-ms.800}",
@@ -18850,6 +18919,42 @@
           "$type": "duration",
           "$value": "{ads.motion.duration-ms.0}",
           "$description": "reduce-motion slower — 0ms (eliminated — substitute a cross-fade)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.motion.duration-ms.0",
+              "ms": 0
+            }
+          }
+        },
+        "long": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.0}",
+          "$description": "reduce-motion long — 0ms (eliminated — substitute a cross-fade)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.motion.duration-ms.0",
+              "ms": 0
+            }
+          }
+        },
+        "longer": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.0}",
+          "$description": "reduce-motion longer — 0ms (eliminated — substitute a cross-fade)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.motion.duration-ms.0",
+              "ms": 0
+            }
+          }
+        },
+        "longest": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.0}",
+          "$description": "reduce-motion longest — 0ms (eliminated — substitute a cross-fade)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -22941,7 +23046,7 @@
       "round": {
         "$type": "dimension",
         "$value": "{ads.core.dimension.128}",
-        "$description": "radius round — 128px (pill)",
+        "$description": "radius round — 128px (pill. For small fixed-size parts, such as a switch track, a radio or a badge count. A pill button binds `radius.capsule`)",
         "$extensions": {
           "prism3": {
             "role": "semantic",
@@ -22954,7 +23059,7 @@
       "capsule": {
         "$type": "dimension",
         "$value": "999px",
-        "$description": "radius capsule — 999px (off-grid literal)",
+        "$description": "radius capsule — 999px (off-grid literal. The pill a button binds under `controlShape: pill`, full at any height. Small fixed-size parts bind `radius.round`)",
         "$extensions": {
           "prism3": {
             "generated": true,
@@ -23533,7 +23638,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.238.0",
+      "version": "0.239.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -100,14 +100,14 @@
  *     is not impossible) for no benefit.
  *
  * SCOPE — imported from `regen.ts`: `out/**`, the emitted `schema/`+report artifacts,
- * `apps/studio/dist/*.js` (the BUILT bundle — same trap 2 reasoning), the schema contract, the engine
- * README, and shipped skills. **NO LONGER IDENTICAL to `lint-us-english.ts`, which is a defect and not
- * a decision:** #937 added `apps/plugin/dist` (main.js + ui.html) there and deliberately did not widen
- * this gate in the same PR. Measured with the surface temporarily added here: **3 §2 violations in
- * `apps/plugin/dist/main.js`**, all "simply", all in string literals rather than comments, with
- * `ui.html` not yet measured. Filed as #948; until it lands, this sentence is the only place
- * recording that the two sets diverge, because nothing asserts they agree — the both-gates rule
- * `lint-schema-classification.ts` enforces covers `schema/` files only, and neither bundle is one. A new emitted artifact is covered automatically
+ * `apps/studio/dist/*.js` and `apps/plugin/dist/main.js` + `ui.html` (the BUILT bundles — same trap 2
+ * reasoning), the schema contract, the engine README, and shipped skills. #937 added the plugin bundle to
+ * `lint-us-english.ts` and left this gate behind; #948 closed that, each file claimed separately in
+ * REQUIRED_SURFACES, `ui.html` stripped of comments like a `.js` bundle because it inlines the UI script.
+ * Measured when it landed: 1 §2 hit, "just" in a materialization-rename rule's `why` in `main.js`
+ * (reworded); the 3 "simply" measured when #948 was filed had gone by then. Nothing asserts the two
+ * gates' bundle scopes agree — the both-gates rule `lint-schema-classification.ts` enforces covers
+ * `schema/` files only, and neither bundle is one. A new emitted artifact is covered automatically
  * because both gates read the same `ENGINE_ARTIFACTS`/`SCHEMA_ARTIFACTS` exports; nobody has to
  * remember to add it here separately.
  * The on-demand preview page (`out/tokens.html`, Q319.6) is not committed, so both gates skip a local
@@ -163,6 +163,14 @@
  *     the entry's `min` / `token` / `composited_over` (never against the generator's function). A `MUST`
  *     anywhere else in the file, or a requirement naming a different token or floor, is still a hit.
  *
+ * One QUOTATION of the channel is carved too (the 0.239.0 fold): the release record
+ * (`docs/public/releases/<x.y.z>.{md,json}`) carries each folded change note verbatim, and can't be edited
+ * because `lint-release-notes.ts` re-derives it from git. So a note that quotes a sidecar's requirement
+ * (#1779's `"MUST clear 3:1 against …"`) ships that `MUST` in the record. `carveQuotedRequirements` blanks a
+ * `MUST` there only when it opens a double-quoted span whose text, with JSON `\n` escapes and whitespace
+ * collapsed, is VERBATIM a `requirement` some committed `out/*.ai.json` ships. The oracle is the sidecars, not
+ * this file's pattern: a paraphrase, an unquoted `MUST`, or a quote of a sentence no sidecar ships is still a hit.
+ *
  * The channel is fail-closed and self-checked like the scope: a sidecar that does not parse is `blind`,
  * and a run in which the carve-out removed nothing fails — a carve-out that matches nothing is either a
  * dead rule or a renamed field, and both would read as a pass.
@@ -184,8 +192,8 @@
  *     function-body comments (a file header, `// ---- 1. named stops` inside `resolveVocabulary`) and keeps
  *     the ones inside an expression — an object or array literal, a call's arguments (the comments beside
  *     the TRAITS entries, a component def's fields). A comment's position decides whether it ships, so the
- *     scan reads the bundle raw rather than guessing. The plugin files are in scope here although #948
- *     still keeps them out of the voice rules; that is why `verify.ts` now runs this gate after BOTH builds.
+ *     scan reads the bundle raw rather than guessing. The voice rules read the plugin files too since #948,
+ *     comments stripped; this arm reads them raw. Either way `verify.ts` runs this gate after BOTH builds.
  *   - IN: every personality note as the engine RENDERS it, one `brandTheme` call per trait in the
  *     schema's enum. No committed brand sets `personality`, so `out/**` never shows a trait note; reading
  *     the emitted corpus for them would be a scan of a surface that cannot hold the defect.
@@ -331,6 +339,24 @@ const treeFloorsOf = (tree: any): TreeFloors => {
 const sameFloors = (a: Floors, b: Floors) => Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[k] === v);
 const isPayloadSidecar = (abs: string) => /\/packages\/engine\/out\/[^/]+\.ai\.json$/.test(abs);
 let channelExempted = 0, channelFiles = 0;
+
+/** The release record: one file per folded version, `.md` and `.json`. Not the index. */
+const isReleaseRecord = (abs: string) => /\/docs\/public\/releases\/\d+\.\d+\.\d+\.(?:md|json)$/.test(abs);
+/** In a release record, blank each `MUST` that opens a double-quoted span (`"…"`, or `\"…\"` inside JSON) whose
+ *  text, `\n` escapes and whitespace runs collapsed, is verbatim one of `shipped`. Same length out as in, so every
+ *  other hit keeps its line. See the header's payload-channel section. */
+export const carveQuotedRequirements = (txt: string, shipped: ReadonlySet<string>): { text: string; exempted: number } => {
+  let exempted = 0;
+  const text = txt.replace(/(\\?")(MUST\b[^"]*?)(\\?")/g, (all: string, open: string, body: string, close: string) => {
+    if (!shipped.has(body.replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim())) return all;
+    exempted++;
+    return `${open}    ${body.slice(4)}${close}`;
+  });
+  return { text, exempted };
+};
+/** Every contrast `requirement` the committed sidecars ship: the oracle for the quotes above. */
+const shippedRequirements = new Set<string>();
+let recordExempted = 0;
 /** The sidecar text with every valid contract requirement blanked, re-serialized the way the emitter
  *  writes it (2-space JSON), so line numbers on a remaining hit still point at the committed file. */
 const carvePayload = (raw: string, floorsOf: TreeFloors): { text: string; exempted: number } => {
@@ -390,7 +416,8 @@ const scan = (abs: string): Hit[] => {
   // `//` source comments — esbuild does not strip the latter, contrary to what this gate assumed until
   // #804. Block spans go first: a `//` inside a block comment is part of that comment, not a line
   // comment, and blanking the span makes the line-pass a no-op over it either way.
-  const txt = abs.endsWith('.js') ? stripLineComments(stripBlockComments(raw)) : raw;
+  // The plugin's `ui.html` is a bundle too (#948): the UI script and stylesheet inlined, so it carries the same comments.
+  const txt = abs.endsWith('.js') || abs === join(repo, 'apps/plugin/dist/ui.html') ? stripLineComments(stripBlockComments(raw)) : raw;
   // The normative rule reads the same text, except that a payload sidecar first loses its valid contract
   // requirements (header: the payload channel). An unparseable sidecar is a surface this gate cannot see.
   let normText = txt;
@@ -400,6 +427,7 @@ const scan = (abs: string): Hit[] => {
       return [];
     }
   }
+  if (isReleaseRecord(abs)) { const c = carveQuotedRequirements(normText, shippedRequirements); normText = c.text; recordExempted += c.exempted; }
   return [...voiceHits(txt).map((h) => ({ ...h, src: txt })), ...normativeHits(normText).map((h) => ({ ...h, src: normText }))].map(({ rule, match, index, src }) => ({
     file: shown(abs),
     line: src.slice(0, index).split('\n').length,
@@ -422,9 +450,19 @@ const walk = (dir: string): string[] => {
 
 const walkRequired = (dir: string, why: string): string[] => {
   const found = walk(dir);
-  if (!found.length) blind.push(`${relative(repo, dir)} — ${why}`);
+  if (!found.length) { blind.push(`${relative(repo, dir)} — ${why}`); unbuilt.push({ dir: relative(repo, dir), why }); }
   return found;
 };
+// #949: the required directories that came back empty, kept by path so the SCOPE report can name the remedy. That
+// report runs first and exits, so the `blind[]` line saying "not built — run …" never printed, and a contributor who
+// forgot a build was told the gate's scope shrank and invited to edit REQUIRED_SURFACES.
+const unbuilt: { dir: string; why: string }[] = [];
+/** Each missing surface's line, with the remedy of the empty required directory its path lies under. */
+const scopeLines = (missing: string[], empty: { dir: string; why: string }[]): string[] =>
+  missing.map((m) => {
+    const u = empty.find((x) => m.includes(`${x.dir}/`) || m.includes(`${x.dir})`));
+    return u ? `${m} — ${u.dir} is empty: ${u.why}` : m;
+  });
 
 // ---- GATED: same surfaces as lint-us-english.ts, same reasoning, imported from the same
 // regen.ts exports so a new emitted artifact is covered here automatically too.
@@ -439,6 +477,10 @@ const gated: string[] = [
   // `build:site`, which writes apps/studio/public/dist instead.
   ...walkRequired(join(repo, 'apps/studio/dist'), 'the web bundle is not built — run `npm run -w @prism3/studio build` (NOT build:site, which writes apps/studio/public/dist)')
     .filter((f) => f.endsWith('.js')),
+  // …and the plugin bundle, the identical surface #937 gave lint-us-english.ts (#948): `main.js` and `ui.html`, which
+  // inlines the same UI and carries the component defs' prose. Claimed per file below, as there.
+  ...walkRequired(join(repo, 'apps/plugin/dist'), 'the plugin bundle is not built — run `npm run -w @prism3/plugin build`')
+    .filter((f) => f.endsWith('.js') || f.endsWith('.html')),
   join(repo, 'packages/engine/schema/theme-schema.json'),
   join(repo, 'packages/engine/README.md'),
   // The token-name baseline — deliberately not a `regen` artifact (see CLAUDE.md principle 5), so
@@ -534,6 +576,10 @@ const SELF_CHECK: { sample: string; expectRule: string | null }[] = [
   { sample: 'the skill drops its note that the def still dropped the fade', expectRule: null }, // "note", a noun
   { sample: 'A part note that cites an owner decision', expectRule: null },          // "note", a noun
   { sample: 'bound to the theme the run just wrote', expectRule: null },             // the time sense, a moment ago
+  // #4174's note: one modifier between the determiner and a lower-case `note` is still the noun.
+  { sample: 'each code-only note that names motion', expectRule: null },
+  { sample: 'each code-only\nnote that names motion', expectRule: 'filler' }, // the modifier never crosses a line
+  { sample: 'Read the guide Note that it moves.', expectRule: 'filler' },   // a capital `Note` opens a run-in sentence
   { sample: 'Oops, something went wrong.', expectRule: 'apology' },
   { sample: 'Sorry, we could not complete this.', expectRule: 'apology' },
   { sample: 'Applied — 88 variables written!', expectRule: 'exclamation' },
@@ -602,6 +648,19 @@ const LINE_SAMPLE = [
     { sample: 'links must be underlined; MUSTARD is a color', want: false },
   ];
   for (const { sample, want } of cases) if ((normativeHits(sample).length > 0) !== want) selfFails.push(`normative: "${sample}" should${want ? '' : ' NOT'} be flagged`);
+  // The release record's quotes of the channel: only a verbatim quote of a shipped requirement is carved.
+  const REQ = 'MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes.';
+  const quoteCases: { sample: string; want: boolean }[] = [
+    { sample: `reads "MUST clear 3:1 against \`background.primary\` in light and dark modes, and 4.5:1 in hc-light and\nhc-dark modes." now`, want: false },
+    { sample: `"prose": "reads \\"MUST clear 3:1 against \`background.primary\` in light and dark modes, and 4.5:1 in hc-light and\\nhc-dark modes.\\" now"`, want: false },
+    { sample: `reads "MUST clear 3:1 against \`background.primary\` in every mode." now`, want: true },
+    { sample: `reads ${REQ} now`, want: true },
+    { sample: `reads "the token MUST clear 3:1." now`, want: true },
+  ];
+  for (const { sample, want } of quoteCases) {
+    if ((normativeHits(carveQuotedRequirements(sample, new Set([REQ])).text).length > 0) !== want) selfFails.push(`release-record quote: "${sample}" should${want ? '' : ' NOT'} be flagged`);
+  }
+  if (carveQuotedRequirements(`"${REQ}"`, new Set([REQ])).text.length !== REQ.length + 2) selfFails.push('release-record quote: the carve changed the text length, so later hits would report the wrong line');
   const sidecar = (cw: object, extra: object = {}) => JSON.stringify({ color: { 'text.primary': { avoid_when: 'Do not use on fills.', contrast_with: [cw], ...extra } } });
   // The tree beside the fixture: text.primary holds 7:1 in every mode; border.brand 3:1 in light and dark, 4.5:1 in HC.
   const FLOORS: Record<string, Floors> = { 'text.primary': { light: '7:1', dark: '7:1' }, 'border.brand': { light: '3:1', dark: '3:1', 'hc-light': '4.5:1', 'hc-dark': '4.5:1' },
@@ -636,6 +695,9 @@ const LINE_SAMPLE = [
 // still see "simply", not that the file containing it was ever opened.
 const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   { label: 'the built web bundle (apps/studio/dist/*.js)', test: (f) => f.includes('/apps/studio/dist/') && f.endsWith('.js') },
+  // #948: per file, not one `/apps/plugin/dist/` predicate, which would stay satisfied by either file alone.
+  { label: 'the built plugin controller (apps/plugin/dist/main.js)', test: (f) => f === join(repo, 'apps/plugin/dist/main.js') },
+  { label: 'the built plugin UI document (apps/plugin/dist/ui.html)', test: (f) => f === join(repo, 'apps/plugin/dist/ui.html') },
   { label: 'emitted artifacts (packages/engine/out)', test: (f) => f.includes('/packages/engine/out/') },
   // The on-demand preview page (Q319.6): not committed, so the `out/` walk no longer finds it in CI. Rendered
   // into a temp dir instead, and matched by that render, so dropping the render fails here rather than
@@ -655,10 +717,25 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   { label: 'the served docs entry point (docs/public/llms.txt)', test: (f) => f === join(repo, 'docs/public/llms.txt') },
   { label: 'the served docs (docs/public/**)', test: (f) => f.startsWith(`${repo}/docs/public/`) && f !== join(repo, 'docs/public/llms.txt') && !f.startsWith(`${join(repo, REPORTS_DIR)}/`) && !f.startsWith(`${repo}/docs/public/guides/`) },
 ];
+// #949 SELF-CHECK: an unbuilt bundle's missing surfaces carry its build command, and a surface under no empty
+// directory is printed unchanged.
+{
+  const probe = scopeLines(['the built plugin controller (apps/plugin/dist/main.js)', 'emitted artifacts (packages/engine/out)', 'the engine README'],
+    [{ dir: 'apps/plugin/dist', why: 'not built — run `npm run -w @prism3/plugin build`' }, { dir: 'packages/engine/out', why: 'run regen' }]);
+  if (!probe[0].includes('npm run -w @prism3/plugin build') || !probe[1].endsWith('run regen') || probe[2] !== 'the engine README') {
+    console.error(`❌ self-check (#949): the SCOPE report no longer names an empty directory's remedy: ${JSON.stringify(probe)}`);
+    process.exit(1);
+  }
+}
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {
   console.error(`\n❌ the gate's SCOPE shrank — ${missingSurfaces.length} promised surface(s) are absent from the compared set:\n`);
-  for (const m of missingSurfaces) console.error(`    ${m}`);
+  const scoped = scopeLines(missingSurfaces, unbuilt);
+  for (const m of scoped) console.error(`    ${m}`);
+  if (scoped.some((m, i) => m !== missingSurfaces[i])) {
+    console.error(`\n    A surface marked "is empty" above is NOT BUILT, not dropped: run the command it names and rerun.`);
+    console.error(`    Do not edit REQUIRED_SURFACES for it.`);
+  }
   console.error(`\n    Each is a surface this gate claims to cover. Unrepresented, a clean result is silence,`);
   console.error(`    not evidence. If one is deliberately dropped, remove it from REQUIRED_SURFACES in the`);
   console.error(`    same PR so the decision is visible.\n`);
@@ -720,6 +797,15 @@ if (selfFails.length) {
 // rather than scanning a bundle the issue no longer concerns and calling it clean.
 const VOCABULARY_MARKER = 'unknown personality trait';
 
+// The quote oracle (header: the payload channel), read before any release record is scanned. A sidecar that
+// does not parse is already `blind` through `scan`; an empty set with a release record in scope is blind too.
+for (const abs of gated.filter(isPayloadSidecar)) {
+  try {
+    for (const e of Object.values<any>(JSON.parse(readFileSync(abs, 'utf8')).color ?? {}))
+      for (const cw of e?.contrast_with ?? []) if (typeof cw?.requirement === 'string') shippedRequirements.add(cw.requirement);
+  } catch { /* reported by scan */ }
+}
+if (!shippedRequirements.size && gated.some(isReleaseRecord)) blind.push('the release record — no committed sidecar requirement was read, so a quoted one cannot be told from a stray MUST');
 const gatedHits = gated.flatMap(scan);
 
 // ---- the CLIENT NAMES scan (#1824) ----

@@ -107,7 +107,7 @@ const FIELDS: Record<string, Seed | Seed[] | string> = {
       promo: { sets: { acc: { hover: 'neutral.100' } } },
     } as BrandInput['outlineHoverFill'];
   } },
-  outlineWash: 'numbers', neutralEmphasis: 'an enum', raisedSurface: 'an enum', scrimStrength: 'an enum', secondaryTextGround: 'an enum',
+  outlineWash: 'numbers', neutralEmphasis: 'an enum', raisedSurface: 'an enum', scrimStrength: 'an enum', secondaryTextGround: 'an enum', interactiveGround: 'an enum',
   glassRoles: [
     { heldOnRemove: true, seed: (b) => { b.glassRoles = { card: { palette: 'acc.100', alpha: 60 } }; } },
     // A semantic role path under the color's column (#3710 review): it names the column, so it follows a rename and

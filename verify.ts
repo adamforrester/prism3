@@ -36,14 +36,15 @@
  *    that did not pass — so a clean run is a table, and a red run is a table plus exactly the output
  *    that matters. `--verbose` prints everything.
  *
- * 3. ORDER IS DECLARED PER GATE AND CHECKED, NOT LEFT TO THE ARRAY. Three orderings are load-bearing
+ * 3. ORDER IS DECLARED PER GATE AND CHECKED, NOT LEFT TO THE ARRAY. Four orderings are load-bearing
  *    and each one, if violated, produces a PASS rather than an error: `lint-us-english.ts` and
  *    `lint-voice.ts` scan the built `apps/studio/dist/*.js`, so run before `build` they scan a stale
  *    bundle (the trap that got #302 and #310) — and as of #937 the US-English gate scans
  *    `apps/plugin/dist` too, so it now depends on TWO builds and its `after` names both;
  *    `tools/exporter-comparison/gate.ts` executes
  *    TokenPress's real exporter, so it needs the TokenPress build; the `node:`-builtin check reads
- *    `apps/plugin/dist/main.js`. So every gate declares `after: [...]`, and `assertOrder` checks the
+ *    `apps/plugin/dist/main.js`; and `lint-materialization-renames.ts` reads the emission `regen` writes, so it
+ *    runs after `drift` (#1052). So every gate declares `after: [...]`, and `assertOrder` checks the
  *    authored array against those declarations BEFORE running anything. The two halves are
  *    independent on purpose (`docs/34`): the constraint is declared per gate, the order is the array,
  *    and neither is derived from the other — sorting the array from `after` would make the check
@@ -657,13 +658,14 @@ export const GATES: Gate[] = [
     precondition: driftCheckPrecondition,
   },
   {
-    // AFTER `drift` deliberately: this reads the emission `regen` writes, so running it against a stale
-    // `out/figma/**` would account for a tree nobody emitted. It does NOT declare `after: ['drift']` —
-    // that field makes a gate DERIVE from another's captured output, and this one runs its own process.
-    // Position in the list is the ordering; the dependency is on regen having run, not on its verdict.
+    // AFTER `drift`, declared (#1052): `after` orders gates and does not make one derive (`check-ignore`
+    // runs its own process after `build-web` the same way). Undeclared, a swap of the two passed
+    // `orderViolations` silently.
     id: 'lint-materialization-renames',
     ciStep: 'A materialization rename is recorded as a rule, and the accounting over it is total',
     cmd: engine('lint-materialization-renames.ts'),
+    after: ['drift'],
+    why: 'it reads the emission regen writes, and drift is the gate that regenerates and restores out/figma mid-run',
   },
   {
     id: 'lint-emission-version',
@@ -918,6 +920,21 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
+    // #2997 gate 1 — renders the shadcn projection itself and measures it in Chromium (hence the precondition and
+    // the studio job, where CI installs the browser). Reads no bundle, so no `after`.
+    id: 'lint-shadcn-contrast',
+    ciStep: 'The shadcn theme clears its contrast floors in Chromium (#2997)',
+    cmd: engine('lint-shadcn-contrast.ts'),
+    precondition: chromiumPrecondition,
+  },
+  {
+    // #2997 gate 2 — the same render, each oklch() parsed by Chromium back to the emitted color.
+    id: 'lint-shadcn-roundtrip',
+    ciStep: 'Every shadcn oklch() is the emitted color, through Chromium (#2997)',
+    cmd: engine('lint-shadcn-roundtrip.ts'),
+    precondition: chromiumPrecondition,
+  },
+  {
     // The FOURTH component-tier suite, and the only one whose ACTUAL comes from the HOST rather than
     // from the plan. `plugin-test` drives the executor and asserts what the executor reports;
     // this reads the built tree back and diffs it against the plan, which is the direction that
@@ -967,6 +984,13 @@ export const GATES: Gate[] = [
     cmd: ws('@prism3/tokens', 'check:package'),
   },
   {
+    // #2997 gate 5 — generates the Tailwind theme with the engine's emitter into a temp dir and compiles a fixture
+    // against it with the stock Tailwind CLI pinned in packages/tokens. Needs no build and no browser.
+    id: 'tailwind-theme',
+    ciStep: 'The Tailwind v4 theme compiles in a stock Tailwind (#2997)',
+    cmd: ws('@prism3/tokens', 'check:shadcn'),
+  },
+  {
     id: 'lint-skills',
     ciStep: 'Skills gate (shipped skills make true claims)',
     cmd: engine('lint-skills.ts'),
@@ -989,9 +1013,9 @@ export const GATES: Gate[] = [
     ciStep: 'Voice lint gate (shipped text)',
     cmd: engine('lint-voice.ts'),
     after: ['build-web', 'build-plugin'],
-    // `build-plugin` since #1824: the CLIENT NAMES arm reads apps/plugin/dist (main.js + ui.html) raw.
-    // The voice RULES still do not (#948 is open), so this ordering serves that one arm today.
-    why: 'the voice rules scan apps/studio/dist/*.js, and the client-name arm (#1824) scans both built bundles — run before either build it reads a stale one, or none',
+    // `build-plugin` since #1824: the CLIENT NAMES arm reads apps/plugin/dist (main.js + ui.html) raw, and since
+    // #948 the voice RULES read both files too.
+    why: 'the voice rules and the client-name arm (#1824) scan both built bundles, apps/studio/dist and apps/plugin/dist — run before either build it reads a stale one, or none',
   },
   {
     id: 'lint-doc-gates',
@@ -1518,6 +1542,19 @@ if (!orderViolations([okOrder[0], { ...okOrder[1], why: undefined }]).some((p) =
 }
 if (!orderViolations([{ id: 'a', ciStep: 'A' }]).some((p) => p.includes('neither a cmd nor a derive'))) {
   selfFails.push('orderViolations accepts a gate that would run nothing — a table row that can only ever be blank');
+}
+// #1052: the real list's undeclared ordering. Swapping `drift` and `lint-materialization-renames` passed `orderViolations`
+// silently, because the second declared no `after`. Run against the shipped GATES with the two swapped.
+{
+  const swapped = [...GATES];
+  const [d, m] = [swapped.findIndex((g) => g.id === 'drift'), swapped.findIndex((g) => g.id === 'lint-materialization-renames')];
+  if (d < 0 || m < 0) selfFails.push('#1052 the self-check cannot find `drift` and `lint-materialization-renames` in GATES');
+  else {
+    [swapped[d], swapped[m]] = [swapped[m], swapped[d]];
+    if (!orderViolations(swapped).some((p) => p.includes('`lint-materialization-renames` must run after `drift`'))) {
+      selfFails.push('#1052 orderViolations accepts lint-materialization-renames ahead of drift — it would read an emission regen never wrote');
+    }
+  }
 }
 if (!orderViolations([okOrder[0], { ...okOrder[0] }]).some((p) => p.includes('duplicate gate id'))) {
   selfFails.push('orderViolations accepts a duplicate id, so one gate could shadow another in the results map');

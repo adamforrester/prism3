@@ -83,6 +83,16 @@ falls back to the same kind of face rather than the browser default. The build r
 platform-neutral `prism3.base.tokens.json` keeps one family per typeface, because a comma list isn't a font
 name on Android. `check-package.mjs`'s [FALLBACK] arm checks the generic family in every block.
 
+### Two names that read differently elsewhere (#4161, #4175)
+
+- **`foreground` is a surface, not ink.** `--pds3-color-foreground-*` are the cards, panels and fills placed on the
+  page. Ink is `--pds3-color-text-*` and `--pds3-color-icon-*`. In Primer and in many CSS kits `foreground` means
+  text, so check which one you bind (`docs/06` §2).
+- **Padded steps sort last in JavaScript.** Steps such as `025`, `050` and `075` keep their leading zero, so they
+  sort in order as text, the way Figma's panel shows them. A JavaScript object puts integer-like keys (`100`, `950`)
+  before string keys, so in this CSS and in any key walk `025` comes after `950`, and `space-025` after `space-1200`.
+  Sort by `Number(step)` when the order matters.
+
 ### What a typography style's `font` shorthand leaves out (#3507)
 
 Each `type.*` style is written as one `font` shorthand: font style, weight, size / line height, family. The style
