@@ -30,8 +30,6 @@
 import { ICON_NAMES, ICON_PATHS } from './icon-glyphs';
 import { COMPONENT_GLYPHS } from './component-glyphs';
 import type { ComponentDef, PartDef } from './component-schema';
-import type { AnatomyPlan, FigmaNodePlan } from './anatomy-figma';
-import { canonicalShape } from './glyph-shape';
 
 /** One brand glyph: a single SVG path on Prism3's `0 0 24 24` artboard, filled. `fillRule` only when it cuts counters. */
 export type BrandGlyph = { path: string; fillRule?: 'evenodd' };
@@ -69,10 +67,10 @@ export const glyphInkBox = (d: string, emit?: PathSink): { minX: number; minY: n
   const readFlag = (): number | undefined => { skip(); const c = d[i]; if (c !== '0' && c !== '1') return undefined; i++; return Number(c); };
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const see = (x: number, y: number): void => { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); };
-  const cubic = (p: number[][]): void => {
+  const cubic = (p: readonly (readonly [number, number])[]): void => {
     for (let k = 0; k <= 32; k++) {
       const t = k / 32, u = 1 - t, w = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
-      see(w.reduce((s, c, j) => s + c * p[j][0], 0), w.reduce((s, c, j) => s + c * p[j][1], 0));
+      see(p.reduce((s, q, j) => s + (w[j] ?? 0) * q[0], 0), p.reduce((s, q, j) => s + (w[j] ?? 0) * q[1], 0));
     }
   };
   // SVG's elliptical arc, endpoint to center form (SVG 1.1 F.6.5, radii scaled up when too small, F.6.6), then sampled.
@@ -104,7 +102,7 @@ export const glyphInkBox = (d: string, emit?: PathSink): { minX: number; minY: n
   while (true) {
     skip();
     if (i >= d.length) break;
-    const c = d[i];
+    const c = d[i] ?? '';
     if (/[A-Za-z]/.test(c)) {
       if (!(c.toLowerCase() in PATH_ARITY)) return `'${c}' at character ${i} is not an SVG path command`;
       cmd = c; i++;
@@ -112,29 +110,32 @@ export const glyphInkBox = (d: string, emit?: PathSink): { minX: number; minY: n
     } else if (!cmd || cmd.toLowerCase() === 'z') return `'${c}' at character ${i} follows no command that takes numbers`;
     const lc = cmd.toLowerCase(), rel = cmd !== cmd.toUpperCase();
     const ox = rel ? x : 0, oy = rel ? y : 0;
-    const n: number[] = [];
-    for (let k = 0; k < PATH_ARITY[lc]; k++) {
+    const arity = PATH_ARITY[lc] ?? 0;
+    const read: number[] = [];
+    for (let k = 0; k < arity; k++) {
       const v = lc === 'a' && (k === 3 || k === 4) ? readFlag() : readNum();
-      if (v === undefined) return `'${cmd}' at character ${i} needs ${PATH_ARITY[lc]} numbers and has ${k}`;
-      n.push(v);
+      if (v === undefined) return `'${cmd}' at character ${i} needs ${arity} numbers and has ${k}`;
+      read.push(v);
     }
+    // Every index below is under the command's arity, read in full above; `?? 0` only satisfies the index check.
+    const n = (k: number): number => read[k] ?? 0;
     const reflect = (px: number, py: number, kinds: string): [number, number] => (prev !== '' && kinds.includes(prev) ? [2 * x - px, 2 * y - py] : [x, y]);
-    if (lc === 'm') { x = ox + n[0]; y = oy + n[1]; sx = x; sy = y; see(x, y); cmd = rel ? 'l' : 'L'; emit?.('M', [x, y]); }
-    else if (lc === 'l') { x = ox + n[0]; y = oy + n[1]; see(x, y); emit?.('L', [x, y]); }
-    else if (lc === 'h') { x = ox + n[0]; see(x, y); emit?.('L', [x, y]); }
-    else if (lc === 'v') { y = (rel ? y : 0) + n[0]; see(x, y); emit?.('L', [x, y]); }
+    if (lc === 'm') { x = ox + n(0); y = oy + n(1); sx = x; sy = y; see(x, y); cmd = rel ? 'l' : 'L'; emit?.('M', [x, y]); }
+    else if (lc === 'l') { x = ox + n(0); y = oy + n(1); see(x, y); emit?.('L', [x, y]); }
+    else if (lc === 'h') { x = ox + n(0); see(x, y); emit?.('L', [x, y]); }
+    else if (lc === 'v') { y = (rel ? y : 0) + n(0); see(x, y); emit?.('L', [x, y]); }
     else if (lc === 'c' || lc === 's') {
-      const [ax, ay] = lc === 'c' ? [ox + n[0], oy + n[1]] : reflect(cx2, cy2, 'cs');
+      const [ax, ay] = lc === 'c' ? [ox + n(0), oy + n(1)] : reflect(cx2, cy2, 'cs');
       const r = lc === 'c' ? 2 : 0;
-      const bx = ox + n[r], by = oy + n[r + 1], ex = ox + n[r + 2], ey = oy + n[r + 3];
+      const bx = ox + n(r), by = oy + n(r + 1), ex = ox + n(r + 2), ey = oy + n(r + 3);
       cubic([[x, y], [ax, ay], [bx, by], [ex, ey]]); emit?.('C', [ax, ay, bx, by, ex, ey]); cx2 = bx; cy2 = by; x = ex; y = ey;
     } else if (lc === 'q' || lc === 't') {
-      const [ax, ay] = lc === 'q' ? [ox + n[0], oy + n[1]] : reflect(qx, qy, 'qt');
-      const ex = ox + n[lc === 'q' ? 2 : 0], ey = oy + n[lc === 'q' ? 3 : 1];
+      const [ax, ay] = lc === 'q' ? [ox + n(0), oy + n(1)] : reflect(qx, qy, 'qt');
+      const ex = ox + n(lc === 'q' ? 2 : 0), ey = oy + n(lc === 'q' ? 3 : 1);
       const c1: [number, number] = [x + (2 / 3) * (ax - x), y + (2 / 3) * (ay - y)], c2: [number, number] = [ex + (2 / 3) * (ax - ex), ey + (2 / 3) * (ay - ey)];
       cubic([[x, y], c1, c2, [ex, ey]]); emit?.('C', [...c1, ...c2, ex, ey]);
       qx = ax; qy = ay; x = ex; y = ey;
-    } else if (lc === 'a') { const ex = ox + n[5], ey = oy + n[6]; arc(x, y, n[0], n[1], n[2], n[3], n[4], ex, ey); emit?.('A', []); x = ex; y = ey; }
+    } else if (lc === 'a') { const ex = ox + n(5), ey = oy + n(6); arc(x, y, n(0), n(1), n(2), n(3), n(4), ex, ey); emit?.('A', []); x = ex; y = ey; }
     prev = lc;
   }
   return { minX, minY, maxX, maxY };
@@ -232,53 +233,4 @@ export const applyIconMap = (def: ComponentDef, icons: BrandIcons | undefined): 
     out.props = def.props.map((p) => (p.name === 'name' && p.values ? { ...p, values: names } : p));
   }
   return out;
-};
-
-/**
- * A path's data rewritten in absolute `M`/`L`/`C`/`Z`, the commands `canonicalShape` reads, or `undefined` when it holds
- * an arc (an arc has no exact cubic, so it is not rewritten) or is not path data. A brand's art arrives in any spelling,
- * relative commands and quadratics included; Prism3's own is absolute already and comes back unchanged in shape.
- */
-export const absoluteGlyphPath = (d: string): string | undefined => {
-  const out: string[] = [];
-  let arc = false;
-  const box = glyphInkBox(d, (cmd, pts) => { if (cmd === 'A') arc = true; else out.push(`${cmd}${pts.join(' ')}`); });
-  return typeof box === 'string' || arc ? undefined : out.join('');
-};
-
-/**
- * BRAND ART THAT DUPLICATES AN ICON (#3076, owner decision 2026-11-20 A: reported, never blocked). The groups of icons in
- * a planned icon set that draw ONE picture, where at least one member is the brand's art: a name Prism3 does not have,
- * or a Prism3 name drawn with a path other than Prism3's (Q5 A). Prism3's own duplicates (`lint-glyph-geometry.ts`'s
- * DUPLICATE_SHAPES) are not the brand's doing and are left out.
- *
- * Read off the PLANS, the outlines the update would build, never off the brand input, so the report names what lands in
- * the file. Two members are one picture when their fill rules agree and `canonicalShape` agrees: a proof, never a
- * guess, so a pair it cannot prove (an arc, a transform `glyph-shape.ts` does not cover) is not reported. Each group's
- * names sorted, the groups in the order of their first name.
- */
-export const iconArtDuplicates = (plans: readonly AnatomyPlan[]): string[][] => {
-  const byShape = new Map<string, { names: string[]; brand: boolean }>();
-  for (const plan of plans) {
-    const name = (plan.coord as Record<string, string | undefined>).name;
-    if (!name) continue;
-    let svg: string | undefined;
-    const walk = (n: FigmaNodePlan): void => { if (svg === undefined && n.type === 'GLYPH' && typeof n.glyphSvg === 'string') svg = n.glyphSvg; for (const c of n.children ?? []) walk(c); };
-    walk(plan.root);
-    const paths = svg ? [...svg.matchAll(/<path\b[^>]*>/g)].map((m) => m[0]) : [];
-    if (paths.length !== 1) continue;
-    const d = /\bd="([^"]*)"/.exec(paths[0])?.[1];
-    if (!d) continue;
-    const rule = /\bfill-rule="([^"]*)"/.exec(paths[0])?.[1] ?? 'nonzero';
-    const abs = absoluteGlyphPath(d);
-    if (abs === undefined) continue;
-    let shape: string;
-    try { shape = canonicalShape(abs); } catch { continue; }
-    const key = `${rule}|${shape}`;
-    const brand = !CORE.has(name) || d !== (ICON_PATHS as Record<string, string>)[name];
-    const g = byShape.get(key) ?? { names: [], brand: false };
-    g.names.push(name); g.brand ||= brand;
-    byShape.set(key, g);
-  }
-  return [...byShape.values()].filter((g) => g.names.length > 1 && g.brand).map((g) => [...g.names].sort()).sort((a, b) => (a[0] < b[0] ? -1 : 1));
 };
