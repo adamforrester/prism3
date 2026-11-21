@@ -5363,7 +5363,9 @@ const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', 
   // #3073: the Glass section is the glassRoles lever's block, holding the shipped glass read-only and the brand's own.
   ['glassRoles', '[data-p3="lever-glass-roles"]'],
   // #3050: the Scrim section is the scrimStrength lever's block, its chips above the scrim's read-only row.
-  ['scrimStrength', '[data-p3="lever-scrim-strength"]']];
+  ['scrimStrength', '[data-p3="lever-scrim-strength"]'],
+  // #3339: Background fills holds Controls sit on (`interactiveGround`) under the contrast floor.
+  ['interactiveGround', '[data-p3="lever-interactive-ground"]']];
 /** S4f (QA-B1): Background fills' rows, by the role each names: the three page tiers (Primary was "Page", QA-B3),
  *  the contrast floor (a setting, named by its input), and the inverse fill's three tiers. Literal. */
 const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'background.tertiary', 'surfaces.floorStep',
@@ -5937,6 +5939,36 @@ if (runs('18')) {
     ok(false, `#3050 Scrim: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 18-scrim
+// #3339 (owner C; DRAFT copy): Surfaces & fills › Background fills › Controls sit on. Two chips, Every surface checked on
+// a brand without the setting; The page only writes `interactiveGround: 'page'`, Every surface writes 'floor'. The labels
+// are literals from the build PR's draft; ACTUAL is the persisted brand and the DOM.
+if (runs('18')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    const read = () => page.evaluate(() => {
+      const b = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-interactive-ground"]');
+      return {
+        section: b?.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent ?? null,
+        chips: [...(b?.querySelectorAll('[data-p3^="interactive-ground-choice-"]') ?? [])].map((n) => [n.textContent, n.getAttribute('aria-checked')]),
+      };
+    });
+    const r0 = await read();
+    ok(r0.section === 'Background fills' && JSON.stringify(r0.chips) === JSON.stringify([['Every surface', 'true'], ['The page only', 'false']]),
+      `#3339: Surfaces & fills › Background fills holds Controls sit on's chips, Every surface checked on a brand without the setting (${JSON.stringify(r0)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-page"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-page"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+    const pg = await persisted(page);
+    ok(pg?.interactiveGround === 'page' && (await read()).chips[1]?.[1] === 'true', `#3339: The page only writes interactiveGround: page (${pg?.interactiveGround})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-floor"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-floor"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+    const fl = await persisted(page);
+    ok(fl?.interactiveGround === 'floor', `#3339: Every surface writes interactiveGround: floor (${fl?.interactiveGround})`);
+    ok(errors.length === 0, `#3339 Controls sit on: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3339 Controls sit on: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 18-interactive-ground
 // =============================================================================================
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)

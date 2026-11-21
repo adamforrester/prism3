@@ -12936,6 +12936,137 @@ arm: {
     `Q-TXT1 A: no other brand's secondary ink moved — text, icon and inverse text match origin/main in every corpus brand and prism3, and the redesign seed holds its page fit (#3219) (${compared} brand × mode cells${moved.length ? `; MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
 }
 
+// ── #3339 (owner C, 2026-11-18) — THE INTERACTIVE GROUND: A BRAND DECLARES THE DARKEST GROUND ITS CONTROLS SIT ON ──────
+// `interactiveGround: 'floor' | 'page'` (the name and values are a DRAFT for the owner). SUBJECT = `resolveAllModes`.
+// ORACLE = the rule, typed here: the in-scope role lists are literals (never read from `modes.ts`), each ratio is
+// recomputed from the emitted hex against the ground's emitted hex, and "the lightest" is a scan of the neutral ramp.
+// Arms: (a) unset is byte-identical to 'floor' in every corpus brand; (b) under 'page' each in-scope role names the page
+// (or the inverse page), clears its bar there, and the neutral ones are the lightest step that does; (c) high contrast
+// is identical under either value; (d) out-of-scope roles do not move; (e) nothing fails under 'page' that passes under
+// 'floor'; (f) the setting moves the field border in the two brands the PR measured (450 → 400 in light); (g) an
+// override's flag reads the declared ground; (h) the input is validated and the schema lists the same values;
+// (i) it survives the design.md round trip; (j) under 'page' the field status borders only get lighter, and do in the default brand.
+// MUTATIONS, each failing by name: measure `field.border` on `background.secondary` while it names the page → (b);
+// drop the page-under-wash ground from `fieldStatusGrounds` under 'page' → (b); let `fieldStatusGrounds` ignore
+// `pageControls`, keeping the inset grounds under 'page' → (j);
+// drop `!hc` from `pageControls` → (c); let the setting reach the links → (d); drop the enum entry in `theme-brand.ts` → (h).
+{
+  // `disabled.border` and its inverse twin share the disabled inks' pick and ground since #2750 (#4085), so they are in scope.
+  const IN_PAGE = ['field.border.rest', 'field.border.hover', 'disabled.text', 'disabled.icon', 'disabled.border', 'interactive.primary.fill.rest',
+    'interactive.destructive.fill.rest', 'interactive.destructive.text.rest', 'interactive.destructive.border.rest'];
+  const IN_INV = ['inverse.field.border.rest', 'inverse.field.border.hover', 'inverse.disabled.text', 'inverse.disabled.icon', 'inverse.disabled.border',
+    'inverse.interactive.destructive.text.rest', 'inverse.interactive.destructive.border.rest'];
+  const LIGHTEST = ['field.border.rest', 'disabled.text', 'inverse.field.border.rest', 'inverse.disabled.text'];
+  const STATUS = ['border.danger', 'border.warning', 'border.success'];
+  const OUT = ['text.primary', 'text.secondary', 'text.tertiary', 'field.placeholder', 'text.link.default', 'icon.link.default', 'border.focus',
+    'interactive.neutral.border.rest', 'interactive.primary.border.rest', 'interactive.primary.text.rest', 'interactive.neutral.text.rest',
+    'foreground.danger', 'border.tertiary', 'background.secondary', 'foreground.primary'];
+  const brands: Array<[string, Theme]> = [
+    ...contractCorpus().map(({ id, theme }) => [id.split(' ')[0], theme] as [string, Theme]),
+    ['prism3', brandTheme(exampleBrands()['prism3'] as BrandInput)],
+  ];
+  type R = Record<string, { path: string; hex: string; against: string; min: number; ratio: number }>;
+  const offA: string[] = [], offB: string[] = [], offC: string[] = [], offD: string[] = [], offE: string[] = [];
+  let cellsB = 0, cellsBW = 0, cellsD = 0, cellsJ = 0;
+  const offJ: string[] = [], strictJ: string[] = [];
+  for (const [id, t] of brands) {
+    const unset = resolveAllModes({ ...t, interactiveGround: undefined } as Theme);
+    const floor = resolveAllModes({ ...t, interactiveGround: 'floor' } as Theme);
+    const page = resolveAllModes({ ...t, interactiveGround: 'page' } as Theme);
+    if (JSON.stringify(unset) !== JSON.stringify(floor)) offA.push(id);
+    const steps = (t.palettes.find((p) => p.palette === t.roleToPalette.neutral)!.steps as Array<{ rgb: RGB }>).map((x) => x.rgb);
+    for (const pm of page) {
+      const fm = floor.find((m) => m.mode === pm.mode)!;
+      const P = pm.roles as R, F = fm.roles as R;
+      if (pm.mode.startsWith('hc')) { if (JSON.stringify(P) !== JSON.stringify(F)) offC.push(`${id} ${pm.mode}`); continue; }
+      for (const [keys, ground] of [[IN_PAGE, 'background.primary'], [IN_INV, 'inverse.background.primary']] as [string[], string][]) {
+        const g = hexToRgb(P[ground].hex);
+        for (const k of keys) {
+          const r = P[k]; cellsB++;
+          if (!r) { offB.push(`${id} ${pm.mode} ${k}: missing`); continue; }
+          if (r.against !== ground) offB.push(`${id} ${pm.mode} ${k}: against ${r.against}, want ${ground}`);
+          const x = contrast(hexToRgb(r.hex), g);
+          if (x < r.min - 1e-9) offB.push(`${id} ${pm.mode} ${k}: ${x.toFixed(2)} < ${r.min} on ${ground}`);
+          if (LIGHTEST.includes(k) && !(t as any).overrides?.[pm.mode]?.[k]) {
+            const lighter = steps.filter((s) => { const y = contrast(s, g); return y >= r.min - 1e-9 && y < x - 1e-9; });
+            if (lighter.length) offB.push(`${id} ${pm.mode} ${k}: ${r.hex} ${x.toFixed(2)} is not the lightest step clearing ${r.min} on ${ground} (${lighter.map(hex).join(', ')})`);
+          }
+        }
+      }
+      // The field status borders (#4077 review M2): under 'page' they drop the inset grounds and keep the page and the
+      // page under the hover wash. Both grounds are recomputed here from emitted hex, the wash at the alpha its dialect
+      // ships (rounded here, not by the engine's `emittedAlpha`), so dropping the washed ground fails this by name.
+      {
+        const pageRgb = hexToRgb(P['background.primary'].hex);
+        const wash = P['interactive.neutral.overlay.hover'] as (R[string] & { alpha?: number }) | undefined;
+        const shipped = wash?.alpha === undefined ? undefined
+          : t.colorFormat === 'hex' ? Math.round(wash.alpha * 255) / 255 : Math.round(wash.alpha * 100) / 100;
+        const washed = shipped === undefined ? undefined : composite(pageRgb, hexToRgb(wash!.hex), shipped);
+        for (const k of STATUS) {
+          const r = P[k]; cellsB++;
+          if (!r) { offB.push(`${id} ${pm.mode} ${k}: missing`); continue; }
+          if (r.against !== 'background.primary') offB.push(`${id} ${pm.mode} ${k}: against ${r.against}, want background.primary`);
+          const x = contrast(hexToRgb(r.hex), pageRgb);
+          if (x < r.min - 1e-9) offB.push(`${id} ${pm.mode} ${k}: ${x.toFixed(2)} < ${r.min} on background.primary`);
+          if (washed) {
+            cellsBW++;
+            const y = contrast(hexToRgb(r.hex), washed);
+            if (y < r.min - 1e-9) offB.push(`${id} ${pm.mode} ${k}: ${r.hex} ${y.toFixed(2)} < ${r.min} on background.primary under the hover wash (${hex({ r: Math.round(washed.r), g: Math.round(washed.g), b: Math.round(washed.b) })})`);
+          }
+          // (j) The other direction (#4077 delta review M-B): 'page' only relaxes the status borders, so on the page they
+          // carry no more contrast than under 'floor', and in the default brand's light mode strictly less.
+          const fr = F[k];
+          if (fr) {
+            cellsJ++;
+            const xf = contrast(hexToRgb(fr.hex), pageRgb);
+            if (x > xf + 1e-9) offJ.push(`${id} ${pm.mode} ${k}: ${x.toFixed(2)} under 'page' > ${xf.toFixed(2)} under 'floor' on background.primary`);
+            if (id === 'prism3' && pm.mode === 'light' && x < xf - 1e-9) strictJ.push(k);
+          }
+        }
+      }
+      for (const k of OUT) { if (!F[k]) continue; cellsD++; if (P[k]?.path !== F[k].path || P[k]?.against !== F[k].against) offD.push(`${id} ${pm.mode} ${k}: ${F[k].path} → ${P[k]?.path}`); }
+      const failing = (rs: R) => new Set(Object.entries(rs).filter(([, r]) => r.min > 0 && r.ratio < r.min - 1e-9).map(([k]) => k));
+      const ff = failing(F);
+      for (const k of failing(P)) if (!ff.has(k)) offE.push(`${id} ${pm.mode} ${k}`);
+      if ((pm.warnings?.length ?? 0) > (fm.warnings?.length ?? 0)) offE.push(`${id} ${pm.mode}: ${pm.warnings!.length} warnings vs ${fm.warnings?.length ?? 0}`);
+    }
+  }
+  ok(brands.length >= 6 && offA.length === 0, `#3339 (a) interactiveGround unset is identical to 'floor' in every corpus brand (${brands.length} brands${offA.length ? `; differ: ${offA.join(', ')}` : ''})`);
+  ok(cellsB >= 100 && cellsBW >= 10 && offB.length === 0, `#3339 (b) under 'page' every in-scope interactive role names the page (inverse page on the band), clears its bar there, the field status borders also clear it under the hover wash, and the neutral ones are the lightest step that does (${cellsB} cells, ${cellsBW} washed${offB.length ? ` — ${offB.slice(0, 3).join('; ')}` : ''})`);
+  ok(offC.length === 0, `#3339 (c) high contrast is identical under 'floor' and 'page'${offC.length ? ` — moved: ${offC.slice(0, 4).join(', ')}` : ''}`);
+  ok(cellsD >= 100 && offD.length === 0, `#3339 (d) out-of-scope roles (text, links, focus, the button borders that follow their label, surfaces) do not move under 'page' (${cellsD} cells${offD.length ? ` — ${offD.slice(0, 3).join('; ')}` : ''})`);
+  ok(offE.length === 0, `#3339 (e) nothing fails under 'page' that passes under 'floor' (${offE.length ? offE.slice(0, 4).join('; ') : 'none'})`);
+  ok(cellsJ >= 30 && offJ.length === 0 && strictJ.length === STATUS.length,
+    `#3339 (j) under 'page' the field status borders carry no more contrast on the page than under 'floor', and in the default brand's light mode all three carry less (${cellsJ} cells; lighter in prism3 light: ${strictJ.join(', ') || 'none'}${offJ.length ? ` — ${offJ.slice(0, 3).join('; ')}` : ''})`);
+
+  // (f) It does something: the field border in light, measured by the build PR, typed here.
+  const fieldStep = (t: Theme, g?: 'page') => String((resolveAllModes({ ...t, interactiveGround: g } as Theme).find((m) => m.mode === 'light')!.roles as R)['field.border.rest'].path).split('.').slice(-1)[0];
+  const p3 = brandTheme(exampleBrands()['prism3'] as BrandInput), ref = nbTheme();
+  const moved = `${fieldStep(p3)}→${fieldStep(p3, 'page')} ${fieldStep(ref)}→${fieldStep(ref, 'page')}`;
+  ok(moved === '450→400 450→400', `#3339 (f) 'page' moves the light field border one step lighter in the default brand and the reference brand (read ${moved}, want 450→400 450→400)`);
+
+  // (g) A Studio override is flagged against the ground its role names: a hand-picked lighter field border is a
+  // warning under 'floor' and is not under 'page'.
+  const lighter = { palette: p3.roleToPalette.neutral, step: '400' };
+  const warned = (g?: 'page') => (resolveAllModes(brandTheme({ ...(exampleBrands()['prism3'] as BrandInput), ...(g ? { interactiveGround: g } : {}), overrides: { light: { 'field.border.rest': lighter } } } as any))
+    .find((m) => m.mode === 'light')!.warnings ?? []).filter((w) => w.role === 'field.border.rest').length;
+  ok(warned() === 1 && warned('page') === 0, `#3339 (g) an override of field.border.rest to neutral.400 is flagged under 'floor' and not under 'page' (${warned()} / ${warned('page')})`);
+
+  // (h) Validation and the schema: the same two values, typed here.
+  let refused = '';
+  try { brandTheme({ ...MINIMAL_BRAND, interactiveGround: 'card' } as unknown as BrandInput); } catch (e) { refused = String((e as Error).message); }
+  const sch = JSON.parse(readFileSync(resolve(HERE, './schema/theme-schema.json'), 'utf8')).properties?.interactiveGround ?? {};
+  ok(/^interactiveGround: "card" is invalid — must be one of floor\/page/.test(refused) && JSON.stringify(sch.enum) === '["floor","page"]' && sch.default === 'floor',
+    `#3339 (h) interactiveGround refuses a value outside floor/page by name, and theme-schema.json lists floor/page with floor the default (refused "${refused.slice(0, 80)}"; schema ${JSON.stringify(sch.enum)} default ${sch.default})`);
+
+  // (i) The design.md round trip: written out and read back, the brand keeps the setting and resolves the same.
+  const withPage = { ...(exampleBrands()['prism3'] as BrandInput), interactiveGround: 'page' } as BrandInput;
+  const back = parseDesignMd(toDesignMd(withPage)).input as BrandInput;
+  const fb = (b: BrandInput) => (resolveAllModes(brandTheme(b)).find((m) => m.mode === 'light')!.roles as R)['field.border.rest'].path;
+  ok((back as any).interactiveGround === 'page' && fb(back) === fb(withPage),
+    `#3339 (i) interactiveGround survives the design.md round trip (read back ${(back as any).interactiveGround}; field border ${fb(back)})`);
+}
+
 // ── Q3212.5 A — ONE PLACEHOLDER INK: `field.placeholder` IS `text.secondary`, IN EVERY MODE (#3220) ──────────────────
 // The field hosts bind `text.secondary` for the placeholder, and the style guide draws `field.placeholder`. They are one
 // ink: the placeholder takes `text.secondary`'s own fit, so under `secondaryTextGround: page` it moves with it, and in HC
