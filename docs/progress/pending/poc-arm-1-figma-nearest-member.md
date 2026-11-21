@@ -16,3 +16,6 @@ ignoring boolean properties, and the nearest pick sorted the wrong way.
 The self-test also requires the two other reasons to be named: a code-only axis (`fullWidth=true has no Figma axis or
 property`) and a Figma variant axis no case names (`variant density is not named in code`), each failing by name when
 its line is removed (#4435 review, S1).
+After #4423 made `compare` take the contract's part list, both new self-test calls pass `partList(code)`, and the
+`message` record also plants a button part the contract boxes but the case does not draw, so the call reaches the
+drawn-in-Figma branch that reads the list. A two-argument call throws there (#4435 review, S2).

@@ -285,7 +285,7 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma
     // drawn-in-Figma branch, the one that reads the part list: a call without it throws there
     const lead = why.components.button.members.find((x) => x.id === '9:button--rest')!;
     lead.parts['container/leadingVisual'] = { ...lead.parts['container/label'], id: '9:lead', type: 'FRAME' };
-    const r = compare(why, code);
+    const r = compare(why, code, partList(code));
     if (r.failures.some((x) => /^button rest \(9:button--rest\): container\/leadingVisual \(9:lead\) is drawn in Figma, not in code$/.test(x))) console.log('OK self-test: a matched member\'s part the contract boxes and the case does not draw is named, through the part list');
     else { bad++; console.error(`FAIL self-test: a matched member's part the contract boxes and the case does not draw is not named: ${r.failures.find((x) => x.startsWith('button rest')) ?? 'no line'}`); }
     for (const [what, re, lines] of [
@@ -299,7 +299,7 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma
     // and a variant axis Figma has that no case names (every password-field member gains `density`)
     const extra = clone(base);
     for (const m of extra.components['password-field'].members) m.variant = { ...m.variant, density: 'compact' };
-    const xr = compare(extra, code);
+    const xr = compare(extra, code, partList(code));
     for (const [what, re, lines, prefix] of [
       ['the code-only case', /^button--full-width: .*\(code only, not compared\): fullWidth=true has no Figma axis or property; nearest member /, clean.notes, 'button--full-width'],
       ['the case a Figma variant axis keeps apart', /^password-field--rest: .*nearest member 9:password-field--rest differs in variant density is not named in code, compact in Figma$/, xr.notes, 'password-field--rest'],
