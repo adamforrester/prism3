@@ -16,7 +16,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### `border-width.hairline`
 
-Type: dimension. Bound by 27 component(s).
+Type: dimension. Bound by 28 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -52,6 +52,9 @@ Type: dimension. Bound by 27 component(s).
 |  |  | control | state: disabled, filled, hover, read-only, rest (60 of 84) |
 | select | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest` | control | state: disabled, filled, hover, read-only, rest (60 of 84) |
 | sign-in-button | `border-width` | container | every member (96 of 96) |
+| step-item | `connector-thickness`, `marker-stroke` | connectorH | orientation: horizontal (8 of 16) |
+|  |  | connectorV | orientation: vertical (8 of 16) |
+|  |  | marker | every member (16 of 16) |
 | tabs | `baseline-height` | baseline | every member (6 of 6) |
 | tag | `unselected.border-width` | container | selection: unselected (30 of 45) |
 | text-field | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest`, `caret-width` | caret | state: focus-visible (12 of 84) |
@@ -254,13 +257,14 @@ Type: color. Bound by 8 component(s).
 
 ### `color.border.tertiary`
 
-Type: color. Bound by 3 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `neutral.status.contained.subtle.border` | surface | emphasis: subtle · style: contained · tone: neutral · type: status (2 of 50) |
 | banner | `neutral.border` | container | tone: neutral (2 of 10) |
 | divider | `separator.rule.border` | (not drawn) | — |
+| step-item | `upcoming.border` | marker | status: upcoming (4 of 16) |
 
 ### `color.border.warning`
 
@@ -576,7 +580,7 @@ Type: color. Bound by 2 component(s).
 
 ### `color.icon.danger`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -587,6 +591,7 @@ Type: color. Bound by 5 component(s).
 | progress | `error.icon`, `error.indicator` | arcGlyph | shape: circular · status: error · type: determinate (2 of 12) |
 |  |  | dotGlyph | shape: linear · size: medium · status: error · type: determinate (1 of 12) |
 |  |  | fill | shape: linear · size: medium · status: error · type: determinate (1 of 12) |
+| step-item | `error.icon` | errorGlyph | status: error (4 of 16) |
 
 ### `color.icon.info`
 
@@ -657,7 +662,7 @@ Type: color. Bound by 9 component(s).
 
 ### `color.icon.secondary`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -666,6 +671,8 @@ Type: color. Bound by 5 component(s).
 | badge | `neutral.status.inline.subtle.indicator` | statusDot | emphasis: subtle · style: inline · tone: neutral · type: status (2 of 50) |
 | field-message | `default.icon` | (not drawn) | — |
 | icon | `tone.secondary` | (not drawn) | — |
+| step-item | `indicator` | connectorH | orientation: horizontal (8 of 16) |
+|  |  | connectorV | orientation: vertical (8 of 16) |
 | textarea | `icon` | gripGlyph | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 
 ### `color.icon.success`
@@ -1138,12 +1145,13 @@ Type: color. Bound by 4 component(s).
 
 ### `color.interactive.primary.fill.rest`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `filled.fill` | container | appearance: filled · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button | `filled.fill` | container | appearance: filled · state: focus-visible, pending, rest · surface: default (18 of 216) |
+| step-item | `complete.fill`, `current.fill` | marker | status: complete, current (8 of 16) |
 
 ### `color.interactive.primary.fill.selected`
 
@@ -1226,7 +1234,7 @@ Type: color. Bound by 3 component(s).
 
 ### `color.interactive.primary.on-fill`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -1237,6 +1245,8 @@ Type: color. Bound by 4 component(s).
 | checkbox-control | `checked.icon`, `indeterminate.icon` | glyph | selection: checked, indeterminate · state: focus-visible, hover, pressed, rest (48 of 90) |
 | icon-button | `filled.icon` | icon | appearance: filled · state: focus-visible, hover, pressed, rest · surface: default (24 of 216) |
 |  |  | spinner | appearance: filled · state: pending · surface: default (6 of 216) |
+| step-item | `complete.icon`, `current.body` | checkGlyph | status: complete (4 of 16) |
+|  |  | number | status: current (4 of 16) |
 | switch-control | `on.indicator` | thumb | selection: on · state: focus-visible, hover, pressed, rest (16 of 40) |
 
 ### `color.interactive.primary.overlay.hover`
@@ -2019,7 +2029,7 @@ Type: color. Bound by 1 component(s).
 
 ### `color.text.primary`
 
-Type: color. Bound by 22 component(s).
+Type: color. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2055,6 +2065,7 @@ Type: color. Bound by 22 component(s).
 | select | `label` | value | state: filled, focus-visible-filled, read-only (36 of 84) |
 | slider | `label` | valueRange | state: focus-visible, hover, pressed, rest · type: range (12 of 30) |
 |  |  | valueSingle | state: focus-visible, hover, pressed, rest · type: single (12 of 30) |
+| step-item | `current.label`, `error.label` | label | status: current, error (8 of 16) |
 | switch-row | `label` | label | every member (4 of 4) |
 | text-field | `caret`, `caret-end`, `label` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
@@ -2064,7 +2075,7 @@ Type: color. Bound by 22 component(s).
 
 ### `color.text.secondary`
 
-Type: color. Bound by 14 component(s).
+Type: color. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2086,6 +2097,8 @@ Type: color. Bound by 14 component(s).
 | slider | `body` | maxLabel | state: focus-visible, hover, pressed, rest (24 of 30) |
 |  |  | milestone | state: focus-visible, hover, pressed, rest (24 of 30) |
 |  |  | minLabel | state: focus-visible, hover, pressed, rest (24 of 30) |
+| step-item | `upcoming.body`, `upcoming.label` | label | status: upcoming (4 of 16) |
+|  |  | number | status: upcoming (4 of 16) |
 | text-field | `label.empty` (not drawn), `label.focus-visible`, `label.hover`, `label.rest` | placeholder | state: focus-visible, hover, rest (36 of 84) |
 | textarea | `indicator`, `label.empty` (not drawn), `label.focus-visible`, `label.hover`, `label.rest` | counter | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 |  |  | placeholder | state: focus-visible, hover, rest (36 of 84) |
@@ -2542,7 +2555,7 @@ Type: dimension. Bound by 8 component(s).
 
 ### `icon.size.md`
 
-Type: dimension. Bound by 24 component(s).
+Type: dimension. Bound by 25 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2593,6 +2606,9 @@ Type: dimension. Bound by 24 component(s).
 | sign-in-button | `size.large.mark` | mark | size: large (32 of 96) |
 | spinner | `size.medium` | frame | size: medium (1 of 4) |
 |  |  | ringGlyph | size: medium (1 of 4) |
+| step-item | `size.medium.marker` | connectorCell | orientation: horizontal · size: medium (4 of 16) |
+|  |  | errorGlyph | size: medium · status: error (2 of 16) |
+|  |  | marker | size: medium (8 of 16) |
 | tab-item | `size.large.icon` | leadingVisual | size: large (10 of 30) |
 | tag | `size.large.icon` | checkGlyph | selection: selected · size: large · type: select (5 of 45) |
 |  |  | closeGlyph | selection: unselected · size: large · type: dismissible (5 of 45) |
@@ -2601,7 +2617,7 @@ Type: dimension. Bound by 24 component(s).
 
 ### `icon.size.sm`
 
-Type: dimension. Bound by 28 component(s).
+Type: dimension. Bound by 29 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2650,6 +2666,9 @@ Type: dimension. Bound by 28 component(s).
 | sign-in-button | `size.medium.mark` | mark | size: medium (32 of 96) |
 | spinner | `size.small` | frame | size: small (1 of 4) |
 |  |  | ringGlyph | size: small (1 of 4) |
+| step-item | `size.small.marker` | connectorCell | orientation: horizontal · size: small (4 of 16) |
+|  |  | errorGlyph | size: small · status: error (2 of 16) |
+|  |  | marker | size: small (8 of 16) |
 | tab-item | `size.medium.icon` | leadingVisual | size: medium (10 of 30) |
 | tag | `size.medium.icon` | checkGlyph | selection: selected · size: medium · type: select (5 of 45) |
 |  |  | closeGlyph | selection: unselected · size: medium · type: dismissible (5 of 45) |
@@ -2673,7 +2692,7 @@ Type: dimension. Bound by 2 component(s).
 
 ### `icon.size.xs`
 
-Type: dimension. Bound by 18 component(s).
+Type: dimension. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2710,6 +2729,7 @@ Type: dimension. Bound by 18 component(s).
 | sign-in-button | `size.small.mark` | mark | size: small (32 of 96) |
 | spinner | `size.x-small` | frame | size: x-small (1 of 4) |
 |  |  | ringGlyph | size: x-small (1 of 4) |
+| step-item | `check-size` | checkGlyph | status: complete (4 of 16) |
 | tab-item | `size.small.icon` | leadingVisual | size: small (10 of 30) |
 | tag | `size.small.icon` | checkGlyph | selection: selected · size: small · type: select (5 of 45) |
 |  |  | closeGlyph | selection: unselected · size: small · type: dismissible (5 of 45) |
@@ -2844,7 +2864,7 @@ Type: dimension. Bound by 6 component(s).
 
 ### `radius.round`
 
-Type: dimension. Bound by 14 component(s).
+Type: dimension. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2865,6 +2885,7 @@ Type: dimension. Bound by 14 component(s).
 |  |  | dot | selection: checked (30 of 60) |
 | skeleton | `circle.radius` | block | shape: circle · size: medium (1 of 4) |
 | slider | `radius` | track | every member (30 of 30) |
+| step-item | `radius` | marker | every member (16 of 16) |
 | switch-control | `radius` | thumb | every member (40 of 40) |
 |  |  | track | every member (40 of 40) |
 | tag | `radius` | container | every member (45 of 45) |
@@ -3090,7 +3111,7 @@ Type: dimension. Bound by 3 component(s).
 
 ### `space.050`
 
-Type: dimension. Bound by 16 component(s).
+Type: dimension. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3117,13 +3138,14 @@ Type: dimension. Bound by 16 component(s).
 | skeleton | `bar-inset` | firstLine | shape: text (2 of 4) |
 |  |  | lastLine | shape: text (2 of 4) |
 |  |  | middleLine | shape: text (2 of 4) |
+| step-item | `rail-gap` | rail | every member (16 of 16) |
 | tag | `size.large.dismissible.gap`, `size.large.dismissible.label-inset`, `size.medium.dismissible.gap`, `size.medium.dismissible.label-inset`, `size.small.check-gap`, `size.small.dismissible.label-inset`, `size.small.underline.inset` (not drawn) | content | selection: unselected · size: large, medium · type: dismissible (10 of 45) |
 |  |  | labelCheck | every member (25 of 45) |
 | toast | `controls-gap` | controls | every member (2 of 2) |
 
 ### `space.075`
 
-Type: dimension. Bound by 20 component(s).
+Type: dimension. Bound by 22 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3142,6 +3164,8 @@ Type: dimension. Bound by 20 component(s).
 | segmented-control-segment | `size.small.gap` | content | size: small (10 of 30) |
 | select | `size.small.pad-y` | control | size: small (28 of 84) |
 | sign-in-button | `size.small.apple.padding-y`, `size.small.facebook.padding-y`, `size.small.google.padding-y` | container | size: small (32 of 96) |
+| step-item | `size.small.gap` | container | size: small (8 of 16) |
+| steps | `size.small.gap` | items | size: small (2 of 4) |
 | switch-row | `size.small.pad-y` | row | size: small (2 of 4) |
 | tab-item | `size.small.gap` | content | size: small (10 of 30) |
 | tag | `size.medium.check-gap`, `size.medium.underline.inset` (not drawn), `size.small.dismissible.visible-gap` (not drawn), `size.small.select.gap` | content | size: small · type: select (10 of 45) |
@@ -3151,7 +3175,7 @@ Type: dimension. Bound by 20 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 35 component(s).
+Type: dimension. Bound by 37 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3200,6 +3224,8 @@ Type: dimension. Bound by 35 component(s).
 |  |  | control | every member (84 of 84) |
 | sign-in-button | `size.large.apple.padding-y`, `size.large.facebook.padding-y`, `size.large.google.gap`, `size.large.google.padding-y`, `size.medium.apple.gap`, `size.medium.apple.padding-y`, `size.medium.facebook.gap`, `size.medium.facebook.padding-y`, `size.medium.google.gap`, `size.medium.google.padding-y`, `size.small.apple.gap`, `size.small.facebook.gap`, `size.small.google.gap` | container | every member (96 of 96) |
 | slider | `gap` | container | every member (30 of 30) |
+| step-item | `size.medium.gap` | container | size: medium (8 of 16) |
+| steps | `size.medium.gap` | items | size: medium (2 of 4) |
 | switch-row | `size.medium.pad-y`, `size.small.gap` | content | size: small (2 of 4) |
 |  |  | row | size: medium (2 of 4) |
 | tab-item | `size.large.gap`, `size.medium.gap` | content | size: large, medium (20 of 30) |
@@ -3327,11 +3353,13 @@ Type: dimension. Bound by 15 component(s).
 
 ### `space.400`
 
-Type: dimension. Bound by 1 component(s).
+Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | list-item | `size.large.ordered.marker-column`, `size.large.unordered.marker-column`, `size.small.icon.marker-column` | markerBox | size: large, small (3 of 12) |
+| step-item | `size.small.connector` | connectorH | orientation: horizontal · size: small (4 of 16) |
+|  |  | connectorV | orientation: vertical · size: small (4 of 16) |
 
 ### `space.500`
 
@@ -3353,11 +3381,13 @@ Type: dimension. Bound by 3 component(s).
 
 ### `space.600`
 
-Type: dimension. Bound by 1 component(s).
+Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | list-item | `size.large.icon.marker-column` | markerBox | size: large · type: icon (1 of 12) |
+| step-item | `size.medium.connector` | connectorH | orientation: horizontal · size: medium (4 of 16) |
+|  |  | connectorV | orientation: vertical · size: medium (4 of 16) |
 
 ### `type.body.lg.default`
 
@@ -3409,7 +3439,7 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 17 component(s).
+Type: typography. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3435,6 +3465,7 @@ Type: typography. Bound by 17 component(s).
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | select | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
+| step-item | `size.medium.type` | label | size: medium · status: current, error, upcoming (6 of 16) |
 | text-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | textarea | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3480,7 +3511,7 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.default`
 
-Type: typography. Bound by 19 component(s).
+Type: typography. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3511,6 +3542,7 @@ Type: typography. Bound by 19 component(s).
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | slider | `value-type` | valueRange | type: range (15 of 30) |
 |  |  | valueSingle | type: single (15 of 30) |
+| step-item | `size.small.type` | label | size: small · status: current, error, upcoming (6 of 16) |
 | switch-row | `size.medium.text` | label | size: medium (2 of 4) |
 | text-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
@@ -3757,7 +3789,7 @@ Type: typography. Bound by 6 component(s).
 
 ### `type.label.sm.emphasis`
 
-Type: typography. Bound by 9 component(s).
+Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3772,6 +3804,7 @@ Type: typography. Bound by 9 component(s).
 | segmented-control-segment | `size.small.type.selected` | label | selection: selected · size: small (5 of 30) |
 |  |  | labelReserve | size: small (10 of 30) |
 | sign-in-button | `size.small.type` | label | provider: apple, facebook · size: small · style: black, blue, outline, white (20 of 96) |
+| step-item | `number-type` | number | status: current, upcoming (8 of 16) |
 | tab-item | `size.small.type.selected` | label | selection: selected · size: small (5 of 30) |
 |  |  | labelReserve | size: small (10 of 30) |
 | tag | `size.small.type` | label | size: small (15 of 45) |
@@ -4207,6 +4240,18 @@ Declared, not drawn: `motion.duration-reduced.fast`, `motion.duration.fast`, `mo
 `color.icon.primary`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `motion.duration-reduced.fast`, `motion.duration-reduced.spin`, `motion.duration.fast`, `motion.duration.spin`, `motion.easing-role.enter`
 
 Declared, not drawn: `motion.duration-reduced.fast`, `motion.duration-reduced.spin`, `motion.duration.fast`, `motion.duration.spin`, `motion.easing-role.enter`
+
+### step-item
+
+20 token(s); 16 design-file member(s).
+
+`border-width.hairline`, `color.border.tertiary`, `color.icon.danger`, `color.icon.secondary`, `color.interactive.primary.fill.rest`, `color.interactive.primary.on-fill`, `color.text.primary`, `color.text.secondary`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.round`, `space.050`, `space.075`, `space.100`, `space.400`, `space.600`, `type.body.md.default`, `type.body.sm.default`, `type.label.sm.emphasis`
+
+### steps
+
+2 token(s); 4 design-file member(s).
+
+`space.075`, `space.100`
 
 ### switch-control
 

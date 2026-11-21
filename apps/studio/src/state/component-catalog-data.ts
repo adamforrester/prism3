@@ -1887,5 +1887,56 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "icon",
       "button-group"
     ]
+  },
+  {
+    "id": "step-item",
+    "name": "StepItem",
+    "category": "navigation",
+    "summary": "One step of a step indicator: a numbered disc, the step name and a line to the next step.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.075"
+      }
+    ],
+    "page": "Steps",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 16,
+    "nests": [
+      "icon",
+      "link"
+    ]
+  },
+  {
+    "id": "steps",
+    "name": "Steps",
+    "category": "navigation",
+    "summary": "A person's place in a fixed sequence of steps. Size and orientation apply to the items you haven't edited. After editing an item, select the items and set their size and orientation.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.075"
+      }
+    ],
+    "page": "Steps",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 4,
+    "nests": [
+      "step-item"
+    ]
   }
 ];

@@ -525,7 +525,7 @@ library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of 
 (Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
 unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab-item`,
 `list-item`, `segmented-control-segment`, `breadcrumb-item`, `pagination-item`, `page-nav-item`,
-`code-input-cell` and `radio-row`. The checkbox and radio controls (`checkbox-control`,
+`step-item`, `code-input-cell` and `radio-row`. The checkbox and radio controls (`checkbox-control`,
 `radio-control`) stay unprefixed because they may be used on their own.
 
 **Figma property names are lowercase (owner decision Q345).** Every name a designer reads in the

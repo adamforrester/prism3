@@ -273,7 +273,7 @@ export const breadcrumbs: ComponentDef = {
   ai: {
     primaryPurpose: 'Show the current page\'s place in the site hierarchy as links to its ancestors, ending in the current page.',
     whenToUse: 'A page three or more levels deep in a stable hierarchy (a catalog, documentation, settings), where people need to see where they are and climb back up.',
-    avoidWhen: 'The site is one or two levels deep (use a single Link back), the path is the visitor\'s history (use the browser\'s Back or a Link), the choice is between peers at one level (use Tabs), or the steps are a required sequence (a stepper, not built yet).',
+    avoidWhen: 'The site is one or two levels deep (use a single Link back), the path is the visitor\'s history (use the browser\'s Back or a Link), the choice is between peers at one level (use Tabs), or the steps are a required sequence (use Steps).',
     commonPartners: ['breadcrumb-item', 'link', 'tabs'],
     triggerKeywords: ['breadcrumbs', 'breadcrumb trail', 'breadcrumb navigation', 'you are here', 'page hierarchy path', 'back to parent page'],
     generationPriority: 2,
@@ -281,7 +281,7 @@ export const breadcrumbs: ComponentDef = {
 
   composition: {
     composesWith: ['breadcrumb-item', 'link'],
-    alternativeTo: ['link', 'tabs', 'page-nav'],
+    alternativeTo: ['link', 'tabs', 'page-nav', 'steps'],
     replacesPatterns: ['links separated by typed ">" or "/" characters', 'a history trail of visited pages', 'a breadcrumb whose last item links to the page itself'],
     supersededBy: [],
     planned: ['menu'],

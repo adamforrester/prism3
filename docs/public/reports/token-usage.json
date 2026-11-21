@@ -12,7 +12,7 @@
     "used": 291,
     "unusedSemantic": 260,
     "unusedPrimitive": 280,
-    "components": 65
+    "components": 67
   },
   "tokens": {
     "border-width.hairline": {
@@ -463,6 +463,34 @@
           "parts": {
             "container": {
               "members": 96,
+              "where": {}
+            }
+          }
+        },
+        "step-item": {
+          "keys": [
+            "connector-thickness",
+            "marker-stroke"
+          ],
+          "parts": {
+            "connectorH": {
+              "members": 8,
+              "where": {
+                "orientation": [
+                  "horizontal"
+                ]
+              }
+            },
+            "connectorV": {
+              "members": 8,
+              "where": {
+                "orientation": [
+                  "vertical"
+                ]
+              }
+            },
+            "marker": {
+              "members": 16,
               "where": {}
             }
           }
@@ -2366,6 +2394,21 @@
             "separator.rule.border"
           ],
           "parts": {}
+        },
+        "step-item": {
+          "keys": [
+            "upcoming.border"
+          ],
+          "parts": {
+            "marker": {
+              "members": 4,
+              "where": {
+                "status": [
+                  "upcoming"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -5673,6 +5716,21 @@
               }
             }
           }
+        },
+        "step-item": {
+          "keys": [
+            "error.icon"
+          ],
+          "parts": {
+            "errorGlyph": {
+              "members": 4,
+              "where": {
+                "status": [
+                  "error"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -6202,6 +6260,29 @@
             "tone.secondary"
           ],
           "parts": {}
+        },
+        "step-item": {
+          "keys": [
+            "indicator"
+          ],
+          "parts": {
+            "connectorH": {
+              "members": 8,
+              "where": {
+                "orientation": [
+                  "horizontal"
+                ]
+              }
+            },
+            "connectorV": {
+              "members": 8,
+              "where": {
+                "orientation": [
+                  "vertical"
+                ]
+              }
+            }
+          }
         },
         "textarea": {
           "keys": [
@@ -10106,6 +10187,23 @@
               }
             }
           }
+        },
+        "step-item": {
+          "keys": [
+            "complete.fill",
+            "current.fill"
+          ],
+          "parts": {
+            "marker": {
+              "members": 8,
+              "where": {
+                "status": [
+                  "complete",
+                  "current"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -10903,6 +11001,30 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "step-item": {
+          "keys": [
+            "complete.icon",
+            "current.body"
+          ],
+          "parts": {
+            "checkGlyph": {
+              "members": 4,
+              "where": {
+                "status": [
+                  "complete"
+                ]
+              }
+            },
+            "number": {
+              "members": 4,
+              "where": {
+                "status": [
+                  "current"
                 ]
               }
             }
@@ -16100,6 +16222,23 @@
             }
           }
         },
+        "step-item": {
+          "keys": [
+            "current.label",
+            "error.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 8,
+              "where": {
+                "status": [
+                  "current",
+                  "error"
+                ]
+              }
+            }
+          }
+        },
         "switch-row": {
           "keys": [
             "label"
@@ -16471,6 +16610,30 @@
                   "hover",
                   "pressed",
                   "rest"
+                ]
+              }
+            }
+          }
+        },
+        "step-item": {
+          "keys": [
+            "upcoming.body",
+            "upcoming.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
+              "where": {
+                "status": [
+                  "upcoming"
+                ]
+              }
+            },
+            "number": {
+              "members": 4,
+              "where": {
+                "status": [
+                  "upcoming"
                 ]
               }
             }
@@ -19849,6 +20012,43 @@
             }
           }
         },
+        "step-item": {
+          "keys": [
+            "size.medium.marker"
+          ],
+          "parts": {
+            "connectorCell": {
+              "members": 4,
+              "where": {
+                "orientation": [
+                  "horizontal"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "errorGlyph": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "status": [
+                  "error"
+                ]
+              }
+            },
+            "marker": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "tab-item": {
           "keys": [
             "size.large.icon"
@@ -20580,6 +20780,43 @@
             }
           }
         },
+        "step-item": {
+          "keys": [
+            "size.small.marker"
+          ],
+          "parts": {
+            "connectorCell": {
+              "members": 4,
+              "where": {
+                "orientation": [
+                  "horizontal"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            },
+            "errorGlyph": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "status": [
+                  "error"
+                ]
+              }
+            },
+            "marker": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "tab-item": {
           "keys": [
             "size.medium.icon"
@@ -21247,6 +21484,21 @@
               "where": {
                 "size": [
                   "x-small"
+                ]
+              }
+            }
+          }
+        },
+        "step-item": {
+          "keys": [
+            "check-size"
+          ],
+          "parts": {
+            "checkGlyph": {
+              "members": 4,
+              "where": {
+                "status": [
+                  "complete"
                 ]
               }
             }
@@ -22055,6 +22307,17 @@
           "parts": {
             "track": {
               "members": 30,
+              "where": {}
+            }
+          }
+        },
+        "step-item": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "marker": {
+              "members": 16,
               "where": {}
             }
           }
@@ -24468,6 +24731,17 @@
             }
           }
         },
+        "step-item": {
+          "keys": [
+            "rail-gap"
+          ],
+          "parts": {
+            "rail": {
+              "members": 16,
+              "where": {}
+            }
+          }
+        },
         "tag": {
           "keys": [
             "size.large.dismissible.gap",
@@ -24745,6 +25019,36 @@
           "parts": {
             "container": {
               "members": 32,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "step-item": {
+          "keys": [
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "steps": {
+          "keys": [
+            "size.small.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -25385,6 +25689,36 @@
             "container": {
               "members": 30,
               "where": {}
+            }
+          }
+        },
+        "step-item": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "steps": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
             }
           }
         },
@@ -26779,6 +27113,35 @@
               }
             }
           }
+        },
+        "step-item": {
+          "keys": [
+            "size.small.connector"
+          ],
+          "parts": {
+            "connectorH": {
+              "members": 4,
+              "where": {
+                "orientation": [
+                  "horizontal"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            },
+            "connectorV": {
+              "members": 4,
+              "where": {
+                "orientation": [
+                  "vertical"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -26847,6 +27210,35 @@
                 ],
                 "type": [
                   "icon"
+                ]
+              }
+            }
+          }
+        },
+        "step-item": {
+          "keys": [
+            "size.medium.connector"
+          ],
+          "parts": {
+            "connectorH": {
+              "members": 4,
+              "where": {
+                "orientation": [
+                  "horizontal"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "connectorV": {
+              "members": 4,
+              "where": {
+                "orientation": [
+                  "vertical"
+                ],
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -27604,6 +27996,26 @@
             }
           }
         },
+        "step-item": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "status": [
+                  "current",
+                  "error",
+                  "upcoming"
+                ]
+              }
+            }
+          }
+        },
         "text-field": {
           "keys": [
             "size.medium.type"
@@ -28310,6 +28722,26 @@
               "where": {
                 "type": [
                   "single"
+                ]
+              }
+            }
+          }
+        },
+        "step-item": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "label": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "status": [
+                  "current",
+                  "error",
+                  "upcoming"
                 ]
               }
             }
@@ -30539,6 +30971,22 @@
                   "blue",
                   "outline",
                   "white"
+                ]
+              }
+            }
+          }
+        },
+        "step-item": {
+          "keys": [
+            "number-type"
+          ],
+          "parts": {
+            "number": {
+              "members": 8,
+              "where": {
+                "status": [
+                  "current",
+                  "upcoming"
                 ]
               }
             }
@@ -33513,6 +33961,68 @@
         "motion.duration.spin",
         "motion.easing-role.enter"
       ],
+      "drawnNotDeclared": []
+    },
+    "step-item": {
+      "members": 16,
+      "axes": {
+        "orientation": [
+          "horizontal",
+          "vertical"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ],
+        "status": [
+          "complete",
+          "current",
+          "error",
+          "upcoming"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.border.tertiary",
+        "color.icon.danger",
+        "color.icon.secondary",
+        "color.interactive.primary.fill.rest",
+        "color.interactive.primary.on-fill",
+        "color.text.primary",
+        "color.text.secondary",
+        "icon.size.md",
+        "icon.size.sm",
+        "icon.size.xs",
+        "radius.round",
+        "space.050",
+        "space.075",
+        "space.100",
+        "space.400",
+        "space.600",
+        "type.body.md.default",
+        "type.body.sm.default",
+        "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "steps": {
+      "members": 4,
+      "axes": {
+        "orientation": [
+          "horizontal",
+          "vertical"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "space.075",
+        "space.100"
+      ],
+      "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
     "switch-control": {

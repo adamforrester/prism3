@@ -1456,6 +1456,46 @@
     "members": 4,
     "properties": {}
   },
+  "step-item": {
+    "axes": {
+      "orientation": [
+        "horizontal",
+        "vertical"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ],
+      "status": [
+        "complete",
+        "current",
+        "error",
+        "upcoming"
+      ]
+    },
+    "members": 16,
+    "properties": {
+      "connector": "BOOLEAN",
+      "label": "TEXT",
+      "number": "TEXT"
+    }
+  },
+  "steps": {
+    "axes": {
+      "orientation": [
+        "horizontal",
+        "vertical"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 4,
+    "properties": {
+      "items": "SLOT"
+    }
+  },
   "switch-control": {
     "axes": {
       "selection": [

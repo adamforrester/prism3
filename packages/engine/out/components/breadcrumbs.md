@@ -13,7 +13,7 @@ Shows where the current page sits in the site's hierarchy: a row of links to the
 
 - **Purpose:** Show the current page's place in the site hierarchy as links to its ancestors, ending in the current page.
 - **Use when:** A page three or more levels deep in a stable hierarchy (a catalog, documentation, settings), where people need to see where they are and climb back up.
-- **Avoid when:** The site is one or two levels deep (use a single Link back), the path is the visitor's history (use the browser's Back or a Link), the choice is between peers at one level (use Tabs), or the steps are a required sequence (a stepper, not built yet).
+- **Avoid when:** The site is one or two levels deep (use a single Link back), the path is the visitor's history (use the browser's Back or a Link), the choice is between peers at one level (use Tabs), or the steps are a required sequence (use Steps).
 
 ## Anatomy
 
@@ -92,7 +92,7 @@ Page titles in sentence case, matching each page heading. "Home" for the root.
 ## Related components
 
 - **Built from:** `breadcrumb-item`, `link`
-- **Instead, consider:** `tabs`, `page-nav`
+- **Instead, consider:** `tabs`, `page-nav`, `steps`
 - **Replaces:**
   - links separated by typed ">" or "/" characters
   - a history trail of visited pages

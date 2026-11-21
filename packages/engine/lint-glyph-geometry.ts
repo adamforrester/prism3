@@ -133,6 +133,7 @@ const MUST_COVER = [
   'icon.glyph', 'spinner.ringGlyph',
   // The icon INSTANCES (#2380): every icon-set glyph inside another component.
   'checkbox-control.checkGlyph', 'checkbox-control.dashGlyph', 'textarea.gripGlyph', 'tag.checkGlyph', 'tag.closeGlyph',
+  'step-item.checkGlyph', 'step-item.errorGlyph',
   'field-message.errorGlyph', 'field-message.warningGlyph', 'field-message.successGlyph',
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevronGlyph', 'image-placeholder.markerGlyph',
   '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
@@ -290,6 +291,10 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   // between two fixed shapes is what Q382 decided.
   '_breadcrumb-separator.chevronGlyph': { glyph: 'chevron-right', at: { type: ['chevron'] }, why: 'the chevron look, pointing toward the current page; one fixed shape, mirrored in right-to-left in code, never a glyph a designer picks' },
   '_breadcrumb-separator.slashGlyph': { glyph: 'slash', at: { type: ['slash'] }, why: 'the slash look, a forward slash between steps; one fixed shape, not mirrored in right-to-left' },
+  // #3055 (owner decisions 2 and 4) — a complete step's check and an errored step's glyph, each one fixed shape gated
+  // on its own status.
+  'step-item.checkGlyph': { glyph: 'check', at: { status: ['complete'] }, why: 'a complete step\'s check, drawn in the filled disc in place of the number; the same check a checked checkbox draws, never a glyph a designer picks' },
+  'step-item.errorGlyph': { glyph: 'error-circle', at: { status: ['error'] }, why: 'an errored step\'s exclamation in a circle, in place of the disc; the mark the approved proposal names, never a glyph a designer picks' },
   // #2666 (owner call 11 A) — the small-screen path's chevron, pointing up the trail to the parent page.
   'breadcrumbs.backGlyph': { glyph: 'chevron-left', at: { path: ['parent'] }, why: 'the up-a-level mark before the parent link, pointing back up the trail; one fixed shape, mirrored in right-to-left in code' },
   // #2417 (owner Q183) — the Accordion indicator's four glyphs, one per (indicator, expansion) pair. `glyph:

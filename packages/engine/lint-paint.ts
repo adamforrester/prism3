@@ -331,6 +331,28 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'same mapping as `error.icon`, for the linear fill',
   'progress|error.icon':
     "status `error` maps to the `danger` ink role, the mapping `field-message|error.icon` records — the axis names the outcome, `danger` is the token tier's name for its color",
+  // StepItem (#3055): its `status` is a place in a sequence, upcoming / current / complete / error, and none of the four
+  // names a color family. Each key maps the status to the role the approved proposal names for it.
+  'step-item|current.fill':
+    "status `current` maps to the primary interactive fill, the brand color the approved proposal names for the current step's disc; the axis names a place in a sequence, which no color family is named for",
+  'step-item|complete.fill':
+    'same mapping as `current.fill`, for the complete step\'s disc, so a complete and a current disc read as one brand color',
+  'step-item|upcoming.border':
+    "status `upcoming` maps to `color.border.tertiary`, the neutral edge contracted at 3:1 on every ground, for the outlined disc of a step not started yet",
+  'step-item|current.body':
+    "status `current` maps to `color.interactive.primary.on-fill`, the ink contracted on the primary fill, for the number in the filled disc",
+  'step-item|upcoming.body':
+    "status `upcoming` maps to `color.text.secondary`, the quieter text role, for the number in an outlined disc",
+  'step-item|complete.icon':
+    "status `complete` maps to `color.interactive.primary.on-fill`, the ink contracted on the primary fill, for the check in the filled disc (Checkbox.Control's check binds the same role)",
+  'step-item|error.icon':
+    "status `error` maps to the `danger` icon role, the mapping `progress|error.icon` records: the axis names the outcome, `danger` is the token tier's name for its color",
+  'step-item|current.label':
+    "status `current` maps to `color.text.primary`, the strongest text role, for the step the person is on",
+  'step-item|upcoming.label':
+    "status `upcoming` maps to `color.text.secondary`, the quieter text role, for a step not started yet",
+  'step-item|error.label':
+    "status `error` maps to `color.text.primary`: the name of a step with an error stays at full strength, and the glyph carries the danger color",
   // Dialog (#2880): the key is the panel's `fill` PAINT SLOT (its surface), whose spelling matches the `footer` value
   // `fill` (Q492 B). It is the slot that leads, not the axis value: the key binds at every footer.
   'dialog|fill':

@@ -4687,6 +4687,122 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "step-item",
+      "name": "StepItem",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "status": [
+          "upcoming",
+          "current",
+          "complete",
+          "error"
+        ],
+        "orientation": [
+          "horizontal",
+          "vertical"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "status",
+          "default": "upcoming",
+          "values": [
+            "upcoming",
+            "current",
+            "complete",
+            "error"
+          ]
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "orientation",
+          "default": "horizontal",
+          "values": [
+            "horizontal",
+            "vertical"
+          ]
+        },
+        {
+          "name": "connector",
+          "default": true
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "steps",
+      "name": "Steps",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "orientation": [
+          "horizontal",
+          "vertical"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "items"
+        },
+        {
+          "name": "orientation",
+          "default": "horizontal",
+          "values": [
+            "horizontal",
+            "vertical"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "responsive",
+          "default": true
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "switch-control",
       "name": "Switch.Control",
       "category": "form",
@@ -6207,7 +6323,9 @@
           "vertical"
         ],
         "components": [
-          "divider"
+          "divider",
+          "step-item",
+          "steps"
         ]
       }
     ],
@@ -6441,6 +6559,8 @@
           "page-nav-item",
           "progress",
           "skeleton",
+          "step-item",
+          "steps",
           "switch-control",
           "switch-row"
         ]
@@ -6516,6 +6636,17 @@
         ],
         "components": [
           "progress"
+        ]
+      },
+      {
+        "values": [
+          "complete",
+          "current",
+          "error",
+          "upcoming"
+        ],
+        "components": [
+          "step-item"
         ]
       }
     ],
@@ -7068,6 +7199,12 @@
         ]
       }
     ],
+    "connector": [
+      {
+        "id": "step-item",
+        "default": true
+      }
+    ],
     "count": [
       {
         "id": "pagination"
@@ -7554,6 +7691,9 @@
       },
       {
         "id": "pagination-item"
+      },
+      {
+        "id": "step-item"
       }
     ],
     "htmlFor": [
@@ -7881,6 +8021,9 @@
         "id": "segmented-control"
       },
       {
+        "id": "steps"
+      },
+      {
         "id": "tabs"
       },
       {
@@ -8003,6 +8146,12 @@
       {
         "id": "spinner",
         "default": "Loading"
+      },
+      {
+        "id": "step-item"
+      },
+      {
+        "id": "steps"
       },
       {
         "id": "switch-row"
@@ -8537,6 +8686,22 @@
           "horizontal",
           "vertical"
         ]
+      },
+      {
+        "id": "step-item",
+        "default": "horizontal",
+        "values": [
+          "horizontal",
+          "vertical"
+        ]
+      },
+      {
+        "id": "steps",
+        "default": "horizontal",
+        "values": [
+          "horizontal",
+          "vertical"
+        ]
       }
     ],
     "overlap": [
@@ -8768,6 +8933,10 @@
     "responsive": [
       {
         "id": "breadcrumbs",
+        "default": true
+      },
+      {
+        "id": "steps",
         "default": true
       }
     ],
@@ -9414,6 +9583,22 @@
         ]
       },
       {
+        "id": "step-item",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
+        "id": "steps",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
         "id": "switch-control",
         "default": "medium",
         "values": [
@@ -9520,6 +9705,16 @@
         "default": "active",
         "values": [
           "active",
+          "complete",
+          "error"
+        ]
+      },
+      {
+        "id": "step-item",
+        "default": "upcoming",
+        "values": [
+          "upcoming",
+          "current",
           "complete",
           "error"
         ]
@@ -10619,6 +10814,8 @@
         "skeleton",
         "slider",
         "spinner",
+        "step-item",
+        "steps",
         "switch-control",
         "switch-row",
         "tab-item",
@@ -10629,7 +10826,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, skeleton, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, skeleton, step-item, steps, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
     },
     {
       "kind": "axis values",
@@ -10649,12 +10846,13 @@
         "radio-row",
         "search-field",
         "select",
+        "step-item",
         "switch-control",
         "switch-row",
         "text-field",
         "textarea"
       ],
-      "detail": "the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress"
+      "detail": "the status axis takes 4 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in card-number-field, field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress; [complete, current, error, upcoming] in step-item"
     },
     {
       "kind": "axis values",
@@ -11041,6 +11239,22 @@
     },
     {
       "kind": "size order",
+      "subject": "step-item",
+      "components": [
+        "step-item"
+      ],
+      "detail": "step-item declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "steps",
+      "components": [
+        "steps"
+      ],
+      "detail": "steps declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "switch-control",
       "components": [
         "switch-control"
@@ -11117,7 +11331,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 51 of 52 sized components default to medium"
+      "detail": "field-label defaults size to small; 53 of 54 sized components default to medium"
     },
     {
       "kind": "prop default",

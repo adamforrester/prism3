@@ -117,6 +117,7 @@ const OUTSIDE_REASON: Record<string, string> = {
   'popover': 'a surface',
   'pagination-item': 'a pagination cell, not a button',
   'progress': 'an indicator',
+  'step-item': 'a step marker, a round disc by construction, not a control',
   '_slider-thumb': 'intrinsically round',
   'slider': 'an intrinsically round track',
 };

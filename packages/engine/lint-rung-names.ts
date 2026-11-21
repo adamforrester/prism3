@@ -448,6 +448,9 @@ const SPACING_ONLY_LADDER: Record<string, string> = {
   // #3345: as Breadcrumbs — the row's gap between items is its own size binding; the links are sized by the nested
   // PageNav.Item and Link, each checked under its own name.
   'page-nav': 'its only size-keyed binding is the gap between items (`space.200` / `300`); the links are sized by the nested PageNav.Item and Link, checked under their own names',
+  // #3055: as Breadcrumbs — the gap between steps is its own size binding; the discs, names and lines are sized by the
+  // nested StepItem and Link, each checked under its own name.
+  steps: 'its only size-keyed binding is the gap between steps (`space.075` / `100`); the steps are sized by the nested StepItem and Link, checked under their own names',
   // #2669 (owner Q550 e): the Slider's own size binding is its track, a border-width step per size.
   slider: 'its only size-keyed binding is the track (`border-width.thick` / `heavy` / `x-heavy`, 2 / 4 / 6px), a stroke step with no `md`; the thumb is sized by the nested Slider.Thumb (`control.size.*.thumb`), checked under its own name',
 };
@@ -515,6 +518,9 @@ const DEFAULT_FIRST: Record<string, string> = {
   // #3345: Breadcrumbs' pair, medium first (Q1 B), DRAFT for the owner.
   'page-nav': Q1B,
   'page-nav-item': Q1B,
+  // #3055: Breadcrumbs' pair, medium first (Q1 B).
+  steps: Q1B,
+  'step-item': Q1B,
   // #2669: owner Q550 e ("medium first") agrees with Q1 B.
   slider: Q1B,
   '_slider-thumb': Q1B,
@@ -586,6 +592,7 @@ const MUST_COVER = [
   'breadcrumb-item', 'breadcrumbs',
   'code-input-cell', 'code-input',
   'page-nav-item', 'page-nav',
+  'step-item', 'steps',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

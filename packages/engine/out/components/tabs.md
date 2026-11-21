@@ -13,7 +13,7 @@ A row of tabs above a baseline. Each tab names one panel of related content; sel
 
 - **Purpose:** Switch between peer panels of related content in place, one at a time.
 - **Use when:** Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.
-- **Avoid when:** The selection changes the page or the address (PageNav, a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).
+- **Avoid when:** The selection changes the page or the address (PageNav, a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (Steps), or has many independent sections (Accordion).
 
 ## Anatomy
 

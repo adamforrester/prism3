@@ -1714,6 +1714,75 @@
       ]
     },
     {
+      "from": "step-item",
+      "to": "link",
+      "part": "link",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "style": "inline",
+        "weight": "default",
+        "size": "medium",
+        "surface": "default",
+        "selection": "unselected",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "steps",
+      "to": "step-item",
+      "part": "step1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "complete",
+        "orientation": "horizontal",
+        "size": "medium"
+      },
+      "follow": [
+        "orientation",
+        "size"
+      ]
+    },
+    {
+      "from": "steps",
+      "to": "step-item",
+      "part": "step2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "current",
+        "orientation": "horizontal",
+        "size": "medium"
+      },
+      "follow": [
+        "orientation",
+        "size"
+      ]
+    },
+    {
+      "from": "steps",
+      "to": "step-item",
+      "part": "step3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "upcoming",
+        "orientation": "horizontal",
+        "size": "medium"
+      },
+      "follow": [
+        "orientation",
+        "size"
+      ]
+    },
+    {
       "from": "switch-control",
       "to": "focus-ring",
       "part": "focusRing",
@@ -2501,6 +2570,8 @@
         "segmented-control-segment",
         "sign-in-button",
         "slider",
+        "step-item",
+        "steps",
         "switch-control",
         "switch-row",
         "tab-item",
@@ -2585,14 +2656,17 @@
         "banner",
         "breadcrumb-item",
         "breadcrumbs",
-        "page-nav-item"
+        "page-nav-item",
+        "step-item"
       ],
       "affectedByChange": [
         "banner",
         "breadcrumb-item",
         "breadcrumbs",
         "page-nav",
-        "page-nav-item"
+        "page-nav-item",
+        "step-item",
+        "steps"
       ],
       "inheritedBy": []
     },
@@ -2901,6 +2975,35 @@
       ],
       "inheritedBy": []
     },
+    "step-item": {
+      "nests": [
+        "link"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "link"
+      ],
+      "nestedBy": [
+        "steps"
+      ],
+      "affectedByChange": [
+        "steps"
+      ],
+      "inheritedBy": []
+    },
+    "steps": {
+      "nests": [
+        "step-item"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "link",
+        "step-item"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "switch-control": {
       "nests": [
         "focus-ring"
@@ -3111,6 +3214,8 @@
     "skeleton": 0,
     "slider": 2,
     "spinner": 0,
+    "step-item": 2,
+    "steps": 3,
     "switch-control": 1,
     "switch-row": 2,
     "tab-item": 1,

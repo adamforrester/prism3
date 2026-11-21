@@ -76,6 +76,8 @@ import { tab } from './tab';
 import { tabs } from './tabs';
 import { pageNavItem } from './page-nav-item';
 import { pageNav } from './page-nav';
+import { stepItem } from './step-item';
+import { steps } from './steps';
 import { divider } from './divider';
 import { accordionIndicator } from './accordion-indicator';
 import { accordion } from './accordion';
@@ -106,7 +108,7 @@ import { popover } from './popover';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, providerLogo, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tagGroup, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton, signInButton, pageNavItem, pageNav, skeleton, popover };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, providerLogo, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tagGroup, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton, signInButton, pageNavItem, pageNav, skeleton, popover, stepItem, steps };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -287,4 +289,8 @@ export const componentDefs: readonly ComponentDef[] = [
   // `popover` (#4008, owner Q-FL2) — a non-modal panel anchored to its trigger. Nests the neutral flush icon button
   // (close) and the button group (footer), both above.
   popover,
+  // `step-item` and `steps` (#3055, owner decisions 2026-11-19) — one step and the indicator. The item nests `link`,
+  // above; Steps nests the item in its items slot, so it comes after it.
+  stepItem,
+  steps,
 ];

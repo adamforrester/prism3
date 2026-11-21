@@ -638,6 +638,7 @@ apps/studio/test-component-groups.ts #2952
 apps/studio/test-component-groups.ts #2958
 apps/studio/test-component-groups.ts #2983
 apps/studio/test-component-groups.ts #2989
+apps/studio/test-component-groups.ts #3055
 apps/studio/test-component-groups.ts #3086
 apps/studio/test-component-groups.ts #3148
 apps/studio/test-component-groups.ts #3155
@@ -1142,6 +1143,7 @@ packages/engine/test.ts #305
 packages/engine/test.ts #3050
 packages/engine/test.ts #3051
 packages/engine/test.ts #3052
+packages/engine/test.ts #3055
 packages/engine/test.ts #3058
 packages/engine/test.ts #3071
 packages/engine/test.ts #3072

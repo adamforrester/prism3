@@ -207,7 +207,7 @@ export const pageNav: ComponentDef = {
   ai: {
     primaryPurpose: 'Move between sibling pages: a navigation of links, each to its own address, with the current page marked by a bar and `aria-current="page"`.',
     whenToUse: 'Two to about six sibling pages of one area, such as Log in and Create account, or an account\'s Overview, Orders and Profile, where each page has its own address and the current one is marked.',
-    avoidWhen: 'The content switches in place without changing the address (use Tabs), the links are the site\'s main navigation, the path is a hierarchy (use Breadcrumbs), or the pages are a required sequence (a stepper, not built yet).',
+    avoidWhen: 'The content switches in place without changing the address (use Tabs), the links are the site\'s main navigation, the path is a hierarchy (use Breadcrumbs), or the pages are a required sequence (use Steps).',
     commonPartners: ['page-nav-item', 'link', 'breadcrumbs'],
     triggerKeywords: ['page navigation', 'page nav', 'account navigation', 'log in and create account links', 'sibling page links', 'link row with current page', 'underline nav'],
     generationPriority: 2,

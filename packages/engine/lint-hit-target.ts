@@ -378,6 +378,10 @@ const EXCLUDED: Record<string, string> = {
   // #3345: neither is a control of its own. The targets are the nested Links (one text line each, code-side 24px, stated
   // under `link`), the current page's link included: it stays a link.
   'page-nav': 'a navigation container — its targets are the nested items\' Links, each a control of its own',
+  // #3055: neither is a control of its own. The target is a complete step's nested Link (one text line, code-side 24px,
+  // stated under `link`); no other step is focusable.
+  'steps': 'a navigation container — its targets are the nested steps\' Links, each a control of its own',
+  'step-item': 'one step of a Steps indicator — its one target is a complete step\'s nested Link (one text line, code-side 24px, as `link`); no other step is focusable',
   'page-nav-item': 'one page in a page navigation — its target is the nested Link (one text line, code-side 24px, as `link`), the current page\'s included',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };

@@ -235,6 +235,7 @@ const MUST_PROJECT = [
   'pagination-item', 'pagination',
   '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
   'page-nav-item', 'page-nav',
+  'step-item', 'steps',
   '_slider-thumb', 'slider',
   'code-input', 'code-input-cell',
   'skeleton',

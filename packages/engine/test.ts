@@ -4396,6 +4396,9 @@ for (const b of brands) {
       breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
       // Page navigation (#3345): the gap between items, Breadcrumbs' two sizes.
       'page-nav': { keys: ['gap'], sizes: ['small', 'medium'] },
+      // Steps (#3055, DRAFT): the gap between a step's disc, name and line, and the same gap between steps.
+      'step-item': { keys: ['gap'], sizes: ['small', 'medium'] },
+      steps: { keys: ['gap'], sizes: ['small', 'medium'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     // Rows: block padding (the per-size minimum, #2894) / control-to-label gap (8/12/12 since #3173, owner Q3173 A).
@@ -4447,6 +4450,9 @@ for (const b of brands) {
       'breadcrumb-item': { compact: 'small 4 · medium 6', comfortable: 'small 4 · medium 8', spacious: 'small 6 · medium 12' },
       breadcrumbs: { compact: 'bare 4 · small 4 · medium 6', comfortable: 'bare 4 · small 4 · medium 8', spacious: 'bare 6 · small 6 · medium 12' },
       'page-nav': { compact: 'small 12 · medium 20', comfortable: 'small 16 · medium 24', spacious: 'small 20 · medium 32' },
+      // Steps (#3055, DRAFT): comfortable is the build's space.075 / space.100, one ladder step each way.
+      'step-item': { compact: 'small 4 · medium 6', comfortable: 'small 6 · medium 8', spacious: 'small 8 · medium 12' },
+      steps: { compact: 'small 4 · medium 6', comfortable: 'small 6 · medium 8', spacious: 'small 8 · medium 12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -4505,6 +4511,9 @@ for (const b of brands) {
       'breadcrumb-item': ['size.small.gap', 'size.medium.gap'],
       breadcrumbs: ['size.small.gap', 'size.medium.gap'],
       'page-nav': ['size.small.gap', 'size.medium.gap'],
+      // #3055: the gap between a step's disc, name and line, and between steps.
+      'step-item': ['size.small.gap', 'size.medium.gap'],
+      steps: ['size.small.gap', 'size.medium.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
         `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
@@ -21260,6 +21269,8 @@ arm: {
       'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'radio-row': 9, 'pagination-item': 9, '_slider-thumb': 9,
       // Breadcrumbs (#2666): the trail is placed on its own; its step and separator are parts its host places.
       breadcrumbs: 2, 'breadcrumb-item': 9, '_breadcrumb-separator': 9,
+      // Steps (#3055): the indicator is placed on its own; its step is a part the indicator places.
+      steps: 2, 'step-item': 9,
       'page-nav': 2, 'page-nav-item': 9,
       // Provider logo (#2343): a glyph other components carry, placed alone only in a row of accepted cards.
       'provider-logo': 3,
@@ -22003,6 +22014,8 @@ arm: {
       // Q-CC1 A (#3554): the cell carries [default, error] only, its danger edge one flat role at every state but disabled.
       'code-input-cell': 'a code input cell: status is [default, error] only (Q354, Q-CC1 A), the danger edge is one flat `color.border.danger` at every state but disabled, so there is no status hover step to measure; the #2428 contrast arm holds that border to 3:1 against the page',
       // #2670: Progress's `error` status colors a fill, not a border, and its message is a nested FieldMessage.
+      // #3055: a step's `error` status shows a glyph in the danger icon role in place of its disc, with no stroke.
+      'step-item': 'a step in a Steps indicator: no state axis and no stroked boundary at error; its error status swaps the disc for the danger error glyph and keeps the name, and the #3055 block holds that glyph to 3:1 against the page',
       progress: 'a progress bar or ring: no state axis and no stroked boundary; its error status colors the fill and shows in the nested FieldMessage\'s text and glyph, and its contrast is held by the #2670 block',
     };
     const SH_STATUSES = ['error', 'warning', 'success'];
@@ -23190,6 +23203,155 @@ arm: {
     }
   }
 
+  // ---- #3055: STEPS, the approved proposal (owner decisions 2026-11-19, all nine as recommended) — each held against a literal ----
+  // EXPECTED is typed here from the proposal and the decisions on #3055, never read from `steps.ts` or `step-item.ts`.
+  // ACTUAL is the real projection (`figmaAnatomySet`), node by node, and the def's shipped fields. Contrast is measured
+  // from the COMMITTED emission, every brand in its four modes, as the #2666 block does. Mutations, each failing the arm
+  // named:
+  //   the status order, a size or orientation reordered, or a state axis → `#3055 steps/members`;
+  //   the disc's fill, outline, number, check or error glyph at the wrong status (decisions 2, 4) → `#3055 steps/marker`;
+  //   a link at a status other than complete, or a text name on a complete step (decision 3) → `#3055 steps/name`;
+  //   a chevron or a missing line, or the line in the wrong color (decision 7) → `#3055 steps/connector`;
+  //   the slot's minimum, preferred item, default statuses, the discs' numbers or direction → `#3055 steps/slot`;
+  //   the names, aliases, the hidden status words or aria-current (decisions 1, 8) → `#3055 steps/identity`;
+  //   a painted role under its floor in any committed cell → `#3055 steps/contrast`.
+  {
+    const itemDef = componentDefs.find((d) => d.id === 'step-item');
+    const stepsDef = componentDefs.find((d) => d.id === 'steps');
+    ok(!!itemDef && !!stepsDef, '#3055 steps: Steps and StepItem are registered');
+    if (itemDef && stepsDef) {
+      type SN = { name: string; type: string; layoutMode?: string; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; descendantFills?: string; textStyle?: string; characters?: string; paints?: { fills?: string; strokes?: string }; bound?: Record<string, string>; slotSettings?: Record<string, unknown>; slotPreferred?: string[]; children: SN[] };
+      const all = (n: SN): SN[] => [n, ...n.children.flatMap(all)];
+      const find = (n: SN, name: string): SN | undefined => all(n).find((x) => x.name === name);
+      const co = (p: { coord: unknown }, k: string) => String((p.coord as Record<string, string>)[k]);
+      const itemPlans = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ status: co(p, 'status'), orient: co(p, 'orientation'), size: String(p.size), root: p.root as unknown as SN }));
+      const stepsPlans = figmaAnatomySet(stepsDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ orient: co(p, 'orientation'), size: String(p.size), root: p.root as unknown as SN }));
+      const DISC: Record<string, string> = { medium: 'icon/size/md', small: 'icon/size/sm' };
+
+      // MEMBERS: status [upcoming, current, complete, error] × orientation × size = 16, Steps orientation × size = 4, the
+      // first member the code default on every axis, no state axis on either.
+      const ITEM_MEMBERS = ['upcoming', 'current', 'complete', 'error'].flatMap((s) => ['horizontal', 'vertical'].flatMap((o) => ['medium', 'small'].map((z) => `${s}/${o}/${z}`)));
+      const STEPS_MEMBERS = ['horizontal', 'vertical'].flatMap((o) => ['medium', 'small'].map((z) => `${o}/${z}`));
+      ok(JSON.stringify(itemPlans.map((p) => `${p.status}/${p.orient}/${p.size}`)) === JSON.stringify(ITEM_MEMBERS)
+        && JSON.stringify(stepsPlans.map((p) => `${p.orient}/${p.size}`)) === JSON.stringify(STEPS_MEMBERS)
+        && itemDef.props.find((p) => p.name === 'status')?.default === 'upcoming'
+        && [itemDef, stepsDef].every((d) => d.props.find((p) => p.name === 'orientation')?.default === 'horizontal' && d.props.find((p) => p.name === 'size')?.default === 'medium')
+        && itemDef.states.length === 0 && stepsDef.states.length === 0 && !itemDef.figmaProperties?.stateAxis && !stepsDef.figmaProperties?.stateAxis,
+        `#3055 steps/members: StepItem status [upcoming, current, complete, error] × orientation [horizontal, vertical] × size [medium, small] = 16, Steps orientation × size = 4, upcoming / horizontal / medium first, no state axis (got ${itemPlans.length} / ${stepsPlans.length})`);
+
+      // THE MARKER (decisions 2, 4): a round disc one icon rung square; the current step's filled with the number in on-fill
+      // ink, the upcoming step's outlined in the 3:1 edge with the number in secondary text, the complete step's filled with
+      // a check, and an errored step's bare behind the error-circle glyph in the danger icon role.
+      const WANT: Record<string, { fill?: string; stroke?: string; number?: string; glyph?: [string, string] }> = {
+        upcoming: { stroke: 'color/border/tertiary', number: 'color/text/secondary' },
+        current: { fill: 'color/interactive/primary/fill/rest', number: 'color/interactive/primary/on-fill' },
+        complete: { fill: 'color/interactive/primary/fill/rest', glyph: ['icon/check', 'color/interactive/primary/on-fill'] },
+        error: { glyph: ['icon/error-circle', 'color/icon/danger'] },
+      };
+      const markOff = itemPlans.filter((p) => {
+        const m = find(p.root, 'marker'), w = WANT[p.status];
+        if (!m) return true;
+        const num = m.children.filter((c) => c.type === 'TEXT'), glyphs = m.children.filter((c) => c.type !== 'TEXT');
+        return !(m.bound?.width === DISC[p.size] && m.bound?.height === DISC[p.size] && m.bound?.topLeftRadius === 'radius/round'
+          && m.paints?.fills === w.fill && m.paints?.strokes === w.stroke
+          && (w.number ? num.length === 1 && num[0].paints?.fills === w.number && num[0].characters === '1' : num.length === 0)
+          && (w.glyph ? glyphs.length === 1 && glyphs[0].nestTarget === w.glyph[0] && glyphs[0].descendantFills === w.glyph[1] : glyphs.length === 0));
+      });
+      ok(markOff.length === 0, `#3055 steps/marker (decisions 2, 4): a 24 / 20px round disc, filled with the number at current, outlined with the number at upcoming, filled with a check at complete, bare behind the danger error-circle at error${markOff.length ? ` — OFF: ${markOff.map((p) => `${p.status}/${p.orient}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE NAME (decision 3): a complete step's name is Link, inline, default weight, at the step's size, its state
+      // exposed; every other step's name is text, never a link, in primary text (current, error) or secondary (upcoming).
+      const INK: Record<string, string> = { upcoming: 'color/text/secondary', current: 'color/text/primary', error: 'color/text/primary' };
+      const nameOff = itemPlans.filter((p) => {
+        const links = all(p.root).filter((n) => n.nestTarget === 'link'), t = find(p.root, 'label');
+        if (p.status === 'complete') return !(links.length === 1 && !t && JSON.stringify(links[0].nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', selection: 'unselected', state: 'rest' }) && JSON.stringify(links[0].nestExpose) === '["state"]');
+        return !(links.length === 0 && t && t.type === 'TEXT' && t.paints?.fills === INK[p.status] && t.textStyle === `body/${p.size === 'medium' ? 'md' : 'sm'}/default`);
+      });
+      ok(nameOff.length === 0, `#3055 steps/name (decision 3): only a complete step's name is a Link (inline, default weight, state exposed); every other name is body text, primary at current and error, secondary at upcoming${nameOff.length ? ` — OFF: ${nameOff.map((p) => `${p.status}/${p.orient}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE CONNECTOR (decision 7): a line, never a glyph. Across a row it is the last cell, a hairline in a cell one disc
+      // tall; down a column it sits under the disc in the rail. Every line, at every status, in the neutral secondary icon
+      // role, the Breadcrumbs chevron's gray (owner decision 2026-11-20 on #4341, option 3): a complete step's line too.
+      const LINE = (_s: string) => 'color/icon/secondary';
+      const lineOff = itemPlans.filter((p) => {
+        const h = find(p.root, 'connectorH'), v = find(p.root, 'connectorV'), cell = find(p.root, 'connectorCell'), rail = find(p.root, 'rail');
+        const line = p.orient === 'horizontal' ? h : v;
+        const placed = p.orient === 'horizontal'
+          ? !v && !!cell && p.root.children[p.root.children.length - 1] === cell && cell.bound?.height === DISC[p.size] && line?.bound?.height === 'border-width/hairline'
+          : !h && !cell && !!rail && rail.children[1] === v && line?.bound?.width === 'border-width/hairline';
+        return !(placed && line && line.children.length === 0 && line.paints?.fills === LINE(p.status) && !all(p.root).some((n) => /chevron/.test(n.nestTarget ?? '')));
+      });
+      ok(lineOff.length === 0, `#3055 steps/connector (decision 7): one hairline line per step, across in a disc-tall end cell or down under the disc, in color/icon/secondary at every status (a complete step's line too), and no chevron${lineOff.length ? ` — OFF: ${lineOff.map((p) => `${p.status}/${p.orient}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE ITEMS SLOT: at least two, StepItem only, complete / current / upcoming by default at the indicator's orientation
+      // and size, running across or down with the orientation.
+      const slotOff = stepsPlans.filter((p) => {
+        const s = find(p.root, 'items');
+        return !(s && s.type === 'CONTENT_SLOT' && s.layoutMode === (p.orient === 'horizontal' ? 'HORIZONTAL' : 'VERTICAL')
+          && JSON.stringify(s.slotSettings) === '{"minChildren":2,"allowPreferredValuesOnly":true}' && JSON.stringify(s.slotPreferred) === '["step-item"]'
+          && JSON.stringify(s.children.map((c) => [c.nestTarget, c.nestVariant?.status, c.nestVariant?.orientation, c.nestVariant?.size])) === JSON.stringify(['complete', 'current', 'upcoming'].map((st) => ['step-item', st, p.orient, p.size]))
+          // The discs read 2 and 3 (the complete step shows a check): StepItem's own default is "1" (#3055 review).
+          && JSON.stringify(s.children.map((c) => c.nestTexts?.number ?? null)) === JSON.stringify([null, '2', '3']));
+      });
+      ok(slotOff.length === 0, `#3055 steps/slot: Steps holds a native items slot, at least 2, StepItem only, defaulting to complete, current, upcoming at its own orientation and size, the discs numbered 2 and 3 after the check, a row across and a column down${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.orient}/${p.size}`).join(', ')}` : ''}`);
+
+      // IDENTITY AND WORDING (decisions 1, 8): the names and aliases, a navigation landmark around a list, aria-current
+      // "step", and the four hidden status words (DRAFT copy, typed here so a rewording fails by name).
+      const aria = `${stepsDef.accessibility.aria} ${itemDef.accessibility.aria}`;
+      ok(stepsDef.name === 'Steps' && itemDef.name === 'StepItem' && stepsDef.category === 'navigation' && itemDef.category === 'navigation'
+        && JSON.stringify(stepsDef.aliases) === '["stepper","step-indicator","progress-steps"]' && !stepsDef.aliases?.includes('progress-indicator')
+        && ['"Completed"', '"Current step"', '"Not started"', '"Error"'].every((w) => itemDef.accessibility.aria.includes(w))
+        && (aria.match(/aria-current="step"/g) ?? []).length >= 2 && stepsDef.accessibility.aria.includes('<nav>')
+        && stepsDef.props.find((p) => p.name === 'label')?.required === true && itemDef.props.find((p) => p.name === 'href')?.required === false,
+        `#3055 steps/identity (decisions 1, 8): Steps and StepItem, navigation, aliases stepper / step-indicator / progress-steps, a named <nav> with a required label, aria-current="step", the hidden words "Completed", "Current step", "Not started", "Error", and an optional href`);
+
+      // CONTRAST over every committed brand × mode: the names 4.5:1 on the page, the number 4.5:1 on its disc (on-fill on
+      // the primary fill) and on the page (secondary text), the outlined disc and the error glyph 3:1 on the page
+      // (SC 1.4.11). The filled disc is held at 3:1 on the page too. The line is decorative and held to no floor.
+      const treeFiles = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f));
+      const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+      const colorOf = (tree: Record<string, any>, root: string, path: string, mode: string, depth = 0): string | null => {
+        let n: any = tree[root];
+        for (const k of path.split('.')) n = n?.[k];
+        if (!n || depth > 8) return null;
+        const v = mode === 'light' ? n.$value : (n.$extensions?.prism3?.modes?.[mode]?.$value ?? n.$value);
+        if (typeof v !== 'string') return null;
+        const ref = /^\{([^}]+)\}$/.exec(v);
+        if (ref) { const [r0, ...rest] = ref[1].split('.'); return colorOf(tree, r0, rest.join('.'), mode, depth + 1); }
+        const rgb = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(v);
+        if (rgb) return rgb[4] !== undefined && Number(rgb[4]) < 1 ? null : '#' + [rgb[1], rgb[2], rgb[3]].map((x) => Number(x).toString(16).padStart(2, '0')).join('');
+        return /^#[0-9a-f]{6}$/i.test(v) ? v : null;
+      };
+      const PAIRS: [string, string, number][] = [
+        ['color.text.primary', 'color.background.primary', 4.5], ['color.text.secondary', 'color.background.primary', 4.5],
+        ['color.interactive.primary.on-fill', 'color.interactive.primary.fill.rest', 4.5],
+        ['color.border.tertiary', 'color.background.primary', 3], ['color.icon.danger', 'color.background.primary', 3],
+        ['color.interactive.primary.fill.rest', 'color.background.primary', 3],
+      ];
+      const painted = new Set(itemPlans.flatMap((p) => all(p.root)).flatMap((n) => [n.paints?.fills, n.paints?.strokes, n.descendantFills]).filter(Boolean).map((v) => String(v).replace(/\//g, '.')));
+      const CELLS = 20;
+      const lows: string[] = [];
+      for (const [fg, bg, floor] of PAIRS) {
+        let measured = 0;
+        for (const f of treeFiles) {
+          const tree = JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8'));
+          const root = Object.keys(tree)[0];
+          for (const m of MODES) {
+            const a = colorOf(tree, root, fg, m), b = colorOf(tree, root, bg, m);
+            if (!a || !b) { lows.push(`${f}/${m}: ${!a ? fg : bg} unresolved`); continue; }
+            const r = contrast(hexToRgb(a), hexToRgb(b));
+            measured++;
+            if (r < floor) lows.push(`${fg} on ${bg} ${f}/${m} ${r.toFixed(2)}`);
+          }
+        }
+        if (measured !== CELLS) lows.push(`${fg} on ${bg}: ${measured} of ${CELLS} cells measured`);
+      }
+      const unpainted = PAIRS.map(([fg]) => fg).filter((r) => !painted.has(r));
+      ok(lows.length === 0 && unpainted.length === 0 && treeFiles.length === 5,
+        `#3055 steps/contrast: the step names 4.5:1 on the page, the number 4.5:1 on its filled disc and on the page, the outlined disc, the error glyph and the filled disc 3:1 on the page, in all ${CELLS} committed brand × mode cells (${treeFiles.length} brands)${unpainted.length ? ` — the projection no longer paints ${unpainted.join(', ')}` : ''}${lows.length ? ` — LOW: ${lows.slice(0, 8).join('; ')}` : ''}`);
+    }
+  }
+
   // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
   // The label dims when its field is disabled, carried by the `disabled` STATE (a paint change projected as a
   // Figma variant), with NO duplicating `disabled` prop. EXPECTED is the authored contract; ACTUAL is the
@@ -23881,6 +24043,8 @@ arm: {
       // BREADCRUMBS (#2666, call 4 A): the current page binds the two default body rungs. It exists only on a current
       // member.
       { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'label', axes: { size: 2 }, at: { kind: 'current' } },
+      // STEPS (#3055): a text step's name binds the two default body rungs. A complete step's name is the nested Link.
+      { def: componentDefs.find((d) => d.id === 'step-item')!, part: 'label', axes: { size: 2 }, at: { status: 'current' } },
       // Pagination (#2665): the item's number by selection (the current page's emphasis weight) and size, its bold reserve
       // by size alone, and the compact text by size. The ellipsis is an icon (Q404 A), so it binds no type.
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'label', axes: { selection: 2, size: 3 } },
@@ -34082,7 +34246,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['skeleton', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter'];
+  const GATED_EXPECTED = ['skeleton', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter', 'step-item'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -34229,7 +34393,7 @@ arm: {
   // variables: a fixed column one line tall.
   // Pagination.Item's balance (Q537) binds a zero width under its 2px height: the frame above the underlined number that
   // must not set the label box's width. Two different variables, so it joins on the rule's own terms.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'search-field', 'card-number-field', 'code-input-cell', 'pagination-item'];
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'search-field', 'card-number-field', 'code-input-cell', 'pagination-item', 'step-item'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   const grownWidth: string[] = [];
@@ -35750,6 +35914,10 @@ arm: {
     // (the provider's own words), so the glyph centers against the only line, as Button's icon does.
     'sign-in-button.container':
       "a sign-in button is one fixed height and its label is the provider's one-line wording, which never wraps, so the glyph centers against the only line, as on Button.",
+    // `step-item` (#3055): the disc centers its one number (or the check, or the error glyph; gated on status, never two
+    // at once) inside a fixed square, so there is no wrapping block to float against.
+    'step-item.marker':
+      "the disc is a fixed square holding one short number, or a single glyph in its place (gated on status, never two at once), so centring places the only line in the middle of the disc.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };

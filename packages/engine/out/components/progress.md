@@ -13,7 +13,7 @@ Shows that system work is under way and, when the system can measure it, how far
 
 - **Purpose:** Show that system work is under way and, when it can be measured, how far along it is.
 - **Use when:** An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small, measured or not, for a task that ends in complete or error.
-- **Avoid when:** The wait is short and inside a control (use Spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper).
+- **Avoid when:** The wait is short and inside a control (use Spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (use Steps).
 
 ## Anatomy
 
@@ -68,7 +68,7 @@ Use Progress for system work that takes more than a few seconds: a determinate b
 - Put the label or the value inside the track
 - Use a ring for a short wait inside a control. That is a Spinner
 - Use Progress for a static measurement such as storage used. That is a meter
-- Use Progress for a user's place in a multi-step form. That is a stepper
+- Use Progress for a user's place in a multi-step form. That is Steps
 - Show the outcome by color alone
 
 ## Accessibility
@@ -104,7 +104,7 @@ Label: what is happening, with an active verb ("Uploading photo.jpg"), one label
 ## Related components
 
 - **Built from:** `field-message`
-- **Instead, consider:** `spinner`, `skeleton`
+- **Instead, consider:** `spinner`, `skeleton`, `steps`
 - **Often used with:** `button`
 - **Replaces:**
   - a bar that creeps to 99% while the real amount is unknown

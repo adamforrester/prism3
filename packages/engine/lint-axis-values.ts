@@ -645,9 +645,10 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
     // Breadcrumbs and its item join it (#2666, owner call 7 A): one line of 14 or 16px body text, and an 18px trail
     // stops reading as secondary wayfinding. Page navigation and its item join it (#3345, Q8 A): Breadcrumbs' pair, one
-    // line of 14 or 16px body text. Badge joins it (#2983, owner direction 2026-10-24): the status label's
+    // line of 14 or 16px body text. Steps and its step join it (#3055): Breadcrumbs' pair, a 24px disc beside 16px text
+    // or a 20px disc beside 14px text. Badge joins it (#2983, owner direction 2026-10-24): the status label's
     // compact size beside today's, and nothing above it.
-    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress', 'badge', 'page-nav', 'page-nav-item', 'skeleton'],
+    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress', 'badge', 'page-nav', 'page-nav-item', 'steps', 'step-item', 'skeleton'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '
@@ -883,6 +884,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'it is the code default and Figma\'s default member.',
   },
   {
+    axis: 'status',
+    values: ['upcoming', 'current', 'complete', 'error'],
+    defs: ['step-item'],
+    relation: 'overlapping',
+    reason:
+      'Where a step stands in a Steps indicator (#3055, owner decisions 2 to 4): not started, the one being taken, done, '
+      + 'or needing attention. OVERLAPPING with the canonical validation set on `error` only, and the shared value means '
+      + 'the same thing: a failure the person must fix, shown with the danger icon role. `complete` is Progress\'s word '
+      + 'for done; `upcoming` and `current` name a place in a sequence, which neither a field nor Progress has. '
+      + '`upcoming` LEADS because it is the code default and Figma\'s default member.',
+  },
+  {
     axis: 'width',
     values: ['auto', 'full'],
     defs: ['button', 'button-destructive', 'button-neutral'],
@@ -982,14 +995,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'orientation',
     values: ['horizontal', 'vertical'],
-    defs: ['divider'],
+    defs: ['divider', 'steps', 'step-item'],
     relation: 'sole',
     reason:
       'The divider\'s RUN (#2455, the owner\'s issue, DRAFT) — which way the rule runs across its container: '
       + 'spanning its width between content stacked above and below (`horizontal`, the default and the code '
       + 'default, first so it is Figma\'s default member), or its height between items side by side (`vertical`). '
       + 'The same word and values as ARIA\'s `aria-orientation`. Distinct from `direction` (where a veil\'s wash '
-      + 'sits across an image) and `width` (how much of its container a control takes), argued in `VARIANT_AXES`.',
+      + 'sits across an image) and `width` (how much of its container a control takes), argued in `VARIANT_AXES`. '
+      + 'Steps and its step join it (#3055): which way the steps run, a row or a column, with the same two words and '
+      + '`horizontal` first; Steps passes it to every step (`follow`), so the two hold one set.',
   },
   {
     axis: 'expansion',

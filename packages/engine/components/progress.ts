@@ -435,7 +435,7 @@ export const progress: ComponentDef = {
       'Put the label or the value inside the track',
       'Use a ring for a short wait inside a control. That is a Spinner',
       'Use Progress for a static measurement such as storage used. That is a meter',
-      'Use Progress for a user\'s place in a multi-step form. That is a stepper',
+      'Use Progress for a user\'s place in a multi-step form. That is Steps',
       'Show the outcome by color alone',
     ],
     contentGuidelines: 'Label: what is happening, with an active verb ("Uploading photo.jpg"), one label for the whole task. Value: a concrete amount where there is one ("45 MB of 100 MB", "Step 3 of 5"), otherwise a percentage. End: past tense when done ("Upload complete"); when it fails, what failed and the next step ("Upload failed. The connection dropped. Try again.").',
@@ -444,7 +444,7 @@ export const progress: ComponentDef = {
   ai: {
     primaryPurpose: 'Show that system work is under way and, when it can be measured, how far along it is.',
     whenToUse: 'An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small, measured or not, for a task that ends in complete or error.',
-    avoidWhen: 'The wait is short and inside a control (use Spinner), the content is loading for the first time (a placeholder in the layout\'s shape), the value is a static measurement such as storage used (a meter), it marks a user\'s place in a multi-step flow (a stepper).',
+    avoidWhen: 'The wait is short and inside a control (use Spinner), the content is loading for the first time (a placeholder in the layout\'s shape), the value is a static measurement such as storage used (a meter), it marks a user\'s place in a multi-step flow (use Steps).',
     commonPartners: ['button', 'spinner', 'field-message'],
     triggerKeywords: ['progress', 'progress bar', 'progress indicator', 'linear progress', 'circular progress', 'progress ring', 'upload progress', 'determinate', 'indeterminate'],
     generationPriority: 3,
@@ -452,8 +452,8 @@ export const progress: ComponentDef = {
 
   composition: {
     composesWith: ['field-message'],
-    alternativeTo: ['spinner', 'skeleton'],
-    planned: ['meter', 'stepper'],
+    alternativeTo: ['spinner', 'skeleton', 'steps'],
+    planned: ['meter'],
     replacesPatterns: ['a bar that creeps to 99% while the real amount is unknown', 'a label printed inside the moving fill'],
   },
 

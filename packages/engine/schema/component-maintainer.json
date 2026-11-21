@@ -6941,6 +6941,200 @@
           "reason": "empty"
         }
       ]
+    },
+    "step-item": {
+      "codeOnly": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED",
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "The element — each step is an <li> in the Steps <ol>, so its position is announced. The current step carries aria-current=\"step\"; no other step carries aria-current."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "The hidden status word — each step ends its accessible text with a visually hidden word, so its status never rests on color or the glyph alone: \"Completed\", \"Current step\", \"Not started\" or \"Error\" (DRAFT, owner decision 8 on #3055). The number and the glyphs are aria-hidden; the list position carries the number."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "The linked step — a complete step with href renders its name as an <a>, through Link, and is the one step in the Tab order. Without href it is text. href is ignored on every other status. In Figma a complete step always draws its name as the Link."
+        },
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED",
+          "description": "The link's hit area — the nested Link's code-side expansion to 24px applies: a step is not a link inside a sentence, so the inline exemption does not."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "The line's length — in code the line grows (flex: 1) to fill the space to the next step across a row, and down to the next step in a column. In Figma it is a fixed nominal length a designer stretches."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED",
+          "description": "RTL — the row mirrors, so the first step sits at the right edge and the line runs left. The check and the error glyph do not mirror."
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED",
+          "description": "text expansion — a step name wraps onto a second line rather than truncating; the disc stays at the top of the step."
+        }
+      ],
+      "notes": {
+        "contested": [
+          "A complete step without href: Figma always draws a complete step's name as the nested Link (the proposal's set shape, 16 members), so a complete step that is not a link has no member of its own; code renders it as text.",
+          "The step name's Figma default reads \"Step name\" on a text step and the nested Link's own \"Link text\" on a complete step: a host cannot yet override a text two nesting levels down (#2781, BreadcrumbItem's case)."
+        ],
+        "unverified": [
+          "The disc, the number and the step name's contrast are stated as intent; `test.ts` holds the pairs over every committed brand and mode."
+        ],
+        "evolution": [
+          "2026-11-19 (#3055): built from the approved proposal, all nine owner decisions as recommended, on Breadcrumbs' items-slot shape. No KB brief exists (decision 9).",
+          "2026-11-20 (#4341): every line takes `color.icon.secondary`, a complete step's line too, by owner decision (option 3). The proposal named the border role, but every `color.border.*` is scoped to strokes only and the disc already claims the `border` slot, so the line paints the box `indicator` slot, a fill. `color.icon.secondary` stays long-term and no dedicated line role is planned (owner decision 2026-11-20, follow-up B), though an icon role is not the ideal type for a line."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "empty"
+        }
+      ]
+    },
+    "steps": {
+      "codeOnly": [
+        {
+          "class": "deferred",
+          "disposition": "REFUSED",
+          "description": "Plain HTML/CSS: wire this behavior contract up in your framework. The web component includes it."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "The landmark — <nav aria-label={label}> around an <ol>, one <li> per step, so \"list, 3 items\" and each position are announced. No tablist and no progressbar role: nothing here is a composite widget."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "The last step's line — Steps draws no line after the last step: it sets connector={false} on it. In Figma the designer turns the line off on the last step."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "Sharing the width — across a row each step grows to share the width and its line fills the space to the next step. Down a column each line runs to the next step's disc. In Figma the lines have a fixed nominal length."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "The narrow collapse — when the row does not fit, a container query swaps it for one line naming the current step and the count, \"Step 2 of 3: Payment\" (DRAFT copy, owner decision 6 on #3055), still inside the <nav>. responsive={false} turns it off. Figma has no member for it."
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED",
+          "description": "Figma step count — the native items slot holds three steps by default and at least two; a designer adds, removes and reorders them and sets each one's status. Steps keep the orientation and size they were placed at when Steps changes either."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED",
+          "description": "RTL — the row mirrors: the first step sits at the right edge and the lines run left."
+        }
+      ],
+      "notes": {
+        "contested": [],
+        "unverified": [],
+        "evolution": [
+          "2026-11-19 (#3055): built from the approved proposal, all nine owner decisions as recommended, on Breadcrumbs' items-slot shape. No KB brief exists (decision 9)."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "empty"
+        }
+      ]
     }
   }
 }

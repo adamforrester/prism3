@@ -161,6 +161,10 @@ export const TAXONOMY: Taxonomy = {
         // first, so the row's items slot resolves against it on the same page, as Breadcrumbs' does. Link builds wherever
         // its page sorts. Which section it sits in is held for the owner on the PR, as Link's was.
         { page: 'Page navigation', defs: ['page-nav-item', 'page-nav'], lead: 'page-nav' },
+        // Steps (#3055) — its own page under Components, after Page navigation. The step builds first, so the items slot
+        // resolves against it on the same page (Q656 A: a part only one component nests sits on its page). Link builds
+        // wherever its page sorts. Which section it sits in is held for the owner on the PR, as Page navigation's was.
+        { page: 'Steps', defs: ['step-item', 'steps'], lead: 'steps' },
         // Toast (#2668, owner call 12 A) — its own page under Components, sorted alphabetically (Q260 A). It nests the
         // Button and the FlushIconButton.Neutral, which the build places first wherever their pages sort.
         { page: 'Toast', defs: ['toast'] },
