@@ -2323,6 +2323,94 @@ computed styles don't mean equal structure.
 
 ---
 
+## The arm input contract: what arm 2 supplies so the comparison runs on its Storybook unchanged (#3408, plan item 1)
+
+Started about 16:15 UTC on 2026-11-20, from `poc/arm-1` at `40d7fc01`. This is item 1 of the remaining plan posted on
+#3408 the same day. It comes first because the scored comparison waits only on read access to the contributor's repo,
+and on the day that arrives, arm 2's side should be one file to fill in, not a port of arm 1's scripts.
+
+### What was built
+
+- **`apps/storybook/arm-contract.ts`** defines the contract: one JSON file per arm. For each component it gives:
+  - the root selector;
+  - each anatomy part path mapped to a selector, or declared `unboxed` with a reason;
+  - how the focus ring is drawn;
+  - the delivery forms, with a story id for each KPI 2 state;
+  - the token naming: stock Style Dictionary, or a map from property names to token paths.
+
+  `validate()` names every gap. Its oracles are the emitted `specs.json` anatomy, the emitted token tree, the brief's
+  KPI 2 states (by hand), and the arm's own built `index.json`.
+- **`arm-1.contract.json`** is arm 1's contract. Its part map is S6's `PARTS`, moved out of `check-geometry.ts` and
+  byte-identical (checked against the old literal). It also declares the placeholder, value and caret text runs
+  `unboxed`, because they're the native input's own, not boxes.
+- **`check-arm-contract.ts`** runs in `check:build`. It checks arm 1's contract against its built Storybook, then runs
+  eight mutants:
+  - a part left out;
+  - an invented part path;
+  - an unboxed part with no reason;
+  - the text field left out;
+  - a story id not in the build;
+  - a KPI state with no story;
+  - a token map naming a path that doesn't exist;
+  - the button's focus ring declared `none`.
+- **`check-geometry.ts`** reads its roots and part selectors from the contract. The result is the same 300 checks, and
+  the comparison still makes the same 1,487 comparisons.
+- **`ARM-CONTRACT.md`** tells arm 2 how to fill in its contract, without reading arm 1's code.
+
+### A defect found and fixed: the Figma comparison read its parts from its subject
+
+`compare-figma-geometry.ts` decided which Figma layers to hold the code to (`CODE_PARTS`) from the parts any code case
+had drawn. So if the code never drew a part, in any case, its Figma layer was dropped from the comparison rather than
+failed. That's `docs/34`'s "derived from its subject" shape. It didn't bite arm 1, whose code draws every mapped part
+somewhere, but it would have hidden exactly the gap the comparison exists to show in arm 2. The comparison now takes
+its parts from the contract (`--contract <file>`, defaulting to arm 1's).
+
+- **Before:** a new self-test case drops the password field's message from every code case. Run against the old
+  comparison, it was **not caught** ("no failures").
+- **After:** it fails by name: `password-field error (…): container/message (…) is drawn in Figma, not in code`.
+
+### What was checked, and how
+
+| Check | Real run | Mutants, each fails by name |
+|---|---|---|
+| `check-arm-contract.ts` | OK: 3 components, 31 part paths, 2 forms, every KPI 2 state mapped to a built story | the 8 above |
+| `check-geometry.ts` | 300 OK, 50 cases written, unchanged | its 4 one-form mutants and 3 represented-story mutants |
+| `compare-figma-geometry.ts --self-test` | 1,487 comparisons, as before | the 5 from S6, plus the new code-never-draws case |
+
+**Hand mutation on disk**, after a commit, restored with `git show HEAD:<path> > <path>`: deleting the password field's
+`container/message` from `arm-1.contract.json` makes `check-arm-contract.ts` fail with `password-field:
+container/message is in the anatomy and neither mapped nor declared unboxed`.
+
+### Not in this PR
+
+- **Token parity for arm 2.** `check-token-parity.ts` still writes arm 1's probes. The contract's `tokens` field holds
+  what arm 2's side needs: the property names, so the sentinel decoding can name each value. The runner reads it when
+  arm 2's Storybook is at hand. The contract already checks that every mapped path is a real token.
+- **D4 (OWNER DECISION, #3408):** `password-field` is optional in the contract, so the contract decides nothing about
+  whether the Show/Hide cases are scored against arm 2.
+
+### Effort
+
+- **Wall clock:** about 16:15 to 16:50 UTC, including about 10 minutes reading the emission to find where the
+  anatomy's part paths live (`specs.json`'s `anatomy[].part`, not `component-defs.json`).
+- **Commands:** `npm ci` (7s), one Storybook build, the geometry check (61s), the contract check and both self-tests,
+  the before-run of the old comparison, and one hand mutation.
+- **Hand edits:** `arm-contract.ts` (new, about 130 lines), `arm-1.contract.json` (new), `check-arm-contract.ts` (new,
+  about 75), `ARM-CONTRACT.md` (new), `check-geometry.ts` and `compare-figma-geometry.ts` (about 15 lines each), the
+  package script, the Storybook README, CONTRIBUTING §3, this entry and the progress entry.
+- **Errors hit:** 2, both mine. I looked for the anatomy in `component-defs.json` first; the part paths are in
+  `specs.json`. And a one-line `sed` for the hand mutation couldn't span lines, so the mutation was done with a short
+  script instead.
+
+**Review fixes, same PR.** The independent review found the self-test case for the comparison fix passed with the fix
+reverted: it worked out the part list once, from the unplanted record. `compare()` now takes its part list as an
+argument, and the self-test passes each planted record through `partList`, the derivation the real run uses. A second
+assertion shows the old record-derived list misses the planted case. `check-geometry.ts` now fails by name for a part
+the contract maps that no story drew, with a typo'd selector as its mutant. `ARM-CONTRACT.md` lists what still reads arm
+1 directly, so "runs unchanged" isn't claimed beyond what the code does.
+
+---
+
 ## The scorecard harness, arm 1's side (#3408, plan item 2)
 
 Started about 16:50 UTC on 2026-11-20, from `poc/arm-1` at `40d7fc01`. The brief's output is a one-page KPI table for

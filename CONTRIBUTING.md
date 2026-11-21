@@ -1810,6 +1810,8 @@ npm run check:build -w @prism3/storybook   # needs Chromium; run AFTER the Story
                                           # holds exactly the check's own story list, each story
                                           # renders its component and forced state, and the element
                                           # and HTML stories of one case compute the same styles;
+                                          # #3408: check-arm-contract.ts holds arm 1's input contract
+                                          # complete (anatomy, tokens, built story ids);
                                           # #3408 S6: check-geometry.ts holds both forms' boxes equal
                                           # to 0.01px, and the Figma comparison's arithmetic self-tests
 npm run check:a11y -w @prism3/storybook    # needs Chromium; run AFTER the Storybook build. axe on
