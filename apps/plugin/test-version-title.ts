@@ -45,7 +45,7 @@ console.log('1. the text, by case (the owner table, Q442 A)');
     ['update, 3 sets', versionOf({ run: 'update', sets: names(...many) }), 'Saved before Prism3 updated 3 sets', `${E} Sets: icon, focus-ring, button (3).`],
     ['update, 1 set', versionOf({ run: 'update', sets: [{ set: 'dialog', name: 'Dialog' }] }), 'Saved before Prism3 updated Dialog', E],
     ['update, sets and page order', versionOf({ run: 'update', sets: names('a', 'b'), pageOrder: true }), 'Saved before Prism3 updated 2 sets', `${E} Sets: a, b (2). Page order.`],
-    ['update, sets, page order, About frame and cover', versionOf({ run: 'update', sets: names('a', 'b'), pageOrder: true, about: true, cover: true }), 'Saved before Prism3 updated 2 sets', `${E} Sets: a, b (2). Page order. About frame. Cover.`],
+    ['update, sets, page order, About frame and cover', versionOf({ run: 'update', sets: names('a', 'b'), pageOrder: true, about: true, cover: true }), 'Saved before Prism3 updated 2 sets', `${E} Sets: a, b (2). Page order. About this library. Cover.`],
     ['update, one set and the cover', versionOf({ run: 'update', sets: [{ set: 'dialog', name: 'Dialog' }], cover: true }), 'Saved before Prism3 updated Dialog', `${E} Cover.`],
     ['update, page order alone', versionOf({ run: 'update', sets: [], pageOrder: true }), 'Saved before Prism3 updated the page order', E],
     ['build, 1 set', versionOf({ run: 'build', sets: [{ set: 'pagination', name: 'Pagination' }] }), 'Saved before Prism3 added Pagination', E],

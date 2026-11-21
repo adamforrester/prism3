@@ -48,7 +48,7 @@
  *     refused while a delete runs, and a second delete is (mutations: `writes` true for a preview, or the
  *     panel's prune confirm read as always true → busy/preview's preview arms fail; the delete unguarded →
  *     its control arm fails).
- *   · busy/words (#3718 D3718.1 B): a refusal names the write that holds the file, as literals: "Theme is already running. …"
+ *   · busy/words (#3718 D3718.1 B): a refusal names the write that holds the file, as literals: "Apply theme is already running. …"
  *     behind Theme, "Style guides is already running. …" behind Style guides, and Theme for a file setup or an agent's build
  *     asked for behind Theme (mutations: `refusal` worded by the asked `cmd` → the file-setup/build arm fails; the agent's
  *     `refuse` worded by the asked write → the same arm fails; the old fixed "Update file" line → every arm fails, each by name).
@@ -739,7 +739,7 @@ section('brackets/throw — a handler that throws still tells the panel the run 
 section('busy — a second write of an operation, while one is running, is refused with busy (#1957)');
 {
   // The words name the write holding the file (#3718 D3718.1 B): Theme, in every arm of this section.
-  const BUSY = 'Theme is already running. Try again when it finishes.';
+  const BUSY = 'Apply theme is already running. Try again when it finishes.';
   /** Hold the host's text-style read, so a write that reaches it waits there until `release()`. */
   const hold = (): (() => Promise<void>) => {
     let open!: () => void;
@@ -767,8 +767,8 @@ section('busy — a second write of an operation, while one is running, is refus
   await toUi({ type: 'apply-theme', input: brand });
   const pr = refusals(false);
   ok(pr.length === 1 && isRefusal(pr[0], false), `busy/panel: the second apply is refused with busy and the owner's words (${pr[0]?.message})`);
-  ok(pr[0]?.message === 'Theme is already running. Try again when it finishes.',
-    `busy/words: a refusal behind Theme reads "Theme is already running. Try again when it finishes." (${pr[0]?.message})`);
+  ok(pr[0]?.message === 'Apply theme is already running. Try again when it finishes.',
+    `busy/words: a refusal behind Theme reads "Apply theme is already running. Try again when it finishes." (${pr[0]?.message})`);
   await release();
   const pv = posted.filter((m) => m.type === 'apply-result');
   ok(pv.length === 1 && JSON.stringify(pv[0]) === baseline, `busy/panel: the first write is unaffected: one verdict, the baseline's (${pv.length})`);
@@ -829,8 +829,8 @@ section('busy — a second write of an operation, while one is running, is refus
   ok(rbc.ok === false && rbc.error?.code === 'busy' && rbc.error?.message === BUSY && !calls.includes('buildComponents')
     && abc.length === 1 && isRefusal(abc[0], true, 'build-components') && !posted.some((m) => m.type === 'agent-started' && m.id === bc.id),
     `busy/one hold: an agent's build-components arriving mid Apply Theme is refused as busy before it starts, and the panel is told the holder (${rbc.error?.code}: ${rbc.error?.message}; ${JSON.stringify(abc[0])})`);
-  ok(fs1[0]?.message === 'Theme is already running. Try again when it finishes.' && abc[0]?.message === 'Theme is already running. Try again when it finishes.'
-    && rbc.error?.message === 'Theme is already running. Try again when it finishes.',
+  ok(fs1[0]?.message === 'Apply theme is already running. Try again when it finishes.' && abc[0]?.message === 'Apply theme is already running. Try again when it finishes.'
+    && rbc.error?.message === 'Apply theme is already running. Try again when it finishes.',
     `busy/words: a file setup and an agent's build refused behind Theme name Theme, not the write asked for (${fs1[0]?.message}; ${abc[0]?.message}; ${rbc.error?.message})`);
   const pc = await send('prune', { input: brand, confirm: true, previewHash: 'abcdef01' });
   await tick();
@@ -860,7 +860,7 @@ section('busy — a second write of an operation, while one is running, is refus
   ok(!posted.some((m) => m.type === 'prune-result'), 'busy/preview: the prune delete is held mid-run');
   await toUi({ type: 'prune', input: brand, confirm: true });
   ok(posted.filter((m) => m.type === 'refused').length === 1 &&
-    JSON.stringify(posted.find((m) => m.type === 'refused')) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Prune stale is already running. Try again when it finishes.', held: 'prune' }),
+    JSON.stringify(posted.find((m) => m.type === 'refused')) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Clean up is already running. Try again when it finishes.', held: 'prune' }),
     'busy/preview: a second prune delete is refused (the control for the preview arms)');
   posted.length = 0;
   await toUi({ type: 'prune', input: brand, confirm: false });
@@ -1353,10 +1353,10 @@ section('strip-text — the strip\'s line for each state (#2949, Q2 A and Q3 A)'
   const cases: [string, AgentLinkState | null, { cmd: string; since: number } | null, { text: string; error: boolean } | null][] = [
     ['off', { ...base, on: false }, null, null],
     ['listening, no command yet', base, null, { text: 'Agent listening · no command yet', error: false }],
-    ['listening, last 2m ago', last('update-components', '2026-10-06T09:58:00.000Z'), null, { text: 'Agent listening · last: update-components 2m ago', error: false }],
-    ['listening, last 45s ago', last('apply-theme', '2026-10-06T09:59:15.000Z'), null, { text: 'Agent listening · last: apply-theme 45s ago', error: false }],
-    ['listening, last 3h ago', last('status', '2026-10-06T06:30:00.000Z'), null, { text: 'Agent listening · last: status 3h ago', error: false }],
-    ['running for 12s', last('status', '2026-10-06T06:30:00.000Z'), { cmd: 'update-components', since: now - 12000 }, { text: 'Agent running update-components… 12s', error: false }],
+    ['listening, last 2m ago', last('update-components', '2026-10-06T09:58:00.000Z'), null, { text: 'Agent listening · last: Update file 2 min ago', error: false }],
+    ['listening, last 45s ago', last('apply-theme', '2026-10-06T09:59:15.000Z'), null, { text: 'Agent listening · last: Apply theme just now', error: false }],
+    ['listening, last 3h ago', last('status', '2026-10-06T06:30:00.000Z'), null, { text: 'Agent listening · last: Status 3 h ago', error: false }],
+    ['running for 12s', last('status', '2026-10-06T06:30:00.000Z'), { cmd: 'update-components', since: now - 12000 }, { text: 'Agent running Update file… 12s', error: false }],
     ['error, running', { ...base, inboxError: 'x' }, { cmd: 'apply-theme', since: now }, { text: 'Agent error', error: true }],
     ['not listening', { ...base, transports: { mailbox: false, bridge: false } }, null, { text: 'Agent not listening', error: true }],
   ];
@@ -1588,7 +1588,7 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   // No brand stored: refused, whole run, its own words.
   putBrand(null);
   const nb = await run({ changes: [one], confirm: false });
-  ok(nb.ok === false && verdictOf(nb)?.headline === 'Not saved — this file holds no Prism3 brand. Write a theme first.' && dataOf(nb).refusals?.[0]?.reason === 'no-brand',
+  ok(nb.ok === false && verdictOf(nb)?.headline === 'Not saved — this file holds no Prism3 brand. Run Update file with Theme ticked first.' && dataOf(nb).refusals?.[0]?.reason === 'no-brand',
     `set-override/no-brand: "${verdictOf(nb)?.headline}"`);
 
   // The preview writes nothing: no stored brand, no Theme write; its verdict names the real palette both sides (#3391).
@@ -1785,13 +1785,13 @@ section('set-override — color overrides: a preview that writes nothing, refusa
   const rejected = { ...(stored as Record<string, unknown>), overrides: { 'hc-light': { 'text.primary': { palette: 'neutral', step: '900' } } } } as unknown as BrandInput;
   putBrand(rejected);
   const ej = await run({ changes: [one], confirm: false });
-  ok(!ej.error && verdictOf(ej)?.headline === "Not saved — this file's brand was saved by a build this plugin can't read." && /generate-only/.test(String(dataOf(ej).error)),
+  ok(!ej.error && verdictOf(ej)?.headline === "Not saved — this file's brand was saved by a Prism3 build this plugin can't read. Update the plugin, then try again." && /generate-only/.test(String(dataOf(ej).error)),
     `set-override/engine-refused: "${verdictOf(ej)?.headline ?? ej.error?.code}"`);
   putBrand(stored);
   await toUi({ type: 'due-request', input: stored, seq: 7 });
 
   // busy: a confirmed write waits on no running Theme write; a preview is never refused. The words name Theme (#3718).
-  const BUSY = 'Theme is already running. Try again when it finishes.';
+  const BUSY = 'Apply theme is already running. Try again when it finishes.';
   let open!: () => void;
   gate = new Promise<void>((r) => { open = r; });
   const savedTs = host.getLocalTextStylesAsync;

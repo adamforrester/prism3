@@ -104,4 +104,4 @@ export const drawnFaults = (root: unknown, vars: ReadonlyMap<string, DrawVar>, s
 export const faultAt = (member: string, part: string): string => (part === '.' ? member : `${member}/${part}`);
 
 /** A fault as one content line, the form verify's other content lines take. */
-export const faultLine = (member: string, f: DrawnFault): string => `${faultAt(member, f.part)}.${f.field}: ${f.file} (the plan says ${f.want})`;
+export const faultLine = (member: string, f: DrawnFault): string => `${faultAt(member, f.part)}.${f.field}: ${f.file} (Prism3 expects ${f.want})`;

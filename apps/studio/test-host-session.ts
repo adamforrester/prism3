@@ -543,7 +543,7 @@ for (const k of KINDS) ok(exercised.has(k), `coverage: ${k} was exercised`);
   const r = step(init, { kind: 'refused', code: 'busy', cmd: 'file-setup', agent: false, message: busyMessage('apply-theme'), held: 'apply-theme' }).next.refused;
   ok(!!r && r.op === 'filesetup' && r.held === 'apply', `#3760 the reducer carries the write holding the file (${JSON.stringify(r)})`);
   const said = r ? refusedLine(r) : '';
-  ok(said === 'Theme already running; the second request was declined.' && busyMessage('apply-theme').startsWith('Theme is already running'),
+  ok(said === 'Apply theme already running; the second request was declined.' && busyMessage('apply-theme').startsWith('Apply theme is already running'),
     `#3760 the status line names the write holding the file, as the row does (${JSON.stringify(said)}; row ${JSON.stringify(busyMessage('apply-theme'))})`);
   const old = step(init, { kind: 'refused', code: 'busy', cmd: 'file-setup', agent: false, message: 'x' }).next.refused;
   ok(!!old && old.held === undefined && refusedLine(old) === 'Set up file already running; the second request was declined.',
