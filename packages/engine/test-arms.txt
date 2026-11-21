@@ -37,6 +37,7 @@ apps/plugin/test-apply-summary.ts #2412
 apps/plugin/test-apply-summary.ts #2695
 apps/plugin/test-apply-summary.ts #2887
 apps/plugin/test-apply-summary.ts #2888
+apps/plugin/test-apply-summary.ts #4185
 apps/plugin/test-apply-summary.ts #483
 apps/plugin/test-apply-summary.ts #913
 apps/plugin/test-as-built-ledger.ts #2759
@@ -45,6 +46,7 @@ apps/plugin/test-as-built-ledger.ts #3101
 apps/plugin/test-build-completed.ts #1780
 apps/plugin/test-build-completed.ts #2177
 apps/plugin/test-build-completed.ts #3467
+apps/plugin/test-build-completed.ts #4185
 apps/plugin/test-build-telemetry.ts #684
 apps/plugin/test-build-verdict.mjs #1066
 apps/plugin/test-build-verdict.mjs #113
@@ -141,6 +143,7 @@ apps/plugin/test-persist.ts #341
 apps/plugin/test-persist.ts #415
 apps/plugin/test-persist.ts #480
 apps/plugin/test-prune-main.ts #3697
+apps/plugin/test-prune-main.ts #4185
 apps/plugin/test-prune.ts #1521
 apps/plugin/test-prune.ts #1570
 apps/plugin/test-prune.ts #1577
@@ -482,6 +485,7 @@ apps/plugin/test-write-typography.ts #1789
 apps/plugin/test-write-typography.ts #237
 apps/plugin/test-write-typography.ts #2942
 apps/plugin/test-write-typography.ts #3697
+apps/plugin/test-write-typography.ts #4185
 apps/plugin/test-write-typography.ts #499
 apps/plugin/test-write-typography.ts #680
 apps/plugin/test-write.ts #1013
