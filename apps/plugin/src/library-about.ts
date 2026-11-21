@@ -164,8 +164,10 @@ export const lastChangedLines = (l: LastChanged): string[] =>
  * the library was before. With no set changed (a run that only reorders pages), the head is still `title`, as it was
  * before #2914: that wording is an open owner decision on #2914. Then the engine, the engine the file held before
  * (the About frame's own record, when there was one) and the token contract. Then, for each set the Update changed,
- * the Figma items of every release it crossed that name the set: after `from`, up to the engine. With no `from`, the
- * engine's own release. Then whether any of it is breaking. The library-consumer breaks the Update listed (#2831) and a
+ * the Figma items of every release it crossed that name the set: after the oldest engine its members were stamped by
+ * before the Update (#2882, owner decision A), else after `from`, up to the engine. With neither, the engine's own
+ * release. The head names the oldest version any set's range starts at, so it never understates the list (#4381, owner
+ * decision 2026-11-20). Then whether any of it is breaking. The library-consumer breaks the Update listed (#2831) and a
  * breaking release item for the same set are one change seen from two sides (a removed value is a release item and a
  * member drop per member), so the two are never added: the Update's own count when it listed any, else a line saying
  * the release items above include breaking changes.
@@ -173,17 +175,27 @@ export const lastChangedLines = (l: LastChanged): string[] =>
 export const publishDescription = (o: {
   /** The named version's title. The head only when no set changed (#2914). */
   title: string; sets: readonly string[]; from?: string | null; engine?: string; contract?: string;
+  /** #2882 (owner decision A): per set, the engines its members were stamped by before the Update. The set's range
+   *  starts at the oldest that reads as a version, so a set last built before the file's `from` still lists what it
+   *  had not published. A set with none uses `from`. */
+  stampedBy?: Readonly<Record<string, readonly string[]>>;
   /** How many changes the Update listed as breaking library consumers (#2831). */
   consumerBreaks?: number; ix?: ReleaseIndex;
 }): string => {
   const engine = o.engine ?? ENGINE_VERSION;
   const ix = o.ix ?? RELEASES;
-  const crossed = upTo(engine, ix).filter((r) => (o.from ? cmp(r.version, o.from) > 0 : r === releaseFor(engine, ix)));
-  const head = `${o.sets.length ? `Prism3 updated ${o.sets.join(', ')}` : o.title}. Engine ${engine}${o.from && o.from !== engine ? `, from ${o.from}` : ''}. Token contract ${o.contract ?? CONTRACT_VERSION}.`;
+  const rs = upTo(engine, ix);
+  const crossedFrom = (from: string | null | undefined): ReleaseEntry[] => rs.filter((r) => (from ? cmp(r.version, from) > 0 : r === releaseFor(engine, ix)));
+  const own = (set: string): string | undefined => (o.stampedBy?.[set] ?? []).filter((v) => /^\d+\.\d+\.\d+$/.test(v)).sort(cmp)[0];
+  // #4381 (owner decision, 2026-11-20): the head's "from" is the oldest version any set's range starts at, so it never
+  // understates what the list covers. With no set changed, or every set starting at the file's `from`, that is `from`.
+  const starts = (o.sets.length ? o.sets.map((s) => own(s) ?? o.from) : [o.from]).filter((v): v is string => !!v);
+  const from = starts.slice().sort(cmp)[0];
+  const head = `${o.sets.length ? `Prism3 updated ${o.sets.join(', ')}` : o.title}. Engine ${engine}${from && from !== engine ? `, from ${from}` : ''}. Token contract ${o.contract ?? CONTRACT_VERSION}.`;
   const lines: string[] = [];
   let released = false;
   for (const set of o.sets) {
-    for (const r of crossed) {
+    for (const r of crossedFrom(own(set) ?? o.from)) {
       for (const i of (r.items ?? []).filter((x) => x.area === 'figma' && x.component === set)) {
         lines.push(`${set}: ${withoutSet(i.text, set)}`);
         if (i.class === 'breaking') released = true;
