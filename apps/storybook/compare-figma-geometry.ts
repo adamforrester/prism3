@@ -281,7 +281,13 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma
     // an unmatched pair names the axis that kept it apart: Figma's field members record `message` at its default
     const why = clone(base);
     for (const m of why.components['text-field'].members) m.properties = { ...m.properties, message: 'false' };
+    // and a matched member with a part the contract boxes but this case does not draw, so the call reaches the
+    // drawn-in-Figma branch, the one that reads the part list: a call without it throws there
+    const lead = why.components.button.members.find((x) => x.id === '9:button--rest')!;
+    lead.parts['container/leadingVisual'] = { ...lead.parts['container/label'], id: '9:lead', type: 'FRAME' };
     const r = compare(why, code);
+    if (r.failures.some((x) => /^button rest \(9:button--rest\): container\/leadingVisual \(9:lead\) is drawn in Figma, not in code$/.test(x))) console.log('OK self-test: a matched member\'s part the contract boxes and the case does not draw is named, through the part list');
+    else { bad++; console.error(`FAIL self-test: a matched member's part the contract boxes and the case does not draw is not named: ${r.failures.find((x) => x.startsWith('button rest')) ?? 'no line'}`); }
     for (const [what, re, lines] of [
       ['the unmatched case', /^text-field--rest: .*nearest member 9:text-field--rest differs in property message is true in code, false in Figma$/, r.notes],
       ['the unreached member', /^text-field \(9:text-field--rest\) .*a KPI 2 member no code case reaches: nearest case text-field--rest differs in property message is true in code, false in Figma/, r.failures],
