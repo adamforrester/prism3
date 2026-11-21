@@ -48,6 +48,7 @@ import { brandTheme, type BrandInput, GROUND_INPUT, resolveAllModes, toDesignMd 
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as F from './src/state/fills-input';
+import * as BI from './src/state/brand-input';
 import { validateDesignMd, importErrorText } from './src/state/start-input';
 
 let executed = 0, failed = 0;
@@ -152,15 +153,43 @@ ok(linkRows.length === 0, `no Surfaces & fills row edits a link role${linkRows.l
 // ── 2. which surfaces the previewed mode shows (Q22) ─────────────────────────────────────────────────
 console.log('\n2. Surfaces: the previewed mode\'s key, editable only in Light and Dark (owner decision Q22)');
 reset({ ...structuredClone(prism3), customModes: [{ name: 'night', base: 'dark' }, { name: 'paper', base: 'light' }] } as BrandInput);
-const MODE_RULE: Array<[string, { source: string; editable: boolean }]> = [
-  ['light', { source: 'light', editable: true }], ['dark', { source: 'dark', editable: true }],
-  ['hc-light', { source: 'light', editable: false }], ['hc-dark', { source: 'dark', editable: false }],
-  ['wireframe', { source: 'light', editable: false }],
-  ['night', { source: 'dark', editable: false }], ['paper', { source: 'light', editable: false }],
+// `source` is the `surfaces.<key>` the controls read and the mode whose roles they show; `family` the unset page's
+// fallback. A custom mode reads its own key (#1946: it is a snapshot, rendered from `surfaces.<name>`, never its base's).
+const MODE_RULE: Array<[string, { source: string; family: string; editable: boolean }]> = [
+  ['light', { source: 'light', family: 'light', editable: true }], ['dark', { source: 'dark', family: 'dark', editable: true }],
+  ['hc-light', { source: 'light', family: 'light', editable: false }], ['hc-dark', { source: 'dark', family: 'dark', editable: false }],
+  ['wireframe', { source: 'light', family: 'light', editable: false }],
+  ['night', { source: 'night', family: 'dark', editable: false }], ['paper', { source: 'paper', family: 'light', editable: false }],
 ];
 for (const [mode, want] of MODE_RULE) {
   const got = F.surfaceSourceOf(mode);
   ok(JSON.stringify(got) === JSON.stringify(want), `previewing ${mode}, the surface controls show ${want.source}'s surfaces, ${want.editable ? 'editable' : 'read-only'} (got ${JSON.stringify(got)})`);
+}
+// #1946: a custom mode's controls show what the engine renders for it, its own copied surfaces, not its source's live
+// ones. Oracle: the engine's resolution of the custom mode, and the copied input, both read before light moves.
+{
+  reset({ ...structuredClone(prism3), surfaces: { light: { base: 50 } } } as BrandInput);
+  const name = BI.addCustomMode();
+  store.rebuild();
+  const copied = JSON.stringify(store.brandState.surfaces?.[name]);
+  const engineBg = resolved('background.primary', name)?.hex;
+  F.setSurfaceBase('light', '200');
+  store.rebuild();
+  const lightBg = resolved('background.primary', 'light')?.hex;
+  const { source } = F.surfaceSourceOf(name);
+  const shownInput = JSON.stringify(store.brandState.surfaces?.[source]);
+  const shownBg = F.rolesIn(source)['background.primary']?.hex;
+  ok(lightBg !== engineBg && resolved('background.primary', name)?.hex === engineBg, `#1946: light's new page (${lightBg}) is not the custom mode's (${engineBg}) after the edit (the edit is real)`);
+  ok(shownInput === copied && shownBg === engineBg,
+    `#1946: after light's page moves, the fills panel for ${name} shows ${name}'s copied page, not light's new one (input ${shownInput}, want ${copied}; swatch ${shownBg}, want ${engineBg})`);
+}
+// #1946: a refused floor on a custom mode's own surfaces reads in the studio's words, naming the mode.
+{
+  reset();
+  Object.assign(store.brandState, { customModes: [{ name: 'paper', base: 'light' }], surfaces: { light: { base: 'white' }, paper: { floorStep: 400 } } });
+  store.rebuild();
+  ok(store.lastError === 'The contrast floor has to match a page background in paper. Choose 050 or 100, or return to Auto.',
+    `#1946: a floor refusal on surfaces.<custom>.floorStep reads in the studio's words (read ${JSON.stringify(store.lastError)})`);
 }
 // The writes the controls make for the mode they are handed: that mode's key, nothing else.
 reset();

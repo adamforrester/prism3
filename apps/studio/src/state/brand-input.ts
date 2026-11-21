@@ -14,7 +14,7 @@
  */
 import { TRAITS, TRAIT_OPPOSITES, ALL_MODES, brandTheme } from '@prism3/engine';
 import { brandState, syncIdentity } from './store';
-import { commitAtomic, modeRemovalEffects, removeMode, renameMode, replaceBrand } from './name-refs';
+import { commitAtomic, copyMode, modeRemovalEffects, removeMode, renameMode, replaceBrand } from './name-refs';
 
 // ── identity ────────────────────────────────────────────────────────────────────────────────────
 /** A namespace the engine accepts as a token root: lowercase, starting with a letter (the legacy field's
@@ -126,10 +126,6 @@ export const planModeOff = (mode: string): { off: string[]; drops: string[]; con
   return { off, drops, confirm: off.length > 1 || drops.length > 0 };
 };
 
-/** The custom modes based on `mode`. Turning that mode off is refused by the engine while any is (a custom
- *  mode's base must be a mode the brand ships), so the Dark-off confirm names them. */
-export const customModesBasedOn = (mode: string): readonly string[] => customModes().filter((c) => c.base === mode).map((c) => c.name);
-
 /** Turn a built-in mode on. Never brings high contrast dark back by itself: it starts from Auto, off. */
 export const setModeOn = (mode: Exclude<BuiltIn, 'light'>): void => {
   if ((mode === 'hc-dark' && hcDarkLocked()) || modesOn().includes(mode)) return;
@@ -140,8 +136,8 @@ export const setModeOn = (mode: Exclude<BuiltIn, 'light'>): void => {
 
 /** Turn a built-in mode off, with what `planModeOff` names going with it and their per-mode data dropped (the
  *  confirm listed it). ATOMIC (orchestrator review of #1939): the whole change is built on a copy and asked of
- *  the engine first; only an input the engine takes replaces the working brand. A refused one (a custom mode
- *  still based on dark) returns the engine's message and leaves the brand exactly as it was, byte for byte,
+ *  the engine first; only an input the engine takes replaces the working brand. A refused one returns the
+ *  engine's message and leaves the brand exactly as it was, byte for byte,
  *  as the legacy toggle did. The caller rebuilds on success. */
 export const setModeOff = (mode: Exclude<BuiltIn, 'light'>): string | null => {
   const next = structuredClone(brandState);
@@ -159,13 +155,20 @@ export const MODE_NAME_RE = /^[a-z0-9][a-z0-9-]*$/;
 type CustomMode = NonNullable<typeof brandState.customModes>[number];
 export const customModes = (): readonly CustomMode[] => brandState.customModes ?? [];
 
-/** Add a custom mode based on light, named `custom-‹n›` with the first free number (concept v6). */
-export const addCustomMode = (): string => {
+/** Add a custom mode started from `from` (light or dark), named `custom-‹n›` with the first free number (concept v6).
+ *  It is a snapshot (#1946, owner decision 2026-11-18 A): the source's per-mode input is copied under the new name now,
+ *  and later edits to the source never reach it. The source is chosen here, at creation, and only here (owner decision
+ *  O1 B, 2026-11-19): `base` is then a read-only record of where it started, so nothing can set it afterward and
+ *  leave a dark-appearance mode holding light's copy. Dark is a source only while dark is generated: a mode that is
+ *  off has no settings of its own to copy. Returns the new name, or null when the source is not on. */
+export const addCustomMode = (from: 'light' | 'dark' = 'light'): string | null => {
+  if (from === 'dark' && !modesOn().includes('dark')) return null;
   const taken = new Set([...BUILTIN_ORDER, ...customModes().map((c) => c.name)]);
   let n = customModes().length + 1;
   while (taken.has(`custom-${n}`)) n++;
   const name = `custom-${n}`;
-  brandState.customModes = [...customModes(), { name, base: 'light' }];
+  copyMode(brandState, from, name);
+  brandState.customModes = [...customModes(), { name, base: from }];
   return name;
 };
 
@@ -195,7 +198,3 @@ export const renameCustomMode = (i: number, next: string): boolean => {
   }) === null;
 };
 
-/** Base custom mode `i` on light or dark. */
-export const setCustomBase = (i: number, base: 'light' | 'dark'): void => {
-  brandState.customModes = customModes().map((x, j) => (j === i ? { ...x, base } : x));
-};

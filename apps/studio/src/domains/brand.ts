@@ -27,8 +27,7 @@
 import { currentMode, lastError, rebuild, rp, searchQuery, setCurrentMode, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import {
   MODE_NAME, MODE_ROWS, PERSONALITY_ORDER_LINE, PERSONALITY_WORDS, ROOT_RE, addCustomMode, currentRoot, customModes, hcDarkLocked, modesOn, namespaceNote,
-  personality, planModeOff, removeCustomMode, renameCustomMode, renameNamespace, setCustomBase, setModeOff, setModeOn, setName, setPersonality, shownName,
-  customModesBasedOn,
+  personality, planModeOff, removeCustomMode, renameCustomMode, renameNamespace, setModeOff, setModeOn, setName, setPersonality, shownName,
   traitLevers, modeDrops,
 } from '../state/brand-input';
 import { verdictOf } from '../state/verdict';
@@ -57,6 +56,8 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   let rootDraft: string | null = null;
   let rootSeen = currentRoot();
   let confirm: Confirm = null;
+  /** The source the next custom mode copies (#1946 O1 B): Light until the source select says otherwise. */
+  let addFrom: 'light' | 'dark' = 'light';
 
   /** A lever whose last edit the engine refused before it reached the brand (a Dark off with a custom mode
    *  still based on dark): the brand is untouched, and the lever says it was refused. */
@@ -192,7 +193,7 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const rows = MODE_ROWS.map((r) => {
       const c = checkRow(`p3-mode-on-${r.mode}`, `mode-on-${r.mode}`, r.name, (on) => {
         if (on) { edit('modes', () => setModeOn(r.mode)); return; }
-        if (planModeOff(r.mode).confirm || customModesBasedOn(r.mode).length) { confirm = { kind: 'modeoff', mode: r.mode }; render(); return; }
+        if (planModeOff(r.mode).confirm) { confirm = { kind: 'modeoff', mode: r.mode }; render(); return; }
         turnOff(r.mode);
       });
       list.append(c.el);
@@ -203,7 +204,6 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
 
     const cb = leverBlock('customModes', { label: 'Custom modes' });
     const cl = h('div', 'p3-list');
-    const dark = modesOn().includes('dark');
     const syncs: (() => void)[] = [];
     customModes().forEach((c, i) => {
       const row = hook(h('div', 'p3-cmrow'), 'custom-mode-row');
@@ -211,8 +211,9 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         if (!renameCustomMode(i, v)) { f.value = customModes()[i]?.name ?? c.name; return; }
         edit('customModes', () => {});
       } });
-      const base = selectField(`p3-cm-base-${i}`, `Base of ${c.name}`, 'custom-mode-base', (v) => edit('customModes', () => setCustomBase(i, v as 'light' | 'dark')));
-      const based = h('span', 'p3-cm-based', 'Based on');
+      // Where it started, as a record (#1946 O1 B, 2026-11-19): the source is chosen at creation and never set again,
+      // so this is text, not a control. Read from the brand on every sync, so a rename keeps it.
+      const based = hook(h('span', 'p3-cm-based'), 'custom-mode-base');
       const rm = hook(h('button', 'p3-btn p3-btn-page'), 'custom-mode-remove');
       rm.type = 'button';
       rm.append(h('span', 'p3-btn-label', `Remove ${c.name}`));
@@ -220,26 +221,36 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         if (modeDrops(c.name).length) { confirm = { kind: 'cmremove', i }; render(); return; }
         removeMode(i);
       };
-      row.append(nm.el, based, base.el, rm);
+      row.append(nm.el, based, rm);
       cl.append(row);
       if (confirm?.kind === 'cmremove' && confirm.i === i) cl.append(customRemoveConfirm(i));
       syncs.push(() => {
         const cur = customModes()[i];
         if (!cur) return;
         nm.set(cur.name);
-        // A mode can be based only on a mode the brand ships (the legacy add form's rule), so dark is offered
-        // while dark is on, and kept while a mode is based on it.
-        base.set([{ v: 'light', l: 'light' }, ...(dark || cur.base === 'dark' ? [{ v: 'dark', l: 'dark' }] : [])], cur.base);
+        based.textContent = `Started from ${MODE_NAME[cur.base] ?? cur.base}`;
       });
     });
+    // The source a new custom mode copies (#1946 O1 B, 2026-11-19): asked here, before it exists, because afterward it
+    // is only a record. Dark is offered while dark is on: a mode that is off has no settings of its own to copy.
+    const srcRow = h('div', 'p3-cmrow');
+    const source = selectField('p3-cm-source', 'Start the new custom mode from', 'custom-mode-source', (v) => { addFrom = v === 'dark' ? 'dark' : 'light'; });
+    srcRow.append(h('span', 'p3-cm-based', 'Start from'), source.el);
+    cl.append(srcRow);
+    const syncSource = (): void => {
+      const dark = modesOn().includes('dark');
+      if (!dark) addFrom = 'light';
+      source.set([{ v: 'light', l: 'Light' }, { v: 'dark', l: 'Dark', ...(dark ? {} : { off: 'Dark is off, so it has no settings to copy.' }) }], addFrom);
+    };
+    syncSource();
     const addRow = h('div', 'p3-cmadd');
     // The full-width dashed add row every growing list ends on (the owner's QA-R1): the same write and focus move.
     const add = addRowButton('custom-mode-add', 'Add custom mode', () => {
-      edit('customModes', () => { addCustomMode(); });
+      edit('customModes', () => { addCustomMode(addFrom); });
       const names = root.querySelectorAll<HTMLInputElement>('[data-p3="custom-mode-name"]');
       names[names.length - 1]?.focus();
     });
-    addRow.append(add, h('span', 'p3-sub', 'Copies light or dark, then takes its own overrides.'));
+    addRow.append(add, h('span', 'p3-sub', 'Copies the mode it starts from; later changes to that mode don’t reach it.'));
     cl.append(addRow);
     cb.ctl.append(cl);
 
@@ -252,8 +263,9 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
             const locked = r.mode === 'hc-dark' && hcDarkLocked();
             c.set(on.includes(r.mode) && !locked, locked ? 'Off while dark is off: it follows dark.' : r.note, locked);
           }
+          syncSource();
         } },
-        { block: cb, keys: ['customModes'], sync: () => syncs.forEach((f) => f()) },
+        { block: cb, keys: ['customModes'], sync: () => { syncs.forEach((f) => f()); syncSource(); } },
       ],
     };
   };
@@ -270,12 +282,8 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       for (const d of plan.drops) ul.append(h('li', undefined, d));
       body.push(ul);
     } else body.push(plan.off.length > 1 ? 'No overrides are set in either mode.' : 'No overrides are set in this mode.');
-    // A custom mode based on this one makes the engine refuse the change, so the confirm says so first
-    // (orchestrator review of #1939). Confirming anyway is refused whole, and the brand stays as it was.
-    const based = customModesBasedOn(mode);
-    if (based.length) {
-      body.push(hook(h('p', 'p3-confirm-line', `${based.length === 1 ? 'Custom mode' : 'Custom modes'} ${based.join(', ')} ${based.length === 1 ? 'is' : 'are'} based on ${MODE_NAME[mode]}, so turning ${MODE_NAME[mode]} off is refused until ${based.length === 1 ? 'it is' : 'they are'} based on Light or removed.`), 'mode-off-based'));
-    }
+    // A custom mode based on this one no longer stops the change (#1946): it is a snapshot carrying its own copy of
+    // the mode's per-mode input, so the confirm has nothing to say about it.
     body.push(`Turning ${MODE_NAME[mode]} on again starts from Auto.`);
     return inlineConfirm('mode-off-confirm', {
       // Every item the list names counts: role overrides, per-mode settings, anchors and surfaces.

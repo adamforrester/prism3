@@ -6527,9 +6527,9 @@ arm: {
   ok(/aria-label/.test(usage) && /aria-hidden/.test(usage), "#4019: the follow-link example names the link by aria-label and hides the mark");
 }
 
-// USER-ADDED CUSTOM MODES (Phase C1) — a custom mode `{ name, base }` LIVE-INHERITS a customizable
-// built-in (light/dark): it re-derives EXACTLY like its base each build, then its own overrides/
-// modeAnchors deviate it. Reserved/duplicate/bad-base/bad-slug names throw; byte-identical when absent.
+// USER-ADDED CUSTOM MODES (Phase C1) — a custom mode `{ name, base }` derives with its base's appearance
+// (light/dark), then its own overrides/modeAnchors deviate it; since #1946 it never reads its base's
+// per-mode input (the block after this one). Reserved/duplicate/bad-base/bad-slug names throw; byte-identical when absent.
 {
   const roleKey = 'interactive.primary.fill.rest';
   const root = 'prism';
@@ -6576,7 +6576,8 @@ arm: {
   ok(threw(() => brandTheme({ ...base, customModes: [{ name: 'dark', base: 'light' }] } as unknown as BrandInput)), 'C1(e): a reserved built-in name (dark) throws');
   ok(threw(() => brandTheme({ ...base, customModes: [{ name: 'x', base: 'dark' }, { name: 'x', base: 'dark' }] } as unknown as BrandInput)), 'C1(e): a duplicate custom mode name throws');
   ok(threw(() => brandTheme({ ...base, customModes: [{ name: 'y', base: 'hc-light' }] } as unknown as BrandInput)), 'C1(e): a non-customizable base (hc-light) throws');
-  ok(threw(() => brandTheme({ ...base, modes: ['light'], customModes: [{ name: 'z', base: 'dark' }] } as unknown as BrandInput)), "C1(e): a base not in the brand's generated modes throws");
+  // A base the brand does not generate no longer throws (#1946): a custom mode is a snapshot, so its source may be off.
+  ok(!threw(() => brandTheme({ ...base, modes: ['light'], customModes: [{ name: 'z', base: 'dark' }] } as unknown as BrandInput)), "C1(e): a base not in the brand's generated modes is taken (#1946: the custom mode stands alone)");
   ok(threw(() => brandTheme({ ...base, customModes: [{ name: 'Marketing Dark', base: 'dark' }] } as unknown as BrandInput)), 'C1(e): a non-slug name (Marketing Dark) throws');
 
   // (f) design.md round-trip preserves customModes through parse∘serialize.
@@ -6586,6 +6587,145 @@ arm: {
   // (g) byte-identical guard — a brand with no customModes (or []) matches the field-absent build.
   ok(JSON.stringify(buildTree(brandTheme(base)).tree) === JSON.stringify(buildTree(brandTheme({ ...base, customModes: [] } as unknown as BrandInput)).tree),
     'C1(g): an empty customModes array produces byte-identical output (the primary guard)');
+}
+
+// #1946 (owner decision 2026-11-18, A): a custom mode is a SNAPSHOT. Its per-mode input lives under its own name,
+// copied from the mode it started from at creation; nothing reads the source's per-mode input again. So editing the
+// source, or turning it off, leaves the custom mode as it was, and `base` is kept as the record of where it started.
+// The expected values are the custom mode's own resolved roles before the source moves, read off the engine; each
+// arm then moves ONE thing in the source and compares.
+{
+  const base = { id: 's1946', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as unknown as BrandInput;
+  const pstep = brandTheme(base).palettes.find((p) => p.palette === 'primary')!.steps[4]!.key;
+  const pstep2 = brandTheme(base).palettes.find((p) => p.palette === 'primary')!.steps[6]!.key;
+  // Dark's per-mode input, and the custom mode's copy of it (what Studio's creation writes, typed here).
+  const darkInput = {
+    overrides: { 'text.link.default': { palette: 'primary', step: pstep } },
+    modeAnchors: { primary: 300 },
+    modeLevers: { density: 'compact' },
+    surfaces: { base: 900 },
+  };
+  const at = (mode: string, v: any) => ({ dark: structuredClone(v), [mode]: structuredClone(v) });
+  const snap = {
+    ...base, customModes: [{ name: 'promo', base: 'dark' }],
+    overrides: at('promo', darkInput.overrides), modeAnchors: at('promo', darkInput.modeAnchors),
+    modeLevers: at('promo', darkInput.modeLevers), surfaces: at('promo', darkInput.surfaces),
+  } as unknown as BrandInput;
+  // What a mode resolves to: its color roles, plus every value the emitted tree carries for it (`$extensions.prism3.modes
+  // [m]`), so a non-color per-mode setting (density moves dims, not roles) is measured too.
+  const rolesOf = (input: BrandInput, m: string) => {
+    const roles = resolveAllModes(brandTheme(input)).find((r) => r.mode === m)?.roles ?? null;
+    const perMode: string[] = [];
+    const walk = (n: any, path: string): void => {
+      if (!n || typeof n !== 'object') return;
+      const v = n.$extensions?.prism3?.modes?.[m];
+      if (v !== undefined) perMode.push(`${path}=${JSON.stringify(v)}`);
+      for (const k of Object.keys(n)) if (!k.startsWith('$')) walk(n[k], `${path}.${k}`);
+    };
+    walk(buildTree(brandTheme(input)).tree, '');
+    return JSON.stringify({ roles, perMode });
+  };
+  const promo0 = rolesOf(snap, 'promo');
+  ok(JSON.parse(promo0).roles !== null && JSON.stringify(JSON.parse(promo0).roles) === JSON.stringify(JSON.parse(rolesOf(snap, 'dark')).roles)
+    && JSON.parse(promo0).perMode.length === JSON.parse(rolesOf(snap, 'dark')).perMode.length,
+    '#1946: a custom mode holding a copy of dark\'s per-mode input resolves exactly as dark does at creation');
+  // Each source edit, one at a time: the custom mode's roles do not move.
+  const edits: [string, (b: any) => void][] = [
+    ['an override', (b) => { b.overrides.dark['text.link.default'] = { palette: 'primary', step: pstep2 }; }],
+    ['an anchor', (b) => { b.modeAnchors.dark.primary = 100; }],
+    ['a per-mode setting', (b) => { b.modeLevers.dark.density = 'spacious'; }],
+    ['the page surface', (b) => { b.surfaces.dark.base = 800; }],
+  ];
+  for (const [what, edit] of edits) {
+    const next = structuredClone(snap) as any;
+    edit(next);
+    ok(rolesOf(next, 'dark') !== rolesOf(snap, 'dark'), `#1946: editing ${what} in dark moves dark (the edit is real)`);
+    ok(rolesOf(next, 'promo') === promo0, `#1946: editing ${what} in dark after creation leaves the custom mode as it was`);
+  }
+  // Dark turned off, its per-mode input dropped (as Studio's Dark off does): the brand builds, and the custom mode holds.
+  const darkOff = structuredClone(snap) as any;
+  darkOff.modes = ['light'];
+  for (const k of ['overrides', 'modeAnchors', 'modeLevers', 'surfaces']) delete darkOff[k].dark;
+  let offErr = '';
+  try { buildTree(brandTheme(darkOff)); } catch (e) { offErr = (e as Error).message; }
+  ok(offErr === '', `#1946: turning off the mode a custom mode started from is taken (${offErr || 'built'})`);
+  ok(offErr === '' && rolesOf(darkOff, 'promo') === promo0, '#1946: with its source off, the custom mode resolves exactly as before');
+  // The custom mode reads its OWN surfaces, never its base's: a dark surface alone does not reach it.
+  const own = { ...base, customModes: [{ name: 'promo', base: 'dark' }], surfaces: { dark: { base: 900 } } } as unknown as BrandInput;
+  const bgOf = (input: BrandInput, m: string) => resolveAllModes(brandTheme(input)).find((r) => r.mode === m)!.roles['background.primary']!.path;
+  ok(bgOf(own, 'dark') !== bgOf(own, 'promo'), `#1946: dark's surface does not reach a custom mode based on dark (dark ${bgOf(own, 'dark')}, promo ${bgOf(own, 'promo')})`);
+  const ownSurf = { ...base, customModes: [{ name: 'promo', base: 'dark' }], surfaces: { promo: { base: 900 } } } as unknown as BrandInput;
+  ok(bgOf(ownSurf, 'promo') === bgOf(own, 'dark') && bgOf(ownSurf, 'dark') !== bgOf(ownSurf, 'promo'),
+    `#1946: a custom mode's own surfaces.<name> sets its page (${bgOf(ownSurf, 'promo')})`);
+  // Provenance: `base` survives the build and the design.md round trip, with every copied per-mode key.
+  ok(JSON.stringify(brandTheme(darkOff).customModes) === '[{"name":"promo","base":"dark"}]', '#1946: the custom mode keeps the record of the mode it started from');
+  const rt = parseDesignMd(toDesignMd(snap)).input;
+  ok(JSON.stringify(rt.customModes) === JSON.stringify(snap.customModes)
+    && ['overrides', 'modeAnchors', 'modeLevers', 'surfaces'].every((k) => JSON.stringify((rt as any)[k]?.promo) === JSON.stringify((snap as any)[k].promo))
+    && rolesOf(rt, 'promo') === promo0,
+    '#1946: design.md round trip keeps the custom mode, its provenance and its copied per-mode input, and it resolves the same');
+  const schemaErrs = validateBrandInput(snap);
+  ok(schemaErrs.length === 0, `#1946: the schema takes surfaces keyed by a custom mode (${schemaErrs.join('; ') || 'valid'})`);
+  // The schema takes any `surfaces` key now, so brandTheme refuses one no mode reads, naming it: a typo, a derived
+  // mode, or a custom mode with no customModes entry. A declared custom mode's key is still taken (above).
+  const surfErr = (surfaces: Record<string, unknown>, customModes?: unknown): string => {
+    try { brandTheme({ ...base, ...(customModes ? { customModes } : {}), surfaces } as unknown as BrandInput); return ''; } catch (e) { return (e as Error).message; }
+  };
+  for (const [key, cms] of [['drak', undefined], ['hc-light', undefined], ['wireframe', undefined], ['custom-1', [{ name: 'promo', base: 'dark' }]]] as const) {
+    const msg = surfErr({ [key]: { base: 900 } }, cms);
+    ok(msg.startsWith(`surfaces.${key}: '${key}' is not light, dark or a custom mode of this brand`),
+      `#1946: a surfaces key no mode reads (${key}) is refused, naming it (${msg || 'taken'})`);
+  }
+  ok(surfErr({ promo: { base: 900 } }, [{ name: 'promo', base: 'dark' }]) === '' && surfErr({ light: { base: 50 }, dark: { base: 900 } }) === '',
+    '#1946: surfaces keyed by light, dark or a declared custom mode are taken');
+  // O2 A (owner decision 2026-11-19): a brand SAVED before #1946 migrates once, on read. Before #1946 a custom mode
+  // followed its base's surfaces live, so the saved blob (v2, typed here as it was stored) holds no surfaces.<name>.
+  // EXPECTED: each custom mode's page is its base's page, as the pre-#1946 engine drew it (custom modes read the
+  // family's surfaces then), and the copy is surfaces[base], typed here. ACTUAL: the engine's own read of the blob.
+  const saved = { ...base, customModes: [{ name: 'promo', base: 'dark' }, { name: 'paper', base: 'light' }], surfaces: { light: { base: 50 }, dark: { base: 900 } } };
+  const v2 = JSON.stringify({ v: 2, input: saved });
+  let read: any = null, readErr = '';
+  try { read = deserializeBrandInput(v2); } catch (e) { readErr = (e as Error).message; }
+  ok(read !== null && JSON.stringify(read.surfaces) === '{"light":{"base":50},"dark":{"base":900},"promo":{"base":900},"paper":{"base":50}}',
+    `#1946: a brand saved before snapshots (v2) loads with surfaces[base] copied to each custom mode (${readErr || JSON.stringify(read?.surfaces)})`);
+  ok(read !== null && bgOf(read, 'promo') === bgOf(read, 'dark') && bgOf(read, 'paper') === bgOf(read, 'light') && bgOf(read, 'promo') !== bgOf(read, 'paper'),
+    `#1946: after the migration each saved custom mode keeps the page it showed (promo ${read ? bgOf(read, 'promo') : '-'} = dark, paper ${read ? bgOf(read, 'paper') : '-'} = light)`);
+  ok(JSON.stringify(saved.surfaces) === '{"light":{"base":50},"dark":{"base":900}}', '#1946: the migration does not write into the blob it read');
+  // Once: what this build writes is v3, and a v3 custom mode with no surfaces of its own is a snapshot that took none.
+  // Reading it copies nothing, so a later change to its base's surfaces never reaches it through a reload.
+  ok(JSON.parse(serializeBrandInput(read ?? saved)).v === 3, '#1946: a migrated brand is written back as v3, so it migrates once');
+  const v3 = deserializeBrandInput(JSON.stringify({ v: 3, input: saved })) as any;
+  ok(JSON.stringify(v3?.surfaces) === '{"light":{"base":50},"dark":{"base":900}}', `#1946: a v3 brand's custom mode with no surfaces of its own is not given its base's on load (${JSON.stringify(v3?.surfaces)})`);
+  const own2 = deserializeBrandInput(JSON.stringify({ v: 2, input: { ...saved, surfaces: { ...saved.surfaces, promo: { base: 800 } } } })) as any;
+  ok(JSON.stringify(own2?.surfaces?.promo) === '{"base":800}', '#1946: a saved custom mode that has surfaces of its own keeps them (the copy is only where absent)');
+  // #4072 delta review S1 (a): a v2 brand whose custom mode's base has no surfaces of its own (every example sets only
+  // surfaces.light) loads, copying nothing, so that mode draws its base's defaults as the pre-#1946 engine did.
+  let lightOnly: any = null, lightOnlyErr = '';
+  try { lightOnly = deserializeBrandInput(JSON.stringify({ v: 2, input: { ...saved, customModes: [{ name: 'promo', base: 'dark' }], surfaces: { light: { base: 50 } } } })); }
+  catch (e) { lightOnlyErr = `${(e as Error).name}: ${(e as Error).message}`; }
+  ok(lightOnly !== null && JSON.stringify(lightOnly.surfaces) === '{"light":{"base":50}}',
+    `#1946: a saved custom mode whose base has no surfaces loads, and nothing is copied to it (${lightOnlyErr || JSON.stringify(lightOnly?.surfaces)})`);
+  // (b): the copy is the custom mode's own. An in-session edit writes the loaded object in place (setPath), so a copy
+  // shared by reference would bring the live link #1946 removed back until the next save.
+  const edited = deserializeBrandInput(v2) as any;
+  edited.surfaces.dark.base = 800;
+  ok(JSON.stringify(edited.surfaces.promo) === '{"base":900}',
+    `#1946: after a migrated read, an edit to the base's surfaces does not reach the custom mode's copy (${JSON.stringify(edited.surfaces.promo)})`);
+  // Nit N1: a custom-mode name that is also an Object.prototype key ('constructor' fits the name pattern) migrates too.
+  const proto = deserializeBrandInput(JSON.stringify({ v: 2, input: { ...saved, customModes: [{ name: 'constructor', base: 'dark' }] } })) as any;
+  ok(Object.prototype.hasOwnProperty.call(proto?.surfaces ?? {}, 'constructor') && JSON.stringify(proto.surfaces.constructor) === '{"base":900}',
+    `#1946: a saved custom mode named like a prototype key ('constructor') is migrated too (${JSON.stringify(proto?.surfaces)})`);
+  // Nit N2: the base is read as an own key of surfaces, never off Object.prototype. A stored blob is untrusted, so a
+  // base like 'constructor' must copy nothing rather than throw or copy the prototype's function. '__proto__' is pinned
+  // too (#4072 delta review N3): surfaces['__proto__'] is Object.prototype, not a function, so a guard that only
+  // refused functions would pass 'constructor' and still copy {} for it. 'toString' is another inherited function.
+  for (const protoKey of ['constructor', '__proto__', 'toString']) {
+    let protoBase: any = null, protoBaseErr = '';
+    try { protoBase = deserializeBrandInput(JSON.stringify({ v: 2, input: { ...saved, customModes: [{ name: 'promo', base: protoKey }] } })); }
+    catch (e) { protoBaseErr = `${(e as Error).name}: ${(e as Error).message}`; }
+    ok(protoBase !== null && JSON.stringify(protoBase.surfaces) === '{"light":{"base":50},"dark":{"base":900}}',
+      `#1946: a saved custom mode whose base names a prototype key ('${protoKey}') loads with nothing copied (${protoBaseErr || JSON.stringify(protoBase?.surfaces)})`);
+  }
 }
 
 // PER-MODE RADIUS LEVER (Phase D) — a customizable mode overrides the `radius` scale; the engine

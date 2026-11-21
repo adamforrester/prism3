@@ -137,7 +137,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       label: 'Background fills',
       desc: 'The page, its tiers and the inverse fill for the mode the preview shows.',
     });
-    const { source: m, editable } = surfaceSourceOf(currentMode);
+    const { source: m, family, editable } = surfaceSourceOf(currentMode);
     const roles = rolesIn(m);
     const cur = brandState.surfaces?.[m];
     const nPal = theme.roleToPalette.neutral;
@@ -230,7 +230,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     };
     const grp = hook(h('div', 'p3-modegroup'), 'surfaces-group');
     grp.dataset.mode = m;
-    if (!isDerived(currentMode)) grp.append(editable ? editingLine() : subLine('Custom modes seed their surfaces from their base mode.'));
+    if (!isDerived(currentMode)) grp.append(editable ? editingLine() : subLine('Custom modes keep the surfaces they were given when they were made.'));
 
     // ── Default (BG1 A, approved copy: the section title already says "background fills") ──
     const def = hook(h('div', 'p3-fillrows'), 'surface-default-rows');
@@ -238,7 +238,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     // Primary (QA-B3: "Page" was its name; it is `background.primary`): white, black, or a neutral step, in the step
     // picker (Q45). No Auto: an unset base reads as the mode's default. A pick writes the key exactly as the Page
     // control wrote it (`setSurfaceBase`).
-    const baseKey = pageKeyOf(cur?.base ?? (m === 'dark' ? 'black' : 'white'));
+    const baseKey = pageKeyOf(cur?.base ?? (family === 'dark' ? 'black' : 'white'));
     def.append(surfRow({
       key: 'surface:base', id: 'p3-surf-base', hk: 'surface-base-pick', label: 'Primary', token: SURFACE_TOKENS.base, rowRole: SURFACE_TOKENS.base,
       hex: roles[SURFACE_TOKENS.base]?.hex ?? '#ffffff', now: baseKey === 'white' ? 'White' : baseKey === 'black' ? 'Black' : `${nPal} ${baseKey}`,

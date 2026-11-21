@@ -86,11 +86,15 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // (DECISIONS LOG arm) renders every producer below and fails any note that drifts back.
   if (stdModes.length < ALL_MODES.length) notes.push(`modes: ${stdModes.join(', ')} only — the brand turns off ${ALL_MODES.filter((m) => !stdModes.includes(m)).join(', ')}.`);
   if (modes.includes('wireframe')) notes.push('modes: wireframe added — a grayscale mode: each color role takes its neutral equivalent, and every radius is 0.');
-  // User-added custom modes (Phase C1) — each `{ name, base }` LIVE-INHERITS a customizable
-  // built-in (`base` = light/dark only): it re-derives exactly like its base each build (a cloned
-  // descriptor, same kind/family/mins, new name), then its own overrides/modeAnchors deviate it.
-  // Names must be slug-safe, non-reserved (not a built-in), and unique; the base must be light/dark
-  // AND a mode this brand generates. Validated here (in-memory BrandInput skips schema validation).
+  // User-added custom modes (Phase C1; a SNAPSHOT since #1946, owner decision 2026-11-18 A). Each
+  // `{ name, base }` is a mode in its own right: its per-mode input (overrides, modeLevers,
+  // modeAnchors, surfaces, outlineHoverFill under its own name) was copied from the mode it started
+  // from when it was created, and nothing reads the source's per-mode input again. `base` records
+  // that source (provenance) and picks the appearance the mode derives with (light or dark: a cloned
+  // descriptor, same kind/family/mins). So the source mode may be off: turning Dark off, or editing
+  // it, leaves a custom mode that started from Dark as it was. Names must be slug-safe, non-reserved
+  // (not a built-in), and unique; `base` must be light or dark. Validated here (in-memory BrandInput
+  // skips schema validation).
   const CUSTOM_MODE_RE = /^[a-z0-9][a-z0-9-]*$/;
   const customModes = input.customModes ?? [];
   const customNames: string[] = [];
@@ -103,14 +107,12 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       throw new Error(`customModes: duplicate custom mode name '${cm.name}' — custom mode names must be unique`);
     if (cm.base !== 'light' && cm.base !== 'dark')
       throw new Error(`customModes: '${cm.name}' base '${cm.base}' must be a CUSTOMIZABLE built-in (light or dark) — hc/wireframe cannot be a custom-mode base`);
-    if (!modes.includes(cm.base))
-      throw new Error(`customModes: '${cm.name}' base '${cm.base}' is not in this brand's generated modes (${modes.join(', ')})`);
     customNames.push(cm.name);
   }
   // The full mode list: built-ins first, customs appended (canonical order). A fresh array so the
   // shared ALL_MODES constant is never mutated when `input.modes` was omitted.
   const modesAll: ModeName[] = customNames.length ? [...modes, ...customNames] : modes;
-  if (customModes.length) notes.push(`custom modes: ${customModes.map((cm) => `${cm.name} (based on ${cm.base})`).join(', ')} — each rebuilds from its base on every build; overrides and modeAnchors adjust it.`);
+  if (customModes.length) notes.push(`custom modes: ${customModes.map((cm) => `${cm.name} (started from ${cm.base})`).join(', ')} — each keeps the copy of that mode's settings taken when it was made, and later changes to that mode do not reach it.`);
   // Per-mode colour overrides (Phase A1) — customizable modes only. A mode this brand doesn't
   // generate can't carry overrides; the generate-only built-ins (hc-light/hc-dark/wireframe) are
   // baseline-only (a later phase makes HC/wireframe customizable). Malformed palette/step refs
@@ -920,6 +922,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     }
     throw new Error(`${where}: ${JSON.stringify(value)} is not ${noun}. Use ${alts}${ramp}.`);
   };
+  // A `surfaces` key names light, dark or a declared custom mode (#1946). The schema takes any key since a custom mode
+  // carries its own `surfaces.<name>`, and in-memory input skips the schema, so a typo (`drak`), a derived mode
+  // (`hc-light`) or an undeclared custom mode would otherwise be read by no mode and silently ignored.
+  for (const mode of Object.keys(input.surfaces ?? {})) {
+    if (mode !== 'light' && mode !== 'dark' && !customNames.includes(mode))
+      throw new Error(`surfaces.${mode}: '${mode}' is not light, dark or a custom mode of this brand${customNames.length ? ` (custom modes: ${customNames.join(', ')})` : ''}, so no mode reads these surfaces. Use light, dark or a name in customModes.`);
+  }
   for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
     for (const key of ['base', 'secondary', 'tertiary'] as const) {
       if (sf?.[key] != null && typeof sf[key] === 'object') {

@@ -30,14 +30,14 @@
     },
     "customModes": {
       "type": "array",
-      "description": "OPTIONAL (Phase C1). User-added appearance modes. Each `{ name, base }` clones a CUSTOMIZABLE built-in (`base` = light/dark only, not hc/wireframe) under a new slug-safe name that LIVE-INHERITS the base's derivation each build (same kind/family/mins), then deviates via its own `overrides[name]` / `modeAnchors[name]`. `name` must be a slug, unique, and not a reserved built-in mode; `base` must be a mode this brand generates. Custom modes are themselves customizable. Omit for none (byte-identical).",
+      "description": "OPTIONAL (Phase C1). User-added appearance modes. Each `{ name, base }` is a snapshot: when it is created, the per-mode input of the mode it starts from (`overrides`, `modeLevers`, `modeAnchors`, `surfaces`, `outlineHoverFill`) is copied under its own name, and from then on it stands alone. Later changes to that mode never reach it, and that mode may be turned off. `base` records which mode it started from (light or dark only, not hc/wireframe) and sets the appearance it derives with (same kind/family/mins). `name` must be a slug, unique, and not a reserved built-in mode. Custom modes are themselves customizable. Omit for none (byte-identical).",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["name", "base"],
         "properties": {
           "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Custom mode name — a lowercase slug (letters/digits/hyphen, starts with a letter or digit). Must not collide with a built-in mode (light/dark/hc-light/hc-dark/wireframe) or another custom mode; brandTheme() rejects those." },
-          "base": { "type": "string", "enum": ["light", "dark"], "description": "The customizable built-in this mode live-inherits. Only 'light' or 'dark' (hc/wireframe cannot be a base), and it must be a mode this brand generates." }
+          "base": { "type": "string", "enum": ["light", "dark"], "description": "The mode this one started from, kept for reference, and the appearance it derives with. Only 'light' or 'dark' (hc/wireframe cannot be a base). It need not be a mode this brand generates: the custom mode carries its own copy of that mode's per-mode input." }
         }
       }
     },
@@ -201,8 +201,8 @@
     },
     "surfaces": {
       "type": "object",
-      "additionalProperties": false,
-      "description": "OPTIONAL. Non-default surfaces per mode (e.g. a warm off-white page), and the second and third tiers of the page and inverse ladders. The contrast FLOOR follows the second tier, which follows the declared base unless it is set itself; the engine flags it in notes. Omit for white/black defaults.",
+      "additionalProperties": { "$ref": "#/$defs/surfaceMode" },
+      "description": "OPTIONAL. Non-default surfaces per mode (e.g. a warm off-white page), and the second and third tiers of the page and inverse ladders, keyed by `light`, `dark` or a `customModes` name. A custom mode reads only its own entry, never its base's. The contrast FLOOR follows the second tier, which follows the declared base unless it is set itself; the engine flags it in notes. Omit for white/black defaults.",
       "properties": {
         "light": { "$ref": "#/$defs/surfaceMode" },
         "dark": { "$ref": "#/$defs/surfaceMode" }

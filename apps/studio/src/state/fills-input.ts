@@ -64,18 +64,23 @@ export const stepOfPath = (path: string | undefined): { palette: string; step: s
 
 // ── page surfaces (legacy `renderSurfacesEditor`) ────────────────────────────────────────────────────
 
-/** The modes whose surfaces are configurable: `SurfacesConfig` is keyed by these two. A custom mode seeds
- *  its surface from its base mode. */
+/** The built-in modes whose surfaces are configurable. A custom mode carries its own `surfaces.<name>` (#1946). */
 export const SURFACE_MODES = ['light', 'dark'] as const;
 export type SurfaceMode = typeof SURFACE_MODES[number];
 /** Which surfaces the controls show while the preview shows `mode` (owner decision Q22: every semantic page
- *  edits the mode the preview shows). Light and Dark are their own, and editable. Any other mode has no
- *  surfaces of its own, so its controls show the ones it is drawn from, read-only: a derived mode its
- *  family's (the engine's `BUILTIN_MODES`), a custom mode its base mode's. */
-export const surfaceSourceOf = (mode: string): { source: SurfaceMode; editable: boolean } => {
-  if ((SURFACE_MODES as readonly string[]).includes(mode)) return { source: mode as SurfaceMode, editable: true };
-  const base = BUILTIN_MODES.find((d) => d.name === mode)?.family ?? brandState.customModes?.find((c) => c.name === mode)?.base;
-  return { source: base === 'dark' ? 'dark' : 'light', editable: false };
+ *  edits the mode the preview shows). `source` is the `surfaces.<key>` the controls read and the mode whose
+ *  resolved roles they show; `family` is the appearance an unset page falls back to (white or black), as the
+ *  engine's defaults do. Light and Dark are their own, and editable. A derived mode has no surfaces of its own,
+ *  so its controls show its family's (the engine's `BUILTIN_MODES`), read-only. A custom mode is a snapshot
+ *  (#1946): the engine renders it from its own `surfaces.<name>`, never its base's, so its controls show that,
+ *  read-only (whether it becomes editable here is held for the owner). */
+export const surfaceSourceOf = (mode: string): { source: string; family: SurfaceMode; editable: boolean } => {
+  if ((SURFACE_MODES as readonly string[]).includes(mode)) return { source: mode, family: mode as SurfaceMode, editable: true };
+  const derived = BUILTIN_MODES.find((d) => d.name === mode)?.family;
+  if (derived) return { source: derived === 'dark' ? 'dark' : 'light', family: derived === 'dark' ? 'dark' : 'light', editable: false };
+  const custom = brandState.customModes?.find((c) => c.name === mode);
+  if (custom) return { source: mode, family: custom.base === 'dark' ? 'dark' : 'light', editable: false };
+  return { source: 'light', family: 'light', editable: false };
 };
 
 /** The token each surface control sets, by the `surfaces.<mode>` field it writes: the page writes `base`,
@@ -135,20 +140,20 @@ export const pageSteps = (): Array<{ key: string; hex: string }> => {
 export const pageKeyOf = (base: string | number): string =>
   typeof base === 'number' ? (pageSteps().find((s) => s.key !== 'white' && s.key !== 'black' && Number(s.key) === base)?.key ?? String(base)) : base;
 /** The page surface: `white`, `black` or a neutral step (the select's value, or the picker's key). */
-export const setSurfaceBase = (mode: SurfaceMode, v: string): void => {
+export const setSurfaceBase = (mode: string, v: string): void => {
   setPath(brandState, `surfaces.${mode}.base`, v === 'white' || v === 'black' ? v : Number(v));
   resetStrandedFloor(mode);
 };
 /** The notice a floor reset leaves (owner decision Q69 A), for the mode and the brand it was made on, or null. It is
  *  held here, not drawn once, so the repaint the edit triggers still shows it; the next Surfaces edit clears it. */
-let floorReset: { mode: SurfaceMode; brand: object; text: string } | null = null;
-export const floorResetNotice = (mode: SurfaceMode): string | null =>
+let floorReset: { mode: string; brand: object; text: string } | null = null;
+export const floorResetNotice = (mode: string): string | null =>
   floorReset && floorReset.mode === mode && floorReset.brand === brandState ? floorReset.text : null;
 export const clearFloorReset = (): void => { floorReset = null; };
 /** A page background moved (Q69 A): when `mode`'s set floor is on none of its grounds now, the engine would refuse
  *  the brand (#2227), so the floor goes back to Auto and says so. The grounds are read off the brand with the floor
  *  removed, as the engine checks them. */
-const resetStrandedFloor = (mode: SurfaceMode): void => {
+const resetStrandedFloor = (mode: string): void => {
   const step = brandState.surfaces?.[mode]?.floorStep;
   if (step == null) return;
   const g = groundStepsOf(brandState, mode);
@@ -163,7 +168,7 @@ const resetStrandedFloor = (mode: SurfaceMode): void => {
  *  is not (Page Black in Light: the tier snaps to black, the floor stays neutral 950), and the option names the
  *  floor alone. While a `floorStep` is set the engine's floor is that step, so the Auto floor is read off the brand
  *  with it removed: the option says what Auto would restore. Display only; it writes nothing. */
-export const floorAutoLabel = (mode: SurfaceMode): string => {
+export const floorAutoLabel = (mode: string): string => {
   const roles = brandState.surfaces?.[mode]?.floorStep == null ? rolesIn(mode) : autoFloorRoles(mode);
   const floor = roles['foreground.brand']?.against;
   if (!floor) return 'Auto';
@@ -174,7 +179,7 @@ export const floorAutoLabel = (mode: SurfaceMode): string => {
 };
 /** The role the Auto floor follows in `mode` (`background.secondary`), or null when Auto is not on that tier's step
  *  (the ladder's ends). The accessible name says it after the visible label (owner, option 1 on #2193). */
-export const floorAutoFollows = (mode: SurfaceMode): string | null => {
+export const floorAutoFollows = (mode: string): string | null => {
   const roles = brandState.surfaces?.[mode]?.floorStep == null ? rolesIn(mode) : autoFloorRoles(mode);
   const floor = roles['foreground.brand']?.against;
   const sec = stepOfPath(roles[SURFACE_TOKENS.secondary]?.path);
@@ -185,7 +190,7 @@ export const floorAutoFollows = (mode: SurfaceMode): string | null => {
  *  on, named as the picker names steps. `floorAutoLabel`'s full sentence is the button's tooltip. The accessible name
  *  is the owner's option 1 on #2193, built in `color-fills.ts`: "Contrast floor, ‹mode›: ‹this label›, follows
  *  ‹`floorAutoFollows`›. Pick a step", the clause dropped where the floor follows no tier, so the tier is still said. */
-export const floorAutoShortLabel = (mode: SurfaceMode): string => {
+export const floorAutoShortLabel = (mode: string): string => {
   const roles = brandState.surfaces?.[mode]?.floorStep == null ? rolesIn(mode) : autoFloorRoles(mode);
   const floor = roles['foreground.brand']?.against;
   return floor ? `Auto · ${floor.split('.').join(' ')}` : 'Auto';
@@ -193,7 +198,7 @@ export const floorAutoShortLabel = (mode: SurfaceMode): string => {
 /** `mode`'s roles as the engine resolves them with `surfaces.<mode>.floorStep` removed: the brand Auto would leave.
  *  One extra resolve per theme, only while a floor is set, cached by the theme object as `resolvedModes` is. */
 let autoFloor: { theme: unknown; mode: string; roles: Record<string, FillRole | undefined> } | null = null;
-const autoFloorRoles = (mode: SurfaceMode): Record<string, FillRole | undefined> => {
+const autoFloorRoles = (mode: string): Record<string, FillRole | undefined> => {
   if (autoFloor && autoFloor.theme === theme && autoFloor.mode === mode) return autoFloor.roles;
   const b = structuredClone(brandState);
   delete (b.surfaces?.[mode] as { floorStep?: number } | undefined)?.floorStep;
@@ -203,13 +208,13 @@ const autoFloorRoles = (mode: SurfaceMode): Record<string, FillRole | undefined>
   return roles;
 };
 /** The contrast floor: a neutral step, or `''` for Auto. */
-export const setSurfaceFloor = (mode: SurfaceMode, v: string): void => {
+export const setSurfaceFloor = (mode: string, v: string): void => {
   setPath(brandState, `surfaces.${mode}.floorStep`, v === '' ? undefined : Number(v));
 };
 /** The steps a contrast floor can name (owner decision Q57 A, #2227): only a neutral step one of `mode`'s page
  *  grounds (`background.primary`, `.secondary`, `.tertiary`) sits on, in ramp order. The engine refuses any other
  *  step, so the picker offers none. White and black are fixed primitives, not steps, and are never offered. */
-export const floorGroundSteps = (mode: SurfaceMode): Array<{ key: string; hex: string }> => {
+export const floorGroundSteps = (mode: string): Array<{ key: string; hex: string }> => {
   const nPal = theme.roleToPalette.neutral;
   const roles = rolesIn(mode);
   const on = new Set([SURFACE_TOKENS.base, SURFACE_TOKENS.secondary, SURFACE_TOKENS.tertiary]
@@ -257,7 +262,7 @@ export const bandPalettes = (): string[] => {
     .map((p) => p.palette)];
 };
 /** The band as the input holds it: its palette and step, or the neutral default. */
-export const bandOf = (mode: SurfaceMode): { palette: string; step: string | undefined } => {
+export const bandOf = (mode: string): { palette: string; step: string | undefined } => {
   const nPal = theme.roleToPalette.neutral;
   const cur = brandState.surfaces?.[mode]?.inverseBase;
   return {
@@ -267,18 +272,18 @@ export const bandOf = (mode: SurfaceMode): { palette: string; step: string | und
 };
 /** `surfaces.<mode>.inverseBase`, never an `overrides` entry (#956): the band is a ground, read during
  *  derivation, so every role measured against it re-derives. */
-const writeBand = (mode: SurfaceMode, v: number | { palette: string; step: number } | undefined): void => {
+const writeBand = (mode: string, v: number | { palette: string; step: number } | undefined): void => {
   setPath(brandState, `surfaces.${mode}.inverseBase`, v);
 };
 /** The band's palette. Neutral clears to the generated default; another palette seeds at its DARKEST step. */
-export const setBandPalette = (mode: SurfaceMode, pal: string): void => {
+export const setBandPalette = (mode: string, pal: string): void => {
   if (pal === theme.roleToPalette.neutral) return writeBand(mode, undefined);
   const st = stepsOf(pal);
   writeBand(mode, st.length ? { palette: pal, step: Number(st[st.length - 1]) } : undefined);
 };
 /** The band's step in its current palette; `undefined` is Auto. A neutral step writes a bare number (the
  *  historical form), another palette `{ palette, step }`. */
-export const setBandStep = (mode: SurfaceMode, step: string | undefined): void => {
+export const setBandStep = (mode: string, step: string | undefined): void => {
   const { palette } = bandOf(mode);
   writeBand(mode, step == null ? undefined : palette === theme.roleToPalette.neutral ? Number(step) : { palette, step: Number(step) });
 };
@@ -287,7 +292,7 @@ export const setBandStep = (mode: SurfaceMode, step: string | undefined): void =
 
 /** Clear `surfaces.<mode>.<field>`: the key deleted, and an emptied mode and an emptied `surfaces` pruned, so
  *  Auto leaves a brand byte-identical to one never edited (the tier is then the ladder's own step again). */
-const clearSurface = (mode: SurfaceMode, field: string): void => {
+const clearSurface = (mode: string, field: string): void => {
   const sf = brandState.surfaces as Record<string, Record<string, unknown> | undefined> | undefined;
   const forMode = sf?.[mode];
   if (!sf || !forMode) return;
@@ -297,7 +302,7 @@ const clearSurface = (mode: SurfaceMode, field: string): void => {
 };
 /** A page tier (`secondary`, `tertiary`): a picker key (`'white'`, `'black'`, a neutral step's key), written as
  *  the Page writes its key (`setSurfaceBase`); `undefined` is Auto and clears the input. */
-export const setSurfaceTier = (mode: SurfaceMode, tier: PageTier, v: string | undefined): void => {
+export const setSurfaceTier = (mode: string, tier: PageTier, v: string | undefined): void => {
   if (v === undefined) clearSurface(mode, tier);
   else setPath(brandState, `surfaces.${mode}.${tier}`, v === 'white' || v === 'black' ? v : Number(v));
   resetStrandedFloor(mode);
@@ -305,13 +310,13 @@ export const setSurfaceTier = (mode: SurfaceMode, tier: PageTier, v: string | un
 /** An inverse tier (`inverseSecondary`, `inverseTertiary`): a step on `palette`, written as the Inverse fill's
  *  step is (`setBandStep`): a neutral step a bare number, another palette `{ palette, step }`; `undefined` is
  *  Auto and clears the input. */
-export const setInverseTier = (mode: SurfaceMode, tier: InverseTier, palette: string, step: string | undefined): void => {
+export const setInverseTier = (mode: string, tier: InverseTier, palette: string, step: string | undefined): void => {
   if (step === undefined) return clearSurface(mode, tier);
   setPath(brandState, `surfaces.${mode}.${tier}`, palette === theme.roleToPalette.neutral ? Number(step) : { palette, step: Number(step) });
 };
 /** A tier as the input holds it, as a picker reads it: its palette and step key, or null when unset (Auto).
  *  `'white'` and `'black'` read as themselves on the neutral palette. */
-export const tierOf = (mode: SurfaceMode, tier: PageTier | InverseTier): { palette: string; step: string } | null => {
+export const tierOf = (mode: string, tier: PageTier | InverseTier): { palette: string; step: string } | null => {
   const cur = brandState.surfaces?.[mode]?.[tier];
   if (cur == null) return null;
   const palette = typeof cur === 'object' ? cur.palette : theme.roleToPalette.neutral;

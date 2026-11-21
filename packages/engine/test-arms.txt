@@ -444,6 +444,7 @@ apps/plugin/test-write.ts #2602
 apps/plugin/test-write.ts #3050
 apps/plugin/test-write.ts #479
 apps/studio/test-bounded.mjs #2585
+apps/studio/test-brand-input.ts #1946
 apps/studio/test-brand-input.ts #3976
 apps/studio/test-build-identity.ts #1117
 apps/studio/test-build-identity.ts #3239
@@ -457,6 +458,7 @@ apps/studio/test-chrome.mjs #1770
 apps/studio/test-chrome.mjs #1821
 apps/studio/test-chrome.mjs #1855
 apps/studio/test-chrome.mjs #1909
+apps/studio/test-chrome.mjs #1946
 apps/studio/test-chrome.mjs #1971
 apps/studio/test-chrome.mjs #1975
 apps/studio/test-chrome.mjs #1984
@@ -644,6 +646,7 @@ apps/studio/test-export-settings.ts #584
 apps/studio/test-export-settings.ts #618
 apps/studio/test-export-settings.ts #708
 apps/studio/test-export-settings.ts #720
+apps/studio/test-fills-input.ts #1946
 apps/studio/test-fills-input.ts #1966
 apps/studio/test-fills-input.ts #1982
 apps/studio/test-fills-input.ts #2020
@@ -752,6 +755,7 @@ apps/studio/test-start-input.ts #2241
 apps/studio/test-start-input.ts #3553
 apps/studio/test-status-strip.ts #3177
 apps/studio/test-store.ts #1037
+apps/studio/test-store.ts #1946
 apps/studio/test-store.ts #2487
 apps/studio/test-store.ts #3878
 apps/studio/test-store.ts #3880
@@ -989,6 +993,7 @@ packages/engine/test.ts #1883
 packages/engine/test.ts #1894
 packages/engine/test.ts #1895
 packages/engine/test.ts #1896
+packages/engine/test.ts #1946
 packages/engine/test.ts #1973
 packages/engine/test.ts #1985
 packages/engine/test.ts #2029
@@ -1252,11 +1257,11 @@ packages/engine/test.ts #4170
 packages/engine/test.ts #4171
 packages/engine/test.ts #4174
 packages/engine/test.ts #4177
-packages/engine/test.ts #4197
 packages/engine/test.ts #4178
 packages/engine/test.ts #4179
 packages/engine/test.ts #4182
 packages/engine/test.ts #4183
+packages/engine/test.ts #4197
 packages/engine/test.ts #4198
 packages/engine/test.ts #4199
 packages/engine/test.ts #4200

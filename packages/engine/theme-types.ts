@@ -403,9 +403,10 @@ export type Theme = {
   namespace: string;                 // '<root>.core.palette' — the colour PRIMITIVE root (ramps live here; the semantic role layer is emitted under '<root>.color')
   colorFormat: 'rgb' | 'hex';
   modes: ModeName[];                 // the appearance modes to generate (light always present; customs appended last)
-  // User-added custom modes (C1) — each `{ name, base }` clones a customizable built-in (light/dark)
-  // under a new slug-safe name that LIVE-INHERITS the base's derivation each build, then deviates via
-  // overrides[name] / modeAnchors[name]. Their names are already appended to `modes` above.
+  // User-added custom modes (C1) — each `{ name, base }` is a snapshot (#1946): its per-mode input lives
+  // under its own name, copied from the mode it started from when it was created. `base` is that source,
+  // kept for reference, and the appearance (light/dark) it derives with; the source need not be generated.
+  // Their names are already appended to `modes` above.
   customModes?: { name: string; base: BuiltinModeName }[];
   palettes: PaletteBuild[];
   roleToPalette: Record<Role, string>;
@@ -576,7 +577,9 @@ export type SurfaceMode = {
   secondary?: SurfaceSpec; tertiary?: SurfaceSpec;
   inverseSecondary?: InverseSurfaceSpec; inverseTertiary?: InverseSurfaceSpec;
 };
-export type SurfacesConfig = { light?: SurfaceMode; dark?: SurfaceMode };
+/** Keyed by `light`, `dark`, or a custom mode's name: a custom mode carries its own surfaces, copied from the mode it
+ *  started from when it was created (#1946), and never reads its base's. */
+export type SurfacesConfig = { light?: SurfaceMode; dark?: SurfaceMode; [customMode: string]: SurfaceMode | undefined };
 
 // ---------------------------------------------------------------------------
 // White-label brand input -> Theme
@@ -599,12 +602,14 @@ export type BrandInput = {
    *  that ships light only sets `['light']`. The export layout follows this — a collection
    *  only splits into per-mode files when it's multi-mode (docs/11 §4, Pillar 1). */
   modes?: ModeName[];
-  /** User-added custom modes (Phase C1). Each `{ name, base }` adds an appearance mode that
-   *  LIVE-INHERITS a CUSTOMIZABLE built-in (`base` is `light` or `dark` only — not hc/wireframe):
-   *  it re-derives EXACTLY like its base each build (a cloned descriptor, same kind/family/mins,
-   *  new name), then its own `overrides[name]` / `modeAnchors[name]` deviate it. `name` must be a
-   *  slug (`/^[a-z0-9][a-z0-9-]*$/`), unique, and NOT a reserved built-in mode; `base` must be a
-   *  mode this brand generates. Custom modes ARE customizable. Omit for none (byte-identical). */
+  /** User-added custom modes (Phase C1). Each `{ name, base }` adds an appearance mode that is a
+   *  SNAPSHOT (#1946, owner decision 2026-11-18 A): its per-mode input (`overrides`, `modeLevers`,
+   *  `modeAnchors`, `surfaces`, `outlineHoverFill` under `name`) was copied from the mode it started
+   *  from at creation, and nothing links it to that mode afterward. `base` records that mode (provenance,
+   *  `light` or `dark` only — not hc/wireframe) and picks the appearance the mode derives with (a cloned
+   *  descriptor, same kind/family/mins). The base need NOT be a mode this brand generates. `name` must
+   *  be a slug (`/^[a-z0-9][a-z0-9-]*$/`), unique, and NOT a reserved built-in mode. Custom modes ARE
+   *  customizable. Omit for none (byte-identical). */
   customModes?: { name: string; base: BuiltinModeName }[];
   primary: OKLCH;                    // the exact brand anchor (palette 'primary')
   /** The neutral ramp generator. By default the greys are *derived* from a hue + peak

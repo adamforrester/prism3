@@ -33,10 +33,35 @@
 import type { BrandInput } from './theme';
 
 /** Schema version of the persisted blob. Bump on an incompatible `BrandInput` change — a stored
- *  blob whose `v` differs is REJECTED (throws `UnrecognizedPersistedInputError`), never mis-read.
+ *  blob whose `v` differs is REJECTED (throws `UnrecognizedPersistedInputError`), never mis-read,
+ *  unless a migration below names that version.
  *  #480: bumped 1 → 2 because #341/#415 changed the `BrandInput` shape without a bump; every blob
- *  written before this change (2026-08) is `v: 1` under the OLD shape and must now be refused. */
-export const PERSIST_VERSION = 2;
+ *  written before this change (2026-08) is `v: 1` under the OLD shape and must now be refused.
+ *  #1946: bumped 2 → 3, and v2 is MIGRATED, not refused (`migrateV2`). The version is what makes the
+ *  migration run once: a blob written by this build is v3 and is never migrated again. */
+export const PERSIST_VERSION = 3;
+
+/**
+ * v2 → v3 (#1946, owner decision O2 A, 2026-11-19). Before #1946 a custom mode followed its base
+ * mode's surfaces live (`surfaces[base]`); since then it reads only its own `surfaces[name]`. So a
+ * brand saved before the change would restyle its custom modes on load. For each custom mode with no
+ * `surfaces[name]`, this copies `surfaces[base]` to it, so each mode looks as it did when saved.
+ * Only v2 blobs are migrated: a v3 custom mode with no surfaces of its own is a snapshot that took
+ * none, and copying its base's surfaces into it then would bring back the live link #1946 removed.
+ * A deep copy by JSON (the Figma main thread is not guaranteed `structuredClone`); never mutates `input`.
+ */
+const migrateV2 = (input: BrandInput): BrandInput => {
+  const surfaces = input.surfaces as Record<string, unknown> | undefined;
+  if (!surfaces || typeof surfaces !== 'object' || !Array.isArray(input.customModes)) return input;
+  const next: Record<string, unknown> = { ...surfaces };
+  let moved = false;
+  for (const c of input.customModes) {
+    if (!c || typeof c.name !== 'string' || Object.prototype.hasOwnProperty.call(next, c.name) || !Object.prototype.hasOwnProperty.call(surfaces, c.base) || surfaces[c.base] === undefined) continue;
+    next[c.name] = JSON.parse(JSON.stringify(surfaces[c.base]));
+    moved = true;
+  }
+  return moved ? { ...input, surfaces: next as BrandInput['surfaces'] } : input;
+};
 
 /** The wire shape written to shared-data: the version tag + the verbatim `BrandInput`. */
 type Persisted = { v: number; input: BrandInput };
@@ -84,7 +109,7 @@ export const deserializeBrandInput = (raw: string): BrandInput | null => {
     throw new UnrecognizedPersistedInputError('is not a recognizable Prism3 payload');
   }
   const { v, input } = parsed as Partial<Persisted>;
-  if (v !== PERSIST_VERSION) {
+  if (v !== PERSIST_VERSION && v !== 2) {
     throw new UnrecognizedPersistedInputError(
       typeof v === 'number'
         ? `is schema v${v}, but this build understands v${PERSIST_VERSION}`
@@ -94,5 +119,5 @@ export const deserializeBrandInput = (raw: string): BrandInput | null => {
   if (typeof input !== 'object' || input === null) {
     throw new UnrecognizedPersistedInputError('is missing its brand payload');
   }
-  return input as BrandInput;
+  return v === 2 ? migrateV2(input as BrandInput) : (input as BrandInput);
 };
