@@ -312,7 +312,7 @@ export const avatar: ComponentDef = {
     primaryPurpose: 'Show which person or organization something belongs to, as a photo, initials or a generic glyph.',
     whenToUse: 'A specific person or organization needs a picture: a comment author, a list row, a card owner, the signed-in user in a header, a team or app in a switcher. Add presence when the task depends on whether the person is available.',
     avoidWhen: 'The picture stands for an action or a concept rather than a specific person, such as a profile link or a settings icon (use Icon), the picture is content media with no identity (use ImagePlaceholder), or the avatar is a control that opens something (put it in a Button or an IconButton).',
-    commonPartners: ['badge', 'button', 'icon-button', 'list-item', 'tag'],
+    commonPartners: ['badge', 'button', 'icon-button', 'list-item', 'tag', 'skeleton'],
     triggerKeywords: ['avatar', 'user avatar', 'profile picture', 'profile photo', 'user picture', 'initials', 'presence', 'online status', 'team avatar', 'organization avatar'],
     generationPriority: 3,
   },
@@ -320,7 +320,7 @@ export const avatar: ComponentDef = {
   composition: {
     composesWith: ['badge'],
     alternativeTo: ['icon', 'image-placeholder'],
-    planned: ['avatar-group', 'skeleton', 'card', 'image'],
+    planned: ['avatar-group', 'card', 'image'],
     replacesPatterns: [
       'a circular image with no fallback, which shows a broken image when the photo fails to load',
       'an avatar labeled "Avatar of" a name, or named by its initials',

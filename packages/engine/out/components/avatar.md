@@ -89,7 +89,7 @@ Write the name the way the interface writes it next to the avatar, with the same
 
 - **Built from:** `badge`
 - **Instead, consider:** `icon`, `image-placeholder`
-- **Often used with:** `button`, `icon-button`, `list-item`, `tag`
+- **Often used with:** `button`, `icon-button`, `list-item`, `tag`, `skeleton`
 - **Replaces:**
   - a circular image with no fallback, which shows a broken image when the photo fails to load
   - an avatar labeled "Avatar of" a name, or named by its initials

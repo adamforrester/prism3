@@ -7707,7 +7707,8 @@
           "button",
           "icon-button",
           "list-item",
-          "tag"
+          "tag",
+          "skeleton"
         ],
         "triggerKeywords": [
           "avatar",
@@ -7740,7 +7741,6 @@
         "supersededBy": [],
         "planned": [
           "avatar-group",
-          "skeleton",
           "card",
           "image"
         ],
@@ -15492,7 +15492,8 @@
           "spinner",
           "progress",
           "image-placeholder",
-          "list-item"
+          "list-item",
+          "avatar"
         ],
         "triggerKeywords": [
           "skeleton",
@@ -15522,7 +15523,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "avatar",
           "card"
         ],
         "replacesPatterns": [
