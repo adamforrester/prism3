@@ -59,7 +59,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { brotliDecompressSync } from 'node:zlib';
 import ts from 'typescript';
-import { ROOT, FONTS_DIR, CHROME_FONTS } from './tokens.mjs';
+import { ROOT, FONTS_DIR, CHROME_FONTS, readTree } from './tokens.mjs';
 
 const rel = (p) => relative(ROOT, p).split('\\').join('/');
 export const U = (cp) => `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`;
@@ -202,19 +202,23 @@ export function literalsOf(file, text = readFileSync(file, 'utf8')) {
   return out;
 }
 
-/** The texts the chrome can be handed, each with where it came from, plus any surface that was empty. */
-export function chromeTexts() {
+/** The texts the chrome can be handed, each with where it came from, plus any surface that was empty. `outDir` is the
+ *  emission directory, given only by a test. */
+export function chromeTexts(outDir = OUT_DIR) {
   const texts = [];
   const missing = [];
   // The brands, from every per-brand JSON in out/ (the name before the first dot), not from the trees
   // alone, so a brand whose trees are gone is still known by its other files.
-  const brands = [...new Set(readdirSync(OUT_DIR).filter((n) => n.endsWith('.json')).map((n) => n.split('.')[0]))].sort();
-  if (brands.length !== BRAND_COUNT) missing.push(`${brands.length} brands emit into ${rel(OUT_DIR)} (${brands.join(', ')}), BRAND_COUNT says ${BRAND_COUNT}`);
+  const brands = [...new Set(readdirSync(outDir).filter((n) => n.endsWith('.json')).map((n) => n.split('.')[0]))].sort();
+  if (brands.length !== BRAND_COUNT) missing.push(`${brands.length} brands emit into ${rel(outDir)} (${brands.join(', ')}), BRAND_COUNT says ${BRAND_COUNT}`);
   for (const b of brands) {
     for (const suffix of NOTE_TREES) {
-      const p = join(OUT_DIR, b + suffix);
+      const p = join(outDir, b + suffix);
       if (!existsSync(p)) { missing.push(`brand ${b}: ${rel(p)} is missing, so its decision notes were not read`); continue; }
-      const notes = JSON.parse(readFileSync(p, 'utf8'))?.$extensions?.prism3?.decisions;
+      // A tree a running regen has cut short is named with the race, not thrown as a bare JSON error (#3914).
+      let tree;
+      try { tree = readTree(p); } catch (e) { missing.push(e.message); continue; }
+      const notes = tree?.$extensions?.prism3?.decisions;
       if (!Array.isArray(notes) || !notes.some((n) => typeof n === 'string')) { missing.push(`brand ${b}: ${rel(p)} carries no decision notes ($extensions.prism3.decisions)`); continue; }
       notes.forEach((n, i) => { if (typeof n === 'string') texts.push({ text: n, where: `${rel(p)} decision ${i + 1}`, file: rel(p) }); });
     }

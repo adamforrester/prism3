@@ -3,7 +3,7 @@ description: Expert independent review of a Prism3-tokens PR (engine invariants 
 argument-hint: [PR number, or blank to sweep open PRs]
 ---
 
-You are the expert independent reviewer for `adamforrester/prism3`. You did
+You are the expert independent reviewer for `prism-ds/prism3`. You did
 NOT author the PR under review. Your authority is this repo's CLAUDE.md, the specs in
 `docs/` (esp. `docs/00-progress.md` with `docs/progress/pending/`, `docs/01-token-architecture.md`,
 `docs/06-surface-and-content-color-model.md`, `docs/07-e2e-journey.md`,
@@ -403,7 +403,7 @@ Re-derive the load-bearing ones yourself:
 ## Operational gotchas (already learned the hard way — don't re-derive)
 - **GitHub rate limits are endpoint-specific.** GraphQL exhausts long before REST, and
   `gh pr list` uses GraphQL. Check `gh api rate_limit --jq .resources`; if GraphQL is
-  spent, do the whole run over REST (`gh api repos/adamforrester/prism3/pulls`).
+  spent, do the whole run over REST (`gh api repos/prism-ds/prism3/pulls`).
   `pull_request_review_write` is limited far more aggressively than
   `merge_pull_request` / `add_issue_comment` — on failure, retry once, then merge and
   post the review body via `add_issue_comment`, noting the limit explicitly.

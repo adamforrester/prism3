@@ -50,9 +50,6 @@ Use for a password, a PIN typed as text, or any other secret a user types. The f
 
 ### Do
 
-- Set `autoComplete` to `current-password` or `new-password` on every password field
-- Let the user paste, so a password manager can fill the field
-- Return the field to hidden when its form submits
 - State the rules for a new password before the user types
 
 ### Don't
@@ -106,6 +103,10 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
   - `autocomplete="off"` on a password
 
 ## Building it in code
+
+- Set `autoComplete` to `current-password` or `new-password` on every password field
+- Let the user paste, so a password manager can fill the field
+- Return the field to hidden when its form submits
 
 ### Props
 
