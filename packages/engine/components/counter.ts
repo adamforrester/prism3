@@ -362,6 +362,8 @@ export const counter: ComponentDef = {
       'Set max when stock or a per-order limit exists, and state the limit in the message',
       'Name the buttons for the item in a list of line items ("Increase quantity, Trail runner")',
       'Show a button at its limit as unavailable rather than hiding it, so the row does not move',
+    ],
+    implementation: [
       'Leave each button its 44×44px hit area in code, at least 44px apart center to center',
     ],
     dont: [

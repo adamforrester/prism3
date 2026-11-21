@@ -598,8 +598,10 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     do: [
       'Always give it an accessible name (a verb)',
       'Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead',
-      'Expand the hit area to meet target-size minimums even when the icon is visually small',
       ...sibling.do,
+    ],
+    implementation: [
+      'Expand the hit area to meet target-size minimums even when the icon is visually small',
     ],
     dont: [
       'Ship it without an accessible name ("button, unlabeled")',
