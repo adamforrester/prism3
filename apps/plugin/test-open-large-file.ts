@@ -951,7 +951,9 @@ console.log('\n  Capture baseline and Adopt (#3189)');
   //   · `check/drops`: a hand edit made after the pass, heard as Figma's `documentchange`, is in the check's answer: the
   //     edited set is read again. Mutation: the listener's drop removed → `check/drops`.
   // Measured, not asserted: the check's host calls on a fresh read of every set.
-  const CHECK_CAP = 900_000;
+  // 950,000 since Avatar (#4110) joined Skeleton (#4109): the template's 66 sets make 906,466 calls, 891,164 at 65. The
+  // regressions this cap stands for read every set again, which is 2.09M at 66 sets, so it still fails each by name.
+  const CHECK_CAP = 950_000;
   const checkOf = async (): Promise<{ msg: any; calls: number; progress: { msg: any; turn: number; i: number }[]; answerAt: number }> => {
     const at = posted.length;
     calls = 0; callsIn.clear();
