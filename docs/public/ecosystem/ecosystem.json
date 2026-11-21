@@ -344,7 +344,9 @@
           "page-nav-item",
           "page-nav",
           "skeleton",
-          "popover"
+          "popover",
+          "step-item",
+          "steps"
         ]
       }
     },
