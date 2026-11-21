@@ -11,8 +11,8 @@ There are two ways to get token files out, and they start from different places:
 
 1. Open **Export** in the rail. <!-- src: apps/studio/src/shell/pages.ts:520 -->
 2. Choose **Design tokens**: "The token set in the W3C design-token format, aliases intact: a base file and one overlay per mode. These are the files a build reads." <!-- src: apps/studio/src/export-settings.ts:105-110 -->
-3. Set the options. The file list and a preview beside them update as you change them. <!-- src: apps/studio/src/main.ts:1543-1547#ce59ed88 -->
-4. Choose **Download tokens**. <!-- src: apps/studio/src/main.ts:1585 -->
+3. Set the options. The file list and a preview beside them update as you change them. <!-- src: apps/studio/src/main.ts:1557-1561#ce59ed88 -->
+4. Choose **Download tokens**. <!-- src: apps/studio/src/main.ts:1599 -->
 
 *[Screenshot placeholder: the Export area with Design tokens selected and the file list.]*
 
@@ -34,7 +34,7 @@ With **One per mode** <!-- src: apps/studio/src/export-settings.ts:218 -->, the 
 A build reads the base and then the overlay for the mode it wants. Style Dictionary does this with its stock setup, and Prism3's automated tests check on every change that it still does. <!-- src: packages/engine/emit-dtcg-overlay.ts:23-26#827e558d --> <!-- src: packages/tokens/check-consumability.mjs:279-288#306a7f75 -->
 The modes here are the appearance modes (such as dark and the high-contrast pair). Breakpoint values travel inside the layout tokens themselves; the per-breakpoint detail the engine keeps for its own use is left out of these files. <!-- src: packages/engine/emit-dtcg-overlay.ts:38-42#daf3ffcf -->
 
-Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1396-1403#12963735 -->
+Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1410-1417#12963735 -->
 
 The same brand exports the same files from the web Studio and from the plugin; Prism3's automated tests compare the two byte for byte on every change. <!-- src: apps/studio/test-export-parity.mjs:1-3#2bb0d110 --> <!-- src: apps/studio/test-export-parity.mjs:259#21ecd0a3 -->
 

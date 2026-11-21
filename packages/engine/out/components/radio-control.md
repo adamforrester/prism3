@@ -43,10 +43,7 @@ Do not place this on its own. It is the circle Radio.Row nests, so a fix to its 
 
 ### Do
 
-- Nest this from Radio.Row rather than redrawing the circle per host
-- Let the host row expose selection and state and follow its size, so the nested control tracks the row
-- Let the inner circle and the ring recolor carry the selection; the ring border stays constant in weight across states, going brand-colored (not thicker) on select
-- Supply an external aria-label only when using the control genuinely alone
+- Supply an external `aria-label` only when using the control genuinely alone
 
 ### Don't
 
@@ -92,6 +89,10 @@ The atom has no copy of its own; all label, description and error text belongs t
   - a filled-disc radio that signals selection by the ring filling in
 
 ## Building it in code
+
+- Nest this from Radio.Row rather than redrawing the circle per host
+- Let the host row expose selection and state and follow its size, so the nested control tracks the row
+- Let the inner circle and the ring recolor carry the selection; the ring border stays constant in weight across states, going brand-colored (not thicker) on select
 
 ### Props
 

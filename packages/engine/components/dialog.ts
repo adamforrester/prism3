@@ -469,6 +469,8 @@ export const dialog: ComponentDef = {
       'Put the main action last in an inline or fill footer (Cancel, then Save), and on top when stacked',
       'Use the fill footer for two buttons that share the width, such as Clear all and Apply, and stacked for long labels',
       'Let only the body scroll, and keep the footer in view',
+    ],
+    implementation: [
       'Return focus to the control that opened the dialog',
     ],
     dont: [

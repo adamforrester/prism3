@@ -677,7 +677,7 @@ export const runComponentReactions = async (raw: unknown): Promise<StepReport> =
  * reason a re-run of this script adds nothing.
  */
 export const runComponentEmit = async (raw: unknown, payloads: Payload[]): Promise<StepReport> => {
-  const d = unpack(raw) as StepBase & { def: string; members: { name: string; index: number }[]; count: number; description?: string };
+  const d = unpack(raw) as StepBase & { def: string; members: { name: string; index: number }[]; count: number; pitch: { x: number; y: number }; description?: string };
   const notes: { loadAllPages?: string; pageLoadFailures?: string[] } = {};
   const r = base(d, 'component-emit', { mode: 'live' }, null);
   delete (r as Partial<StepReport>).shared;
@@ -686,7 +686,8 @@ export const runComponentEmit = async (raw: unknown, payloads: Payload[]): Promi
   try {
     r.page = await placeOnPage(d.def, notes);
     const cols = Math.max(1, Math.ceil(Math.sqrt(d.count)));
-    const PITCH = 48;
+    // THE PITCH IS THE PLANS' (#3139): the widest and tallest member plus 24, read offline by `emitPitch` (`mcp-paste.ts`) and
+    // passed in, so every slice of a def lays out on one grid. A fixed 48 fit the 24px icons and put a 54px logo over its neighbor.
     for (let i = 0; i < d.members.length; i++) {
       const m = d.members[i];
       const have = figma.currentPage.findChild((n) => n.type === 'COMPONENT' && n.name === m.name);
@@ -696,8 +697,8 @@ export const runComponentEmit = async (raw: unknown, payloads: Payload[]): Promi
       if (node) {
         node.name = m.name;
         if (d.description) node.description = d.description;
-        node.x = (m.index % cols) * PITCH;
-        node.y = Math.floor(m.index / cols) * PITCH;
+        node.x = (m.index % cols) * d.pitch.x;
+        node.y = Math.floor(m.index / cols) * d.pitch.y;
       }
       members.push({ name: m.name, status: node ? 'built' : 'built, not found by id', id: node?.id, misses: (out.misses as string[] | undefined) ?? [] });
     }

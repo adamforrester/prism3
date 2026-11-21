@@ -356,6 +356,8 @@ export const checkboxGroup: ComponentDef = {
     usage: 'Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row\'s checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7–10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.',
     do: [
       'Give the group a label that names the decision, so its rows can read the short abstracted-up remainder',
+    ],
+    implementation: [
       'Let the group own the value array, required and validation — a row inside a group never manages its own',
       'Derive each row\'s checked state from the group\'s value array; never wire checked on a row in a group',
       'Keep required and error at the group level, announced once (aria-required / aria-invalid on the group)',
