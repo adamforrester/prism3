@@ -165,8 +165,11 @@ const expectedAtoms = (v, type) => {
   return [String(v)];
 };
 /** The CSS side: `rgb[a]( )` read as one color, `cubic-bezier( )` as its numbers, split on space, `,` and `/`. */
+// A channel may be a percentage, the CSS Color 4 form stock Style Dictionary writes for an object color inside a
+// shadow layer (#4123): `rgb(3.92% 7.06% 15.69% / 0.102)`.
+const channel = (x) => (String(x).endsWith('%') ? parseFloat(x) * 2.55 : x);
 const cssAtoms = (s) => s
-  .replace(/rgba?\(([^)]*)\)/g, (_, a) => { const [r, g, b, al = '1'] = a.split(/[\s,/]+/).filter(Boolean); return rgba(r, g, b, al); })
+  .replace(/rgba?\(([^)]*)\)/g, (_, a) => { const [r, g, b, al = '1'] = a.split(/[\s,/]+/).filter(Boolean); return rgba(channel(r), channel(g), channel(b), String(al).endsWith('%') ? parseFloat(al) / 100 : al); })
   .replace(/cubic-bezier\(([^)]*)\)/g, '$1')
   .split(/[\s,/]+/).filter(Boolean);
 /** Equal atom for atom, in order: a reversed curve, a swapped size and line-height, or reordered layers differ. */

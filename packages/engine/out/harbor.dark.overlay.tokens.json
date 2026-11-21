@@ -422,7 +422,16 @@
           "subtle-fill": {
             "selected": {
               "$type": "color",
-              "$value": "#437f7f4d",
+              "$value": {
+                "colorSpace": "srgb",
+                "components": [
+                  0.2627,
+                  0.498,
+                  0.498
+                ],
+                "alpha": 0.302,
+                "hex": "#437f7f"
+              },
               "$description": "primary interactive subtle fill — selected (the primary fill at `opacity.30`; translucent, the selected background of a selectable control or an outline/text control)"
             }
           }
@@ -1408,18 +1417,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a08",
-            "offsetX": "0px",
-            "offsetY": "1px",
-            "blur": "2px",
-            "spread": "0px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0314,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 2,
+              "unit": "px"
+            },
+            "spread": {
+              "value": 0,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a05",
-            "offsetX": "0px",
-            "offsetY": "1px",
-            "blur": "3px",
-            "spread": "0px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0196,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 3,
+              "unit": "px"
+            },
+            "spread": {
+              "value": 0,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow xs — elevation 1 of 6, 2-layer (key+ambient)"
@@ -1428,18 +1479,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a0a",
-            "offsetX": "0px",
-            "offsetY": "1px",
-            "blur": "2px",
-            "spread": "-1px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0392,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 2,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -1,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a08",
-            "offsetX": "0px",
-            "offsetY": "2px",
-            "blur": "6px",
-            "spread": "-1px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0314,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 2,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 6,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -1,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow sm — elevation 2 of 6, 2-layer (key+ambient)"
@@ -1448,18 +1541,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a0f",
-            "offsetX": "0px",
-            "offsetY": "2px",
-            "blur": "4px",
-            "spread": "-2px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0588,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 2,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 4,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -2,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a0a",
-            "offsetX": "0px",
-            "offsetY": "4px",
-            "blur": "12px",
-            "spread": "-3px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0392,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 4,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 12,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -3,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow md — elevation 3 of 6, 2-layer (key+ambient)"
@@ -1468,18 +1603,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a12",
-            "offsetX": "0px",
-            "offsetY": "3px",
-            "blur": "6px",
-            "spread": "-3px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0706,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 3,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 6,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -3,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a0d",
-            "offsetX": "0px",
-            "offsetY": "8px",
-            "blur": "20px",
-            "spread": "-5px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.051,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 8,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 20,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -5,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow lg — elevation 4 of 6, 2-layer (key+ambient)"
@@ -1488,18 +1665,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a17",
-            "offsetX": "0px",
-            "offsetY": "4px",
-            "blur": "8px",
-            "spread": "-4px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0902,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 4,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 8,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -4,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a12",
-            "offsetX": "0px",
-            "offsetY": "14px",
-            "blur": "32px",
-            "spread": "-8px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0706,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 14,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 32,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -8,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow xl — elevation 5 of 6, 2-layer (key+ambient)"
@@ -1508,18 +1727,60 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a1c",
-            "offsetX": "0px",
-            "offsetY": "6px",
-            "blur": "12px",
-            "spread": "-6px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.1098,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 6,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 12,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -6,
+              "unit": "px"
+            }
           },
           {
-            "color": "#0e0c0a17",
-            "offsetX": "0px",
-            "offsetY": "22px",
-            "blur": "52px",
-            "spread": "-12px"
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.0902,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 22,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 52,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -12,
+              "unit": "px"
+            }
           }
         ],
         "$description": "shadow 2xl — elevation 6 of 6, 2-layer (key+ambient)"
@@ -1528,11 +1789,32 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#0e0c0a4d",
-            "offsetX": "0px",
-            "offsetY": "2px",
-            "blur": "4px",
-            "spread": "0px",
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0.0549,
+                0.0471,
+                0.0392
+              ],
+              "alpha": 0.302,
+              "hex": "#0e0c0a"
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 2,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 4,
+              "unit": "px"
+            },
+            "spread": {
+              "value": 0,
+              "unit": "px"
+            },
             "inset": true
           }
         ],

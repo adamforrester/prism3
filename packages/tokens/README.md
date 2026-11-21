@@ -414,9 +414,35 @@ where the text's size is set:
 | Android (views) | `android:letterSpacing` takes em already: set the number as it is. |
 | Compose | `letterSpacing = (-0.04).em`. |
 
-The typography composites (`type.*`) alias a letter-spacing role, so they carry the same multiplier.
-The CSS `font` shorthand the stock `css` group writes for a composite has no letter-spacing field, so
-on web, set `letter-spacing` from the role beside it. Composites on native are #2432's gap.
+In the canonical tree the typography composites (`type.*`) alias a letter-spacing role. In the
+conforming projection a composite's `letterSpacing` is resolved to px instead (#4128): the role's
+multiplier times that style's own font size, as a DTCG `dimension` (`{ "value": -0.96, "unit": "px" }`
+for -0.02 at 48px), because DTCG §9.8 types it as a dimension. It is exact at the style's size, and
+the em multiplier stays on the role for anything that scales the size. The CSS `font` shorthand the
+stock `css` group writes for a composite has no letter-spacing field, so on web, set `letter-spacing`
+from the role beside it. Composites on native are #2432's gap.
+
+### Value forms: DTCG 2025.10 objects, durations aside (#4123)
+
+The conforming projection writes literal colors and dimensions in DTCG 2025.10's object forms, and
+stock Style Dictionary 5.5 reads them with no custom code:
+
+| Type | Form in the projection | Spec |
+|---|---|---|
+| `color` | `{ "colorSpace": "srgb", "components": [r, g, b], "alpha": a, "hex": "#rrggbb" }`, components 0–1, `alpha` only below 1 | Color module §4.1 |
+| `dimension` | `{ "value": 16, "unit": "px" }`, `px` or `rem` | Format §8.2 |
+| `duration` | `"200ms"`, a string | departs from Format §8.5 |
+
+A shadow layer's color and lengths follow the same forms. The CSS is unchanged, except that a color
+inside a shadow layer prints as `rgb(3.92% 7.06% 15.69% / 0.102)` where it printed `#0a12281a`: the
+same color in CSS Color 4 syntax.
+
+**Why durations stay strings.** Stock Style Dictionary 5.5 can't read a duration object: alone or as
+a transition's `delay`, `{ "value": 200, "unit": "ms" }` comes out as `[object Object]` in CSS, Swift,
+Kotlin and Android, where `"200ms"` comes out as `200ms`. Owner decision A on #4123 kept the string
+form wherever stock Style Dictionary can't read the object, so durations change when it can. The
+canonical `<brand>.tokens.json` keeps the string forms for every type; it is the engine's own tree,
+not the handoff.
 
 The no-custom-code rule stands. The gate runs built-in transform groups and formats only, so no
 reference production config with custom transforms ships for now, and the `[GAP]` pins stay as the

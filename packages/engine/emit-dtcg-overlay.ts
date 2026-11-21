@@ -301,7 +301,9 @@ export const buildWebBase = (tree: unknown): unknown => {
     for (const [k, v] of Object.entries(n as Node)) out[k] = k.startsWith('$') ? v : stack(v);
     return out;
   };
-  return stripExtensions(stack(buildBase(tree)));
+  // The same projection as the base in `buildOverlaySet` (tracking in px, #4128; DTCG 2025.10 value forms, #4123),
+  // so the web base still differs from the base only in its typefaces.
+  return conformValues(stripExtensions(stack(buildBase(trackingInPx(tree)))));
 };
 
 /**
@@ -318,10 +320,151 @@ export const buildWebBase = (tree: unknown): unknown => {
  * `metadata: true` keeps the build metadata — the studio's internal "Include build metadata" export. `buildBase` and
  * `buildOverlay` below are the metadata-keeping primitives; the strip is the one step after them.
  */
-export const buildOverlaySet = (tree: unknown, opts: { metadata?: boolean } = {}): { base: unknown; overlays: Array<{ mode: string; tree: unknown }> } => {
-  const keep = (t: unknown): unknown => (opts.metadata ? t : stripExtensions(t));
+/**
+ * DTCG 2025.10 VALUE FORMS (#4123, owner decision A). The canonical tree writes literals in the older drafts' string
+ * forms (`"16px"`, `"#0a12281a"`, `"rgb(…)"`), and every reader in this repo reads them that way, so the conversion
+ * happens here, at the handoff, and nowhere upstream:
+ *
+ *   color      Color module §4.1: `{ colorSpace: 'srgb', components: [r, g, b], alpha?, hex }`. `components` are 0–1,
+ *              `hex` is the six-digit sRGB fallback, and `alpha` is written only when it is below 1.
+ *   dimension  Format §8.2: `{ value, unit }`, the unit `px` or `rem`.
+ *
+ * The same rules apply inside composites: a shadow layer's `color`, `offsetX`, `offsetY`, `blur` and `spread`. An
+ * alias (`{a.b}`) is a reference, not a literal, and stays as it is.
+ *
+ * DURATION STAYS A STRING (`"200ms"`), on purpose. Option A kept string forms where stock Style Dictionary can't read
+ * the objects, and measured on 5.5 it can't: a `{ value: 200, unit: 'ms' }` duration, alone or as a transition's
+ * `delay`, comes out as `[object Object]` in CSS, Swift, Kotlin and Android, where the string comes out as `200ms`.
+ * Color and dimension objects come out byte-identical to their strings on every platform. So durations depart from
+ * Format §8.5 until Style Dictionary reads them (its #1590), and `packages/tokens/README.md` says so.
+ */
+const HEX = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i;
+const RGB = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i;
+const DIM = /^(-?\d+(?:\.\d+)?)(px|rem)$/;
+const round4 = (x: number): number => Math.round(x * 10000) / 10000;
+const hex2 = (n: number): string => Math.round(n).toString(16).padStart(2, '0');
+export const conformColor = (v: unknown): unknown => {
+  if (typeof v !== 'string') return v;
+  let rgb: number[], alpha: number;
+  const h = HEX.exec(v);
+  const r = h ? null : RGB.exec(v);
+  if (h) {
+    rgb = [0, 2, 4].map((i) => parseInt(h[1]!.slice(i, i + 2), 16));
+    alpha = h[2] ? parseInt(h[2], 16) / 255 : 1;
+  } else if (r) {
+    rgb = [r[1], r[2], r[3]].map(Number);
+    alpha = r[4] === undefined ? 1 : Number(r[4]);
+  } else return v;
   return {
-    base: keep(buildBase(tree)),
-    overlays: overlayModes(tree).map((mode) => ({ mode, tree: keep(buildOverlay(tree, mode)) })),
+    colorSpace: 'srgb',
+    components: rgb.map((c) => round4(c / 255)),
+    ...(alpha < 1 ? { alpha: round4(alpha) } : {}),
+    hex: `#${rgb.map(hex2).join('')}`,
+  };
+};
+export const conformDimension = (v: unknown): unknown => {
+  const m = typeof v === 'string' ? DIM.exec(v) : null;
+  return m ? { value: Number(m[1]), unit: m[2] } : v;
+};
+const SHADOW_DIMS = ['offsetX', 'offsetY', 'blur', 'spread'];
+const conformLayer = (l: unknown): unknown => {
+  if (!l || typeof l !== 'object') return l;
+  const out: Node = { ...(l as Node) };
+  if ('color' in out) out.color = conformColor(out.color);
+  for (const k of SHADOW_DIMS) if (k in out) out[k] = conformDimension(out[k]);
+  return out;
+};
+/** A copy of `n` with every literal color and dimension, at any depth, in its DTCG 2025.10 object form. */
+export const conformValues = (n: unknown): unknown => {
+  if (!n || typeof n !== 'object' || Array.isArray(n)) return n;
+  const node = n as Node;
+  if (isLeaf(node)) {
+    const t = node.$type;
+    const v = node.$value;
+    const $value = t === 'color' ? conformColor(v)
+      : t === 'dimension' ? conformDimension(v)
+      : t === 'shadow' ? (Array.isArray(v) ? v.map(conformLayer) : conformLayer(v))
+      : v;
+    return { ...node, $value };
+  }
+  return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, k.startsWith('$') ? v : conformValues(v)]));
+};
+
+/**
+ * TRACKING IN PX INSIDE A TYPE STYLE (#4128, owner decision A). DTCG Format §9.8 types a typography value's
+ * `letterSpacing` as a dimension, and the canonical composite aliases `core.font.letter-spacing-role.*`, a `number`
+ * multiplier of the font size (Q175 A). So the projection writes each style's tracking resolved: the multiplier times
+ * that style's font size in px, rounded to 0.01px, as `{ value, unit: 'px' }`. The standalone `number` ladder is
+ * unchanged. Per mode: where a mode's multiplier or font size differs, the resolved value differs too, so the style
+ * gets a mode entry and lands in that mode's overlay. Works on a copy of the canonical tree; the tree itself keeps
+ * the alias, which the Figma emitter and every other reader still use.
+ */
+const trackingInPx = (tree: unknown): unknown => {
+  const copy = JSON.parse(JSON.stringify(tree)) as Node;
+  const modes = overlayModes(tree);
+  const leafAt = (ref: string): Node | undefined => {
+    let cur: unknown = copy;
+    for (const k of ref.split('.')) cur = cur && typeof cur === 'object' ? (cur as Node)[k] : undefined;
+    return isLeaf(cur) ? cur : undefined;
+  };
+  const valueIn = (leaf: Node, mode?: string): unknown => {
+    const m = mode ? ((leaf.$extensions as any)?.prism3?.modes?.[mode] as Node | undefined) : undefined;
+    return m && '$value' in m ? m.$value : leaf.$value;
+  };
+  /** Follow aliases to a literal, in `mode` where a leaf carries one. */
+  const resolve = (v: unknown, mode: string | undefined, depth = 0): { v: unknown; leaf?: Node } => {
+    const ref = typeof v === 'string' ? /^\{([^}]+)\}$/.exec(v)?.[1] : undefined;
+    if (!ref || depth > 20) return { v };
+    const leaf = leafAt(ref);
+    if (!leaf) return { v: undefined };
+    const next = valueIn(leaf, mode);
+    const out = resolve(next, mode, depth + 1);
+    return { v: out.v, leaf: out.leaf ?? leaf };
+  };
+  const px = (v: unknown, leaf?: Node): number | undefined => {
+    const known = (leaf?.$extensions as any)?.prism3?.px;
+    if (typeof known === 'number' && typeof v === 'string' && v === leaf?.$value) return known;
+    const m = typeof v === 'string' ? /^(-?\d+(?:\.\d+)?)(px|rem)$/.exec(v) : null;
+    return m ? Number(m[1]) * (m[2] === 'rem' ? 16 : 1) : undefined;
+  };
+  const tracking = (value: Node, mode: string | undefined): unknown => {
+    const mult = resolve(value.letterSpacing, mode).v;
+    const size = resolve(value.fontSize, mode);
+    const sizePx = px(size.v, size.leaf);
+    if (typeof mult !== 'number' || sizePx === undefined) return value.letterSpacing;
+    const r = Math.round(mult * sizePx * 100) / 100;
+    return { value: r === 0 ? 0 : r, unit: 'px' };
+  };
+  const walk = (n: unknown): void => {
+    if (!n || typeof n !== 'object') return;
+    const node = n as Node;
+    if (isLeaf(node)) {
+      if (node.$type !== 'typography' || !node.$value || typeof node.$value !== 'object') return;
+      const base = node.$value as Node;
+      if (!('letterSpacing' in base)) return;
+      const baseLs = tracking(base, undefined);
+      for (const mode of modes) {
+        const ext = ((node.$extensions ??= {}) as any);
+        const entry = ext.prism3?.modes?.[mode] as Node | undefined;
+        const modeValue = (entry && typeof entry.$value === 'object' ? entry.$value : base) as Node;
+        const ls = tracking(modeValue, mode);
+        if (entry) entry.$value = { ...modeValue, letterSpacing: ls };
+        else if (JSON.stringify(ls) !== JSON.stringify(baseLs)) ((ext.prism3 ??= {}).modes ??= {})[mode] = { $value: { ...base, letterSpacing: ls } };
+      }
+      node.$value = { ...base, letterSpacing: baseLs };
+      return;
+    }
+    for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) walk(v);
+  };
+  walk(copy);
+  return copy;
+};
+
+export const buildOverlaySet = (tree: unknown, opts: { metadata?: boolean } = {}): { base: unknown; overlays: Array<{ mode: string; tree: unknown }> } => {
+  const keep = (t: unknown): unknown => conformValues(opts.metadata ? t : stripExtensions(t));
+  const projected = trackingInPx(tree);
+  return {
+    base: keep(buildBase(projected)),
+    overlays: overlayModes(projected).map((mode) => ({ mode, tree: keep(buildOverlay(projected, mode)) })),
   };
 };
