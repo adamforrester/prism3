@@ -533,6 +533,33 @@ console.log('\n11. Caption sizes and the letter spacing pin (#3077, owner decisi
   T.setTrackingPin('label', undefined);
   ok(pristine(), 'clearing every pin leaves the brand byte-identical (typography.tracking pruned)');
 }
+// #3079 (Q808 A, Q3079.4 A, Q3079.5 A): each card's Line height and Letter spacing menu. EXPECTED typed here from the
+// engine's size rule worked by hand: title derives compact (xs–md) and snug (lg–2xl); a +1 nudge lands on cozy and compact,
+// two values, so the menu selects Current; eyebrow's -1 tracking nudge lands on one value, so that value is selected. A
+// pick writes the pin and removes the nudge; Default removes both, and the brand returns to its bytes.
+{
+  reset();
+  const runs = (m: T.SpacingMenu['now']): string => m.map((r) => `${r.rung}:${r.variants.join('/')}`).join(' ');
+  let m = T.spacingMenu('title', 'lh', engine());
+  ok(m.selected === 'default' && runs(m.derived) === 'compact:xs/sm/md snug:lg/xl/2xl' && runs(m.now) === runs(m.derived),
+    `spacingMenu: title with nothing stored selects Default; derived ${runs(m.derived)}`);
+  T.setShift('title', 'leadingShift', 1);
+  m = T.spacingMenu('title', 'lh', engine());
+  ok(m.selected === 'current' && runs(m.now) === 'cozy:xs/sm/md compact:lg/xl/2xl' && m.shift === 1,
+    `spacingMenu: title's +1 nudge lands on two values, so Current is selected (${m.selected}; ${runs(m.now)})`);
+  T.setShift('eyebrow', 'trackingShift', -1);
+  const e = T.spacingMenu('eyebrow', 'ls', engine());
+  ok(e.selected === 'wide', `spacingMenu: eyebrow's -1 letter spacing nudge lands on one value, wide, which is selected (${e.selected}; ${runs(e.now)})`);
+  T.setSpacing('title', 'lh', 'normal');
+  ok(ty() === with3({ trackingShift: { eyebrow: -1 }, leading: { title: 'normal' } }), `setSpacing writes typography.leading.title and removes leadingShift, emptied and unset (${ty()})`);
+  ok(T.spacingMenu('title', 'lh', engine()).selected === 'normal', 'spacingMenu: a pin selects its rung');
+  T.setSpacing('eyebrow', 'ls', 'open');
+  ok(ty() === with3({ leading: { title: 'normal' }, tracking: { eyebrow: 'open' } }), `setSpacing writes typography.tracking.eyebrow and removes trackingShift (${ty()})`);
+  T.setSpacing('title', 'lh', null);
+  T.setSpacing('eyebrow', 'ls', null);
+  ok(pristine(), 'Default on both removes the pins, and the brand is byte-identical');
+  ok(JSON.stringify(T.spacingRungs('ls')) === JSON.stringify(['tightest', 'tighter', 'tight', 'snugger', 'snug', 'normal', 'open', 'wide', 'wider']), 'the Letter spacing menu lists all nine names, open included');
+}
 // #3084: the 10px caption floor is refused while caption md is set to 10px, so its chip is disabled with a reason.
 // EXPECTED from the sizes typed here, never from the module: blocked exactly when caption md is 10px. The engine is the
 // second witness: on 11px every case builds, and on 10px each blocked case throws and each other one builds.
@@ -569,6 +596,9 @@ console.log('\n12. A brand with no typography key stays byte-identical when a si
     // #4208: the two sibling setters #3890 missed.
     ['a caption size (setCaptionSize)', () => T.setCaptionSize('md', 13), () => T.setCaptionSize('md', undefined)],
     ['a letter spacing pin (setTrackingPin)', () => T.setTrackingPin('body', 'wide'), () => T.setTrackingPin('body', undefined)],
+    // #4254 delta review: the type view's two menus, picked and then returned to Default.
+    ['a line height pick (setSpacing lh)', () => T.setSpacing('title', 'lh', 'normal'), () => T.setSpacing('title', 'lh', null)],
+    ['a letter spacing pick (setSpacing ls)', () => T.setSpacing('title', 'ls', 'open'), () => T.setSpacing('title', 'ls', null)],
   ] as const) {
     fresh();
     clear();

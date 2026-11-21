@@ -27,6 +27,9 @@ export type PickerValue = {
   /** The group the value is listed under, named by its heading (#3092: Layout's spacing steps, then the dimension
    *  steps). Values of one group are adjacent; a list with no group draws none. */
   readonly group?: string;
+  /** Secondary text after the value (#3079: a line height or letter spacing menu's token name, or what Default and
+   *  Current mean). */
+  readonly note?: string;
 };
 export type ValuePickerOpts = {
   /** What is being picked, shown as the panel's title (`Display md, desktop`). */
@@ -83,6 +86,7 @@ export const valuePicker = (o: ValuePickerOpts): { el: HTMLElement; focusCurrent
     b.setAttribute('aria-pressed', String(cur));
     b.tabIndex = -1;
     const key = h('span', 'p3-vpick-key', x.label);
+    if (x.note) key.append(h('span', 'p3-vpick-note', x.note));
     if (cur) key.append(glyph('check'));
     const samp = h('span', 'p3-vpick-sample');
     // The sample is drawn in the brand's type, at this value: content, not chrome.
@@ -99,7 +103,7 @@ export const valuePicker = (o: ValuePickerOpts): { el: HTMLElement; focusCurrent
       b.title = x.refuse;
       b.append(why);
     }
-    b.setAttribute('aria-label', `${x.label}${cur ? ', current' : ''}${x.refuse ? `, unavailable: ${x.refuse}` : ''}`);
+    b.setAttribute('aria-label', `${x.label}${x.note ? `, ${x.note}` : ''}${cur ? ', current' : ''}${x.refuse ? `, unavailable: ${x.refuse}` : ''}`);
     b.onclick = () => { if (!x.refuse && !cur) o.onPick(x.v); };
     return b;
   });

@@ -95,7 +95,7 @@ minimal — read both, they are the reference; the directory also holds a standa
 | `radiusHairline` | `true` \| `false` | **retired — do not set it.** The fixed 1px `radius.hairline` rung now ships for every brand, so this changes nothing; it is accepted only so older brand files still load. For 1px-cornered controls, use `controlShape: hairline` |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed, easingRoles }` | brand energy → motion pace. `easingRoles` sets which curve each motion role resolves to, brand-wide: `default`, `enter`, `exit` or `emphasized` → `linear` \| `standard` \| `decelerate` \| `accelerate` \| `expressive` \| `calm`. An absent role keeps the engine default |
-| `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, captionFloor, sizeFloor, responsive: { fluid, minViewport, maxViewport }, sizes, tracking, faces }` | custom faces / weight remap / fluid type; `faces` pins the exact Figma `{ family, style }` per category and weight role; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **an omitted category takes the engine default (Inter, or JetBrains Mono for `code`), with a system fallback stack appended**. `sizes` and `tracking`: see the note under this table |
+| `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, captionFloor, sizeFloor, responsive: { fluid, minViewport, maxViewport }, sizes, tracking, leading, faces }` | custom faces / weight remap / fluid type; `faces` pins the exact Figma `{ family, style }` per category and weight role; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **an omitted category takes the engine default (Inter, or JetBrains Mono for `code`), with a system fallback stack appended**. `sizes`, `tracking` and `leading`: see the note under this table |
 | `typography.weights` | `{ <group>: [weight roles] }` | a group ships a different or larger set than its default weights (the list replaces the set), e.g. `display: [strong, max]` for a black hero. Adding a weight adds styles and renames none |
 | `typography.italics` / `typography.italicDefault` | lists of groups | `italics`: the group also ships an italic of each style. `italicDefault`: the group's only cut is italic. Not both for one group |
 | `typography.lineHeights` / `typography.letterSpacings` | `{ <rung>: <ladder step> }` | binds a named leading or tracking rung to another step of its ladder; every style on that rung moves. The value must be a ladder step and the rungs stay in order |
@@ -123,6 +123,9 @@ minimal — read both, they are the reference; the directory also holds a standa
   tightest, tighter, tight, snugger, snug, normal, open, wide or wider. It replaces the size-based letter spacing and
   the `typography.trackingShift` nudge for that text type only. Use it when a nudge can't land the value: no nudge reaches open
   (+1%), and display's letter spacing changes at 96px, so a nudge can't make display one value.
+- `leading: { title: cozy }` does the same for line height: every size of the text type uses one of tight, snug,
+  compact, cozy, normal, relaxed or loose, in place of the size-based line height and the `leadingShift` nudge.
+  Title's line height changes with its size, so no nudge can give title one value.
 
 ## How to author
 

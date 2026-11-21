@@ -58,7 +58,7 @@ export const FACES_DESC = 'The font families in the brand, and the family each t
  *  (owner decision Q23; Scale limits pairs with the preview's Scale, `PREVIEW_HEADING` in `preview/follow-edit.ts`).
  *  APPROVED (owner, 2026-10-03, #2036). */
 export const SCALE_DESC = 'The size of each heading style on desktop and mobile, and the scale they step along.';
-export const SCALE_LIMITS_DESC = 'Where the heading scale starts and stops, and whether headings scale between mobile and desktop.';
+export const TYPE_SCALE_LEVER_DESC = 'The scale every heading size steps along, and how headings move between mobile and desktop.'; // #3079, DRAFT
 export const WEIGHTS_DESC = 'The weight behind each name, the weights each text type ships, and its italic and link styles.';
 export const SPACING_DESC = 'The step each line height and letter spacing name uses, and how far each text type moves from it.';
 /** The Depth & motion sections' copy (S9.2), each shared by the levers section and the preview section that pairs with
@@ -129,7 +129,7 @@ export type InspectId = (typeof INSPECT)[number][0];
 
 /** One row of the levers panel: its control, the manifest keys it edits, and the schema inputs it edits
  *  that are not manifest levers. `drive` names the preview part the row drives (Q4, deferred). */
-export type Row = { readonly ctl: string; readonly keys?: readonly string[]; readonly schemaOnly?: readonly string[]; readonly drive?: string };
+export type Row = { readonly ctl: string; readonly keys?: readonly string[]; readonly schemaOnly?: readonly string[]; readonly drive?: string; readonly advanced?: boolean };
 export type Section = {
   readonly title: string; readonly desc?: string; readonly advanced?: boolean; readonly rows: readonly Row[];
   /** #3335: the page draws this section as several cards of its own (Color › Interactive's one card per button set), so
@@ -285,40 +285,40 @@ export const DOMAINS = [
       // families" title and its description are dropped from the levers; the preview's Font families section keeps both.
       { title: 'Typeface library', rows: [{ ctl: 'library', schemaOnly: ['typography.typefaceLibrary'] }] },
       { title: 'Font family for each text type', rows: [{ ctl: 'families', keys: ['typography.families'] }] },
-      // S6.3: Individual sizes sits in Scale behind its Show advanced (Q63, Q64); the brand-wide sizes, the mobile
-      // pins and each mode's sizes are schema inputs, not manifest levers.
-      { title: 'Scale', desc: SCALE_DESC, rows: [{ ctl: 'typeScale', keys: ['typography.typeScale'] }, { ctl: 'sizes', schemaOnly: ['typography.sizes', 'typography.sizeOverrides'] }] },
+      // #3079 (owner decision 2026-11-18 A): Scale, then one card per text type, then Every text type (advanced only),
+      // with the page's one Show advanced settings switch (Q3079.2 A). A row marked `advanced` (`Row.advanced`) draws only
+      // with it on, inside a section that is not; a row without it takes its section's tier. The levers' own copy is
+      // DRAFT, pending the owner; the preview keeps its sections and their copy (SCALE_DESC, WEIGHTS_DESC, SPACING_DESC).
+      { title: 'Scale', desc: TYPE_SCALE_LEVER_DESC, rows: [
+        { ctl: 'typeScale', keys: ['typography.typeScale'] },
+        { ctl: 'responsive', keys: ['typography.responsive'], advanced: true },
+      ] },
       {
-        title: 'Scale limits', desc: SCALE_LIMITS_DESC, advanced: true, rows: [
-          { ctl: 'responsive', keys: ['typography.responsive'] },
-          { ctl: 'displayCeiling', keys: ['typography.displayCeiling'] },
-          { ctl: 'titleFloor', keys: ['typography.titleFloor'] },
-          { ctl: 'floorChips', keys: ['typography.captionFloor'] },
-          // #3077 (caption A): caption md and lg, a schema input beside the caption floor.
-          { ctl: 'captionSizes', schemaOnly: ['typography.sizes'] },
-          { ctl: 'floorChips', keys: ['typography.sizeFloor'] },
+        title: 'Text types', desc: 'Each text type’s sizes, line height, letter spacing and weights.', rows: [
+          // Each card holds, in order: the family it uses (read-only; set in Font family for each text type), its Line
+          // height and Letter spacing menus, its size rows, then, advanced, its extra small sizes that are off, the
+          // display ceiling (Display only), the weights it ships, its italic styles and its font style pins. The rows
+          // below name what the cards write; `domains/type.ts` draws them.
+          // Each card's size rows (Q3079.3 A: shown): heading sizes, mobile pins, each mode's sizes and caption md / lg.
+          { ctl: 'sizes', schemaOnly: ['typography.sizes', 'typography.sizeOverrides'] },
+          // Each card's Line height and Letter spacing menus (Q808 A): the pins they write and the nudges they show.
+          { ctl: 'spacingMenus', schemaOnly: ['typography.leading', 'typography.tracking', 'typography.leadingShift', 'typography.trackingShift'] },
+          // The extra small sizes, a switch on their own rows (Q809 A, Q3079.8 A); off rows show with advanced.
+          { ctl: 'extraSizes', keys: ['typography.titleFloor', 'typography.captionFloor', 'typography.sizeFloor'], advanced: true },
+          { ctl: 'displayCeiling', keys: ['typography.displayCeiling'], advanced: true },
+          { ctl: 'ships', keys: ['typography.weights'], advanced: true },
+          { ctl: 'italics', keys: ['typography.italics', 'typography.italicDefault'], advanced: true },
+          { ctl: 'facePins', schemaOnly: ['typography.faces'], advanced: true },
         ],
       },
       {
-        title: 'Weights and styles', desc: WEIGHTS_DESC, advanced: true, rows: [
+        title: 'Every text type', desc: 'Settings all text types share.', advanced: true, rows: [
           { ctl: 'weightRoles', keys: ['typography.weightRoles'] },
-          { ctl: 'weights', keys: ['typography.weights', 'typography.links'] },
+          { ctl: 'links', keys: ['typography.links'] },
           // #2942 (owner Q3 A): beside Underlined link styles, because it writes tokens and the -link text styles.
           { ctl: 'underline', keys: ['typography.underline'] },
-          { ctl: 'italics', keys: ['typography.italics', 'typography.italicDefault'] },
-          // S6.3: Pin a font cut (Q64), a schema input.
-          { ctl: 'facePins', schemaOnly: ['typography.faces'] },
-        ],
-      },
-      // S6.3, NOT CONCEPT V6'S (owner decision Q64, C3: keep every legacy control): the line height and letter
-      // spacing bindings, each mode's swaps, and each text type's nudges. Schema inputs, not manifest levers.
-      {
-        title: 'Line height and letter spacing', desc: SPACING_DESC, advanced: true, rows: [
           { ctl: 'lineHeights', schemaOnly: ['typography.lineHeights'] },
           { ctl: 'letterSpacings', schemaOnly: ['typography.letterSpacings'] },
-          { ctl: 'nudges', schemaOnly: ['typography.leadingShift', 'typography.trackingShift'] },
-          // #3077 (tracking A): each text type's letter spacing pin, a schema input.
-          { ctl: 'trackingPins', schemaOnly: ['typography.tracking'] },
         ],
       },
     ],

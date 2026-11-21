@@ -9620,6 +9620,41 @@ for (const scale of ['default', 'expressive'] as const) {
   // (f) opt-in: an empty pin map builds the same theme as none.
   ok(JSON.stringify(tBrand('tr3077-e', { tracking: {} }).typography) === JSON.stringify(tBrand('tr3077-e', {}).typography), '#3077 tracking A: an empty pin map changes nothing');
 }
+// #3079 (owner decision 2026-11-18 A, Q3079.4 A): `typography.leading`, the twin of the tracking pin above — every
+// composite in a category on one named line-height role, replacing the size-derived rung and its nudge, for that
+// category only. Expected rungs are literals.
+{
+  const roles = (t: ReturnType<typeof tBrand>, g: string) => [...new Set(t.typography.composites.filter((c) => c.group === g).map((c) => `${c.sizePx}:${c.lineHeight}`))].join(' ');
+  // Title's derived rung changes with its size; a +1 nudge moves both halves, so no nudge gives title one value.
+  const base = tBrand('ld3079-base', { leadingShift: { title: 1, body: -1 } });
+  ok(roles(base, 'title') === '18:cozy 20:cozy 24:cozy 28:compact 32:compact 40:compact',
+    `#3079 leading: control — unpinned title follows its size and its +1 nudge, two values (got ${roles(base, 'title')})`);
+  const pinned = tBrand('ld3079-pin', { leadingShift: { title: 1, body: -1 }, leading: { title: 'loose' } });
+  // (a) the pin replaces the derived rung AND the nudge: every title size is loose.
+  ok(roles(pinned, 'title') === '18:loose 20:loose 24:loose 28:loose 32:loose 40:loose',
+    `#3079 leading: a title pin puts every title size on loose, over the size split and the +1 nudge (got ${roles(pinned, 'title')})`);
+  // (b) for the pinned category only.
+  const rest = (t: ReturnType<typeof tBrand>) => JSON.stringify(t.typography.composites.filter((c) => c.group !== 'title'));
+  ok(rest(pinned) === rest(base), '#3079 leading: a title pin leaves every non-title composite exactly as the unpinned build has it');
+  // (c) the pin is not a new start for the nudge: body pinned to normal with a +1 nudge stays normal.
+  const onPath = tBrand('ld3079-onpath', { leadingShift: { body: 1 }, leading: { body: 'normal' } });
+  ok(roles(onPath, 'body') === '12:normal 14:normal 16:normal 18:normal',
+    `#3079 leading: a body pin on normal ignores the +1 body nudge (got ${roles(onPath, 'body')})`);
+  // (d) refused by name.
+  const refusal = (ty: any): string => { try { tBrand('ld3079r-' + JSON.stringify(ty), ty); return '(built)'; } catch (e) { return (e as Error).message; } };
+  ok(/^typography\.leading: 'heading' is not a type category/.test(refusal({ leading: { heading: 'cozy' } })),
+    `#3079 leading: an unknown category is refused by name (got: ${refusal({ leading: { heading: 'cozy' } }).slice(0, 100)})`);
+  ok(/^typography\.leading\.title: 'open' is not a line height role/.test(refusal({ leading: { title: 'open' } })),
+    `#3079 leading: an unknown role is refused by name (got: ${refusal({ leading: { title: 'open' } }).slice(0, 100)})`);
+  // (e) the schema takes the seven and refuses others.
+  const inp = { id: 'v', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } } as any;
+  ok(validateBrandInput({ ...inp, typography: { leading: { title: 'cozy', code: 'loose' } } }).length === 0, '#3079 leading: the schema accepts cozy and loose pins');
+  ok(validateBrandInput({ ...inp, typography: { leading: { title: 'open' } } }).length > 0, '#3079 leading: the schema refuses a role outside the seven');
+  // (f) opt-in: an empty pin map builds the same theme as none.
+  ok(JSON.stringify(tBrand('ld3079-e', { leading: {} }).typography) === JSON.stringify(tBrand('ld3079-e', {}).typography), '#3079 leading: an empty pin map changes nothing');
+  // (g) the note names it.
+  ok(pinned.notes.includes('typography: line height pinned per text type: title loose. Every size in a pinned text type uses that line height, in place of the size-based one and its nudge.'), '#3079 leading: the notes name the pin');
+}
 // C2 (#328): the ceiling names a RUNG, so the surviving rung COUNT is invariant under typeScale.
 // The old px ceiling was compared against already-shifted sizes, so `96` kept 4 rungs under
 // compact/default but only 3 under expressive — a brand lever silently changing the type SET.

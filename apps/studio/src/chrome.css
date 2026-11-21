@@ -1383,7 +1383,7 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-field-wide { grid-column: 1 / -1; }
 .p3-field-label { color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 /* Table headers name cells, not fields: they are not a heading level, and keep the secondary 12px label. */
-:is(.p3-facehead, .p3-tsizes-head, .p3-wmatrix-head, .p3-tnudge-head) .p3-field-label { color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+:is(.p3-facehead, .p3-tsizes-head) .p3-field-label { color: var(--p3-text-2); font-size: var(--p3-fs-12); }
 /* Depth & motion (S9.2): a slider's name with its readout on one line; a per-mode control's Auto line or its Return to
    Auto, one shown; a curve drawn in a value picker row (D10), stroked in the row's ink. */
 .p3-slider-head { display: flex; align-items: baseline; gap: var(--p3-space-100); }
@@ -1563,13 +1563,31 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-tweight, .p3-tspace, .p3-tpin { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: center; }
 .p3-tspace-ctl { display: grid; gap: var(--p3-space-050); min-width: 0; }
 .p3-titalic { display: grid; gap: var(--p3-space-100); }
-.p3-tnudge { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: start; }
-.p3-tnudge-set { color: var(--p3-text); font-weight: var(--p3-fw-emphasis); }
-.p3-wmatrix { display: grid; gap: var(--p3-space-050); overflow-x: auto; }
-.p3-wmatrix-row { display: grid; grid-auto-flow: column; grid-template-columns: minmax(var(--p3-step-w), 2fr); grid-auto-columns: minmax(var(--p3-hit-min), 1fr); gap: var(--p3-space-050); align-items: center; justify-items: center; }
-.p3-wmatrix-row > :first-child { justify-self: stretch; }
-.p3-wmatrix-head > .p3-field-label { overflow-wrap: anywhere; text-align: center; }
-.p3-wmatrix-head > .p3-field-label:first-child { text-align: left; }
+/* #3079 (owner decision 2026-11-18 A): the Type view around the text types. The intro carries the page's one Show
+   advanced settings switch; advanced rows sit in place under a side rule and an "Advanced" mark; each text type is a
+   card holding its two menus (two columns, one at narrow widths), its size rows and its advanced rows. */
+.p3-tintro { display: grid; gap: var(--p3-space-100); }
+.p3-tadv { display: grid; gap: var(--p3-space-150); padding-inline-start: var(--p3-space-150); border-inline-start: var(--p3-bw-thick) solid var(--p3-line-2); }
+.p3-tadv-mark { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+.p3-tcard { padding: var(--p3-space-150) var(--p3-space-200); border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-lg); }
+/* A lever inside a card (Caption sizes) keeps the row rhythm above its name, as sibling levers do (#3337). */
+.p3-tcard .p3-lever-ctl > .p3-lever { margin-block-start: calc(var(--p3-space-300) - var(--p3-rhythm-hint)); }
+.p3-tmenus { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: start; }
+.p3-tmenu { display: grid; gap: var(--p3-space-100); min-width: 0; }
+.p3-tmenus:has(.p3-picker) { grid-template-columns: minmax(0, 1fr); }
+.p3-pick-tok { flex: none; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+.p3-vpick-note { color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); }
+.p3-tships-head { display: flex; align-items: flex-end; gap: var(--p3-space-100); }
+.p3-tships { display: flex; flex-wrap: wrap; gap: var(--p3-space-050); }
+.p3-btn.p3-mcheck.p3-tship { padding: 0 var(--p3-space-150) 0 var(--p3-space-100); gap: var(--p3-space-050); }
+.p3-tsizes-px { color: var(--p3-text); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+.p3-textra[data-off="true"] .p3-fill-label { color: var(--p3-text-2); }
+.p3-tsizes-row > .p3-state, .p3-tsizes-row > .p3-sub:last-child:not(:nth-child(2)) { grid-column: 1 / -1; }
+.p3-frame[data-w="narrow"] .p3-tmenus { grid-template-columns: minmax(0, 1fr); }
+/* At the narrow tier a card's size row puts its name over its pickers, so "128px" fits (the rows are shown by default
+   since #3079, Q3079.3 A); the card's side padding tightens to match the pane's snug fit. */
+.p3-frame[data-w="narrow"] .p3-tcard { padding-inline: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-tcard :is(.p3-tsizes-head, .p3-tsizes-row) { grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-050); }
 .p3-btn.p3-mcheck { min-height: var(--p3-hit-min); min-width: var(--p3-hit-min); padding: 0; justify-content: center; }
 .p3-btn.p3-mcheck > .p3-ico { visibility: hidden; }
 .p3-btn.p3-mcheck[aria-checked="true"] { border-color: var(--p3-ctl-edge); }

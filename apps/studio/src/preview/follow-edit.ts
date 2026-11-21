@@ -225,8 +225,10 @@ export const PREVIEW_HEADING: Readonly<Record<string, string>> = {
   // preview's Font families, which keeps its title.
   'Typeface library': 'Font families',
   'Font family for each text type': 'Font families',
-  // Type (S6.3): the limits change the scale, so they reveal the preview's Scale section (scope §3).
-  'Scale limits': 'Scale',
+  // Type (#3079): the cards hold each text type's sizes, so they reveal the preview's Scale section; Every text type
+  // holds the weights behind each name and the links, so it reveals Weights and styles.
+  'Text types': 'Scale',
+  'Every text type': 'Weights and styles',
   // Shape (S7, owner decision D1 A): the base radius moves every radius size, so it reveals the preview's Radius.
   'Base radius': 'Radius',
 };

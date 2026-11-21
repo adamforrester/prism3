@@ -28,7 +28,7 @@
  *     before a full repaint reads the set as it was drawn, not as the first click left it. That is the legacy
  *     page's behavior (#831), and the equivalence driver holds it byte for byte.
  */
-import { brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS, UNDERLINE_ON_DEFAULT, UNDERLINE_BOUNDS, type BrandInput, type Theme, type TypographyInput, type PerModeSizeGroup, type FacePin } from '@prism3/engine';
+import { brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS, UNDERLINE_ON_DEFAULT, UNDERLINE_BOUNDS, type BrandInput, type Theme, type TypographyInput, type PerModeSizeGroup, type FacePin } from '@prism3/engine';
 import { brandState, theme, getPath, setPath, setModeLever } from './store';
 
 /** The seven text categories, in the order every Type table lists them. `as const` keeps the literal union
@@ -486,3 +486,60 @@ export const trackingPinOf = (g: string): string | undefined => (brandState.typo
 export const setTrackingPin = (g: string, role: string | undefined): void =>
   // A clear prunes an emptied `tracking` and then an emptied `typography` (#4208, the #1071 bug).
   setPath(brandState, `typography.tracking.${g}`, role);
+
+// ── each text type's line height and letter spacing menus (#3079: Q808 A, Q3079.4 A, Q3079.5 A) ────────────────
+
+/** A card's two menus. `lh` writes the leading pin (`typography.leading`, #3079) and clears `leadingShift`; `ls` writes
+ *  the tracking pin (`typography.tracking`, #3077) and clears `trackingShift`. */
+export type SpacingKind = 'lh' | 'ls';
+const SPACING = {
+  lh: { pin: 'leading', shift: 'leadingShift', keys: LINE_HEIGHT_KEYS },
+  ls: { pin: 'tracking', shift: 'trackingShift', keys: LETTER_SPACING_KEYS },
+} as const;
+/** Every rung a menu lists, in ramp order: all seven line heights, all nine letter spacings, `open` included. */
+export const spacingRungs = (kind: SpacingKind): readonly string[] => SPACING[kind].keys;
+/** A run of a text type's sizes that land on one rung, smallest size first. */
+export type SpacingRun = { readonly rung: string; readonly variants: readonly string[] };
+/** What a card's menu shows. `selected` is the entry checked: a rung, `'default'` (nothing stored), or `'current'`
+ *  (a stored nudge that lands on more than one rung, Q3079.5 A). `now` is what the text type builds with today and
+ *  `derived` what it builds with nothing stored, each as runs over its sizes, smallest first. */
+export type SpacingMenu = { readonly selected: string; readonly now: readonly SpacingRun[]; readonly derived: readonly SpacingRun[]; readonly pin?: string; readonly shift: number };
+const runsOf = (sizes: readonly { v: string; rung: string }[]): SpacingRun[] => {
+  const out: { rung: string; variants: string[] }[] = [];
+  for (const s of sizes) {
+    const last = out[out.length - 1];
+    if (last && last.rung === s.rung) last.variants.push(s.v); else out.push({ rung: s.rung, variants: [s.v] });
+  }
+  return out;
+};
+/** The menu for text type `g`. The rungs a size lands on today are read from the built composites (the engine's own
+ *  answer, pins and nudges included); the derived rungs come from `derivedRungFor`, so neither can disagree with the
+ *  build. */
+export const spacingMenu = (g: string, kind: SpacingKind, ty: Typography = theme.typography): SpacingMenu => {
+  const spec = SPACING[kind];
+  const seen = new Set<string>();
+  const sizes: { v: string; px: number; rung: string }[] = [];
+  for (const c of ty.composites) {
+    if (c.group !== g || seen.has(c.variant)) continue;
+    seen.add(c.variant);
+    sizes.push({ v: c.variant, px: c.sizePx, rung: kind === 'lh' ? c.lineHeight : c.tracking });
+  }
+  sizes.sort((a, z) => a.px - z.px);
+  const now = runsOf(sizes);
+  const derived = runsOf(sizes.map((s) => ({ v: s.v, rung: derivedRungFor(spec.shift, g as any, s.px) })));
+  const pin = (brandState.typography?.[spec.pin] as Record<string, string> | undefined)?.[g];
+  const shift = (brandState.typography?.[spec.shift] as Record<string, number> | undefined)?.[g] ?? 0;
+  const distinct = [...new Set(now.map((r) => r.rung))];
+  const selected = pin ?? (!shift ? 'default' : distinct.length === 1 ? distinct[0] : 'current');
+  return { selected, now, derived, ...(pin ? { pin } : {}), shift };
+};
+/** A menu pick. A rung writes the pin and removes the nudge; `null` (Default) removes both. Brand-wide. The Current
+ *  entry writes nothing, so its caller never calls this. */
+export const setSpacing = (g: string, kind: SpacingKind, rung: string | null): void => {
+  const spec = SPACING[kind];
+  if (rung !== null) setPath(brandState, `typography.${spec.pin}.${g}`, rung);
+  else setPath(brandState, `typography.${spec.pin}.${g}`, undefined);
+  // `setPath`'s clear prunes every emptied parent up to `typography` (#1071, #4208), so a brand that clears every
+  // pin or nudge reads as one that never set one.
+  setPath(brandState, `typography.${spec.shift}.${g}`, undefined);
+};

@@ -1,21 +1,20 @@
 /**
  * Type, the levers panel (UI redesign S6.2 Font families; S6.3 the rest; concept v6's Type page).
  *
- * WHAT IT DRAWS: the intro; the S6.2 font families, as two sections since TY1 A (#2190, heading pass 2): **Typeface
- * library** (each family by its name with its token under it, whether it is available here and what uses it, Add font
- * family (in the plugin, a type-ahead over the fonts this Figma can load) and a spelling note, and the remove button on
- * a family nothing uses) and **Font family for each text type** (each text type's family, its token on the label's
- * line, #2217; then Apply to all), both always shown: the owner keeps them out of Show advanced. **Scale** (S6.3): the three
- * scale chips, then the pinned count, then each warning with its own action (TS1 A, #2216): a chip the engine would
- * refuse disabled with the reason and Release pinned sizes, then the #1802 line naming a style the preview uses that
- * the brand does not make (Q72); behind its Show advanced, **Individual sizes**, a Desktop and a Mobile control for
- * each heading size, side by side (Q63 option A). Behind the page's Show
- * advanced (Q69): **Scale limits** (headings scale between mobile and desktop, with the viewport pair and the way
- * to Layout's breakpoints; the display ceiling; the title, caption and size floors), **Weights and styles** (each
- * weight, the weights each text type ships with its Link styles, the italic styles, Pin a font style) and **Line
- * height and letter spacing** (each name's step, each mode's swap, each text type's nudge; Q64). Last, the way on to
- * Shape. The lent legacy region S6.2 drew below Font families is gone, and Layout no longer draws "Responsive type
- * sizing": Type is its one home (Q71).
+ * WHAT IT DRAWS (#3079, owner decision 2026-11-18 A: the Type view laid out around the text types): the intro, with the
+ * page's one **Show advanced settings** switch beside it (Q3079.2 A: advanced rows appear in place under an "Advanced"
+ * mark; nothing else folds, and a search draws them too). Then the S6.2 font families, as two sections since TY1 A
+ * (#2190): **Typeface library** and **Font family for each text type** (with Apply to all), both always shown. Then
+ * **Scale**: the three scale chips and their warnings (TS1 A, #2216), and, advanced, headings scale between mobile and
+ * desktop. Then **Text types**, one card per text type (Q3079.1 A): the family it uses, read-only; its **Line height**
+ * and **Letter spacing** menus, real values with their token names (Q808 A), Default, and Current for a stored nudge
+ * that lands on several values (Q3079.5 A); its size rows, shown (Q3079.3 A): a Desktop and a Mobile picker for each
+ * display, title and eyebrow size (Q63 option A), caption md and lg picked (#3077), body and label read-only, code none;
+ * the extra small sizes as switches on their own rows (Q809 A, Q3079.8 A: title 2xs, caption sm, caption xs), shown
+ * while on and, while off, with advanced (Q3079.10 A); and, advanced, the display ceiling (Display only, Q3079.9 A), the
+ * weights it ships, its italic styles and its font style pins (Q3079.6 A). Last, advanced only, **Every text type**: the
+ * weight behind each name, Underlined link styles with the underline beneath it (Q3079.7 A), and each line height and
+ * letter spacing name's step and mode swap. Then the way on to Shape.
  *
  * THE S6.3 CONTROLS NAME THEIR TOKEN UNDER THEIR LABEL (owner QA-B2: the label is read first). S6.2's Font families
  * controls keep the token-first order Q68 gave them until the shared styling change flips every page at once.
@@ -37,6 +36,11 @@
  * #2006: an emptied `italics`, or a `links` list back at the engine's default, is unset. Two writers are new, for limits no surface edited before: the caption
  * and size floors, each UNSET at its default.
  *
+ * THE TWO MENUS ARE THE ONLY NEW WRITERS (#3079). A value writes the text type's pin (`typography.leading`, #3079's
+ * Q3079.4 A, or `typography.tracking`, #3077) and removes its nudge; Default removes both; Current writes nothing.
+ * Opening the view writes nothing, so a brand stays byte-identical until edited. Every other control writes the field
+ * it wrote before the move.
+ *
  * HOW IT REPAINTS: by store subscription only (plan §5): `brand`, `mode`, and `fonts` (the host's font list, lent
  * as `lend.fonts`). A control writes, notes the edit for the preview's reveal (`noteSectionEdit`, QA-B9), and
  * calls `rebuild()`; the panel is redrawn whole, keeping focus on the element that had it. So every value derived
@@ -54,16 +58,17 @@ import {
   setSizePin, setMobileSize, setFluid, setResponsiveViewport, viewportRefusal, setDisplayCeiling, ceilingPx, ceilingBlocked, titleFloorBlocked, fluidBlocked, setTitleFloor, setCaptionFloor, setSizeFloor,
   setWeightRole, toggleCategoryWeight, categoryWeightLock, setLink, linkLock, setItalicStyle, italicStyleOf, setFacePin,
   setCustomUnderline, setUnderlinePct,
-  setRungBinding, setRepoint, setShift, nudgeSteps, resolvedRungs, type ItalicStyle, type RungField,
-  CAPTION_SIZE_RUNGS, captionSizePin, captionFloorBlocked, setCaptionSize, trackingPinOf, setTrackingPin,
+  setRungBinding, setRepoint, type ItalicStyle, type RungField,
+  CAPTION_SIZE_RUNGS, captionSizePin, captionFloorBlocked, setCaptionSize,
+  spacingMenu, spacingRungs, setSpacing, type SpacingKind, type SpacingRun,
 } from '../state/type-input';
-import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, LETTER_SPACING_KEYS, CAPTION_SIZE_FLOOR, UNDERLINE_BOUNDS, type FacePin } from '@prism3/engine';
+import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, CAPTION_SIZE_FLOOR, UNDERLINE_BOUNDS, type FacePin, type PerModeSizeGroup } from '@prism3/engine';
 import { faceStatus, missingCutsNote, WEIGHT_NAME, type HostFonts } from '../ui/fonts';
 import { valuePicker, type ValuePickerOpts } from '../ui/value-picker';
 import { emToPercentLabel } from '../em-percent';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
-import { armEnter, enterMark, glyph, h, hook } from '../shell/dom';
+import { glyph, h, hook } from '../shell/dom';
 import { chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock, keepFocus, pageEdit, wordsOf } from '../ui/lever-kit';
 import type { PageLends } from '../preview/brand';
 
@@ -151,17 +156,12 @@ export const S63 = {
   /** A ceiling that would trim a display size set individually (owner, 2026-10-04, #2044). */
   ceilingPinned: (size: string): string => `Smaller than display ${size}, which you set individually.`,
   titleFloorLabel: 'Smallest title size',
-  titleFloorTip: '16px adds a title at body size. The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
   /** The 16px chip's reason under Compact: the approved info text's second sentence (owner, B8b). */
   titleFloorCompact: 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
   /** The 18px chip's reason while title 2xs is set individually (#2054). DRAFT, pending the owner's approval. */
   titleFloorPinned: 'Leaves out title 2xs, which you set individually.',
   captionFloorLabel: 'Smallest caption size',
-  captionFloorTip: '10px adds a fine-print caption, for dense legal, footer or product details.',
-  /** The 10px chip's reason while caption md is set to 10px (#3084). DRAFT, pending the owner's approval. */
-  captionFloorPinned: 'Caption md is 10px, which you set individually, so the engine refuses a second 10px caption.',
   sizeFloorLabel: 'Smallest type size',
-  sizeFloorTip: '8px adds the smallest caption and moves the size ladder down to 8px.',
   eightWarn: '8px is below the sizes the contrast floors were set for. Use it only for fine print that has an accessible alternative.',
   // Weights and styles
   weightsLabel: 'Weights',
@@ -206,25 +206,37 @@ export const S63 = {
   crossAbove: (k: string, v: string): string => `Above ${k} (${v}). The names stay in order.`,
   lhSample: 'Line height sets the space between the lines of a paragraph, so a long passage reads evenly.',
   lsSample: 'Letter spacing',
-  nudgeLabel: 'One step looser or tighter',
-  nudgeTip: 'Moves a text type’s line height or letter spacing along the names, for every size it ships. Larger headings start tighter.',
-  nudgeOpt: (v: number): string => (v === 0 ? 'Default' : `${Math.abs(v)} ${Math.abs(v) === 1 ? 'step' : 'steps'} ${v > 0 ? 'looser' : 'tighter'}`),
-  landsOn: (names: string): string => `Uses ${names}`,
 } as const;
-/** #3077 (owner decisions 2026-10-27: caption A, tracking A): the caption sizes and the letter spacing pin. Every
- *  string here is a DRAFT, pending the owner's approval. */
+/** #3077 (owner decisions 2026-10-27: caption A): the caption sizes. Every string here is a DRAFT, pending the owner's
+ *  approval. (Its letter spacing pin's own control went with #3079: each card's Letter spacing menu writes the pin.) */
 export const TYPE_PIN_COPY = {
   captionLabel: 'Caption sizes',
   captionTip: 'Set caption md or lg directly. A caption keeps one size on every screen and in every mode.',
   captionName: (v: string): string => `Caption ${v}`,
   captionHint: 'Caption sizes stay in order, on the size ladder, at 10px or more.',
-  trackLabel: 'Letter spacing for each text type',
-  trackTip: 'Pin a text type to one letter spacing at every size. A pinned text type no longer follows its size or its nudge.',
-  trackField: (g: string): string => `${g}, letter spacing`,
-  trackFollow: 'Follows size',
-  trackOpt: (name: string, pct: string): string => `${name} · ${pct}`,
-  /** Under a pinned text type's letter spacing nudge, which the pin replaces. */
-  trackPinned: (name: string): string => `Pinned to ${name}. Clear the pin to use the nudge.`,
+} as const;
+/** #3079 (owner decision 2026-11-18 A): the Type view laid out around the text types. Every string here is a DRAFT,
+ *  pending the owner's approval (the wireframe's copy table); approved strings that moved are reused from `S63`. */
+export const TYPE_VIEW_COPY = {
+  advSwitch: 'Show advanced settings',
+  /** The mark over the advanced rows a card or section holds. */
+  advMark: 'Advanced',
+  familyLine: (face: string): string => `${face} · set in Font family for each text type`,
+  sizeHead: 'Size',
+  fixedHead: 'Size · fixed',
+  captionHead: 'Size · one size on every screen',
+  allScreens: 'All screens',
+  menuHint: (g: string): string => `One value for every ${g} size, on desktop and mobile.`,
+  defaultEntry: (values: string): string => `Default · ${values}`,
+  followsSize: (g: string): string => `Follows the size: larger ${g} sizes start tighter.`,
+  currentEntry: (values: string): string => `Current · ${values}`,
+  currentNote: 'Set as steps from the default; pick a value to replace it.',
+  menuAria: (g: string, what: string, value: string): string => `${g}, ${what}: ${value}. Pick a value`,
+  shipsLabel: 'Weights it ships',
+  fontStyleFor: (weight: string): string => `Font style for ${weight}`,
+  addExtra: (g: string, v: string, px: number): string => `Add ${g} ${v}, ${px}px`,
+  captionSmRefused: 'Caption md is already 10px. Sizes stay in order.',
+  xsNote: 'Also adds 8px to the font size ladder.',
 } as const;
 /** The italic chips (owner decision Q6, APPROVED). */
 const ITALIC_CHIPS: readonly { v: ItalicStyle; l: string }[] = [{ v: 'upright', l: 'Upright' }, { v: 'both', l: 'Upright + italic' }, { v: 'only', l: 'Italic only' }];
@@ -244,9 +256,8 @@ type Item = { el: HTMLElement; said: string; key: string; block?: LeverBlock };
 export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], lend: PageLends): void => {
   const root = hook(h('div', 'p3-levers-body'), 'type-levers');
   host.replaceChildren(root);
-  /** Scale's own Show advanced (Individual sizes), and the page's (the advanced sections). */
-  let scaleAdvOpen = false;
-  let secAdvOpen = false;
+  /** The page's one Show advanced settings switch (#3079, Q3079.2 A). */
+  let advOn = false;
   /** The value picker that is open, by its control's key, or null; one at a time, under its row (v6). */
   let openPick: string | null = null;
   /** Set when a picker was just opened, so the repaint puts focus on its current value. */
@@ -543,22 +554,13 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     pickFocus = pk.focusCurrent;
     return pk.el;
   };
-  /** A section's own Show advanced (S6.2's form): a disclosure button and the body it opens. */
-  const advFold = (hk: string, id: string, open: boolean, n: number, toggle: () => void, body: () => HTMLElement[]): HTMLElement => {
-    const row = h('div', 'p3-advrow');
-    const btn = hook(h('button', 'p3-btn p3-btn-page'), hk);
-    btn.type = 'button';
-    btn.id = `p3-adv-${id}`;
-    btn.setAttribute('aria-expanded', String(open));
-    btn.setAttribute('aria-controls', `p3-advb-${id}`);
-    btn.append(glyph(open ? 'chev' : 'chevr'), h('span', 'p3-btn-label', `${open ? 'Hide' : 'Show'} ${n} advanced`));
-    btn.onclick = () => { if (!open) armEnter(`p3-advb-${id}`); toggle(); };
-    const b = enterMark(h('div', 'p3-advbody'), `p3-advb-${id}`);
-    b.id = `p3-advb-${id}`;
-    b.hidden = !open;
-    if (open) b.append(...body());
-    row.append(btn, b);
-    return row;
+  /** #3079 (Q3079.2 A): the advanced rows a card or section holds, drawn in place under one mark, while the page's Show
+   *  advanced settings is on or a search runs. Nothing else folds. */
+  const advShown = (): boolean => advOn || !!searchQuery.trim();
+  const advZone = (hk: string, kids: HTMLElement[]): HTMLElement => {
+    const z = hook(h('div', 'p3-tadv'), hk);
+    z.append(h('p', 'p3-tadv-mark', TYPE_VIEW_COPY.advMark), ...kids);
+    return z;
   };
 
   // ── Scale ──────────────────────────────────────────────────────────────────────────────────────
@@ -624,146 +626,9 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     return [{ el: b.el, said: b.said, key: 'typography.typeScale', block: b }];
   };
 
-  /** Individual sizes (Q63 option A, Q64): each heading size, a Desktop and a Mobile control side by side. Desktop
-   *  is per mode: Light writes the brand's size (`typography.sizes`), another mode its own (`typeSizes`), shown as
-   *  "Auto: follows Light (‹px›)" until set. Mobile is the heading's phone size (`sizeOverrides.<g>.<v>.mobile`,
-   *  #1587), brand-wide, so it writes the same bytes from any editable mode (the Q54 rule); it shows while
-   *  headings scale between mobile and desktop, as the legacy table did. */
-  const sizes = (): Item => {
-    const ty = theme.typography;
-    const { mode, light } = modeNow();
-    const b = leverBlock('typography.sizes', { label: S63.sizesLabel, desc: S63.sizesTip, group: true });
-    const widest = widestRowsOf();
-    const fluid = ty.fluid;
-    const ladder = ty.sizesPx;
-    for (const g of PER_MODE_SIZE_GROUPS) {
-      const live = rowsOf(theme, g);
-      const all = widest?.get(g) ?? live;
-      if (!all.length) continue;
-      const inRange = new Set(live.map((r) => r.variant));
-      const comp = (v: string) => ty.composites.find((x) => x.group === g && x.variant === v)!;
-      const desk = live.map((r) => (light ? undefined : comp(r.variant).sizeByMode?.[mode]) ?? comp(r.variant).sizePx);
-      const base = live.map((r) => comp(r.variant).sizePx);
-      const mob = live.map((r) => comp(r.variant).sizeMinPx);
-      const floor = HEADING_SIZE_FLOOR[g];
-      const grp = hook(h('div', 'p3-tsizes'), 'type-sizes-group');
-      grp.dataset.group = g;
-      const head = h('div', 'p3-tsizes-head');
-      const hc = h('div', 'p3-tsizes-cells');
-      hc.append(h('span', 'p3-field-label', S63.desktop), ...(fluid ? [h('span', 'p3-field-label', S63.mobile)] : []));
-      head.append(h('span', 'p3-field-label', S63.groupName(g)), hc);
-      grp.append(head);
-      for (const r of all) {
-        const row = hook(h('div', 'p3-tsizes-row'), 'type-size-row');
-        row.dataset.group = g;
-        row.dataset.variant = r.variant;
-        const nm = tokenLabel(`type.${g}.${r.variant}`, `${S63.groupName(g)} ${r.variant}`);
-        row.append(nm);
-        if (!inRange.has(r.variant)) {
-          row.dataset.off = 'true';
-          row.append(h('span', 'p3-sub', S63.outside(r.px)));
-          grp.append(row);
-          continue;
-        }
-        const i = live.findIndex((x) => x.variant === r.variant);
-        const sample = (px: number) => (e: HTMLElement): void => { e.textContent = 'Ag'; e.style.fontFamily = stackOf(g); e.style.fontSize = `${Math.min(px, 40)}px`; };
-        // Desktop: sizes stay strictly in order, and at or above the group's floor (the engine refuses otherwise).
-        const upper = i > 0 ? { px: desk[i - 1], v: live[i - 1].variant } : null;
-        const lower = i + 1 < desk.length ? { px: desk[i + 1], v: live[i + 1].variant } : null;
-        const ov = light ? brandSizePin(g, r.variant) : modeSizePin(mode, g, r.variant);
-        const mPinned = fluid ? viewportPin(g, r.variant, 'mobile') : undefined;
-        const dKey = `size:${g}.${r.variant}:desktop`;
-        const dId = `p3-size-${g}-${r.variant}-d`;
-        const dNow = !light && ov === undefined ? S63.autoLight(`${base[i]}px`) : `${desk[i]}px`;
-        const dBtn = pickButton(dKey, dId, 'type-size-desktop', `${S63.groupName(g)} ${r.variant}, ${S63.desktop}`, dNow, ov !== undefined);
-        dBtn.dataset.group = g;
-        dBtn.dataset.variant = r.variant;
-        const cells = h('div', 'p3-tsizes-cells');
-        cells.append(dBtn);
-        let mKey: string | null = null, mId = '';
-        if (fluid) {
-          mKey = `size:${g}.${r.variant}:mobile`;
-          mId = `p3-size-${g}-${r.variant}-m`;
-          const mPin = viewportPin(g, r.variant, 'mobile');
-          const mBtn = pickButton(mKey, mId, 'type-size-mobile', `${S63.groupName(g)} ${r.variant}, ${S63.mobile}`, `${mob[i]}px`, mPin !== undefined);
-          mBtn.dataset.group = g;
-          mBtn.dataset.variant = r.variant;
-          cells.append(mBtn);
-        }
-        row.append(cells);
-        grp.append(row);
-        const window = (lo: number, hi: number): number[] => {
-          const a = Math.max(0, ladder.findIndex((x) => x >= lo) - 1);
-          let z = ladder.findIndex((x) => x > hi);
-          z = z < 0 ? ladder.length - 1 : z;
-          return ladder.slice(a, z + 1);
-        };
-        const dPick = pickerFor(dKey, dId, {
-          name: `${S63.groupName(g)} ${r.variant}, ${S63.desktop}`,
-          hint: S63.sizeHint,
-          current: desk[i],
-          values: window(lower ? lower.px : floor, upper ? upper.px : ladder[ladder.length - 1]).map((px) => ({
-            v: px, label: `${px}px`, sample: sample(px),
-            refuse: px < floor ? S63.belowFloor(S63.groupName(g), floor)
-              : lower && px <= lower.px ? S63.notAbove(`${g}.${lower.v}`, lower.px)
-                : upper && px >= upper.px ? S63.notBelow(`${g}.${upper.v}`, upper.px)
-                  // A mobile size set individually may not end up larger than the desktop size (the engine refuses it).
-                  : light && mPinned !== undefined && px < mPinned ? S63.underMobile(mPinned) : undefined,
-          })),
-          reset: light ? { label: S63.followScale, enabled: ov !== undefined } : { label: S63.toAuto, enabled: ov !== undefined },
-          onPick: (px) => edit('typography.sizes', () => setSizePin(light ? null : mode, g, r.variant, px)),
-          onReset: () => edit('typography.sizes', () => setSizePin(light ? null : mode, g, r.variant, undefined)),
-        });
-        if (dPick) grp.append(dPick);
-        if (mKey) {
-          // Mobile: on the ladder, at or above the floor, at most its own desktop size, and in order with its
-          // neighbors (equal allowed): the engine's coherence guard, so the picker never offers a refused value.
-          const larger = i > 0 ? { px: mob[i - 1], v: live[i - 1].variant } : null;
-          const smaller = i + 1 < mob.length ? { px: mob[i + 1], v: live[i + 1].variant } : null;
-          const lo = Math.max(floor, smaller?.px ?? floor);
-          const hi = Math.min(base[i], larger?.px ?? base[i]);
-          const mPick = pickerFor(mKey, mId, {
-            name: `${S63.groupName(g)} ${r.variant}, ${S63.mobile}`,
-            hint: S63.mobileHint,
-            current: mob[i],
-            values: window(lo, base[i]).map((px) => ({
-              v: px, label: `${px}px`, sample: sample(px),
-              refuse: px < floor ? S63.belowFloor(S63.groupName(g), floor)
-                : smaller && px < smaller.px ? S63.notAboveMobile(`${g}.${smaller.v}`, smaller.px)
-                  : px > base[i] ? S63.overDesktop(base[i])
-                    : larger && px > larger.px ? S63.notBelowMobile(`${g}.${larger.v}`, larger.px) : undefined,
-            })).filter((x) => x.v <= Math.max(hi, base[i])),
-            reset: { label: S63.followScale, enabled: viewportPin(g, r.variant, 'mobile') !== undefined },
-            onPick: (px) => edit('typography.sizes', () => setMobileSize(g, r.variant, px)),
-            onReset: () => edit('typography.sizes', () => setMobileSize(g, r.variant, undefined)),
-          });
-          if (mPick) grp.append(mPick);
-        }
-      }
-      b.ctl.append(grp);
-    }
-    if (!light) b.ctl.prepend(subLine(`Editing ${modeLabel(mode)}, the mode the preview shows. ${S63.mobileBrandWide}`));
-    return { el: b.el, said: `${b.said} ${S63.desktop} ${S63.mobile}`.toLowerCase(), key: 'typography.sizes', block: b };
-  };
 
-  const scale = (s: Section): { el: HTMLElement; items: Item[] } => {
-    const el = sectionShell(s.title, s.desc, 2);
-    const out: Item[] = [];
-    for (const it of typeScale()) { el.append(it.el); out.push(it); }
-    const show = scaleAdvOpen || !!searchQuery.trim();
-    el.append(advFold('scale-advanced', 'type-scale', show, 1, () => { scaleAdvOpen = !scaleAdvOpen; render(); }, () => {
-      const sz = sizes();
-      out.push(sz);
-      return [sz.el];
-    }));
-    return { el, items: out };
-  };
-
-  // ── Scale limits ───────────────────────────────────────────────────────────────────────────────
-  /** Every control here is brand-wide (the engine has no per-mode limit): any editable mode writes the same bytes. */
-  const limits = (s: Section): { el: HTMLElement; items: Item[] } => {
-    const el = sectionShell(s.title, s.desc, 3);
-    const out: Item[] = [];
+  /** Headings scale between mobile and desktop (Scale, advanced since #3079). Every control here is brand-wide. */
+  const fluidBlock = (): Item => {
     const ty = theme.typography;
     // Headings scale between mobile and desktop (owner decision Q70's words): `responsive.fluid`, ALWAYS written
     // (the legacy bytes), and the viewport pair the clamp() runs between. Turning it off while a mobile size is
@@ -808,13 +673,14 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       dep.append(h('span', 'p3-btn-label', S63.dependsLayout), glyph('chevr'));
       dep.onclick = () => setPage('layout');
       b.ctl.append(sw.el, pair, dep);
-      el.append(b.el);
-      out.push({ el: b.el, said: `${b.said} ${S63.minVp} ${S63.maxVp}`.toLowerCase(), key: 'typography.responsive', block: b });
+      return ({ el: b.el, said: `${b.said} ${S63.minVp} ${S63.maxVp}`.toLowerCase(), key: 'typography.responsive', block: b });
     }
-    // The display ceiling: the largest display size the brand makes, each option priced by one trial build. A
-    // ceiling below a display size set individually (desktop, mobile or any mode's) is the engine's refusal, so it
-    // is disabled with that reason (owner, 2026-10-04, #2044), as a clashing scale chip is. A brand that arrives
-    // with such a ceiling keeps its current option live, so it can move out (B8b's rule).
+  };
+  /** The display ceiling (the Display card, advanced since #3079): the largest display size the brand makes, each
+   *  option priced by one trial build. A ceiling below a display size set individually (desktop, mobile or any mode's)
+   *  is the engine's refusal, so it is disabled with that reason (owner, 2026-10-04, #2044), as a clashing scale chip
+   *  is. A brand that arrives with such a ceiling keeps its current option live, so it can move out (B8b's rule). */
+  const ceilingBlock = (): Item => {
     {
       const L = leverOf('typography.displayCeiling');
       const b = leverBlock('typography.displayCeiling', { label: S63.ceilingLabel, desc: S63.ceilingTip, forId: 'p3-type-ceiling' });
@@ -828,92 +694,500 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         return { v, l: px.get(v) ? `display.${o.value} · ${px.get(v)}px` : `display.${o.value}`, off: by && S63.ceilingPinned(by) };
       }), cur);
       b.ctl.append(s2.el);
-      el.append(b.el);
-      out.push({ el: b.el, said: b.said, key: 'typography.displayCeiling', block: b });
+      return ({ el: b.el, said: b.said, key: 'typography.displayCeiling', block: b });
     }
-    /** `refused`: the chip the engine would refuse, its reason drawn as a hint line under the chips that describes the
-     *  group (RS1 A, #2451), as Type scale's reasons do. A hint, so it is never announced (Q184 B). */
-    const chips = (key: string, label: string, tip: string, role: string, opts: readonly { v: string; l: string }[], cur: string, write: (v: string) => void, after?: HTMLElement | null,
-      refused?: { v: string; why: string; id: string; hk: string } | null): void => {
-      const b = leverBlock(key, { label, desc: tip, group: true });
-      const c = choice(label, role, opts, (v) => edit(key, () => write(v)));
-      c.set(cur);
-      b.ctl.append(c.el);
-      if (refused) {
-        refuseOption(c.el, refused.v, refused.why, refused.id);
-        const line = hook(stateLine(refused.why), refused.hk);
-        line.id = refused.id;
-        b.setState(line);
-      } else if (after) b.setState(after);
-      el.append(b.el);
-      out.push({ el: b.el, said: b.said, key, block: b });
-    };
-    // The title floor. 16px under the Compact scale is the engine's refusal (Compact already places a title at
-    // 16px), so the chip is disabled there with that reason (owner, B8b, 2026-10-03), as a clashing scale chip is.
-    // A brand that arrives with both set keeps its 16px chip live, so it can move back to 18px. And 18px while
-    // title 2xs is set individually is the engine's refusal too (only 16px makes title 2xs), so the 18px chip is
-    // disabled there with that reason (#2054). A brand that arrives on 18px with title 2xs set keeps its 18px
-    // chip live by the same rule; 16px is its way out.
-    // RS1 A (#2451): each reason is also a hint line under the chips, drawn only while its chip is refused.
-    const floor16 = (getPath(brandState, 'typography.titleFloor') ?? 18) === 16;
-    const floorRefused = getPath(brandState, 'typography.typeScale') === 'compact' && !floor16 ? { v: '16', why: S63.titleFloorCompact }
-      : floor16 && titleFloorBlocked() ? { v: '18', why: S63.titleFloorPinned } : null;
-    chips('typography.titleFloor', S63.titleFloorLabel, S63.titleFloorTip, 'title-floor', [{ v: '18', l: '18px' }, { v: '16', l: '16px' }],
-      floor16 ? '16' : '18', (v) => setTitleFloor(v === '16'), null, floorRefused && { ...floorRefused, id: 'p3-tfloor-why', hk: 'title-floor-refused' });
-    // The caption floor. 10px while caption md is set to 10px is the engine's refusal (the floor adds caption sm at
-    // 10px, below md), so the chip is disabled there with that reason, as the title floor's are (#3084). A brand that
-    // arrives on 10px keeps its 10px chip live by the same rule; 11px is its way out.
-    const floor10 = (getPath(brandState, 'typography.captionFloor') ?? 11) === 10;
-    chips('typography.captionFloor', S63.captionFloorLabel, S63.captionFloorTip, 'caption-floor', [{ v: '11', l: '11px' }, { v: '10', l: '10px' }],
-      floor10 ? '10' : '11', (v) => setCaptionFloor(v === '10' ? 10 : 11), null,
-      !floor10 && captionFloorBlocked() ? { v: '10', why: S63.captionFloorPinned, id: 'p3-cfloor-why', hk: 'caption-floor-refused' } : null);
-    // #3077 (caption A): caption md and lg, each one size on every screen and in every mode, picked from the ladder.
-    // A size the engine refuses (below 10px, or out of order with the caption sizes beside it) is shown disabled.
-    {
-      const b = leverBlock('typography.sizes.caption', { label: TYPE_PIN_COPY.captionLabel, desc: TYPE_PIN_COPY.captionTip, group: true });
-      const caps = ty.composites.filter((c) => c.group === 'caption')
-        .reduce((acc: { v: string; px: number }[], c) => (acc.some((a) => a.v === c.variant) ? acc : [...acc, { v: c.variant, px: c.sizePx }]), [])
-        .sort((a, z) => a.px - z.px);
-      const rows = hook(h('div', 'p3-fillrows'), 'caption-size-rows');
-      for (const v of CAPTION_SIZE_RUNGS) {
-        const i = caps.findIndex((c) => c.v === v);
-        if (i < 0) continue;
-        const cur = caps[i].px, pin = captionSizePin(v);
-        const key = `size:caption.${v}`, id = `p3-size-caption-${v}`;
-        const row = hook(h('div', 'p3-tweight'), 'caption-size-row');
-        row.dataset.variant = v;
-        const btn = pickButton(key, id, 'caption-size', TYPE_PIN_COPY.captionName(v), `${cur}px`, pin !== undefined);
-        btn.dataset.variant = v;
-        row.append(tokenLabel(`type.caption.${v}`, TYPE_PIN_COPY.captionName(v), id), btn);
-        rows.append(row);
-        const lower = i > 0 ? caps[i - 1] : null, upper = i + 1 < caps.length ? caps[i + 1] : null;
-        const pk = pickerFor(key, id, {
-          name: TYPE_PIN_COPY.captionName(v),
-          hint: TYPE_PIN_COPY.captionHint,
-          current: cur,
-          values: ty.sizesPx.filter((px) => px <= 18).map((px) => ({
-            v: px, label: `${px}px`,
-            sample: (e: HTMLElement) => { e.textContent = 'Ag'; e.style.fontFamily = stackOf('caption'); e.style.fontSize = `${px}px`; },
-            refuse: px < CAPTION_SIZE_FLOOR ? S63.belowFloor('Caption', CAPTION_SIZE_FLOOR)
-              : lower && px <= lower.px ? S63.notAbove(`caption.${lower.v}`, lower.px)
-                : upper && px >= upper.px ? S63.notBelow(`caption.${upper.v}`, upper.px) : undefined,
-          })),
-          reset: { label: S63.toDefault, enabled: pin !== undefined },
-          onPick: (px) => edit('typography.sizes.caption', () => setCaptionSize(v, px)),
-          onReset: () => edit('typography.sizes.caption', () => setCaptionSize(v, undefined)),
-        });
-        if (pk) rows.append(pk);
-      }
-      b.ctl.append(rows);
-      el.append(b.el);
-      out.push({ el: b.el, said: `${b.said} caption md lg`.toLowerCase(), key: 'typography.sizes.caption', block: b });
-    }
-    const eight = (getPath(brandState, 'typography.sizeFloor') ?? 10) === 8;
-    chips('typography.sizeFloor', S63.sizeFloorLabel, S63.sizeFloorTip, 'size-floor', [{ v: '10', l: '10px' }, { v: '8', l: '8px' }],
-      eight ? '8' : '10', (v) => setSizeFloor(v === '8' ? 8 : 10), eight ? hook(stateLine(S63.eightWarn, 'warn'), 'size-floor-warn') : null);
-    return { el, items: out };
   };
 
+  // ── a text type's size rows (#3079, Q3079.3 A: shown, inside each card) ──────────────────────────────────────
+  /** The rows' table head: the first cell's words, then each column's. */
+  const sizesHead = (first: string, cols: readonly string[]): HTMLElement => {
+    const head = h('div', 'p3-tsizes-head');
+    const hc = h('div', 'p3-tsizes-cells');
+    hc.append(...cols.map((c) => h('span', 'p3-field-label', c)));
+    head.append(h('span', 'p3-field-label', first), hc);
+    return head;
+  };
+  /** An extra small size's switch (Q809 A, Q3079.8 A): `Add caption sm, 10px`, on its own row in the sizes table. It
+   *  writes the field the old "Smallest … size" lever wrote. `refused` disables it, with the reason drawn under it. */
+  const extraSwitch = (g: string, v: string, px: number, on: boolean, refused: string | null, write: (on: boolean) => void): { sw: HTMLElement; why: HTMLElement | null } => {
+    const id = `p3-extra-${g}-${v}`;
+    const s = switchButton(id, TYPE_VIEW_COPY.addExtra(g, v, px), 'type-extra-switch', (x) => edit(g === 'title' ? 'typography.titleFloor' : v === 'sm' ? 'typography.captionFloor' : 'typography.sizeFloor', () => write(x)));
+    s.set(on);
+    s.el.dataset.group = g;
+    s.el.dataset.variant = v;
+    let why: HTMLElement | null = null;
+    if (refused) {
+      s.el.disabled = true;
+      s.el.title = refused;
+      why = hook(stateLine(refused), 'type-extra-refused');
+      why.id = `${id}-why`;
+      s.el.setAttribute('aria-describedby', why.id);
+    }
+    return { sw: s.el, why };
+  };
+  /** An extra small size's row while it is off: its switch's words and token, then the switch. Drawn with advanced. */
+  const extraOffRow = (g: string, v: string, px: number, refused: string | null, write: (on: boolean) => void, note?: string): HTMLElement => {
+    const row = hook(h('div', 'p3-tsizes-row p3-textra'), 'type-extra-row');
+    row.dataset.group = g;
+    row.dataset.variant = v;
+    row.dataset.off = 'true';
+    const x = extraSwitch(g, v, px, false, refused, write);
+    const cells = h('div', 'p3-tsizes-cells');
+    cells.append(x.sw);
+    row.append(tokenLabel(`type.${g}.${v}`, TYPE_VIEW_COPY.addExtra(g, v, px), x.sw.id), cells);
+    if (x.why) row.append(x.why);
+    else if (note) row.append(hook(subLine(note), 'type-extra-note'));
+    return row;
+  };
+  /** Display, title and eyebrow (Q63 option A): each heading size, a Desktop and a Mobile control side by side. Desktop
+   *  is per mode: Light writes the brand's size (`typography.sizes`), another mode its own (`typeSizes`), shown as
+   *  "Auto: follows Light (‹px›)" until set. Mobile is the heading's phone size (`sizeOverrides.<g>.<v>.mobile`,
+   *  #1587), brand-wide, so it writes the same bytes from any editable mode (the Q54 rule); it shows while
+   *  headings scale between mobile and desktop. Title 2xs carries the title floor's switch (Q3079.8 A). */
+  const headingRows = (g: PerModeSizeGroup): HTMLElement | null => {
+    const ty = theme.typography;
+    const { mode, light } = modeNow();
+    const widest = widestRowsOf();
+    const fluid = ty.fluid;
+    const ladder = ty.sizesPx;
+    const live = rowsOf(theme, g);
+    const all = widest?.get(g) ?? live;
+    if (!all.length) return null;
+    const inRange = new Set(live.map((r) => r.variant));
+    const comp = (v: string) => ty.composites.find((x) => x.group === g && x.variant === v)!;
+    const desk = live.map((r) => (light ? undefined : comp(r.variant).sizeByMode?.[mode]) ?? comp(r.variant).sizePx);
+    const base = live.map((r) => comp(r.variant).sizePx);
+    const mob = live.map((r) => comp(r.variant).sizeMinPx);
+    const floor = HEADING_SIZE_FLOOR[g];
+    const grp = hook(h('div', 'p3-tsizes'), 'type-sizes-group');
+    grp.dataset.group = g;
+    grp.append(sizesHead(TYPE_VIEW_COPY.sizeHead, fluid ? [S63.desktop, S63.mobile] : [S63.desktop]));
+    // The title floor (Q809 A, Q3079.8 A): 16px adds title 2xs. Under Compact the switch is refused (Compact already
+    // places a title at 16px); while title 2xs is set individually, turning it off is refused (#2054). A brand that
+    // arrives in either refused state keeps its switch live, so it can move out (B8b's rule).
+    const floor16 = (getPath(brandState, 'typography.titleFloor') ?? 18) === 16;
+    for (const r of all) {
+      if (g === 'title' && r.variant === '2xs' && !inRange.has('2xs')) {
+        if (!advShown()) continue;
+        const refused = getPath(brandState, 'typography.typeScale') === 'compact' ? S63.titleFloorCompact : null;
+        grp.append(extraOffRow('title', '2xs', 16, refused, (on) => setTitleFloor(on)));
+        continue;
+      }
+      const row = hook(h('div', 'p3-tsizes-row'), 'type-size-row');
+      row.dataset.group = g;
+      row.dataset.variant = r.variant;
+      const nm = tokenLabel(`type.${g}.${r.variant}`, `${S63.groupName(g)} ${r.variant}`);
+      row.append(nm);
+      if (!inRange.has(r.variant)) {
+        row.dataset.off = 'true';
+        row.append(h('span', 'p3-sub', S63.outside(r.px)));
+        grp.append(row);
+        continue;
+      }
+      const i = live.findIndex((x) => x.variant === r.variant);
+      const sample = (px: number) => (e: HTMLElement): void => { e.textContent = 'Ag'; e.style.fontFamily = stackOf(g); e.style.fontSize = `${Math.min(px, 40)}px`; };
+      // Desktop: sizes stay strictly in order, and at or above the group's floor (the engine refuses otherwise).
+      const upper = i > 0 ? { px: desk[i - 1], v: live[i - 1].variant } : null;
+      const lower = i + 1 < desk.length ? { px: desk[i + 1], v: live[i + 1].variant } : null;
+      const ov = light ? brandSizePin(g, r.variant) : modeSizePin(mode, g, r.variant);
+      const mPinned = fluid ? viewportPin(g, r.variant, 'mobile') : undefined;
+      const dKey = `size:${g}.${r.variant}:desktop`;
+      const dId = `p3-size-${g}-${r.variant}-d`;
+      const dNow = !light && ov === undefined ? S63.autoLight(`${base[i]}px`) : `${desk[i]}px`;
+      const dBtn = pickButton(dKey, dId, 'type-size-desktop', `${S63.groupName(g)} ${r.variant}, ${S63.desktop}`, dNow, ov !== undefined);
+      dBtn.dataset.group = g;
+      dBtn.dataset.variant = r.variant;
+      const cells = h('div', 'p3-tsizes-cells');
+      cells.append(dBtn);
+      let mKey: string | null = null, mId = '';
+      if (fluid) {
+        mKey = `size:${g}.${r.variant}:mobile`;
+        mId = `p3-size-${g}-${r.variant}-m`;
+        const mPin = viewportPin(g, r.variant, 'mobile');
+        const mBtn = pickButton(mKey, mId, 'type-size-mobile', `${S63.groupName(g)} ${r.variant}, ${S63.mobile}`, `${mob[i]}px`, mPin !== undefined);
+        mBtn.dataset.group = g;
+        mBtn.dataset.variant = r.variant;
+        cells.append(mBtn);
+      }
+      row.append(cells);
+      // Title 2xs, drawn: its switch, showing the stored floor, to take it out again. A brand that arrives refused (title
+      // 2xs set, the floor unset; the panel draws the last valid theme) shows it off, and turning it on is the way out.
+      if (g === 'title' && r.variant === '2xs') {
+        const x = extraSwitch('title', '2xs', 16, floor16, floor16 && titleFloorBlocked() ? S63.titleFloorPinned : null, (on) => setTitleFloor(on));
+        cells.append(x.sw);
+        if (x.why) row.append(x.why);
+      }
+      grp.append(row);
+      const window = (lo: number, hi: number): number[] => {
+        const a = Math.max(0, ladder.findIndex((x) => x >= lo) - 1);
+        let z = ladder.findIndex((x) => x > hi);
+        z = z < 0 ? ladder.length - 1 : z;
+        return ladder.slice(a, z + 1);
+      };
+      const dPick = pickerFor(dKey, dId, {
+        name: `${S63.groupName(g)} ${r.variant}, ${S63.desktop}`,
+        hint: S63.sizeHint,
+        current: desk[i],
+        values: window(lower ? lower.px : floor, upper ? upper.px : ladder[ladder.length - 1]).map((px) => ({
+          v: px, label: `${px}px`, sample: sample(px),
+          refuse: px < floor ? S63.belowFloor(S63.groupName(g), floor)
+            : lower && px <= lower.px ? S63.notAbove(`${g}.${lower.v}`, lower.px)
+              : upper && px >= upper.px ? S63.notBelow(`${g}.${upper.v}`, upper.px)
+                // A mobile size set individually may not end up larger than the desktop size (the engine refuses it).
+                : light && mPinned !== undefined && px < mPinned ? S63.underMobile(mPinned) : undefined,
+        })),
+        reset: light ? { label: S63.followScale, enabled: ov !== undefined } : { label: S63.toAuto, enabled: ov !== undefined },
+        onPick: (px) => edit('typography.sizes', () => setSizePin(light ? null : mode, g, r.variant, px)),
+        onReset: () => edit('typography.sizes', () => setSizePin(light ? null : mode, g, r.variant, undefined)),
+      });
+      if (dPick) grp.append(dPick);
+      if (mKey) {
+        // Mobile: on the ladder, at or above the floor, at most its own desktop size, and in order with its
+        // neighbors (equal allowed): the engine's coherence guard, so the picker never offers a refused value.
+        const larger = i > 0 ? { px: mob[i - 1], v: live[i - 1].variant } : null;
+        const smaller = i + 1 < mob.length ? { px: mob[i + 1], v: live[i + 1].variant } : null;
+        const lo = Math.max(floor, smaller?.px ?? floor);
+        const hi = Math.min(base[i], larger?.px ?? base[i]);
+        const mPick = pickerFor(mKey, mId, {
+          name: `${S63.groupName(g)} ${r.variant}, ${S63.mobile}`,
+          hint: S63.mobileHint,
+          current: mob[i],
+          values: window(lo, base[i]).map((px) => ({
+            v: px, label: `${px}px`, sample: sample(px),
+            refuse: px < floor ? S63.belowFloor(S63.groupName(g), floor)
+              : smaller && px < smaller.px ? S63.notAboveMobile(`${g}.${smaller.v}`, smaller.px)
+                : px > base[i] ? S63.overDesktop(base[i])
+                  : larger && px > larger.px ? S63.notBelowMobile(`${g}.${larger.v}`, larger.px) : undefined,
+          })).filter((x) => x.v <= Math.max(hi, base[i])),
+          reset: { label: S63.followScale, enabled: viewportPin(g, r.variant, 'mobile') !== undefined },
+          onPick: (px) => edit('typography.sizes', () => setMobileSize(g, r.variant, px)),
+          onReset: () => edit('typography.sizes', () => setMobileSize(g, r.variant, undefined)),
+        });
+        if (mPick) grp.append(mPick);
+      }
+    }
+    // Under Compact the widest trial build has no title 2xs (the engine refuses the 16px floor there), so its off row,
+    // refused, is drawn last, where 2xs sits.
+    if (g === 'title' && !all.some((r) => r.variant === '2xs') && advShown()) {
+      const refused = getPath(brandState, 'typography.typeScale') === 'compact' ? S63.titleFloorCompact : null;
+      grp.append(extraOffRow('title', '2xs', 16, refused, (on) => setTitleFloor(on)));
+    }
+    return grp;
+  };
+  /** Body and label (and any fixed text type): its sizes, read-only, one size on every screen. */
+  const fixedRows = (g: string): HTMLElement | null => {
+    const caps = sizesOf(g);
+    if (!caps.length) return null;
+    const grp = hook(h('div', 'p3-tsizes'), 'type-sizes-group');
+    grp.dataset.group = g;
+    grp.append(sizesHead(TYPE_VIEW_COPY.fixedHead, [TYPE_VIEW_COPY.allScreens]));
+    for (const c of caps) {
+      const row = hook(h('div', 'p3-tsizes-row'), 'type-fixed-row');
+      row.dataset.group = g;
+      row.dataset.variant = c.v;
+      const cells = h('div', 'p3-tsizes-cells');
+      cells.append(h('span', 'p3-tsizes-px', `${c.px}px`));
+      row.append(tokenLabel(`type.${g}.${c.v}`, `${S63.groupName(g)} ${c.v}`), cells);
+      grp.append(row);
+    }
+    return grp;
+  };
+  /** A text type's sizes, largest first, one entry per size. */
+  const sizesOf = (g: string): { v: string; px: number }[] => theme.typography.composites.filter((c) => c.group === g)
+    .reduce((acc: { v: string; px: number }[], c) => (acc.some((a) => a.v === c.variant) ? acc : [...acc, { v: c.variant, px: c.sizePx }]), [])
+    .sort((a, z) => z.px - a.px);
+  /** Caption (#3077's caption A; Q809 A): lg and md, each one size on every screen and in every mode, picked from the
+   *  ladder, a size the engine refuses shown disabled; then sm and xs, each its floor's switch. An extra size that is
+   *  on always shows; one that is off shows with advanced (Q3079.10 A). The sm switch is refused while caption md is
+   *  10px, the engine's own ramp rule, so two 10px captions can't be reached. */
+  const captionRows = (): { el: HTMLElement; block: LeverBlock } => {
+    const ty = theme.typography;
+    const b = leverBlock('typography.sizes.caption', { label: TYPE_PIN_COPY.captionLabel, desc: TYPE_PIN_COPY.captionTip, group: true });
+    const caps = sizesOf('caption');
+    const grp = hook(h('div', 'p3-tsizes'), 'caption-size-rows');
+    grp.dataset.group = 'caption';
+    grp.append(sizesHead(TYPE_VIEW_COPY.captionHead, [TYPE_VIEW_COPY.allScreens]));
+    const asc = [...caps].reverse();
+    for (const v of [...CAPTION_SIZE_RUNGS].reverse()) {
+      const i = asc.findIndex((c) => c.v === v);
+      if (i < 0) continue;
+      const cur = asc[i].px, pin = captionSizePin(v);
+      const key = `size:caption.${v}`, id = `p3-size-caption-${v}`;
+      const row = hook(h('div', 'p3-tsizes-row'), 'caption-size-row');
+      row.dataset.variant = v;
+      const btn = pickButton(key, id, 'caption-size', TYPE_PIN_COPY.captionName(v), `${cur}px`, pin !== undefined);
+      btn.dataset.variant = v;
+      const cells = h('div', 'p3-tsizes-cells');
+      cells.append(btn);
+      row.append(tokenLabel(`type.caption.${v}`, TYPE_PIN_COPY.captionName(v), id), cells);
+      grp.append(row);
+      const lower = i > 0 ? asc[i - 1] : null, upper = i + 1 < asc.length ? asc[i + 1] : null;
+      const pk = pickerFor(key, id, {
+        name: TYPE_PIN_COPY.captionName(v),
+        hint: TYPE_PIN_COPY.captionHint,
+        current: cur,
+        values: ty.sizesPx.filter((px) => px <= 18).map((px) => ({
+          v: px, label: `${px}px`,
+          sample: (e: HTMLElement) => { e.textContent = 'Ag'; e.style.fontFamily = stackOf('caption'); e.style.fontSize = `${px}px`; },
+          refuse: px < CAPTION_SIZE_FLOOR ? S63.belowFloor('Caption', CAPTION_SIZE_FLOOR)
+            : lower && px <= lower.px ? S63.notAbove(`caption.${lower.v}`, lower.px)
+              : upper && px >= upper.px ? S63.notBelow(`caption.${upper.v}`, upper.px) : undefined,
+        })),
+        reset: { label: S63.toDefault, enabled: pin !== undefined },
+        onPick: (px) => edit('typography.sizes.caption', () => setCaptionSize(v, px)),
+        onReset: () => edit('typography.sizes.caption', () => setCaptionSize(v, undefined)),
+      });
+      if (pk) grp.append(pk);
+    }
+    // The extra small captions, smaller after larger.
+    const smOn = (getPath(brandState, 'typography.captionFloor') ?? 11) === 10;
+    const xsOn = (getPath(brandState, 'typography.sizeFloor') ?? 10) === 8;
+    const extras: { v: 'sm' | 'xs'; px: number; on: boolean; refused: string | null; write: (on: boolean) => void; note?: string; warn?: string }[] = [
+      { v: 'sm', px: 10, on: smOn, refused: !smOn && captionFloorBlocked() ? TYPE_VIEW_COPY.captionSmRefused : null, write: (on) => setCaptionFloor(on ? 10 : 11) },
+      { v: 'xs', px: 8, on: xsOn, refused: null, write: (on) => setSizeFloor(on ? 8 : 10), note: TYPE_VIEW_COPY.xsNote, warn: S63.eightWarn },
+    ];
+    for (const x of extras) {
+      if (!x.on) { if (advShown()) grp.append(extraOffRow('caption', x.v, x.px, x.refused, x.write, x.note)); continue; }
+      const row = hook(h('div', 'p3-tsizes-row p3-textra'), 'type-extra-row');
+      row.dataset.group = 'caption';
+      row.dataset.variant = x.v;
+      const sw = extraSwitch('caption', x.v, x.px, true, null, x.write);
+      const cells = h('div', 'p3-tsizes-cells');
+      cells.append(h('span', 'p3-tsizes-px', `${caps.find((c) => c.v === x.v)?.px ?? x.px}px`), sw.sw);
+      row.append(tokenLabel(`type.caption.${x.v}`, TYPE_PIN_COPY.captionName(x.v)), cells);
+      if (x.warn) row.append(hook(stateLine(x.warn, 'warn'), 'size-floor-warn'));
+      grp.append(row);
+    }
+    b.ctl.append(grp);
+    return { el: b.el, block: b };
+  };
+
+  // ── a text type's line height and letter spacing menus (#3079, Q808 A) ───────────────────────────────────────
+  /** One menu: real values, each with its token name; Default (what the brand gets with nothing stored); and, while a
+   *  stored nudge lands on more than one value, Current (Q3079.5 A), kept until another value is picked. One value for
+   *  desktop and mobile. A pick writes the pin and removes the nudge; Default removes both (`setSpacing`). */
+  const spacingMenuField = (g: string, kind: SpacingKind): HTMLElement => {
+    const ty = theme.typography;
+    const m = spacingMenu(g, kind, ty);
+    const lh = kind === 'lh';
+    const val = (rung: string): string => {
+      if (lh) { const v = ty.lineHeights.find((l) => l.key === rung)?.value; return v === undefined ? rung : v.toFixed(2); }
+      const em = ty.letterSpacings.find((l) => l.key === rung)?.em;
+      // The wireframe's form: a looser letter spacing is signed, "+1%".
+      return em === undefined ? rung : `${em > 0 ? '+' : ''}${emToPercentLabel(em)}`;
+    };
+    const num = (rung: string): number => (lh ? ty.lineHeights.find((l) => l.key === rung)?.value ?? 1.5 : ty.letterSpacings.find((l) => l.key === rung)?.em ?? 0);
+    const vals = (runs: readonly SpacingRun[]): string => runs.map((r) => val(r.rung)).join(' / ');
+    const ranges = (runs: readonly SpacingRun[]): string => runs.map((r) => (r.variants.length > 1 ? `${r.variants[0]}–${r.variants[r.variants.length - 1]}` : r.variants[0])).join(' / ');
+    const what = lh ? S63.lhLabel : S63.lsLabel;
+    const tokenOf = (rung: string): string => `${lh ? 'line-height' : 'letter-spacing'}-role.${rung}`;
+    const rungs = spacingRungs(kind);
+    const key = `${kind}:${g}`, id = `p3-${kind}-${g}`;
+    const one = m.now.length === 1 || new Set(m.now.map((r) => r.rung)).size === 1;
+    const nowLabel = one ? val(m.now[0].rung) : vals(m.now);
+    const btn = hook(h('button', 'p3-btn p3-btn-page p3-pick'), lh ? 'type-lh' : 'type-ls');
+    btn.type = 'button';
+    btn.id = id;
+    btn.dataset.key = key;
+    btn.dataset.group = g;
+    if (m.selected !== 'default') btn.dataset.set = 'true';
+    btn.setAttribute('aria-expanded', String(openPick === key));
+    btn.setAttribute('aria-label', TYPE_VIEW_COPY.menuAria(S63.groupName(g), what.toLowerCase(), one ? `${nowLabel} ${m.now[0].rung}` : nowLabel));
+    btn.append(h('span', 'p3-btn-label', nowLabel), ...(one ? [h('span', 'p3-pick-tok', m.now[0].rung)] : []), glyph('chev'));
+    btn.onclick = () => { const opening = openPick !== key; openPick = opening ? key : null; focusPick = opening; render(); };
+    const f = hook(h('div', 'p3-field'), lh ? 'type-lh-field' : 'type-ls-field');
+    f.dataset.group = g;
+    const lab = h('label', 'p3-field-label', what);
+    lab.htmlFor = id;
+    f.append(lab, btn);
+    const sample = (v: number) => (e: HTMLElement): void => {
+      e.textContent = lh ? S63.lhSample : S63.lsSample;
+      e.style.fontFamily = stackOf(g);
+      if (lh) { e.style.lineHeight = String(v); e.dataset.wrap = 'true'; } else { e.style.letterSpacing = `${v}em`; e.style.fontSize = '16px'; }
+    };
+    const derivedSplit = new Set(m.derived.map((r) => r.rung)).size > 1;
+    const CURRENT = -2, DEFAULT = -1;
+    const values = [
+      ...(m.selected === 'current' ? [{ v: CURRENT, label: TYPE_VIEW_COPY.currentEntry(vals(m.now)), note: `${ranges(m.now)}. ${TYPE_VIEW_COPY.currentNote}`, sample: sample(num(m.now[0].rung)) }] : []),
+      { v: DEFAULT, label: TYPE_VIEW_COPY.defaultEntry(derivedSplit ? vals(m.derived) : val(m.derived[0].rung)), note: derivedSplit ? TYPE_VIEW_COPY.followsSize(g) : tokenOf(m.derived[0].rung), sample: sample(num(m.derived[0].rung)) },
+      ...rungs.map((r, i) => ({ v: i, label: val(r), note: tokenOf(r), sample: sample(num(r)) })),
+    ];
+    const current = m.selected === 'current' ? CURRENT : m.selected === 'default' ? DEFAULT : rungs.indexOf(m.selected);
+    const pk = pickerFor(key, id, {
+      name: `${S63.groupName(g)}, ${what.toLowerCase()}`,
+      hint: TYPE_VIEW_COPY.menuHint(g),
+      current,
+      values,
+      onPick: (v) => { if (v === CURRENT) return; edit(`type.${g}`, () => setSpacing(g, kind, v === DEFAULT ? null : rungs[v] ?? null)); },
+    });
+    const wrap = h('div', 'p3-tmenu');
+    wrap.append(f);
+    if (pk) wrap.append(pk);
+    return wrap;
+  };
+
+  // ── a text type's advanced rows (Q3079.6 A: weights it ships, italic, font style pins) ────────────────────────
+  /** Which weights the text type ships: a check per weight, the engine's locks (a text type keeps one weight; label keeps
+   *  emphasis, body and caption keep default) disabled with the reason. The style count is read from the rebuilt theme
+   *  on every repaint (#831). Brand-wide. */
+  const shipsRow = (g: string): HTMLElement => {
+    const ty = theme.typography;
+    const roleOrder = ty.weightRoles.map((w) => w.role);
+    const comps = ty.composites.filter((c) => c.group === g);
+    const has = new Set(comps.map((c) => c.weightRole));
+    const row = hook(h('div', 'p3-field'), 'weights-row');
+    row.dataset.group = g;
+    const head = h('div', 'p3-tships-head');
+    head.append(h('span', 'p3-field-label', TYPE_VIEW_COPY.shipsLabel), hook(h('span', 'p3-sub', S63.styles(comps.length)), 'weights-count'));
+    const cells = h('div', 'p3-tships');
+    for (const r of roleOrder) {
+      const lock = categoryWeightLock(g, r, has);
+      const c = hook(h('button', 'p3-btn p3-mcheck p3-tship'), 'weight-cell');
+      c.type = 'button';
+      c.dataset.role = r;
+      c.setAttribute('role', 'checkbox');
+      c.setAttribute('aria-checked', String(has.has(r)));
+      c.setAttribute('aria-label', `${S63.groupName(g)}, ${S63.weightName(r)}`);
+      c.append(glyph('check'), h('span', 'p3-btn-label', S63.weightName(r)));
+      if (lock) { c.setAttribute('aria-disabled', 'true'); c.title = lock; c.setAttribute('aria-description', lock); }
+      c.onclick = () => { if (c.getAttribute('aria-disabled') !== 'true') edit(`type.${g}`, () => toggleCategoryWeight(g, r, roleOrder, has)); };
+      cells.append(c);
+    }
+    row.append(head, cells);
+    return row;
+  };
+  /** Italic styles, three single-select chips (owner decision Q6; chips, not a segmented control, #2192): Upright,
+   *  Upright + italic, Italic only. A text type that pins a font style cannot be Italic only (the engine refuses it):
+   *  that chip is disabled with the reason. Brand-wide. */
+  const italicRow = (g: string): HTMLElement => {
+    const ty = theme.typography;
+    const italicG = new Set(ty.composites.filter((c) => c.italic).map((c) => c.group));
+    const italicDefG = new Set(ty.composites.filter((c) => c.italicDefault).map((c) => c.group));
+    const row = hook(h('div', 'p3-titalic'), 'italic-row');
+    row.dataset.group = g;
+    const c = chipChoice(`${S63.groupName(g)}: ${S63.italicsLabel}`, 'italic-choice', ITALIC_CHIPS, (v) => edit(`type.${g}`, () => setItalicStyle(g, v, italicG, italicDefG)));
+    c.el.dataset.group = g;
+    const now = italicStyleOf(g, italicG, italicDefG);
+    c.set(now);
+    const pinned = Object.keys((getPath(brandState, `typography.faces.${g}`) as Record<string, unknown> | undefined) ?? {}).length > 0;
+    // #2217: the row names its token on the label's line.
+    row.append(tokenLabel(`type.${g}`, S63.italicsLabel, undefined, { onLine: true }), c.el);
+    // RS1 A (#2451): the reason is also a hint line under the chips, describing the group.
+    if (pinned && now !== 'only') {
+      const id = `p3-italic-why-${g}`;
+      refuseOption(c.el, 'only', S63.italicPinned, id);
+      const line = hook(stateLine(S63.italicPinned), 'italic-refused');
+      line.id = id;
+      row.append(line);
+    }
+    return row;
+  };
+  /** Pin a font style (#1467, Q64): a verbatim style for one weight the text type ships, a width like Condensed a weight
+   *  number can't reach. The family is fixed to the one the text type uses (the engine drops a pin whose family
+   *  differs), and a pin left behind by a later family change is named. Commits on Enter or blur. */
+  const pinRows = (g: string): HTMLElement[] => {
+    const ty = theme.typography;
+    const fam = ty.families.find((f) => f.group === g)?.stack[0];
+    const italicOnly = ty.composites.some((c) => c.group === g && c.italicDefault);
+    if (italicOnly) return [subLine(S63.pinItalicOnly([S63.groupName(g)]))];
+    if (!fam) return [];
+    const out: HTMLElement[] = [];
+    for (const role of ty.weightRoles.map((w) => w.role).filter((r) => ty.composites.some((c) => c.group === g && c.weightRole === r))) {
+      const id = `p3-pin-${g}-${role}`;
+      const row = hook(h('div', 'p3-tpin'), 'pin-cut-row');
+      row.setAttribute('data-cat', g);
+      row.setAttribute('data-role', role);
+      const nm = tokenLabel(`type.${g}.*.${role}`, TYPE_VIEW_COPY.fontStyleFor(S63.weightName(role)), id);
+      nm.append(hook(h('span', 'p3-sub', fam), 'pin-cut-face'));
+      const cur = getPath(brandState, `typography.faces.${g}.${role}`) as FacePin | undefined;
+      const t = textField(id, 'pin-cut-input', {
+        label: S63.pinField(S63.groupName(g), role),
+        onCommit: (v) => { if ((cur?.style ?? '') === v.trim() && (!cur || cur.family === fam)) return; edit(`type.${g}`, () => setFacePin(g, role, v, fam)); },
+      });
+      t.el.placeholder = S63.pinPlaceholder;
+      t.set(cur?.style ?? '');
+      row.append(nm, t.el);
+      out.push(row);
+      if (cur && cur.family !== fam) out.push(hook(stateLine(S63.pinStale(cur.family, fam), 'warn'), 'pin-cut-stale'));
+    }
+    return out;
+  };
+
+  // ── the cards (#3079, Q3079.1 A: one card per text type) ─────────────────────────────────────────────────────
+  /** One text type's card: the family it uses (read-only; set in Font family for each text type), its Line height and
+   *  Letter spacing menus, its size rows, and, with advanced, its own advanced rows. */
+  const card = (g: string): Item[] => {
+    const ty = theme.typography;
+    if (!ty.composites.some((c) => c.group === g)) return [];
+    const b = leverBlock(`type.${g}`, { label: S63.groupName(g), group: true });
+    // The card's frame wraps the block, so the block's legend stays its heading inside the frame.
+    const box = hook(h('div', 'p3-tcard'), 'type-card');
+    box.dataset.group = g;
+    box.append(b.el);
+    const fams = ty.familiesByMode?.[currentMode] ?? ty.families;
+    const fam = fams.find((f) => f.group === g)?.stack[0] ?? '';
+    b.ctl.append(hook(subLine(TYPE_VIEW_COPY.familyLine(fam)), 'type-card-family'));
+    const menus = h('div', 'p3-tmenus');
+    menus.append(spacingMenuField(g, 'lh'), spacingMenuField(g, 'ls'));
+    b.ctl.append(menus);
+    const out: Item[] = [];
+    const words: string[] = [S63.lhLabel, S63.lsLabel, fam];
+    if ((PER_MODE_SIZE_GROUPS as readonly string[]).includes(g)) {
+      const rows = headingRows(g as PerModeSizeGroup);
+      if (rows) b.ctl.append(rows);
+      words.push(S63.sizesLabel, S63.desktop, S63.mobile, ...rowsOf(theme, g as PerModeSizeGroup).map((r) => `type.${g}.${r.variant}`));
+    } else if (g === 'caption') {
+      const c = captionRows();
+      b.ctl.append(c.el);
+      out.push({ el: c.el, said: '', key: 'typography.sizes.caption', block: c.block });
+      words.push(TYPE_PIN_COPY.captionLabel, TYPE_VIEW_COPY.addExtra('caption', 'sm', 10), TYPE_VIEW_COPY.addExtra('caption', 'xs', 8), S63.captionFloorLabel, S63.sizeFloorLabel);
+    } else if (g !== 'code') {
+      const rows = fixedRows(g);
+      if (rows) b.ctl.append(rows);
+    }
+    if (g === 'title') words.push(TYPE_VIEW_COPY.addExtra('title', '2xs', 16), S63.titleFloorLabel);
+    words.push(TYPE_VIEW_COPY.shipsLabel, S63.italicsLabel, ...ITALIC_CHIPS.map((x) => x.l), S63.pinLabel);
+    // #3093: the card says the manifest's words for every lever it draws, so a search by any of them finds it.
+    words.push(...['typography.weights', 'typography.italics', 'typography.italicDefault', ...(g === 'title' ? ['typography.titleFloor'] : []),
+      ...(g === 'caption' ? ['typography.captionFloor', 'typography.sizeFloor'] : []), ...(g === 'display' ? ['typography.displayCeiling'] : [])].map(wordsOf));
+    if (advShown()) {
+      const kids: HTMLElement[] = [];
+      if (g === 'display') {
+        const c = ceilingBlock();
+        kids.push(c.el);
+        out.push({ ...c, said: '' });
+      }
+      kids.push(shipsRow(g), italicRow(g), ...pinRows(g));
+      b.ctl.append(advZone('type-card-advanced', kids));
+    }
+    if (g === 'display') words.push(S63.ceilingLabel, S63.ceilingTip);
+    return [{ el: box, said: `${b.said} ${words.join(' ')}`.toLowerCase(), key: `type.${g}`, block: b }, ...out];
+  };
+
+  // ── Every text type (#3079: brand-wide, advanced only) ───────────────────────────────────────────────────────
+  /** Underlined link styles (Q3079.7 A): a check per text type, brand-wide, with #2942's underline beneath it. */
+  const linksBlock = (): Item => {
+    const ty = theme.typography;
+    const linkG = new Set(ty.composites.filter((c) => c.link).map((c) => c.group));
+    const b = leverBlock('typography.links', { group: true });
+    const cells = hook(h('div', 'p3-tships'), 'links-row');
+    for (const g of TYPE_GROUP_ORDER) {
+      if (!ty.composites.some((c) => c.group === g)) continue;
+      const lock = linkLock(g);
+      const c = hook(h('button', 'p3-btn p3-mcheck p3-tship'), 'link-cell');
+      c.type = 'button';
+      c.dataset.group = g;
+      c.setAttribute('role', 'checkbox');
+      c.setAttribute('aria-checked', String(linkG.has(g)));
+      c.setAttribute('aria-label', `${S63.groupName(g)}, ${S63.link}`);
+      c.append(glyph('check'), h('span', 'p3-btn-label', S63.groupName(g)));
+      if (lock) { c.setAttribute('aria-disabled', 'true'); c.title = lock; c.setAttribute('aria-description', lock); }
+      c.onclick = () => { if (c.getAttribute('aria-disabled') !== 'true') edit('typography.links', () => setLink(g, !linkG.has(g), linkG)); };
+      cells.append(c);
+    }
+    b.ctl.append(cells);
+    return { el: b.el, said: b.said, key: 'typography.links', block: b };
+  };
   // ── Weights and styles ─────────────────────────────────────────────────────────────────────────
   /** One row per weight name (Q65 option A: the value picker, every weight with a live sample, order-breaking
    *  ones disabled with the reason), for the previewed mode (Q62): Light writes `typography.weightRoles.<name>`,
@@ -975,50 +1249,6 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     return [{ el: b.el, said: `${b.said} ${roles.map((w) => `${w.role} font.weight-role.${w.role}`).join(' ')}`.toLowerCase(), key: 'typography.weightRoles', block: b }];
   };
 
-  /** Which weights each text type ships, and its Link styles: a matrix of checks, the engine's locks (a text
-   *  type keeps one weight; label keeps emphasis, body and caption keep default) disabled with the reason. The
-   *  style count beside each text type is read from the rebuilt theme on every repaint (#831). Brand-wide. */
-  const weightMatrix = (): Item => {
-    const ty = theme.typography;
-    const roleOrder = ty.weightRoles.map((w) => w.role);
-    const linkG = new Set(ty.composites.filter((c) => c.link).map((c) => c.group));
-    // #3093: its Link column is Underlined link styles' control (`typography.links`), which has no block of its own.
-    const b = leverBlock('typography.weights', { label: S63.matrixLabel, desc: S63.matrixTip, group: true, alsoSays: wordsOf('typography.links') });
-    const grid = hook(h('div', 'p3-wmatrix'), 'weights-matrix');
-    const head = h('div', 'p3-wmatrix-row p3-wmatrix-head');
-    head.append(h('span', 'p3-field-label', S63.textType), ...roleOrder.map((r) => hook(h('span', 'p3-field-label', S63.weightName(r)), 'weights-col')), hook(h('span', 'p3-field-label', S63.link), 'weights-col'));
-    grid.append(head);
-    const cell = (hk: string, label: string, on: boolean, lock: string | undefined, toggle: () => void): HTMLButtonElement => {
-      const c = hook(h('button', 'p3-btn p3-mcheck'), hk);
-      c.type = 'button';
-      c.setAttribute('role', 'checkbox');
-      c.setAttribute('aria-checked', String(on));
-      c.setAttribute('aria-label', label);
-      c.append(glyph('check'));
-      if (lock) { c.setAttribute('aria-disabled', 'true'); c.title = lock; c.setAttribute('aria-description', lock); }
-      c.onclick = () => { if (c.getAttribute('aria-disabled') !== 'true') toggle(); };
-      return c;
-    };
-    for (const g of TYPE_GROUP_ORDER) {
-      const comps = ty.composites.filter((c) => c.group === g);
-      const has = new Set(comps.map((c) => c.weightRole));
-      const row = hook(h('div', 'p3-wmatrix-row'), 'weights-row');
-      row.dataset.group = g;
-      const nm = tokenLabel(`type.${g}`, S63.groupName(g));
-      nm.append(hook(h('span', 'p3-sub', S63.styles(comps.length)), 'weights-count'));
-      row.append(nm);
-      for (const r of roleOrder) {
-        const c = cell('weight-cell', `${S63.groupName(g)}, ${S63.weightName(r)}`, has.has(r), categoryWeightLock(g, r, has), () => edit('typography.weights', () => toggleCategoryWeight(g, r, roleOrder, has)));
-        c.dataset.role = r;
-        row.append(c);
-      }
-      row.append(cell('link-cell', `${S63.groupName(g)}, ${S63.link}`, linkG.has(g), linkLock(g), () => edit('typography.links', () => setLink(g, !linkG.has(g), linkG))));
-      grid.append(row);
-    }
-    b.ctl.append(grid);
-    return { el: b.el, said: `${b.said} ${S63.link}`.toLowerCase(), key: 'typography.weights', block: b };
-  };
-
   /** #2942 — the link underline (owner Q800 A, Q801 A): a "Custom underline" switch, off for auto, and when on two
    *  whole-percent fields, thickness and offset, each corrected to its bounds by the engine (`resolveUnderline`).
    *  The fields show the resolved value, so a value past a bound reads back as the bound. Brand-wide. */
@@ -1063,86 +1293,6 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       b.ctl.append(pair);
     }
     return { el: b.el, said: `${b.said} ${S63.underlineSwitch} ${S63.underlineThickness} ${S63.underlineOffset}`.toLowerCase(), key: 'typography.underline', block: b };
-  };
-
-  /** Italic styles, three single-select chips per text type (owner decision Q6; chips, not a segmented control, #2192):
-   *  Upright, Upright + italic, Italic only. A text type that pins a font style cannot be Italic only (the engine refuses it): that chip is disabled with the
-   *  reason. Brand-wide. */
-  const italics = (): Item => {
-    const ty = theme.typography;
-    const italicG = new Set(ty.composites.filter((c) => c.italic).map((c) => c.group));
-    const italicDefG = new Set(ty.composites.filter((c) => c.italicDefault).map((c) => c.group));
-    // #3093: its Only chip is Italic-only text types' control (`typography.italicDefault`), which has no block of its own.
-    const b = leverBlock('typography.italics', { label: S63.italicsLabel, desc: S63.italicsTip, group: true, alsoSays: wordsOf('typography.italicDefault') });
-    const rows = hook(h('div', 'p3-fillrows'), 'italic-rows');
-    for (const g of TYPE_GROUP_ORDER) {
-      const row = hook(h('div', 'p3-titalic'), 'italic-row');
-      row.dataset.group = g;
-      const c = chipChoice(`${S63.groupName(g)}: ${S63.italicsLabel}`, 'italic-choice', ITALIC_CHIPS, (v) => edit('typography.italics', () => setItalicStyle(g, v, italicG, italicDefG)));
-      c.el.dataset.group = g;
-      const now = italicStyleOf(g, italicG, italicDefG);
-      c.set(now);
-      const pinned = Object.keys((getPath(brandState, `typography.faces.${g}`) as Record<string, unknown> | undefined) ?? {}).length > 0;
-      row.append(tokenLabel(`type.${g}`, S63.groupName(g), undefined, { onLine: true }), c.el);
-      // RS1 A (#2451): the reason is also a hint line under this text type's chips, describing its group.
-      if (pinned && now !== 'only') {
-        const id = `p3-italic-why-${g}`;
-        refuseOption(c.el, 'only', S63.italicPinned, id);
-        const line = hook(stateLine(S63.italicPinned), 'italic-refused');
-        line.id = id;
-        row.append(line);
-      }
-      rows.append(row);
-    }
-    b.ctl.append(rows);
-    return { el: b.el, said: `${b.said} ${ITALIC_CHIPS.map((x) => x.l).join(' ')}`.toLowerCase(), key: 'typography.italics', block: b };
-  };
-
-  /** Pin a font style (#1467, Q64): a verbatim style for one (text type, weight) slot, a width like Condensed a
-   *  weight number can't reach. The family is fixed to the one the text type uses (the engine drops a pin whose
-   *  family differs), and a pin left behind by a later family change is named. Commits on Enter or blur. */
-  const facePins = (): Item => {
-    const ty = theme.typography;
-    const b = leverBlock('typography.faces', { label: S63.pinLabel, desc: S63.pinTip, group: true });
-    const bound = (g: string): string | undefined => ty.families.find((f) => f.group === g)?.stack[0];
-    const roleOrder = ty.weightRoles.map((w) => w.role);
-    const italicDefG = new Set(ty.composites.filter((c) => c.italicDefault).map((c) => c.group));
-    const rows = hook(h('div', 'p3-fillrows'), 'pin-cut-table');
-    let slots = 0;
-    for (const g of TYPE_GROUP_ORDER) {
-      const fam = bound(g);
-      if (!fam || italicDefG.has(g)) continue;
-      for (const role of roleOrder.filter((r) => ty.composites.some((c) => c.group === g && c.weightRole === r))) {
-        slots++;
-        const id = `p3-pin-${g}-${role}`;
-        const row = hook(h('div', 'p3-tpin'), 'pin-cut-row');
-        row.setAttribute('data-cat', g);
-        row.setAttribute('data-role', role);
-        const nm = tokenLabel(`type.${g}.*.${role}`, `${S63.groupName(g)}, ${S63.weightName(role).toLowerCase()}`, id);
-        nm.append(hook(h('span', 'p3-sub', fam), 'pin-cut-face'));
-        const cur = getPath(brandState, `typography.faces.${g}.${role}`) as FacePin | undefined;
-        const t = textField(id, 'pin-cut-input', {
-          label: S63.pinField(S63.groupName(g), role),
-          onCommit: (v) => { if ((cur?.style ?? '') === v.trim() && (!cur || cur.family === fam)) return; edit('typography.faces', () => setFacePin(g, role, v, fam)); },
-        });
-        t.el.placeholder = S63.pinPlaceholder;
-        t.set(cur?.style ?? '');
-        row.append(nm, t.el);
-        rows.append(row);
-        if (cur && cur.family !== fam) rows.append(hook(stateLine(S63.pinStale(cur.family, fam), 'warn'), 'pin-cut-stale'));
-      }
-    }
-    b.ctl.append(rows);
-    if (!slots) b.ctl.append(subLine(S63.pinNone));
-    if (italicDefG.size) b.ctl.append(subLine(S63.pinItalicOnly(TYPE_GROUP_ORDER.filter((g) => italicDefG.has(g)).map(S63.groupName))));
-    return { el: b.el, said: b.said, key: 'typography.faces', block: b };
-  };
-
-  const weights = (s: Section): { el: HTMLElement; items: Item[] } => {
-    const el = sectionShell(s.title, s.desc, 4);
-    const out: Item[] = [...weightRows(), weightMatrix(), underline(), italics(), facePins()];
-    for (const it of out) el.append(it.el);
-    return { el, items: out };
   };
 
   // ── Line height and letter spacing ─────────────────────────────────────────────────────────────
@@ -1200,72 +1350,40 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     return { el: b.el, said: `${b.said} ${steps.map((x) => x.key).join(' ')}`.toLowerCase(), key: `typography.${field}`, block: b };
   };
 
-  /** Each text type one or more steps looser or tighter than its derived line height and letter spacing (#377,
-   *  #411), only the steps that move at least one of its styles; the names it lands on under each. Brand-wide. */
-  const nudges = (): Item => {
-    const ty = theme.typography;
-    const b = leverBlock('typography.leadingShift', { label: S63.nudgeLabel, desc: S63.nudgeTip, group: true });
-    const rows = hook(h('div', 'p3-fillrows'), 'nudge-rows');
-    const head = h('div', 'p3-tnudge p3-tnudge-head');
-    head.append(h('span', 'p3-field-label', S63.textType), h('span', 'p3-field-label', S63.lhLabel), h('span', 'p3-field-label', S63.lsLabel));
-    rows.append(head);
-    for (const g of TYPE_GROUP_ORDER) {
-      if (!ty.composites.some((c) => c.group === g)) continue;
-      const row = hook(h('div', 'p3-tnudge'), 'nudge-row');
-      row.dataset.group = g;
-      row.append(tokenLabel(`type.${g}`, S63.groupName(g)));
-      for (const field of ['leadingShift', 'trackingShift'] as const) {
-        const cur = (getPath(brandState, `typography.${field}.${g}`) as number | undefined) ?? 0;
-        // #3077: a letter spacing pin replaces the nudge, so the nudge is held and says why.
-        const pin = field === 'trackingShift' ? trackingPinOf(g) : undefined;
-        const steps = nudgeSteps(g, field, ty);
-        const opts = steps.map((v) => ({ v: String(v), l: S63.nudgeOpt(v) }));
-        // A hand-authored shift the steps don't reach is shown as itself, never silently rewritten (#411).
-        if (!steps.includes(cur)) opts.push({ v: String(cur), l: S63.nudgeOpt(cur) });
-        const lab = field === 'leadingShift' ? S63.lhLabel : S63.lsLabel;
-        const s = selectField(`p3-nudge-${field}-${g}`, `${S63.groupName(g)}, ${lab}`, field === 'leadingShift' ? 'nudge-lh' : 'nudge-ls', (v) => edit('typography.leadingShift', () => setShift(g, field, Number(v))));
-        s.select.dataset.group = g;
-        s.set(opts, String(cur));
-        if (pin) s.select.disabled = true;
-        const f = h('div', 'p3-field');
-        f.append(s.el, hook(h('span', cur && !pin ? 'p3-sub p3-tnudge-set' : 'p3-sub', pin ? TYPE_PIN_COPY.trackPinned(pin) : S63.landsOn(resolvedRungs(g, field, cur, ty))), 'nudge-lands'));
-        row.append(f);
-      }
-      rows.append(row);
+  // ── the sections ──────────────────────────────────────────────────────────────────────────────
+  /** Scale (#3079): the three scale chips, then, with advanced, how headings scale between mobile and desktop. */
+  const scaleSection = (s: Section): { el: HTMLElement; items: Item[] } => {
+    const el = sectionShell(s.title, s.desc, 2);
+    const out: Item[] = [...typeScale()];
+    for (const it of out) el.append(it.el);
+    if (advShown()) {
+      const f = fluidBlock();
+      out.push(f);
+      el.append(advZone('type-scale-advanced', [f.el]));
     }
-    b.ctl.append(rows);
-    return { el: b.el, said: `${b.said} ${S63.lhLabel} ${S63.lsLabel}`.toLowerCase(), key: 'typography.leadingShift', block: b };
+    return { el, items: out };
   };
-
-  /** #3077 (tracking A): each text type's letter spacing, following its size (and nudge) until pinned to one name.
-   *  Each name shows its step in this brand. Brand-wide. */
-  const trackingPins = (): Item => {
-    const ty = theme.typography;
-    const b = leverBlock('typography.tracking', { label: TYPE_PIN_COPY.trackLabel, desc: TYPE_PIN_COPY.trackTip, group: true });
-    const rows = hook(h('div', 'p3-fillrows'), 'track-pin-rows');
-    const em = new Map(ty.letterSpacings.map((l) => [l.key, l.em]));
+  /** Text types (#3079, Q3079.1 A): one card per text type, in the order every Type table lists them. */
+  const typesSection = (s: Section): { el: HTMLElement; items: Item[] } => {
+    const el = sectionShell(s.title, s.desc, 3);
+    const { mode, light } = modeNow();
+    if (!light) el.append(subLine(`Editing ${modeLabel(mode)}, the mode the preview shows. ${S63.mobileBrandWide}`));
+    const out: Item[] = [];
     for (const g of TYPE_GROUP_ORDER) {
-      if (!ty.composites.some((c) => c.group === g)) continue;
-      const row = hook(h('div', 'p3-tweight'), 'track-pin-row');
-      row.dataset.group = g;
-      const id = `p3-track-pin-${g}`;
-      const sel = selectField(id, TYPE_PIN_COPY.trackField(S63.groupName(g)), 'track-pin', (v) => edit('typography.tracking', () => setTrackingPin(g, v || undefined)));
-      sel.select.dataset.group = g;
-      sel.set([{ v: '', l: TYPE_PIN_COPY.trackFollow }, ...LETTER_SPACING_KEYS.map((k) => ({ v: k, l: TYPE_PIN_COPY.trackOpt(k, emToPercentLabel(em.get(k) ?? 0)) }))], trackingPinOf(g) ?? '');
-      row.append(tokenLabel(`type.${g}`, S63.groupName(g), id), sel.el);
-      rows.append(row);
+      const c = card(g);
+      if (!c.length) continue;
+      el.append(c[0].el);
+      out.push(...c);
     }
-    b.ctl.append(rows);
-    return { el: b.el, said: `${b.said} ${LETTER_SPACING_KEYS.join(' ')}`.toLowerCase(), key: 'typography.tracking', block: b };
+    return { el, items: out };
   };
-
-  const spacing = (s: Section): { el: HTMLElement; items: Item[] } => {
-    const el = sectionShell(s.title, s.desc, 5);
-    const out: Item[] = [spacingNames('lineHeights'), spacingNames('letterSpacings'), nudges(), trackingPins()];
+  /** Every text type (#3079): the brand-wide settings, drawn only with advanced. */
+  const everySection = (s: Section): { el: HTMLElement; items: Item[] } => {
+    const el = sectionShell(s.title, s.desc, 4);
+    const out: Item[] = [...weightRows(), linksBlock(), underline(), spacingNames('lineHeights'), spacingNames('letterSpacings')];
     for (const it of out) el.append(it.el);
     return { el, items: out };
   };
-
   // ── the sections ──────────────────────────────────────────────────────────────────────────────
   const sectionShell = (title: string, desc: string | undefined, i: number): HTMLElement => {
     const el = hook(h('section', 'p3-lsec'), 'lever-section');
@@ -1303,6 +1421,21 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     return { el, items: out };
   };
 
+
+  /** The page's one Show advanced settings switch (Q3079.2 A). */
+  const advSwitch = (): HTMLElement => {
+    // The switch's own name above it, as a field label sits over its field (as Custom underline's).
+    const row = hook(h('div', 'p3-field p3-tadv-switch'), 'type-advanced-row');
+    const sw = switchButton('p3-type-advanced', TYPE_VIEW_COPY.advSwitch, 'type-advanced', (on) => { advOn = on; render(); });
+    sw.set(advOn);
+    // It edits nothing, so it stays live in a derived mode's read-only panel (RX1 A's rule, `STAYS_LIVE` in frame.ts).
+    sw.el.classList.add('p3-disclose');
+    const lab = h('label', 'p3-field-label', TYPE_VIEW_COPY.advSwitch);
+    lab.htmlFor = 'p3-type-advanced';
+    row.append(lab, sw.el);
+    return row;
+  };
+
   const render = (): void => {
     // What had focus, found again after the redraw (`keepFocus`, #2487 B5).
     const { key: focusKey, again } = keepFocus(root);
@@ -1310,23 +1443,22 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const scrollTop = host.scrollTop;
     items = [];
     pickFocus = null;
-    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro)];
-    const [libS, famS, scaleS, ...advS] = PAGE.sections;
+    const intro = h('div', 'p3-tintro');
+    intro.append(h('p', 'p3-intro', PAGE.intro), advSwitch());
+    const parts: HTMLElement[] = [intro];
+    const [libS, famS, scaleS, typesS, everyS] = PAGE.sections;
     const lx = librarySection(libS);
     const fx = familiesSection(famS);
-    const sc = scale(scaleS);
-    parts.push(lx.el, fx.el, sc.el);
-    items.push(...lx.items, ...fx.items, ...sc.items);
-    // The advanced sections (Q69: Scale limits, Weights and styles; Q64: Line height and letter spacing) behind
-    // the page's Show advanced, as Palettes draws its own (counted by their rows); a search opens them.
-    const showAll = secAdvOpen || !!searchQuery.trim();
-    const n = advS.reduce((a, s) => a + s.rows.length, 0);
-    const builders = [limits, weights, spacing];
-    parts.push(advFold('type-sections-advanced', 'type-sections', showAll, n, () => { secAdvOpen = !secAdvOpen; render(); }, () => advS.map((s, i) => {
-      const x = builders[i](s);
-      items.push(...x.items);
-      return x.el;
-    })));
+    const sc = scaleSection(scaleS);
+    const tx = typesSection(typesS);
+    parts.push(lx.el, fx.el, sc.el, tx.el);
+    items.push(...lx.items, ...fx.items, ...sc.items, ...tx.items);
+    // Every text type is advanced only: drawn with the switch on, or while a search runs (Q3079.2 A).
+    if (advShown()) {
+      const ex = everySection(everyS);
+      parts.push(ex.el);
+      items.push(...ex.items);
+    }
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'type-continue');
     next.type = 'button';
     next.append(h('span', 'p3-btn-label', TYPE_COPY.next), glyph('chevr'));
@@ -1352,7 +1484,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     if (host.scrollTop !== scrollTop) host.scrollTop = scrollTop;
   };
 
-  /** Search (Q3): hide what does not match, report the count. */
+  /** Search (Q3): hide what does not match, report the count. A card shows whole when any of its words match. */
   const filter = (): void => {
     const q = searchQuery.trim().toLowerCase();
     const shown = items.filter((it) => it.said);
@@ -1361,15 +1493,18 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     // #3093: the block shows for its own words too (Font families), not only for a text type's row that matches.
     const famSaid = items.find((it) => it.key === 'typography.families')?.block?.said ?? '';
     if (fam) fam.hidden = !!q && !famSaid.includes(q) && !fam.querySelector('[data-p3="family-row"]:not([hidden])');
-    for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) s.hidden = !!q && !s.querySelector('.p3-lever:not([hidden])');
-    for (const n of root.querySelectorAll<HTMLElement>('.p3-intro, .p3-nextrow, .p3-advrow > .p3-btn')) n.hidden = !!q;
+    // A card hides on its frame, so a section shows while any lever in it sits outside a hidden node.
+    for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) s.hidden = false;
+    for (const s of root.querySelectorAll<HTMLElement>('.p3-lsec')) s.hidden = !!q && ![...s.querySelectorAll<HTMLElement>('.p3-lever')].some((n) => !n.closest('[hidden]'));
+    for (const n of root.querySelectorAll<HTMLElement>('.p3-tintro')) n.hidden = !!q;
+    for (const n of root.querySelectorAll<HTMLElement>('.p3-nextrow')) n.hidden = !!q;
     setSearchHits(q ? shown.filter((it) => !it.el.hidden).length : null);
   };
 
   cleanups.push(subscribe('brand', render), subscribe('mode', () => { openPick = null; render(); }), subscribe('fonts', render));
-  cleanups.push(subscribe('search', () => { if ((secAdvOpen || !!searchQuery.trim()) !== drawnAll()) render(); else filter(); }));
+  // A search draws the advanced rows, so starting or ending one redraws; typing within one only filters.
+  let searching = !!searchQuery.trim();
+  cleanups.push(subscribe('search', () => { const now = !!searchQuery.trim(); if (now !== searching && !advOn) { searching = now; render(); } else { searching = now; filter(); } }));
   cleanups.push(() => { if (searchQuery.trim()) setSearchHits(null); });
-  /** Whether the advanced sections are drawn now (a search draws them). */
-  const drawnAll = (): boolean => !!root.querySelector('#p3-advb-type-sections:not([hidden])');
   render();
 };

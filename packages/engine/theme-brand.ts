@@ -871,6 +871,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   if (capSizes.length) notes.push(`typography: caption sizes set by the brand: ${capSizes.map(([v, px]) => `caption.${v} ${px}px`).join(', ')}, one size in every mode.`);
   const trackPins = TYPE_GROUPS.filter((g) => input.typography?.tracking?.[g]).map((g) => `${g} ${input.typography!.tracking![g]}`);
   if (trackPins.length) notes.push(`typography: letter spacing pinned per text type: ${trackPins.join(', ')}. Every size in a pinned text type uses that letter spacing, in place of the size-based one and its nudge.`);
+  const leadPins = TYPE_GROUPS.filter((g) => input.typography?.leading?.[g]).map((g) => `${g} ${input.typography!.leading![g]}`);
+  if (leadPins.length) notes.push(`typography: line height pinned per text type: ${leadPins.join(', ')}. Every size in a pinned text type uses that line height, in place of the size-based one and its nudge.`);
   // Sub-10px flag (#1363). 8px is below every practical legibility floor and below the size range
   // this system's contrast ratios were reasoned about, so an opted-in sub-10px rung is flagged here the
   // way `actionPalette` flags a decoupled action colour — a deliberate, recorded exception rather than a

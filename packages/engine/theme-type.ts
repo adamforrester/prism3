@@ -468,6 +468,12 @@ export type TypographyInput = {
    *  plus nudge. The role still resolves through `letterSpacings` and each mode's re-points, so a pin names a role,
    *  never a value. Opt-in: omit for none (byte-identical). */
   tracking?: Partial<Record<TypeGroup, LetterSpacingKey>>;
+  /** Per-category LEADING PIN (#3079, owner decision 2026-11-18 A, Q3079.4 A): the twin of `tracking`. Binds every
+   *  composite in a category to one named line-height role, any of the seven, and REPLACES the size-derived rung and
+   *  the `leadingShift` nudge for that category only. Title's derived rung changes with its size, so no nudge can give
+   *  title one line height; a pin can. The role still resolves through `lineHeights` and each mode's re-points.
+   *  Opt-in: omit for none (byte-identical). */
+  leading?: Partial<Record<TypeGroup, LineHeightKey>>;
 };
 
 // Semantic catalogue defaults (the 'default' typeScale, before levers). Family/
@@ -720,6 +726,14 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     if (!(LETTER_SPACING_KEYS as readonly string[]).includes(role as string))
       throw new Error(`typography.tracking.${g}: '${role}' is not a letter spacing role (${LETTER_SPACING_KEYS.join('/')}).`);
   }
+  // #3079 (Q3079.4 A) — the leading pin, refused the same two ways.
+  const leadPin: Partial<Record<TypeGroup, LineHeightKey>> = t.leading ?? {};
+  for (const [g, role] of Object.entries(leadPin)) {
+    if (!(TYPE_GROUPS as readonly string[]).includes(g))
+      throw new Error(`typography.leading: '${g}' is not a type category (${TYPE_GROUPS.join('/')}).`);
+    if (!(LINE_HEIGHT_KEYS as readonly string[]).includes(role as string))
+      throw new Error(`typography.leading.${g}: '${role}' is not a line height role (${LINE_HEIGHT_KEYS.join('/')}).`);
+  }
   const shift = TYPE_SCALE_SHIFT[t.typeScale ?? 'default'];
   const ceilingIdx = DISPLAY_VARIANTS.indexOf(t.displayCeiling ?? '3xl');
   const titleFloor = t.titleFloor ?? 18;
@@ -876,8 +890,9 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
         ...(italicDefaultGroups.has(group) ? { italicDefault: true as const } : {}),
         ...(facePin ? { facePin } : {}),
         // The derived rung is size-sensitive; the per-group nudge shifts that curve
-        // rather than replacing it, so `title` keeps tightening as it grows. A tracking pin (#3077) replaces both.
-        lineHeight: shiftRung(LINE_HEIGHT_KEYS, lineHeightFor(group, sizePx), leadShift[group] ?? 0),
+        // rather than replacing it, so `title` keeps tightening as it grows. A tracking pin (#3077) or a leading pin
+        // (#3079) replaces both.
+        lineHeight: leadPin[group] ?? shiftRung(LINE_HEIGHT_KEYS, lineHeightFor(group, sizePx), leadShift[group] ?? 0),
         tracking: trackPin[group] ?? shiftRung(TRACKING_SHIFT_KEYS, trackingFor(group, sizePx), trackShift[group] ?? 0),
         textCase: group === 'eyebrow' ? 'uppercase' : 'none',
       });

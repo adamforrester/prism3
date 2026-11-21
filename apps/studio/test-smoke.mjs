@@ -805,18 +805,15 @@ const watchErrors = (page) => {
 // menu in UI redesign S8.2 (owner decision G19 A): the web has no legacy page left to reach. Every page is reached
 // through the tab row now.
 
-/** Open Type through the tab row (UI redesign S6.2: it left the Pages menu for the two panes), open Scale's and
- *  the page's Show advanced (S6.3: Individual sizes, Scale limits, Weights and styles, Line height and letter
- *  spacing), and wait for its levers to draw. */
+/** Open Type through the tab row (UI redesign S6.2: it left the Pages menu for the two panes), turn on its one Show
+ *  advanced settings switch (#3079, Q3079.2 A), and wait for its levers to draw. */
 const gotoType = async (page) => {
   await tabClick(page, 'type');
   await hooks.need(page, '[data-p3="type-levers"]');
-  for (const hk of ['scale-advanced', 'type-sections-advanced']) {
-    const sel = `[data-p3="${hk}"]`;
-    await hooks.need(page, sel);
-    if ((await page.locator(sel).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(sel));
-  }
-  await hooks.need(page, '[data-p3="weights-matrix"]');
+  const sel = '[data-p3="type-advanced"]';
+  await hooks.need(page, sel);
+  if ((await page.locator(sel).getAttribute('aria-checked')) !== 'true') await hooks.click(page.locator(sel));
+  await hooks.need(page, '[data-p3="weights-row"]');
   await page.evaluate(() => document.fonts.ready);
 };
 
@@ -3373,7 +3370,7 @@ s5aArm: for (const brand of BRANDS) {
   await page.goto(hookUrl.href);
   await gotoType(page);
   ok(await page.evaluate(() => typeof window.__prism3TestEdit === 'function'), `${brand}: the page opened with ?p3-test-hooks has the test edit hook`);
-  ok((await page.locator('[data-p3="title-floor-16"]').getAttribute('aria-checked')) === 'true', `${brand}: the hand-written brand loads with the 16px smallest title`);
+  ok((await page.locator('[data-p3="type-extra-switch"][data-group="title"][data-variant="2xs"]').getAttribute('aria-checked')) === 'true', `${brand}: the hand-written brand loads with title 2xs's switch on (the 16px title floor)`);
   ok((await page.locator('[data-p3="type-size-desktop"][data-group="title"][data-variant="2xs"]').getAttribute('data-set')) === 'true', `${brand}: the hand-written brand loads with title 2xs set individually`);
 
   const errState = () => page.evaluate(() => {
@@ -3438,7 +3435,7 @@ s5aArm: for (const brand of BRANDS) {
   // Put it back, and check the bar CLEARS. A surface that only ever appears is half a surface, and the
   // rest of this context (and the console-error drain below) needs a resolved theme.
   await gotoType(page);
-  await hooks.click(page.locator('[data-p3="title-floor-16"]'));
+  await hooks.click(page.locator('[data-p3="type-extra-switch"][data-group="title"][data-variant="2xs"]'));
   const cleared = await page.waitForFunction(() => {
     const e = document.querySelector('[data-p3="error-bar"]');
     return !!e && getComputedStyle(e).display === 'none';
@@ -3457,7 +3454,7 @@ s5aArm: for (const brand of BRANDS) {
   const otherErr = await errState();
   hooks.absent(ok, { seen: otherErr.shown && /typography\.sizes\.title\.2xs/.test(otherErr.text), state: 'the error bar shown for the title-floor refusal' },
     !(await fixState()).shown, `${brand}: Q189 A: an error that is not about the first breakpoint offers no action beside the line`);
-  await hooks.click(page.locator('[data-p3="title-floor-16"]'));
+  await hooks.click(page.locator('[data-p3="type-extra-switch"][data-group="title"][data-variant="2xs"]'));
   await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && getComputedStyle(e).display === 'none'; }, null, { timeout: 5000 }).catch(() => {});
   const bpBefore = await inputAt(page);
   await page.evaluate(() => window.__prism3TestEdit('layout.breakpoints', [320, 768]));
@@ -5552,7 +5549,8 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   const brand = BRANDS[0];
   const { ctx, page, drain } = await openBrand(brand);
   await gotoType(page);
-  await hooks.need(page, '[data-p3="pin-cut-table"]');
+  // #3079 (Q3079.6 A): the pins sit in each text type's card, under its weights, with advanced on.
+  await hooks.need(page, '[data-p3="pin-cut-row"]');
 
   // FLOOR: the control is present and reachable for a slot that supports a pin. A studio that dropped
   // the section, or offered no pinnable slot, fails HERE — before any write is attempted.

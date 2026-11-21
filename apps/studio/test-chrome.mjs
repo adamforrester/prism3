@@ -893,7 +893,7 @@ const BRAND_LEVERS_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namesp
 /** Type in the two panes (S6.2): the controls its levers must render, by hook (Faces: the library's Add face, the
  *  face for each text type, Show advanced; the way on to Shape). The lent legacy region is `INSPECT_LEGACY`'s. */
 const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-input"]', '[data-p3="face-add"]', '[data-p3="family-select"]',
-  '[data-p3="family-all-apply"]', '[data-p3="scale-advanced"]', '[data-p3="type-continue"]'];
+  '[data-p3="family-all-apply"]', '[data-p3="type-advanced"]', '[data-p3="type-continue"]'];
 /** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
  *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
 const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
@@ -2563,14 +2563,16 @@ const RAISED_QUERIES = ['dialog', 'dialog surface', 'white', 'raisedSurface'];
  *  and says its words (`alsoSays`, #2175): a search for the lever shows that block. Typed here, each by its reason. */
 const SEARCH_STANDS_IN = {
   'neutral.anchor': 'neutral.hue',            // Pin a neutral: the Pinned choice in the neutral source, until pinned (#2175)
-  'typography.links': 'typography.weights',   // Underlined link styles: the weights table's Link column
-  'typography.italicDefault': 'typography.italics', // Italic-only text types: each text type's Only chip
   'outlineHoverFill': 'outlineInteraction',   // Outline hover fill: drawn only under Opaque fill; Outline hover's description names it (#3071)
   'outlineWash.pressed': 'outlineWash.hover', // #3335: Wash opacity is one block, its Hover and Pressed both, under the hover key
 };
 /** #3335 (Q3335.2 A): a lever with no lever block at all, and the hook that stands in for it: the button sets lever is the
  *  set cards and Add button set, whose heading and ⓘ went. */
-const SEARCH_STANDS_IN_HOOK = { interactivePalettes: 'column-add' };
+const SEARCH_STANDS_IN_HOOK = { interactivePalettes: 'column-add',
+  // #3079 (Q809 A, Q3079.6 A): Type's per-text-type levers live in each text type's card, whose block says their words;
+  // the extra small sizes in their own card, the weights and italics in every card (the first, Display, stands in).
+  'typography.titleFloor': 'lever-type-title', 'typography.captionFloor': 'lever-type-caption', 'typography.sizeFloor': 'lever-type-caption',
+  'typography.weights': 'lever-type-display', 'typography.italics': 'lever-type-display', 'typography.italicDefault': 'lever-type-display' };
 /** Every place a lever can live, in the tab row's order (`PLACE_CLICKS`, typed above). */
 const SEARCH_PLACES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
 if (runs('6b')) {
@@ -7944,14 +7946,15 @@ if (runs('20')) console.log(`\nType (S6.2, S6.3)\n${'='.repeat(78)}`);
  *  read-only Building blocks (Q73). */
 const EXPECT_TYPE_SPECIMENS = ['Type sample', 'Font families', 'Scale', 'Weights and styles', 'Line height and letter spacing', 'Building blocks'];
 /** Open every Show advanced on Type (Font families', Scale's and the page's), so the S6.3 levers are drawn. */
+/** #3079 (Q3079.2 A): Type's one Show advanced settings switch, turned on. */
 const openTypeAdvanced = async (page) => {
-  for (const hk of ['scale-advanced', 'type-sections-advanced']) {
-    const sel = `[data-p3="${hk}"]`;
-    await hooks.need(page, sel);
-    if ((await page.locator(sel).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(sel));
-    await page.waitForFunction((x) => document.querySelector(x)?.getAttribute('aria-expanded') === 'true', sel);
-  }
+  const sel = '[data-p3="type-advanced"]';
+  await hooks.need(page, sel);
+  if ((await page.locator(sel).getAttribute('aria-checked')) !== 'true') await hooks.click(page.locator(sel));
+  await page.waitForFunction((x) => document.querySelector(x)?.getAttribute('aria-checked') === 'true', sel);
 };
+/** #3079 (Q809 A, Q3079.8 A): an extra small size's switch, by text type and size. */
+const EXTRA = (g, v) => `[data-p3="type-extra-switch"][data-group="${g}"][data-variant="${v}"]`;
 /** The text types, in order, each with the plain name its token carries under it (owner decision Q68, its example
  *  "Body face", with the owner's rule of 2026-10-02 applied: never "face" in visible copy). Literal. */
 const TYPE_FACES = [['display', 'Display family'], ['title', 'Title family'], ['body', 'Body family'], ['label', 'Label family'],
@@ -8181,7 +8184,7 @@ for (const host of ['web', 'figma']) {
         const pane = document.querySelector('[data-p3="levers-pane"]');
         // The info buttons and Scale's Show advanced only disclose; they edit nothing, so they stay live (checked below).
         // RX1 A (#1984): the way to Layout only navigates, so it stays live with the info buttons and Show advanced.
-        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="scale-advanced"], [data-p3="type-fluid-layout"]'));
+        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="type-fluid-layout"]'));
         return { n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
           line: document.querySelector('[data-p3="levers-derived-note"]')?.textContent ?? null };
       });
@@ -8189,25 +8192,27 @@ for (const host of ['web', 'figma']) {
       ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
         `Q59: previewing ${label}, every control on Type is disabled, the advanced sections included (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
       for (const hk of ['family-select', 'face-add-input', 'face-add', 'family-all-apply', 'type-scale-compact', 'type-size-desktop', 'type-size-mobile',
-        'type-fluid', 'type-min-viewport', 'type-ceiling', 'title-floor-16', 'caption-floor-10', 'size-floor-8', 'weight-pick', 'weight-cell', 'link-cell',
-        'italic-choice-only', 'pin-cut-input', 'lh-pick', 'ls-pick', 'nudge-lh', 'nudge-ls'])
+        'type-fluid', 'type-min-viewport', 'type-ceiling', 'type-extra-switch', 'caption-size', 'weight-pick', 'weight-cell', 'link-cell',
+        'italic-choice-only', 'pin-cut-input', 'lh-pick', 'ls-pick', 'type-lh', 'type-ls'])
         ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Type is among those held disabled`);
     }
-    // In a derived mode Scale's Show advanced stays openable, so Individual sizes can be read; everything it opens is
-    // disabled (Q59). Closed first, then opened, previewing HC light.
+    // #3079: in a derived mode the page's Show advanced settings switch stays live, so the advanced rows can be read;
+    // everything it shows is disabled (Q59). Turned off, then on again, previewing HC light.
     await chooseAnyMode(page, 'hc-light');
     await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-derived-note"]'), null, { timeout: 5000 }).catch(() => {});
-    // Bounded, and its failure kept: a fold held disabled is what the check below must report, by name.
-    if ((await page.locator('[data-p3="scale-advanced"]').getAttribute('aria-expanded')) === 'true') await hooks.click(page.locator('[data-p3="scale-advanced"]'), { timeout: 5000 }).catch(() => {});
-    const fold0 = await page.evaluate(() => ({ disabled: document.querySelector('[data-p3="scale-advanced"]')?.disabled, open: document.querySelector('[data-p3="scale-advanced"]')?.getAttribute('aria-expanded') }));
-    await hooks.click(page.locator('[data-p3="scale-advanced"]'), { timeout: 5000 }).catch(() => {});
+    const ADV = '[data-p3="type-advanced"]';
+    const advOf = () => page.evaluate((x) => ({ disabled: document.querySelector(x)?.disabled, on: document.querySelector(x)?.getAttribute('aria-checked'),
+      rows: document.querySelectorAll('[data-p3="type-card-advanced"]').length }), ADV);
+    await hooks.click(page.locator(ADV), { timeout: 5000 }).catch(() => {});
+    const fold0 = await advOf();
+    await hooks.click(page.locator(ADV), { timeout: 5000 }).catch(() => {});
     const fold1 = await page.evaluate(() => {
-      const b = document.querySelector('#p3-advb-type-scale');
-      const ctls = b ? [...b.querySelectorAll('button, select, input')].filter((n) => !n.matches('[data-p3="lever-info"]')) : [];
-      return { open: document.querySelector('[data-p3="scale-advanced"]')?.getAttribute('aria-expanded'), shown: !!b && !b.hidden, n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled') && n.getAttribute('aria-disabled') !== 'true').map((n) => n.getAttribute('data-p3')) };
+      const zones = [...document.querySelectorAll('[data-p3="type-card-advanced"], [data-p3="type-scale-advanced"]')];
+      const ctls = zones.flatMap((z) => [...z.querySelectorAll('button, select, input')]).filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="type-fluid-layout"]'));
+      return { on: document.querySelector('[data-p3="type-advanced"]')?.getAttribute('aria-checked'), zones: zones.length, n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled') && n.getAttribute('aria-disabled') !== 'true').map((n) => n.getAttribute('data-p3') ?? n.tagName) };
     });
-    ok(fold0.disabled === false && fold1.open === 'true' && fold1.shown && fold1.n >= 10 && fold1.enabled.length === 0,
-      `Q59: previewing HC light, Scale's Show advanced opens Individual sizes read-only: the fold is live and every control inside it is disabled (fold disabled ${fold0.disabled}, open ${fold1.open}, ${fold1.n} controls${fold1.enabled.length ? `, enabled ${[...new Set(fold1.enabled)].join(', ')}` : ''})`);
+    ok(fold0.disabled === false && fold0.on === 'false' && fold0.rows === 0 && fold1.on === 'true' && fold1.zones >= 8 && fold1.n >= 40 && fold1.enabled.length === 0,
+      `#3079 Q59: previewing HC light, Show advanced settings stays live and shows the advanced rows read-only: every control in them is disabled (off ${JSON.stringify(fold0)}, on ${fold1.zones} zones, ${fold1.n} controls${fold1.enabled.length ? `, enabled ${[...new Set(fold1.enabled)].join(', ')}` : ''})`);
     await chooseAnyMode(page, 'light');
     const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="levers-derived-note"]'), sel: document.querySelector('[data-p3="family-select"]')?.disabled, scale: document.querySelector('[data-p3="type-scale-compact"]')?.disabled, weight: document.querySelector('[data-p3="weight-pick"]')?.disabled }));
     ok(!back.line && back.sel === false && back.scale === false && back.weight === false, `Q59: back in Light, Type's derived line is gone and its controls, the advanced ones included, are editable (${JSON.stringify(back)})`);
@@ -8260,26 +8265,29 @@ if (runs('20b')) {
 console.log(`\nType (S6.3)\n${'='.repeat(78)}`);
 /** Q23: each lever section, in order, and the preview section it pairs with (Scale limits with Scale, scope §3; TY1 A's two
  *  font family sections with Font families). */
-const TYPE_PAIRS = [['Typeface library', 'Font families'], ['Font family for each text type', 'Font families'], ['Scale', 'Scale'], ['Scale limits', 'Scale'], ['Weights and styles', 'Weights and styles'],
-  ['Line height and letter spacing', 'Line height and letter spacing']];
+// #3079 (owner decision 2026-11-18 A): Scale, then Text types (the cards), then Every text type; the cards reveal the
+// preview's Scale and Every text type its Weights and styles.
+const TYPE_PAIRS = [['Typeface library', 'Font families'], ['Font family for each text type', 'Font families'], ['Scale', 'Scale'], ['Text types', 'Scale'], ['Every text type', 'Weights and styles']];
 /** The S6.3 sections' descriptions, DRAFT, literal (the preview's paired section says the same, Q23). */
+// #3079: the levers' own copy (DRAFT); the preview keeps its sections' copy, so Scale's two descriptions now differ.
 const TYPE_S63_COPY = {
-  Scale: 'The size of each heading style on desktop and mobile, and the scale they step along.',
-  'Scale limits': 'Where the heading scale starts and stops, and whether headings scale between mobile and desktop.',
-  'Weights and styles': 'The weight behind each name, the weights each text type ships, and its italic and link styles.',
-  'Line height and letter spacing': 'The step each line height and letter spacing name uses, and how far each text type moves from it.',
+  Scale: 'The scale every heading size steps along, and how headings move between mobile and desktop.',
+  'Text types': 'Each text type’s sizes, line height, letter spacing and weights.',
+  'Every text type': 'Settings all text types share.',
 };
+/** #3079 (Q3079.1 A): one card per text type, in this order. */
+const TYPE_CARDS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
 /** Every S6.3 lever, by its hook, drawn once each (represented, not counted). */
-const TYPE_S63_LEVERS = ['lever-typography-type-scale', 'lever-typography-sizes', 'lever-typography-responsive', 'lever-typography-display-ceiling',
-  'lever-typography-title-floor', 'lever-typography-caption-floor', 'lever-typography-size-floor', 'lever-typography-weight-roles', 'lever-typography-weights',
-  'lever-typography-italics', 'lever-typography-faces', 'lever-typography-line-heights', 'lever-typography-letter-spacings', 'lever-typography-leading-shift',
-  // #3077: Caption sizes and Letter spacing for each text type.
-  'lever-typography-sizes-caption', 'lever-typography-tracking'];
+// #3079: the per-text-type controls (sizes, menus, weights it ships, italic, font style pins, the extra sizes) live in
+// the cards, held below; these are the blocks that stay one each.
+const TYPE_S63_LEVERS = ['lever-typography-type-scale', 'lever-typography-responsive', 'lever-typography-display-ceiling',
+  'lever-typography-weight-roles', 'lever-typography-links', 'lever-typography-underline', 'lever-typography-line-heights', 'lever-typography-letter-spacings',
+  'lever-typography-sizes-caption'];
 /** Literal copy on the controls: the chips (the manifest's scale labels; Q6's italic chips), the floors, the
  *  owner's words for fluid sizing (Q70) and the way to Layout. */
 const TYPE_S63_WORDS = {
   scale: ['Compact', 'Default', 'Expressive'], italic: ['Upright', 'Upright + italic', 'Italic only'],
-  title: ['18px', '16px'], caption: ['11px', '10px'], size: ['10px', '8px'],
+  extras: ['Add title 2xs, 16px', 'Add caption sm, 10px', 'Add caption xs, 8px'],
   fluid: 'Headings scale between mobile and desktop', layout: 'Depends on Layout: breakpoints',
 };
 for (const host of ['web', 'figma']) {
@@ -8297,16 +8305,17 @@ for (const host of ['web', 'figma']) {
         psec: [...document.querySelectorAll('[data-p3="type-style-guide"] .psec')].map((x) => [x.querySelector('.psec-t')?.textContent ?? null, x.querySelector('.psec-d')?.textContent ?? null]),
         words: {
           scale: txt('[data-p3="type-scale"] [role="radio"]'), italic: txt('[data-p3="italic-row"][data-group="body"] .p3-chip'),
-          title: txt('[data-p3="title-floor"] [role="radio"]'), caption: txt('[data-p3="caption-floor"] [role="radio"]'), size: txt('[data-p3="size-floor"] [role="radio"]'),
+          extras: [...pane.querySelectorAll('[data-p3="type-extra-switch"]')].map((n) => n.getAttribute('aria-label')),
           fluid: pane.querySelector('[data-p3="lever-typography-responsive"] .p3-lever-name')?.textContent ?? null,
           layout: pane.querySelector('[data-p3="type-fluid-layout"]')?.textContent?.trim() ?? null,
         },
-        folds: ['scale-advanced', 'type-sections-advanced'].map((hk) => document.querySelector(`[data-p3="${hk}"]`)?.textContent?.trim()),
+        folds: ['scale-advanced', 'type-sections-advanced'].filter((hk) => document.querySelector(`[data-p3="${hk}"]`)),
+        adv: document.querySelector('[data-p3="type-advanced"]')?.getAttribute('aria-checked') ?? null,
+        cards: [...pane.querySelectorAll('[data-p3="type-card"]')].map((n) => [n.dataset.group, !!n.querySelector('[data-p3="type-lh"]'), !!n.querySelector('[data-p3="type-ls"]')]),
         names: {
           weight: nameOf(pane.querySelector('[data-p3="weight-row"][data-role="strong"]')),
           lh: nameOf(pane.querySelector('[data-p3="lh-row"][data-key="normal"]')),
           size: nameOf(pane.querySelector('[data-p3="type-size-row"][data-group="title"]')),
-          matrix: nameOf(pane.querySelector('[data-p3="weights-row"][data-group="body"]')),
         },
       };
     });
@@ -8315,17 +8324,15 @@ for (const host of ['web', 'figma']) {
     ok(JSON.stringify(r.lsec.map(([t]) => t)) === JSON.stringify(TYPE_PAIRS.map(([t]) => t)), `${host}: Type's lever sections, in order: ${TYPE_PAIRS.map(([t]) => t).join(', ')} — drew ${r.lsec.map(([t]) => t).join(', ')}`);
     for (const [title, want] of TYPE_PAIRS) {
       const lev = r.lsec.find(([t]) => t === title), pre = r.psec.find(([t]) => t === want);
-      ok(!!lev && !!pre && (title !== want || lev[1] === pre[1]),
-        `Q23: ${host}: the lever section "${title}" pairs with the preview's "${want}"${title === want ? ', one description on both sides' : ''} — levers ${JSON.stringify(lev)}, preview ${JSON.stringify(pre)}`);
+      ok(!!lev && !!pre, `Q23: ${host}: the lever section "${title}" pairs with the preview's "${want}" — levers ${JSON.stringify(lev)}, preview ${JSON.stringify(pre)}`);
       if (TYPE_S63_COPY[title]) ok(lev?.[1] === TYPE_S63_COPY[title], `${host}: "${title}" reads "${TYPE_S63_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
     }
     for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
-    // 15 since #3077: #2942's Underline thickness and offset is the 13th; #3077 adds Caption sizes (Scale limits) and
-    // Letter spacing for each text type (Line height and letter spacing).
-    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 15 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 15 advanced (${JSON.stringify(r.folds)})`);
+    // #3079 (Q3079.2 A): one page switch, no folds.
+    ok(r.folds.length === 0 && r.adv === 'true', `#3079: ${host}: Type has one Show advanced settings switch, on, and no Show advanced fold (folds ${JSON.stringify(r.folds)}, switch ${r.adv})`);
+    ok(JSON.stringify(r.cards) === JSON.stringify(TYPE_CARDS.map((g) => [g, true, true])), `#3079: ${host}: one card per text type, in order ${TYPE_CARDS.join(', ')}, each with a Line height and a Letter spacing menu (${JSON.stringify(r.cards)})`);
     const WANT_NAMES = {
       weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
-      matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
     };
     for (const [k, want] of Object.entries(WANT_NAMES)) ok(JSON.stringify(r.names[k]) === JSON.stringify(want), `QA-B2: ${host}: the ${k} control reads its label first and its token under it, ${JSON.stringify(want)} (${JSON.stringify(r.names[k])})`);
     ok(r.names.size?.[0]?.[0] === 'p3-fill-label' && /^type\.title\./.test(r.names.size?.[1]?.[1] ?? ''), `QA-B2: ${host}: a heading size reads its label first and its type.title.* token under it (${JSON.stringify(r.names.size)})`);
@@ -8379,14 +8386,17 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="weights-row"][data-group="display"] [data-p3="weight-cell"][data-role="subtle"]'));
     await page.waitForFunction((w) => document.querySelector('[data-p3="weights-row"][data-group="display"] [data-p3="weights-count"]')?.textContent === w, `${dispLeaves.length} styles`, { timeout: 5000 }).catch(() => {});
     ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), '#831: unticking it returns the persisted brand to its bytes');
-    // A nudge in Light (brand-wide), its bytes noted, then undone.
-    await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('1');
-    await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '1');
+    // A line height in Light (brand-wide, #3079's menu), its bytes noted, then back to Default. The menu's values: -1
+    // is Default, then each line height name by its ramp index (relaxed is 5).
+    const BODY_LH = '[data-p3="type-lh"][data-group="body"]';
+    await pick(BODY_LH, 5);
+    await close();
     const pLight = await persisted(page);
-    ok(pLight?.typography?.leadingShift?.body === 1 && pLight?.modeLevers === undefined, `type: in Light, body one step looser writes typography.leadingShift.body 1 (${JSON.stringify(pLight?.typography?.leadingShift)})`);
-    await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('0');
-    await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '0');
+    ok(pLight?.typography?.leading?.body === 'relaxed' && pLight?.modeLevers === undefined, `#3079: in Light, body's line height 1.65 writes typography.leading.body relaxed (${JSON.stringify(pLight?.typography)})`);
+    await pick(BODY_LH, -1);
+    await close();
     const pZero = await persisted(page);
+    ok(JSON.stringify(pZero) === JSON.stringify(p0), `#3079: Default removes the pin, and the brand returns to its bytes (${JSON.stringify(pZero?.typography)})`);
     await chooseMode(page, 'dark');
     // Dark: the weight.
     const auto = await page.evaluate(() => document.querySelector('[data-p3="weight-pick"][data-role="strong"] .p3-btn-label')?.textContent);
@@ -8422,36 +8432,39 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => document.querySelector('[data-p3="lh-swap"][data-name="normal"]')?.value === '');
       }
     }
-    // Dark: the same nudge writes the same bytes as from Light (Q54).
-    await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('1');
-    await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '1');
-    ok(JSON.stringify(await persisted(page)) === JSON.stringify(pLight), 'Q54: previewing Dark, body one step looser writes the same bytes as from Light');
-    await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('0');
-    await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '0');
+    // Dark: the same line height writes the same bytes as from Light (Q54).
+    await pick(BODY_LH, 5);
+    await close();
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify(pLight), 'Q54: previewing Dark, body line height 1.65 writes the same bytes as from Light');
+    await pick(BODY_LH, -1);
+    await close();
     await chooseMode(page, 'light');
-    // The floors: caption 10 then back unsets; size 8 shows its warning, then back.
-    await hooks.click(page.locator('[data-p3="caption-floor-10"]'));
-    await page.waitForFunction(() => document.querySelector('[data-p3="caption-floor-10"]')?.getAttribute('aria-checked') === 'true');
-    ok((await persisted(page))?.typography?.captionFloor === 10, 'type: the 10px caption floor writes typography.captionFloor 10');
-    await hooks.click(page.locator('[data-p3="caption-floor-11"]'));
-    await page.waitForFunction(() => document.querySelector('[data-p3="caption-floor-11"]')?.getAttribute('aria-checked') === 'true');
-    ok(!('captionFloor' in ((await persisted(page))?.typography ?? {})), 'type: back to 11px, the caption floor is unset (the default)');
-    await hooks.click(page.locator('[data-p3="size-floor-8"]'));
+    // The extra small captions (Q809 A): caption sm on writes captionFloor 10, off unsets it; caption xs shows its
+    // warning, then off.
+    const isOn = (sel) => page.waitForFunction((x) => document.querySelector(x)?.getAttribute('aria-checked') === 'true', sel);
+    const isOff = (sel) => page.waitForFunction((x) => document.querySelector(x)?.getAttribute('aria-checked') === 'false', sel);
+    await hooks.click(page.locator(EXTRA('caption', 'sm')));
+    await isOn(EXTRA('caption', 'sm'));
+    ok((await persisted(page))?.typography?.captionFloor === 10, '#3079: Add caption sm, 10px writes typography.captionFloor 10');
+    await hooks.click(page.locator(EXTRA('caption', 'sm')));
+    await isOff(EXTRA('caption', 'sm'));
+    ok(!('captionFloor' in ((await persisted(page))?.typography ?? {})), '#3079: caption sm off, the caption floor is unset (the default)');
+    await hooks.click(page.locator(EXTRA('caption', 'xs')));
     await hooks.need(page, '[data-p3="size-floor-warn"]');
     const warn = await page.evaluate(() => document.querySelector('[data-p3="size-floor-warn"]')?.textContent);
-    ok(warn === '8px is below the sizes the contrast floors were set for. Use it only for fine print that has an accessible alternative.', `type: the 8px size floor shows its warning ("${warn}")`);
-    await hooks.click(page.locator('[data-p3="size-floor-10"]'));
+    ok(warn === '8px is below the sizes the contrast floors were set for. Use it only for fine print that has an accessible alternative.', `type: caption xs at 8px shows its warning ("${warn}")`);
+    await hooks.click(page.locator(EXTRA('caption', 'xs')));
     await page.waitForFunction(() => !document.querySelector('[data-p3="size-floor-warn"]'));
     // B8b (owner, 2026-10-03): under the Compact scale the 16px smallest title is disabled, with the approved reason;
     // back on Default it is live again. Nothing is written by the disabled chip.
     await hooks.click(page.locator('[data-p3="type-scale-compact"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-compact"]')?.getAttribute('aria-checked') === 'true');
-    const f16 = await page.evaluate(() => { const b = document.querySelector('[data-p3="title-floor-16"]'); return { off: b?.disabled, why: b?.title }; });
+    const f16 = await page.evaluate((x) => { const b = document.querySelector(x); return { off: b?.disabled, why: b?.title }; }, EXTRA('title', '2xs'));
     ok(f16.off === true && f16.why === 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
-      `B8b: under the Compact scale the 16px smallest title is disabled with its reason (${JSON.stringify(f16)})`);
+      `B8b: under the Compact scale Add title 2xs, 16px is disabled with its reason (${JSON.stringify(f16)})`);
     await hooks.click(page.locator('[data-p3="type-scale-default"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-default"]')?.getAttribute('aria-checked') === 'true');
-    ok((await page.evaluate(() => document.querySelector('[data-p3="title-floor-16"]')?.disabled)) === false, 'B8b: back on the Default scale the 16px smallest title is selectable again');
+    ok((await page.evaluate((x) => document.querySelector(x)?.disabled, EXTRA('title', '2xs'))) === false, 'B8b: back on the Default scale Add title 2xs, 16px is live again');
     // #2044 (owner, 2026-10-04): with display md set individually, on desktop or on mobile, a largest display size
     // below it is disabled with the approved reason, and every one at or above md stays live. EXPECTED typed here:
     // the ceiling order and the reason's words, never read from the page's module (docs/34).
@@ -8488,14 +8501,15 @@ for (const host of ['web', 'figma']) {
     // 16px, at least the floor 16px), so the unit arm covers mobile and this one covers brand-wide and Dark.
     {
       const R18 = 'Leaves out title 2xs, which you set individually.';
-      const chip18 = () => page.evaluate(() => { const b = document.querySelector('[data-p3="title-floor-18"]'); return { off: b?.disabled, why: b?.title }; });
+      // #3079: the 18px chip is now the title 2xs row's switch, on; turning it off is what is refused.
+      const chip18 = () => page.evaluate((x) => { const b = document.querySelector(x); return { off: b?.disabled, why: b?.title }; }, EXTRA('title', '2xs'));
       const firstFree = () => page.evaluate(() => document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"]:not([aria-disabled="true"]):not([aria-pressed="true"])')?.getAttribute('data-value') ?? null);
       const pFloor = await persisted(page);
       await hooks.click(page.locator('[data-p3="type-scale-expressive"]'));
       await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-expressive"]')?.getAttribute('aria-checked') === 'true');
-      await hooks.click(page.locator('[data-p3="title-floor-16"]'));
-      await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-16"]')?.getAttribute('aria-checked') === 'true');
-      ok(JSON.stringify(await chip18()) === JSON.stringify({ off: false, why: '' }), `#2054: on 16px with no title 2xs set, the 18px chip is live (${JSON.stringify(await chip18())})`);
+      await hooks.click(page.locator(EXTRA('title', '2xs')));
+      await page.waitForFunction((x) => document.querySelector(x)?.getAttribute('aria-checked') === 'true', EXTRA('title', '2xs'));
+      ok(JSON.stringify(await chip18()) === JSON.stringify({ off: false, why: '' }), `#2054: title 2xs on with no size set, its switch is live (${JSON.stringify(await chip18())})`);
       const btn = '[data-p3="type-size-desktop"][data-group="title"][data-variant="2xs"]';
       for (const mode of ['light', 'dark']) {
         await chooseMode(page, mode);
@@ -8505,23 +8519,23 @@ for (const host of ['web', 'figma']) {
         ok(to !== null, `#2054: title 2xs's size offers another value in ${mode} (${to})`);
         await pick(btn, to);
         await close();
-        await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.disabled === true, null, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction((x) => document.querySelector(x)?.disabled === true, EXTRA('title', '2xs'), { timeout: 5000 }).catch(() => {});
         const got = await chip18();
-        ok(got.off === true && got.why === R18, `#2054: with title 2xs set in ${mode} (${to}px), the 18px smallest title is disabled with "${R18}" (${JSON.stringify(got)})`);
+        ok(got.off === true && got.why === R18, `#2054: with title 2xs set in ${mode} (${to}px), its switch is disabled with "${R18}" (${JSON.stringify(got)})`);
         const before = JSON.stringify(await persisted(page));
         // force: Playwright holds a disabled button not actionable; the point is that a click on it writes nothing.
-        await hooks.click(page.locator('[data-p3="title-floor-18"]'), { force: true });
+        await hooks.click(page.locator(EXTRA('title', '2xs')), { force: true });
         await page.waitForTimeout(80);
-        ok(JSON.stringify(await persisted(page)) === before && (await page.locator('[data-p3="title-floor-16"]').getAttribute('aria-checked')) === 'true',
-          `#2054: clicking the disabled 18px chip writes nothing (${mode})`);
+        ok(JSON.stringify(await persisted(page)) === before && (await page.locator(EXTRA('title', '2xs')).getAttribute('aria-checked')) === 'true',
+          `#2054: clicking the disabled title 2xs switch writes nothing (${mode})`);
         await reset(btn);
         await close();
-        await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
-        ok((await chip18()).off === false, `#2054: releasing title 2xs's size in ${mode} makes the 18px chip live again`);
+        await page.waitForFunction((x) => document.querySelector(x)?.disabled === false, EXTRA('title', '2xs'), { timeout: 5000 }).catch(() => {});
+        ok((await chip18()).off === false, `#2054: releasing title 2xs's size in ${mode} makes its switch live again`);
       }
       await chooseMode(page, 'light');
-      await hooks.click(page.locator('[data-p3="title-floor-18"]'));
-      await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.getAttribute('aria-checked') === 'true');
+      await hooks.click(page.locator(EXTRA('title', '2xs')));
+      await page.waitForFunction((x) => document.querySelector(x)?.getAttribute('aria-checked') === 'false', EXTRA('title', '2xs'));
       await hooks.click(page.locator('[data-p3="type-scale-default"]'));
       await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-default"]')?.getAttribute('aria-checked') === 'true');
       ok(JSON.stringify(await persisted(page)) === JSON.stringify(pFloor), `#2054: back on 18px and the Default scale, the brand returns to its bytes`);
@@ -8587,7 +8601,6 @@ for (const host of ['web', 'figma']) {
     await page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]').evaluate((e) => e.blur());
     await page.waitForFunction(() => document.querySelector('[data-p3="italic-row"][data-group="body"] [data-p3="italic-choice-only"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
     const pEnd = await persisted(page);
-    // Against the brand after the nudge was undone: a zero nudge leaves `leadingShift: {}` (the legacy bytes).
     ok(JSON.stringify(pEnd) === JSON.stringify(pZero), `type: every edit after the nudge undone, the persisted brand is the one it was${JSON.stringify(pEnd) === JSON.stringify(pZero) ? '' : ` — typography ${JSON.stringify(pEnd?.typography)}, modeLevers ${JSON.stringify(pEnd?.modeLevers)}; was ${JSON.stringify(pZero?.typography)}`}`);
     ok(errors.length === 0, `type S6.3 edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -9126,10 +9139,11 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     const ft = await typeEdit('the type scale', '[data-p3="type-scale-compact"]', 'Scale');
     ok(ft.g.between >= 2, `QA-B9: without reduced motion the Type reveal glides through positions on its way (${ft.g.between} in-between over ${ft.g.steps} steps)`);
     await typeEdit('the type scale back', '[data-p3="type-scale-default"]', 'Scale');
-    await typeEdit('the caption floor (Scale limits)', '[data-p3="caption-floor-10"]', 'Scale');
-    await typeEdit('the caption floor back', '[data-p3="caption-floor-11"]', 'Scale');
-    await typeEdit('a weight tick', '[data-p3="weights-row"][data-group="eyebrow"] [data-p3="link-cell"]', 'Weights and styles');
-    await typeEdit('the same tick back', '[data-p3="weights-row"][data-group="eyebrow"] [data-p3="link-cell"]', 'Weights and styles');
+    // #3079: an edit in a card (caption sm's switch) reveals Scale; a link tick in Every text type, Weights and styles.
+    await typeEdit('caption sm (the Caption card)', EXTRA('caption', 'sm'), 'Scale');
+    await typeEdit('caption sm back', EXTRA('caption', 'sm'), 'Scale');
+    await typeEdit('a link tick', '[data-p3="link-cell"][data-group="eyebrow"]', 'Weights and styles');
+    await typeEdit('the same tick back', '[data-p3="link-cell"][data-group="eyebrow"]', 'Weights and styles');
     // Focusing a Type lever, and opening a picker, are not edits: the preview stays where it is.
     await setTop('preview-body', 0);
     await hooks.click(page.locator('[data-p3="weight-pick"][data-role="strong"]'));
@@ -13659,12 +13673,13 @@ const EXPECT_HEADINGS = {
   type: {
     // Heading pass 2 (TY1 A and HP2, #2190): the library and the family for each text type are two sections, each titled by
     // its lever's name; "Font families" is gone from the levers.
-    L1: ['Typeface library', 'Font family for each text type', 'Scale', 'Scale limits', 'Weights and styles', 'Line height and letter spacing'],
-    L2: ['Type scale', 'Individual sizes', 'Headings scale between mobile and desktop', 'Largest display size',
-      'Smallest title size', 'Smallest caption size', 'Smallest type size', 'Weights', 'Weights each text type ships', 'Italic styles', 'Pin a font style', 'Line height',
-      'Letter spacing', 'One step looser or tighter'],
-    L3: ['Set every text type to', 'Min viewport, px', 'Max viewport, px'],
-    TH: ['Family', 'Text type', 'Text type', 'Line height', 'Letter spacing', 'Desktop', 'Mobile'],
+    // #3079 (owner decision 2026-11-18 A): Scale, one card per text type (each card's name an L2, its menus and rows L3),
+    // then Every text type; read with Show advanced settings on.
+    L1: ['Typeface library', 'Font family for each text type', 'Scale', 'Text types', 'Every text type'],
+    L2: ['Type scale', 'Headings scale between mobile and desktop', 'Display', 'Largest display size', 'Title', 'Body', 'Label', 'Caption',
+      'Caption sizes', 'Eyebrow', 'Code', 'Weights', 'Underlined link styles', 'Underline thickness and offset', 'Line height', 'Letter spacing'],
+    L3: ['Show advanced settings', 'Set every text type to', 'Min viewport, px', 'Max viewport, px', 'Line height', 'Letter spacing', 'Weights it ships'],
+    TH: ['Family', 'Size', 'Desktop', 'Mobile', 'Size · fixed', 'All screens', 'Size · one size on every screen'],
   },
   shape: {
     // #3553 Q-UI14 A: Base radius sits in Radius, behind its Show advanced, a lever at L2 as Shadow tint is in Elevation.
@@ -13709,7 +13724,7 @@ const EXPECT_HEADINGS = {
 };
 /** Each page's Show advanced disclosures, opened before the sweep so the advanced levers' headings are measured too. */
 const HEADING_ADVANCED = {
-  'color-palettes': ['[data-p3="palettes-advanced"]'], type: ['[data-p3="scale-advanced"]', '[data-p3="type-sections-advanced"]'],
+  'color-palettes': ['[data-p3="palettes-advanced"]'], type: ['[data-p3="type-advanced"]'],
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
   // #2844: a family's settings are closed behind their line; the audit reads them open.
   components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
@@ -13727,8 +13742,10 @@ const HEADING_FLOOR = {
   // 54 → 50 and swept 77 → 74, each by what moved. The plugin's own hint line ("Choose a set in the preview…") is gone with
   // the radios, so its hints floor is 0; the web keeps its one ("Building sets needs the Figma plugin."), read in Light
   // and High contrast light, so HP3's rule keeps a subject (`hints` is per host below).
-  1280: { L1: 35, L2: 60, L3: 20, TH: 21, info: 50, tokenLabels: 288, hints: { web: 2, figma: 0 }, swept: 74 },
-  380: { L1: 35, L2: 60, L3: 20, TH: 21, info: 50, tokenLabels: 288, hints: { web: 2, figma: 0 }, swept: 74 },
+  // #3079: Type's weights matrix and nudge table, with their four table heads, are gone; its sizes tables gained heads,
+  // measured 17 across the nine pages, so TH 21 → 17.
+  1280: { L1: 35, L2: 60, L3: 20, TH: 17, info: 50, tokenLabels: 288, hints: { web: 2, figma: 0 }, swept: 74 },
+  380: { L1: 35, L2: 60, L3: 20, TH: 17, info: 50, tokenLabels: 288, hints: { web: 2, figma: 0 }, swept: 74 },
 };
 /** Elements a sweep may find with a heading's tag or a heading's weight or size that are not one of the levels, each with
  *  the reason it is not (a selector, then the reason; the reason is held to 20 characters or more). Empty when pass 1
@@ -13814,7 +13831,7 @@ const HEADING_PROBE = ({ strong, big, exempt, paneSel }) => {
     }
     return null;
   };
-  const TABLE_HEADS = '.p3-facehead, .p3-tsizes-head, .p3-wmatrix-head, .p3-tnudge-head';
+  const TABLE_HEADS = '.p3-facehead, .p3-tsizes-head';
   const found = [];
   const classified = new Set();
   const add = (level, n, kind, row, afterAt, hasUnder) => {
@@ -13944,7 +13961,8 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
           await showLevers(page, w);
           for (const sel of HEADING_ADVANCED[place] ?? []) {
             await hooks.need(page, sel);
-            if ((await page.locator(sel).getAttribute('aria-expanded')) === 'false') await hooks.click(page.locator(sel));
+            // #3079: Type's is a switch (aria-checked), the other pages' folds disclosures (aria-expanded).
+            if ((await page.locator(sel).getAttribute('aria-expanded')) === 'false' || (await page.locator(sel).getAttribute('aria-checked')) === 'false') await hooks.click(page.locator(sel));
           }
         }
         await page.evaluate(() => document.fonts.ready);
@@ -15540,7 +15558,8 @@ const RO_LINE = (name) => `${name} is auto-derived and can't be edited here. Swi
 /** RX1 A's exceptions, by hook: help, the Show advanced folds, the Jump to links, the "way to" links, Continue. */
 const RO_EXCEPTIONS = [
   'lever-info',
-  'scale-advanced', 'type-sections-advanced', 'shape-advanced', 'depth-tint-advanced',
+  // #3079 (Q3079.2 A): Type's two folds became its one Show advanced settings switch, a disclosure too.
+  'type-advanced', 'shape-advanced', 'depth-tint-advanced',
   'fills-jump-link', 'interactive-jump-link',
   'shape-see-components', 'components-density-link', 'type-fluid-layout',
   // #2909 Q2909.3 A: Control shape's read-only line on Shape only opens its home.
@@ -17048,8 +17067,9 @@ for (const host of ['web', 'figma']) {
       await goPlace(page, 'type');
       await shot('type');
       await openTypeAdvanced(page);
-      selected(await page.evaluate(FC_LOOK, '[data-p3="weights-matrix"] [role="checkbox"][aria-checked="true"]'),
-        await page.evaluate(FC_LOOK, '[data-p3="weights-matrix"] [role="checkbox"][aria-checked="false"]'), 'a weights matrix check');
+      // #3079: the weights each text type ships are a card's row of checks now.
+      selected(await page.evaluate(FC_LOOK, '[data-p3="weights-row"] [role="checkbox"][aria-checked="true"]'),
+        await page.evaluate(FC_LOOK, '[data-p3="weights-row"] [role="checkbox"][aria-checked="false"]'), 'a weights matrix check');
       ran.add('weights check');
       step = 'Type, the weight picker';
       await valuePick('[data-p3="weight-pick"]', 'the weight picker\'s value', 'type', 'type-value-picker');
@@ -17302,11 +17322,11 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
         // chip) while the clash shows leaves the region untouched.
         step = 'an unrelated edit while the clash shows';
         await page.evaluate(() => { window.__p3live.recs = []; });
-        await hooks.click(page.locator('[data-p3="caption-floor-10"]'), BOUND);
-        await page.waitForFunction(() => document.querySelector('[data-p3="caption-floor-10"]')?.getAttribute('aria-checked') === 'true', null, BOUND).catch(() => {});
+        await hooks.click(page.locator(EXTRA('caption', 'sm')), BOUND);
+        await page.waitForFunction((x) => document.querySelector(x)?.getAttribute('aria-checked') === 'true', EXTRA('caption', 'sm'), BOUND).catch(() => {});
         await settle(page);
         const lp = await live();
-        const redrew = await page.evaluate(() => document.querySelector('[data-p3="caption-floor-10"]')?.getAttribute('aria-checked') === 'true' && !!document.querySelector('[data-p3="type-scale-release"]'));
+        const redrew = await page.evaluate((x) => document.querySelector(x)?.getAttribute('aria-checked') === 'true' && !!document.querySelector('[data-p3="type-scale-release"]'), EXTRA('caption', 'sm'));
         ok(redrew && lp.same && lp.recs.length === 0 && JSON.stringify(lp.paras) === JSON.stringify([CLASH]),
           `${where0} prism3 pinned clash: (2) a line that stays is not announced again: an unrelated edit (caption floor 10px) leaves the region untouched (edit landed with the clash still shown ${redrew}, ${lp.recs.length} record(s) ${JSON.stringify(lp.recs)}, says ${JSON.stringify(lp.paras)}, same node ${lp.same})`);
         const lax = await axOf(page, LIVE);
@@ -17364,7 +17384,7 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //   · Title floor 16px under Compact (S63.titleFloorCompact): Type scale on Compact; lifted by Type scale Default.
 //   · Title floor 18px while title 2xs is set individually (S63.titleFloorPinned): Expressive, title floor 16px, then
 //     title 2xs's desktop size set to its first free value; lifted by resetting that size.
-//   · Caption floor 10px while caption md is set to 10px (S63.captionFloorPinned, #3084): caption md set to 10px through
+//   · Caption floor 10px while caption md is set to 10px (#3079: caption sm's switch, TYPE_VIEW_COPY.captionSmRefused): caption md set to 10px through
 //     its picker; lifted by resetting that size.
 //   · Italic only on a text type that pins a font style (S63.italicPinned): body's default weight pinned to "Medium";
 //     lifted by clearing the pin.
@@ -17387,23 +17407,26 @@ console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after 
 //     described by the reason (read {"role":"radiogroup","description":""})`, and each other case's (ii) (12);
 //   · (c) the line sent to the live region (drawn as a warning) → `§43 web light 1280 Title floor 16px under Compact: (iii) a
 //     hint doesn't announce: the drawn reason is in no live region (drawn 1, 1 live region(s) carrying it)`, each case (12).
-//   · (d) #3121: the caption floor's refusal on the 11px chip (`v: '11'` in `type.ts`), which disables the selected chip
-//     and leaves 10px live → `§43 web light 1280 Caption floor 10px with caption md at 10px: [data-p3="caption-floor-10"]
-//     is disabled, and every other chip in its group live (disabled: ["caption-floor-11"] of [...])` (4); survived before;
-//   · (e) #3121: the Compact refusal on the 18px chip → the same arm for `title-floor-16`, disabled: ["title-floor-18"] (4).
+//   · (d) #3121, and since #3079 the extra small sizes' switches: caption sm's refusal dropped (`captionSmRefused` not
+//     passed in `captionRows`) → `§43 web light 1280 Caption floor 10px with caption md at 10px: … is disabled, and every
+//     other chip in its group live (disabled: [] …)`, and its (i)–(iii) arms;
+//   · (e) the Compact refusal dropped from title 2xs's off row → the same arm for title 2xs under Compact.
 // =============================================================================================
 if (runs('43')) {
 console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor and Italic only (#2451, #3084)\n${'='.repeat(78)}`);
 {
   const COMPACT = 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.';
   const PINNED18 = 'Leaves out title 2xs, which you set individually.';
-  const CAPTION10 = 'Caption md is 10px, which you set individually, so the engine refuses a second 10px caption.';
-  const CFLOOR_ROW = '[data-p3="lever-typography-caption-floor"]';
-  const CFLOOR_GROUP = '[data-p3="caption-floor"]';
+  // #3079 (Q809 A, Q3079.8 A): the floors are the extra small sizes' switches, each on its own row; the switch is the
+  // control the reason describes, and the row holds the line. Caption sm's reason is #3079's DRAFT.
+  const CAPTION10 = 'Caption md is already 10px. Sizes stay in order.';
+  const CFLOOR_ROW = '[data-p3="type-extra-row"][data-group="caption"][data-variant="sm"]';
+  const CFLOOR_GROUP = EXTRA('caption', 'sm');
   const CAPMD = '[data-p3="caption-size"][data-variant="md"]';
   const ITALIC = 'This text type pins a font style. Clear the pin first: Italic only sets the style from the weight.';
-  const FLOOR_ROW = '[data-p3="lever-typography-title-floor"]';
-  const FLOOR_GROUP = '[data-p3="title-floor"]';
+  const FLOOR_ROW = '[data-p3="type-extra-row"][data-group="title"][data-variant="2xs"]';
+  const FLOOR_ON_ROW = '[data-p3="type-size-row"][data-group="title"][data-variant="2xs"]';
+  const FLOOR_GROUP = EXTRA('title', '2xs');
   const ITALIC_ROW = '[data-p3="italic-row"][data-group="body"]';
   const ITALIC_GROUP = '[data-p3="italic-row"][data-group="body"] [data-p3="italic-choice"]';
   const PIN = '[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]';
@@ -17477,30 +17500,30 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor a
       step = 'Type scale Compact';
       await hooks.click(page.locator('[data-p3="type-scale-compact"]'), BOUND);
       await checked(page, '[data-p3="type-scale-compact"]');
-      await chipOff(page, FLOOR_GROUP, '[data-p3="title-floor-16"]', true, `${where} Title floor 16px under Compact`);
+      await chipOff(page, FLOOR_ROW, FLOOR_GROUP, true, `${where} Title floor 16px under Compact`);
       await arms('Title floor 16px under Compact', FLOOR_ROW, FLOOR_GROUP, COMPACT, async () => {
         await hooks.click(page.locator('[data-p3="type-scale-default"]'), BOUND);
         await checked(page, '[data-p3="type-scale-default"]');
-        await chipOff(page, FLOOR_GROUP, '[data-p3="title-floor-16"]', false, `${where} Title floor 16px under Compact, lifted`);
+        await chipOff(page, FLOOR_ROW, FLOOR_GROUP, false, `${where} Title floor 16px under Compact, lifted`);
       });
       // Title floor 18px while title 2xs is set individually.
       step = 'Expressive, title floor 16px';
       await hooks.click(page.locator('[data-p3="type-scale-expressive"]'), BOUND);
       await checked(page, '[data-p3="type-scale-expressive"]');
-      await hooks.click(page.locator('[data-p3="title-floor-16"]'), BOUND);
-      await checked(page, '[data-p3="title-floor-16"]');
+      await hooks.click(page.locator(FLOOR_GROUP), BOUND);
+      await checked(page, FLOOR_GROUP);
       step = 'set title 2xs';
       await hooks.click(page.locator(T2XS), BOUND);
       await hooks.need(page, '[data-p3="value-picker"]', BOUND);
       const to = await firstFree(page);
       await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${to}"]`), BOUND);
       await closePicker(page);
-      await chipOff(page, FLOOR_GROUP, '[data-p3="title-floor-18"]', true, `${where} Title floor 18px with title 2xs set`);
-      await arms(`Title floor 18px with title 2xs set (${to}px)`, FLOOR_ROW, FLOOR_GROUP, PINNED18, async () => {
+      await chipOff(page, FLOOR_ON_ROW, FLOOR_GROUP, true, `${where} Title floor 18px with title 2xs set`);
+      await arms(`Title floor 18px with title 2xs set (${to}px)`, FLOOR_ON_ROW, FLOOR_GROUP, PINNED18, async () => {
         await hooks.click(page.locator(T2XS), BOUND);
         await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
         await closePicker(page);
-        await chipOff(page, FLOOR_GROUP, '[data-p3="title-floor-18"]', false, `${where} Title floor 18px with title 2xs set, lifted`);
+        await chipOff(page, FLOOR_ON_ROW, FLOOR_GROUP, false, `${where} Title floor 18px with title 2xs set, lifted`);
       });
       // Caption floor 10px while caption md is set to 10px (#3084).
       step = 'set caption md to 10px';
@@ -17508,12 +17531,12 @@ console.log(`\nRefusal reasons drawn as hint lines: Title floor, Caption floor a
       await hooks.need(page, '[data-p3="value-picker"]', BOUND);
       await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="10"]'), BOUND);
       await closePicker(page);
-      await chipOff(page, CFLOOR_GROUP, '[data-p3="caption-floor-10"]', true, `${where} Caption floor 10px with caption md at 10px`);
+      await chipOff(page, CFLOOR_ROW, CFLOOR_GROUP, true, `${where} Caption floor 10px with caption md at 10px`);
       await arms('Caption floor 10px with caption md at 10px', CFLOOR_ROW, CFLOOR_GROUP, CAPTION10, async () => {
         await hooks.click(page.locator(CAPMD), BOUND);
         await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-reset"]'), BOUND);
         await closePicker(page);
-        await chipOff(page, CFLOOR_GROUP, '[data-p3="caption-floor-10"]', false, `${where} Caption floor 10px with caption md at 10px, lifted`);
+        await chipOff(page, CFLOOR_ROW, CFLOOR_GROUP, false, `${where} Caption floor 10px with caption md at 10px, lifted`);
       });
       // Italic only on a text type that pins a font style.
       step = 'pin body\'s font style';
@@ -17636,7 +17659,8 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
       // A6: an emptied minimum viewport puts its value back.
       step = 'open Type';
       await goPlace(page, 'type');
-      for (const s of ['[data-p3="type-sections-advanced"]']) if (!(await page.locator('[data-p3="type-min-viewport"]').count()) && (await page.locator(s).count())) await hooks.click(page.locator(s), BOUND);
+      // #3079: the viewports are Scale's advanced row, shown by the page's one switch.
+      if (!(await page.locator('[data-p3="type-min-viewport"]').count())) await openTypeAdvanced(page);
       await hooks.need(page, '[data-p3="type-min-viewport"]', BOUND);
       step = 'empty the minimum viewport';
       const vp = page.locator('[data-p3="type-min-viewport"]');
@@ -20327,7 +20351,7 @@ for (const host of ['web', 'figma']) {
     else {
       ok(display?.note === FIGMA_CUT, `${where}: FIGMA the display line says it falls back and Figma skips its 600 style (${JSON.stringify(display?.note)})`);
       step = 'Show advanced, for Weights and styles';
-      await hooks.click(page.locator('[data-p3="type-sections-advanced"]'));
+      await openTypeAdvanced(page);
       await hooks.need(page, '[data-p3="weight-cuts-note"]', { timeout: 10000 });
       const weightNotes = await page.locator('[data-p3="weight-cuts-note"]').allTextContents();
       ok(weightNotes.includes(WEIGHT_NOTE), `${where}: FIGMA the weight control names Playfair Display's two styles and the weights with no cut (${JSON.stringify(weightNotes)})`);
@@ -21939,7 +21963,9 @@ const RHYTHM_PLACES = {
   brand: { rows: 5, pairs: 1 }, 'color-palettes': { rows: 8, pairs: 4 }, 'color-fills': { rows: 5, pairs: 0 },
   // #3335: the settings card holds 3 levers (2 pairs), Disabled 1, Links 1; the action palette and the neutral emphasis
   // each open a set's card alone.
-  'color-interactive': { rows: 9, pairs: 4 }, type: { rows: 19, pairs: 12 }, shape: { rows: 4, pairs: 1 }, depth: { rows: 4, pairs: 1 },
+  'color-interactive': { rows: 9, pairs: 4 },
+  // #3079: Type's per-text-type levers moved into one card each, a card one row; measured 18 rows and 4 pairs.
+  type: { rows: 18, pairs: 4 }, shape: { rows: 4, pairs: 1 }, depth: { rows: 4, pairs: 1 },
   layout: { rows: 4, pairs: 1 }, components: { rows: 19, pairs: 10 }, export: { rows: 5, pairs: 4 },
 };
 /** Every control the second check holds off a name. */
@@ -22025,7 +22051,8 @@ if (runs('3337')) {
           await showLevers(page, w);
           for (const sel of HEADING_ADVANCED[place] ?? []) {
             await hooks.need(page, sel);
-            if ((await page.locator(sel).getAttribute('aria-expanded')) === 'false') await hooks.click(page.locator(sel));
+            // #3079: Type's is a switch (aria-checked), the other pages' folds disclosures (aria-expanded).
+            if ((await page.locator(sel).getAttribute('aria-expanded')) === 'false' || (await page.locator(sel).getAttribute('aria-checked')) === 'false') await hooks.click(page.locator(sel));
           }
         }
         await settle(page);
@@ -23550,6 +23577,137 @@ if (runs('3976')) {
     } finally { await ctx.close(); }
   }
 } // 3976
+// =============================================================================================
+// 3079. #3079 (owner decision 2026-11-18 A): the Type view laid out around the text types. Light, prism3, at 1280.
+//   · (a) both hosts: one Show advanced settings switch, off on arrival, and no Show advanced fold; the levers' sections
+//     read Typeface library, Font family for each text type, Scale, Text types, and Every text type joins only with the
+//     switch on; one card per text type, in order, each naming its family read-only and holding a Line height and a
+//     Letter spacing menu; with the switch off no card draws advanced rows, with it on every card does (Q3079.1 A, 2 A).
+//   · (b) web: body's Line height menu lists Default and every line height name, each a real value with its token name
+//     (Q808 A); picking 1.65 writes typography.leading.body = relaxed and no leadingShift; Default removes it, and the
+//     brand returns to its bytes (Q3079.4 A).
+//   · (c) web, a stored nudge (the test edit hook): title's leadingShift +1 lands on two values, so the menu reads them
+//     and holds a Current entry, checked (Q3079.5 A); eyebrow's trackingShift -1 lands on one value, so that value is
+//     checked and there is no Current. Picking a value writes the pin and removes the nudge.
+//   · (d) web: Display's Letter spacing reaches +1% (open), which no nudge reaches (Q808 A's "every role reachable").
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the section titles, the card order, the family line's words, the
+// default line height and letter spacing ladders copied by hand from the engine's tables (tight 1.05 … loose 1.75;
+// tightest −4% … wider +5%), the rung each pick must write, and the values a +1 title nudge lands on, worked out by
+// hand from the engine's size rule (title xs–md cozy 1.40, lg–2xl compact 1.25). ACTUAL is the browser's: the drawn
+// DOM and the PERSISTED brand (`prism3:brandInput`). Nothing is read from `type.ts`, `type-input.ts` or `pages.ts`.
+//
+// On main this whole section fails: Type there has two folds, no switch and no cards. Mutations, each after a `wip:`
+// commit, each failing here by name:
+//   · `setSpacing` keeping the nudge (its `dropKey(spec.shift, g)` removed) → `§3079 web: (c) picking 1.50 for title
+//     writes typography.leading.title normal and removes leadingShift.title …`;
+//   · the cards drawn in another order (`TYPE_GROUP_ORDER` reversed in `typesSection`) → `§3079 web: (a) one card per
+//     text type, in order …`.
+// =============================================================================================
+if (runs('3079')) {
+console.log(`\nType around the text types (#3079)\n${'='.repeat(78)}`);
+{
+  const SECTIONS = ['Typeface library', 'Font family for each text type', 'Scale', 'Text types'];
+  const CARDS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
+  const LH = ['1.05', '1.15', '1.25', '1.40', '1.50', '1.65', '1.75'];
+  const LH_TOK = ['tight', 'snug', 'compact', 'cozy', 'normal', 'relaxed', 'loose'].map((r) => `line-height-role.${r}`);
+  const LS = ['−4%', '−3%', '−2%', '−1.5%', '−1%', '0%', '+1%', '+2%', '+5%'];
+  const BOUND = { timeout: 10000 };
+  const read = (page) => page.evaluate(() => {
+    const pane = document.querySelector('[data-p3="levers-pane"]');
+    return {
+      sw: document.querySelector('[data-p3="type-advanced"]')?.getAttribute('aria-checked') ?? null,
+      // Any Show advanced fold: a disclosure naming a `p3-advb-` body (the form Type's two folds had).
+      folds: pane.querySelectorAll('[aria-controls^="p3-advb-"]').length,
+      secs: [...pane.querySelectorAll('[data-p3="lever-section"] .p3-lsec-title')].map((n) => n.textContent),
+      cards: [...pane.querySelectorAll('[data-p3="type-card"]')].map((n) => ({ g: n.dataset.group, fam: n.querySelector('[data-p3="type-card-family"]')?.textContent ?? null,
+        lh: !!n.querySelector('[data-p3="type-lh"]'), ls: !!n.querySelector('[data-p3="type-ls"]'), adv: !!n.querySelector('[data-p3="type-card-advanced"]') })),
+    };
+  });
+  /** The open menu's entries: each value's words and its secondary text, and which is checked. */
+  const menu = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="value-picker"] [data-p3="value-picker-value"]')].map((b) => ({
+    v: b.dataset.value, label: b.querySelector('.p3-vpick-key')?.firstChild?.textContent ?? null, note: b.querySelector('.p3-vpick-note')?.textContent ?? null, on: b.getAttribute('aria-pressed') === 'true' })));
+  const openMenu = async (page, sel) => {
+    if ((await page.locator(sel).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(sel), BOUND);
+    await hooks.need(page, '[data-p3="value-picker"]', BOUND);
+  };
+  const choose = async (page, sel, v) => {
+    await openMenu(page, sel);
+    await hooks.click(page.locator(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${v}"]`), BOUND);
+    await page.waitForFunction((x) => document.querySelector(`[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="${x}"]`)?.getAttribute('aria-pressed') === 'true', String(v), BOUND).catch(() => {});
+    if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+  };
+  for (const host of ['web', 'figma']) {
+    const where = `§3079 ${host}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, query: host === 'web' ? '?p3-test-hooks' : '' });
+    let step = 'open Type';
+    try {
+      await goPlace(page, 'type');
+      await hooks.need(page, '[data-p3="type-card"]', BOUND);
+      // (a)
+      const off = await read(page);
+      ok(off.sw === 'false' && off.folds === 0, `${where}: (a) one Show advanced settings switch, off on arrival, and no Show advanced fold (switch ${off.sw}, folds ${off.folds})`);
+      ok(JSON.stringify(off.secs) === JSON.stringify(SECTIONS), `${where}: (a) the sections read ${SECTIONS.join(', ')} with the switch off (${JSON.stringify(off.secs)})`);
+      ok(JSON.stringify(off.cards.map((c) => [c.g, c.lh, c.ls])) === JSON.stringify(CARDS.map((g) => [g, true, true])),
+        `${where}: (a) one card per text type, in order ${CARDS.join(', ')}, each with a Line height and a Letter spacing menu (${JSON.stringify(off.cards.map((c) => [c.g, c.lh, c.ls]))})`);
+      ok(off.cards.find((c) => c.g === 'body')?.fam === 'Inter · set in Font family for each text type', `${where}: (a) the Body card names its family read-only ("${off.cards.find((c) => c.g === 'body')?.fam}")`);
+      ok(off.cards.length === CARDS.length && off.cards.every((c) => !c.adv), `${where}: (a) with the switch off, no card draws advanced rows (${off.cards.filter((c) => c.adv).map((c) => c.g).join(', ') || 'none'})`);
+      step = 'switch on';
+      await openTypeAdvanced(page);
+      const on = await read(page);
+      ok(JSON.stringify(on.secs) === JSON.stringify([...SECTIONS, 'Every text type']) && on.cards.length === CARDS.length && on.cards.every((c) => c.adv),
+        `${where}: (a) with the switch on, Every text type joins and every card draws its advanced rows (${JSON.stringify(on.secs)}; advanced ${on.cards.filter((c) => c.adv).length}/${on.cards.length})`);
+      if (host === 'web') {
+        // (b)
+        step = 'body line height menu';
+        const p0 = await persisted(page);
+        await openMenu(page, '[data-p3="type-lh"][data-group="body"]');
+        const m = await menu(page);
+        ok(JSON.stringify(m.map((x) => x.label)) === JSON.stringify(['Default · 1.50', ...LH]) && JSON.stringify(m.slice(1).map((x) => x.note)) === JSON.stringify(LH_TOK) && m[0].on,
+          `${where}: (b) body's Line height menu lists Default (checked) and every line height as a value with its token name (${JSON.stringify(m.map((x) => [x.label, x.note, x.on]))})`);
+        await choose(page, '[data-p3="type-lh"][data-group="body"]', 5);
+        const p1 = await persisted(page);
+        ok(p1?.typography?.leading?.body === 'relaxed' && p1?.typography?.leadingShift === undefined,
+          `${where}: (b) picking 1.65 writes typography.leading.body relaxed and no leadingShift (${JSON.stringify(p1?.typography)})`);
+        await choose(page, '[data-p3="type-lh"][data-group="body"]', -1);
+        ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), `${where}: (b) Default removes the pin: the brand returns to its bytes (${JSON.stringify((await persisted(page))?.typography)})`);
+        // (c)
+        step = 'stored nudges';
+        await page.evaluate(() => { window.__prism3TestEdit('typography.leadingShift', { title: 1 }); });
+        await page.evaluate(() => { window.__prism3TestEdit('typography.trackingShift', { eyebrow: -1 }); });
+        await page.waitForFunction(() => /1\.40 \/ 1\.25/.test(document.querySelector('[data-p3="type-lh"][data-group="title"]')?.textContent ?? ''), null, BOUND).catch(() => {});
+        const tBtn = await page.evaluate(() => document.querySelector('[data-p3="type-lh"][data-group="title"] .p3-btn-label')?.textContent ?? null);
+        ok(tBtn === '1.40 / 1.25', `${where}: (c) title's +1 nudge lands on two values, and its menu reads them, smallest size first ("${tBtn}")`);
+        await openMenu(page, '[data-p3="type-lh"][data-group="title"]');
+        const tm = await menu(page);
+        ok(tm[0]?.label === 'Current · 1.40 / 1.25' && tm[0]?.on && tm[0]?.note === 'xs–md / lg–2xl. Set as steps from the default; pick a value to replace it.' && tm[1]?.label === 'Default · 1.25 / 1.15' && tm.filter((x) => x.on).length === 1,
+          `${where}: (c) title's menu holds Current, checked, then Default (${JSON.stringify(tm.slice(0, 2))})`);
+        if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+        await openMenu(page, '[data-p3="type-ls"][data-group="eyebrow"]');
+        const em = await menu(page);
+        ok(!em.some((x) => /^Current/.test(x.label ?? '')) && em.filter((x) => x.on).map((x) => x.label).join() === '+2%',
+          `${where}: (c) eyebrow's -1 nudge lands on one value, +2%, which is checked, with no Current entry (${JSON.stringify(em.filter((x) => x.on))})`);
+        if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+        await choose(page, '[data-p3="type-lh"][data-group="title"]', 4);
+        const p2 = await persisted(page);
+        ok(p2?.typography?.leading?.title === 'normal' && p2?.typography?.leadingShift === undefined && p2?.typography?.trackingShift?.eyebrow === -1,
+          `${where}: (c) picking 1.50 for title writes typography.leading.title normal and removes leadingShift.title, leaving eyebrow's nudge (${JSON.stringify(p2?.typography)})`);
+        // (d)
+        step = 'display letter spacing';
+        await openMenu(page, '[data-p3="type-ls"][data-group="display"]');
+        const dm = await menu(page);
+        ok(JSON.stringify(dm.slice(1).map((x) => x.label)) === JSON.stringify(LS), `${where}: (d) Display's Letter spacing lists every letter spacing, open's +1% included (${JSON.stringify(dm.map((x) => x.label))})`);
+        if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'), BOUND);
+        await choose(page, '[data-p3="type-ls"][data-group="display"]', 6);
+        ok((await persisted(page))?.typography?.tracking?.display === 'open', `${where}: (d) picking +1% writes typography.tracking.display open (${JSON.stringify((await persisted(page))?.typography?.tracking)})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+} // 3079
 // ── #3938: the token list's dropdowns are the shared select, and its caption row lines up ───────────────────────
 // The owner's Q-BK1 A (2026-11-17): the token list's Show and Category dropdowns move off the legacy `.select` onto the
 // chrome's `.p3-select` (lever-kit `selectField`). The legacy box was taller than the Alias path segmented control

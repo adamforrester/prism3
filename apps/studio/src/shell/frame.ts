@@ -127,8 +127,9 @@ export const DERIVED_READONLY_NOTE = (m: string): string => `${m} is auto-derive
 
 /** RX1 A (owner, 2026-10-07): what stays usable in a derived mode's read-only levers panel, because it edits nothing:
  *  the ⓘ help buttons, the Show advanced folds (each names its body `p3-advb-…`), the Jump to links, the "way to" links
- *  between pages, and Continue. Everything else in the panel that a keyboard or a pointer can operate is a setting. */
-const STAYS_LIVE = ['.p3-info', '[aria-controls^="p3-advb-"]', '.p3-jump-link', '.p3-deplink', '.p3-next'].join(', ');
+ *  between pages, and Continue. Everything else in the panel that a keyboard or a pointer can operate is a setting.
+ *  #3079: Type's Show advanced settings switch (`.p3-disclose`) only shows rows, so it stays live as the folds do. */
+const STAYS_LIVE = ['.p3-info', '[aria-controls^="p3-advb-"]', '.p3-disclose', '.p3-jump-link', '.p3-deplink', '.p3-next'].join(', ');
 /** Everything a keyboard or a pointer can operate (#1991's reach: native controls, ARIA widgets, editable regions and
  *  anything in the tab order). */
 const OPERABLE = ['button', 'select', 'textarea', 'input:not([type="hidden"])', 'a[href]', '[contenteditable]:not([contenteditable="false"])',
