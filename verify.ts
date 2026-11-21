@@ -750,6 +750,13 @@ export const GATES: Gate[] = [
     cmd: engine('lint-contract-version.ts'),
   },
   {
+    // #1325 — the component contract (the component-API surface) and the component schema (the shape of one published
+    // entry), against a baseline only `--accept` writes, each against its own version in version.ts.
+    id: 'component-contract',
+    ciStep: 'Component contract and component schema (breaking-change gate, #1325)',
+    cmd: engine('component-contract.ts', '--check'),
+  },
+  {
     // #2637 — docs/public/reference/commands.json against the code it is generated from. Reads the source
     // files only, so it needs no `after`.
     id: 'agent-reference',

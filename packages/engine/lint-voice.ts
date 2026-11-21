@@ -550,6 +550,8 @@ const gated: string[] = [
   // The token-name baseline — deliberately not a `regen` artifact (see CLAUDE.md principle 5), so
   // named by hand here exactly as lint-us-english.ts names it.
   join(repo, 'packages/engine/schema/token-contract.json'),
+  // The component-contract baseline (#1325) — kept out of `regen` for the same reason, named by hand the same way.
+  join(repo, 'packages/engine/schema/component-contract.json'),
   // The paint census (#758) — the second baseline kept out of `regen`, named by hand for the same reason.
   join(repo, 'packages/engine/schema/paint-census.json'),
   // The docs/34 shape-index baseline (#786) — the third, same reason. Its shape titles are quoted

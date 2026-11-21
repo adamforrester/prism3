@@ -17,6 +17,10 @@ so that `tree.ts` can stamp a version into every emitted artifact without an imp
 |---|---|---|---|
 | `ENGINE_VERSION` | *what code produced this file?* | any behavior change, **including a pure value change** — and the observable surface is wider than `out/` (see the next section) | `$extensions.generator.version` in every emitted tree; MCP `serverInfo.version`; gated against the projected component surface in `packages/engine/schema/component-surface.json` |
 | `CONTRACT_VERSION` | *can my app still resolve the names it references?* | **only** when the guaranteed token-name surface moves | `contractVersion` in `packages/engine/schema/token-contract.json` |
+| `COMPONENT_CONTRACT_VERSION` | *can my file and my code still resolve the component API they reference?* | **only** when the component contract moves: a def's names, props, defaults, values, states, variants or slots | `componentContractVersion` in `packages/engine/schema/component-contract.json` (#1325, below) |
+| `COMPONENT_SCHEMA_VERSION` | *can my reader still parse a component contract?* | **only** when the component schema's shape moves | `componentSchemaVersion` there too; its MAJOR.MINOR is the export's `format` |
+
+The last two are the token pair's pattern one layer over, and they have their own section below.
 
 The split is the useful part. A consumer app writes `prism.color.text.primary` into a stylesheet. It
 does not care that the brand's primary hue moved four degrees — that is the engine doing its job. It
@@ -533,6 +537,71 @@ classified against this table. Releases start at 0.234.0, the oldest version wit
 both sides of its diff. The plugin's Update check shows the version's breaking and new Figma items for
 the sets it would change, read from `index.json`.
 
+## The component contract and the component schema (#1325, owner decision Q-CC1 A, 2026-11-18)
+
+The words follow Nathan Curtis, *Component Contracts and Schemas*: a **component contract** is one
+component's spec as data, and the **component schema** is the model a contract is written in. The two
+are versioned apart, and apart from the token contract. Where both kinds appear, "contract" is always
+qualified: a **component contract** or a **token contract**.
+
+Why a third and fourth number, rather than folding components into `CONTRACT_VERSION` (#1325 Option 2):
+a token consumer and a component consumer hold different names. One number for both would bump for a
+token-only consumer on every component rename, and the other way round, and stop meaning anything to
+either. It is the same argument that split `CONTRACT_VERSION` from `ENGINE_VERSION`, one layer over.
+`ENGINE_VERSION` and `component-surface.json` still detect any change to the projection; they cannot
+tell an added variant from a renamed one, and these two numbers can.
+
+**What the component contract records**, per registered def: its id, `name` and `status`; each prop's
+type, whether it is required, its default, its values, `deprecated`, and a slot prop's `anyOf`,
+`minItems` and `maxItems`; the def's states; its variant axes and their values; and its slot parts.
+An enum prop's type is recorded as `enum`, because its values already carry the API. Prose, tokens and
+geometry are not recorded: they are values, and values are not versioned.
+
+**What the component schema records** is the shape of one published entry, read from
+`schema/component-defs.schema.json` with its prose left out: types, consts, enum members, required
+members, property names, refs and bounds. Its MAJOR.MINOR is that schema's `$id` and the published
+`format` (`prism3-component-defs/<major>.<minor>`); the gate holds the three together.
+
+| change to the component contract | level | why |
+|---|---|---|
+| a component, prop, prop value, state, variant axis, axis value or slot is **removed or renamed** | MAJOR | a reference in a file or in code resolves to nothing |
+| a prop is **retyped**, becomes **required**, or is added as required | MAJOR | an instance that did nothing wrong is now invalid |
+| a slot's `minItems` rises, or its `maxItems` falls or appears; an `anyOf` id is removed | MAJOR | content that was valid is not |
+| a status moves back to `draft` | MAJOR | a promise is withdrawn |
+| any of the above is **added**; a prop becomes optional; a prop is (un)deprecated; a slot bound loosens; a status moves forward | MINOR | nothing that already resolves changes |
+| a prop's **default** moves | PATCH | the release-notes table's "fix": the name holds, the value under it moves. Still recorded, so the gate names it |
+
+| change to the component schema | level |
+|---|---|
+| a shape fact is removed (a field, a required member, an enum member; a retype removes the old type) | MAJOR |
+| shape facts are only added (an optional field, a required member, an enum member) | MINOR |
+| prose only (`description`, `$comment`, `title`) | none |
+
+**Every def is recorded, `draft` included.** #1325 floated "the component contract begins guaranteeing a
+component once it leaves draft". Every def is `draft` today, so that reading would gate nothing. The
+status is recorded instead, so a consumer sees what is still draft. Narrowing the promise to non-draft
+defs is a policy change for this section.
+
+**The gate** is the token contract's, with the same rule: a gate allowed to rewrite what it reads has no
+memory.
+
+```
+npx tsx packages/engine/component-contract.ts --check     # fail (exit 1) if either surface moved
+npx tsx packages/engine/component-contract.ts --accept    # rewrite the baseline (requires each bump)
+```
+
+`schema/component-contract.json` is not a `regen.ts` artifact; `--accept` writes it, and refuses until
+each version has moved by at least the increment its diff needs. Both modes compare the numbers too: a
+constant below the baseline, or above it with nothing to record, fails by name. A PR raises these two
+constants itself, in the PR that moves the surface; the fold assigns `ENGINE_VERSION` only.
+
+**Stated limit.** Both sides of that number comparison live in the tree, so writing an old number back
+into `version.ts` **and** the baseline after an `--accept` passes `--check`. `lint-contract-version.ts`
+closes that hole for the token contract by reading the merge base; the component twin is a follow-up.
+
+**Renames** keep going through `component-renames.ts`, which migrates Figma instances in place. A rename
+recorded there is still MAJOR here: a name in code or in an agent's notes does not move with it.
+
 ## What this does *not* cover
 
 - **Values.** By design, per above.
@@ -549,10 +618,14 @@ the sets it would change, read from `index.json`.
   three. The stock CSS `font` shorthand carries `fontStyle` today; `textDecoration` and `textCase` aren't
   in the shorthand. They are sub-values of a guaranteed name, not names, so adding, removing or changing
   one moves no `CONTRACT_VERSION`. The consumer-facing table is in `packages/tokens/README.md`.
-- **The code-side prop API.** `#1252` covers the FIGMA projection, which is what `figmaAnatomySet`
-  computes. A def's `variantAxes` also reach a React prop table, and that is a real consumer surface
-  nothing here measures — a def could move it without moving a projected member. Filed rather than
-  smuggled in; `ENGINE_VERSION` should still bump for it under the rule above.
+- **The code-side prop API beyond the component contract.** `#1252` covers the FIGMA projection, which is
+  what `figmaAnatomySet` computes, and since #1325 the component contract covers each def's prop names,
+  types, defaults and values. What neither measures is how a code library renders those props; that
+  waits for the code tier (#3408).
+- **Figma property and layer names in the component contract.** A designer's override references a
+  projected property or layer name. `component-surface.json` detects a move under `ENGINE_VERSION` and
+  `component-renames.ts` migrates it, but the component contract does not classify it yet (#1325's open
+  scope question, for the owner).
 - **`brandDependent` paths.** Real tokens, but conditional on input; binding to one is the
   consumer's risk to take, and the file lists them so the risk is at least visible.
 - **The `BrandInput` schema.** Versioned separately by `PERSIST_VERSION` in `persist-input.ts`,

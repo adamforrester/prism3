@@ -286,6 +286,7 @@ export const CLI = [
   'packages/engine/mcp.ts',
   'packages/engine/regen.ts',
   'packages/engine/token-contract.ts',
+  'packages/engine/component-contract.ts',
   'packages/engine/materialise-to-figma.ts',
   'fold.ts',
   'packages/engine/release-notes.ts',

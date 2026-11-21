@@ -1,0 +1,5935 @@
+{
+  "componentContractVersion": "2.1.0",
+  "componentSchemaVersion": "1.6.0",
+  "note": "Written by packages/engine/component-contract.ts --accept alone; do not hand-edit, and never regenerate it. `components` is the component-contract surface: per component, its name and status, its props (type, required, default, values), states, variant axes and values, and slots. `schema.shape` is the component schema: the shape of one published entry, read from the JSON schema named in `schema.source`, with its prose left out. Removing or renaming a name is a MAJOR change, adding one is MINOR, and moving a default is a PATCH; docs/30 has the full table.",
+  "schema": {
+    "source": "packages/engine/schema/component-defs.schema.json",
+    "shape": [
+      "# additionalProperties=false",
+      "# required∋brand",
+      "# required∋components",
+      "# required∋contractVersion",
+      "# required∋engineVersion",
+      "# required∋format",
+      "# required∋generated",
+      "# required∋note",
+      "# type=\"object\"",
+      "#/$defs/axis",
+      "#/$defs/axis additionalProperties=false",
+      "#/$defs/axis required∋kind",
+      "#/$defs/axis required∋values",
+      "#/$defs/axis type=\"object\"",
+      "#/$defs/axis/properties/kind",
+      "#/$defs/axis/properties/kind enum∋\"authoring\"",
+      "#/$defs/axis/properties/kind enum∋\"runtime\"",
+      "#/$defs/axis/properties/values",
+      "#/$defs/axis/properties/values minItems=1",
+      "#/$defs/axis/properties/values type=\"array\"",
+      "#/$defs/axis/properties/values uniqueItems=true",
+      "#/$defs/axis/properties/values/items minLength=1",
+      "#/$defs/axis/properties/values/items type=\"string\"",
+      "#/$defs/brand",
+      "#/$defs/brand additionalProperties=false",
+      "#/$defs/brand required∋id",
+      "#/$defs/brand required∋mode",
+      "#/$defs/brand required∋name",
+      "#/$defs/brand required∋root",
+      "#/$defs/brand required∋settings",
+      "#/$defs/brand type=\"object\"",
+      "#/$defs/brand/properties/id",
+      "#/$defs/brand/properties/id minLength=1",
+      "#/$defs/brand/properties/id type=\"string\"",
+      "#/$defs/brand/properties/mode",
+      "#/$defs/brand/properties/mode minLength=1",
+      "#/$defs/brand/properties/mode type=\"string\"",
+      "#/$defs/brand/properties/name",
+      "#/$defs/brand/properties/name minLength=1",
+      "#/$defs/brand/properties/name type=\"string\"",
+      "#/$defs/brand/properties/root",
+      "#/$defs/brand/properties/root minLength=1",
+      "#/$defs/brand/properties/root type=\"string\"",
+      "#/$defs/brand/properties/settings",
+      "#/$defs/brand/properties/settings $ref=\"#/$defs/settings\"",
+      "#/$defs/def",
+      "#/$defs/def additionalProperties=false",
+      "#/$defs/def required∋accessibility",
+      "#/$defs/def required∋ai",
+      "#/$defs/def required∋aliases",
+      "#/$defs/def required∋category",
+      "#/$defs/def required∋composition",
+      "#/$defs/def required∋description",
+      "#/$defs/def required∋docs",
+      "#/$defs/def required∋id",
+      "#/$defs/def required∋name",
+      "#/$defs/def required∋props",
+      "#/$defs/def required∋states",
+      "#/$defs/def required∋status",
+      "#/$defs/def required∋summary",
+      "#/$defs/def required∋syncBoundary",
+      "#/$defs/def required∋variants",
+      "#/$defs/def type=\"object\"",
+      "#/$defs/def/properties/accessibility",
+      "#/$defs/def/properties/accessibility additionalProperties=false",
+      "#/$defs/def/properties/accessibility type=\"object\"",
+      "#/$defs/def/properties/accessibility/properties/aria",
+      "#/$defs/def/properties/accessibility/properties/aria $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/accessibility/properties/focus",
+      "#/$defs/def/properties/accessibility/properties/focus $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/accessibility/properties/keyboard",
+      "#/$defs/def/properties/accessibility/properties/keyboard $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/accessibility/properties/role",
+      "#/$defs/def/properties/accessibility/properties/role $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/accessibility/properties/wcag",
+      "#/$defs/def/properties/accessibility/properties/wcag $ref=\"#/$defs/texts\"",
+      "#/$defs/def/properties/ai",
+      "#/$defs/def/properties/ai additionalProperties=false",
+      "#/$defs/def/properties/ai required∋avoidWhen",
+      "#/$defs/def/properties/ai required∋commonPartners",
+      "#/$defs/def/properties/ai required∋primaryPurpose",
+      "#/$defs/def/properties/ai required∋triggerKeywords",
+      "#/$defs/def/properties/ai required∋whenToUse",
+      "#/$defs/def/properties/ai type=\"object\"",
+      "#/$defs/def/properties/ai/properties/avoidWhen",
+      "#/$defs/def/properties/ai/properties/avoidWhen $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/ai/properties/commonPartners",
+      "#/$defs/def/properties/ai/properties/commonPartners $ref=\"#/$defs/ids\"",
+      "#/$defs/def/properties/ai/properties/generationPriority",
+      "#/$defs/def/properties/ai/properties/generationPriority minimum=0",
+      "#/$defs/def/properties/ai/properties/generationPriority type=\"integer\"",
+      "#/$defs/def/properties/ai/properties/primaryPurpose",
+      "#/$defs/def/properties/ai/properties/primaryPurpose $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/ai/properties/triggerKeywords",
+      "#/$defs/def/properties/ai/properties/triggerKeywords type=\"array\"",
+      "#/$defs/def/properties/ai/properties/triggerKeywords/items minLength=1",
+      "#/$defs/def/properties/ai/properties/triggerKeywords/items type=\"string\"",
+      "#/$defs/def/properties/ai/properties/whenToUse",
+      "#/$defs/def/properties/ai/properties/whenToUse $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/aliases",
+      "#/$defs/def/properties/aliases type=\"array\"",
+      "#/$defs/def/properties/aliases/items minLength=1",
+      "#/$defs/def/properties/aliases/items type=\"string\"",
+      "#/$defs/def/properties/category",
+      "#/$defs/def/properties/category enum∋\"data\"",
+      "#/$defs/def/properties/category enum∋\"feedback\"",
+      "#/$defs/def/properties/category enum∋\"form\"",
+      "#/$defs/def/properties/category enum∋\"foundations\"",
+      "#/$defs/def/properties/category enum∋\"layout\"",
+      "#/$defs/def/properties/category enum∋\"navigation\"",
+      "#/$defs/def/properties/category enum∋\"overlay\"",
+      "#/$defs/def/properties/composition",
+      "#/$defs/def/properties/composition additionalProperties=false",
+      "#/$defs/def/properties/composition required∋alternativeTo",
+      "#/$defs/def/properties/composition required∋composesWith",
+      "#/$defs/def/properties/composition required∋planned",
+      "#/$defs/def/properties/composition required∋replacesPatterns",
+      "#/$defs/def/properties/composition required∋supersededBy",
+      "#/$defs/def/properties/composition required∋supersedes",
+      "#/$defs/def/properties/composition type=\"object\"",
+      "#/$defs/def/properties/composition/properties/alternativeTo",
+      "#/$defs/def/properties/composition/properties/alternativeTo $ref=\"#/$defs/ids\"",
+      "#/$defs/def/properties/composition/properties/composesWith",
+      "#/$defs/def/properties/composition/properties/composesWith $ref=\"#/$defs/ids\"",
+      "#/$defs/def/properties/composition/properties/planned",
+      "#/$defs/def/properties/composition/properties/planned $ref=\"#/$defs/ids\"",
+      "#/$defs/def/properties/composition/properties/replacesPatterns",
+      "#/$defs/def/properties/composition/properties/replacesPatterns $ref=\"#/$defs/texts\"",
+      "#/$defs/def/properties/composition/properties/supersededBy",
+      "#/$defs/def/properties/composition/properties/supersededBy $ref=\"#/$defs/ids\"",
+      "#/$defs/def/properties/composition/properties/supersedes",
+      "#/$defs/def/properties/composition/properties/supersedes $ref=\"#/$defs/ids\"",
+      "#/$defs/def/properties/content",
+      "#/$defs/def/properties/content additionalProperties=false",
+      "#/$defs/def/properties/content type=\"object\"",
+      "#/$defs/def/properties/content/properties/dialogPattern",
+      "#/$defs/def/properties/content/properties/dialogPattern $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/content/properties/emptyPattern",
+      "#/$defs/def/properties/content/properties/emptyPattern $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/content/properties/errorPattern",
+      "#/$defs/def/properties/content/properties/errorPattern $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/content/properties/labelPattern",
+      "#/$defs/def/properties/content/properties/labelPattern $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/content/properties/metaphorRules",
+      "#/$defs/def/properties/content/properties/metaphorRules $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/description",
+      "#/$defs/def/properties/description $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/docs",
+      "#/$defs/def/properties/docs additionalProperties=false",
+      "#/$defs/def/properties/docs required∋do",
+      "#/$defs/def/properties/docs required∋dont",
+      "#/$defs/def/properties/docs required∋usage",
+      "#/$defs/def/properties/docs type=\"object\"",
+      "#/$defs/def/properties/docs/properties/contentGuidelines",
+      "#/$defs/def/properties/docs/properties/contentGuidelines $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/docs/properties/do",
+      "#/$defs/def/properties/docs/properties/do $ref=\"#/$defs/texts\"",
+      "#/$defs/def/properties/docs/properties/dont",
+      "#/$defs/def/properties/docs/properties/dont $ref=\"#/$defs/texts\"",
+      "#/$defs/def/properties/docs/properties/implementation",
+      "#/$defs/def/properties/docs/properties/implementation $ref=\"#/$defs/texts\"",
+      "#/$defs/def/properties/docs/properties/usage",
+      "#/$defs/def/properties/docs/properties/usage $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/id",
+      "#/$defs/def/properties/id $ref=\"#/$defs/id\"",
+      "#/$defs/def/properties/inherits",
+      "#/$defs/def/properties/inherits $ref=\"#/$defs/id\"",
+      "#/$defs/def/properties/motion",
+      "#/$defs/def/properties/motion additionalProperties=false",
+      "#/$defs/def/properties/motion type=\"object\"",
+      "#/$defs/def/properties/motion/properties/enter",
+      "#/$defs/def/properties/motion/properties/enter $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/motion/properties/exit",
+      "#/$defs/def/properties/motion/properties/exit $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/motion/properties/reduceMotion",
+      "#/$defs/def/properties/motion/properties/reduceMotion $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/name",
+      "#/$defs/def/properties/name $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/props",
+      "#/$defs/def/properties/props type=\"array\"",
+      "#/$defs/def/properties/props/items $ref=\"#/$defs/prop\"",
+      "#/$defs/def/properties/states",
+      "#/$defs/def/properties/states type=\"array\"",
+      "#/$defs/def/properties/states uniqueItems=true",
+      "#/$defs/def/properties/states/items minLength=1",
+      "#/$defs/def/properties/states/items type=\"string\"",
+      "#/$defs/def/properties/status",
+      "#/$defs/def/properties/status enum∋\"deprecated\"",
+      "#/$defs/def/properties/status enum∋\"draft\"",
+      "#/$defs/def/properties/status enum∋\"stable\"",
+      "#/$defs/def/properties/summary",
+      "#/$defs/def/properties/summary $ref=\"#/$defs/text\"",
+      "#/$defs/def/properties/syncBoundary",
+      "#/$defs/def/properties/syncBoundary minItems=1",
+      "#/$defs/def/properties/syncBoundary type=\"array\"",
+      "#/$defs/def/properties/syncBoundary/items additionalProperties=false",
+      "#/$defs/def/properties/syncBoundary/items required∋class",
+      "#/$defs/def/properties/syncBoundary/items required∋disposition",
+      "#/$defs/def/properties/syncBoundary/items type=\"object\"",
+      "#/$defs/def/properties/syncBoundary/items/properties/class",
+      "#/$defs/def/properties/syncBoundary/items/properties/class pattern=\"^[a-z][a-z-]*$\"",
+      "#/$defs/def/properties/syncBoundary/items/properties/class type=\"string\"",
+      "#/$defs/def/properties/syncBoundary/items/properties/disposition",
+      "#/$defs/def/properties/syncBoundary/items/properties/disposition enum∋\"CARRIED\"",
+      "#/$defs/def/properties/syncBoundary/items/properties/disposition enum∋\"LOWERED\"",
+      "#/$defs/def/properties/syncBoundary/items/properties/disposition enum∋\"REFUSED\"",
+      "#/$defs/def/properties/syncBoundary/items/properties/disposition enum∋\"UNSUPPORTED\"",
+      "#/$defs/def/properties/variants",
+      "#/$defs/def/properties/variants additionalProperties=false",
+      "#/$defs/def/properties/variants type=\"object\"",
+      "#/$defs/def/properties/variants/patternProperties/^[a-z][a-zA-Z0-9-]*$",
+      "#/$defs/def/properties/variants/patternProperties/^[a-z][a-zA-Z0-9-]*$ $ref=\"#/$defs/axis\"",
+      "#/$defs/entry",
+      "#/$defs/entry additionalProperties=false",
+      "#/$defs/entry required∋def",
+      "#/$defs/entry required∋digest",
+      "#/$defs/entry type=\"object\"",
+      "#/$defs/entry/properties/def",
+      "#/$defs/entry/properties/def $ref=\"#/$defs/def\"",
+      "#/$defs/entry/properties/digest",
+      "#/$defs/entry/properties/digest pattern=\"^[0-9a-f]{8}$\"",
+      "#/$defs/entry/properties/digest type=\"string\"",
+      "#/$defs/entry/properties/spec",
+      "#/$defs/entry/properties/spec $ref=\"#/$defs/spec\"",
+      "#/$defs/id",
+      "#/$defs/id pattern=\"^_?[a-z][a-z0-9-]*$\"",
+      "#/$defs/id type=\"string\"",
+      "#/$defs/ids",
+      "#/$defs/ids type=\"array\"",
+      "#/$defs/ids uniqueItems=true",
+      "#/$defs/ids/items $ref=\"#/$defs/id\"",
+      "#/$defs/prop",
+      "#/$defs/prop additionalProperties=false",
+      "#/$defs/prop required∋description",
+      "#/$defs/prop required∋name",
+      "#/$defs/prop required∋required",
+      "#/$defs/prop required∋type",
+      "#/$defs/prop type=\"object\"",
+      "#/$defs/prop/properties/anyOf",
+      "#/$defs/prop/properties/anyOf minItems=1",
+      "#/$defs/prop/properties/anyOf type=\"array\"",
+      "#/$defs/prop/properties/anyOf/items $ref=\"#/$defs/id\"",
+      "#/$defs/prop/properties/default",
+      "#/$defs/prop/properties/default type∋boolean",
+      "#/$defs/prop/properties/default type∋number",
+      "#/$defs/prop/properties/default type∋string",
+      "#/$defs/prop/properties/deprecated",
+      "#/$defs/prop/properties/deprecated type=\"boolean\"",
+      "#/$defs/prop/properties/description",
+      "#/$defs/prop/properties/description $ref=\"#/$defs/text\"",
+      "#/$defs/prop/properties/maxItems",
+      "#/$defs/prop/properties/maxItems minimum=1",
+      "#/$defs/prop/properties/maxItems type=\"integer\"",
+      "#/$defs/prop/properties/minItems",
+      "#/$defs/prop/properties/minItems minimum=0",
+      "#/$defs/prop/properties/minItems type=\"integer\"",
+      "#/$defs/prop/properties/name",
+      "#/$defs/prop/properties/name minLength=1",
+      "#/$defs/prop/properties/name type=\"string\"",
+      "#/$defs/prop/properties/required",
+      "#/$defs/prop/properties/required type=\"boolean\"",
+      "#/$defs/prop/properties/type",
+      "#/$defs/prop/properties/type $ref=\"#/$defs/text\"",
+      "#/$defs/prop/properties/values",
+      "#/$defs/prop/properties/values minItems=1",
+      "#/$defs/prop/properties/values type=\"array\"",
+      "#/$defs/prop/properties/values/items type=\"string\"",
+      "#/$defs/settings",
+      "#/$defs/settings additionalProperties=false",
+      "#/$defs/settings required∋bannerStyle",
+      "#/$defs/settings required∋button",
+      "#/$defs/settings required∋controlShape",
+      "#/$defs/settings required∋currentIndicator",
+      "#/$defs/settings required∋density",
+      "#/$defs/settings required∋dialogTitleSize",
+      "#/$defs/settings required∋fieldStyle",
+      "#/$defs/settings required∋outlineInteraction",
+      "#/$defs/settings required∋radioDot",
+      "#/$defs/settings required∋raisedSurface",
+      "#/$defs/settings required∋searchFieldStyle",
+      "#/$defs/settings required∋tagStyle",
+      "#/$defs/settings required∋weightAvailability",
+      "#/$defs/settings type=\"object\"",
+      "#/$defs/settings/properties/bannerStyle",
+      "#/$defs/settings/properties/bannerStyle enum∋\"outlined\"",
+      "#/$defs/settings/properties/bannerStyle enum∋\"tinted\"",
+      "#/$defs/settings/properties/button",
+      "#/$defs/settings/properties/button additionalProperties=false",
+      "#/$defs/settings/properties/button required∋borderWeight",
+      "#/$defs/settings/properties/button required∋content",
+      "#/$defs/settings/properties/button required∋icons",
+      "#/$defs/settings/properties/button required∋labelWeight",
+      "#/$defs/settings/properties/button required∋minWidthMultiplier",
+      "#/$defs/settings/properties/button required∋textHover",
+      "#/$defs/settings/properties/button type=\"object\"",
+      "#/$defs/settings/properties/button/properties/borderWeight",
+      "#/$defs/settings/properties/button/properties/borderWeight minLength=1",
+      "#/$defs/settings/properties/button/properties/borderWeight type=\"string\"",
+      "#/$defs/settings/properties/button/properties/content",
+      "#/$defs/settings/properties/button/properties/content minLength=1",
+      "#/$defs/settings/properties/button/properties/content type=\"string\"",
+      "#/$defs/settings/properties/button/properties/icons",
+      "#/$defs/settings/properties/button/properties/icons minLength=1",
+      "#/$defs/settings/properties/button/properties/icons type=\"string\"",
+      "#/$defs/settings/properties/button/properties/labelWeight",
+      "#/$defs/settings/properties/button/properties/labelWeight minLength=1",
+      "#/$defs/settings/properties/button/properties/labelWeight type=\"string\"",
+      "#/$defs/settings/properties/button/properties/minWidthMultiplier",
+      "#/$defs/settings/properties/button/properties/minWidthMultiplier minimum=0",
+      "#/$defs/settings/properties/button/properties/minWidthMultiplier type=\"number\"",
+      "#/$defs/settings/properties/button/properties/textHover",
+      "#/$defs/settings/properties/button/properties/textHover minLength=1",
+      "#/$defs/settings/properties/button/properties/textHover type=\"string\"",
+      "#/$defs/settings/properties/controlShape",
+      "#/$defs/settings/properties/controlShape enum∋\"boxed\"",
+      "#/$defs/settings/properties/controlShape enum∋\"hairline\"",
+      "#/$defs/settings/properties/controlShape enum∋\"pill\"",
+      "#/$defs/settings/properties/controlShape enum∋\"rounded\"",
+      "#/$defs/settings/properties/currentIndicator",
+      "#/$defs/settings/properties/currentIndicator enum∋\"full\"",
+      "#/$defs/settings/properties/currentIndicator enum∋\"partial\"",
+      "#/$defs/settings/properties/density",
+      "#/$defs/settings/properties/density enum∋\"comfortable\"",
+      "#/$defs/settings/properties/density enum∋\"compact\"",
+      "#/$defs/settings/properties/density enum∋\"spacious\"",
+      "#/$defs/settings/properties/dialogTitleSize",
+      "#/$defs/settings/properties/dialogTitleSize enum∋\"large\"",
+      "#/$defs/settings/properties/dialogTitleSize enum∋\"medium\"",
+      "#/$defs/settings/properties/dialogTitleSize enum∋\"small\"",
+      "#/$defs/settings/properties/fieldStyle",
+      "#/$defs/settings/properties/fieldStyle enum∋\"outline\"",
+      "#/$defs/settings/properties/fieldStyle enum∋\"underline\"",
+      "#/$defs/settings/properties/outlineInteraction",
+      "#/$defs/settings/properties/outlineInteraction minLength=1",
+      "#/$defs/settings/properties/outlineInteraction type=\"string\"",
+      "#/$defs/settings/properties/radioDot",
+      "#/$defs/settings/properties/radioDot enum∋50",
+      "#/$defs/settings/properties/radioDot enum∋60",
+      "#/$defs/settings/properties/radioDot enum∋70",
+      "#/$defs/settings/properties/radioDot enum∋80",
+      "#/$defs/settings/properties/raisedSurface",
+      "#/$defs/settings/properties/raisedSurface enum∋\"card\"",
+      "#/$defs/settings/properties/raisedSurface enum∋\"page\"",
+      "#/$defs/settings/properties/raisedSurface enum∋\"white\"",
+      "#/$defs/settings/properties/searchFieldStyle",
+      "#/$defs/settings/properties/searchFieldStyle enum∋\"follow\"",
+      "#/$defs/settings/properties/searchFieldStyle enum∋\"outline\"",
+      "#/$defs/settings/properties/searchFieldStyle enum∋\"underline\"",
+      "#/$defs/settings/properties/tagStyle",
+      "#/$defs/settings/properties/tagStyle enum∋\"pill\"",
+      "#/$defs/settings/properties/tagStyle enum∋\"underline\"",
+      "#/$defs/settings/properties/weightAvailability",
+      "#/$defs/settings/properties/weightAvailability type=\"object\"",
+      "#/$defs/settings/properties/weightAvailability/additionalProperties type=\"array\"",
+      "#/$defs/settings/properties/weightAvailability/additionalProperties/items minLength=1",
+      "#/$defs/settings/properties/weightAvailability/additionalProperties/items type=\"string\"",
+      "#/$defs/spec",
+      "#/$defs/spec additionalProperties=false",
+      "#/$defs/spec required∋anatomy",
+      "#/$defs/spec required∋axes",
+      "#/$defs/spec required∋codeOnlyStates",
+      "#/$defs/spec required∋colorKey",
+      "#/$defs/spec required∋colors",
+      "#/$defs/spec required∋id",
+      "#/$defs/spec required∋members",
+      "#/$defs/spec required∋name",
+      "#/$defs/spec required∋nesting",
+      "#/$defs/spec required∋properties",
+      "#/$defs/spec required∋redlineKey",
+      "#/$defs/spec required∋redlines",
+      "#/$defs/spec required∋type",
+      "#/$defs/spec required∋typeKey",
+      "#/$defs/spec type=\"object\"",
+      "#/$defs/spec/properties/anatomy",
+      "#/$defs/spec/properties/anatomy type=\"array\"",
+      "#/$defs/spec/properties/anatomy/items additionalProperties=false",
+      "#/$defs/spec/properties/anatomy/items required∋kind",
+      "#/$defs/spec/properties/anatomy/items required∋members",
+      "#/$defs/spec/properties/anatomy/items required∋part",
+      "#/$defs/spec/properties/anatomy/items type=\"object\"",
+      "#/$defs/spec/properties/anatomy/items/properties/kind",
+      "#/$defs/spec/properties/anatomy/items/properties/kind enum∋\"frame\"",
+      "#/$defs/spec/properties/anatomy/items/properties/kind enum∋\"glyph\"",
+      "#/$defs/spec/properties/anatomy/items/properties/kind enum∋\"instance\"",
+      "#/$defs/spec/properties/anatomy/items/properties/kind enum∋\"slot\"",
+      "#/$defs/spec/properties/anatomy/items/properties/kind enum∋\"swap\"",
+      "#/$defs/spec/properties/anatomy/items/properties/kind enum∋\"text\"",
+      "#/$defs/spec/properties/anatomy/items/properties/members",
+      "#/$defs/spec/properties/anatomy/items/properties/members minimum=1",
+      "#/$defs/spec/properties/anatomy/items/properties/members type=\"integer\"",
+      "#/$defs/spec/properties/anatomy/items/properties/part",
+      "#/$defs/spec/properties/anatomy/items/properties/part minLength=1",
+      "#/$defs/spec/properties/anatomy/items/properties/part type=\"string\"",
+      "#/$defs/spec/properties/anatomy/items/properties/when",
+      "#/$defs/spec/properties/anatomy/items/properties/when type=\"object\"",
+      "#/$defs/spec/properties/anatomy/items/properties/when/additionalProperties minItems=1",
+      "#/$defs/spec/properties/anatomy/items/properties/when/additionalProperties type=\"array\"",
+      "#/$defs/spec/properties/anatomy/items/properties/when/additionalProperties/items type=\"string\"",
+      "#/$defs/spec/properties/axes",
+      "#/$defs/spec/properties/axes type=\"array\"",
+      "#/$defs/spec/properties/axes/items additionalProperties=false",
+      "#/$defs/spec/properties/axes/items required∋figmaName",
+      "#/$defs/spec/properties/axes/items required∋kind",
+      "#/$defs/spec/properties/axes/items required∋name",
+      "#/$defs/spec/properties/axes/items required∋values",
+      "#/$defs/spec/properties/axes/items type=\"object\"",
+      "#/$defs/spec/properties/axes/items/properties/figmaName",
+      "#/$defs/spec/properties/axes/items/properties/figmaName minLength=1",
+      "#/$defs/spec/properties/axes/items/properties/figmaName type=\"string\"",
+      "#/$defs/spec/properties/axes/items/properties/kind",
+      "#/$defs/spec/properties/axes/items/properties/kind enum∋\"size\"",
+      "#/$defs/spec/properties/axes/items/properties/kind enum∋\"slot\"",
+      "#/$defs/spec/properties/axes/items/properties/kind enum∋\"state\"",
+      "#/$defs/spec/properties/axes/items/properties/kind enum∋\"variant\"",
+      "#/$defs/spec/properties/axes/items/properties/name",
+      "#/$defs/spec/properties/axes/items/properties/name minLength=1",
+      "#/$defs/spec/properties/axes/items/properties/name type=\"string\"",
+      "#/$defs/spec/properties/axes/items/properties/values",
+      "#/$defs/spec/properties/axes/items/properties/values minItems=1",
+      "#/$defs/spec/properties/axes/items/properties/values type=\"array\"",
+      "#/$defs/spec/properties/axes/items/properties/values uniqueItems=true",
+      "#/$defs/spec/properties/axes/items/properties/values/items minLength=1",
+      "#/$defs/spec/properties/axes/items/properties/values/items type=\"string\"",
+      "#/$defs/spec/properties/codeOnlyStates",
+      "#/$defs/spec/properties/codeOnlyStates type=\"array\"",
+      "#/$defs/spec/properties/codeOnlyStates uniqueItems=true",
+      "#/$defs/spec/properties/codeOnlyStates/items minLength=1",
+      "#/$defs/spec/properties/codeOnlyStates/items type=\"string\"",
+      "#/$defs/spec/properties/colorKey",
+      "#/$defs/spec/properties/colorKey type=\"array\"",
+      "#/$defs/spec/properties/colorKey/items type=\"string\"",
+      "#/$defs/spec/properties/colors",
+      "#/$defs/spec/properties/colors type=\"array\"",
+      "#/$defs/spec/properties/colors/items additionalProperties=false",
+      "#/$defs/spec/properties/colors/items required∋parts",
+      "#/$defs/spec/properties/colors/items required∋where",
+      "#/$defs/spec/properties/colors/items type=\"object\"",
+      "#/$defs/spec/properties/colors/items/properties/parts",
+      "#/$defs/spec/properties/colors/items/properties/parts type=\"array\"",
+      "#/$defs/spec/properties/colors/items/properties/parts/items additionalProperties=false",
+      "#/$defs/spec/properties/colors/items/properties/parts/items required∋part",
+      "#/$defs/spec/properties/colors/items/properties/parts/items type=\"object\"",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/fill",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/fill $ref=\"#/$defs/token\"",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/gradient",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/gradient minItems=1",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/gradient type=\"array\"",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/gradient/items $ref=\"#/$defs/token\"",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/icon",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/icon $ref=\"#/$defs/token\"",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/ink",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/ink $ref=\"#/$defs/token\"",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/part",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/part minLength=1",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/part type=\"string\"",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/stroke",
+      "#/$defs/spec/properties/colors/items/properties/parts/items/properties/stroke $ref=\"#/$defs/token\"",
+      "#/$defs/spec/properties/colors/items/properties/where",
+      "#/$defs/spec/properties/colors/items/properties/where $ref=\"#/$defs/where\"",
+      "#/$defs/spec/properties/focusRing",
+      "#/$defs/spec/properties/focusRing minItems=1",
+      "#/$defs/spec/properties/focusRing type=\"array\"",
+      "#/$defs/spec/properties/focusRing/items additionalProperties=false",
+      "#/$defs/spec/properties/focusRing/items required∋offset",
+      "#/$defs/spec/properties/focusRing/items required∋part",
+      "#/$defs/spec/properties/focusRing/items required∋style",
+      "#/$defs/spec/properties/focusRing/items required∋width",
+      "#/$defs/spec/properties/focusRing/items type=\"object\"",
+      "#/$defs/spec/properties/focusRing/items/properties/offset",
+      "#/$defs/spec/properties/focusRing/items/properties/offset $ref=\"#/$defs/token\"",
+      "#/$defs/spec/properties/focusRing/items/properties/part",
+      "#/$defs/spec/properties/focusRing/items/properties/part minLength=1",
+      "#/$defs/spec/properties/focusRing/items/properties/part type=\"string\"",
+      "#/$defs/spec/properties/focusRing/items/properties/style",
+      "#/$defs/spec/properties/focusRing/items/properties/style $ref=\"#/$defs/token\"",
+      "#/$defs/spec/properties/focusRing/items/properties/width",
+      "#/$defs/spec/properties/focusRing/items/properties/width $ref=\"#/$defs/token\"",
+      "#/$defs/spec/properties/id",
+      "#/$defs/spec/properties/id $ref=\"#/$defs/id\"",
+      "#/$defs/spec/properties/literal",
+      "#/$defs/spec/properties/literal additionalProperties=false",
+      "#/$defs/spec/properties/literal required∋entries",
+      "#/$defs/spec/properties/literal required∋key",
+      "#/$defs/spec/properties/literal type=\"object\"",
+      "#/$defs/spec/properties/literal/properties/entries",
+      "#/$defs/spec/properties/literal/properties/entries type=\"object\"",
+      "#/$defs/spec/properties/literal/properties/key",
+      "#/$defs/spec/properties/literal/properties/key minLength=1",
+      "#/$defs/spec/properties/literal/properties/key type=\"string\"",
+      "#/$defs/spec/properties/members",
+      "#/$defs/spec/properties/members minimum=1",
+      "#/$defs/spec/properties/members type=\"integer\"",
+      "#/$defs/spec/properties/motion",
+      "#/$defs/spec/properties/motion type=\"object\"",
+      "#/$defs/spec/properties/motion/additionalProperties $ref=\"#/$defs/token\"",
+      "#/$defs/spec/properties/name",
+      "#/$defs/spec/properties/name $ref=\"#/$defs/text\"",
+      "#/$defs/spec/properties/nesting",
+      "#/$defs/spec/properties/nesting type=\"array\"",
+      "#/$defs/spec/properties/nesting/items anyOf#=4",
+      "#/$defs/spec/properties/nesting/items/anyOf/0 additionalProperties=false",
+      "#/$defs/spec/properties/nesting/items/anyOf/0 required∋component",
+      "#/$defs/spec/properties/nesting/items/anyOf/0 required∋exposes",
+      "#/$defs/spec/properties/nesting/items/anyOf/0 required∋follows",
+      "#/$defs/spec/properties/nesting/items/anyOf/0 required∋kind",
+      "#/$defs/spec/properties/nesting/items/anyOf/0 required∋part",
+      "#/$defs/spec/properties/nesting/items/anyOf/0 required∋variant",
+      "#/$defs/spec/properties/nesting/items/anyOf/0 type=\"object\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/component",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/component minLength=1",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/component type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/exposes",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/exposes type=\"array\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/exposes/items type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/follows",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/follows type=\"array\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/follows/items type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/kind",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/kind const=\"instance\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/part",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/part type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/variant",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/variant $ref=\"#/$defs/where\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/when",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/when type=\"object\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/when/additionalProperties type=\"object\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/when/additionalProperties/additionalProperties $ref=\"#/$defs/where\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/where",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/where type=\"array\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/where/items additionalProperties=false",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/where/items required∋set",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/where/items required∋when",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/where/items type=\"object\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/where/items/properties/set",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/where/items/properties/set $ref=\"#/$defs/where\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/where/items/properties/when",
+      "#/$defs/spec/properties/nesting/items/anyOf/0/properties/where/items/properties/when $ref=\"#/$defs/where\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/1 additionalProperties=false",
+      "#/$defs/spec/properties/nesting/items/anyOf/1 required∋kind",
+      "#/$defs/spec/properties/nesting/items/anyOf/1 required∋part",
+      "#/$defs/spec/properties/nesting/items/anyOf/1 required∋property",
+      "#/$defs/spec/properties/nesting/items/anyOf/1 type=\"object\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/default",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/default type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/kind",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/kind const=\"swap\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/part",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/part type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/property",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/property minLength=1",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/property type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/visibility",
+      "#/$defs/spec/properties/nesting/items/anyOf/1/properties/visibility type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/2 additionalProperties=false",
+      "#/$defs/spec/properties/nesting/items/anyOf/2 required∋components",
+      "#/$defs/spec/properties/nesting/items/anyOf/2 required∋kind",
+      "#/$defs/spec/properties/nesting/items/anyOf/2 required∋part",
+      "#/$defs/spec/properties/nesting/items/anyOf/2 type=\"object\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/2/properties/components",
+      "#/$defs/spec/properties/nesting/items/anyOf/2/properties/components minItems=1",
+      "#/$defs/spec/properties/nesting/items/anyOf/2/properties/components type=\"array\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/2/properties/components/items type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/2/properties/kind",
+      "#/$defs/spec/properties/nesting/items/anyOf/2/properties/kind const=\"fixed\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/2/properties/part",
+      "#/$defs/spec/properties/nesting/items/anyOf/2/properties/part type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/3 additionalProperties=false",
+      "#/$defs/spec/properties/nesting/items/anyOf/3 required∋kind",
+      "#/$defs/spec/properties/nesting/items/anyOf/3 required∋part",
+      "#/$defs/spec/properties/nesting/items/anyOf/3 required∋preferred",
+      "#/$defs/spec/properties/nesting/items/anyOf/3 type=\"object\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/3/properties/kind",
+      "#/$defs/spec/properties/nesting/items/anyOf/3/properties/kind const=\"slot\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/3/properties/part",
+      "#/$defs/spec/properties/nesting/items/anyOf/3/properties/part type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/3/properties/preferred",
+      "#/$defs/spec/properties/nesting/items/anyOf/3/properties/preferred type=\"array\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/3/properties/preferred/items type=\"string\"",
+      "#/$defs/spec/properties/nesting/items/anyOf/3/properties/property",
+      "#/$defs/spec/properties/nesting/items/anyOf/3/properties/property type=\"string\"",
+      "#/$defs/spec/properties/properties",
+      "#/$defs/spec/properties/properties type=\"array\"",
+      "#/$defs/spec/properties/properties/items additionalProperties=false",
+      "#/$defs/spec/properties/properties/items required∋name",
+      "#/$defs/spec/properties/properties/items required∋type",
+      "#/$defs/spec/properties/properties/items type=\"object\"",
+      "#/$defs/spec/properties/properties/items/properties/default",
+      "#/$defs/spec/properties/properties/items/properties/default type∋boolean",
+      "#/$defs/spec/properties/properties/items/properties/default type∋string",
+      "#/$defs/spec/properties/properties/items/properties/name",
+      "#/$defs/spec/properties/properties/items/properties/name minLength=1",
+      "#/$defs/spec/properties/properties/items/properties/name type=\"string\"",
+      "#/$defs/spec/properties/properties/items/properties/type",
+      "#/$defs/spec/properties/properties/items/properties/type enum∋\"BOOLEAN\"",
+      "#/$defs/spec/properties/properties/items/properties/type enum∋\"INSTANCE_SWAP\"",
+      "#/$defs/spec/properties/properties/items/properties/type enum∋\"SLOT\"",
+      "#/$defs/spec/properties/properties/items/properties/type enum∋\"TEXT\"",
+      "#/$defs/spec/properties/redlineKey",
+      "#/$defs/spec/properties/redlineKey type=\"array\"",
+      "#/$defs/spec/properties/redlineKey/items type=\"string\"",
+      "#/$defs/spec/properties/redlines",
+      "#/$defs/spec/properties/redlines type=\"array\"",
+      "#/$defs/spec/properties/redlines/items additionalProperties=false",
+      "#/$defs/spec/properties/redlines/items required∋parts",
+      "#/$defs/spec/properties/redlines/items required∋where",
+      "#/$defs/spec/properties/redlines/items type=\"object\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts",
+      "#/$defs/spec/properties/redlines/items/properties/parts type=\"array\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items additionalProperties=false",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items required∋part",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items required∋values",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items type=\"object\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/part",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/part minLength=1",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/part type=\"string\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values additionalProperties=false",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values type=\"object\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/buildHeight",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/buildHeight $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/buildWidth",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/buildWidth $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/gap",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/gap $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/height",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/height $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/maxWidth",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/maxWidth $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/minHeight",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/minHeight $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/minWidth",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/minWidth $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/paddingBottom",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/paddingBottom $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/paddingLeft",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/paddingLeft $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/paddingRight",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/paddingRight $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/paddingTop",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/paddingTop $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/radius",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/radius $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/radiusBottomLeft",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/radiusBottomLeft $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/radiusBottomRight",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/radiusBottomRight $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/radiusTopLeft",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/radiusTopLeft $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/radiusTopRight",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/radiusTopRight $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/rowGap",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/rowGap $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/strokeWidth",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/strokeWidth $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/strokeWidthBottom",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/strokeWidthBottom $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/strokeWidthLeft",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/strokeWidthLeft $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/strokeWidthRight",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/strokeWidthRight $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/strokeWidthTop",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/strokeWidthTop $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/width",
+      "#/$defs/spec/properties/redlines/items/properties/parts/items/properties/values/properties/width $ref=\"#/$defs/value\"",
+      "#/$defs/spec/properties/redlines/items/properties/where",
+      "#/$defs/spec/properties/redlines/items/properties/where $ref=\"#/$defs/where\"",
+      "#/$defs/spec/properties/type",
+      "#/$defs/spec/properties/type type=\"array\"",
+      "#/$defs/spec/properties/type/items additionalProperties=false",
+      "#/$defs/spec/properties/type/items required∋parts",
+      "#/$defs/spec/properties/type/items required∋where",
+      "#/$defs/spec/properties/type/items type=\"object\"",
+      "#/$defs/spec/properties/type/items/properties/parts",
+      "#/$defs/spec/properties/type/items/properties/parts type=\"array\"",
+      "#/$defs/spec/properties/type/items/properties/parts/items additionalProperties=false",
+      "#/$defs/spec/properties/type/items/properties/parts/items required∋part",
+      "#/$defs/spec/properties/type/items/properties/parts/items required∋textStyle",
+      "#/$defs/spec/properties/type/items/properties/parts/items type=\"object\"",
+      "#/$defs/spec/properties/type/items/properties/parts/items/properties/part",
+      "#/$defs/spec/properties/type/items/properties/parts/items/properties/part minLength=1",
+      "#/$defs/spec/properties/type/items/properties/parts/items/properties/part type=\"string\"",
+      "#/$defs/spec/properties/type/items/properties/parts/items/properties/textStyle",
+      "#/$defs/spec/properties/type/items/properties/parts/items/properties/textStyle $ref=\"#/$defs/token\"",
+      "#/$defs/spec/properties/type/items/properties/where",
+      "#/$defs/spec/properties/type/items/properties/where $ref=\"#/$defs/where\"",
+      "#/$defs/spec/properties/typeKey",
+      "#/$defs/spec/properties/typeKey type=\"array\"",
+      "#/$defs/spec/properties/typeKey/items type=\"string\"",
+      "#/$defs/text",
+      "#/$defs/text minLength=1",
+      "#/$defs/text type=\"string\"",
+      "#/$defs/texts",
+      "#/$defs/texts type=\"array\"",
+      "#/$defs/texts/items $ref=\"#/$defs/text\"",
+      "#/$defs/token",
+      "#/$defs/token pattern=\"^[a-z][a-zA-Z0-9-]*(\\\\.[a-zA-Z0-9-]+)+$\"",
+      "#/$defs/token type=\"string\"",
+      "#/$defs/value",
+      "#/$defs/value anyOf#=4",
+      "#/$defs/value/anyOf/0 additionalProperties=false",
+      "#/$defs/value/anyOf/0 required∋token",
+      "#/$defs/value/anyOf/0 type=\"object\"",
+      "#/$defs/value/anyOf/0/properties/px",
+      "#/$defs/value/anyOf/0/properties/px minimum=0",
+      "#/$defs/value/anyOf/0/properties/px type=\"number\"",
+      "#/$defs/value/anyOf/0/properties/token",
+      "#/$defs/value/anyOf/0/properties/token $ref=\"#/$defs/token\"",
+      "#/$defs/value/anyOf/1 additionalProperties=false",
+      "#/$defs/value/anyOf/1 required∋px",
+      "#/$defs/value/anyOf/1 required∋source",
+      "#/$defs/value/anyOf/1 type=\"object\"",
+      "#/$defs/value/anyOf/1/properties/px",
+      "#/$defs/value/anyOf/1/properties/px minimum=0",
+      "#/$defs/value/anyOf/1/properties/px type=\"number\"",
+      "#/$defs/value/anyOf/1/properties/source",
+      "#/$defs/value/anyOf/1/properties/source const=\"literal\"",
+      "#/$defs/value/anyOf/2 additionalProperties=false",
+      "#/$defs/value/anyOf/2 required∋px",
+      "#/$defs/value/anyOf/2 required∋rule",
+      "#/$defs/value/anyOf/2 required∋source",
+      "#/$defs/value/anyOf/2 type=\"object\"",
+      "#/$defs/value/anyOf/2/properties/px",
+      "#/$defs/value/anyOf/2/properties/px minimum=0",
+      "#/$defs/value/anyOf/2/properties/px type=\"number\"",
+      "#/$defs/value/anyOf/2/properties/rule",
+      "#/$defs/value/anyOf/2/properties/rule $ref=\"#/$defs/text\"",
+      "#/$defs/value/anyOf/2/properties/source",
+      "#/$defs/value/anyOf/2/properties/source const=\"derived\"",
+      "#/$defs/value/anyOf/3 additionalProperties=false",
+      "#/$defs/value/anyOf/3 required∋rule",
+      "#/$defs/value/anyOf/3 required∋source",
+      "#/$defs/value/anyOf/3 type=\"object\"",
+      "#/$defs/value/anyOf/3/properties/rule",
+      "#/$defs/value/anyOf/3/properties/rule $ref=\"#/$defs/text\"",
+      "#/$defs/value/anyOf/3/properties/source",
+      "#/$defs/value/anyOf/3/properties/source const=\"computed\"",
+      "#/$defs/where",
+      "#/$defs/where type=\"object\"",
+      "#/$defs/where/additionalProperties type=\"string\"",
+      "#/properties/brand",
+      "#/properties/brand anyOf#=2",
+      "#/properties/brand/anyOf/0 type=\"null\"",
+      "#/properties/brand/anyOf/1 $ref=\"#/$defs/brand\"",
+      "#/properties/build",
+      "#/properties/build pattern=\"^\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\+pending\\\\.[1-9]\\\\d*$\"",
+      "#/properties/build type=\"string\"",
+      "#/properties/components",
+      "#/properties/components additionalProperties=false",
+      "#/properties/components type=\"object\"",
+      "#/properties/components/patternProperties/^_?[a-z][a-z0-9-]*$",
+      "#/properties/components/patternProperties/^_?[a-z][a-z0-9-]*$ $ref=\"#/$defs/entry\"",
+      "#/properties/contractVersion",
+      "#/properties/contractVersion pattern=\"^\\\\d+\\\\.\\\\d+\\\\.\\\\d+$\"",
+      "#/properties/contractVersion type=\"string\"",
+      "#/properties/engineVersion",
+      "#/properties/engineVersion pattern=\"^\\\\d+\\\\.\\\\d+\\\\.\\\\d+$\"",
+      "#/properties/engineVersion type=\"string\"",
+      "#/properties/format",
+      "#/properties/format const=\"<$id>\"",
+      "#/properties/generated",
+      "#/properties/generated const=true",
+      "#/properties/note",
+      "#/properties/note minLength=1",
+      "#/properties/note type=\"string\""
+    ]
+  },
+  "components": {
+    "_accordion-indicator": {
+      "name": "Accordion.Indicator",
+      "status": "draft",
+      "props": {
+        "expansion": {
+          "type": "enum",
+          "default": "collapsed",
+          "values": [
+            "collapsed",
+            "expanded"
+          ]
+        },
+        "indicator": {
+          "type": "enum",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "plus-minus"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "expansion": [
+          "collapsed",
+          "expanded"
+        ],
+        "indicator": [
+          "chevron",
+          "plus-minus"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "_breadcrumb-separator": {
+      "name": "BreadcrumbSeparator",
+      "status": "draft",
+      "props": {
+        "type": {
+          "type": "enum",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "type": [
+          "chevron",
+          "slash"
+        ]
+      },
+      "slots": []
+    },
+    "_slider-thumb": {
+      "name": "Slider.Thumb",
+      "status": "draft",
+      "props": {
+        "aria-label": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "accordion": {
+      "name": "Accordion",
+      "status": "draft",
+      "props": {
+        "children": {
+          "type": "node",
+          "required": true
+        },
+        "defaultExpanded": {
+          "type": "boolean",
+          "default": false
+        },
+        "divider": {
+          "type": "boolean",
+          "default": true
+        },
+        "headingLevel": {
+          "type": "enum",
+          "default": "3",
+          "values": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ]
+        },
+        "iconPosition": {
+          "type": "enum",
+          "default": "leading",
+          "values": [
+            "leading",
+            "trailing"
+          ]
+        },
+        "indicator": {
+          "type": "enum",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "plus-minus"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "title": {
+          "type": "node",
+          "required": true
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "states": [
+        "focus-visible",
+        "rest"
+      ],
+      "variants": {
+        "expansion": [
+          "collapsed",
+          "expanded"
+        ],
+        "iconPosition": [
+          "leading",
+          "trailing"
+        ],
+        "indicator": [
+          "chevron",
+          "plus-minus"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "badge": {
+      "name": "Badge",
+      "status": "draft",
+      "props": {
+        "emphasis": {
+          "type": "enum",
+          "default": "subtle",
+          "values": [
+            "bold",
+            "subtle",
+            "surface"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "max": {
+          "type": "number",
+          "default": 99
+        },
+        "overlap": {
+          "type": "enum",
+          "default": "rectangular",
+          "values": [
+            "circular",
+            "rectangular"
+          ]
+        },
+        "showZero": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "small"
+          ]
+        },
+        "style": {
+          "type": "enum",
+          "default": "contained",
+          "values": [
+            "contained",
+            "inline"
+          ]
+        },
+        "tone": {
+          "type": "enum",
+          "default": "neutral",
+          "values": [
+            "danger",
+            "info",
+            "neutral",
+            "success",
+            "warning"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "status",
+          "values": [
+            "count",
+            "dot",
+            "status"
+          ]
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "states": [],
+      "variants": {
+        "emphasis": [
+          "bold",
+          "subtle",
+          "surface"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ],
+        "style": [
+          "contained",
+          "inline"
+        ],
+        "tone": [
+          "danger",
+          "info",
+          "neutral",
+          "success",
+          "warning"
+        ],
+        "type": [
+          "count",
+          "dot",
+          "status"
+        ]
+      },
+      "slots": []
+    },
+    "banner": {
+      "name": "Banner",
+      "status": "draft",
+      "props": {
+        "actions": {
+          "type": "node, never with link"
+        },
+        "announce": {
+          "type": "enum",
+          "default": "auto",
+          "values": [
+            "auto",
+            "none"
+          ]
+        },
+        "children": {
+          "type": "node",
+          "required": true
+        },
+        "dismissible": {
+          "type": "boolean",
+          "default": false
+        },
+        "edge": {
+          "type": "enum",
+          "default": "contained",
+          "values": [
+            "contained",
+            "full-bleed"
+          ]
+        },
+        "headingLevel": {
+          "type": "enum",
+          "default": "2",
+          "values": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ]
+        },
+        "icon": {
+          "type": "node | false"
+        },
+        "link": {
+          "type": "{ label: string; href: string }, never with actions"
+        },
+        "onDismiss": {
+          "type": "function"
+        },
+        "title": {
+          "type": "node"
+        },
+        "tone": {
+          "type": "enum",
+          "default": "info",
+          "values": [
+            "danger",
+            "info",
+            "neutral",
+            "success",
+            "warning"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "edge": [
+          "contained",
+          "full-bleed"
+        ],
+        "tone": [
+          "danger",
+          "info",
+          "neutral",
+          "success",
+          "warning"
+        ]
+      },
+      "slots": []
+    },
+    "breadcrumb-item": {
+      "name": "BreadcrumbItem",
+      "status": "draft",
+      "props": {
+        "href": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "enum",
+          "default": "ancestor",
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "separator": {
+          "type": "enum",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "small"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "kind": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "breadcrumbs": {
+      "name": "Breadcrumbs",
+      "status": "draft",
+      "props": {
+        "collapse": {
+          "type": "enum",
+          "default": "expand",
+          "values": [
+            "expand"
+          ]
+        },
+        "items": {
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "breadcrumb-item"
+          ],
+          "minItems": 2
+        },
+        "itemsAfterCollapse": {
+          "type": "number",
+          "default": 2
+        },
+        "itemsBeforeCollapse": {
+          "type": "number",
+          "default": 1
+        },
+        "label": {
+          "type": "string",
+          "default": "Breadcrumb"
+        },
+        "maxItems": {
+          "type": "number",
+          "default": 5
+        },
+        "renderLink": {
+          "type": "function"
+        },
+        "responsive": {
+          "type": "boolean",
+          "default": true
+        },
+        "separator": {
+          "type": "enum",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "small"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "path": [
+          "full",
+          "parent"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "button": {
+      "name": "Button",
+      "status": "draft",
+      "props": {
+        "appearance": {
+          "type": "enum",
+          "default": "filled",
+          "values": [
+            "filled",
+            "outline",
+            "text"
+          ]
+        },
+        "aria-label": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "fullWidth": {
+          "type": "boolean",
+          "default": false
+        },
+        "href": {
+          "type": "string"
+        },
+        "inset": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "flush"
+          ]
+        },
+        "isInactive": {
+          "type": "boolean",
+          "default": false
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "node (label)",
+          "required": true
+        },
+        "leadingVisual": {
+          "type": "slot"
+        },
+        "onClick": {
+          "type": "function"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        "trailingVisual": {
+          "type": "slot"
+        },
+        "type": {
+          "type": "enum",
+          "default": "button",
+          "values": [
+            "button",
+            "reset",
+            "submit"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "inactive",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "appearance": [
+          "filled",
+          "outline",
+          "text"
+        ],
+        "inset": [
+          "default",
+          "flush"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ],
+        "width": [
+          "auto",
+          "full"
+        ]
+      },
+      "slots": [
+        "leadingVisual",
+        "trailingVisual"
+      ]
+    },
+    "button-destructive": {
+      "name": "Button.Destructive",
+      "status": "draft",
+      "props": {
+        "appearance": {
+          "type": "enum",
+          "default": "filled",
+          "values": [
+            "filled",
+            "outline",
+            "text"
+          ]
+        },
+        "aria-label": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "fullWidth": {
+          "type": "boolean",
+          "default": false
+        },
+        "href": {
+          "type": "string"
+        },
+        "inset": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "flush"
+          ]
+        },
+        "isInactive": {
+          "type": "boolean",
+          "default": false
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "node (label)",
+          "required": true
+        },
+        "leadingVisual": {
+          "type": "slot"
+        },
+        "onClick": {
+          "type": "function"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        "trailingVisual": {
+          "type": "slot"
+        },
+        "type": {
+          "type": "enum",
+          "default": "button",
+          "values": [
+            "button",
+            "reset",
+            "submit"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "inactive",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "appearance": [
+          "filled",
+          "outline",
+          "text"
+        ],
+        "inset": [
+          "default",
+          "flush"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ],
+        "width": [
+          "auto",
+          "full"
+        ]
+      },
+      "slots": [
+        "leadingVisual",
+        "trailingVisual"
+      ]
+    },
+    "button-group": {
+      "name": "Button.Group",
+      "status": "draft",
+      "props": {
+        "items": {
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "button",
+            "button-destructive",
+            "button-neutral"
+          ],
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "layout": {
+          "type": "enum",
+          "default": "inline",
+          "values": [
+            "fill",
+            "inline",
+            "stacked"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "layout": [
+          "fill",
+          "inline",
+          "stacked"
+        ]
+      },
+      "slots": []
+    },
+    "button-neutral": {
+      "name": "Button.Neutral",
+      "status": "draft",
+      "props": {
+        "appearance": {
+          "type": "enum",
+          "default": "filled",
+          "values": [
+            "filled",
+            "outline",
+            "text"
+          ]
+        },
+        "aria-label": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "fullWidth": {
+          "type": "boolean",
+          "default": false
+        },
+        "href": {
+          "type": "string"
+        },
+        "inset": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "flush"
+          ]
+        },
+        "isInactive": {
+          "type": "boolean",
+          "default": false
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "node (label)",
+          "required": true
+        },
+        "leadingVisual": {
+          "type": "slot"
+        },
+        "onClick": {
+          "type": "function"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        "trailingVisual": {
+          "type": "slot"
+        },
+        "type": {
+          "type": "enum",
+          "default": "button",
+          "values": [
+            "button",
+            "reset",
+            "submit"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "inactive",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "appearance": [
+          "filled",
+          "outline",
+          "text"
+        ],
+        "inset": [
+          "default",
+          "flush"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ],
+        "width": [
+          "auto",
+          "full"
+        ]
+      },
+      "slots": [
+        "leadingVisual",
+        "trailingVisual"
+      ]
+    },
+    "card-number-field": {
+      "name": "CardNumberField",
+      "status": "draft",
+      "props": {
+        "brand": {
+          "type": "enum",
+          "default": "generic",
+          "values": [
+            "amex",
+            "diners-club",
+            "discover",
+            "generic",
+            "maestro",
+            "mastercard",
+            "visa"
+          ]
+        },
+        "brandName": {
+          "type": "string"
+        },
+        "defaultValue": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "helpText": {
+          "type": "string | node"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "leadingIcon": {
+          "type": "slot"
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "renderInput": {
+          "type": "function"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "showCardMark": {
+          "type": "boolean",
+          "default": true
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "success",
+            "warning"
+          ]
+        },
+        "validationMessage": {
+          "type": "string | node"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "states": [
+        "disabled",
+        "empty",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "pending",
+        "read-only",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ],
+        "style": [
+          "outline"
+        ]
+      },
+      "slots": [
+        "cardMark",
+        "leadingVisual"
+      ]
+    },
+    "checkbox-control": {
+      "name": "Checkbox.Control",
+      "status": "draft",
+      "props": {
+        "aria-label": {
+          "type": "string"
+        },
+        "checked": {
+          "type": "boolean"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "indeterminate": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "selection": [
+          "checked",
+          "indeterminate",
+          "unchecked"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "slots": []
+    },
+    "checkbox-group": {
+      "name": "Checkbox.Group",
+      "status": "draft",
+      "props": {
+        "defaultValue": {
+          "type": "string[]"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "items": {
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "checkbox-row"
+          ],
+          "minItems": 1
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "(value: string[], event) => void"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        "validationMessage": {
+          "type": "string | node"
+        },
+        "value": {
+          "type": "string[]"
+        }
+      },
+      "states": [],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "slots": []
+    },
+    "checkbox-row": {
+      "name": "Checkbox.Row",
+      "status": "draft",
+      "props": {
+        "checked": {
+          "type": "boolean"
+        },
+        "defaultChecked": {
+          "type": "boolean",
+          "default": false
+        },
+        "description": {
+          "type": "node"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "indeterminate": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "node"
+        },
+        "onChange": {
+          "type": "(checked: boolean, event) => void"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "read-only",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "slots": []
+    },
+    "code-input": {
+      "name": "CodeInput",
+      "status": "draft",
+      "props": {
+        "autoComplete": {
+          "type": "string",
+          "default": "one-time-code"
+        },
+        "defaultValue": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "helpText": {
+          "type": "string | node"
+        },
+        "id": {
+          "type": "string"
+        },
+        "inputMode": {
+          "type": "enum",
+          "default": "numeric",
+          "values": [
+            "numeric",
+            "text"
+          ]
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "length": {
+          "type": "number",
+          "default": 6
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "onComplete": {
+          "type": "function"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small",
+            "x-large"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        "validationMessage": {
+          "type": "string | node"
+        },
+        "value": {
+          "type": "string"
+        },
+        "width": {
+          "type": "enum",
+          "default": "auto",
+          "values": [
+            "auto",
+            "full"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "pending",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small",
+          "x-large"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "slots": []
+    },
+    "code-input-cell": {
+      "name": "CodeInput.Cell",
+      "status": "draft",
+      "props": {
+        "digit": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "isActive": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small",
+            "x-large"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small",
+          "x-large"
+        ],
+        "status": [
+          "default",
+          "error"
+        ],
+        "style": [
+          "outline"
+        ]
+      },
+      "slots": []
+    },
+    "counter": {
+      "name": "Counter",
+      "status": "draft",
+      "props": {
+        "appearance": {
+          "type": "enum",
+          "default": "outline",
+          "values": [
+            "ghost",
+            "outline"
+          ]
+        },
+        "decrementLabel": {
+          "type": "string"
+        },
+        "defaultValue": {
+          "type": "number"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "helpText": {
+          "type": "string | node"
+        },
+        "hideLabel": {
+          "type": "boolean",
+          "default": true
+        },
+        "incrementLabel": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "max": {
+          "type": "number"
+        },
+        "min": {
+          "type": "number",
+          "default": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "step": {
+          "type": "number",
+          "default": 1
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "rest"
+      ],
+      "variants": {
+        "appearance": [
+          "ghost",
+          "outline"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "dialog": {
+      "name": "Dialog",
+      "status": "draft",
+      "props": {
+        "actions": {
+          "type": "slot",
+          "anyOf": [
+            "button",
+            "button-destructive",
+            "button-neutral"
+          ],
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "children": {
+          "type": "node",
+          "required": true
+        },
+        "description": {
+          "type": "node"
+        },
+        "footer": {
+          "type": "enum",
+          "default": "inline",
+          "values": [
+            "fill",
+            "inline",
+            "none",
+            "stacked"
+          ]
+        },
+        "hideTitle": {
+          "type": "boolean",
+          "default": false
+        },
+        "onOpenChange": {
+          "type": "function"
+        },
+        "open": {
+          "type": "boolean",
+          "default": false
+        },
+        "placement": {
+          "type": "enum",
+          "default": "center",
+          "values": [
+            "bottom",
+            "center",
+            "end",
+            "full"
+          ]
+        },
+        "role": {
+          "type": "enum",
+          "default": "dialog",
+          "values": [
+            "alertdialog",
+            "dialog"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "title": {
+          "type": "node",
+          "required": true
+        }
+      },
+      "states": [],
+      "variants": {
+        "footer": [
+          "fill",
+          "inline",
+          "none",
+          "stacked"
+        ],
+        "placement": [
+          "bottom",
+          "center",
+          "end",
+          "full"
+        ]
+      },
+      "slots": []
+    },
+    "divider": {
+      "name": "Divider",
+      "status": "draft",
+      "props": {
+        "decorative": {
+          "type": "boolean",
+          "default": true
+        },
+        "emphasis": {
+          "type": "enum",
+          "default": "bold",
+          "values": [
+            "bold",
+            "subtle"
+          ]
+        },
+        "inset": {
+          "type": "enum",
+          "default": "none",
+          "values": [
+            "inset",
+            "middle-inset",
+            "none"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "orientation": {
+          "type": "enum",
+          "default": "horizontal",
+          "values": [
+            "horizontal",
+            "vertical"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "emphasis": [
+          "bold",
+          "subtle"
+        ],
+        "inset": [
+          "inset",
+          "middle-inset",
+          "none"
+        ],
+        "labeled": [
+          "false",
+          "true"
+        ],
+        "orientation": [
+          "horizontal",
+          "vertical"
+        ]
+      },
+      "slots": []
+    },
+    "field-label": {
+      "name": "FieldLabel",
+      "status": "draft",
+      "props": {
+        "emphasis": {
+          "type": "enum",
+          "default": "primary",
+          "values": [
+            "primary",
+            "secondary"
+          ]
+        },
+        "htmlFor": {
+          "type": "string",
+          "required": true
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "small",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "weight": {
+          "type": "enum",
+          "default": "regular",
+          "values": [
+            "bold",
+            "regular"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "rest"
+      ],
+      "variants": {
+        "emphasis": [
+          "primary",
+          "secondary"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "weight": [
+          "bold",
+          "regular"
+        ]
+      },
+      "slots": []
+    },
+    "field-message": {
+      "name": "FieldMessage",
+      "status": "draft",
+      "props": {
+        "icon": {
+          "type": "slot"
+        },
+        "id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string | node",
+          "required": true
+        },
+        "status": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "success",
+            "warning"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "status": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ]
+      },
+      "slots": []
+    },
+    "flush-icon-button": {
+      "name": "FlushIconButton",
+      "status": "draft",
+      "props": {
+        "aria-label": {
+          "type": "string",
+          "required": true
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "type": "slot",
+          "required": true
+        },
+        "isInactive": {
+          "type": "boolean",
+          "default": false
+        },
+        "onClick": {
+          "type": "function"
+        },
+        "shape": {
+          "type": "enum",
+          "default": "flush",
+          "values": [
+            "flush",
+            "round"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "button",
+          "values": [
+            "button",
+            "reset",
+            "submit"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "inactive",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "shape": [
+          "flush",
+          "round"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "slots": [
+        "icon"
+      ]
+    },
+    "flush-icon-button-destructive": {
+      "name": "FlushIconButton.Destructive",
+      "status": "draft",
+      "props": {
+        "aria-label": {
+          "type": "string",
+          "required": true
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "type": "slot",
+          "required": true
+        },
+        "isInactive": {
+          "type": "boolean",
+          "default": false
+        },
+        "onClick": {
+          "type": "function"
+        },
+        "shape": {
+          "type": "enum",
+          "default": "flush",
+          "values": [
+            "flush",
+            "round"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "button",
+          "values": [
+            "button",
+            "reset",
+            "submit"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "inactive",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "shape": [
+          "flush",
+          "round"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "slots": [
+        "icon"
+      ]
+    },
+    "flush-icon-button-neutral": {
+      "name": "FlushIconButton.Neutral",
+      "status": "draft",
+      "props": {
+        "aria-label": {
+          "type": "string",
+          "required": true
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "type": "slot",
+          "required": true
+        },
+        "isInactive": {
+          "type": "boolean",
+          "default": false
+        },
+        "onClick": {
+          "type": "function"
+        },
+        "shape": {
+          "type": "enum",
+          "default": "flush",
+          "values": [
+            "flush",
+            "round"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "button",
+          "values": [
+            "button",
+            "reset",
+            "submit"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "inactive",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "shape": [
+          "flush",
+          "round"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "slots": [
+        "icon"
+      ]
+    },
+    "focus-ring": {
+      "name": "FocusRing",
+      "status": "draft",
+      "props": {
+        "offset": {
+          "type": "enum",
+          "default": "control",
+          "values": [
+            "control",
+            "field"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "offset": [
+          "control",
+          "field"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "slots": []
+    },
+    "icon": {
+      "name": "Icon",
+      "status": "draft",
+      "props": {
+        "label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "FPO-default-icon",
+            "arrow-down",
+            "arrow-down-left",
+            "arrow-down-right",
+            "arrow-left",
+            "arrow-right",
+            "arrow-up",
+            "arrow-up-left",
+            "arrow-up-right",
+            "check",
+            "check-circle",
+            "check-circle-filled",
+            "chevron-down",
+            "chevron-left",
+            "chevron-right",
+            "chevron-up",
+            "close",
+            "close-filled",
+            "error-circle",
+            "error-circle-filled",
+            "external-link-filled",
+            "eye",
+            "eye-filled",
+            "eye-off",
+            "eye-off-filled",
+            "home",
+            "image",
+            "info-circle",
+            "info-circle-filled",
+            "link",
+            "menu",
+            "minus",
+            "minus-filled",
+            "more-horizontal-filled",
+            "more-vertical-filled",
+            "pause-circle",
+            "play-circle",
+            "plus",
+            "plus-circle",
+            "plus-circle-filled",
+            "plus-filled",
+            "resize-grip",
+            "search",
+            "slash",
+            "warning-triangle",
+            "warning-triangle-filled"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small",
+            "x-small"
+          ]
+        },
+        "tone": {
+          "type": "enum",
+          "default": "inherit",
+          "values": [
+            "brand",
+            "danger",
+            "info",
+            "inherit",
+            "primary",
+            "secondary",
+            "success",
+            "tertiary",
+            "warning"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "name": [
+          "FPO-default-icon",
+          "arrow-down",
+          "arrow-down-left",
+          "arrow-down-right",
+          "arrow-left",
+          "arrow-right",
+          "arrow-up",
+          "arrow-up-left",
+          "arrow-up-right",
+          "check",
+          "check-circle",
+          "check-circle-filled",
+          "chevron-down",
+          "chevron-left",
+          "chevron-right",
+          "chevron-up",
+          "close",
+          "close-filled",
+          "error-circle",
+          "error-circle-filled",
+          "external-link-filled",
+          "eye",
+          "eye-filled",
+          "eye-off",
+          "eye-off-filled",
+          "home",
+          "image",
+          "info-circle",
+          "info-circle-filled",
+          "link",
+          "menu",
+          "minus",
+          "minus-filled",
+          "more-horizontal-filled",
+          "more-vertical-filled",
+          "pause-circle",
+          "play-circle",
+          "plus",
+          "plus-circle",
+          "plus-circle-filled",
+          "plus-filled",
+          "resize-grip",
+          "search",
+          "slash",
+          "warning-triangle",
+          "warning-triangle-filled"
+        ],
+        "tone": [
+          "brand",
+          "danger",
+          "info",
+          "inherit",
+          "primary",
+          "secondary",
+          "success",
+          "tertiary",
+          "warning"
+        ]
+      },
+      "slots": []
+    },
+    "icon-button": {
+      "name": "IconButton",
+      "status": "draft",
+      "props": {
+        "appearance": {
+          "type": "enum",
+          "default": "ghost",
+          "values": [
+            "filled",
+            "ghost",
+            "outline"
+          ]
+        },
+        "aria-label": {
+          "type": "string",
+          "required": true
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "type": "slot",
+          "required": true
+        },
+        "isInactive": {
+          "type": "boolean",
+          "default": false
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "onClick": {
+          "type": "function"
+        },
+        "shape": {
+          "type": "enum",
+          "default": "square",
+          "values": [
+            "circular",
+            "square"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "button",
+          "values": [
+            "button",
+            "reset",
+            "submit"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "inactive",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "appearance": [
+          "filled",
+          "ghost",
+          "outline"
+        ],
+        "shape": [
+          "circular",
+          "square"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "slots": [
+        "icon"
+      ]
+    },
+    "icon-button-destructive": {
+      "name": "IconButton.Destructive",
+      "status": "draft",
+      "props": {
+        "appearance": {
+          "type": "enum",
+          "default": "ghost",
+          "values": [
+            "filled",
+            "ghost",
+            "outline"
+          ]
+        },
+        "aria-label": {
+          "type": "string",
+          "required": true
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "type": "slot",
+          "required": true
+        },
+        "isInactive": {
+          "type": "boolean",
+          "default": false
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "onClick": {
+          "type": "function"
+        },
+        "shape": {
+          "type": "enum",
+          "default": "square",
+          "values": [
+            "circular",
+            "square"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "button",
+          "values": [
+            "button",
+            "reset",
+            "submit"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "inactive",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "appearance": [
+          "filled",
+          "ghost",
+          "outline"
+        ],
+        "shape": [
+          "circular",
+          "square"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "slots": [
+        "icon"
+      ]
+    },
+    "icon-button-neutral": {
+      "name": "IconButton.Neutral",
+      "status": "draft",
+      "props": {
+        "appearance": {
+          "type": "enum",
+          "default": "ghost",
+          "values": [
+            "filled",
+            "ghost",
+            "outline"
+          ]
+        },
+        "aria-label": {
+          "type": "string",
+          "required": true
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "icon": {
+          "type": "slot",
+          "required": true
+        },
+        "isInactive": {
+          "type": "boolean",
+          "default": false
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "onClick": {
+          "type": "function"
+        },
+        "shape": {
+          "type": "enum",
+          "default": "square",
+          "values": [
+            "circular",
+            "square"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "button",
+          "values": [
+            "button",
+            "reset",
+            "submit"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "inactive",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "appearance": [
+          "filled",
+          "ghost",
+          "outline"
+        ],
+        "shape": [
+          "circular",
+          "square"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ]
+      },
+      "slots": [
+        "icon"
+      ]
+    },
+    "image-placeholder": {
+      "name": "ImagePlaceholder",
+      "status": "draft",
+      "props": {
+        "ratio": {
+          "type": "enum",
+          "default": "4:3",
+          "values": [
+            "16:9",
+            "1:1",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:3",
+            "4:5"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "ratio": [
+          "16:9",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5"
+        ]
+      },
+      "slots": []
+    },
+    "link": {
+      "name": "Link",
+      "status": "draft",
+      "props": {
+        "asChild": {
+          "type": "boolean",
+          "default": false
+        },
+        "current": {
+          "type": "boolean",
+          "default": false
+        },
+        "href": {
+          "type": "string",
+          "required": true
+        },
+        "isExternal": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small",
+            "x-small"
+          ]
+        },
+        "style": {
+          "type": "enum",
+          "default": "standalone",
+          "values": [
+            "inline",
+            "standalone"
+          ]
+        },
+        "surface": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
+          ]
+        },
+        "trailingIcon": {
+          "type": "slot"
+        },
+        "weight": {
+          "type": "enum",
+          "default": "emphasis",
+          "values": [
+            "default",
+            "emphasis"
+          ]
+        }
+      },
+      "states": [
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small",
+          "x-small"
+        ],
+        "style": [
+          "inline",
+          "standalone"
+        ],
+        "surface": [
+          "default",
+          "inverse"
+        ],
+        "weight": [
+          "default",
+          "emphasis"
+        ]
+      },
+      "slots": [
+        "trailingVisual"
+      ]
+    },
+    "list": {
+      "name": "List",
+      "status": "draft",
+      "props": {
+        "items": {
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "list-item"
+          ],
+          "minItems": 1
+        },
+        "reversed": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small",
+            "x-small"
+          ]
+        },
+        "start": {
+          "type": "number",
+          "default": 1
+        },
+        "type": {
+          "type": "enum",
+          "default": "unordered",
+          "values": [
+            "icon",
+            "ordered",
+            "unordered"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small",
+          "x-small"
+        ],
+        "type": [
+          "icon",
+          "ordered",
+          "unordered"
+        ]
+      },
+      "slots": []
+    },
+    "list-item": {
+      "name": "List.Item",
+      "status": "draft",
+      "props": {
+        "children": {
+          "type": "node",
+          "required": true
+        },
+        "icon": {
+          "type": "slot"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small",
+            "x-small"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "unordered",
+          "values": [
+            "icon",
+            "ordered",
+            "unordered"
+          ]
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "states": [],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small",
+          "x-small"
+        ],
+        "type": [
+          "icon",
+          "ordered",
+          "unordered"
+        ]
+      },
+      "slots": [
+        "icon"
+      ]
+    },
+    "page-nav": {
+      "name": "PageNav",
+      "status": "draft",
+      "props": {
+        "items": {
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "page-nav-item"
+          ],
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "renderLink": {
+          "type": "function"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "small"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "page-nav-item": {
+      "name": "PageNav.Item",
+      "status": "draft",
+      "props": {
+        "current": {
+          "type": "boolean",
+          "default": false
+        },
+        "href": {
+          "type": "string",
+          "required": true
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "small"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "pagination": {
+      "name": "Pagination",
+      "status": "draft",
+      "props": {
+        "boundaryCount": {
+          "type": "number",
+          "default": 1
+        },
+        "count": {
+          "type": "number",
+          "required": true
+        },
+        "defaultPage": {
+          "type": "number",
+          "default": 1
+        },
+        "getHref": {
+          "type": "function"
+        },
+        "getStatusText": {
+          "type": "function"
+        },
+        "label": {
+          "type": "string",
+          "default": "Pagination"
+        },
+        "onPageChange": {
+          "type": "function"
+        },
+        "page": {
+          "type": "number"
+        },
+        "renderItem": {
+          "type": "slot"
+        },
+        "siblingCount": {
+          "type": "number",
+          "default": 1
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "style": {
+          "type": "enum",
+          "default": "border",
+          "values": [
+            "border",
+            "underline"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "numbered",
+          "values": [
+            "compact",
+            "numbered",
+            "simple"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "style": [
+          "border",
+          "underline"
+        ],
+        "type": [
+          "compact",
+          "numbered",
+          "simple"
+        ]
+      },
+      "slots": []
+    },
+    "pagination-item": {
+      "name": "Pagination.Item",
+      "status": "draft",
+      "props": {
+        "current": {
+          "type": "boolean",
+          "default": false
+        },
+        "href": {
+          "type": "string"
+        },
+        "isInactive": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "labeled": {
+          "type": "boolean",
+          "default": false
+        },
+        "nextLabel": {
+          "type": "string",
+          "default": "Next"
+        },
+        "page": {
+          "type": "number"
+        },
+        "previousLabel": {
+          "type": "string",
+          "default": "Previous"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "style": {
+          "type": "enum",
+          "default": "border",
+          "values": [
+            "border",
+            "underline"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "page",
+          "values": [
+            "ellipsis",
+            "next",
+            "page",
+            "previous"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "labeled": [
+          "false",
+          "true"
+        ],
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "style": [
+          "border",
+          "underline"
+        ],
+        "type": [
+          "ellipsis",
+          "next",
+          "page",
+          "previous"
+        ]
+      },
+      "slots": []
+    },
+    "password-field": {
+      "name": "PasswordField",
+      "status": "draft",
+      "props": {
+        "autoComplete": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "current-password",
+            "new-password"
+          ]
+        },
+        "defaultValue": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "helpText": {
+          "type": "string | node"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "leadingIcon": {
+          "type": "slot"
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "success",
+            "warning"
+          ]
+        },
+        "validationMessage": {
+          "type": "string | node"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "states": [
+        "disabled",
+        "empty",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "pending",
+        "read-only",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ],
+        "style": [
+          "outline"
+        ]
+      },
+      "slots": [
+        "leadingVisual"
+      ]
+    },
+    "popover": {
+      "name": "Popover",
+      "status": "draft",
+      "props": {
+        "align": {
+          "type": "enum",
+          "default": "start",
+          "values": [
+            "center",
+            "end",
+            "start"
+          ]
+        },
+        "arrow": {
+          "type": "boolean",
+          "default": false
+        },
+        "children": {
+          "type": "node",
+          "required": true
+        },
+        "defaultOpen": {
+          "type": "boolean",
+          "default": false
+        },
+        "footer": {
+          "type": "slot",
+          "anyOf": [
+            "button",
+            "button-destructive",
+            "button-neutral"
+          ],
+          "minItems": 1,
+          "maxItems": 2
+        },
+        "initialFocus": {
+          "type": "node"
+        },
+        "onOpenChange": {
+          "type": "function"
+        },
+        "open": {
+          "type": "boolean",
+          "default": false
+        },
+        "placement": {
+          "type": "enum",
+          "default": "bottom",
+          "values": [
+            "bottom",
+            "end",
+            "start",
+            "top"
+          ]
+        },
+        "showClose": {
+          "type": "boolean",
+          "default": true
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "states": [],
+      "variants": {
+        "placement": [
+          "bottom"
+        ]
+      },
+      "slots": []
+    },
+    "progress": {
+      "name": "Progress",
+      "status": "draft",
+      "props": {
+        "announce": {
+          "type": "enum",
+          "default": "milestones",
+          "values": [
+            "end",
+            "milestones",
+            "none"
+          ]
+        },
+        "delay": {
+          "type": "number",
+          "default": 400
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "max": {
+          "type": "number",
+          "default": 100
+        },
+        "message": {
+          "type": "string"
+        },
+        "min": {
+          "type": "number",
+          "default": 0
+        },
+        "minDisplay": {
+          "type": "number",
+          "default": 500
+        },
+        "shape": {
+          "type": "enum",
+          "default": "linear",
+          "values": [
+            "circular",
+            "linear"
+          ]
+        },
+        "showValue": {
+          "type": "boolean",
+          "default": true
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "small"
+          ]
+        },
+        "status": {
+          "type": "enum",
+          "default": "active",
+          "values": [
+            "active",
+            "complete",
+            "error"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "determinate",
+          "values": [
+            "determinate",
+            "indeterminate"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "valueText": {
+          "type": "string | (value: number) => string"
+        }
+      },
+      "states": [],
+      "variants": {
+        "shape": [
+          "circular",
+          "linear"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ],
+        "status": [
+          "active",
+          "complete",
+          "error"
+        ],
+        "type": [
+          "determinate",
+          "indeterminate"
+        ]
+      },
+      "slots": []
+    },
+    "provider-logo": {
+      "name": "ProviderLogo",
+      "status": "draft",
+      "props": {
+        "label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "button/apple-pay-black",
+            "button/apple-pay-white",
+            "button/apple-pay-white-outline",
+            "button/google-pay-black",
+            "button/google-pay-white",
+            "button/paypal-black",
+            "button/paypal-blue",
+            "button/paypal-gold",
+            "button/paypal-silver",
+            "button/paypal-white",
+            "button/shop-pay-purple",
+            "logo/affirm",
+            "logo/amazon-pay",
+            "logo/amex",
+            "logo/apple-pay",
+            "logo/diners-club",
+            "logo/discover",
+            "logo/google-pay",
+            "logo/klarna",
+            "logo/mastercard",
+            "logo/paypal",
+            "logo/paypal-wordmark",
+            "logo/shop-pay",
+            "logo/venmo",
+            "logo/visa",
+            "payment/affirm",
+            "payment/amazon-pay",
+            "payment/amex",
+            "payment/apple-pay",
+            "payment/diners-club",
+            "payment/discover",
+            "payment/generic",
+            "payment/google-pay",
+            "payment/klarna",
+            "payment/maestro",
+            "payment/mastercard",
+            "payment/paypal",
+            "payment/shop-pay",
+            "payment/venmo",
+            "payment/visa",
+            "provider/apple",
+            "provider/facebook",
+            "provider/facebook-blue",
+            "provider/google",
+            "social/apple",
+            "social/apple-mono",
+            "social/discord",
+            "social/discord-mono",
+            "social/dribbble",
+            "social/dribbble-mono",
+            "social/facebook",
+            "social/facebook-mono",
+            "social/figma",
+            "social/figma-mono",
+            "social/github",
+            "social/github-mono",
+            "social/google",
+            "social/google-mono",
+            "social/instagram",
+            "social/instagram-mono",
+            "social/linkedin",
+            "social/linkedin-mono",
+            "social/medium",
+            "social/medium-mono",
+            "social/messenger",
+            "social/messenger-mono",
+            "social/pinterest",
+            "social/pinterest-mono",
+            "social/reddit",
+            "social/reddit-mono",
+            "social/snapchat",
+            "social/snapchat-mono",
+            "social/spotify",
+            "social/spotify-mono",
+            "social/tiktok",
+            "social/tiktok-mono",
+            "social/tumblr",
+            "social/tumblr-mono",
+            "social/twitch",
+            "social/twitch-mono",
+            "social/whatsapp",
+            "social/whatsapp-mono",
+            "social/x",
+            "social/x-mono",
+            "social/youtube",
+            "social/youtube-mono"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "name": [
+          "button/apple-pay-black",
+          "button/apple-pay-white",
+          "button/apple-pay-white-outline",
+          "button/google-pay-black",
+          "button/google-pay-white",
+          "button/paypal-black",
+          "button/paypal-blue",
+          "button/paypal-gold",
+          "button/paypal-silver",
+          "button/paypal-white",
+          "button/shop-pay-purple",
+          "logo/affirm",
+          "logo/amazon-pay",
+          "logo/amex",
+          "logo/apple-pay",
+          "logo/diners-club",
+          "logo/discover",
+          "logo/google-pay",
+          "logo/klarna",
+          "logo/mastercard",
+          "logo/paypal",
+          "logo/paypal-wordmark",
+          "logo/shop-pay",
+          "logo/venmo",
+          "logo/visa",
+          "payment/affirm",
+          "payment/amazon-pay",
+          "payment/amex",
+          "payment/apple-pay",
+          "payment/diners-club",
+          "payment/discover",
+          "payment/generic",
+          "payment/google-pay",
+          "payment/klarna",
+          "payment/maestro",
+          "payment/mastercard",
+          "payment/paypal",
+          "payment/shop-pay",
+          "payment/venmo",
+          "payment/visa",
+          "provider/apple",
+          "provider/facebook",
+          "provider/facebook-blue",
+          "provider/google",
+          "social/apple",
+          "social/apple-mono",
+          "social/discord",
+          "social/discord-mono",
+          "social/dribbble",
+          "social/dribbble-mono",
+          "social/facebook",
+          "social/facebook-mono",
+          "social/figma",
+          "social/figma-mono",
+          "social/github",
+          "social/github-mono",
+          "social/google",
+          "social/google-mono",
+          "social/instagram",
+          "social/instagram-mono",
+          "social/linkedin",
+          "social/linkedin-mono",
+          "social/medium",
+          "social/medium-mono",
+          "social/messenger",
+          "social/messenger-mono",
+          "social/pinterest",
+          "social/pinterest-mono",
+          "social/reddit",
+          "social/reddit-mono",
+          "social/snapchat",
+          "social/snapchat-mono",
+          "social/spotify",
+          "social/spotify-mono",
+          "social/tiktok",
+          "social/tiktok-mono",
+          "social/tumblr",
+          "social/tumblr-mono",
+          "social/twitch",
+          "social/twitch-mono",
+          "social/whatsapp",
+          "social/whatsapp-mono",
+          "social/x",
+          "social/x-mono",
+          "social/youtube",
+          "social/youtube-mono"
+        ]
+      },
+      "slots": []
+    },
+    "radio-control": {
+      "name": "Radio.Control",
+      "status": "draft",
+      "props": {
+        "aria-label": {
+          "type": "string"
+        },
+        "checked": {
+          "type": "boolean"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "selection": [
+          "checked",
+          "unchecked"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "slots": []
+    },
+    "radio-group": {
+      "name": "Radio.Group",
+      "status": "draft",
+      "props": {
+        "defaultValue": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "items": {
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "radio-row"
+          ],
+          "minItems": 1
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "onChange": {
+          "type": "(value: string, event) => void"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        "validationMessage": {
+          "type": "string | node"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "states": [],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "slots": []
+    },
+    "radio-row": {
+      "name": "Radio.Row",
+      "status": "draft",
+      "props": {
+        "description": {
+          "type": "node"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "node"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "read-only",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "slots": []
+    },
+    "search-field": {
+      "name": "SearchField",
+      "status": "draft",
+      "props": {
+        "autoComplete": {
+          "type": "string (WHATWG token)"
+        },
+        "defaultValue": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "helpText": {
+          "type": "string | node"
+        },
+        "hideLabel": {
+          "type": "boolean",
+          "default": false
+        },
+        "id": {
+          "type": "string"
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "leadingIcon": {
+          "type": "slot"
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "onClear": {
+          "type": "function"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "trailingIcon": {
+          "type": "slot"
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "success",
+            "warning"
+          ]
+        },
+        "validationMessage": {
+          "type": "string | node"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "states": [
+        "disabled",
+        "empty",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "pending",
+        "read-only",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ],
+        "style": [
+          "outline"
+        ]
+      },
+      "slots": [
+        "leadingVisual",
+        "trailingVisual"
+      ]
+    },
+    "segmented-control": {
+      "name": "SegmentedControl",
+      "status": "draft",
+      "props": {
+        "behavior": {
+          "type": "enum",
+          "default": "view",
+          "values": [
+            "form",
+            "view"
+          ]
+        },
+        "defaultValue": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "items": {
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "segmented-control-segment"
+          ],
+          "minItems": 1,
+          "maxItems": 5
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "value": {
+          "type": "string"
+        },
+        "width": {
+          "type": "enum",
+          "default": "auto",
+          "values": [
+            "auto",
+            "full"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "segmented-control-segment": {
+      "name": "SegmentedControl.Segment",
+      "status": "draft",
+      "props": {
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "leadingIcon": {
+          "type": "slot"
+        },
+        "selected": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "slots": [
+        "leadingVisual"
+      ]
+    },
+    "select": {
+      "name": "Select",
+      "status": "draft",
+      "props": {
+        "autoComplete": {
+          "type": "string (WHATWG token)"
+        },
+        "defaultValue": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "helpText": {
+          "type": "string | node"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "leadingIcon": {
+          "type": "slot"
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "options": {
+          "type": "array"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "success",
+            "warning"
+          ]
+        },
+        "validationMessage": {
+          "type": "string | node"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "states": [
+        "disabled",
+        "empty",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "pending",
+        "read-only",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ],
+        "style": [
+          "outline"
+        ]
+      },
+      "slots": [
+        "leadingVisual"
+      ]
+    },
+    "sign-in-button": {
+      "name": "SignInButton",
+      "status": "draft",
+      "props": {
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "fullWidth": {
+          "type": "boolean",
+          "default": false
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "onClick": {
+          "type": "(event: MouseEvent) => void"
+        },
+        "provider": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "apple",
+            "facebook",
+            "google"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "style": {
+          "type": "enum",
+          "values": [
+            "black",
+            "blue",
+            "dark",
+            "light",
+            "neutral",
+            "outline",
+            "white"
+          ]
+        },
+        "wording": {
+          "type": "string",
+          "default": "continue"
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "provider": [
+          "apple",
+          "facebook",
+          "google"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "style": [
+          "black",
+          "blue",
+          "dark",
+          "light",
+          "neutral",
+          "outline",
+          "white"
+        ]
+      },
+      "slots": []
+    },
+    "skeleton": {
+      "name": "Skeleton",
+      "status": "draft",
+      "props": {
+        "animation": {
+          "type": "enum",
+          "default": "pulse",
+          "values": [
+            "none",
+            "pulse",
+            "shimmer"
+          ]
+        },
+        "height": {
+          "type": "string"
+        },
+        "lines": {
+          "type": "number",
+          "default": 3
+        },
+        "shape": {
+          "type": "enum",
+          "default": "text",
+          "values": [
+            "circle",
+            "rect",
+            "text"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "small"
+          ]
+        },
+        "width": {
+          "type": "string",
+          "default": "100%"
+        }
+      },
+      "states": [],
+      "variants": {
+        "shape": [
+          "circle",
+          "rect",
+          "text"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "slider": {
+      "name": "Slider",
+      "status": "draft",
+      "props": {
+        "defaultValue": {
+          "type": "number | [number, number]"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "formatOptions": {
+          "type": "Intl.NumberFormatOptions"
+        },
+        "helpText": {
+          "type": "string | node"
+        },
+        "hideLabel": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "largeStep": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number",
+          "default": 100
+        },
+        "milestones": {
+          "type": "Array<number | { value: number; label: string }>"
+        },
+        "min": {
+          "type": "number",
+          "default": 0
+        },
+        "minStepsBetweenThumbs": {
+          "type": "number",
+          "default": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "onChangeEnd": {
+          "type": "function"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "showInputs": {
+          "type": "boolean",
+          "default": false
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false
+        },
+        "showMilestones": {
+          "type": "boolean",
+          "default": false
+        },
+        "showValue": {
+          "type": "boolean",
+          "default": true
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "step": {
+          "type": "number",
+          "default": 1
+        },
+        "thumbLabels": {
+          "type": "[string, string]"
+        },
+        "type": {
+          "type": "enum",
+          "default": "single",
+          "values": [
+            "range",
+            "single"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        "validationMessage": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number | [number, number]"
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "type": [
+          "range",
+          "single"
+        ]
+      },
+      "slots": []
+    },
+    "spinner": {
+      "name": "Spinner",
+      "status": "draft",
+      "props": {
+        "label": {
+          "type": "string",
+          "default": "Loading"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small",
+            "x-small"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small",
+          "x-small"
+        ]
+      },
+      "slots": []
+    },
+    "switch-control": {
+      "name": "Switch.Control",
+      "status": "draft",
+      "props": {
+        "aria-label": {
+          "type": "string"
+        },
+        "checked": {
+          "type": "boolean"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "showStateLabel": {
+          "type": "boolean",
+          "default": true
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "selection": [
+          "off",
+          "on"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "slots": []
+    },
+    "switch-row": {
+      "name": "Switch.Row",
+      "status": "draft",
+      "props": {
+        "checked": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "node"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "node"
+        },
+        "labelPosition": {
+          "type": "enum",
+          "default": "leading",
+          "values": [
+            "leading",
+            "trailing"
+          ]
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "showStateLabel": {
+          "type": "boolean",
+          "default": true
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "small"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pending",
+        "pressed",
+        "read-only",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "slots": []
+    },
+    "tab-item": {
+      "name": "Tab.Item",
+      "status": "draft",
+      "props": {
+        "count": {
+          "type": "number"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "leadingIcon": {
+          "type": "slot"
+        },
+        "selected": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "variants": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "slots": [
+        "leadingVisual"
+      ]
+    },
+    "tabs": {
+      "name": "Tabs",
+      "status": "draft",
+      "props": {
+        "activation": {
+          "type": "enum",
+          "default": "automatic",
+          "values": [
+            "automatic",
+            "manual"
+          ]
+        },
+        "alignment": {
+          "type": "enum",
+          "default": "start",
+          "values": [
+            "center",
+            "start"
+          ]
+        },
+        "defaultValue": {
+          "type": "string"
+        },
+        "items": {
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "tab-item"
+          ],
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "label": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "states": [],
+      "variants": {
+        "alignment": [
+          "center",
+          "start"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "tag": {
+      "name": "Tag",
+      "status": "draft",
+      "props": {
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "leadingIcon": {
+          "type": "slot"
+        },
+        "onClick": {
+          "type": "function"
+        },
+        "onRemove": {
+          "type": "function"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "selected": {
+          "type": "boolean",
+          "default": false
+        },
+        "showCheck": {
+          "type": "boolean",
+          "default": true
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "type": {
+          "type": "enum",
+          "default": "select",
+          "values": [
+            "dismissible",
+            "select"
+          ]
+        }
+      },
+      "states": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "read-only",
+        "rest"
+      ],
+      "variants": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "type": [
+          "dismissible",
+          "select"
+        ]
+      },
+      "slots": [
+        "leadingVisual"
+      ]
+    },
+    "tag-group": {
+      "name": "Tag.Group",
+      "status": "draft",
+      "props": {
+        "defaultValue": {
+          "type": "string[]"
+        },
+        "items": {
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "tag"
+          ],
+          "minItems": 1
+        },
+        "label": {
+          "type": "string",
+          "required": true
+        },
+        "onChange": {
+          "type": "(value: string[], event) => void"
+        },
+        "onRemove": {
+          "type": "(value: string, event) => void"
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "value": {
+          "type": "string[]"
+        }
+      },
+      "states": [],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ]
+      },
+      "slots": []
+    },
+    "text-field": {
+      "name": "TextField",
+      "status": "draft",
+      "props": {
+        "autoComplete": {
+          "type": "string (WHATWG token)"
+        },
+        "clearable": {
+          "type": "boolean",
+          "default": false
+        },
+        "defaultValue": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "helpText": {
+          "type": "string | node"
+        },
+        "id": {
+          "type": "string"
+        },
+        "inputMode": {
+          "type": "enum",
+          "values": [
+            "decimal",
+            "email",
+            "numeric",
+            "search",
+            "tel",
+            "text",
+            "url"
+          ]
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "leadingIcon": {
+          "type": "slot"
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "suffix": {
+          "type": "string"
+        },
+        "trailingIcon": {
+          "type": "slot"
+        },
+        "type": {
+          "type": "enum",
+          "default": "text",
+          "values": [
+            "email",
+            "password",
+            "search",
+            "tel",
+            "text",
+            "url"
+          ]
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "success",
+            "warning"
+          ]
+        },
+        "validationMessage": {
+          "type": "string | node"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "states": [
+        "disabled",
+        "empty",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "pending",
+        "read-only",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ],
+        "style": [
+          "outline"
+        ]
+      },
+      "slots": [
+        "leadingVisual",
+        "trailingVisual"
+      ]
+    },
+    "textarea": {
+      "name": "Textarea",
+      "status": "draft",
+      "props": {
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "helpText": {
+          "type": "string | node"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isPending": {
+          "type": "boolean",
+          "default": false
+        },
+        "label": {
+          "type": "string | node",
+          "required": true
+        },
+        "maxLength": {
+          "type": "number"
+        },
+        "maxRows": {
+          "type": "number"
+        },
+        "minRows": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "onChange": {
+          "type": "function"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "resize": {
+          "type": "enum",
+          "default": "vertical",
+          "values": [
+            "auto",
+            "none",
+            "vertical"
+          ]
+        },
+        "rows": {
+          "type": "number",
+          "default": 3
+        },
+        "showCount": {
+          "type": "boolean",
+          "default": false
+        },
+        "showMessage": {
+          "type": "boolean",
+          "default": false
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "spellCheck": {
+          "type": "boolean"
+        },
+        "submitOnEnter": {
+          "type": "boolean",
+          "default": false
+        },
+        "validation": {
+          "type": "enum",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "success",
+            "warning"
+          ]
+        },
+        "validationMessage": {
+          "type": "string | node"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "states": [
+        "disabled",
+        "empty",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "pending",
+        "read-only",
+        "rest"
+      ],
+      "variants": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "status": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ],
+        "style": [
+          "outline"
+        ]
+      },
+      "slots": []
+    },
+    "toast": {
+      "name": "Toast",
+      "status": "draft",
+      "props": {
+        "action": {
+          "type": "{ label: string; onAction: function }"
+        },
+        "dismissible": {
+          "type": "boolean",
+          "default": true
+        },
+        "duration": {
+          "type": "number",
+          "default": 6000
+        },
+        "intent": {
+          "type": "enum",
+          "default": "neutral",
+          "values": [
+            "neutral",
+            "success"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "required": true
+        },
+        "onDismiss": {
+          "type": "function"
+        }
+      },
+      "states": [],
+      "variants": {
+        "intent": [
+          "neutral",
+          "success"
+        ]
+      },
+      "slots": []
+    },
+    "veil": {
+      "name": "Veil",
+      "status": "draft",
+      "props": {
+        "direction": {
+          "type": "enum",
+          "default": "full",
+          "values": [
+            "from-bottom",
+            "from-left",
+            "from-right",
+            "from-top",
+            "full"
+          ]
+        },
+        "intensity": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "medium",
+            "strong",
+            "subtle"
+          ]
+        },
+        "value": {
+          "type": "enum",
+          "default": "dark",
+          "values": [
+            "dark",
+            "light"
+          ]
+        }
+      },
+      "states": [],
+      "variants": {
+        "direction": [
+          "from-bottom",
+          "from-left",
+          "from-right",
+          "from-top",
+          "full"
+        ],
+        "intensity": [
+          "medium",
+          "strong",
+          "subtle"
+        ],
+        "value": [
+          "dark",
+          "light"
+        ]
+      },
+      "slots": []
+    },
+    "wallet-button": {
+      "name": "WalletButton",
+      "status": "draft",
+      "props": {
+        "provider": {
+          "type": "enum",
+          "required": true,
+          "values": [
+            "apple-pay",
+            "google-pay",
+            "paypal",
+            "shop-pay"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "default": "medium",
+          "values": [
+            "large",
+            "medium",
+            "small"
+          ]
+        },
+        "style": {
+          "type": "enum",
+          "default": "any",
+          "values": [
+            "any",
+            "black",
+            "blue",
+            "gold",
+            "purple",
+            "silver",
+            "white",
+            "white-outline"
+          ]
+        },
+        "wording": {
+          "type": "string",
+          "default": "plain"
+        }
+      },
+      "states": [
+        "focus-visible",
+        "rest"
+      ],
+      "variants": {
+        "provider": [
+          "apple-pay",
+          "google-pay",
+          "paypal",
+          "shop-pay"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "style": [
+          "any",
+          "black",
+          "blue",
+          "gold",
+          "purple",
+          "silver",
+          "white",
+          "white-outline"
+        ]
+      },
+      "slots": []
+    }
+  }
+}

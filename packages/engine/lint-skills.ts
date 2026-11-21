@@ -227,9 +227,7 @@ const DECLARED = indexOf(SOURCES.map((f) => [f, readFileSync(join(repo, f), 'utf
  * stale (drop the admission and let its location be checked), and so does one no skill quotes any more.
  */
 const UPPER = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/;
-const NOT_DECLARED: Record<string, string> = {
-  COMPONENT_CONTRACT_VERSION: 'a decided direction with no code yet (#1325 Option 3, #1326 decision 3); `prism3-build-component` §8 names it and says in the next sentence that it does not exist in code today',
-};
+const NOT_DECLARED: Record<string, string> = {};
 /** Admitted words a real skill quoted this run, for the stale-admission check. Cleared after the self-check. */
 const admittedSeen = new Set<string>();
 

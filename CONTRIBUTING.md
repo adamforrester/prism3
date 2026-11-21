@@ -275,6 +275,14 @@ npx tsx packages/engine/lint-contract-version.ts    # CONTRACT_VERSION against t
                                                     # no base ref; first parent on main's push run
                                                     # (`comparison-base.ts`, replayed by
                                                     # `lint-push-base.ts` below)
+npx tsx packages/engine/component-contract.ts --check
+                                                    # the component contract and the component
+                                                    # schema (#1325): each def's names, props,
+                                                    # defaults, values, states, variants and slots
+                                                    # (COMPONENT_CONTRACT_VERSION), and the shape of
+                                                    # one published entry (COMPONENT_SCHEMA_VERSION),
+                                                    # against a baseline only --accept writes, after
+                                                    # the bump the diff needs (docs/30)
 npx tsx packages/engine/emit-agent-reference.ts --check
                                                     # docs/public/reference/commands.json matches the
                                                     # code (#2637): every MCP tool of both servers, every

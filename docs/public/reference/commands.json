@@ -1187,6 +1187,30 @@
       ]
     },
     {
+      "file": "packages/engine/component-contract.ts",
+      "summary": "Prism3 engine — COMPONENT CONTRACT (the component-API surface, the component schema's shape, and the gate on both).",
+      "usage": [
+        {
+          "text": "npx tsx packages/engine/component-contract.ts --check    # fail (exit 1) if either surface moved",
+          "source": "packages/engine/component-contract.ts#header"
+        },
+        {
+          "text": "npx tsx packages/engine/component-contract.ts --accept   # rewrite the baseline (requires the bump)",
+          "source": "packages/engine/component-contract.ts#header"
+        }
+      ],
+      "flags": [
+        {
+          "flag": "--accept",
+          "source": "packages/engine/component-contract.ts#argv"
+        },
+        {
+          "flag": "--check",
+          "source": "packages/engine/component-contract.ts#argv"
+        }
+      ]
+    },
+    {
       "file": "packages/engine/materialise-to-figma.ts",
       "summary": "Prism3 engine — MATERIALISE-TO-FIGMA (the round-trip payload generator).",
       "usage": [

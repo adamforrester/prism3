@@ -241,6 +241,13 @@ jobs:
       # base's own number when nothing moved. Needs history: the job-level `fetch-depth: 0` above.
       - name: "CONTRACT_VERSION moved by the increment the surface needs, against the base (#2334)"
         run: npx tsx packages/engine/lint-contract-version.ts
+
+      # #1325 (owner decision Q-CC1 A): the component contract and the component schema, the token contract's
+      # pattern one layer over. COMPONENT_CONTRACT_VERSION answers for each def's names, props, values, states,
+      # variants and slots; COMPONENT_SCHEMA_VERSION for the shape of one published entry. The baseline,
+      # schema/component-contract.json, is not a regen artifact: only --accept writes it, after the bump.
+      - name: "Component contract and component schema (breaking-change gate, #1325)"
+        run: npx tsx packages/engine/component-contract.ts --check
       # #2637 — the agent reference, docs/public/reference/commands.json, still matches the code: every MCP
       # tool of both servers, every agent-link command and every CLI entry point, regenerated in memory from
       # the code (toolDefs, TOOLS, AGENT_COMMANDS/AgentArgs/parseCommand, each CLI's usage and argv reads)

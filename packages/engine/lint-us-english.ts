@@ -366,6 +366,9 @@ const gated: string[] = [
   // moment, since the comment above promises coverage follows regen. It carries prose (`note`), so
   // it is listed by hand here; any future artifact kept out of regen needs the same line.
   join(repo, 'packages/engine/schema/token-contract.json'),
+  // The component-contract baseline (#1325): kept out of `regen` for the token contract's reason, and it carries
+  // prose (`note`, prop types and def names), so it is named here by hand.
+  join(repo, 'packages/engine/schema/component-contract.json'),
   // The paint census (#758) — the second baseline kept out of `regen` for the identical reason, and so
   // listed by hand for the identical reason: it carries prose (`note`) and inherits none of the regen
   // list's coverage. This is the line the comment above predicted would be needed.
