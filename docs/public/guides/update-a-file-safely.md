@@ -95,14 +95,14 @@ To bring variants Prism3 did not build under its updates, an agent can claim the
 ### Updates off
 
 A set can have its updates off. Update file then leaves it as it is, and every hand edit on it stays where you left it. In Activity the run says so calmly, for example "Button: left as it is. Updates off." <!-- src: apps/plugin/src/updates-off.ts:61 -->
-Such a set is never due, and once the whole file has been read, the count on the button leaves it out. Right after the file opens, the count can include it for a moment. <!-- src: apps/plugin/src/as-built-ledger.ts:291#222872f0 -->
+Such a set is never due, and once the whole file has been read, the count on the button leaves it out. Right after the file opens, the count can include it for a moment. <!-- src: apps/plugin/src/as-built-ledger.ts:344#222872f0 -->
 
 Updates turn off by themselves only when an update can't apply around a set's hand edits: it had to skip a member whole for them, such as one with a layer you added. The rest of the set is still updated in that run. <!-- src: apps/plugin/src/update-apply.ts:1221#ef6ef842 -->
 An ordinary hand edit, such as a recolor, stays a hand edit, and the set keeps updating, unless an update changes that variant's layers. <!-- src: apps/plugin/src/update-apply.ts:381#04ebeceb -->
 
 To turn a set's updates off yourself, choose **Turn off updates** on its row under **Due**. <!-- src: apps/studio/src/state/update-file.ts:397 -->
 A set whose updates are off is listed under **Updates off** in the dialog. <!-- src: apps/studio/src/state/update-file.ts:395 --> When the update turned it off, its row adds "Turned off when an update couldn’t apply around your edits." <!-- src: apps/studio/src/state/update-file.ts:396 -->
-Choose **Turn updates back on** to hand it back. <!-- src: apps/studio/src/state/update-file.ts:398 --> That writes nothing to the set but the setting: the next Update file checks it as it checks any other set, and Keep still holds your edits until you choose otherwise. <!-- src: apps/plugin/src/main.ts:2431#c00ec9d7 -->
+Choose **Turn updates back on** to hand it back. <!-- src: apps/studio/src/state/update-file.ts:398 --> That writes nothing to the set but the setting: the next Update file checks it as it checks any other set, and Keep still holds your edits until you choose otherwise. <!-- src: apps/plugin/src/main.ts:2436#c00ec9d7 -->
 
 The setting is kept in the file, on the set, so it holds when the file is opened again. <!-- src: apps/plugin/src/updates-off.ts:30#eb506b52 -->
 

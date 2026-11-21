@@ -2301,6 +2301,8 @@ const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void>
 const guard = createRunGuard();
 /** `cmd` is the write asked for; `held`, the one holding the file (#3697 R7: they can differ). */
 const refusal = (cmd: WriteCmd, agent: boolean, held: WriteCmd): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(held), held });
+/** #4158: close the undo step the plugin's earlier actions are in. A host without it (a Node shim) has nothing to close. */
+const commitUndo = (): void => { try { (figma as { commitUndo?: () => void }).commitUndo?.(); } catch { /* no undo history to close */ } };
 const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<void>, confirm?: (...a: A) => boolean) =>
   (...a: A): Promise<void> => {
     if (!writes(cmd, confirm ? confirm(...a) : undefined)) return fn(...a);
@@ -2311,7 +2313,10 @@ const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<vo
     // #3081: a write may add or remove sets, so the live recount reads the file again after it (`presentCache`). It is
     // cleared as the write starts too: the write's verdict posts before the write's promise settles.
     presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++; dropViews();
-    return guard.run(cmd, () => fn(...a)).finally(() => { presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++; dropViews(); if (handPassOwed) void handEditsPass(); }); // #3804: a hand-edit pass this write ended runs again, over the file it left.
+    // #4158: Figma keeps a plugin's actions in one undo step until `commitUndo`, so with the panel open across runs (or an
+    // agent's command after one) a single undo would also take back the run before. Committing as a write starts closes
+    // what came before it as its own step, and the run itself stays one step, as `write-components.ts` intends.
+    return guard.run(cmd, () => { commitUndo(); return fn(...a); }).finally(() => { presentCache = null; panelCache = null; offCache = null; presentRead = null; presentGen++; dropViews(); if (handPassOwed) void handEditsPass(); }); // #3804: a hand-edit pass this write ended runs again, over the file it left.
   };
 
 /**

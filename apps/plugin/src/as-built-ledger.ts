@@ -176,10 +176,56 @@ export const readLedger = (root: DataRoot): Ledger => {
   try { raw = root.getPluginData?.(LEDGER_KEY) ?? ''; } catch { return {}; }
   if (!raw) return {};
   try {
-    const v = JSON.parse(raw) as { v?: unknown; sets?: unknown };
+    const v = JSON.parse(raw) as { v?: unknown; sets?: unknown; parts?: unknown };
     if (v.v !== LEDGER_V || !v.sets || typeof v.sets !== 'object') return {};
-    return Object.fromEntries(Object.entries(v.sets as Record<string, unknown>).filter(([, e]) => isEntry(e))) as Ledger;
+    // #4162: a record too large for one key carries the rest in `prism3:asBuilt:1…`. A part that cannot be read is
+    // left out, so its sets read as unrecorded, as a missing record does.
+    const parts = typeof v.parts === 'number' && Number.isInteger(v.parts) && v.parts > 1 ? v.parts : 1;
+    const all: Record<string, unknown> = { ...(v.sets as Record<string, unknown>) };
+    for (let i = 1; i < parts; i++) {
+      try {
+        const p = JSON.parse(root.getPluginData?.(partKey(i)) ?? '') as { sets?: unknown };
+        if (p.sets && typeof p.sets === 'object') Object.assign(all, p.sets);
+      } catch { /* unreadable part: its sets read as unrecorded */ }
+    }
+    return Object.fromEntries(Object.entries(all).filter(([, e]) => isEntry(e))) as Ledger;
   } catch { return {}; }
+};
+
+/** #4162: the key of the record's `i`th further part. */
+export const partKey = (i: number): string => `${LEDGER_KEY}:${i}`;
+/** #4162: the most one key's value may hold, in UTF-8 bytes. Figma caps a plugin-data entry (plugin id, key and value
+ *  together) at 100 kB and throws above it; this leaves room for the id and the key. */
+export const PART_BUDGET = 90_000;
+/** UTF-8 length, counted by hand: Figma's main thread has no `TextEncoder`. A surrogate pair is four bytes. */
+const bytesOf = (s: string): number => {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c < 0x80) n += 1;
+    else if (c < 0x800) n += 2;
+    else if (c >= 0xd800 && c <= 0xdbff && i + 1 < s.length) { n += 4; i++; }
+    else n += 3;
+  }
+  return n;
+};
+
+/** The record as the values its keys hold: one key, in the format every earlier plugin reads, while it fits in
+ *  `PART_BUDGET`; past that, the sets in order across as many keys as they need, the first carrying `parts`. */
+export const ledgerParts = (sets: Ledger): string[] => {
+  const one = JSON.stringify({ v: LEDGER_V, sets });
+  if (bytesOf(one) <= PART_BUDGET) return [one];
+  const chunks: Record<string, LedgerEntry>[] = [{}];
+  let used = 0;
+  // Room for the first part's `{"v":1,"parts":NNN,"sets":{}}` wrapper, the largest of the three shapes.
+  const room = PART_BUDGET - 64;
+  for (const [id, e] of Object.entries(sets)) {
+    const size = bytesOf(JSON.stringify(id)) + 1 + bytesOf(JSON.stringify(e)) + 1;
+    if (used + size > room && Object.keys(chunks[chunks.length - 1]).length) { chunks.push({}); used = 0; }
+    chunks[chunks.length - 1][id] = e;
+    used += size;
+  }
+  return chunks.map((c, i) => JSON.stringify(i === 0 ? { v: LEDGER_V, parts: chunks.length, sets: c } : { sets: c }));
 };
 
 /** Record `entries` in the file, over what it holds for those defs. A refused write throws, for the caller to catch.
@@ -190,7 +236,14 @@ export const recordSets = (root: DataRoot, entries: Ledger): void => {
   const was = readLedger(root);
   const merged = Object.fromEntries(Object.entries(entries).map(([id, e]) => [id, e.panel === undefined && was[id]?.panel !== undefined
     ? { ...e, panel: was[id].panel, ...(was[id].changed !== undefined ? { changed: was[id].changed } : {}) } : e]));
-  root.setPluginData?.(LEDGER_KEY, JSON.stringify({ v: LEDGER_V, sets: { ...was, ...merged } }));
+  // #4162: the further parts first, then the first key, which names how many there are; then any part an earlier,
+  // larger record left past the new count is cleared. A refused write still throws, for the caller to catch.
+  const values = ledgerParts({ ...was, ...merged });
+  let before = 1;
+  try { const v = JSON.parse(root.getPluginData?.(LEDGER_KEY) ?? '') as { parts?: unknown }; if (typeof v.parts === 'number' && v.parts > 1) before = v.parts; } catch { /* one key */ }
+  for (let i = 1; i < values.length; i++) root.setPluginData?.(partKey(i), values[i]);
+  root.setPluginData?.(LEDGER_KEY, values[0]);
+  for (let i = values.length; i < before; i++) root.setPluginData?.(partKey(i), '');
 };
 
 /** What moved between two prints, for the reason line: each part whose facets moved, each part added or dropped, and

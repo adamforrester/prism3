@@ -222,8 +222,9 @@ export const partialWriteHeadline = (f: PartialWriteFacts): string => {
  * on macOS and Windows, and naming one key would be wrong for half the audience.
  *
  * ONE UNDO STEP IS THE CLAIM, and it rests on a measured fact rather than on Figma's documentation:
- * `figma.commitUndo()` is called nowhere in this plugin, so a whole run collapses into a single undo
- * entry and one undo unwinds the entire partial build. That is also why the executor does not delete
+ * `figma.commitUndo()` is called only as a write starts (`guarded`, `main.ts`, #4158), never during one, so a
+ * whole run collapses into a single undo entry of its own and one undo unwinds the entire partial build, and nothing
+ * from an earlier run. That is also why the executor does not delete
  * what it wrote — the unwind already exists, on a path that does not need a host that has just started
  * refusing calls to accept 648 more.
  */

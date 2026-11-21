@@ -66,6 +66,7 @@
     { "file": "test-consistency-audit.ts", "floor": 31 },
     { "file": "test-file-facts.ts", "floor": 111 },
     { "file": "test-report-redaction.ts", "floor": 128 },
+    { "file": "test-write-guards.ts", "floor": 10 },
     { "file": "test-main-thread.ts", "floor": 22 },
     { "file": "test-file-records.ts", "floor": 7 }
   ],
