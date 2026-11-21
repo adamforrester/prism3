@@ -54,7 +54,6 @@ Use a Dialog when the user must make a decision or finish a short task before go
 - Put the main action last in an inline or fill footer (Cancel, then Save), and on top when stacked
 - Use the fill footer for two buttons that share the width, such as Clear all and Apply, and stacked for long labels
 - Let only the body scroll, and keep the footer in view
-- Return focus to the control that opened the dialog
 
 ### Don't
 
@@ -111,6 +110,8 @@ Titles are specific and in sentence case. Body text is short and states the cons
   - a backdrop built from a veil
 
 ## Building it in code
+
+- Return focus to the control that opened the dialog
 
 ### Props
 
