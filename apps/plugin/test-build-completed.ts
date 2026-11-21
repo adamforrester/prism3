@@ -366,8 +366,8 @@ const hash = (check.data.find((d) => (d.update as { mode?: string })?.mode === '
 ok(typeof hash === 'string', `fixture: the Update's check finds Badge and returns its hash (${hash})`);
 const applied = (await runAction((sink) => ACTIONS.updateComponents('badge', hash ?? null, undefined, undefined, sink as never))).posts
   .find((m) => m?.type === 'component-update-result');
-const NO_LABEL_UPDATE = 'No canvas labels drawn: this file has no _Label component. Run Set up file, then update again';
-const NO_PANEL_UPDATE = 'No usage panels drawn: this file has no _Doc-block component. Build tag, list-item, divider, then run Set up file and update again';
+const NO_LABEL_UPDATE = 'No canvas labels drawn: this file has no _Label component. Run Set up file, then run Update file again';
+const NO_PANEL_UPDATE = 'No usage panels drawn: this file has no _Doc-block component. Build tag, list-item, divider, then run Set up file and run Update file again';
 ok(!!applied && String(applied.summary).includes(NO_LABEL_UPDATE) && (applied.lines as string[]).some((l) => l.startsWith(NO_LABEL_UPDATE))
   && String(applied.summary).includes(NO_PANEL_UPDATE) && (applied.lines as string[]).some((l) => l.startsWith(NO_PANEL_UPDATE)),
   `templates/update verdict: the Update's component-update-result summary carries the missing-template line (${JSON.stringify(applied?.summary)})`);
@@ -482,7 +482,7 @@ ok(made.built.includes('_Label'), `fixture: Set up file's template builder makes
 // `ok` and ✓, and say so as their one note. Literals. The file holds Divider by now (built above), so the fix names two.
 {
   const NO_PANEL = 'No usage panels drawn: this file has no _Doc-block component. Build tag, list-item, then run Set up file and build again';
-  const NO_PANEL_UPDATE = 'No usage panels drawn: this file has no _Doc-block component. Build tag, list-item, then run Set up file and update again';
+  const NO_PANEL_UPDATE = 'No usage panels drawn: this file has no _Doc-block component. Build tag, list-item, then run Set up file and run Update file again';
   const noted = await build('badge');
   ok(!!noted && noted.ok === true && noted.completed === true && String(noted.headline).startsWith('✓')
     && (noted.lines as string[]).includes(NO_PANEL) && !(noted.lines as string[]).includes(NO_LABEL),

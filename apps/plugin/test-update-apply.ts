@@ -906,7 +906,7 @@ for (const [tag, change] of [
 }
 
 /* ── choices ─────────────────────────────────────────────────────────────────────────────────────────── */
-section('choices — a hand edit overwritten, or accepted as built, when the confirm says so (design note §5)');
+section('choices — a hand edit overwritten, or accepted as baseline, when the confirm says so (design note §5)');
 for (const choice of ['overwrite', 'accept'] as const) {
   const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
   const m = membersOf(w.set())[3];
@@ -921,7 +921,7 @@ for (const choice of ['overwrite', 'accept'] as const) {
     ok(held === await varIdOf(w, 'space/999') && post.handEdits.length === 0 && post.counts.current === 45 && applyVerdict(res).ok,
       `hand/overwrite: the plan's value is written over the edit, and the next dry run reads all 45 current (${held}; ${JSON.stringify(post.counts)})`);
   else
-    ok(held === zero && post.handEdits.length === 0 && post.counts.current === 45 && applyVerdict(res).lines[0].includes('1 hand edit accepted as built'),
+    ok(held === zero && post.handEdits.length === 0 && post.counts.current === 45 && applyVerdict(res).lines[0].includes('1 hand edit accepted as baseline'),
       `hand/accept: the edit stays and is no longer listed (${held}; ${post.handEdits.length} listed; ${applyVerdict(res).lines[0]})`);
 }
 
@@ -1090,7 +1090,7 @@ section('calm — a miss on a member with kept hand edits is its own line, never
   ok(o.misses.length === 0 && (o.editedMisses ?? []).length > 0 && (o.editedMisses ?? []).every((x) => x.startsWith('footprint -> ') && x.includes(NAME)),
     `calm/split: the footprint misses the kept padding causes are listed apart, none left a miss (${JSON.stringify(o.misses).slice(0, 160)}; ${(o.editedMisses ?? []).length} apart)`);
   ok(v.ok && v.headline.startsWith('✓ updated 45 in place'), `calm/verdict: the run reads ✓ (${v.headline})`);
-  const line = v.lines.find((l) => l.startsWith('tag: not written because the member is hand-edited — footprint -> '));
+  const line = v.lines.find((l) => l.startsWith('tag: not written because the variant is hand-edited — footprint -> '));
   ok(!!line && !v.lines.some((l) => /not written as planned/.test(l)), `calm/line: the line names what was not written, and no part reads "not written as planned" (${(line ?? v.lines.join(' | ')).slice(0, 200)})`);
   ok(String(content.paddingLeft) === '3' && !((content.boundVariables as Record<string, unknown> | undefined)?.paddingLeft), `calm/kept: the padding is as the designer left it (${String(content.paddingLeft)})`);
 }
@@ -1132,7 +1132,7 @@ section('calm — a miss on a member with kept hand edits is its own line, never
   const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre), { choices: { handEdits: 'accept' } });
   const o = res.outcomes[0];
   const v = applyVerdict(res);
-  const line = v.lines.find((l) => l.startsWith('tag: not written because the member is hand-edited — footprint -> '));
+  const line = v.lines.find((l) => l.startsWith('tag: not written because the variant is hand-edited — footprint -> '));
   ok(o.misses.length === 0 && (o.editedMisses ?? []).length > 0 && (o.editedMisses ?? []).every((x) => x.startsWith('footprint -> ') && x.includes(NAME))
     && v.ok && v.headline.startsWith('✓ ') && !!line && !v.lines.some((l) => /not written as planned/.test(l)),
     `calm/accept: under Accept the kept padding's misses are listed apart too, and the run reads ✓ (${v.headline}; ${JSON.stringify(o.misses).slice(0, 120)}; ${(o.editedMisses ?? []).length} apart)`);
@@ -1172,7 +1172,7 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   // #3421 (Q39 A): the kept dot holds back the plan's size and corner bindings on it, so the verdict names them and the
   // headline says a set kept edits over changes. Typed here.
   ok(v.lines[0] === 'radio-control: 60 updated in place, 1 hand edit kept (dot size).' && v.ok && v.headline === '✓ updated 60 in place · 1 set kept edits over changes'
-    && v.lines[1] === 'radio-control: hand edits kept on 1 member keep out 2 of the plan\'s values (dot: size → control/size/md/dot, dot: corner radius → radius/round). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.',
+    && v.lines[1] === 'radio-control: hand edits kept on 1 variant keep out 2 of Prism3\'s values (dot: size → control/size/md/dot, dot: corner radius → radius/round). Listed under Kept edits until Overwrite or Accept as baseline is chosen for it.',
     `kept report/named: the hand edit kept names the property it kept (${JSON.stringify(v)})`);
 
   // #3326 PR 1 (Q3326.1 A): CAUSES, from the facts `ok` reads, never from the lines' words. A clean run has none; a set
@@ -1182,7 +1182,7 @@ section('keep, reported — a kept hand edit on a bound size is a hand edit kept
   ok(Array.isArray(v.causes) && v.causes.length === 0, `causes/clean: an ok run names no cause (${JSON.stringify(v.causes)})`);
   const unverified = applyVerdict({ ...res, outcomes: [{ ...o, content: ['dot.width 14 → 16'] }] });
   ok(!unverified.ok && JSON.stringify(unverified.causes) === JSON.stringify([{ kind: 'warn', subject: 'radio-control', what: 'not verified',
-    reasons: ['1 field still differs from the plan — dot.width 14 → 16.'] }]),
+    reasons: ['1 field still differs from what Prism3 expects — dot.width 14 → 16.'] }]),
     `causes/not verified: one cause for the set, its line's clause as the reason (${JSON.stringify(unverified.causes)})`);
   const refusedSet = applyVerdict({ ...res, outcomes: [{ ...o, refused: 'the set moved since the check' }] });
   ok(JSON.stringify(refusedSet.causes) === JSON.stringify([{ kind: 'bad', subject: 'radio-control', what: 'not updated', reasons: ['the set moved since the check.'] }]),
@@ -1459,7 +1459,7 @@ section('stop — a run that stops part-way finishes when the update runs again'
     `causes/stopped: the set the run stopped at is its cause, the host's words its reason (${JSON.stringify(applyVerdict(res).causes)})`);
   // #3449: stopped inside the members' writes, before any stamp, the pass finished none, and the line says 0.
   const zeroLine = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
-  ok(zeroLine.includes('). 0 members updated; '), `stop/count none: stopped before any member's stamp, the line counts 0 finished (${zeroLine.slice(0, 160)})`);
+  ok(zeroLine.includes('). 0 variants updated; '), `stop/count none: stopped before any member's stamp, the line counts 0 finished (${zeroLine.slice(0, 160)})`);
   const mid = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
   ok(mid.counts.current === 0 && mid.counts.update === 45 && mid.handEdits.length === 0,
     `stop/out of date: every member still reads out of date, and none as a hand edit (${JSON.stringify(mid.counts)}, ${mid.handEdits.length} edits)`);
@@ -1493,7 +1493,7 @@ section('stop/count — a set stopped after some members finished counts them');
   const mid = (await previewUpdate(w.host, [{ def: TAG, plans: next }])).sets[0];
   ok(mid.counts.current === 9 && mid.counts.update === 36, `stop/count premise: the dry run reads 9 members current and 36 out of date (${JSON.stringify(mid.counts)})`);
   const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
-  ok(line.includes('). 9 members updated; '), `stop/count finished: the stopped set's line counts the 9 members it finished (${line.slice(0, 160)})`);
+  ok(line.includes('). 9 variants updated; '), `stop/count finished: the stopped set's line counts the 9 members it finished (${line.slice(0, 160)})`);
 }
 {
   // The host throws on the 10th member's MARKER clear, the write after its stamp (`finishUpdated`): that member carries
@@ -1523,7 +1523,7 @@ section('stop/count — a set stopped after some members finished counts them');
   ok(restamped.length === 10 && marked === 1,
     `stop/count marker premise: 10 members carry the new stamp and ${marked} of them is still marked in progress (${restamped.length} restamped)`);
   const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
-  ok(line.includes('). 9 members updated; '), `stop/count marker: a member stamped but still marked in progress is not counted finished (${line.slice(0, 160)})`);
+  ok(line.includes('). 9 variants updated; '), `stop/count marker: a member stamped but still marked in progress is not counted finished (${line.slice(0, 160)})`);
   const markedName = String(restamped.find((m: any) => pd(m, UPDATING_KEY))?.name ?? '');
   ok(mid.counts.current === 9 && mid.counts.update === 36 && mid.states.some((s) => s.member === markedName && s.state === 'update'),
     `stop/count marker dry run: the dry run reads the member still marked in progress as to update, not current, and agrees with the line's 9 (${JSON.stringify(mid.counts)}; ${markedName})`);
@@ -1560,7 +1560,7 @@ section('stop/count — a set stopped after some members finished counts them');
   ok(!!res.outcomes[0]?.stopped && stamps === 36 && !pd(marked, UPDATING_KEY) && post.counts.current === 44 && post.counts.update === 1,
     `stop/count after marker premise: run 2 stops at the 36th stamp write, the marked member is finished, and the dry run reads 44 current and 1 to update (${stamps} stamps; ${JSON.stringify(post.counts)})`);
   const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
-  ok(line.includes('). 35 members updated; ') && (res.outcomes[0]?.updated ?? []).includes(String(marked?.name)),
+  ok(line.includes('). 35 variants updated; ') && (res.outcomes[0]?.updated ?? []).includes(String(marked?.name)),
     `stop/count after marker: run 2's line counts the 35 members it finished, the one a marker stop left among them (${line.slice(0, 160)})`);
 }
 {
@@ -1596,7 +1596,7 @@ section('stop/count — a set stopped after some members finished counts them');
   ok(!!res.outcomes[0]?.stopped && /the host stopped/.test(res.outcomes[0].stopped!) && throws === 1 && pd(hit, STAMP_KEY) === stampBefore && !pd(hit, UPDATING_KEY),
     `stop/count damage only premise: the run stopped as it marked the member, which keeps its stamp and carries no marker (${res.outcomes[0]?.stopped}; ${throws} throws)`);
   const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
-  ok(line.includes('). 0 members updated; ') && (res.outcomes[0]?.updated ?? []).length === 0,
+  ok(line.includes('). 0 variants updated; ') && (res.outcomes[0]?.updated ?? []).length === 0,
     `stop/count damage only: a member to update for damage alone, which the stopped pass never reached, is not counted (${line.slice(0, 160)}; updated ${JSON.stringify(res.outcomes[0]?.updated ?? [])})`);
 }
 
@@ -1641,7 +1641,7 @@ section('stop/count — a set stopped after some members finished counts them');
   ok(!!res.outcomes[0]?.stopped && clears === 2 && done.length === 1 && hits.every((h) => pd(h, STAMP_KEY) === stampBefore.get(h)),
     `stop/count damage finished premise: the run stopped on the second member's marker clear, one member finished, both stamps unchanged (${res.outcomes[0]?.stopped}; ${done.length} finished)`);
   const line = applyVerdict(res).lines.find((l) => l.startsWith(`${TAG}: stopped (`)) ?? '';
-  ok(line.includes('). 1 member updated; ') && JSON.stringify(res.outcomes[0]?.updated ?? []) === JSON.stringify(done.map((h) => String(h.name))),
+  ok(line.includes('). 1 variant updated; ') && JSON.stringify(res.outcomes[0]?.updated ?? []) === JSON.stringify(done.map((h) => String(h.name))),
     `stop/count damage finished: a member updated for damage alone, which the stopped pass finished, is counted (${line.slice(0, 160)}; updated ${JSON.stringify(res.outcomes[0]?.updated ?? [])})`);
 }
 
@@ -1755,9 +1755,9 @@ const agrees = async (w: World, targets: UpdateTarget[], ledger?: Parameters<typ
   });
   const restyle = (plans: AnatomyPlan[], to: string): AnatomyPlan[] => plans.map((p) => JSON.parse(JSON.stringify(p).replaceAll(`"${planTextStyles(p.root)[0]}"`, `"${to}"`)) as AnatomyPlan);
   const cases: { name: string; def: string; mk: (w: World) => AnatomyPlan[]; says: RegExp }[] = [
-    { name: 'variable', def: TAG, mk: (w) => moveGap(w.plans), says: /variable the plan binds is not in this file \(space\/999\)/ },
+    { name: 'variable', def: TAG, mk: (w) => moveGap(w.plans), says: /variable Prism3 binds is not in this file \(space\/999\)/ },
     { name: 'text style', def: TAG, mk: (w) => restyle(w.plans, 'label/absent'), says: /text style not in this file: label\/absent/ },
-    { name: 'swap target', def: 'button', mk: (w) => swapTo(w.plans, 'icon/absent'), says: /component the plan swaps to is not in this file: icon\/absent/ },
+    { name: 'swap target', def: 'button', mk: (w) => swapTo(w.plans, 'icon/absent'), says: /component Prism3 swaps to is not in this file: icon\/absent/ },
     { name: 'font', def: TAG, mk: (w) => {
       const real = w.api.loadFontAsync as (f: { family: string; style: string }) => Promise<void>;
       w.api.loadFontAsync = (w.host as { loadFontAsync?: unknown }).loadFontAsync = async (f: { family: string; style: string }) => { if (f.family === STYLE_FONT.family && f.style === STYLE_FONT.style) throw new Error('not installed'); return real(f); };
@@ -1773,7 +1773,7 @@ const agrees = async (w: World, targets: UpdateTarget[], ledger?: Parameters<typ
     const plans = w.plans.map((p, i) => swapTo([p], five[i % five.length]!)[0]!);
     const r = await agrees(w, [{ def: 'button', plans }]);
     const line = r.pre.sets[0]?.blockers.find((b) => b.startsWith('component')) ?? '';
-    ok(plans.length >= five.length && line === 'components the plan swaps to are not in this file: zz-a/2, zz-a/1, zz-b/1, zz-c/1, and 1 more',
+    ok(plans.length >= five.length && line === 'components Prism3 swaps to are not in this file: zz-a/2, zz-a/1, zz-b/1, zz-c/1, and 1 more',
       `agree/file swap targets over four sets: the list keeps the first three sets' targets and counts one more set (${plans.length} plans; ${line || r.pre.sets[0]?.blockers.join('; ') || 'none'})`);
   }
   for (const c of cases) {
@@ -2582,7 +2582,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
     `recordfail/out of date: the next dry run reads it out of date, never current, the other 45 current (${JSON.stringify(post.counts)})`);
   const glyph = String(hit.name).split('/').pop();
   ok(!v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === 'icon: 45 updated in place.'
-    && v.lines.includes(`icon: 1 member not finished — name=${glyph} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
+    && v.lines.includes(`icon: 1 variant not finished — name=${glyph} (its as-built record could not be written). It still reads as out of date; run Update file again to finish it.`),
     `recordfail/verdict: the verdict is not a ✓, counts 45 updated and names the icon not finished (${JSON.stringify(v)})`);
 }
 {
@@ -2605,7 +2605,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
     `recordfail/set member: a set member whose record could not be written keeps its stamp, reads out of date and is named (stamp ${pdOf(hit, STAMP_KEY) === stampWas ? 'kept' : 'moved'}; ${JSON.stringify(post.counts)}; ${JSON.stringify(named)})`);
   const v = applyVerdict(res);
   ok(!v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === `${TAG}: 44 updated in place.`
-    && v.lines.includes(`${TAG}: 1 member not finished — ${String(hit.name)} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
+    && v.lines.includes(`${TAG}: 1 variant not finished — ${String(hit.name)} (its as-built record could not be written). It still reads as out of date; run Update file again to finish it.`),
     `recordfail/set verdict: the set member's verdict is not a ✓, counts 44 updated and names it not finished (${JSON.stringify(v)})`);
 }
 {
@@ -2634,7 +2634,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const v = applyVerdict(res);
   ok(o?.skipped.some((x) => x.member === 'name=check') && o.misses.some((x) => x.startsWith('name=check-circle.asBuilt -> NOT RECORDED'))
     && !v.ok && v.headline === '⚠ Updated 1 set · 1 to check' && v.lines[0] === 'icon: 44 updated in place, 1 left as it is.'
-    && v.lines.includes('icon: 1 member not finished — name=check-circle (its as-built record could not be written). It still reads as out of date; run the update again to finish it.'),
+    && v.lines.includes('icon: 1 variant not finished — name=check-circle (its as-built record could not be written). It still reads as out of date; run Update file again to finish it.'),
     `recordfail/prefix: a skip on name=check leaves the refused record on name=check-circle in the misses and the verdict (skipped ${JSON.stringify(o?.skipped)}; misses ${JSON.stringify(o?.misses)}; ${JSON.stringify(v)})`);
 }
 {
@@ -2675,10 +2675,10 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   // precedence over a refused set → `uf3/refused stops`.
   const base = { updated: ['a=1'], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [], content: [], misses: [] };
   const clean = (k: number) => Array.from({ length: k }, (_, i) => ({ ...base, def: `s${i}`, set: `s${i}` }));
-  const toCheck = [{ ...base, def: 'p', set: 'p', content: ['a=1.fills: 2 paint(s) (the plan says none)'] }, { ...base, def: 'q', set: 'q', misses: ['label.characters -> DISCARDED (set "Go", reads "")'] }];
+  const toCheck = [{ ...base, def: 'p', set: 'p', content: ['a=1.fills: 2 paint(s) (Prism3 expects none)'] }, { ...base, def: 'q', set: 'q', misses: ['label.characters -> DISCARDED (set "Go", reads "")'] }];
   const warn = applyVerdict({ outcomes: [...clean(45), ...toCheck], refused: [], missing: [] } as any);
   ok(!warn.ok && warn.completed === true && warn.headline === '⚠ Updated 47 sets · 2 to check'
-    && warn.lines.includes('p: 1 field still differs from the plan — a=1.fills: 2 paint(s) (the plan says none).')
+    && warn.lines.includes('p: 1 field still differs from what Prism3 expects — a=1.fills: 2 paint(s) (Prism3 expects none).')
     && warn.lines.includes('q: 1 part not written as planned — label.characters -> DISCARDED (set "Go", reads "").'),
     `uf3/warn: every set written, 2 to check, is completed, not ok, and says so (${warn.headline}; completed ${warn.completed})`);
   const one = applyVerdict({ outcomes: [toCheck[0]], refused: [], missing: [] } as any);
@@ -2699,10 +2699,10 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   // left plural → `verb/differs 1`; left singular → `verb/differ 2`; the pronoun left plural → `verb/left 1`.
   const base = { def: 'x', set: 'x', updated: ['a=1', 'a=2'], added: 0, renamed: 0, deprecated: [], skipped: [] as { member: string; reason: string }[], kept: [], unrecorded: [], handEdits: 'keep' as const, identity: [], content: [] as string[], misses: [] };
   const lineOf = (o: typeof base, re: RegExp): string => applyVerdict({ outcomes: [o], refused: [], missing: [] } as any).lines.find((l) => re.test(l)) ?? '(none)';
-  const one = lineOf({ ...base, content: ['a=1/label.nestVariant: f/emphasis=secondary (the plan says f/emphasis=primary)'] }, /from the plan/);
-  ok(one === 'x: 1 field still differs from the plan — a=1/label.nestVariant: f/emphasis=secondary (the plan says f/emphasis=primary).', `verb/differs 1: one field reads "still differs" (${one})`);
-  const two = lineOf({ ...base, content: ['a=1/.opacity: 0.5 (the plan says 1)', 'a=2/.opacity: 0.5 (the plan says 1)'] }, /from the plan/);
-  ok(two === 'x: 2 fields still differ from the plan — a=1/.opacity: 0.5 (the plan says 1); a=2/.opacity: 0.5 (the plan says 1).', `verb/differ 2: two fields read "still differ" (${two})`);
+  const one = lineOf({ ...base, content: ['a=1/label.nestVariant: f/emphasis=secondary (Prism3 expects f/emphasis=primary)'] }, /from what Prism3 expects/);
+  ok(one === 'x: 1 field still differs from what Prism3 expects — a=1/label.nestVariant: f/emphasis=secondary (Prism3 expects f/emphasis=primary).', `verb/differs 1: one field reads "still differs" (${one})`);
+  const two = lineOf({ ...base, content: ['a=1/.opacity: 0.5 (Prism3 expects 1)', 'a=2/.opacity: 0.5 (Prism3 expects 1)'] }, /from what Prism3 expects/);
+  ok(two === 'x: 2 fields still differ from what Prism3 expects — a=1/.opacity: 0.5 (Prism3 expects 1); a=2/.opacity: 0.5 (Prism3 expects 1).', `verb/differ 2: two fields read "still differ" (${two})`);
   const left1 = lineOf({ ...base, skipped: [{ member: 'a=3', reason: 'not built by Prism3' }] }, /left as/);
   ok(left1 === 'x: 2 updated in place, 1 left as it is.', `verb/left 1: one member left reads "left as it is" (${left1})`);
   const left2 = lineOf({ ...base, skipped: [{ member: 'a=3', reason: 'not built by Prism3' }, { member: 'a=4', reason: 'not built by Prism3' }] }, /left as/);
@@ -3160,7 +3160,7 @@ section('order — a component this run adds counts as present for the set that 
   const w2 = await runAdds();
   const short: UpdateTarget[] = [{ def: 'wallet-button', plans: walletNow }, { def: 'provider-logo', plans: providerAll.filter((p) => p.coord.name !== 'button/paypal-gold'), single: true }];
   const pre2 = await previewUpdate(w2.host, short);
-  ok(JSON.stringify(pre2.sets.find((p) => p.set === 'wallet-button')?.blockers) === '["Not in this file: provider-logo/button/paypal-gold. Build provider-logo first, then run the update again"]',
+  ok(JSON.stringify(pre2.sets.find((p) => p.set === 'wallet-button')?.blockers) === '["Not in this file: provider-logo/button/paypal-gold. Build provider-logo first, then run Update file again"]',
     `run adds/unsupplied: a mark the run does not add still blocks wallet-button, named alone (${JSON.stringify(pre2.sets.find((p) => p.set === 'wallet-button')?.blockers)})`);
   // A BLOCKED PROVIDER CREDITS NOTHING (review should-fix 1): this run's provider-logo is itself blocked — one of its
   // marks nests a component the file does not have — so the apply refuses it and adds none of its 11 marks. Its marks
@@ -3194,7 +3194,7 @@ section('order — a component this run adds counts as present for the set that 
   const pre4 = await previewUpdate(w4.host, afterTheme);
   const pl4 = pre4.sets.find((p) => p.set === 'provider-logo');
   const wb4 = pre4.sets.find((p) => p.set === 'wallet-button');
-  ok(JSON.stringify(pl4?.blockers) === `["1 variable the plan binds is not in this file (${THEME_VAR})"]` && pl4?.themeBlocked === true,
+  ok(JSON.stringify(pl4?.blockers) === `["1 variable Prism3 binds is not in this file (${THEME_VAR})"]` && pl4?.themeBlocked === true,
     `premise: provider-logo is blocked only by a variable Theme writes (${JSON.stringify([pl4?.blockers, pl4?.themeBlocked])})`);
   ok(wb4?.themeBlocked === true && wb4.blockers.length === 1 && wb4.blockers[0].startsWith('Not in this file: ') && buttons.every((b) => wb4.blockers[0].includes(b)),
     `run adds/after theme: wallet-button reads blocked only until Theme, as its provider does, its blockers still naming the 11 marks (${JSON.stringify([wb4?.blockers, wb4?.themeBlocked])})`);
@@ -3755,7 +3755,7 @@ section('grid — a set laid out in another axis order reads its members as move
     const pre = await previewUpdate(w.host, [{ def: id, plans }]);
     const c = pre.sets[0].counts;
     // `positions` is capped at LIST_CAP like every list a dry run carries (`truncated` says by how many); the count is whole.
-    ok(c.move === n && (pre.sets[0].positions?.length ?? 0) + (pre.sets[0].truncated?.positions ?? 0) === n && c.update + c.add + c.drop + c.rename + c.handEdited + c.noBaseline === 0 && previewLine(pre.sets[0]) === `${name}: ${total} members. ${n} to move.`,
+    ok(c.move === n && (pre.sets[0].positions?.length ?? 0) + (pre.sets[0].truncated?.positions ?? 0) === n && c.update + c.add + c.drop + c.rename + c.handEdited + c.noBaseline === 0 && previewLine(pre.sets[0]) === `${name}: ${total} variants. ${n} to move.`,
       `grid/${id} moves: laid out in another order, ${n} members at another ${axis} read as moves, and nothing else (${previewLine(pre.sets[0])}; ${JSON.stringify(c)})`);
     const before = identityOf(w.set());
     const res = await applyUpdate(w.host, w.api as any, [{ def: id, plans }], previewHashOf(pre));
@@ -3763,7 +3763,7 @@ section('grid — a set laid out in another axis order reads its members as move
     const after = identityOf(w.set());
     const keptIds = [...before.members].every(([k, b]) => after.members.get(k)?.id === b.id && after.members.get(k)?.key === b.key) && after.members.size === total;
     const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
-    ok(v.headline === `✓ moved ${n}` && v.lines[0] === `${name}: ${n} moved.` && keptIds && previewLine(next) === `${name}: up to date (${total} members).`,
+    ok(v.headline === `✓ moved ${n}` && v.lines[0] === `${name}: ${n} moved.` && keptIds && previewLine(next) === `${name}: up to date (${total} variants).`,
       `grid/${id} converges: the apply moves the ${n}, keeps every id, and the next dry run reads up to date (${v.headline} | ${v.lines[0]} | ids ${keptIds ? 'kept' : 'changed'} | ${previewLine(next)})`);
     // AN UNRELATED UPDATE over the same old layout (every member's root gap moves): its moves are reported, never an
     // x or y changed silently. Every member whose place changed is one the dry run listed, and the apply counts them.
@@ -3847,7 +3847,7 @@ section('default member — Q347\'s three reorders reach an existing set in plac
       && membersOf(now).includes(main) && String(main.id) === mainId && inst.x === -500);
     ok(live, `default member/${id} instances: both placed instances stay on the page, unmoved, each on a member still in the set with its id`);
     const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
-    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} members).`, `default member/${id} current: the next dry run reads up to date (${previewLine(next)})`);
+    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} variants).`, `default member/${id} current: the next dry run reads up to date (${previewLine(next)})`);
   }
 }
 
@@ -3910,7 +3910,7 @@ section('default member — #2752\'s Q1 B and Q2 A reorders reach an existing se
       && membersOf(now).includes(main) && String(main.id) === mainId && inst.x === -500);
     ok(live, `default member/${id} instances (Q1/Q2): both placed instances stay on the page, unmoved, each on a member still in the set with its id`);
     const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
-    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} members).`, `default member/${id} current (Q1/Q2): the next dry run reads up to date (${previewLine(next)})`);
+    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} variants).`, `default member/${id} current (Q1/Q2): the next dry run reads up to date (${previewLine(next)})`);
   }
 }
 
@@ -4035,7 +4035,7 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   const v = previewVerdict(pre);
   ok(JSON.stringify(moving) === JSON.stringify(['button-destructive', 'button-neutral']) && pre.sets.every((p) => !p.blockers.length)
     && v.headline === 'Would change 2 of 3' && v.lines.includes('2 sets to move, so the sets on each page sit as a new build spaces them.')
-    && previewLine(pre.sets[1]) === 'button-destructive: 576 members. The set moves to its place on the page.',
+    && previewLine(pre.sets[1]) === 'button-destructive: 576 variants. The set moves to its place on the page.',
     `page/set moves: on a page laid out under the old 400 rule, the dry run moves the 2 later sets and nothing else (${JSON.stringify(moving)}; ${v.headline}; ${previewLine(pre.sets[1])})`);
   // THE APPLY: each set lands where a fresh build put it, every id kept, the note untouched, and the next dry run up to date.
   const res = await applyUpdate(host, api, targets, previewHashOf(pre));
@@ -4191,7 +4191,7 @@ section('header row — sets an earlier build put beside a wide page header move
   const idsWas = ids();
   const pre = await previewUpdate(host, targets);
   const to = pre.sets.map((p) => (p.setMove ? [p.setMove.to.x - Number(header.x), p.setMove.to.y - Number(header.y)] : null));
-  ok(JSON.stringify(to) === JSON.stringify(freshRel) && previewLine(pre.sets[0]) === `checkbox-control: ${membersOf(sets[0]).length} members. The set moves to its place on the page.`,
+  ok(JSON.stringify(to) === JSON.stringify(freshRel) && previewLine(pre.sets[0]) === `checkbox-control: ${membersOf(sets[0]).length} variants. The set moves to its place on the page.`,
     `header row/dry run: all three sets, the first included, move to where a fresh build puts them under the header (${JSON.stringify(to)}; fresh ${JSON.stringify(freshRel)}; ${previewLine(pre.sets[0])})`);
   const res = await applyUpdate(host, api, targets, previewHashOf(pre));
   const next = await previewUpdate(host, targets);
@@ -4509,7 +4509,7 @@ section('format — a record reads the same in a copy of the file, and a record 
   const dry = previewVerdict(pre).lines[0];
   const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
   const done = applyVerdict(res).lines[0];
-  ok(dry === 'tag: 45 members. 45 recorded by an earlier plugin version, read as having no as-built record.' && done === 'tag: 45 updated in place, 45 of them recorded by an earlier plugin version.',
+  ok(dry === 'tag: 45 variants. 45 recorded by an earlier plugin version, read as having no as-built record.' && done === 'tag: 45 updated in place, 45 of them recorded by an earlier plugin version.',
     `format/earlier words: the dry run and the apply say the record is an earlier version's (${dry} | ${done})`);
   const again = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0];
   ok(again.counts.current === 45, `format/earlier recorded: after the update each member has a record of this format, and reads current (${JSON.stringify(again.counts)})`);
@@ -4619,7 +4619,7 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
   const p = pre.sets[0];
   const st = p.states.find((x) => x.member === String(m.name))?.state;
   const black = p.changes.find((c) => c.field === hit && /stored #000000/.test(c.from) && c.sample.includes(String(m.name)));
-  ok(st === 'handEdited' && p.counts.update === 0 && p.counts.handEdited === 1 && !!black && previewLine(p) === `${TAG}: 45 members. 1 member edited by hand.`,
+  ok(st === 'handEdited' && p.counts.update === 0 && p.counts.handEdited === 1 && !!black && previewLine(p) === `${TAG}: 45 variants. 1 variant edited by hand.`,
     `damage/under a layer dry run: the member counts as edited by hand, not to update, and its paint is still listed (${st}; ${JSON.stringify(p.counts)}; ${black ? `${black.part}.${black.field}: ${black.from}` : 'no paint line'}; ${previewLine(p)})`);
   for (const choice of ['keep', 'overwrite', 'accept'] as const) {
     // #2956: each choice meets the set with its updates on. The skip turns them off by itself (`updates off/…` and the
@@ -4627,7 +4627,7 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
     (w.set().setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'updatesOff', '');
     const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])), { choices: { handEdits: choice } });
     const why = res.outcomes[0]?.skipped.find((x) => x.member === String(m.name))?.reason ?? '';
-    ok(why.startsWith('a layer was added or removed by hand, and it draws other than its plan (') && why.includes(String(m.name)) && why.includes(`${hit}: stored #000000`) && dumpOf(m) === before,
+    ok(why.startsWith('a layer was added or removed by hand, and it draws other than Prism3 expects (') && why.includes(String(m.name)) && why.includes(`${hit}: stored #000000`) && dumpOf(m) === before,
       `damage/under a layer skip (${choice}): the skip names the layer and the damage, and the member is left exactly (${why || 'not skipped'}; ${dumpOf(m) === before ? 'untouched' : 'written'})`);
   }
 }
@@ -4690,7 +4690,7 @@ section('verify reads what the host draws — damage the HOST makes behind the e
   const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
   const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
   const content = res.outcomes[0]?.content ?? [];
-  ok(!applyVerdict(res).ok && content.some((l) => /\.fills: stored #000000 at 100% \(the plan says .*, which resolves to #[0-9a-f]{6} at \d+%\)$/.test(l)),
+  ok(!applyVerdict(res).ok && content.some((l) => /\.fills: stored #000000 at 100% \(Prism3 expects .*, which resolves to #[0-9a-f]{6} at \d+%\)$/.test(l)),
     `verify/drawn paints: a paint the host left black under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => /stored #000000/.test(l)) ?? content[0]})`);
 }
 
@@ -4720,7 +4720,7 @@ section('verify reads what the host draws — damage the HOST makes behind the e
   const pre = await previewUpdate(w.host, [t]);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const content = res.outcomes[0]?.content ?? [];
-  ok(!applyVerdict(res).ok && content.some((l) => /\.glyph: a vector [\d.]+×[\d.]+ at [\d.]+,[\d.]+ \(the plan says inside its [\d.]+×[\d.]+ frame\)$/.test(l)),
+  ok(!applyVerdict(res).ok && content.some((l) => /\.glyph: a vector [\d.]+×[\d.]+ at [\d.]+,[\d.]+ \(Prism3 expects inside its [\d.]+×[\d.]+ frame\)$/.test(l)),
     `verify/drawn glyphs: a spinner glyph the host did not scale to its frame fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => /\.glyph:/.test(l)) ?? 'no glyph line'})`);
 }
 {
@@ -5091,8 +5091,8 @@ section('what the host draws — after an update in place, every bound paint sho
   const res = await applyUpdate(w.host, w.api as any, [{ def: 'button', plans: next }], previewHashOf(pre));
   const content = res.outcomes[0]?.content ?? [];
   const member = [...bare].find((n) => content.some((c) => c.startsWith(`${n}.fills: `))) ?? '';
-  const want = `${member}.fills: 1 paint(s) (the plan says none)`;
-  const wantField = `${String(held.name)}.primaryAxisAlignItems: MIN (the plan says CENTER)`;
+  const want = `${member}.fills: 1 paint(s) (Prism3 expects none)`;
+  const wantField = `${String(held.name)}.primaryAxisAlignItems: MIN (Prism3 expects CENTER)`;
   ok(!!member && content.includes(want) && content.includes(wantField) && !content.some((c) => c.includes('/..')),
     `root/named: a root's verify lines name the member alone (${want}; ${wantField}; ${content.find((c) => c.includes('/..')) ?? `${content.length} content lines`})`);
 }
@@ -5162,7 +5162,7 @@ section("veil — every directional member's gradient stops store the colors the
     const toUpdate = st.states.filter((x) => x.state === 'update').length;
     const black = st.changes.filter((c) => c.field === 'fills' && c.from === 'stored #000000 at 100%');
     ok(toUpdate === 24 && black.reduce((n, c) => n + c.members, 0) === 48 && st.counts.revisionUnknown === 6 && previewVerdict(pre).headline === 'Would change 1 of 1',
-      `veil/dry run: the 24 members whose stops store black read "to update", each stop named "stored #000000 at 100%" (${toUpdate} to update; ${black.reduce((n, c) => n + c.members, 0)} stops named, e.g. ${black[0] ? `${black[0].from} (the plan says ${black[0].to})` : 'none'}; ${st.counts.revisionUnknown} from an earlier plugin; ${previewVerdict(pre).headline})`);
+      `veil/dry run: the 24 members whose stops store black read "to update", each stop named "stored #000000 at 100%" (${toUpdate} to update; ${black.reduce((n, c) => n + c.members, 0)} stops named, e.g. ${black[0] ? `${black[0].from} (Prism3 expects ${black[0].to})` : 'none'}; ${st.counts.revisionUnknown} from an earlier plugin; ${previewVerdict(pre).headline})`);
     const res = await applyUpdate(w.host, w.api as any, [{ def: 'veil', plans: w.plans }], previewHashOf(pre));
     const r = await read(w);
     ok(applyVerdict(res).ok && res.outcomes[0]?.updated.length === 24 && r.wrong.length === 0 && r.shown.get(MEMBER) === MEMBER_STOPS,
@@ -5192,7 +5192,7 @@ section("veil — every directional member's gradient stops store the colors the
     const pre = await previewUpdate(w.host, [{ def: 'veil', plans: w.plans }]);
     const res = await applyUpdate(w.host, w.api as any, [{ def: 'veil', plans: w.plans }], previewHashOf(pre));
     const content = res.outcomes[0]?.content ?? [];
-    const line = `${MEMBER}.fills: stored #000000 at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
+    const line = `${MEMBER}.fills: stored #000000 at 100% (Prism3 expects color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
     ok(!applyVerdict(res).ok && content.includes(line),
       `veil/verify: a stop the host left black under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => l.startsWith(MEMBER)) ?? content[0] ?? 'no content line'})`);
   }
@@ -5217,10 +5217,10 @@ section("veil — every directional member's gradient stops store the colors the
     const first = `stored #b64d3c at 100%`;
     const firstTo = solid.find((c) => c.from === first)?.to;
     ok(toUpdate === 24 && solid.reduce((n, c) => n + c.members, 0) === 48 && /color\/veil\/dark\/strong, which resolves to #b64d3c at 70%/.test(String(firstTo)) && previewVerdict(pre).headline === 'Would change 1 of 1',
-      `veil/alpha dry run: the 24 members whose stops keep their color at 100% read "to update", each stop named (${toUpdate} to update; ${solid.reduce((n, c) => n + c.members, 0)} stops named, e.g. ${firstTo ? `${first} (the plan says ${firstTo})` : solid[0] ? `${solid[0].from} (the plan says ${solid[0].to})` : 'none'}; ${previewVerdict(pre).headline})`);
+      `veil/alpha dry run: the 24 members whose stops keep their color at 100% read "to update", each stop named (${toUpdate} to update; ${solid.reduce((n, c) => n + c.members, 0)} stops named, e.g. ${firstTo ? `${first} (Prism3 expects ${firstTo})` : solid[0] ? `${solid[0].from} (Prism3 expects ${solid[0].to})` : 'none'}; ${previewVerdict(pre).headline})`);
     const res = await applyUpdate(w.host, w.api as any, [{ def: 'veil', plans: w.plans }], previewHashOf(pre));
     const content = res.outcomes[0]?.content ?? [];
-    const line = `${MEMBER}.fills: stored #b64d3c at 100% (the plan says color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
+    const line = `${MEMBER}.fills: stored #b64d3c at 100% (Prism3 expects color/veil/dark/strong, which resolves to #b64d3c at 70%)`;
     ok(!applyVerdict(res).ok && content.includes(line),
       `veil/alpha verify: a stop the host left at 100% under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => l.startsWith(MEMBER)) ?? content[0] ?? 'no content line'})`);
   }
@@ -5768,7 +5768,7 @@ for (const [ROW, MEMBERS, FLOW] of [['radio-row', 6, ['controlCell', 'label']], 
   const lines = previewVerdict(pre).lines;
   const moves = FLOW.map((part) => p.changes.find((c) => c.part === part && c.field === 'moves into'));
   ok(moves.every((c) => c?.to === 'content' && c.members === MEMBERS)
-    && FLOW.every((part) => lines.includes(`${ROW} · ${part} · moves into content, kept (${MEMBERS} members).`))
+    && FLOW.every((part) => lines.includes(`${ROW} · ${part} · moves into content, kept (${MEMBERS} variants).`))
     && !p.changes.some((c) => /removed/.test(c.to)),
     `${ROW} rows/dry run moves: [${FLOW.join(', ')}] are listed as moving into content, kept, and nothing as removed (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.to, c.members])).slice(0, 300)})`);
   ok(applyVerdict(res).ok, `${ROW} rows/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
@@ -5951,8 +5951,8 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   const lines = previewVerdict(pre).lines;
   const moveLines = ['header/leadingIndicator', 'header/titleBox', 'header/trailingIndicator'].map((part) => p.changes.find((c) => c.part === part));
   ok(JSON.stringify(moveLines.map((c) => [c?.field, c?.to, c?.members])) === JSON.stringify([['moves into', 'header/titleRow', 24], ['moves into', 'header/titleRow', 48], ['moves into', 'header/titleRow', 24]])
-    && lines.includes('accordion · header/titleBox · moves into header/titleRow, kept (48 members).')
-    && lines.includes('accordion · header/leadingIndicator · moves into header/titleRow, kept (24 members).')
+    && lines.includes('accordion · header/titleBox · moves into header/titleRow, kept (48 variants).')
+    && lines.includes('accordion · header/leadingIndicator · moves into header/titleRow, kept (24 variants).')
     && !p.changes.some((c) => /removed/.test(c.to)),
     `acc/dry run moves: the indicators and the title are listed as moving into the row, kept, and nothing as removed (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.to, c.members]))})`);
   const v = applyVerdict(res);
@@ -6202,8 +6202,8 @@ section('stretched mode — an axis the parent stretches: the verify and the dry
       (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
     }
   };
-  const want = [`${control.name}/header.counterAxisSizingMode: FIXED (the plan says AUTO)`, `${control.name}/header/titleRow.counterAxisSizingMode: FIXED (the plan says AUTO)`,
-    `${open.name}/content.counterAxisSizingMode: AUTO (the plan says FIXED)`].sort();
+  const want = [`${control.name}/header.counterAxisSizingMode: FIXED (Prism3 expects AUTO)`, `${control.name}/header/titleRow.counterAxisSizingMode: FIXED (Prism3 expects AUTO)`,
+    `${open.name}/content.counterAxisSizingMode: AUTO (Prism3 expects FIXED)`].sort();
   outOfDate();
   const first = await confirm(w, [{ def: ACC, plans: w.plans }]);
   const modes = members.map((m) => `${sizeOf(m)}:${String(indicator(m).counterAxisSizingMode)}:${String(indicator(m).layoutAlign)}`);
@@ -6232,7 +6232,7 @@ section('stretched mode — an axis the parent stretches: the verify and the dry
   const third = await confirm(w, [{ def: ACC, plans: w.plans }]);
   const thirdModes = third.pre.sets[0].changes.filter((c) => /SizingMode$/.test(c.field)).map((c) => `${c.part}.${c.field}: ${c.from} → ${c.to} × ${c.members}`).sort();
   ok(JSON.stringify(thirdModes) === JSON.stringify(['content.counterAxisSizingMode: AUTO → FIXED × 1', 'header.counterAxisSizingMode: FIXED → AUTO × 1', 'header/titleRow.counterAxisSizingMode: FIXED → AUTO × 1', `header/titleRow/${lostAt}.counterAxisSizingMode: FIXED → AUTO × 1`].sort())
-    && third.res.outcomes[0].content.includes(`${lost.name}/header/titleRow/${lostAt}.counterAxisSizingMode: FIXED (the plan says AUTO)`),
+    && third.res.outcomes[0].content.includes(`${lost.name}/header/titleRow/${lostAt}.counterAxisSizingMode: FIXED (Prism3 expects AUTO)`),
     `stretch/lost: an indicator the host no longer stretches is listed by the dry run and named by the verify (${JSON.stringify(thirdModes)}; ${JSON.stringify(third.res.outcomes[0].content.slice(0, 4))})`);
 }
 
@@ -6726,7 +6726,7 @@ section('published — on a set in a team library, what breaks consumer files is
     const one: Extract<Breaking, { kind: 'layer' }> = lay[0] ?? { kind: 'layer', path: '(none listed)', members: 0 };
     ok(lay.length === 1 && lay[0].path === CHECK && lay[0].members === 15 && JSON.stringify(lay[0].added) === JSON.stringify(['checkGlyph']),
       `published/layer removed: the removed layer is listed once, on its 15 members, beside the layer added in its place (${JSON.stringify(lay)})`);
-    ok(breakingLine(TAG, one) === `${TAG} · ${CHECK} · removed from 15 members — breaks files that use this library: overrides on it are lost. If checkGlyph is this layer renamed, declare the rename and the update renames it in place.`,
+    ok(breakingLine(TAG, one) === `${TAG} · ${CHECK} · removed from 15 variants — breaks files that use this library: overrides on it are lost. If checkGlyph is this layer renamed, declare the rename and the update renames it in place.`,
       `published/layer line: the line names the layer, what is lost and the in-place fix (${breakingLine(TAG, one)})`);
     ok(previewVerdict({ sets: [p], missing: [], refused: [] }).lines.includes(breakingLine(TAG, one)), 'published/layer section: the check\'s section carries the line');
     // The checklist's set (`checkedSetOf`, what `main.ts` posts): the published set carries its line, the unpublished none.
@@ -6735,7 +6735,7 @@ section('published — on a set in a team library, what breaks consumer files is
       `published/checklist set: the checked set posted for the checklist carries the published set's line, and the unpublished set's none (${checkedSetOf(p, TAG).breaks} | ${checkedSetOf(qp, TAG).breaks})`);
     // #3711 (Q-UF2 A): the checked set also carries each change named and the count, for the callout before the run; the
     // unpublished set carries none. Literal. Mutation: `changes` dropped from `checkedSetOf` → `uf2/checked set`.
-    ok(JSON.stringify(checkedSetOf(p, TAG).changes) === JSON.stringify({ count: 1, lines: [`${TAG} · ${CHECK} · removed from 15 members — breaks files that use this library: overrides on it are lost. If checkGlyph is this layer renamed, declare the rename and the update renames it in place.`] })
+    ok(JSON.stringify(checkedSetOf(p, TAG).changes) === JSON.stringify({ count: 1, lines: [`${TAG} · ${CHECK} · removed from 15 variants — breaks files that use this library: overrides on it are lost. If checkGlyph is this layer renamed, declare the rename and the update renames it in place.`] })
       && !('changes' in checkedSetOf(qp, TAG)),
       `uf2/checked set: the published set's changes are named and counted for the callout, the unpublished set's absent (${JSON.stringify(checkedSetOf(p, TAG).changes)})`);
     const shipped = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
@@ -6885,7 +6885,7 @@ section('published — on a set in a team library, what breaks consumer files is
     ok(breakingClause([{ breaking: layerGone }]) === ' · 1 change affects files that use this library and breaks them'
       && JSON.stringify(breakingSection([{ set: 'Tag', breaking: layerGone }], false)) === JSON.stringify([
         'Files that use this library: 1 change in 1 published set, 1 of them breaking, passed on at the next library publish.',
-        'Tag · content/check · removed from 15 members — breaks files that use this library: overrides on it are lost.'])
+        'Tag · content/check · removed from 15 variants — breaks files that use this library: overrides on it are lost.'])
       && breakingSection([{ set: 'Tag', breaking: layerGone }], true)[0] === 'Files that use this library: 1 change made in 1 published set, 1 of them breaking, passed on at the next library publish.',
       `uf1/layer counted: a removed layer is counted as breaking in the clause and the section head (${breakingClause([{ breaking: layerGone }])} | ${breakingSection([{ set: 'Tag', breaking: layerGone }], false)[0]})`);
     const privRename: Breaking[] = [{ kind: 'private', from: 'Tag', to: '_Tag' }];

@@ -77,7 +77,7 @@ const HOME_SLOT = '[data-p3="home-agent"]';
 export const AGENT_CMD_WORDS: Readonly<Record<string, string>> = {
   status: 'Status', 'apply-theme': OP_TITLE['apply'], 'build-components': OP_TITLE.components, 'file-setup': OP_TITLE.filesetup,
   'style-guide': OP_TITLE.styleguide, prune: OP_TITLE.prune, readback: OP_TITLE.readback, 'draw-specs': OP_TITLE.specs,
-  'update-components': 'Update sets', 'capture-baseline': 'Record the sets', 'adopt-members': 'Adopt members', 'panels-clean': 'Clean up usage panels',
+  'update-components': 'Update file', 'capture-baseline': 'Record the sets', 'adopt-members': 'Adopt members', 'panels-clean': 'Clean up usage panels',
 };
 /** A relative age in words (Q3113.7 A; DRAFT): "just now" under a minute, then minutes, hours and days ago. Pure. */
 export const agoWords = (ms: number): string => {
@@ -180,11 +180,11 @@ export const agentStripText = (s: AgentLinkState | null, running: { readonly cmd
   { readonly text: string; readonly error: boolean } | null => {
   const short = agentLinkShortStatus(s);
   if (!short || short.error) return short;
-  if (running) return { text: `Agent running ${running.cmd}… ${agentAge(now - running.since)}`, error: false };
+  if (running) return { text: `Agent running ${AGENT_CMD_WORDS[running.cmd] ?? running.cmd}… ${agentAge(now - running.since)}`, error: false };  // #4185 D: the command in operation words, as the status line names it, never its wire name.
   const last = s?.lastCommand;
   const at = last ? Date.parse(last.finishedAt) : NaN;
   if (!last || Number.isNaN(at)) return { text: `${short.text} · no command yet`, error: false };
-  return { text: `${short.text} · last: ${last.cmd} ${agentAge(now - at)} ago`, error: false };
+  return { text: `${short.text} · last: ${AGENT_CMD_WORDS[last.cmd] ?? last.cmd} ${agoWords(now - at)}`, error: false };  // #4185 D: the same words and the same age as the status line ("2 min ago"), one format for one fact.
 };
 
 /** The strip's line while the link is off: the product's name, nothing about the link. */
@@ -232,13 +232,13 @@ export const mountAgentLink = (): void => {
   // The label is a `<label>` beside the switch, not inside it, so the switch stays the chrome's one track-and-knob kind
   // (#2183) and a click on the word turns it too. It is hidden from assistive tech: the switch's own name says "Agent".
   const wrap = h('div', 'p3-popwrap');
-  const { el: chip, set: setChip } = switchEl('agent-toggle', 'Agent', () => post({ type: 'agent-link', on: !state?.on }));
+  const { el: chip, set: setChip } = switchEl('agent-toggle', 'Agent link', () => post({ type: 'agent-link', on: !state?.on }));  // #4184 decision 6 A: "Agent link" on both switches, the top bar's and the library home's (was "Agent" here).
   chip.classList.add('p3-agent-switch');
   chip.id = 'p3-agent-switch';
   // #3553 Q-UI10 A: the word at the wide tier, the agent glyph at the narrow one, so the switch is never a bare toggle at
   // 380 and the brand switcher keeps its room (the word there trimmed the brand name).
   const label = h('label', 'p3-agent-switch-label');
-  label.append(glyph('agent'), h('span', 'p3-agent-switch-word', 'Agent'));
+  label.append(glyph('agent'), h('span', 'p3-agent-switch-word', 'Agent link'));
   label.htmlFor = chip.id;
   label.setAttribute('aria-hidden', 'true');
   // #2949 (Q600 A): Minimize, at the rail's foot since Q731, whether the link is on or off. A plain button: the main thread decides.
@@ -300,7 +300,7 @@ export const mountAgentLink = (): void => {
   restore.append(glyph('restore'));
   restore.addEventListener('click', () => post({ type: 'minimize-ui', minimized: false }));
   const turnOff = hook(h('button', 'p3-btn', 'Turn off'), 'agent-strip-off');
-  turnOff.type = 'button';
+  turnOff.type = 'button'; turnOff.setAttribute('aria-label', 'Turn off Agent link'); turnOff.title = 'Turn off Agent link';  // #4184 6 A (DRAFT): the name says what it turns off; the 480px strip keeps the short word
   turnOff.addEventListener('click', () => post({ type: 'agent-link', on: false }));
   strip.append(stripDot, stripText, restore, turnOff);
   document.body.append(strip);

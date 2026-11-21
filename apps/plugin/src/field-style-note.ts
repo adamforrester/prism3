@@ -17,7 +17,7 @@ export const fieldStyleNote = (before: BrandInput | null, after: BrandInput): st
   const now = after.fieldStyle ?? 'outline';
   if (was === now) return '';
   const label = leverManifest.find((l) => l.key === 'fieldStyle')?.options?.find((o) => o.value === now)?.label ?? now;
-  return `Field style is now ${label}. Update components to redraw the field sets.`;
+  return `Field style is now ${label}. Run Update file to redraw the field sets.`;
 };
 
 /**
@@ -34,5 +34,5 @@ export const searchFieldStyleNote = (before: BrandInput | null, after: BrandInpu
   const search = componentDefs.filter((d) => d.levers?.fieldStyle?.setting === 'searchFieldStyle');
   if (was === now || search.every((d) => fieldStyleFor(d, before) === fieldStyleFor(d, after))) return '';
   const label = leverManifest.find((l) => l.key === 'searchFieldStyle')?.options?.find((o) => o.value === now)?.label ?? now;
-  return `Search field style is now ${label}. Update components to redraw the search field.`;
+  return `Search field style is now ${label}. Run Update file to redraw the search field.`;
 };
