@@ -73,6 +73,7 @@ import { materializeForBrand } from './src/brand-def';
 import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET, labelAfterBuilds } from './src/build-deps';
 import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson, REF_BACKOFF_MS } from './src/write-components';
 import { refsNote } from './src/apply-summary';
+import { searchComponents } from './src/component-search';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
 
@@ -3987,6 +3988,91 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
     `#1623 emitAsComponents: every one of the ${icPlans.length} icon components carries the summary (${undescribed.length} without)`);
 
   ok(/description:\s*target\.summary/.test(mainSrc), "#1623 main.ts passes the def's summary as the build's description");
+
+  // #2865 (owner decision A): every write records itself, in shared plugin data `prism3`/`description` (typed here), and
+  // a description that still equals its record is Prism3's, so a later build replaces it. Mutations: the record not
+  // written → `#2865 recorded`; an existing set's description written only while empty, as before → `#2865 stale replaced`.
+  const recOf = (n: Record<string, unknown> | undefined): string => (n?.getSharedPluginData as ((a: string, b: string) => string) | undefined)?.('prism3', 'description') ?? '';
+  ok(recOf(setOf(pgA)) === fm.summary && pgC.children.every((c) => recOf(c as Record<string, unknown>) === ic.summary),
+    `#2865 recorded: a fresh set and each emitted component record the description they were given (${JSON.stringify(recOf(setOf(pgA)))})`);
+  const pgD: Page = { children: [] };
+  await run(fmPlans, { ...fmVars, page: pgD }, { description: 'An earlier summary.' });
+  await run(fmPlans, { ...fmVars, page: pgD }, { description: fm.summary });
+  ok(setOf(pgD)?.description === fm.summary && recOf(setOf(pgD)) === fm.summary,
+    `#2865 stale replaced: a set whose description is still Prism3's earlier one takes the new summary on the next build ("${setOf(pgD)?.description}")`);
+
+  // DECISION A IS SCOPED TO A SET PRISM3 BUILT (#2865 review should-fix 1): a description with no record is Prism3's only
+  // there. A set none of whose members carries a stamp (`memberStamp`, typed here) is the designer's, and so is its
+  // description. The control: the same unrecorded description on a set whose members keep their stamps is replaced.
+  // Mutation: the executor's `setBuiltByUs` dropped → `#2865 hand-made set kept`.
+  const DESIGNER = 'A designer wrote this.';
+  const unrecorded = async (clearStamps: boolean): Promise<{ desc: unknown; stamps: string[] }> => {
+    const pg: Page = { children: [] };
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    const set = setOf(pg)!;
+    const kids = (set.children ?? []) as Record<string, unknown>[];
+    const put = (n: Record<string, unknown>, k: string, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', k, v);
+    if (clearStamps) for (const c of kids) put(c, 'memberStamp', '');
+    set.description = DESIGNER;
+    put(set, 'description', '');
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    return { desc: setOf(pg)?.description, stamps: kids.map((c) => (c.getSharedPluginData as (a: string, b: string) => string)('prism3', 'memberStamp')) };
+  };
+  const built = await unrecorded(false);
+  ok(built.desc === fm.summary, `#2865 unrecorded on a built set: a description with no record on a set Prism3 stamped takes the summary ("${built.desc}")`);
+  const hand = await unrecorded(true);
+  ok(hand.desc === DESIGNER && hand.stamps.length > 0 && hand.stamps.every((x) => x === ''),
+    `#2865 hand-made set kept: a set with no stamped member keeps its description on a build, record or not ("${hand.desc}"; stamps ${JSON.stringify(hand.stamps)})`);
+
+  // #2865 delta review should-fix 1: a build that adds a member to a hand-made set stamps it, so the next build reads the
+  // set as built. The designer's unrecorded description is marked theirs on the first build and kept on the second.
+  // Mutation: the `DESCRIPTION_THEIRS` mark not written → `#2865 hand-made set kept twice`.
+  {
+    const pg: Page = { children: [] };
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    const set = setOf(pg)!;
+    const kids = (set.children ?? []) as Record<string, unknown>[];
+    const put = (n: Record<string, unknown>, k: string, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', k, v);
+    for (const c of kids) put(c, 'memberStamp', '');
+    (kids[kids.length - 1].remove as () => void)();
+    set.description = DESIGNER;
+    put(set, 'description', '');
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    const d1 = setOf(pg)?.description;
+    const st = ((setOf(pg)!.children ?? []) as Record<string, unknown>[]).map((c) => ((c.getSharedPluginData as (a: string, b: string) => string)('prism3', 'memberStamp') ? 'S' : '-')).join('');
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    const d2 = setOf(pg)?.description;
+    ok(d1 === DESIGNER && st.includes('S') && d2 === DESIGNER,
+      `#2865 hand-made set kept twice: a designer's description on a set Prism3 never built survives the build that adds a member, and the one after (${JSON.stringify({ d1, st, d2 })})`);
+  }
+
+  // #2865 delta review should-fix 2: an EMPTY description on a set with no stamped member is still filled, as #1623 did
+  // on main. It has no designer text to protect. Mutation: the empty-fill term dropped → `#1623 empty filled on a hand-made set`.
+  {
+    const pg: Page = { children: [] };
+    await run(fmPlans, { ...fmVars, page: pg });
+    const set = setOf(pg)!;
+    for (const c of (set.children ?? []) as Record<string, unknown>[]) (c.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'memberStamp', '');
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    ok(setOf(pg)?.description === fm.summary && recOf(setOf(pg)) === fm.summary,
+      `#1623 empty filled on a hand-made set: a set with no stamped member and no description takes the summary, recorded ("${setOf(pg)?.description}")`);
+  }
+
+  // #2865 delta review nit: the designer mark is for a set Prism3 never built. A stamped set whose unrecorded description
+  // meets a build with no `description` option keeps no mark, so a later build still reads that description as Prism3's.
+  // Mutation: `!setBuiltByUs &&` dropped from the mark's guard → `#2865 built set not marked theirs`.
+  {
+    const pg: Page = { children: [] };
+    await run(fmPlans, { ...fmVars, page: pg }, { description: fm.summary });
+    const set = setOf(pg)!;
+    set.description = 'An earlier summary.';
+    (set.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'description', '');
+    await run(fmPlans, { ...fmVars, page: pg });
+    const stamped = ((setOf(pg)!.children ?? []) as Record<string, unknown>[]).some((c) => !!(c.getSharedPluginData as (a: string, b: string) => string)('prism3', 'memberStamp'));
+    const rec = recOf(setOf(pg));
+    ok(stamped && rec !== '\u0001theirs',
+      `#2865 built set not marked theirs: a build with no description into a set Prism3 stamped leaves its unrecorded description unmarked (record ${JSON.stringify(rec)}; stamped ${stamped})`);
+  }
 }
 
 // ---- #1611: THE FOOTPRINT HOLDS ACROSS RUNTIME AXES, NOT AUTHORING AXES --------------------
@@ -5144,6 +5230,81 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
     `#1796 two plain components named ${SWAP} are reported by name at the swap node and neither is swapped in (${instancesOf(swapPage, SWAP)} built; ${swNode[0] ?? 'NO MISS'})`);
   ok(swProp.length === 1 && swProp[0].includes(`(${swapMissAdvice('AMBIGUOUS', SWAP)}; ${SWAP_NO_PROPERTY})`),
     `#1796 ...and the swap property is not created from either (${swProp[0] ?? 'NO MISS'})`);
+}
+
+// #3828 — THE OTHER TWO READERS OF A NAME TWO PLAIN COMPONENTS HOLD (the #1796 policy)
+// =============================================================================================
+// A nest override's swap value (Dialog's close takes `icon/close`) and the icon re-run's existing-member lookup read
+// `compByName`, which keeps the last of several. Now neither picks by document order: the override is named in the
+// shared AMBIGUOUS words and the instance keeps its default; an emitted component's name held twice is named, and no
+// third is added. THE ORACLE is the host: the instance's own property value, and the page's components by name.
+// Mutations: the override's resolver back on `compByName` → `#3828 override`; the emit loop's check dropped →
+// `#3828 icon re-run`.
+{
+  const dg = figmaAnatomySet(byId('dialog')!);
+  const dgFull = fullFor(dg);
+  const props = { 'flush-icon-button-neutral': { 'swap icon#9:1': { type: 'INSTANCE_SWAP', defaultValue: 'icon/more-horizontal' } } };
+  const overrideMisses = (r: { misses: string[] }): string[] => [...new Set(r.misses.filter((m) => m.includes('.nestOverrides -> swap icon')))];
+  const once = await run(dg, { ...dgFull, comps: [...new Set([...(dgFull.comps ?? []), 'icon/close', 'icon/more-horizontal'])], componentProps: props, page: { children: [] } });
+  ok(overrideMisses(once).length === 0, `#3828 reachable: with one icon/close the close's swap override applies with no miss (${overrideMisses(once)[0] ?? 'none'})`);
+  const twoPage: Page = { children: [] };
+  const two = await run(dg, { ...dgFull, comps: [...new Set([...(dgFull.comps ?? []), 'icon/close', 'icon/more-horizontal']), 'icon/close'], componentProps: props, page: twoPage });
+  const m = overrideMisses(two);
+  ok(m.length > 0 && m.every((x) => x.endsWith('.nestOverrides -> swap icon (icon/close: found more than one COMPONENT of that name; neither is used. Rename or remove one, then rebuild; the nested instance keeps its default)')),
+    `#3828 override: a swap value two plain components hold is named, and neither is set (${m[0] ?? 'NO MISS'})`);
+
+  const ic = figmaAnatomySet(byId('icon')!);
+  const icPage: Page = { children: [] };
+  const icOpts: ShimOpts = { ...fullFor(ic), comps: [...(fullFor(ic).comps ?? []), 'icon/check', 'icon/check'], page: icPage };
+  const r = await run(ic, icOpts, { emitAsComponents: true });
+  const named = (n: string): number => icPage.children.filter((c) => c.type === 'COMPONENT' && c.name === n).length;
+  ok(r.misses.includes('member icon/check -> AMBIGUOUS (found more than one COMPONENT of that name; neither is used. Rename or remove one, then rebuild)') && named('icon/check') === 0 && named('icon/close') === 1,
+    `#3828 icon re-run: an emitted name two plain components hold is named, and no third is added (${r.misses.filter((x) => x.includes('icon/check'))[0] ?? 'NO MISS'}; ${named('icon/check')} built on the page)`);
+}
+
+// #4160 (owner decision C) — THE EXECUTOR'S WHOLE-FILE SEARCHES
+// =============================================================================================
+// A build searched the whole file for components twice to set up, then twice more for EVERY slot property that names a
+// preferred def. Now the slot loop's pair runs once per build, and every component search runs with Figma skipping
+// hidden instance children (`searchComponents`, `component-search.ts`). THE ORACLE is the host: a counting host whose
+// `root.findAllWithCriteria` records each call and the flag as it stood. List, its `items` slot cloned under a second
+// name so the plan carries two preferred SLOT properties. Mutations: the slot searches back inside the loop →
+// `#4160 searched once`; a search unwrapped → `#4160 flag`; the flag left on → `#4160 flag restored`.
+{
+  const listPlans = figmaAnatomySet(byId('list')!).map((pl) => {
+    const q = JSON.parse(JSON.stringify(pl)) as AnatomyPlan;
+    const visit = (n: { name: string; slotPreferred?: unknown; children?: unknown[] }): boolean => {
+      const kids = (n.children ?? []) as { name: string; slotPreferred?: unknown; children?: unknown[] }[];
+      const at = kids.findIndex((k) => !!k.slotPreferred);
+      if (at >= 0) { kids.splice(at + 1, 0, { ...JSON.parse(JSON.stringify(kids[at])), name: `${kids[at].name}2` }); return true; }
+      return kids.some(visit);
+    };
+    visit(q.root as never);
+    return q;
+  });
+  const slots = (planSetProperties(listPlans) as { type: string; preferred?: string[] }[]).filter((x) => x.type === 'SLOT' && x.preferred?.length);
+  const calls: { types: string; skip: unknown }[] = [];
+  const g = globalThis as { figma?: { skipInvisibleInstanceChildren?: boolean } };
+  const before = g.figma;
+  const flagAfter: unknown[] = [];
+  g.figma = { skipInvisibleInstanceChildren: false };
+  try {
+    const shim = makeShim({ ...fullFor(listPlans), page: { children: [] }, looseHost: '#4160 counts the build\'s root.findAllWithCriteria calls' }) as unknown as { root: { findAllWithCriteria: (c: { types: string[] }) => unknown[] } };
+    const real = shim.root.findAllWithCriteria.bind(shim.root);
+    shim.root.findAllWithCriteria = (c) => { calls.push({ types: c.types.join(), skip: g.figma?.skipInvisibleInstanceChildren }); return real(c); };
+    await applyComponentPlan(listPlans, shim as never);
+    flagAfter.push(g.figma?.skipInvisibleInstanceChildren);
+    try { searchComponents(['COMPONENT'], () => { throw new Error('#4160 a search that throws'); }); } catch { /* the throw is the point */ }
+    flagAfter.push(g.figma?.skipInvisibleInstanceChildren);
+  } finally { g.figma = before; }
+  ok(slots.length === 2 && calls.length === 4,
+    `#4160 searched once: a build whose plan carries ${slots.length} preferred slot properties searches the whole file 4 times, 2 to set up and 2 for all its slots (${calls.length}: ${JSON.stringify(calls.map((x) => x.types))})`);
+  ok(calls.length > 0 && calls.every((x) => x.skip === true),
+    `#4160 flag: every component search runs with hidden instance children skipped (${JSON.stringify(calls.map((x) => x.skip))})`);
+  // The flag is put back: left on, reading a hidden layer inside an instance throws, and the hand-edit pass reads those.
+  // Mutation: `searchComponents`'s `finally` emptied → `#4160 flag restored`.
+  ok(JSON.stringify(flagAfter) === '[false,false]',
+    `#4160 flag restored: after the build, and after a search that throws, hidden instance children are read again (${JSON.stringify(flagAfter)})`);
 }
 
 // ---- #1750: a new set lands beside the page's content, never on top of it ------------------------------

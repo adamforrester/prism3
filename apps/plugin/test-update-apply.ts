@@ -5448,6 +5448,12 @@ section('reach — a member stamped under an older revision is to update only wh
   // record's floor is to update, as every member was before #3101. Read off the dry run of the host's own members; the
   // stamps are rewritten on the host, as an older plugin left them.
   const QUIET = '_accordion-indicator';
+  // Revision 68 (#2865, the description record) redraws every set (`"all"`), so the record is read here with QUIET left
+  // out of every entry since 42, an "all" entry as every other projected set, and put back after.
+  const committedReach = EXECUTOR_REACH.reach;
+  const everySet = componentDefs.filter((d) => d.figmaProperties).map((d) => d.id);
+  (EXECUTOR_REACH as { reach: typeof committedReach }).reach = Object.fromEntries(Object.entries(committedReach).map(([k, v]) => [k, Number(k) > 42 ? (v === 'all' ? everySet : v).filter((id) => id !== QUIET) : v]));
+  try {
   ok(!reaches(QUIET, 42, EXECUTOR_REVISION), `reach premise: no revision since 42 names ${QUIET}`);
   for (const [rev, want] of [[42, 'current'], [EXECUTOR_REACH.floor - 1, 'update']] as const) {
     const w = await world(QUIET);
@@ -5459,6 +5465,7 @@ section('reach — a member stamped under an older revision is to update only wh
     const c = (await previewUpdate(w.host, [{ def: QUIET, plans: w.plans }])).sets[0].counts;
     ok(c[want] === n, `reach/dry run ${rev}: a ${QUIET} set stamped under revision ${rev} reads all ${n} members ${want === 'current' ? 'current' : 'to update'} (${JSON.stringify(c)})`);
   }
+  } finally { (EXECUTOR_REACH as { reach: typeof committedReach }).reach = committedReach; }
 }
 
 section('glyph layer — a glyph\'s layer named like a sibling part is never taken for that part (#2795)');
@@ -7366,6 +7373,91 @@ section('updates off — a set whose updates are off is left as it is, reported 
   ok(JSON.stringify(due) === JSON.stringify({ a: { state: 'off', by: 'designer' }, b: { state: 'off', by: 'auto' }, c: { state: 'off', by: 'auto' }, d: { state: 'unrecorded' } })
     && plain.b.state === 'due' && plain.c.state === 'kept',
     `updates off/due: the mark reads over current, due and kept edits, and nothing else moves (${JSON.stringify(due)})`);
+}
+
+section('description — a def summary that moved reaches a set whose members are current (#2865, owner decision A)');
+{
+  // Every member of the Tag is current; only its description differs from the def's summary. Owner decision A: the
+  // description is Prism3's while it equals its record (shared plugin data `prism3`/`description`, typed here), and
+  // while it has no record at all; one a designer changed after the record is kept. Expected values typed here, the
+  // summary read off the def. Mutations: the check's row dropped → `description/planned`, `description/unrecorded`;
+  // the apply's write dropped → `description/applied`, `description/unrecorded`; `descriptionIsOurs` taking every
+  // description → `description/designer-kept`; `describe`'s `descriptionIsOurs` guard dropped → `description/single`.
+  const summary = componentDefs.find((d) => d.id === TAG)!.summary!;
+  const OLD = 'An old line about tags.';
+  const rec = (n: Node): string => (n.getSharedPluginData as (a: string, b: string) => string)('prism3', 'description');
+  const mark = (n: Node, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'description', v);
+  {
+    const w = await world(TAG);
+    w.set().description = OLD;
+    mark(w.set(), OLD);
+    const targets: UpdateTarget[] = [{ def: TAG, plans: w.plans }];
+    const pre = await previewUpdate(w.host, targets);
+    const p = pre.sets[0];
+    const v = previewVerdict(pre);
+    ok(p.counts.update === 0 && JSON.stringify(p.description) === JSON.stringify({ to: summary, from: [OLD], nodes: 1 })
+      && v.lines.includes(`tag: 45 variants. description to update.`) && v.lines.includes(`tag · description: the summary says "${summary}", the file has "${OLD}".`),
+      `description/planned: with every member current, the check lists the description as the set's one change (${JSON.stringify(p.description)}; ${JSON.stringify(v.lines.slice(0, 2))})`);
+    const res = await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre));
+    const a = applyVerdict(res);
+    ok(w.set().description === summary && rec(w.set()) === summary && res.outcomes[0]?.described === 1 && !res.outcomes[0]?.updated.length
+      && a.lines.includes('tag: description updated.') && w.api._versions.length === 1,
+      `description/applied: the confirm writes the summary and its record, no member, one version saved (${JSON.stringify(w.set().description)}; record ${JSON.stringify(rec(w.set()))}; ${JSON.stringify(a.lines)})`);
+    const again = await previewUpdate(w.host, targets);
+    ok(!again.sets[0].description && previewVerdict(again).headline === '✓ All sets up to date', `description/converges: the next check reads the set up to date (${previewVerdict(again).headline})`);
+  }
+  {
+    // A description with NO record (a file built before #2865, image-placeholder's case) is Prism3's.
+    const w = await world(TAG);
+    w.set().description = OLD;
+    const targets: UpdateTarget[] = [{ def: TAG, plans: w.plans }];
+    const pre = await previewUpdate(w.host, targets);
+    await applyUpdate(w.host, w.api as any, targets, previewHashOf(pre));
+    ok(pre.sets[0].description?.from[0] === OLD && w.set().description === summary && rec(w.set()) === summary,
+      `description/unrecorded: a stale description with no record is replaced, and recorded (${JSON.stringify(pre.sets[0].description)}; ${JSON.stringify(w.set().description)})`);
+  }
+  {
+    // A DESIGNER'S LINE, written after Prism3's record: kept, and the check says so. #1623's guarantee.
+    const w = await world(TAG);
+    w.set().description = 'Our team calls these chips.';
+    mark(w.set(), OLD);
+    const targets: UpdateTarget[] = [{ def: TAG, plans: w.plans }];
+    const pre = await previewUpdate(w.host, targets);
+    const v = previewVerdict(pre);
+    const moved = moveGap(w.plans);
+    const w2 = { def: TAG, plans: moved };
+    const pre2 = await previewUpdate(w.host, [w2]);
+    await applyUpdate(w.host, w.api as any, [w2], previewHashOf(pre2), { descriptionOf: () => summary });
+    ok(!pre.sets[0].description && pre.sets[0].descriptionKept === 1 && v.headline === '✓ All sets up to date' && v.lines.includes("tag · description: edited by hand, so it's kept.")
+      && w.set().description === 'Our team calls these chips.' && rec(w.set()) === OLD,
+      `description/designer-kept: a description changed after the record is kept through a check and an update that rewrites every member (${JSON.stringify(v.lines.slice(0, 2))}; ${JSON.stringify(w.set().description)})`);
+  }
+  {
+    // A SINGLE-COMPONENT DEF (#2865 review should-fix 2): each stamped component is its own description. Of two icons, one
+    // still carries Prism3's old line and its record; on the other a designer changed it after the record. The check
+    // plans the one and keeps the other, and the confirm writes the one only. Mutation: `describe`'s
+    // `descriptionIsOurs` guard dropped → `description/single`.
+    const icSummary = componentDefs.find((d) => d.id === 'icon')!.summary!;
+    const plans = plansOf('icon');
+    const w = await singleWorld(plans);
+    const [ours, theirs] = w.comps();
+    ours.description = OLD; mark(ours, OLD);
+    theirs.description = 'Our team draws these by hand.'; mark(theirs, OLD);
+    const t: UpdateTarget = { def: 'icon', plans, single: true };
+    const pre = await previewUpdate(w.host, [t]);
+    const p = pre.sets[0];
+    const v = previewVerdict(pre);
+    const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+    ok(JSON.stringify(p.description) === JSON.stringify({ to: icSummary, from: [OLD], nodes: 1 }) && p.descriptionKept === 1
+      && v.lines.some((l) => l.endsWith(' description to update.')) && v.lines.includes(`${p.set} · description: edited by hand, so it's kept.`)
+      && ours.description === icSummary && rec(ours) === icSummary && theirs.description === 'Our team draws these by hand.' && rec(theirs) === OLD && res.outcomes[0]?.described === 1,
+      `description/single: of two icons, the one still Prism3's takes the summary and the one a designer changed is kept (${JSON.stringify(p.description)}, kept ${p.descriptionKept}; ${JSON.stringify(ours.description)} / ${JSON.stringify(theirs.description)})`);
+    // #2865 delta review should-fix 3: a set whose only write was its description is named in the publish description's
+    // set list, beside #4091's merge-only arm. Mutation: `|| o.described` dropped from `changedSets` → `description/publish`.
+    const descOnly = { ...res.outcomes[0]!, updated: [], added: 0, renamed: 0, deprecated: [], merged: [], described: 1 };
+    const listed = changedSets([descOnly]);
+    ok(listed.length === 1 && listed[0] === descOnly.set, `description/publish: a set whose only write was its description is listed as changed in the publish description (${JSON.stringify(listed)})`);
+  }
 }
 
 section('behind — a set whose run skipped a member still behind its plan is not recorded as current (#3907)');

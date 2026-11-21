@@ -4245,6 +4245,9 @@ export const applyNestOverrides = (
   inst: { componentProperties?: unknown; setProperties?: (props: Record<string, string>) => void },
   overrides: readonly NestOverride[],
   idOf: (component: string) => string | null,
+  /** #3828: the words for a swap value two or more plain components hold, so neither is picked by document order (the
+   *  #1796 policy). Null for a name held once or not at all; absent, no name reads ambiguous. */
+  ambiguous?: (component: string) => string | null,
 ): string[] => {
   const out: string[] = [];
   for (const o of overrides) {
@@ -4260,6 +4263,8 @@ export const applyNestOverrides = (
     }
     let want = o.value;
     if (o.type === 'INSTANCE_SWAP') {
+      const amb = ambiguous ? ambiguous(o.value) : null;
+      if (amb) { out.push(head + '(' + o.value + ': ' + amb + '; the nested instance keeps its default)'); continue; }
       const id = idOf(o.value);
       if (!id) { out.push(head + '(' + o.value + ' is not a component in this file; the nested instance keeps its default)'); continue; }
       want = id;
@@ -4617,7 +4622,8 @@ const hasMinLines = (n: FigmaNodePlan): boolean => n.minLines !== undefined || n
  */
 const NEST_OVERRIDES_DEF_SLOT = '/*__NEST_OVERRIDES_DEF__*/';
 const NEST_OVERRIDES_SLOT = '/*__NEST_OVERRIDES__*/';
-const PAYLOAD_NEST_OVERRIDES = `if(node&&n.nestOverrides)for(const m of applyNestOverrides(node,n.nestOverrides,x=>{const c=compByName.get(x);return c?c.id:null;}))misses.push(n.name+m);`;
+// #3828: the swap value read through \`one\`, as the nest and swap targets are (#1796): a name two plain components hold is \`AMB\`.
+const PAYLOAD_NEST_OVERRIDES = `if(node&&n.nestOverrides)for(const m of applyNestOverrides(node,n.nestOverrides,x=>{const c=one.get(x);return c?c.id:null;},x=>one.get(x)===0?AMB:null))misses.push(n.name+m);`;
 const hasNestOverrides = (n: FigmaNodePlan): boolean => n.nestOverrides !== undefined || n.children.some(hasNestOverrides);
 /**
  * A HOST'S ITEM PREFERENCES (#2661, Q418), spliced in ONLY for a payload whose plans carry `nestItemPrefer`: the shared

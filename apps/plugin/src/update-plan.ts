@@ -43,7 +43,7 @@
  * of the set DANGLES, which, like a drawn fault, makes the member "to update" whatever its record says. Its blind spots are this module's (`anatomy-readback.ts` lists them). A member whose stamp
  * moved and that shows no field difference is listed as re-applied rather than left out.
  */
-import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetLayout, planSetProperties, planTextStyles, type AnatomyPlan, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef } from '@prism3/engine/components';
+import { componentDefs, planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetLayout, planSetProperties, planTextStyles, type AnatomyPlan, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef } from '@prism3/engine/components';
 import { tailOf } from '@prism3/engine/figma';
 import { planTargets } from './build-deps';
 import { captureSlotMigration, keptLive, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
@@ -53,7 +53,7 @@ import { ENGINE_VERSION, colorVariablesOutOfOrder, COMPONENT_RENAMES, coordKey, 
 import { EXECUTOR_REVISION } from './executor-revision';
 import { PACE_MS } from './pace';
 import { reaches } from './executor-reach';
-import { adoptions, emitCoordValue, engineHalf, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
+import { adoptions, descriptionIsOurs, emitCoordValue, engineHalf, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { FURNITURE_KEY, FURNITURE_NS, furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
@@ -216,6 +216,13 @@ export type SetPreview = {
    *  would rebuild it without the edit. Always a conflict. Under Keep and Accept the apply skips the member. Absent
    *  otherwise. */
   handEdits: { member: string; path: string; conflict: boolean; structural: boolean; lost?: true }[];
+  /** #2865 (owner decision A) — the def's summary, to write as the description of the set (or, for a single-component
+   *  def, of each component) whose description is still Prism3's (`descriptionIsOurs`) and differs from it. `from` is
+   *  each different description it replaces, once. In the set's `previewHash`. Absent when none is due. */
+  description?: { to: string; from: string[]; nodes: number };
+  /** #2865 — how many nodes keep a description a designer changed after Prism3's record, though the summary differs:
+   *  the update leaves them, and the check says so. Absent when none. */
+  descriptionKept?: number;
   /** #2882 (owner decision A) — the engine half of every member stamp the check read, each once: the engines this set
    *  was last written or checked by (`restampMembers` rewrites the half on unchanged members, #2379). The publish
    *  description's range for the set starts at the oldest. Outside the set's `previewHash`: the stamps are in its
@@ -1639,6 +1646,12 @@ export const previewUpdate = async (file: UpdateHost, targets: readonly UpdateTa
       }
       if (furnitureDueCount(due)) preview.furniture = due;
     }
+    // THE DESCRIPTION (#2865, owner decision A): the summary on each node whose description is still Prism3's.
+    if (!preview.blockers.length) {
+      const d = descriptionDue(t, v.set, preview);
+      if (d.due) { preview.description = d.due; preview.previewHash = fnv(JSON.stringify([preview.previewHash, d.due])); }
+      if (d.kept) preview.descriptionKept = d.kept;
+    }
     // REPEATING ROWS INTO A SLOT (#2649): a set still holding them the old way lists every placed instance it carries.
     if (!t.single) {
       const mig = await slotMigrationFor(t, v.set as MigNode, ledger, breathe);
@@ -1903,7 +1916,27 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
  *  set's line still counts them. Counted as a change, a file holding them could never read up to date. A member to
  *  rename is a change (#2592): it reads current, and the apply renames it, so a set of renames is never up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !p.setRename && !furnitureDueCount(p.furniture) && !propChanges(p) && !carryDue(p);
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !p.setRename && !furnitureDueCount(p.furniture) && !propChanges(p) && !carryDue(p) && !p.description;
+/** #2865 (owner decision A): the description the update replaces, and the ones it keeps. The nodes are the set, or a
+ *  single-component def's components. A node counts as Prism3's only on a set Prism3 built (some member stamped), or,
+ *  for a single-component def, where that component is stamped: an unbuilt node is never written. */
+const descriptionDue = (t: UpdateTarget, set: LiveSet, p: SetPreview): { due: SetPreview['description'] | null; kept: number } => {
+  const to = componentDefs.find((d) => d.id === t.def)?.summary;
+  if (!to) return { due: null, kept: 0 };
+  type DNode = { description?: unknown; getSharedPluginData?(ns: string, key: string): string };
+  const nodes = (t.single ? ((set as { children?: readonly unknown[] }).children ?? []) as DNode[] : p.counts.members > p.counts.unstamped ? [set as unknown as DNode] : [])
+    .filter((n) => !t.single || !!n.getSharedPluginData?.(NS, STAMP_KEY));
+  // An empty description is not a row of its own: nothing in it is stale, and the build's pass fills it whenever it
+  // writes the set (`descriptionIsOurs`), as it did before #2865.
+  const differ = nodes.filter((n) => { const now = String(n.description ?? ''); return !!now && now !== to; });
+  const ours = differ.filter((n) => descriptionIsOurs(n));
+  return { due: ours.length ? { to, from: [...new Set(ours.map((n) => String(n.description ?? '')))], nodes: ours.length } : null, kept: differ.length - ours.length };
+};
+/** The wording the owner approved (#2865, 2026-11-20): the description's change as a named difference, and a kept one. */
+export const descriptionLines = (p: Pick<SetPreview, 'set' | 'description' | 'descriptionKept' | 'blockers'>): string[] => p.blockers.length ? [] : [
+  ...(p.description ? [`${p.set} · description: the summary says "${p.description.to}", the file has ${p.description.from.map((f) => `"${f}"`).join(' or ')}${p.description.nodes > 1 ? ` (${p.description.nodes} components)` : ''}.`] : []),
+  ...(p.descriptionKept ? [`${p.set} · description: edited by hand, so it's kept${p.descriptionKept > 1 ? ` (${p.descriptionKept} components)` : ''}.`] : []),
+];
 /** #3762: placed instances whose slot carry is still to fill, from a capture an earlier run kept on the set. A set with
  *  only that left (the plugin closed after the set's write, before its fill) is not up to date: its content is carried. */
 export const carryDue = (p: Pick<SetPreview, 'slotMigration' | 'slotTextMigration'>): boolean =>
@@ -1974,6 +2007,8 @@ export const previewLine = (p: SetPreview): string => {
     c.unstamped ? `${c.unstamped} not built by Prism3` : '',
   ].filter(Boolean);
   if (propChanges(p)) parts.push(n(propChanges(p), 'property change'));
+  // DRAFT wording for the owner (#2865): the description an update rewrites from the def's summary.
+  if (p.description) parts.push(p.description.nodes > 1 ? `${p.description.nodes} descriptions to update` : 'description to update');
   parts.push(...furnitureParts(p.furniture, 'to draw', 'to clear'));
   // DRAFT (#2464): the members not built by Prism3 stay counted on a set that reads up to date, as on any other.
   const own = c.unstamped ? ` ${c.unstamped} not built by Prism3, left as ${c.unstamped === 1 ? 'it is' : 'they are'}.` : '';
@@ -2148,7 +2183,9 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
       // #3225: the slot text moving into its property, every carried instance named.
       ...(p.slotTextMigration && !p.blockers.length ? slotTextLines(p.set, p.slotTextMigration) : []),
       // #3796 review B2: a kept carry this version can't read, named once per set.
-      ...(p.carryUnreadable?.length ? [unreadableLine(p.set)] : [])]),
+      ...(p.carryUnreadable?.length ? [unreadableLine(p.set)] : []),
+      // #2865: the description's change, named, and one a designer changed, kept.
+      ...descriptionLines(p)]),
     // #2831: what the update breaks for library consumers, in its own section.
     ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
