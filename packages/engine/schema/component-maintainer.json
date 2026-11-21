@@ -6691,6 +6691,123 @@
         }
       ]
     },
+    "skeleton": {
+      "codeOnly": [
+        {
+          "class": "motion",
+          "disposition": "REFUSED",
+          "description": "the pulse and the shimmer — in code the pulse fades the whole shape between two opacities, one cycle every `var(--motion-duration-sweep)` (Progress's `motion.duration.sweep`, so no token is minted) on `var(--motion-easing-role-default)`, repeating until the content arrives (OD-S3 A). `animation=\"shimmer\"` sweeps a highlight in `color.background.secondary` across the shape in the reading direction, one pass per period, animating `transform` on a pseudo-element, never `background-position`, so low-end devices keep the frame rate. `animation=\"none\"` draws the still shape. Figma holds the still frame."
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED",
+          "description": "reduced motion — under `@media (prefers-reduced-motion: reduce)` the pulse and the shimmer stop and the shape stays, still. The shape carries the meaning, so a still shape is enough; this is the opposite of Spinner, whose turn is the cue and only slows."
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED",
+          "description": "the content swap — the host replaces the skeleton with the content, at once or with a short crossfade on `var(--motion-duration-fast)` and `var(--motion-easing-role-enter)` (`var(--motion-duration-reduced-fast)` under reduced motion: opacity is not vestibular). Never a long fade over content that is already there. Skeleton has no `loading` prop; the swap is the host's or the app's."
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED",
+          "description": "anti-flash windows — the host waits a short delay before showing the skeleton, so a fast load shows nothing, and once shown keeps it a minimum time so it does not flash for a frame. The figures wait on the show-delay and minimum-show tokens (#3486); until then the host owns both timers, as with Spinner."
+        },
+        {
+          "class": "announcement",
+          "disposition": "REFUSED",
+          "description": "announcement — Skeleton never speaks (OD-S7 A). Every shape carries `aria-hidden=\"true\"`. The region that holds the skeletons carries `aria-busy=\"true\"` until its content arrives, then `false`, and owns one polite `role=\"status\"` region, present and empty before the skeletons show, into which a descriptive label is written (\"Loading order history\", not a bare \"Loading\"). So ten skeletons in one card announce once. Focus never moves to the loaded content unless the load was the user's own action."
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED",
+          "description": "the line widths — code sets every line to 100% of its width except the last two, at about 80% and 40%, for any `lines` count. Figma's auto layout has no percentage width, so the set draws three lines: the first grows across its row and the second and third are built at 256 and 128 (80% and 40% of the 320 build width) and keep those widths when an instance is resized. A designer stacks a second instance for more lines."
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED",
+          "description": "the bar height — the bar is about two thirds of its line box, centered (OD-S5 A). Code computes it from the line box; Figma binds a variable, not an expression, so the line row carries a fixed `space.050` inset above and below and the bar fills the rest: 16 of 24 at medium, 13 of 21 at small."
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED",
+          "description": "explicit dimensions — a rect takes the `width` and `height` of the content it stands for and a circle its diameter; nothing is derived from hidden children, which renders 0×0 on the server and then shifts. A host passes its own radius and aspect ratio, so the skeleton matches the content it replaces."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED",
+          "description": "right-to-left — the shapes are symmetric and do not mirror. Each line's bar starts at the start edge through logical properties, so under RTL the short lines end short of the left edge, and the shimmer sweeps in the reading direction, right to left. A composed skeleton layout follows its own layout."
+        }
+      ],
+      "notes": {
+        "contested": [
+          "REDUCED MOTION STOPS THE PULSE, which the motion skill's R7 would not do for a functional loop (it slows Spinner and the Progress sweep). The brief settles it for a skeleton, and the owner approved it (OD-S3 A): the shape carries the meaning, so a still shape loses nothing, where a frozen spinner reads as a crash. The skill names only the spinner and the sweep, so it does not yet say this.",
+          "THE PULSE IS NOT CAPPED at a number of cycles (the skill's R8, and SC 2.2.2's five seconds). It runs while the content loads and ends when the content arrives, the functional-loop rule; a load past about five seconds should move to a spinner or a progress bar in the region. Stated as intent in `accessibility.wcag`.",
+          "THE FILL IS `background.tertiary` (OD-S4 A), one step darker than the Image placeholder's `background.secondary`, so a skeleton image and an empty frame read differently. The alternative (B) matched them, at the cost of fading out on a secondary card. Neither is checked against every ground in every mode by a gate: the shapes are hidden decoration, outside SC 1.4.11."
+        ],
+        "unverified": [
+          "The brief was read through the proposal's quotation and paraphrase (#4109), not from a knowledge-base checkout. Sections the proposal did not quote (field evolution, §13; the external version numbers, §14) are not carried here.",
+          "That a hugging bar with a literal min width builds at that width with no children is a host behavior; the roundtrip gate reads the built width back."
+        ],
+        "evolution": [
+          "BUILT 2026-11-19 from the #4109 proposal, all seven owner decisions at A: no `ghost` alias, one primitive with a shape axis, pulse by default on `motion.duration.sweep`, the `background.tertiary` fill, a two-thirds bar, a four-member set, and a Skeleton that never speaks.",
+          "ACCEPTED 2026-11-20 (Q-R1 A): in both high-contrast modes the shapes draw nothing. `background.tertiary` resolves to the page color there (1.00:1). The shapes are decoration, and the reserved box still holds the layout, so nothing shifts when the content arrives."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "empty"
+        }
+      ]
+    },
     "popover": {
       "codeOnly": [
         {

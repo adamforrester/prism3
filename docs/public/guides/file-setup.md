@@ -16,7 +16,7 @@ Setting up again is safe: it adds only what is missing, matched by name. <!-- sr
 
 ## The pages it creates
 
-The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxonomy.ts:1-17#54450f84 --> <!-- src: apps/plugin/src/file-taxonomy.ts:77-207#2746a531 -->
+The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxonomy.ts:1-17#54450f84 --> <!-- src: apps/plugin/src/file-taxonomy.ts:77-210#d4d13ae7 -->
 
 - `Cover`
 - A divider, then `Foundations`, with `↳ Primitive tokens`, `↳ Semantic tokens` and `↳ Grids & layouts`
@@ -35,7 +35,7 @@ A file with no brand yet gets its cover once the theme is written. <!-- src: app
 
 ## The helper components
 
-On `↳ File Components`, setup builds the components the plugin draws page furniture, usage panels and style guides with. All but `_Doc-block` are built on any file; `_Doc-block` needs other sets first (below). <!-- src: apps/plugin/src/file-taxonomy.ts:207 -->
+On `↳ File Components`, setup builds the components the plugin draws page furniture, usage panels and style guides with. All but `_Doc-block` are built on any file; `_Doc-block` needs other sets first (below). <!-- src: apps/plugin/src/file-taxonomy.ts:210 -->
 
 | Component | What it is for |
 |---|---|

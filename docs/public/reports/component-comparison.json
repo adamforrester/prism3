@@ -4601,6 +4601,68 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "skeleton",
+      "name": "Skeleton",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "shape": [
+          "text",
+          "circle",
+          "rect"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "shape",
+          "default": "text",
+          "values": [
+            "text",
+            "circle",
+            "rect"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "lines",
+          "default": 3
+        },
+        {
+          "name": "width",
+          "default": "100%"
+        },
+        {
+          "name": "height"
+        },
+        {
+          "name": "animation",
+          "default": "pulse",
+          "values": [
+            "pulse",
+            "shimmer",
+            "none"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "slider",
       "name": "Slider",
       "category": "form",
@@ -6479,6 +6541,16 @@
       },
       {
         "values": [
+          "circle",
+          "rect",
+          "text"
+        ],
+        "components": [
+          "skeleton"
+        ]
+      },
+      {
+        "values": [
           "circular",
           "linear"
         ],
@@ -6546,6 +6618,7 @@
           "page-nav",
           "page-nav-item",
           "progress",
+          "skeleton",
           "switch-control",
           "switch-row"
         ]
@@ -6942,6 +7015,17 @@
         "values": [
           "start",
           "center"
+        ]
+      }
+    ],
+    "animation": [
+      {
+        "id": "skeleton",
+        "default": "pulse",
+        "values": [
+          "pulse",
+          "shimmer",
+          "none"
         ]
       }
     ],
@@ -7624,6 +7708,11 @@
         ]
       }
     ],
+    "height": [
+      {
+        "id": "skeleton"
+      }
+    ],
     "helpText": [
       {
         "id": "card-number-field"
@@ -8262,6 +8351,12 @@
       {
         "id": "code-input",
         "default": 6
+      }
+    ],
+    "lines": [
+      {
+        "id": "skeleton",
+        "default": 3
       }
     ],
     "link": [
@@ -9071,6 +9166,15 @@
           "linear",
           "circular"
         ]
+      },
+      {
+        "id": "skeleton",
+        "default": "text",
+        "values": [
+          "text",
+          "circle",
+          "rect"
+        ]
       }
     ],
     "shortcut": [
@@ -9570,6 +9674,14 @@
           "small",
           "medium",
           "large"
+        ]
+      },
+      {
+        "id": "skeleton",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
         ]
       },
       {
@@ -10442,6 +10554,10 @@
           "auto",
           "full"
         ]
+      },
+      {
+        "id": "skeleton",
+        "default": "100%"
       }
     ],
     "wording": [
@@ -10774,9 +10890,10 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
-        "progress"
+        "progress",
+        "skeleton"
       ],
-      "detail": "the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress"
+      "detail": "the shape axis takes 4 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circle, rect, text] in skeleton; [circular, linear] in progress"
     },
     {
       "kind": "axis values",
@@ -10822,6 +10939,7 @@
         "segmented-control-segment",
         "select",
         "sign-in-button",
+        "skeleton",
         "slider",
         "spinner",
         "switch-control",
@@ -10834,7 +10952,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, skeleton, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
     },
     {
       "kind": "axis values",
@@ -11232,6 +11350,14 @@
     },
     {
       "kind": "size order",
+      "subject": "skeleton",
+      "components": [
+        "skeleton"
+      ],
+      "detail": "skeleton declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "slider",
       "components": [
         "slider"
@@ -11316,7 +11442,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 50 of 51 sized components default to medium"
+      "detail": "field-label defaults size to small; 51 of 52 sized components default to medium"
     },
     {
       "kind": "prop default",

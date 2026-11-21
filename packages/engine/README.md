@@ -223,7 +223,7 @@ pressed/focused/selected), plus `on-fill`, `text`, `border`, and `overlay.*`
 washes — with `text.link.*` and `border.focus` as its dedicated ink/edge
 expressions, and the cross-cutting `disabled.*` family (not a per-family
 disabled state) covering the disabled case for any intent. Role keys nest
-(`interactive.primary.fill.hover`, `foreground.danger.pressed`, `inverse.text.primary`,
+(`interactive.primary.fill.hover`, `interactive.destructive.fill.pressed`, `inverse.text.primary`,
 `inverse.background.primary`).
 
 **Contrast is measured against the floor surface, not the pure extreme.** The
@@ -257,7 +257,7 @@ Two emit profiles prove the same engine serves both regression and product:
   (because violet is not red), and — because the brand named `accent` as its
   `actionPalette` — `interactive.primary.fill.rest` → `{prism.palette.accent.500}` while the
   brand hue lives at `foreground.brand` → `{prism.palette.primary.*}` and
-  `foreground.danger.default` → `{prism.palette.danger.*}`. Action, brand, and danger are
+  `foreground.danger` → `{prism.palette.danger.*}`. Action, brand, and danger are
   three distinct palettes: the white-label requirement, with action decoupled
   from brand.
 

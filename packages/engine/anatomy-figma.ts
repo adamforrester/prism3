@@ -5727,6 +5727,8 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'sign-in-button',
   // #3345: Page navigation and its item, Breadcrumbs' shape.
   'page-nav-item', 'page-nav',
+  // #4109: Skeleton, a set with headers like every other.
+  'skeleton',
   // #4007: Menu.Item, a set of 15 with state columns. Menu and Menu.Group build one member each, so they have no grid.
   'menu-item',
 ]);

@@ -2976,6 +2976,13 @@
       "affectedByChange": [],
       "inheritedBy": []
     },
+    "skeleton": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "slider": {
       "nests": [
         "_slider-thumb",
@@ -3231,6 +3238,7 @@
     "segmented-control-segment": 1,
     "select": 1,
     "sign-in-button": 1,
+    "skeleton": 0,
     "slider": 2,
     "spinner": 0,
     "switch-control": 1,

@@ -100,6 +100,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | segmented-control-segment | 1 | focus-ring | focus-ring |
 | select | 1 | field-label, field-message | field-label, field-message |
 | sign-in-button | 1 | focus-ring, provider-logo | focus-ring, provider-logo |
+| skeleton | 0 | — | — |
 | slider | 2 | _slider-thumb, field-label, field-message, text-field | _slider-thumb, field-label, field-message, focus-ring, text-field |
 | spinner | 0 | — | — |
 | switch-control | 1 | focus-ring | focus-ring |
