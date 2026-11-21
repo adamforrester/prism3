@@ -173,10 +173,12 @@ export const passwordField: ComponentDef = withMirrors(makeTextField({
   docs: {
     usage: 'Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.',
     do: [
+      'State the rules for a new password before the user types',
+    ],
+    implementation: [
       'Set `autoComplete` to `current-password` or `new-password` on every password field',
       'Let the user paste, so a password manager can fill the field',
       'Return the field to hidden when its form submits',
-      'State the rules for a new password before the user types',
     ],
     dont: [
       'Use an eye icon inside the field instead of the Show/Hide button',

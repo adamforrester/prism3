@@ -1035,6 +1035,12 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     const seen = new Set(Object.values(tier).flatMap((e) => Object.keys(e)));
     return [...order.filter((f) => seen.has(f)), ...[...seen].filter((f) => !order.includes(f)).sort()];
   };
+  // #4163 (owner decision A): which families are primitives, read off this file's own `primitives` tier. `core.*` and
+  // `motion.*` are named one level down, because a role shares each of those groups with the primitive it aliases.
+  const primitiveFamilies = [...new Set(Object.keys(primitives).map((k) => {
+    const s = k.split('.');
+    return s[0] === CORE_TIER || s[0] === 'motion' ? `${s[0]}.${s[1]}` : s[0];
+  }))];
   return {
     $schema: AI_METADATA_SCHEMA,
     brand: theme.id,
@@ -1043,7 +1049,9 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       'its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color ' +
       'roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, background-blur, ' +
       'focus-ring, icon, control and grid roles, and the type line boxes), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw ' +
-      'values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through ' +
+      'values the roles resolve to). The primitive families are ' + primitiveFamilies.map((f) => `\`${f}\``).join(', ') +
+      '. Not every one sits under `' + CORE_TIER + '`: a family outside it is still a primitive, so read the tier, not the path. ' +
+      'A primitive carries `aliased_by`, every token that resolves to it directly or through ' +
       'another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on ' +
       'and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and ' +
       'implies no contrast. `contrast_with` is the role\'s contrast contract: `requirement` states it as a check that ' +
