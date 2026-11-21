@@ -174,7 +174,12 @@ export const carriedMain = (git: Git, baseRef: string): { mainRef: string; point
  * second parent, so its own commits never join), and its one tip is the merge base the tree has with prism3's `main`.
  * Measured in prism3 at `poc/arm-1` b410e7ee: one tip, 0d7d289f, which is `git merge-base HEAD origin/main` there. Where
  * the chain forks (a branch cut from `main` past the fold, merged in without `main`), the fold itself is the base:
- * more in the diff, judged again, never less.
+ * more in the diff, judged again, never less. So too where the one tip is HEAD or one of HEAD's parents: that is the
+ * carry itself, cut from `main` past the fold, and judging it from its own head would pass its own work unread.
+ *
+ * LIMIT: this steps in only for the FIRST carry after a fold. Once the carried repo's `main` holds the fold, a later
+ * carry that brings newer `main` commits but no new fold gets null, and its base is the earlier carry's merge: `main`'s
+ * commits since then read as the carry's own again. Filed as its own issue (see the #3408 progress fragment).
  *
  * Null too where the fold cannot be found (a shallow checkout, no readable version, no single-parent commit setting
  * it): the caller keeps its base, which fails loud rather than passes. `base` is the commit the gate would compare
@@ -202,13 +207,19 @@ export const carriedMainBase = (git: Git, base: string): ComparisonBase | null =
     if (sha && first && chain.has(first)) { chain.add(sha); extended.add(first); }
   }
   const tips = [...chain].filter((c) => !extended.has(c));
-  const point = path.ok && tips.length === 1 ? tips[0] : fold.sha;
+  // The tip must be `main`'s, never the carry's own work. A carry cut from `main` PAST the fold has commits whose
+  // first parents descend from the fold, so they join the chain, and with no `main` commit after the cut its one tip
+  // is the carry's own head: HEAD, or HEAD's parent in CI's merge. Judged from there the carry's diff is empty and its
+  // own violation passes silently (#4439 B1). Such a tip falls back to the fold: more in the diff, never less.
+  const own = new Set(git('rev-parse', 'HEAD', 'HEAD^@').out.split('\n').map((l) => l.trim()).filter(Boolean));
+  const single = path.ok && tips.length === 1 ? tips[0] : null;
+  const point = single && !own.has(single) ? single : fold.sha;
   const lacks = `the base ${base.slice(0, 8)} lacks the commit the fold ${fold.sha.slice(0, 8)} setting HEAD's ENGINE_VERSION ${v} was made on, so it is not the main this tree carries (#3408)`;
   return {
     base: point,
     onBase: false,
     label: point === fold.sha
-      ? `the fold ${fold.sha.slice(0, 8)} — ${lacks}${path.ok ? `, and main's chain past the fold has ${tips.length} tips` : ''}`
+      ? `the fold ${fold.sha.slice(0, 8)} — ${lacks}${!path.ok ? '' : single ? `, and main's chain past the fold ends at HEAD's own commit ${single.slice(0, 8)}, which holds the carry's own work` : `, and main's chain past the fold has ${tips.length} tips`}`
       : `the newest main HEAD carries, ${point.slice(0, 8)} — ${lacks}`,
   };
 };

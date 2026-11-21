@@ -38916,6 +38916,8 @@ arm: {
   // that history, rightly called it wrong, and 3 arms failed on code that had not regressed. A fold the tree's
   // own history holds is in every repository the tree's commits are in. Null, with the reason, only where it is
   // truly absent (a shallow clone, or no single-parent commit sets the version): the caller FAILS by name.
+  // Deliberately NOT `carriedMainBase` (`comparison-base.ts`), though the fold rule is the same: the replay that judges the
+  // gates must not share their code, or it cannot fail (gate independence, docs/34-gate-independence.md). Keep two copies.
   const carriedFold = (src: string): { sha: string } | { why: string } => {
     const raw = (args: string[]) => spawnSync('git', ['-C', src, ...args], { encoding: 'utf8', env, maxBuffer: 256 * 1024 * 1024 });
     if (raw(['rev-parse', '--is-shallow-repository']).stdout.trim() !== 'false') return { why: 'the checkout is shallow, so the fold that set its version may not be in it' };
@@ -39204,7 +39206,8 @@ arm: {
     //   where the base lacks the commit the fold was made on. MUTATIONS VERIFIED (#3408, each fails a case here by name):
     //   `carriedMainBase` returning null · the made-on test dropped (the fold PR control, and #3833's refresh cases) · the
     //   fold taken as the base in place of the chain's tip (executor-reach's label) · emission-version dropping its call ·
-    //   progress-order reading landings from `origin/main` again (FOLDED ENTRIES).
+    //   progress-order reading landings from `origin/main` again (FOLDED ENTRIES) · the guard that refuses HEAD or its
+    //   parent as the tip dropped (#4439 B1, the carry cut past the fold).
     {
       const m1 = git(['rev-parse', `${m2}^1`]);
       const v = /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(git(['show', `${m1}:packages/engine/version.ts`]))![1];
@@ -39246,6 +39249,15 @@ arm: {
       const cown = tsx('packages/engine/lint-emission-version.ts', CARRIED);
       ok(cown.status === 1 && cown.out.includes('NOTE SHAPE — packages/engine/changes/replay-carried-patch.md declares `engine: patch`, and 1 committed artifact(s) moved (#1807).') && cown.out.includes(TIP),
         `#3408 carried repo: the carry's OWN patch note over its own moved artifact still fails NOTE SHAPE by name (exit ${cown.status}: ${said(cown, /NOTE SHAPE|base /)})`);
+      // Teeth, a carry cut from `main` PAST the fold (#4439 B1): its own commits join `main`'s first-parent chain, and
+      // with no `main` commit after the cut the chain's one tip is the carry's own head. That tip is never the base;
+      // the fold is, so the carry's own patch note over its own moved artifact still fails NOTE SHAPE by name.
+      git(['checkout', '-q', '-b', 'carried-past', m2]); moveArtifact(); note('replay-carried-past-patch', 'patch');
+      const past = commit('a carry cut from main past the fold moves an artifact under a patch note');
+      carriedPR(past);
+      const cpast = tsx('packages/engine/lint-emission-version.ts', CARRIED);
+      ok(cpast.status === 1 && cpast.out.includes('NOTE SHAPE — packages/engine/changes/replay-carried-past-patch.md declares `engine: patch`, and 1 committed artifact(s) moved (#1807).') && !cpast.out.includes(`the newest main HEAD carries, ${past.slice(0, 8)}`),
+        `#3408 carried repo: a carry cut from main past the fold is not its own base, so its own patch note over its own moved artifact still fails NOTE SHAPE by name (exit ${cpast.status}: ${said(cpast, /NOTE SHAPE|base |clean/)})`);
       // Teeth, in prism3's layout: a fold PR made on its base that drops a note's prose. The fold's parent is the base.
       const PROSE = 'The #3833 replay\'s replay-main-minor.';
       git(['checkout', '-q', '-b', 'fold-drops', m0]);
