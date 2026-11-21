@@ -6716,12 +6716,16 @@ arm: {
   ok(Object.prototype.hasOwnProperty.call(proto?.surfaces ?? {}, 'constructor') && JSON.stringify(proto.surfaces.constructor) === '{"base":900}',
     `#1946: a saved custom mode named like a prototype key ('constructor') is migrated too (${JSON.stringify(proto?.surfaces)})`);
   // Nit N2: the base is read as an own key of surfaces, never off Object.prototype. A stored blob is untrusted, so a
-  // base like 'constructor' must copy nothing rather than throw or copy the prototype's function.
-  let protoBase: any = null, protoBaseErr = '';
-  try { protoBase = deserializeBrandInput(JSON.stringify({ v: 2, input: { ...saved, customModes: [{ name: 'promo', base: 'constructor' }] } })); }
-  catch (e) { protoBaseErr = `${(e as Error).name}: ${(e as Error).message}`; }
-  ok(protoBase !== null && JSON.stringify(protoBase.surfaces) === '{"light":{"base":50},"dark":{"base":900}}',
-    `#1946: a saved custom mode whose base names a prototype key ('constructor') loads with nothing copied (${protoBaseErr || JSON.stringify(protoBase?.surfaces)})`);
+  // base like 'constructor' must copy nothing rather than throw or copy the prototype's function. '__proto__' is pinned
+  // too (#4072 delta review N3): surfaces['__proto__'] is Object.prototype, not a function, so a guard that only
+  // refused functions would pass 'constructor' and still copy {} for it. 'toString' is another inherited function.
+  for (const protoKey of ['constructor', '__proto__', 'toString']) {
+    let protoBase: any = null, protoBaseErr = '';
+    try { protoBase = deserializeBrandInput(JSON.stringify({ v: 2, input: { ...saved, customModes: [{ name: 'promo', base: protoKey }] } })); }
+    catch (e) { protoBaseErr = `${(e as Error).name}: ${(e as Error).message}`; }
+    ok(protoBase !== null && JSON.stringify(protoBase.surfaces) === '{"light":{"base":50},"dark":{"base":900}}',
+      `#1946: a saved custom mode whose base names a prototype key ('${protoKey}') loads with nothing copied (${protoBaseErr || JSON.stringify(protoBase?.surfaces)})`);
+  }
 }
 
 // PER-MODE RADIUS LEVER (Phase D) — a customizable mode overrides the `radius` scale; the engine
