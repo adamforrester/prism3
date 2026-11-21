@@ -1,4 +1,4 @@
-import { isVariableAlias } from '../types/figma-guards';
+import { aliasTargetIds } from '../types/figma-guards';
 
 /** Alias targets that are not local variables, resolved through the Plugin API (prism3 #4166). */
 export interface ExternalAliasTargets {
@@ -6,6 +6,9 @@ export interface ExternalAliasTargets {
   variables: Variable[];
   /** Collection id → name, for each target's collection the API could read. */
   collectionNames: Record<string, string>;
+  /** Collection id → default mode id, for the same collections (prism3 #2365): a tinted wash over a library variable
+   *  resolves through that collection's default mode, as an alias into any other collection does. */
+  collectionDefaultModes: Record<string, string>;
 }
 
 /**
@@ -77,10 +80,12 @@ export class TokenScanner {
       const missing: string[] = [];
       frontier.forEach(v => {
         Object.values(v.valuesByMode).forEach(value => {
-          if (isVariableAlias(value) && !known.has(value.id)) {
-            known.add(value.id);
-            missing.push(value.id);
-          }
+          aliasTargetIds(value).forEach(id => {
+            if (!known.has(id)) {
+              known.add(id);
+              missing.push(id);
+            }
+          });
         });
       });
       const resolved = await Promise.all(
@@ -91,6 +96,7 @@ export class TokenScanner {
     }
 
     const collectionNames: Record<string, string> = {};
+    const collectionDefaultModes: Record<string, string> = {};
     const collectionIds = Array.from(new Set(found.map(v => v.variableCollectionId)));
     const collections = await Promise.all(
       collectionIds.map(id => figma.variables.getVariableCollectionByIdAsync(id).catch(() => null))
@@ -98,9 +104,12 @@ export class TokenScanner {
     collections.forEach(c => {
       if (c) {
         collectionNames[c.id] = c.name;
+        if (c.defaultModeId) {
+          collectionDefaultModes[c.id] = c.defaultModeId;
+        }
       }
     });
-    return { variables: found, collectionNames };
+    return { variables: found, collectionNames, collectionDefaultModes };
   }
 
   /**
