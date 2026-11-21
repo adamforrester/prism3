@@ -150,7 +150,7 @@ export const STRIP_COPY = {
   details: 'Details in Activity.',
   /** #3189: an agent's Capture baseline and Adopt, in the words Activity already gives them (Q114 A). These two and
    *  `agentSub` are the owner's, approved as worded (Q3210.2 A), not DRAFT. */
-  agentRun: { capture: 'Recording the sets as built…', adopt: 'Adopting members…' } as Record<'capture' | 'adopt', string>,
+  agentRun: { capture: 'Saving what was built…', adopt: 'Updating variants…' } as Record<'capture' | 'adopt', string>,
   /** #3189: the line under an agent's run. */
   agentSub: 'An agent runs this. Details in Activity.',
   /** The writing controls' reason while a run is out (Q3170.3 A), on hover. */

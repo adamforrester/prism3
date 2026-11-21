@@ -756,7 +756,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       const n = iconOverrideCount();
       if (confirmPair && n && !isDerived(currentMode)) {
         note.append(inlineConfirm('icons-pair-confirm', {
-          title: PAIR_ICONS_CONFIRM.title, body: [PAIR_ICONS_CONFIRM.body(n)], action: PAIR_ICONS_CONFIRM.action,
+          title: PAIR_ICONS_CONFIRM.title, body: [PAIR_ICONS_CONFIRM.body(n)], action: PAIR_ICONS_CONFIRM.action(n),
           onConfirm: () => { confirmPair = false; edit('icons', () => pairIcons()); },
           onCancel: () => { confirmPair = false; render(); },
           back: () => root.querySelector<HTMLElement>('[data-p3="icons-pair"], [data-p3="icons-unpair"]'),
@@ -862,8 +862,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
           });
         }
         const is = selectField(`p3-g-interp-${gi}`, `${g.name} interpolation`, 'gradient-interpolation', (v) => edit('gradients', () => editGradient(gi, (gg) => { gg.interpolation = v as 'oklch' | 'srgb'; })));
-        is.set([{ v: 'oklch', l: 'OKLCH' }, { v: 'srgb', l: 'sRGB' }], g.interpolation ?? 'oklch');
-        set.append(field('Interpolation', `p3-g-interp-${gi}`, is.el));
+        is.set([{ v: 'oklch', l: 'Even (OKLCH)' }, { v: 'srgb', l: 'Standard (sRGB)' }], g.interpolation ?? 'oklch');
+        set.append(field('Blend', `p3-g-interp-${gi}`, is.el));
         const stops = h('div', 'p3-list');
         stops.append(h('span', 'p3-field-label', 'Stops'));
         g.stops.forEach((st, si) => {

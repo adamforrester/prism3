@@ -132,5 +132,5 @@ export const applyUnderline = (n: HTMLElement, u: Theme['typography']['underline
 };
 /** The underline in words. DRAFT (owner Q2 A). */
 export const underlineWords = (u: Theme['typography']['underline']): string =>
-  u.thickness === 'auto' && u.offset === 'auto' ? 'Auto: the font sets the underline.'
+  u.thickness === 'auto' && u.offset === 'auto' ? 'Auto · the font sets the underline.'
     : `Thickness ${u.thickness === 'auto' ? 'auto' : `${u.thickness}%`}, offset ${u.offset === 'auto' ? 'auto' : `${u.offset}%`} of the font size.`;

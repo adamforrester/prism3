@@ -264,7 +264,7 @@ export const mountBrandLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const v = verdictOf(theme, rp.modes);
     const pairs = plan.off.reduce((n, m) => n + (v.per.find((p) => p.mode === m)?.n ?? 0), 0);
     const body: (string | HTMLElement)[] = [];
-    if (plan.off.length > 1) body.push(`High contrast dark follows dark, so it turns off too. The two modes’ ${plural(pairs, 'pair')} leave the verdict (${v.total} becomes ${v.total - pairs}).`);
+    if (plan.off.length > 1) body.push(`High contrast dark follows dark, so it turns off too. The two modes’ ${plural(pairs, 'pair')} leave the contrast check (${v.total} becomes ${v.total - pairs}).`);
     if (plan.drops.length) {
       const ul = hook(h('ul', 'p3-confirm-list'), 'mode-off-drops');
       for (const d of plan.drops) ul.append(h('li', undefined, d));

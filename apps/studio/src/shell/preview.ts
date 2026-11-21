@@ -305,7 +305,7 @@ const card = (title: string, sub: string | null, role: string): { el: HTMLElemen
  *  reads it), and `toFloor` opens that setting. */
 const health = (toFloor?: () => void): HTMLElement => {
   const v = verdict();
-  const { el, body } = card('Health', 'What the verdict counts', 'health');
+  const { el, body } = card('Health', 'What the contrast check counts', 'health');
   const row = h('p', 'p3-health-row');
   const pill = hook(h('span', v.fail ? 'p3-vpill p3-vpill-bad' : 'p3-vpill'), 'health-summary');
   pill.append(glyph(v.fail ? 'x' : 'check'), h('span', undefined, healthLine(v)));

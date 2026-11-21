@@ -411,9 +411,14 @@ export const colorField = (id: string, label: string, role: string, onPick: (hex
   };
 };
 
+/** #4190 V4 A: the advanced fold's button, with its noun: "Show 4 advanced settings", "Hide 1 advanced setting". One
+ *  string for every page's fold, so the pages cannot drift apart. */
+export const advancedLabel = (open: boolean, n: number): string => `${open ? 'Hide' : 'Show'} ${n} advanced setting${n === 1 ? '' : 's'}`;
+
 /** The readout a slider shows: its value, unit and the named stop it sits on (the manifest's stops). */
 export const sliderReadout = (L: Lever, v: number): string => {
-  const unit = L.unit ? (L.unit === '°' ? '°' : ` ${L.unit}`) : '';
+  // #4189: a length reads "1440px", the form every other px value in Studio uses; other units keep their space.
+  const unit = L.unit ? (L.unit === '°' || L.unit === 'px' ? L.unit : ` ${L.unit}`) : '';
   const dp = String(L.step ?? 1).includes('.') ? String(L.step).split('.')[1].length : 0;
   const stop = Object.entries(L.stops ?? {}).find(([, x]) => Math.abs(x - v) < (L.step ?? 1e-6) / 2)?.[0];
   return `${Number(v).toFixed(dp)}${unit}${stop ? ` · ${stop}` : ''}`;

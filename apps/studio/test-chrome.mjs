@@ -2781,8 +2781,8 @@ if (runs('7')) for (const host of ['web', 'figma']) {
 if (runs('8')) console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
 /** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
 const VERDICT_LINE = 'All 964 pairs at or above floor';   // 956 until #2750 rated disabled.border and its inverse; 884 until #3346 added the 18 selection-mark roles per mode
-// #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps "floor".
-const HEALTH_LINE = 'All 964 pairs at or above their minimum.';
+// #3366 (Q3366.3 A) once had Health say "minimum"; #4190 V3 A supersedes it: Health and the bar both say "floor".
+const HEALTH_LINE = 'All 964 pairs at or above their floor.';
 const HEALTH_FLOOR_LINE = 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.';
 const HEALTH_MODES = ['Light: 241 of 241 at or above', 'Dark: 241 of 241 at or above', 'High contrast light: 241 of 241 at or above', 'High contrast dark: 241 of 241 at or above'];
 /** #2909 Q2909.7 A: the Decisions log, Inspect's third view, is cut; its two notes no lever said are on their levers
@@ -3747,7 +3747,7 @@ for (const host of ['web', 'figma']) {
         await hooks.need(page, '[data-p3="clean-prune-summary"]', WAIT);
         const pv = await page.evaluate(() => ({ summary: document.querySelector('[data-p3="clean-prune-summary"]')?.textContent ?? null,
           label: document.querySelector('[data-p3="clean-prune-confirm"]')?.textContent ?? null }));
-        ok(pv.summary === '3 stale items: 3 variables.' && pv.label === 'Delete 3 items', `Clean up ${where}: the preview's sentence and "Delete 3 items" show in the tab (${JSON.stringify(pv)})`);
+        ok(pv.summary === '3 stale items: 3 variables.' && pv.label === 'Remove 3 items', `Clean up ${where}: the preview's sentence and "Remove 3 items" show in the tab (${JSON.stringify(pv)})`);
         const mcl = await measure(page, `${where} / Clean up open`, host, w);
         check(mcl, `${where} / Clean up open`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="clean-prune-confirm"]'] });
         await watchRunEnded(page);
@@ -4424,7 +4424,7 @@ for (const host of ['web', 'figma']) {
   const st = await strays();
   ok(st.length === 0, `${host}: every lever block on Palettes is one of its ${PALETTES_LEVERS.length} keys${st.length ? ` — unclassified lever ${st.join(', ')}` : ''}`);
   const label = await page.evaluate(() => document.querySelector('[data-p3="palettes-advanced"]')?.textContent);
-  ok(label === 'Hide 4 advanced', `${host}: the disclosure reads "Hide 4 advanced" when open (reads "${label}")`);
+  ok(label === 'Hide 4 advanced settings', `${host}: the disclosure reads "Hide 4 advanced settings" when open (reads "${label}")`);
   // The advanced levers are chrome too: measured with Show advanced open.
   const ma = await measure(page, `${host} light 1280 / Palettes, Show advanced open`, host, 1280);
   check(ma, `${host} light 1280 / Palettes, Show advanced open`, columnOf(host, 1280), PLACE_FLOOR, { extra: ['[data-p3="neutral-source-pinned"]', '[data-p3="neutral-anchor-hex"]', '[data-p3="status-success-source"]'] });
@@ -5013,7 +5013,7 @@ const DARK_OFF_TITLE = 'Turn off Dark and high contrast dark';
 /** The Dark-off confirm's line when a custom mode is based on dark (orchestrator review of #1939), the reviewer's
  *  decision in the words chosen for it, typed here. */
 const BASED_ON_DARK = 'Custom mode custom-1 is based on Dark, so turning Dark off is refused until it is based on Light or removed.';
-const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 482 pairs leave the verdict (964 becomes 482).';
+const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 482 pairs leave the contrast check (964 becomes 482).';
 const persisted = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
 const modeRadios = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => b.dataset.mode));
 const checkState = (page, sel) => page.evaluate((x) => { const b = document.querySelector(x); return b ? { checked: b.getAttribute('aria-checked'), locked: b.getAttribute('aria-disabled') === 'true', note: b.querySelector('.p3-check-note')?.textContent } : null; }, sel);
@@ -5683,7 +5683,7 @@ for (const host of ['web', 'figma']) {
     // S4f (QA-B10): the scrim left Background fills, so its description is the owner's Q26 intro; Scrim's is APPROVED.
     'Background fills': 'The base page planes and their inverse counterparts.',
     // #3050: the section now holds Scrim strength, so "It isn't editable." went; the sentence left is a DRAFT for the owner.
-    Scrim: 'The overlay that dims the page behind a modal.',
+    Scrim: 'The scrim that dims the page behind a dialog.',
     // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
     // #1971 (APPROVED, owner 2026-10-05, superseding GR3): the preview's Foreground sits on the contrast floor, so its sentence (and the levers', Q23) says so.
     Foreground: "Content surfaces, shown on the contrast floor they're measured against.",
@@ -6175,7 +6175,7 @@ for (const host of ['web', 'figma']) {
     `Q52 setup: two icon overrides and a text override persisted (${JSON.stringify(b0?.overrides)})`);
   if (!await askPair()) break askPairArm;
   const d1 = await dialog();
-  const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 2 custom icon colors. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', unpaired: true };
+  const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 2 custom icon colors. Icons will follow their text color again.'], go: 'Remove 2 icon colors', cancel: 'Cancel', unpaired: true };
   ok(JSON.stringify(d1) === JSON.stringify(WANT), `Q52: re-pairing with 2 icon overrides asks first, in the approved words, icons still unpaired — read ${JSON.stringify(d1)}`);
   ok(await stored() === before, 'Q52: the dialog open, nothing is written yet');
   if (d1.n !== 1) ok(false, 'Q52: Cancel and Pair icons NOT REACHED: re-pairing with 2 icon overrides drew no dialog');
@@ -6201,7 +6201,7 @@ for (const host of ['web', 'figma']) {
     `Q60 setup: one icon override and the text override persisted (${JSON.stringify(b1?.overrides)})`);
   if (!await askPair()) break askPairArm;
   const d3 = await dialog();
-  const WANT1 = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', unpaired: true };
+  const WANT1 = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Remove 1 icon color', cancel: 'Cancel', unpaired: true };
   ok(JSON.stringify(d3) === JSON.stringify(WANT1), `Q60: re-pairing with 1 icon override asks first, the body singular, icons still unpaired — read ${JSON.stringify(d3)}`);
   if (d3.n === 1) await hooks.click(page.locator('[data-p3="icons-pair-confirm-go"]'));
   await paired();
@@ -6291,7 +6291,7 @@ for (const host of ['web', 'figma']) {
   await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-pair"]'));
   await hooks.need(page, '[data-p3="icons-pair-confirm"]');
   const d1 = await dialog();
-  const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel' };
+  const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Remove 1 icon color', cancel: 'Cancel' };
   ok(JSON.stringify(d1) === JSON.stringify(WANT), `Q61: Pair on Surfaces & fills with 1 icon override asks first, the body singular (Q60) — read ${JSON.stringify(d1)}`);
   ok(await stored() === before, 'Q61: the dialog open, nothing is written yet');
   await hooks.click(page.locator('[data-p3="icons-pair-confirm-cancel"]'));
@@ -6408,7 +6408,7 @@ if (runs('18-s4f')) {
   const p0 = await ctx0.newPage();
   await p0.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
   await hooks.need(p0, '[data-p3="start-example"]');
-  const brands = (await p0.locator('[data-p3="start-example"]').allTextContents()).map((n) => n.trim());
+  const brands = await p0.locator('[data-p3="start-example"]').evaluateAll((els) => els.map((e) => e.dataset.example));   // #4191 T3: the example ids, which the chips carry as data
   await ctx0.close();
   ok(brands.length >= 2, `#2179: the start screen offers the corpus brands (found ${brands.length}: ${brands.join(', ')})`);
   // #3366 moved the floor's row under its own sub-heading (`surface-floor-rows`); it is still measured against the three tiers.
@@ -6693,7 +6693,7 @@ for (const theme of ['light', 'dark']) {
     await page.fill('[data-p3="import-text"]', '---\nid: floor-off\nprimary: { l: 0.55, c: 0.15, h: 262 }\nneutral: { hue: 262, chroma: 0.006 }\nsurfaces:\n  light: { floorStep: 400 }\n---\n');
     await hooks.click(page.locator('[data-p3="import-load"]'));
     await hooks.need(page, '[data-p3="import-error"]');
-    const WANT_IMPORT = 'Line 6: Parsed, but the engine rejected it: The contrast floor has to match a page background in Light. Choose 050 or 100, or remove floorStep to use Auto.';
+    const WANT_IMPORT = 'Line 6: This design.md loaded, but the engine refused it: The contrast floor has to match a page background in Light. Choose 050 or 100, or remove floorStep to use Auto.';
     const imp = await text('[data-p3="import-error"]');
     ok(imp === WANT_IMPORT, `#2250: a pasted brief with floor 400 is refused with the studio sentence, "${WANT_IMPORT}" — read ${JSON.stringify(imp)}`);
     ok(!(await engineOnScreen()), '#2250: the engine\'s floor sentence is nowhere on the page after the refused paste');
@@ -6921,11 +6921,11 @@ for (const host of ['web', 'figma']) {
     ok(c.strayLevers.length === 0, `${host}: every lever block on Interactive is one of its ${INTERACTIVE_LEVERS.length} keys${c.strayLevers.length ? ` — unclassified lever ${c.strayLevers.join(', ')}` : ''}`);
     ok(c.strayRows.length === 0, `${host}: every row on Interactive is a listed role${c.strayRows.length ? ` — unlisted row ${c.strayRows.join(', ')}` : ''}`);
     ok(c.advanced.length === 0, `${host}: Color › Interactive shows every lever: it offers no Show advanced${c.advanced.length ? ` — offers Show advanced (${c.advanced.join(', ')})` : ''}`);
-    const wantCols = INTERACTIVE_COLUMNS.map(([col, name]) => [col, `${name} Interactive Colors`]);
+    const wantCols = INTERACTIVE_COLUMNS.map(([col, name]) => [col, `${name} interactive colors`]);
     ok(JSON.stringify(c.columns) === JSON.stringify(wantCols), `${host}: the levers draw the columns in the owner's order, Primary, Neutral, Destructive (Q33) — drew ${JSON.stringify(c.columns)}`);
     ok(JSON.stringify(c.preview) === JSON.stringify(INTERACTIVE_COLUMNS.map(([, n]) => n)), `${host}: the preview draws the columns in the same order — drew ${JSON.stringify(c.preview)}`);
     ok(JSON.stringify(c.jumps.map((j) => j.col)) === JSON.stringify(INTERACTIVE_COLUMNS.map(([col]) => col)), `${host}: a jump link per column, in order — ${JSON.stringify(c.jumps.map((j) => j.col))}`);
-    for (const j of c.jumps) ok(!!j.target && j.target[0] === 'interactive-column' && j.target[1] === j.col && j.target[2] === `${j.text} Interactive Colors`,
+    for (const j of c.jumps) ok(!!j.target && j.target[0] === 'interactive-column' && j.target[1] === j.col && j.target[2] === `${j.text} interactive colors`,
       `${host}: the jump link "${j.text}" resolves to its own column group (${j.col}) — targets ${JSON.stringify(j.target)}`);
     // Following a link moves focus to the group it names, and leaves the preview where it was (V1).
     const view0 = (await previewView(page)).view;
@@ -7170,7 +7170,7 @@ for (const host of ['web', 'plugin']) {
     await chooseMode(page, 'light');
     // The link palette: neutral writes it; Auto unsets it (Q36); the WCAG 1.4.1 warning follows the engine's note.
     const lp = page.locator('[data-p3="link-palette-select"]');
-    ok((await lp.inputValue()) === '' && (await lp.locator('option').first().textContent()) === 'Auto: follows action palette', `interactive: the link palette starts on "Auto: follows action palette" (${await lp.inputValue()})`);
+    ok((await lp.inputValue()) === '' && (await lp.locator('option').first().textContent()) === 'Auto · follows action palette', `interactive: the link palette starts on "Auto · follows action palette" (${await lp.inputValue()})`);
     await lp.selectOption('neutral');
     await page.waitForFunction(() => !!document.querySelector('[data-p3="link-palette-warning"]'), null, { timeout: 5000 }).catch(() => {});
     const warn = await page.evaluate(() => document.querySelector('[data-p3="link-palette-warning"]')?.textContent ?? null);
@@ -7214,13 +7214,13 @@ for (const host of ['web', 'plugin']) {
 // cards together drive; Disabled and Links still pair one for one.
 const EXPECT_INTERACTIVE_SECTIONS = [
   ['Interactive settings', 'Every button set, in every mode.'],   // #3553 Q-UI3 A: sentence case, as every other card title
-  ['Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.'],
+  ['Disabled', 'Disabled uses one set of colors for every control and button set, with no inverse version.'],
   ['Links', 'The link color in each state, on the page and on the inverse fill.'],
 ];
 /** Which section each lever sits in (Q51), by hook. */
 const EXPECT_PREVIEW_SECTIONS = ['Interactive', 'Disabled', 'Links'];
-const EXPECT_LEVER_SECTION = [['actionPalette', 'Primary Interactive Colors'], ['outlineInteraction', 'Interactive settings'], ['outlineWash.hover', 'Interactive settings'],
-  ['neutralEmphasis', 'Neutral Interactive Colors'], ['strictInteractiveContrast', 'Interactive settings'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
+const EXPECT_LEVER_SECTION = [['actionPalette', 'Primary interactive colors'], ['outlineInteraction', 'Interactive settings'], ['outlineWash.hover', 'Interactive settings'],
+  ['neutralEmphasis', 'Neutral interactive colors'], ['strictInteractiveContrast', 'Interactive settings'], ['disabledStrategy', 'Disabled'], ['disabledMin', 'Disabled'],
   ['linkPalette', 'Links'], ['linkStateRungs', 'Links']];
 const EVERY_SET = 'Every button set is shown, including ones you added.';
 const ADD_SET_HINT = 'Add a brand color on Palettes to use it for another button set.';
@@ -8126,8 +8126,8 @@ for (const host of ['web', 'figma']) {
     ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), 'type: setting body back to Inter returns the persisted brand to its bytes');
     await chooseMode(page, 'dark');
     const auto = await page.evaluate(() => { const s = document.querySelector('[data-p3="family-select"][data-group="body"]'); return { value: s?.value, text: s?.selectedOptions[0]?.textContent, line: document.querySelector('[data-p3="lever-typography-families"]')?.closest('.p3-lsec')?.querySelector(':scope > .p3-lsec-head > .p3-sub')?.textContent }; });
-    ok(auto.value === '' && auto.text === 'Auto: follows Light (Inter)' && auto.line === 'Editing Dark, the mode the preview shows.',
-      `Q62: previewing Dark, the body select starts on "Auto: follows Light (Inter)" under the editing line (${JSON.stringify(auto)})`);
+    ok(auto.value === '' && auto.text === 'Auto · follows Light (Inter)' && auto.line === 'Editing Dark, the mode the preview shows.',
+      `Q62: previewing Dark, the body select starts on "Auto · follows Light (Inter)" under the editing line (${JSON.stringify(auto)})`);
     await page.locator('[data-p3="family-select"][data-group="body"]').selectOption('JetBrains Mono');
     await page.waitForFunction(() => !!document.querySelector('[data-p3="family-reset"][data-group="body"]'), null, { timeout: 5000 }).catch(() => {});
     const p2 = await persisted(page);
@@ -8323,7 +8323,7 @@ for (const host of ['web', 'figma']) {
     for (const [k, want] of Object.entries(TYPE_S63_WORDS)) ok(JSON.stringify(r.words[k]) === JSON.stringify(want), `${host}: the ${k} copy reads ${JSON.stringify(want)} (${JSON.stringify(r.words[k])})`);
     // 15 since #3077: #2942's Underline thickness and offset is the 13th; #3077 adds Caption sizes (Scale limits) and
     // Letter spacing for each text type (Line height and letter spacing).
-    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced', 'Hide 15 advanced']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 15 advanced (${JSON.stringify(r.folds)})`);
+    ok(JSON.stringify(r.folds) === JSON.stringify(['Hide 1 advanced setting', 'Hide 15 advanced settings']), `${host}: the two Show advanced folds, open, read Hide 1 and Hide 15 advanced (${JSON.stringify(r.folds)})`);
     const WANT_NAMES = {
       weight: [['p3-fill-label', 'Strong'], ['p3-fill-tok', 'font.weight-role.strong']], lh: [['p3-fill-label', 'normal'], ['p3-fill-tok', 'font.line-height-role.normal']],
       matrix: [['p3-fill-label', 'Body'], ['p3-fill-tok', 'type.body']],
@@ -8336,7 +8336,7 @@ for (const host of ['web', 'figma']) {
   } finally { await ctx.close(); }
 }
 // The previewed mode (Q22, Q62): previewing Dark, a weight, a heading's desktop size and a line height swap write
-// modeLevers.dark.* and leave the brand value alone, each shown as "Auto: follows Light (…)" until set; a brand-wide
+// modeLevers.dark.* and leave the brand value alone, each shown as "Auto · follows Light (…)" until set; a brand-wide
 // value (a nudge) writes the same bytes from Dark as from Light (Q54); a value that breaks the order is offered
 // disabled with its reason and writes nothing; the style count follows a weight tick at once (#831).
 {
@@ -8391,7 +8391,7 @@ for (const host of ['web', 'figma']) {
     await chooseMode(page, 'dark');
     // Dark: the weight.
     const auto = await page.evaluate(() => document.querySelector('[data-p3="weight-pick"][data-role="strong"] .p3-btn-label')?.textContent);
-    ok(auto === 'Auto: follows Light (600)', `Q62: previewing Dark, the strong weight reads "Auto: follows Light (600)" ("${auto}")`);
+    ok(auto === 'Auto · follows Light (600)', `Q62: previewing Dark, the strong weight reads "Auto · follows Light (600)" ("${auto}")`);
     await pick('[data-p3="weight-pick"][data-role="strong"]', 700);
     const p1 = await persisted(page);
     ok(p1?.modeLevers?.dark?.weights?.strong === 700 && JSON.stringify(p1?.typography?.weightRoles) === JSON.stringify(p0?.typography?.weightRoles),
@@ -8402,7 +8402,7 @@ for (const host of ['web', 'figma']) {
     // Dark: a heading's desktop size.
     const sizeBtn = '[data-p3="type-size-desktop"][data-group="title"][data-variant="xs"]';
     const sAuto = await page.evaluate((s) => document.querySelector(`${s} .p3-btn-label`)?.textContent, sizeBtn);
-    ok(sAuto === 'Auto: follows Light (18px)', `Q62: previewing Dark, title xs's desktop size reads "Auto: follows Light (18px)" ("${sAuto}")`);
+    ok(sAuto === 'Auto · follows Light (18px)', `Q62: previewing Dark, title xs's desktop size reads "Auto · follows Light (18px)" ("${sAuto}")`);
     await pick(sizeBtn, 16);
     const p2 = await persisted(page);
     ok(p2?.modeLevers?.dark?.typeSizes?.title?.xs === 16 && p2?.typography?.sizes === undefined,
@@ -8604,7 +8604,7 @@ for (const host of ['web', 'figma']) {
 // Expressive) still shows both. EXPECTED typed here: the
 // two sentences' words, never read from the page's module (docs/34).
 {
-  const CLASH = 'Some sizes you set would clash at this scale. Release them to switch.';
+  const CLASH = 'Some sizes you set would clash at this scale. Reset them to the scale to switch.';
   const FLOOR = "Compact can't be used while the title floor is 16px. Raise the title floor to use it.";
   const scaleState = (page) => page.evaluate(() => {
     const lev = document.querySelector('[data-p3="lever-typography-type-scale"]');
@@ -8832,7 +8832,7 @@ const figmaStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { draw
   await page.goto(`${ORIGIN}/plugin?figma=light`, { waitUntil: 'load' });
   await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
   await hooks.need(page, '[data-p3="start-example"]');
-  const brands = (await page.locator('[data-p3="start-example"]').allTextContents()).map((n) => n.trim());
+  const brands = await page.locator('[data-p3="start-example"]').evaluateAll((els) => els.map((e) => e.dataset.example));   // #4191 T3: the example ids, which the chips carry as data
   await ctx.close();
   ok(brands.length >= 2, `#2103 (figma): the plugin's start screen offers the corpus brands (found ${brands.length}: ${brands.join(', ')})`);
   for (const brand of brands) {
@@ -9664,7 +9664,7 @@ for (const host of ['web', 'figma']) {
 }
 
 // Q22 (the previewed mode) and Q59 (derived modes): web. Light writes the brand value; previewing Dark the same
-// control writes modeLevers.dark.*, says "Auto: follows Light (‹value›)" until set and offers Return to Auto once it
+// control writes modeLevers.dark.*, says "Auto · follows Light (‹value›)" until set and offers Return to Auto once it
 // is; a slider landing on Light's value clears the override (the legacy bytes). A custom mode based on Dark names
 // LIGHT's value under Auto (the engine resolves from the brand, not the base). HC light disables every control.
 {
@@ -9687,7 +9687,7 @@ for (const host of ['web', 'figma']) {
     await openTint(page);
     const autoOf = (hk) => page.evaluate((h) => { const a = document.querySelector(`[data-p3="${h}-auto"]`); const r = document.querySelector(`[data-p3="${h}-reset"]`); return { auto: a && !a.hidden ? a.textContent : null, reset: !!r && !r.hidden }; }, hk);
     const a0 = await autoOf('shadow-softness');
-    ok(a0.auto === 'Auto: follows Light (1.4 · soft)' && !a0.reset, `Q22: previewing Dark, softness under Auto says "Auto: follows Light (1.4 · soft)", no Return to Auto (${JSON.stringify(a0)})`);
+    ok(a0.auto === 'Auto · follows Light (1.4 · soft)' && !a0.reset, `Q22: previewing Dark, softness under Auto says "Auto · follows Light (1.4 · soft)", no Return to Auto (${JSON.stringify(a0)})`);
     await slide(page, 'shadow-softness', 2);
     const b2 = await persisted(page);
     ok(b2?.modeLevers?.dark?.shadow?.softness === 2 && b2?.shadow?.softness === 1.4,
@@ -9717,7 +9717,7 @@ for (const host of ['web', 'figma']) {
     await chooseModeAny(page, 'custom-1');
     const t = await autoOf('tempo');
     const lightTempo = { snappy: 'Snappy', standard: 'Standard', relaxed: 'Relaxed' }[b5?.motionPersonality?.tempo ?? 'standard'];
-    ok(t.auto === `Auto: follows Light (${lightTempo})`, `Q22: previewing custom-1 (based on Dark), Auto names Light's value, not its base's override — says ${JSON.stringify(t.auto)}, want "Auto: follows Light (${lightTempo})" (Dark is relaxed)`);
+    ok(t.auto === `Auto · follows Light (${lightTempo})`, `Q22: previewing custom-1 (based on Dark), Auto names Light's value, not its base's override — says ${JSON.stringify(t.auto)}, want "Auto · follows Light (${lightTempo})" (Dark is relaxed)`);
     // Q59: a derived mode draws the preview and disables every control.
     await chooseModeAny(page, 'hc-light');
     const d = await page.evaluate(() => {
@@ -10229,7 +10229,7 @@ const SHAPE_COPY = {
   spacing: 'The 8px rhythm is the same for every brand. Steps below 8px are for fine adjustments.',
   blocks: 'Fixed sizes every brand shares: border widths, icon sizes and the 4px grid.',
   usedByNone: 'No component uses this yet.',
-  padding: 'Padding is set per component.', paddingLink: 'See Components',
+  padding: 'Padding is set per component.', paddingLink: 'Set it in Components',
   next: 'Continue to Depth & motion',
 };
 /** The Button definition's three sizes and the control heights they bind (D6). Literal. */
@@ -10387,7 +10387,7 @@ for (const host of ['web', 'figma']) {
   } finally { await ctx.close(); }
 }
 // Edits (Q22): Light writes the brand value, the default included; previewing Dark, Density and Radius softness write
-// modeLevers.dark.* and leave the brand value alone, shown as "Auto: follows Light (…)" until set, with Return to Auto;
+// modeLevers.dark.* and leave the brand value alone, shown as "Auto · follows Light (…)" until set, with Return to Auto;
 // a custom mode based on Dark follows LIGHT on Auto; Control shape and Base radius write the same bytes from Dark as
 // from Light (Q54). Each write read back from the PERSISTED brand.
 {
@@ -10441,7 +10441,7 @@ for (const host of ['web', 'figma']) {
     await chooseMode(page, 'dark');
     const auto = await page.evaluate(() => ({ d: document.querySelector('[data-p3="density-auto"]')?.textContent ?? null, r: document.querySelector('[data-p3="radius-scale-auto"]')?.textContent ?? null,
       line: document.querySelector('[data-p3="shape-density-mode"]')?.textContent ?? null }));
-    ok(auto.d === 'Auto: follows Light (Comfortable)' && auto.r === 'Auto: follows Light (1.0 · standard)', `Q22: previewing Dark, Density and Radius softness read Auto, following Light (${JSON.stringify(auto)})`);
+    ok(auto.d === 'Auto · follows Light (Comfortable)' && auto.r === 'Auto · follows Light (1.0 · standard)', `Q22: previewing Dark, Density and Radius softness read Auto, following Light (${JSON.stringify(auto)})`);
     ok(auto.line === SHAPE_COPY.densityMode, `previewing Dark, the Density lever keeps the decided sentence ("${auto.line}")`);
     await chip('density-choice-spacious');
     const p1 = await persisted(page);
@@ -10471,7 +10471,7 @@ for (const host of ['web', 'figma']) {
     const cm = (await persisted(page))?.customModes?.at(-1)?.name ?? custom;
     await chooseAnyMode(page, cm);
     const ca = await page.evaluate(() => document.querySelector('[data-p3="density-auto"]')?.textContent ?? null);
-    ok(ca === 'Auto: follows Light (Comfortable)', `a custom mode based on Dark, on Auto, says it follows Light, not Dark's Compact (${cm}: "${ca}")`);
+    ok(ca === 'Auto · follows Light (Comfortable)', `a custom mode based on Dark, on Auto, says it follows Light, not Dark's Compact (${cm}: "${ca}")`);
     ok((await previewView(page)).view === view0, `V1 edit: Shape's edits never move the preview's home (${view0})`);
     ok(errors.length === 0, `shape edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -10697,7 +10697,7 @@ const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 const COMPONENTS_COPY = {
   // #2905 Q10 A: wireframe v2's words.
   options: 'How buttons place their icons, size and weight their label, and set their minimum width. Icon buttons are not affected.',
-  density: ['Density sets component heights and spacing.', 'Set it in Shape › Density'],
+  density: ['Density sets component heights and spacing.', 'Set it in Theme › Shape › Density'],
   web: 'Building sets needs the Figma plugin.',
   // #2909 (Q2909.5 A): the plugin's line, a DRAFT (Q2909.10 A).
   plugin: 'Sets not in this file are added from Update file.',
@@ -12265,7 +12265,7 @@ if (runs('28')) console.log(`\nThe start window (S12)\n${'='.repeat(78)}`);
 const START = {
   heading: { web: 'Start a brand', figma: 'Start a brand in this file' },                   // G17
   order: ['Start from your color', 'Explore an example', 'Import a design.md'],   // S8, then N1 A (Blank folded into the color card)
-  colorDesc: 'Your primary brand color; everything else starts from defaults you can tune. No color yet? Start blank with a neutral gray.',   // N1 A, then #3553 Q-UI4 A (no "smart")
+  colorDesc: 'Your primary brand color; everything else starts from defaults you can tune. Or start blank with a neutral gray.',   // N1 A, then #3553 Q-UI4 A (no "smart")
   go: 'Start from this color',                                                                  // S1
   badHex: 'Enter a hex color as #rrggbb.',                                                      // S3
   emptyPaste: 'Paste a design.md brief or choose a file first.',                                // S2
@@ -12274,7 +12274,7 @@ const START = {
   // #2879 (Q613 6 A, 7 A): one X, on every open but the web's first run; its tooltip says what it returns to.
   firstHint: 'Close — opens the file without a brand',
   reopenHint: (brand) => `Close — back to ${brand}, unchanged`,
-  importDesc: 'Already have a design.md? Paste it or upload it to load the full brand.',       // X1 (the owner's review of #2142)
+  importDesc: 'Paste or upload a design.md to load the full brand.',       // X1 (the owner's review of #2142)
 };
 /** A brief with a repeated key on line 3 (the opening --- is line 1), and one with no primary, which names no line. */
 const DUP_KEY_BRIEF = '---\nid: dup\nid: again\n---\n';
@@ -12544,7 +12544,7 @@ for (const { w, h } of START_SIZES) {
         ok(s.guard && s.open && s.startInert && s.guardOnTop, `${where}: the guard opens on top of the start window, which stays open behind it (S4) — start ${s.open ? 'open' : 'closed'}, inert ${s.startInert}, on top ${s.guardOnTop}`);
         ok(s.focus === 'start-guard-cancel', `${where}: focus starts on Cancel (S5) — on ${s.focus}`);
         ok(s.guardScrim === START_SCRIM[theme], `${where}: the guard's scrim is scrim.default (${theme}) too — ${START_SCRIM[theme]}, painted ${s.guardScrim}`);
-        ok(s.guardTitle === 'Replace harbor-edited with the aurora example?', `${where}: the guard's title is "Replace ‹brand› with ‹choice›?" (S10) — "${s.guardTitle}"`);
+        ok(s.guardTitle === 'Replace harbor-edited with the Aurora example?', `${where}: the guard's title is "Replace ‹brand› with ‹choice›?" (S10) — "${s.guardTitle}"`);
         ok(s.guardBody === '3 edits to harbor-edited are not saved to a file. Export or apply first to keep them.', `${where}: the guard's body names the 3 edits (S10) — "${s.guardBody}"`);
         const want = DESTRUCTIVE[theme];
         ok(s.discardStyle?.bg === startRgb(want.fill) && s.discardStyle?.ink === startRgb(want.on) && s.discardStyle?.edge === startRgb(want.fill),
@@ -13318,7 +13318,7 @@ console.log(`\n#2175 — Pinned, the third neutral source\n${'='.repeat(78)}`);
           await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
           await hooks.need(page, '[data-p3="lever-status-info"]');
           const sa = await pn(page);
-          ok(!sa.titles.includes('Pinned neutral') && sa.switches === 0 && sa.adv === 'Hide 4 advanced',
+          ok(!sa.titles.includes('Pinned neutral') && sa.switches === 0 && sa.adv === 'Hide 4 advanced settings',
             `${where}: no "Pinned neutral" section and no switch remain behind Show advanced (sections ${JSON.stringify(sa.titles)}, ${sa.switches} switch(es), "${sa.adv}")`);
           await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
           // Pinned.
@@ -13687,15 +13687,15 @@ const EXPECT_HEADINGS = {
     // Heading pass 2 (BG1 A, #2181; HP5, #2218): the Background fills and Gradients levers say their names once, in their
     // section titles, and Background fills' subgroups are "Default" and "Inverse".
     L2: ['Icon contrast floor', 'Default', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse'],
-    L3: ['Inverse fill palette', 'Kind', 'Angle', 'Interpolation', 'Stops', 'Kind', 'Shape', 'Center X %', 'Center Y %', 'Interpolation', 'Stops'],
+    L3: ['Inverse fill palette', 'Kind', 'Angle', 'Blend', 'Stops', 'Kind', 'Shape', 'Center X %', 'Center Y %', 'Blend', 'Stops'],
   },
   'color-interactive': {
     // #3335 (the owner's Q3335.1 A and Q3335.7 A): the settings card, then a card per button set at L1, each opening on its
     // lever (Primary Action Palette, Neutral emphasis) at L2 and its state groups' small titles at L2.
-    L1: ['Interactive settings', 'Primary Interactive Colors', 'Neutral Interactive Colors', 'Destructive Interactive Colors', 'Disabled', 'Links'],
+    L1: ['Interactive settings', 'Primary interactive colors', 'Neutral interactive colors', 'Destructive interactive colors', 'Disabled', 'Links'],
     // #3116 (Q3116.2 A, Q3116.3 A): the method is "Hover fill", with "Wash color" under it while a wash is on (the default),
     // and every card's "Outline & text hover" group sits under Fill in place of "Overlay wash".
-    L2: ['Hover fill', 'Wash opacity', 'Strict interactive contrast', 'Primary Action Palette', 'Neutral emphasis', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states',
+    L2: ['Hover fill', 'Wash opacity', 'Strict interactive contrast', 'Primary action palette', 'Neutral emphasis', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states',
       'Fill', 'Outline & text hover', 'Fill · inverse', 'Text', 'Text · inverse', 'Border', 'Border · inverse', 'On-fill text', 'On-fill text · inverse'],
     L3: ['Wash color', 'Hover', 'Pressed', 'Hover', 'Pressed', 'Visited'],
   },
@@ -17211,7 +17211,7 @@ for (const host of ['web', 'figma']) {
 if (runs('42')) {
 console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after Release (#2233)\n${'='.repeat(78)}`);
 {
-  const CLASH = 'Some sizes you set would clash at this scale. Release them to switch.';
+  const CLASH = 'Some sizes you set would clash at this scale. Reset them to the scale to switch.';
   const FLOOR = "Compact can't be used while the title floor is 16px. Raise the title floor to use it.";
   const PINNED_ONE = '1 size is set individually. They keep their size when the scale moves.';
   const GROUP = '[data-p3="type-scale"]';
@@ -22650,14 +22650,14 @@ if (runs('2069')) {
 } // 2069
 // #3553 M8 AND M9 (batch M-D): THE EXPORT PAGE. M8: at the plugin's 380 the artifact switcher ("Design tokens | Brand brief
 // | Component specs") was wider than its column, and "Component specs" ran past the panel's edge to x=401; the option rows
-// below already wrapped (`.p3-export-oseg`), and now the switcher does too. M9: Export drew its captions ("You get 4
+// below already wrapped (`.p3-export-oseg`), and now the switcher does too. M9: Export drew its captions ("4
 // files") with the menu's classes, and they kept the menu's inner padding, 12px right of the files, the code and the
 // notes they label. EVERY caption directly in `.p3-export-out` ("You
 // get 4 files" and "A few tokens, shaped by these settings") is held, not just the first. Held on the plugin at 380 and 1280 and the web at
 // 1280, both themes: every switcher tab lies inside the column, and each caption's and the action's text starts where
 // the content it labels starts. MUTATIONS (each after a `wip:` commit): `.p3-export-seg` dropped from the wrap rule →
 // `#3553 M8 … every artifact tab lies inside its column`, at 380; the captions' `padding-inline: 0` dropped → `#3553 M9
-// … "You get 4 files" starts at the files' edge`; the caption rule narrowed to
+// … "4 files" starts at the files' edge`; the caption rule narrowed to
 // `.p3-menu-cap:is(:has(+ .p3-export-files), :first-child)` → `#3553 M9 … "A few tokens, shaped by these settings"
 // starts at the files' edge`. Since #3553 Q-UI11 A the switcher is underline tabs (section 3553-export holds their form).
 // #3910 (owner direction 2026-11-17): Export offers no Import; importing a brief is the brand menu's, which 3553-icons
@@ -22701,7 +22701,7 @@ if (runs('3553-md')) {
       ok(m.tabs.length === 3, `${where}: premise, the switcher draws three artifact tabs (${m.tabs.map((t) => t.t).join(' | ')})`);
       const out = m.tabs.filter((t) => t.l < m.col.l - ALIGN_TOLERANCE || t.r > m.col.r + ALIGN_TOLERANCE);
       ok(out.length === 0, `#3553 M8 ${where}: every artifact tab lies inside its column (${Math.round(m.col.l)}–${Math.round(m.col.r)}; outside ${JSON.stringify(out.map((t) => [t.t, Math.round(t.l), Math.round(t.r)]))})`);
-      ok(!!m.files && m.files.caps.some((c) => c.text.startsWith('You get')) && m.files.caps.some((c) => c.text.startsWith('A few tokens')), `${where}: premise, Export shows its files list and both captions, "You get…" and "A few tokens…" (${JSON.stringify(m.files)})`);
+      ok(!!m.files && m.files.caps.some((c) => /^\d+ files?$/.test(c.text)) && m.files.caps.some((c) => c.text.startsWith('A few tokens')), `${where}: premise, Export shows its files list and both captions, "You get…" and "A few tokens…" (${JSON.stringify(m.files)})`);
       if (m.files) for (const c of m.files.caps) ok(Math.abs(c.l - m.files.edge) <= ALIGN_TOLERANCE, `#3553 M9 ${where}: "${c.text}" starts at the files' edge (caption ${c.l.toFixed(1)}, files ${m.files.edge.toFixed(1)})`);
       hooks.absent(ok, { seen: !!m.files, state: 'the Export page with its files list' }, m.importHere.length === 0,
         `#3910 ${where}: Export offers no Import — importing a brief is the brand menu's (drawn here: ${JSON.stringify(m.importHere)})`);
@@ -23922,7 +23922,8 @@ if (runs('3977')) {
       const nb = name?.getBoundingClientRect(), db = desc?.getBoundingClientRect();
       const ncs = name && getComputedStyle(name), dcs = desc && getComputedStyle(desc);
       return {
-        name: name?.textContent.trim() ?? null, desc: desc?.textContent ?? null,
+        // #4191 T3: the label reads the brand's name; the example's id, which EXAMPLE_LINES keys on, is the item's data.
+        name: item.dataset.example ?? null, desc: desc?.textContent ?? null,
         below: !!nb && !!db && db.width > 0 && db.top >= nb.bottom - 0.5,
         muted: !!ncs && !!dcs && dcs.color !== ncs.color && dcs.color === secondary && parseFloat(dcs.fontSize) <= parseFloat(ncs.fontSize),
         ink: dcs ? `${dcs.color} ${dcs.fontSize}` : null, nameInk: ncs ? `${ncs.color} ${ncs.fontSize}` : null, secondary,

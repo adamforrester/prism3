@@ -365,7 +365,7 @@ export const UPDATE_COPY = {
     : d.reason === 'executor' ? 'Engine update: Prism3 draws components differently' : d.reason === 'panel' ? 'Engine update: Prism3 draws usage panels differently' : 'Due · its settings changed'),
   /** #3090 finding 1: an engine update over a set recorded before Prism3 kept a print of its drawing, so nothing can be
    *  named; the next update records the print. DRAFT (Q2909.10 A). */
-  engineUnprinted: 'Engine update: recorded before Prism3 noted what it drew',
+  engineUnprinted: 'Engine update: built by an earlier Prism3, so the changes can’t be listed',
   /** #3302 (the owner's Q3302.1–.3 A, 2026-11-02; the strings approved as written): the check's progress in the dialog's
    *  foot, "Reading this file…" until every set is found, then "Checked n of N sets"; and the line of the set being
    *  checked now. A set not reached yet has no line. */
@@ -434,7 +434,7 @@ export const UPDATE_COPY = {
   runState: { updating: 'Updating', updated: 'Updated' } as Record<'updating' | 'updated', string>,
   running: (step: string, at: number, of: number): string => `Step ${at} of ${of} · ${step}`,
   stopped: (step: string, headline: string): string => `The last update stopped at ${step}: ${headline}`,
-  cleanLead: 'Things Prism3 wrote earlier and no longer writes. Nothing here rides Update file.',
+  cleanLead: 'Things Prism3 wrote earlier and no longer writes. Update file doesn’t remove them.',
   cleanChecking: 'Checking for stale items…',
   cleanNone: 'Nothing stale in this file.',
   cleanRetired: (n: number): string => `${n} style-guide table${n === 1 ? '' : 's'} Prism3 no longer draws.`,
@@ -489,7 +489,7 @@ export const blockedWhy = (line: string, nameOf: (id: string) => string = (id) =
     return { why: 'a property it drops would merge variants into one.', next: null };
   // D3721.4: only the agent's Adopt clears this, and Studio has none; its write path is #3714.
   if ((m = line.match(/^the axes change, and (\d+) members? not built by Prism3/)))
-    return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'Studio can’t do this yet.' };
+    return { why: `its properties change, and ${s_(Number(m[1]), 'variant', 'variants')} not built by Prism3 would be left behind.`, next: 'Remove the extra variants in Figma, or send it with Report a problem.' };
   if ((m = line.match(/^renaming (.+) would give it the name of another member \((.+)\)$/)))
     return { why: `renaming ${m[1]} would clash with ${m[2]}.`, next: 'Rename or remove one of them in Figma.' };
   if ((m = line.match(/^(\d+) variants share the coordinate (\S+)/)))

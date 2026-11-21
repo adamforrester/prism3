@@ -22,7 +22,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
 | Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1402 --> | ✓ | – | – |
 
-<!-- src: apps/studio/src/shell/start.ts:167-225 --> <!-- src: packages/engine/mcp.ts:273-436 -->
+<!-- src: apps/studio/src/shell/start.ts:167-226 --> <!-- src: packages/engine/mcp.ts:273-436 -->
 
 ## Figma file
 

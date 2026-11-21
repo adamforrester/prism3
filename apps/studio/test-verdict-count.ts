@@ -61,7 +61,7 @@ ok(verdictOf(theme, modes) === v, 'the verdict is cached per theme (one resolve 
 // The copy, verbatim from concept v6.
 ok(verdictLine(v) === 'All 964 pairs at or above floor', `the bar reads "All 964 pairs at or above floor" — read "${verdictLine(v)}"`);
 // #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps v6's "floor". Literal.
-ok(healthLine(v) === 'All 964 pairs at or above their minimum.', `Health reads "All 964 pairs at or above their minimum." (Q3366.3 A) — read "${healthLine(v)}"`);
+ok(healthLine(v) === 'All 964 pairs at or above their floor.', `Health reads "All 964 pairs at or above their floor." (#4190 V3 A) — read "${healthLine(v)}"`);
 ok(FLOOR_POINTER.line([['Light', 'neutral.050'], ['Dark', 'neutral.900']]) === 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.'
   && FLOOR_POINTER.link === 'Change the contrast floor', `Health's pointer to the contrast floor reads as rendered (Q3366.2 A) — read ${JSON.stringify([FLOOR_POINTER.line([['Light', 'neutral.050'], ['Dark', 'neutral.900']]), FLOOR_POINTER.link])}`);
 ok(breadthLine(v, (m) => m) === '241 per mode × 4 modes', `Health's breadth reads "241 per mode × 4 modes" — read "${breadthLine(v, (m) => m)}"`);
@@ -92,7 +92,7 @@ if (badTheme) {
 // High contrast light and dark are resolved on their own and carry no override. So: 2 failures, 1 in Light
 // and 1 in Dark, 2 modes failing, out of the same 964.
 const TWO_MODES_LINE = '2 of 964 below floor, 2 modes';
-const TWO_MODES_HEALTH = '2 of 964 pairs below their minimum in 2 modes.';
+const TWO_MODES_HEALTH = '2 of 964 pairs below their floor in 2 modes.';
 const TWO_MODES_PER = ['Light: 1 of 241 below', 'Dark: 1 of 241 below', 'High contrast light: 241 of 241 at or above', 'High contrast dark: 241 of 241 at or above'];
 const LABELS: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'High contrast light', 'hc-dark': 'High contrast dark' };
 const two = structuredClone(input) as BrandInput;

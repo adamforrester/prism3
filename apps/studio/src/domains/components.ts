@@ -66,6 +66,7 @@ import { componentsPage, setComponentsPage, watchComponentsPage } from '../state
 import {
   addableOf, boxOfSets, buildableOf, costOf, deselectAllOf, entryOf, familiesToOpen, fmt, GROUPS_COPY, heldBy, inFileOf, isPrivate, neededOf, tiersOf, rowMatches,
   rowOfFocus, SECTION_BLOCKS, selectAllOf, setFocusKey, splitsOf, toggleSets, type BlockKey, type BoxState, type GroupRow, type GroupSection,
+  listNameOf,
 } from '../state/component-groups';
 import { glyph, h, hook } from '../shell/dom';
 import { saidOf, stateLine } from '../ui/lever-kit';
@@ -232,7 +233,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     r.dataset.set = id;
     if (!member) r.dataset.row = row.key;
     if (!e.buildable) r.dataset.off = 'true';
-    const label = member ? e.name : row.label;
+    const label = member ? listNameOf(e.name) : row.label;
     // #3129: the box sits in the row's leading cell; in a section with settings it takes the empty fold cell (flat rows
     // have no leading cell). R5: only a row's own line carries a box; a family's part keeps the empty cell.
     // A row the file holds draws its box checked and disabled (#3439 Q-IF.1 A).

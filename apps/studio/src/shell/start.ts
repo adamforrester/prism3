@@ -118,7 +118,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
     head.append(close);
   }
   const body = hook(h('div', 'p3-dialog-body'), 'start-column');
-  body.append(h('p', 'p3-start-lede', 'One brand color is enough — the engine grows a full, contrast-checked system you can steer. Pick a starting point.'));
+  body.append(h('p', 'p3-start-lede', 'One brand color generates a full, contrast-checked token system.'));
 
   let guard: { scrim: HTMLElement; from: HTMLElement | null } | null = null;
   /** Which upload read is current (A14, #2487): bumped by each read and by `dismiss`, so a late one loads nothing. */
@@ -164,7 +164,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
 
   // ── 1. from a color (G14: the working brand's primary; S1, S3) ───────────────────────────────────
   // The owner's answer N1 A (review of #2142): the neutral default is this card's secondary action, not a card of its own.
-  const c1 = card('Start from your color', 'Your primary brand color; everything else starts from defaults you can tune. No color yet? Start blank with a neutral gray.', 'p3-start-card');
+  const c1 = card('Start from your color', 'Your primary brand color; everything else starts from defaults you can tune. Or start blank with a neutral gray.', 'p3-start-card');
   const row1 = h('div', 'p3-start-row');
   const field = h('div', 'p3-colorfield');
   const start = hex(oklchToRgb(brandState.primary));
@@ -199,14 +199,15 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   c1.el.append(row1, err1);
 
   // ── 2. an example ─────────────────────────────────────────────────────────────────────────────
-  const c2 = card('Explore an example', 'Open a fully-built example to see what the engine produces from a brand.');
+  const c2 = card('Explore an example', 'Open a fully built example to see what the engine produces from a brand.');
   const chips = h('div', 'p3-start-chips');
   for (const name of Object.keys(BRANDS)) {
     const chip = button('p3-btn p3-btn-page p3-start-chip', 'start-example', '');
+    chip.dataset.example = name;   // #4191 T3: the label is the brand's name; the example's id is its data
     const dot = h('span', 'p3-start-dot');
     dot.setAttribute('data-content', '');   // the brand's own color, not the chrome's
     dot.style.background = hex(oklchToRgb(BRANDS[name].primary));
-    chip.append(dot, h('span', undefined, name));
+    chip.append(dot, h('span', undefined, BRANDS[name].name ?? name));   // #4191 T3 A: the brand's name, as it reads once chosen
     chip.onclick = () => pick({ input: BRANDS[name], origin: { kind: 'example', id: name } }, chip);
     // #3977 (Q-EB1 A): a few muted words under each example, so a designer knows what it is before opening it. The
     // line is the engine's (`example-registry.ts`), beside the example's id, and describes the chip to a screen reader.
@@ -222,7 +223,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   // ── 3. import a design.md: paste it (S2), or upload it ─────────────────────────────────────────
   // The owner's review of #2142: Upload sits at the end of the heading row; the paste box, set further down, is the
   // alternative, and its Import belongs to it.
-  const c4 = card('Import a design.md', 'Already have a design.md? Paste it or upload it to load the full brand.', 'p3-start-card p3-start-import');
+  const c4 = card('Import a design.md', 'Paste or upload a design.md to load the full brand.', 'p3-start-card p3-start-import');
   const head4 = hook(h('div', 'p3-start-headrow'), 'start-import-head');
   const paste = hook(h('textarea', 'p3-start-paste'), 'start-paste');
   paste.placeholder = 'Paste a design.md brief';

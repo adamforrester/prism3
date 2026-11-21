@@ -64,7 +64,7 @@ import { emToPercentLabel } from '../em-percent';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { armEnter, enterMark, glyph, h, hook } from '../shell/dom';
-import { chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock, keepFocus, pageEdit, wordsOf } from '../ui/lever-kit';
+import { advancedLabel, chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock, keepFocus, pageEdit, wordsOf } from '../ui/lever-kit';
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
@@ -74,7 +74,7 @@ const NEXT = { label: 'Shape', page: 'shape' } as const;
 /** Code's opt-out (owner decision Q75, APPROVED: today's wording, the em dash kept). */
 export const CODE_NONE = 'None — no code styles';
 /** A select's or a picker's Auto in a mode other than Light (owner decision Q62, APPROVED). */
-export const familyAuto = (face: string): string => `Auto: follows Light (${face})`;
+export const familyAuto = (face: string): string => `Auto · follows Light (${face})`;
 /** The page's own copy (S6.2). APPROVED by the owner on 2026-10-02 unless marked otherwise. */
 export const TYPE_COPY = {
   libraryLabel: 'Typeface library',
@@ -114,10 +114,11 @@ export const S63 = {
   // `lever-manifest.json`, so keep it a literal here: importing the lever text would make that test compare a value
   // with itself (docs/34).
   scaleTip: 'Moves every heading size one step up or down the size ladder. Body, label, caption and code stay put.',
-  scaleClash: 'Some sizes you set would clash at this scale. Release them to switch.',
+  scaleClash: 'Some sizes you set would clash at this scale. Reset them to the scale to switch.',
   /** Compact refused for the 16px title floor, on the chip and under the chips (owner decision Q55 B, APPROVED, #2194). */
   scaleTitleFloor: "Compact can't be used while the title floor is 16px. Raise the title floor to use it.",
-  release: 'Release pinned sizes',
+  /** #4193 E (DRAFT): the button names what it loses, the sizes set by hand. */
+  release: (n: number): string => `Reset ${n} size${n === 1 ? '' : 's'} to the scale`,
   pinned: (n: number): string => `${n} ${n === 1 ? 'size is' : 'sizes are'} set individually. They keep their size when the scale moves.`,
   unresolved: (paths: readonly string[]): string => `${paths.length === 1 ? 'One text style' : `${paths.length} text styles`} the preview uses ${paths.length === 1 ? 'is' : 'are'} not in this brand: ${paths.join(', ')}. The preview shows a fallback.`,
   sizesLabel: 'Individual sizes',
@@ -291,7 +292,10 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       name.append(meta);
       const stat = hook(h('span', 'p3-face-stat', st.label), 'face-status');
       stat.title = st.title;
-      if (!st.ok) stat.dataset.bad = 'true';
+      // #4189 (owner decision 2026-11-19, A): a face this device lacks is a warning, as the preview's table and the note
+      // below Code family show it: the chrome's warning glyph in its ink, the words in the text ink. The name still
+      // saves and the preview draws a fallback, so it is never the error state.
+      if (!st.ok) { stat.dataset.kind = 'warn'; stat.replaceChildren(glyph('warn'), st.label.replace(/^⚠\s*/, '')); }
       row.append(name, stat);
       // A family nothing uses, staged in the library, can be removed (always shown, owner 2026-10-03). Brand-wide.
       if (!by.length && inLibrary(tf.name)) {
@@ -551,7 +555,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     btn.id = `p3-adv-${id}`;
     btn.setAttribute('aria-expanded', String(open));
     btn.setAttribute('aria-controls', `p3-advb-${id}`);
-    btn.append(glyph(open ? 'chev' : 'chevr'), h('span', 'p3-btn-label', `${open ? 'Hide' : 'Show'} ${n} advanced`));
+    btn.append(glyph(open ? 'chev' : 'chevr'), h('span', 'p3-btn-label', advancedLabel(open, n)));
     btn.onclick = () => { if (!open) armEnter(`p3-advb-${id}`); toggle(); };
     const b = enterMark(h('div', 'p3-advbody'), `p3-advb-${id}`);
     b.id = `p3-advb-${id}`;
@@ -605,7 +609,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     if (blocked) {
       const rel = hook(h('button', 'p3-btn p3-btn-page'), 'type-scale-release');
       rel.type = 'button';
-      rel.append(h('span', 'p3-btn-label', S63.release));
+      rel.append(h('span', 'p3-btn-label', S63.release(pins)));
       rel.onclick = () => { afterRelease = true; edit('typography.typeScale', () => releasePinnedSizes()); };
       const box = hook(h('div', 'p3-tscale-group p3-tscale-clash'), 'type-scale-clash');
       const line = stateLine(S63.scaleClash, 'warn');

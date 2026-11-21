@@ -34,7 +34,7 @@ export const LINKS_DESC = 'The link color in each state, on the page and on the 
  *  separate change restyles, so it stays here for that change to read. */
 export const ICONS_DESC = 'The icon color set by the icon contrast floor: matches text at 4.5:1, or held to the 3:1 non-text floor.';
 /** The Disabled copy, the Style guide's own, shared by the shared Disabled section and the levers' (Q23, Q51). */
-export const DISABLED_DESC = 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.';
+export const DISABLED_DESC = 'Disabled uses one set of colors for every control and button set, with no inverse version.';
 /** The Interactive levers section's intro (owner decision Q53, APPROVED). */
 /** Color › Interactive's settings card (#3335, the owner's Q3335.1 A). DRAFT, for the owner's final read. */
 export const INTERACTIVE_SETTINGS_COPY = { title: 'Interactive settings', desc: 'Every button set, in every mode.' } as const;
@@ -48,7 +48,7 @@ export const BACKGROUND_FILLS_DESC = 'The base page planes and their inverse cou
 export const FOREGROUND_FILLS_DESC = "Content surfaces, shown on the contrast floor they're measured against.";
 /** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). Since #3050
  *  the section holds Scrim strength, so "It isn't editable." went: the remaining sentence is a DRAFT for the owner. */
-export const SCRIM_DESC = 'The overlay that dims the page behind a modal.';
+export const SCRIM_DESC = 'The scrim that dims the page behind a dialog.';
 // #3073: DRAFT for the owner, the Glass section's line.
 export const GLASS_DESC = 'The see-through fill behind a background blur. The white glass is fixed; add a glass fill to match a surface, such as a card.';
 /** The Fields copy (Q29, APPROVED), shared by the levers' Fields section and, since S4f (#2016, Q80), the preview's. */
@@ -106,7 +106,7 @@ export const RADIO_DESC = 'How big the dot in a selected radio is.';
 // #3345: the owner's copy (Q3 A on #3345), in Radio's pattern.
 export const PAGE_NAV_DESC = 'How wide the line under the current page is.';
 // #2909 Q2909.4 A: DRAFT for the owner (Q2909.10 A), after the round-4 wireframe's block.
-export const SHARED_DESC = 'Settings every component family follows. Density is set in Theme.';
+export const SHARED_DESC = 'Settings every component family follows. Density is set in Theme › Shape › Density.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
 
 /** Which host a legacy page list applies to. Components mapped to a different legacy page per host until S8.2 (§4). */
@@ -241,11 +241,11 @@ export const DOMAINS = [
             ],
           },
           {
-            // #3335 (Q3335.1 A): one card per button set, drawn by the page itself, each titled "‹Set› Interactive Colors";
+            // #3335 (Q3335.1 A): one card per button set, drawn by the page itself, each titled "‹Set› interactive colors" (sentence case since #4190);
             // this section's title is not drawn. Primary's card opens on the action palette (Q3335.1, "Primary Action
             // Palette"), Neutral's on its emphasis; under Solid fill each card's Outline & text hover group, under Fill
             // since #3116, carries its set's own hover fill (`outlineHoverFill`, #3071; per set since #3335, Q3335.5 A).
-            title: 'Interactive Colors', cards: true, rows: [
+            title: 'Interactive colors', cards: true, rows: [
               { ctl: 'palette', keys: ['actionPalette'], drive: 'action' },
               { ctl: 'outlineHoverFill', keys: ['outlineHoverFill'], drive: 'action' },
               // S5.2: every per-column color is a row here (owner decision Q33), so the row also edits overrides.

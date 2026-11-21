@@ -559,7 +559,7 @@ const renderPreviewContracts = (host: HTMLElement): void => {
   const failing = rp.contracts.filter((ct) => rp.modes.some((m) => ct.byMode[m] && !ct.byMode[m]!.pass));
   const instances = rp.contracts.reduce((n, ct) => n + rp.modes.filter((m) => ct.byMode[m] && !ct.byMode[m]!.pass).length, 0);
   const sec = palSection('Contrast contracts',
-    `Every declared a11y pair (${rp.contracts.length}), computed on the resolved colors across all modes. The per-control badges on each editing page verify the active mode at the point of edit; the per-page tables scope this to what that page governs.`);
+    `Every declared contrast pair (${rp.contracts.length}), measured in every mode. Badges on each page check the mode being edited.`);   // #4190 V2 A
   const tally = el('p', failing.length ? 'pv-tally no' : 'pv-tally ok',
     failing.length
       ? `${failing.length} of ${rp.contracts.length} pairs fall below their floor — ${instances} mode${instances === 1 ? '' : 's'} affected.`
@@ -1503,7 +1503,7 @@ const stageLoad = (input: BrandInput, origin: Origin): void => {
 const originLabel = (o: Origin, where: 'arriving' | 'atRisk'): string => {
   switch (o.kind) {
     case 'none': return 'this brand';
-    case 'example': return `the ${o.id} example`;
+    case 'example': return `the ${BRANDS[o.id]?.name ?? o.id} example`;   // #4191 T3: the name the picker shows
     case 'new': return where === 'arriving' ? 'a new brand' : 'this new brand';
     case 'import': return `“${o.label}”`;
     case 'file': return 'this file’s brand';
@@ -1532,7 +1532,7 @@ const barRead = (): BarView => ({
   brand: { name: shownName(brandState), hex: hex(oklchToRgb(brandState.primary)) },
   menuOpen: brandMenuOpen,
   // The Examples marker is computed at render, from `brandState.id` (#1075's subject went with the menu's fields).
-  examples: Object.keys(BRANDS).map((name) => ({ name, hex: hex(oklchToRgb(BRANDS[name].primary)), current: name === brandState.id, desc: EXAMPLE_DESCRIPTIONS[name] ?? '' })),
+  examples: Object.keys(BRANDS).map((name) => ({ name, label: BRANDS[name].name ?? name, hex: hex(oklchToRgb(BRANDS[name].primary)), current: name === brandState.id, desc: EXAMPLE_DESCRIPTIONS[name] ?? '' })),
   confirm: pendingLoad && (pendingLoad.origin.kind === 'example' || pendingLoad.origin.kind === 'import')
     ? { at: pendingLoad.origin.kind, text: overwriteText(pendingLoad) } : null,
   importOpen, importText, importErr,
@@ -1556,7 +1556,7 @@ const exportView = (): ExportView => {
     ensureThemeFresh();                   // #1196 — the preview must show the current namespace, same as the download
     const tree = buildTree(theme).tree;   // `theme` is the last-good — always valid, never throws
     const files = exportFileNames(tree, slug(), exportSettings, exportMetadata);
-    right.push({ kind: 'cap', text: files.length === 1 ? 'You get 1 file' : `You get ${files.length} files` });
+    right.push({ kind: 'cap', text: files.length === 1 ? '1 file' : `${files.length} files` });   // #4190 V5 A: the system's voice
     // Every name, up to a point, then a count; `title` keeps the full list one hover away.
     right.push({ kind: 'files', text: files.length <= 4 ? files.join('\n') : `${files.slice(0, 3).join('\n')}\n+${files.length - 3} more`, title: files.join('\n') });
     if (restoreFailure) right.push({ kind: 'note', text: TOKENS_NONE, hook: 'export-restore-note' });
@@ -1567,16 +1567,16 @@ const exportView = (): ExportView => {
   } else if (exportArtifact === 'component-specs') {
     const names = componentSpecsFileNames(slug());
     if (names) {
-      right.push({ kind: 'cap', text: `You get ${names.length} files` });
+      right.push({ kind: 'cap', text: `${names.length} files` });
       right.push({ kind: 'files', text: names.join('\n') });
     } else right.push({ kind: 'note', text: SPECS_WEB_OFF });
     if (restoreFailure) right.push({ kind: 'note', text: SPECS_NONE, hook: 'export-restore-note' });
   } else {
     if (briefInput()) {
-      right.push({ kind: 'cap', text: 'You get 1 file' });
+      right.push({ kind: 'cap', text: '1 file' });
       right.push({ kind: 'files', text: `${briefSlug()}.design.md` });
     }
-    right.push({ kind: 'note', text: 'A handful of anchors — the color, the type, the few decisions this brand is built from. The engine regrows the rest.' });
+    right.push({ kind: 'note', text: 'The few inputs this brand is generated from: colors, type and key settings. The engine derives everything else.' });
     // #1994: say whose brand this is when it is not the one on screen, or why there is none to export.
     if (restoreFailure) right.push({ kind: 'note', text: restoreFailure.brand ? BRIEF_IS_FAILED : BRIEF_NONE, hook: 'export-restore-note' });
   }
@@ -1698,7 +1698,7 @@ const styleGuidePendingText = (): string => {
 };
 /** The phase line while an agent's update check, update, baseline capture or Adopt runs (#2265, #2283). None of
  *  them is a build, so none may read as one. Approved words (Q114 A). */
-const CHECK_TEXT: Readonly<Record<string, string>> = { 'update-components': 'Checking the sets…', 'update-components:confirmed': 'Updating the sets…', 'capture-baseline': 'Recording the sets as built…', 'adopt-members': 'Adopting members…' };
+const CHECK_TEXT: Readonly<Record<string, string>> = { 'update-components': 'Checking the sets…', 'update-components:confirmed': 'Updating the sets…', 'capture-baseline': 'Saving what was built…', 'adopt-members': 'Updating variants…' };
 /** The phase line before a build's first boundary reports (#2088). A build the panel started names its set,
  *  by the catalog's display name for the id it posted (`componentDef`); one an agent started is a set the panel
  *  was not told, so the line names none (the owner's wording, 2026-10-05). Before #2088 this said "Button"
@@ -1712,8 +1712,8 @@ const firstPhase = (): string => {
  *  are `componentPendingText`'s, with the fraction moved to the progress bar. */
 const componentPhase = (p: HostSession['componentProgress']): Pick<OpReading, 'phase' | 'progress'> =>
   !p ? { phase: firstPhase(), progress: null }
-    : p.phase === 'retry' ? { phase: 'Retrying property links…', progress: null }
-      : { phase: p.phase === 'build' ? 'Building members…' : 'Wiring references…', progress: { done: p.done, total: p.total } };
+    : p.phase === 'retry' ? { phase: 'Linking properties again…', progress: null }
+      : { phase: p.phase === 'build' ? 'Building variants…' : 'Linking nested sets…', progress: { done: p.done, total: p.total } };
 const IDLE: OpReading = { state: 'idle', ref: null, verdict: null, summary: null, phase: null, progress: null, agent: false };
 /** True while the agent's command for `k` runs and its verdict has not landed. */
 const agentRunning = (k: OpKey): boolean => !!host.agentRun && host.agentRun.op === k && !host.agentRun.settled;
@@ -1755,7 +1755,7 @@ const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
   const o = host.seedOutcome;
   const err = host.restoreError;
   if (!o && !err) return null;
-  const refused = err ? `Saved brand not restored — ${err}` : null;
+  const refused = err ? `Saved brand not restored: ${String(err).replace(/[.\s]+$/, '')}. Load an example or import a design.md.` : null;
   if (!o) return { state: 'bad', ref: err, verdict: SHORT.notRestored, summary: refused };
   const [text, ok] = o.state === 'error' ? [o.message, false]
     : o.state === 'absent' ? ['No Prism3 theme in this file. The settings start from defaults.', true]
@@ -2211,7 +2211,7 @@ const startStep = (): void => {
   const step = updateRun ? stepOf(updateRun) : null;
   if (!step || !updateRun) return;
   if (stripRun) stripRun = heard(stripRun, Date.now());
-  const busy = 'Another run of this step is out. Try again when it ends.';
+  const busy = 'This step is already running. Try again when it ends.';
   if (step === 'setup') { runFileSetup(); if (host.fileSetupState !== 'pending') { endStep(false, busy); return; } }
   else if (step === 'theme') { runApply(); if (host.applyState !== 'pending') { endStep(false, busy); return; } }
   else if (step === 'update') {

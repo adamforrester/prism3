@@ -445,7 +445,8 @@ export const PAIR_ICONS_CONFIRM = {
   body: (n: number): string => n === 1
     ? 'This removes 1 custom icon color. Icons will follow their text color again.'
     : `This removes ${n} custom icon colors. Icons will follow their text color again.`,
-  action: 'Pair icons',
+  /** #4193 E (DRAFT): the verb names the outcome (voice standard §5, Destructive). */
+  action: (n: number): string => `Remove ${n} icon color${n === 1 ? '' : 's'}`,
 } as const;
 /** The icon roles that follow their text under both lever values (#1982): each keeps its text's 4.5:1 floor under
  *  '3:1', so the engine carries a text override to them whether icons are paired or not (`ALWAYS_TWINNED` in

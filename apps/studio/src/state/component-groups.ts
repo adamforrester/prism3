@@ -180,6 +180,9 @@ export const sentenceCase = (s: string): string =>
 
 /** A component name as words: "ImagePlaceholder" → "Image placeholder", "Icon" → "Icon". */
 const words = (name: string): string => sentenceCase(name.replace(/\./g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2'));
+/** #4191 T4 A (owner decision 2026-11-19): a set's name in the Components list, as words, every part lowercase after the
+ *  first: "CodeInput.Cell" → "Code input cell", "PageNav" → "Page nav". The code name stays on the detail pane. */
+export const listNameOf = (name: string): string => words(name);
 
 /** The sections, in order: those with settings (`SETTING_SECTIONS`), Other components, Subcomponents. Rows alphabetical
  *  in each, sets alphabetical in each family. A section with no rows is dropped. */

@@ -32,7 +32,7 @@ import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { dangerSubstitution, gamutWarning } from '../state/engine-warnings';
 import { armEnter, enterMark, glyph, h, hook } from '../shell/dom';
 import { noteEdit } from '../preview/follow-edit';
-import { choice, colorField, inlineConfirm, leverBlock, onCommitted, perFrame, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, type LeverBlock, keepFocus } from '../ui/lever-kit';
+import { advancedLabel, choice, colorField, inlineConfirm, leverBlock, onCommitted, perFrame, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, type LeverBlock, keepFocus } from '../ui/lever-kit';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'palettes')!;
 const pad = (n: number): string => String(n).padStart(3, '0');
@@ -284,7 +284,7 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
         const st = brandState.status?.[role];
         const names = ['primary', ...(brandState.brandColors ?? []).map((x) => x.name)];
         sel.set([
-          { v: 'auto', l: auto.reuse ? `Auto: reuses ${auto.reuse} (${hueName(auto.h)}, ${Math.round(auto.h)}°)` : `Auto: synthesized ${hueName(auto.h)}, ${Math.round(auto.h)}°` },
+          { v: 'auto', l: auto.reuse ? `Auto · reuses ${auto.reuse} (${hueName(auto.h)}, ${Math.round(auto.h)}°)` : `Auto · synthesized ${hueName(auto.h)}, ${Math.round(auto.h)}°` },
           { v: 'custom', l: st ? `Custom: ${hueName(st.h)}, ${Math.round(st.h)}°` : 'Custom color' },
           ...names.map((p) => ({ v: `use:${p}`, l: `Use ${p}` })),
         ], statusSource(role));
@@ -335,7 +335,7 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
       btn.id = 'p3-adv-palettes';
       btn.setAttribute('aria-expanded', String(showAll));
       btn.setAttribute('aria-controls', 'p3-advb-palettes');
-      btn.append(glyph(showAll ? 'chev' : 'chevr'), h('span', 'p3-btn-label', `${advOpen ? 'Hide' : 'Show'} ${n} advanced`));
+      btn.append(glyph(showAll ? 'chev' : 'chevr'), h('span', 'p3-btn-label', advancedLabel(advOpen, n)));
       btn.onclick = () => { advOpen = !advOpen; if (advOpen) armEnter('p3-advb-palettes'); render(); };
       const body = enterMark(h('div', 'p3-advbody'), 'p3-advb-palettes');
       body.id = 'p3-advb-palettes';

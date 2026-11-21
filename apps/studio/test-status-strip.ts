@@ -148,14 +148,14 @@ r = withReading(r, { run: 'update', phase: 'work', item: 'checkbox', done: 4, to
 {
   const at = (agent: Parameters<typeof stripView>[0]['agent'], read: { done: number; total: number } | null = null) => stripView({ read, agent, run: null, step: null, verdict: null, now: T0, nameOf });
   const c = at({ run: 'capture', phase: 'check', done: 0, total: 60 });
-  ok(J(c) === J({ kind: 'reading', what: 'Recording the sets as built…', n: null, fill: null, sub: 'An agent runs this. Details in Activity.' }),
+  ok(J(c) === J({ kind: 'reading', what: 'Saving what was built…', n: null, fill: null, sub: 'An agent runs this. Details in Activity.' }),
     `agent/check: while it reads the file, its Activity words, no count, indeterminate (${J(c)})`);
   const w = at({ run: 'adopt', phase: 'work', done: 15, total: 60 });
-  ok(J(w) === J({ kind: 'reading', what: 'Adopting members…', n: '16 of 60', fill: 0.25, sub: 'An agent runs this. Details in Activity.' }),
-    `agent/work: "Adopting members…", "16 of 60", the bar by defs done (${J(w)})`);
+  ok(J(w) === J({ kind: 'reading', what: 'Updating variants…', n: '16 of 60', fill: 0.25, sub: 'An agent runs this. Details in Activity.' }),
+    `agent/work: "Updating variants…" (#4193), "16 of 60", the bar by defs done (${J(w)})`);
   const f = at({ run: 'capture', phase: 'finish', done: 60, total: 60 });
   ok(f.kind === 'reading' && f.n === '60 of 60' && f.fill === 1, `agent/finish: every def done, the bar full (${J(f)})`);
-  ok(at({ run: 'capture', phase: 'work', done: 3, total: 60 }, { done: 10, total: 60 }).kind === 'reading' && (at({ run: 'capture', phase: 'work', done: 3, total: 60 }, { done: 10, total: 60 }) as { what: string }).what === 'Recording the sets as built…',
+  ok(at({ run: 'capture', phase: 'work', done: 3, total: 60 }, { done: 10, total: 60 }).kind === 'reading' && (at({ run: 'capture', phase: 'work', done: 3, total: 60 }, { done: 10, total: 60 }) as { what: string }).what === 'Saving what was built…',
     'order/agent: an agent\'s run wins over the read after open');
   ok(stripView({ read: null, agent: { run: 'adopt', phase: 'work', done: 1, total: 2 }, run: r, step, verdict: null, now: T0, nameOf }).kind === 'running', 'order/agent-run: a panel run wins over an agent\'s');
   ok(at(null).kind === 'idle', 'agent/none: no agent run, no read, no verdict: the strip is hidden');

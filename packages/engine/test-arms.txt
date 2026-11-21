@@ -72,6 +72,7 @@ apps/plugin/test-build-verdict.mjs #3129
 apps/plugin/test-build-verdict.mjs #3326
 apps/plugin/test-build-verdict.mjs #3422
 apps/plugin/test-build-verdict.mjs #3712
+apps/plugin/test-build-verdict.mjs #4193
 apps/plugin/test-build-verdict.mjs #483
 apps/plugin/test-build-verdict.mjs #866
 apps/plugin/test-build-verdict.mjs #869
@@ -759,6 +760,7 @@ apps/studio/test-smoke.mjs #812
 apps/studio/test-start-input.ts #2241
 apps/studio/test-start-input.ts #3553
 apps/studio/test-status-strip.ts #3177
+apps/studio/test-status-strip.ts #4193
 apps/studio/test-store.ts #1037
 apps/studio/test-store.ts #2487
 apps/studio/test-store.ts #3878
@@ -787,6 +789,11 @@ apps/studio/test-update-file.ts #3467
 apps/studio/test-update-file.ts #3712
 apps/studio/test-update-file.ts #3713
 apps/studio/test-update-file.ts #4227
+apps/studio/test-verdict-count.ts #4190
+apps/studio/test-voice-copy.ts #4189
+apps/studio/test-voice-copy.ts #4190
+apps/studio/test-voice-copy.ts #4191
+apps/studio/test-voice-copy.ts #4193
 apps/studio/test-write-adapter.ts #2087
 apps/studio/test-write-adapter.ts #3697
 packages/engine/mcp-test.ts #1867

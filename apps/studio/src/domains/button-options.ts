@@ -40,12 +40,12 @@ export const BUTTON_OPTIONS_COPY = {
   title: 'Button options',
   densityLabel: 'Density',
   density: 'Density sets component heights and spacing.',
-  densityLink: 'Set it in Shape › Density',
+  densityLink: 'Set it in Theme › Shape › Density',
   /** #2909 Q2909.4 A: the two other lines' names and links. DRAFT placeholders (Q2909.10 A). */
   weightsLabel: 'Weights',
-  weightsLink: 'Set it in Type › Weights and styles',
+  weightsLink: 'Set it in Theme › Type › Weights and styles',
   outlineLabel: 'Outline hover',
-  outlineLink: 'Set it in Color › Interactive',
+  outlineLink: 'Set it in Theme › Color › Interactive',
   /** What the chosen Button label & icon gives a medium button, in the brand's sizes (#2918). DRAFT, option A. */
   contentSize: (c: ContentSizeView): string => c.rung === 'sm'
     ? `Medium button label: ${c.labelPx}px, the small button's (label/sm). Icon: ${c.iconPx}px.`

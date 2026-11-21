@@ -230,7 +230,7 @@ ok(engineWhy({ parts: [{ part: 'label', facets: ['type', 'color'] }], added: ['l
 ok(engineWhy({ parts: [], added: [], dropped: [], set: false }) === 'Engine update: its drawing changed', 'Q811 A why: a move with nothing to name still reads as an engine update');
 ok(UPDATE_COPY.dueWhy({ state: 'due', reason: 'executor' }) === 'Engine update: Prism3 draws components differently' && UPDATE_COPY.dueWhy({ state: 'due', reason: 'definition' }) === 'Due · its settings changed',
   'Q811 A why: the executor and a setting each have their own line');
-ok(UPDATE_COPY.dueWhy({ state: 'due', reason: 'engine' }) === 'Engine update: recorded before Prism3 noted what it drew',
+ok(UPDATE_COPY.dueWhy({ state: 'due', reason: 'engine' }) === 'Engine update: built by an earlier Prism3, so the changes can’t be listed',
   '#3090 finding 1 why: an engine update over a set recorded with no print says so, never "built before Prism3 kept a record"');
 
 // ── #3081 Q810 A: the badge counts everything Update file would change, live ─────────────────────────────────────────
@@ -338,7 +338,7 @@ ok(reduce(s2, fd(3, false)).liveDue?.theme === false, 'Q810 A recount (control):
     ['component Prism3 swaps to is not in this file: provider-logo/default', 'Can’t update yet — it swaps to Provider logo, which this file doesn’t have. Tick Provider logo on Components first.'],
     ['fonts: Inter Bold will not load, so text could not be written', 'Can’t update yet — these fonts won’t load: Inter Bold. Install or turn them on in Figma, then open this again.'],
     ['an axis Prism3 removed would collapse variants onto one coordinate, and they cannot stay in the set', 'Can’t update yet — a property it drops would merge variants into one.'],
-    ['the axes change, and 12 members not built by Prism3 would be left on the old ones (a; b; c)', 'Can’t update yet — its properties change, and 12 variants not built by Prism3 would be left behind. Studio can’t do this yet.'],
+    ['the axes change, and 12 members not built by Prism3 would be left on the old ones (a; b; c)', 'Can’t update yet — its properties change, and 12 variants not built by Prism3 would be left behind. Remove the extra variants in Figma, or send it with Report a problem.'],
     ['renaming size=small would give it the name of another member (size=sm)', 'Can’t update yet — renaming size=small would clash with size=sm. Rename or remove one of them in Figma.'],
     ['2 variants share the coordinate size=medium (1:2, 1:3) — the set is refused rather than one picked', 'Can’t update yet — 2 variants share one name, size=medium. Rename or remove the extra one in Figma.'],
     ["the variants disagree on the axis list ([size] vs [size,tone]), so Figma cannot read the set's properties (#1780)", 'Can’t update yet — its variants don’t all have the same properties. Fix the variant names in Figma.'],

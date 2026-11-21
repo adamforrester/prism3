@@ -657,7 +657,7 @@ console.log('\n5b. a late file read loads nothing once its window has closed (A1
     const before = await confirmText(page);
     await release(page);
     const after = await confirmText(page);
-    ok(held && /the aurora example/.test(before ?? '') && after === before,
+    ok(held && /the Aurora example/.test(before ?? '') && after === before,
       `#2503 an example chosen while a file read is held keeps its confirm naming the aurora example after the read finishes — held ${held}, before "${before}", after "${after}"`);
     await page.close();
   }

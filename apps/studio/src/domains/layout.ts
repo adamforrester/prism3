@@ -54,7 +54,7 @@ export const LAYOUT_COPY = {
   remove: (name: string): string => `Remove ${name}`,
   dropped: (name: string): string => `Removed ${name}: its column, gutter and margin settings went with it.`,
   ...LAYOUT_LABELS,
-  auto: (v: string): string => `Auto: ${v}`,
+  auto: (v: string): string => `Auto · ${v}`,
   gridColumns: 'Grid columns',
   next: 'Continue to Components',
   toAuto: 'Return to Auto',   // the value picker's reset, Type's approved words (S6.3)

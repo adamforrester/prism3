@@ -108,11 +108,11 @@ The setting is kept in the file, on the set, so it holds when the file is opened
 
 ## Remove what the brand no longer uses
 
-When a brand drops a mode, a ramp step or a text style, the old one stays in the file until you remove it. The **Clean up** tab does that, and it always shows you what it found first: "Things Prism3 wrote earlier and no longer writes. Nothing here rides Update file." <!-- src: apps/studio/src/state/update-file.ts:437 -->
+When a brand drops a mode, a ramp step or a text style, the old one stays in the file until you remove it. The **Clean up** tab does that, and it always shows you what it found first: "Things Prism3 wrote earlier and no longer writes. Update file doesn’t remove them." <!-- src: apps/studio/src/state/update-file.ts:437 -->
 
 1. Choose **Update file**, then the **Clean up** tab. It checks the file as it opens and reads "Checking for stale items…". Nothing is deleted yet. <!-- src: apps/studio/src/state/update-file.ts:438 -->
 2. The tab states what it found, including the modes by name. When there is nothing, it says "Nothing stale in this file." <!-- src: apps/studio/src/state/update-file.ts:439 -->
-3. Choose **Delete *N* items** to delete them, or **Close** to stop. <!-- src: apps/studio/src/shell/update-file.ts:711-720 -->
+3. Choose **Remove *N* items** to delete them, or **Close** to stop. <!-- src: apps/studio/src/shell/update-file.ts:711-720 -->
 
 *[Screenshot placeholder: the Clean up tab with its summary and Delete button.]*
 
@@ -142,7 +142,7 @@ Removing a mode removes its values from every variable in the collection, so mov
 
 1. Choose **Update file**, with **Theme** ticked, and run it. The file gets the new mode.
 2. Select each frame set to the old mode. In Figma's right sidebar, change the frame's mode for that collection to the new mode.
-3. Choose **Update file**, then the **Clean up** tab. It lists the old mode by name. Choose **Delete *N* items**.
+3. Choose **Update file**, then the **Clean up** tab. It lists the old mode by name. Choose **Remove *N* items**.
 
 ## What refuses, and why
 

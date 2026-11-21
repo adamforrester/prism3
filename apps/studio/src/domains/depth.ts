@@ -40,7 +40,7 @@ import { DOMAINS, pageOfTab, type PageData } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { armEnter, enterMark, glyph, h, hook } from '../shell/dom';
 import { valuePicker } from '../ui/value-picker';
-import { choice, leverBlock, leverOf, setText, slider, sliderReadout, stateLine, subLine, tokenLabel, type LeverBlock, keepFocus, pageEdit, filterLevers } from '../ui/lever-kit';
+import { advancedLabel, choice, leverBlock, leverOf, setText, slider, sliderReadout, stateLine, subLine, tokenLabel, type LeverBlock, keepFocus, pageEdit, filterLevers } from '../ui/lever-kit';
 
 const PAGE = DOMAINS.find((d) => d.id === 'depth') as PageData;
 const section = (title: string) => PAGE.sections.find((s) => s.title === title)!;
@@ -49,7 +49,7 @@ const section = (title: string) => PAGE.sections.find((s) => s.title === title)!
  *  fragment's "Copy for owner approval" block. */
 export const DEPTH_COPY = {
   /** A per-mode control's Auto, previewing another mode (Q22, APPROVED; Type's wording). */
-  autoLight: (v: string): string => `Auto: follows Light (${v})`,
+  autoLight: (v: string): string => `Auto · follows Light (${v})`,
   toAuto: 'Return to Auto',
   editing: (m: string): string => `Editing ${m}, the mode the preview shows.`,
   easingRow: (role: string): string => `Easing for ${role}`,
@@ -329,7 +329,7 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     btn.setAttribute('aria-expanded', String(open));
     btn.setAttribute('aria-controls', 'p3-advb-depth-tint');
     const n = section('Shadow tint').rows.length;
-    btn.append(glyph(open ? 'chev' : 'chevr'), h('span', 'p3-btn-label', `${open ? 'Hide' : 'Show'} ${n} advanced`));
+    btn.append(glyph(open ? 'chev' : 'chevr'), h('span', 'p3-btn-label', advancedLabel(open, n)));
     btn.onclick = () => { tintOpen = !tintOpen; if (tintOpen) armEnter('p3-advb-depth-tint'); render(); };
     const body = enterMark(h('div', 'p3-advbody'), 'p3-advb-depth-tint');
     body.id = 'p3-advb-depth-tint';

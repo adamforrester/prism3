@@ -22,7 +22,7 @@ export const LINK_OPTIONS_COPY = {
   underlineValue: (thickness: number | 'auto', offset: number | 'auto'): string =>
     thickness === 'auto' && offset === 'auto' ? 'Auto'
       : `${thickness === 'auto' ? 'Auto' : `${thickness}%`} thick · ${offset === 'auto' ? 'Auto' : `${offset}%`} offset`,
-  underlineLink: 'Set in Theme › Type › Weights and styles',
+  underlineLink: 'Set it in Theme › Type › Weights and styles',
 } as const;
 
 /** The underline's read-only line, as Type › Weights and styles shows it. */

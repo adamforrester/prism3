@@ -717,7 +717,7 @@ export const mountUpdateFile = (lend: UpdateFileLend, cleanups: (() => void)[]):
     if (p.busy) body.push(card(hook(h('p', 'p3-upd-line', UPDATE_COPY.cleanChecking), 'clean-checking')));
     else if (p.preview) {
       body.push(card(hook(h('p', 'p3-upd-summary', p.preview.summary), 'clean-prune-summary')));
-      const del = btn('p3-btn p3-btn-primary', 'clean-prune-confirm', 'prune', `Delete ${p.preview.count} item${p.preview.count === 1 ? '' : 's'}`, () => lend.pruneDelete());
+      const del = btn('p3-btn p3-btn-primary', 'clean-prune-confirm', 'prune', `Remove ${p.preview.count} item${p.preview.count === 1 ? '' : 's'}`, () => lend.pruneDelete());
       if (r.off) { del.disabled = true; del.title = r.off; }
       foot.push(del);
     } else if (p.verdict) body.push(card(hook(h('p', 'p3-upd-summary', p.verdict.count === 0 && !p.verdict.applied ? UPDATE_COPY.cleanNone : p.verdict.summary), 'clean-prune-result')));

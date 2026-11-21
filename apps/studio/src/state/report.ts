@@ -286,7 +286,7 @@ export const REPORT_COPY = {
   title: 'Report a problem',
   intro: 'This builds a report from this session for an issue on GitHub. Nothing is sent from here: you read it below, then copy it or open a prefilled issue in your browser.',
   brandBox: 'Include the brand\'s settings',
-  brandOff: 'The brand\'s settings are left out. Its name and token prefix are replaced with [brand].',
+  brandOff: 'The brand\'s settings are left out. Its name and token namespace are replaced with [brand].',
   brandOn: 'The brand\'s settings are included as they are. They can hold a client\'s colors and names.',
   never: 'The report holds no file names and no keys.',
   preview: 'Report',

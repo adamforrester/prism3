@@ -640,16 +640,16 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await post(page, { type: 'component-progress', phase: 'wire', done: 600, total: 648, chunkMs: 40 });
   await page.waitForFunction(() => /600 of 648/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
   const away = await readSurfaces(page);
-  ok(away.barPending.some((t) => /Wiring references… 600 of 648/.test(t ?? '')), `away from the page, the Activity row still reports progress — read ${JSON.stringify(away.barPending)}`);
+  ok(away.barPending.some((t) => /Linking nested sets… 600 of 648/.test(t ?? '')), `away from the page, the Activity row still reports progress — read ${JSON.stringify(away.barPending)}`);
 
   // #1679: the reference back-off's wait names itself (owner's wording), with no fraction, instead of the
   // pill freezing on the last wire reading for the whole pause. Through the real bridge validator, so a
   // `retry` phase the adapter drops fails here by name rather than leaving "600 of 648" on screen.
   await post(page, { type: 'component-progress', phase: 'retry', done: 2, total: 6, chunkMs: 0 });
-  await page.waitForFunction(() => /Retrying property links…/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => /Linking properties again…/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
   const retrying = await readSurfaces(page);
-  ok(retrying.barPending.some((t) => (t ?? '') === 'Retrying property links…'),
-    `#1679 while the reference back-off waits, the pill reads exactly "Retrying property links…" — read ${JSON.stringify(retrying.barPending)}`);
+  ok(retrying.barPending.some((t) => (t ?? '') === 'Linking properties again…'),
+    `#1679 while the reference back-off waits, the pill reads exactly "Linking properties again…" (#4193) — read ${JSON.stringify(retrying.barPending)}`);
 
   await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
   // #3326 PR 2: the build is Update file's To add step, so its words land on that step of the run's row.
@@ -737,7 +737,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     await hooks.need(page, '[data-p3="clean-prune-summary"]', { timeout: 5000 });
     const s = await readPrune(page);
     ok(s.summary === PRUNE_SUMMARY, `#1663 control: the panel's preview shows in Clean up, in the host's words — read ${JSON.stringify(s.summary)}`);
-    ok(s.deleteCta.includes('Delete 4 items'), `#1663 control: Clean up's Delete reads "Delete 4 items" — read ${JSON.stringify(s.deleteCta)}`);
+    ok(s.deleteCta.includes('Remove 4 items'), `#1663 control: Clean up's Delete reads "Remove 4 items" (#4193) — read ${JSON.stringify(s.deleteCta)}`);
     control = s;
     // #2124 review (findings 1 and 2), re-hosted: the overlay is modal. Focus is inside it, Tab and Shift+Tab stay
     // inside, and Close returns focus to its opener, Update file.
@@ -765,7 +765,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     const landed = s.summaries.includes(`Agent preview: ${PRUNE_SUMMARY}`);
     hooks.absent(ok, { seen: control.summary === PRUNE_SUMMARY && landed, state: 'the preview in Clean up in the control arm, and the agent preview landing in this one' },
       !s.overlay && s.summary === null, '#1663 an agent prune preview opens nothing on the owner\'s screen and is not the panel\'s preview');
-    hooks.absent(ok, { seen: control.deleteCta.includes('Delete 4 items') && landed, state: 'the Delete CTA in the control arm, and the agent preview landing in this one' },
+    hooks.absent(ok, { seen: control.deleteCta.includes('Remove 4 items') && landed, state: 'the Delete CTA in the control arm, and the agent preview landing in this one' },
       s.deleteCta.length === 0, `#1663 an agent prune preview offers no Delete — found ${JSON.stringify(s.deleteCta)}`);
     ok(s.pills.includes('4 stale') && landed,
       `#1663 an agent prune preview reads "4 stale" in the Activity drawer, "Agent preview: ${PRUNE_SUMMARY}" in its details — read ${JSON.stringify(s.pills)}, ${JSON.stringify(s.summaries)}`);
@@ -1036,7 +1036,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await post(page, { type: 'agent-progress', id: 'b1', progress: { phase: 'build', done: 24, total: 648 } });
   await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-progress"]')].some((n) => /24 of 648/.test(n.textContent ?? '')), null, { timeout: 5000 }).catch(() => {});
   const build = await readOp('components');
-  ok(build.state === 'running' && build.agent && build.phase.some((t) => /Building members… 24 of 648/.test(t ?? '')),
+  ok(build.state === 'running' && build.agent && build.phase.some((t) => /Building variants… 24 of 648/.test(t ?? '')),
     `S11 an agent's build shows its live progress on the Build set row — state ${build.state}, agent ${build.agent}, phase ${JSON.stringify(build.phase)}`);
   // Positive control for the no-post check: nothing runs Apply now, so the same run does post.
   await openUpdate(page);
@@ -1988,8 +1988,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
   /** Choose an example from the brand menu, answering the overwrite confirm when edits are at risk. */
   const chooseExample = async (page) => {
     await hooks.click(page.locator('[data-p3="brand-switcher"]'), { timeout: 4000 }).catch(() => {});
-    // The name, not the item: since #3977 the item also carries the example's few words under it.
-    const name = await page.locator('[data-p3="brand-menu-example"] .p3-menu-label').first().textContent().catch(() => null);
+    // #4191 T3: the item shows the brand's name; the example's id, which Update file posts, is its data.
+    const name = await page.locator('[data-p3="brand-menu-example"]').first().getAttribute('data-example').catch(() => null);
     await hooks.click(page.locator('[data-p3="brand-menu-example"]').first(), { timeout: 4000 }).catch(() => {});
     // After a demo edit there are edits to lose, so the choice asks first (#1033); answering it is the load.
     if (await page.locator('[data-p3="overwrite-replace"]').count()) await hooks.click(page.locator('[data-p3="overwrite-replace"]'), { timeout: 4000 }).catch(() => {});
