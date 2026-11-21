@@ -301,11 +301,13 @@ const KNOWN_UNREACHABLE: Record<string, { path: string; why: string; owner: stri
  * normalized shape the unpaired arms compare (`nbds/core/font/style/body/default` -> `core.font.style.body.default`).
  */
 const prism3CutPaths = (brand: string): Set<string> => {
-  const f = join(FIGMA_OUT, brand, 'core.font.json');
-  if (!existsSync(f)) return new Set();
-  const doc = JSON.parse(readFileSync(f, 'utf8')) as { variables?: Array<{ name?: string; scopes?: string[] }> };
+  // `core.font.json`, or the per-mode `core.font.<mode>.json` a brand with per-mode typography emits (prism3's Brand B,
+  // #1729); every mode file names the same cut variables, so the union is the set.
+  const dir = join(FIGMA_OUT, brand);
+  const files = existsSync(join(dir, 'core.font.json')) ? ['core.font.json']
+    : existsSync(dir) ? readdirSync(dir).filter((x) => /^core\.font\.[^.]+\.json$/.test(x)) : [];
   const out = new Set<string>();
-  for (const v of doc.variables ?? []) {
+  for (const v of files.flatMap((x) => (JSON.parse(readFileSync(join(dir, x), 'utf8')) as { variables?: Array<{ name?: string; scopes?: string[] }> }).variables ?? [])) {
     if (v.name && /(?:^|\/)font\/style\/[^/]+\/[^/]+$/.test(v.name)) out.add(v.name.split('/').slice(1).join('.'));
   }
   return out;

@@ -31,7 +31,7 @@ npm install ./prism3-tokens-<version>.tgz       # in the client project
 ```
 
 ```css
-@import "@prism3/tokens";                       /* every block: :root and light, dark, hc-dark, hc-light */
+@import "@prism3/tokens";                       /* every block: :root and light, brand-b, dark, hc-dark, hc-light */
 
 .card { color: var(--pds3-color-text-primary); }
 ```
@@ -47,7 +47,7 @@ npm install ./prism3-tokens-<version>.tgz       # in the client project
 |---|---|
 | `@prism3/tokens` (also `@prism3/tokens/prism3.css`) | every block, `:root` first |
 | `@prism3/tokens/prism3/base.css` | the light defaults, on `:root` and `[data-theme="light"]` |
-| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `dark`, `hc-dark`, `hc-light`. `dark.css` also holds the system-preference block below |
+| `@prism3/tokens/prism3/<mode>.css` | one `[data-theme="<mode>"]` block: `brand-b`, `dark`, `hc-dark`, `hc-light`. `dark.css` also holds the system-preference block below |
 
 **Following the OS (#4140).** A page that sets no `data-theme` follows the system setting: the dark values also apply
 under `@media (prefers-color-scheme: dark)` on `:root:not([data-theme])`, with no script and no flash of light. A page

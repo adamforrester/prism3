@@ -1042,6 +1042,51 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // citation stays verbatim.
     notes.push(`links: the '${linkPalette}' palette is too close in color to body text for WCAG 1.4.1 (Use of Color) — links need an underline; typography.links adds an underlined link style. Warned, not forced.`);
 
+  // ---- per-mode palette swaps (#1729) ----
+  // `modePalettes[mode]` maps a palette to its replacement for that one mode. Resolved here, where the routing
+  // it rewrites is final: each role, the link and each interactive column on a swapped palette moves to the
+  // replacement and re-anchors at the replacement's own shade (`interactiveStepFor`, the rule every brand color
+  // anchors by). The contrast floors are untouched, so `resolveMode` re-gates every moved role the same way.
+  // Validated against the customizable modes; `light` is the baseline every swap is measured from.
+  const brandColorNames = new Set((input.brandColors ?? []).map((b) => b.name));
+  const modePalettes: NonNullable<Theme['modePalettes']> = {};
+  const gradientsByMode: Record<string, ReturnType<typeof buildGradient>['gradients']> = {};
+  for (const [m, swaps] of Object.entries(input.modePalettes ?? {}) as [ModeName, Record<string, string>][]) {
+    if (!modesAll.includes(m))
+      throw new Error(`modePalettes: mode '${m}' is not in this brand's modes (${modesAll.join(', ')})`);
+    if (!CUSTOMIZABLE_MODES.includes(m))
+      throw new Error(`modePalettes: mode '${m}' is generate-only and not customizable — only ${CUSTOMIZABLE_MODES.join('/')} accept a palette swap`);
+    if (m === 'light')
+      throw new Error(`modePalettes: 'light' is the baseline every swap is measured from — change the palette itself (primary or brandColors), not modePalettes.light`);
+    for (const [from, to] of Object.entries(swaps ?? {})) {
+      if (from !== 'primary' && !brandColorNames.has(from))
+        throw new Error(`modePalettes.${m}: '${from}' is not a palette a mode can swap — use primary or a brandColors name (${[...brandColorNames].join(', ') || 'none declared'})`);
+      if (!brandColorNames.has(to))
+        throw new Error(`modePalettes.${m}.${from}: '${to}' is not a brandColors name — a replacement must be declared in brandColors, so its ramp ships in every mode`);
+      if (from === to)
+        throw new Error(`modePalettes.${m}.${from}: swaps the palette for itself — drop the entry`);
+    }
+    if (!Object.keys(swaps ?? {}).length) continue;
+    const sw = (pal: string): string => swaps[pal] ?? pal;
+    const r2p = Object.fromEntries(Object.entries(roleToPalette).map(([r, pal]) => [r, sw(pal)])) as Record<Role, string>;
+    const baseAnchors: Record<Role, number> = { brand: anchorStep, neutral: 500, success: 500, warning: 500, danger: 500, info: 500, action: actionAnchorStep };
+    // brand and action anchor at their palette's own shade; the status roles and neutral anchor at the 500 pivot
+    // whatever palette they draw from, so only the first two re-anchor when their palette moves.
+    const anchors = Object.fromEntries(Object.entries(baseAnchors).map(([r, st]) =>
+      [r, (r === 'brand' || r === 'action') && r2p[r as Role] !== roleToPalette[r as Role] ? interactiveStepFor(r2p[r as Role]) : st])) as Record<Role, number>;
+    const swappedLink = sw(linkPalette);
+    modePalettes[m] = {
+      swaps: { ...swaps }, roleToPalette: r2p, roleAnchorStep: anchors,
+      linkPalette: swappedLink, linkAnchorStep: swappedLink === linkPalette ? linkAnchorStep : interactiveStepFor(swappedLink),
+      interactivePalettes: interactivePalettes.map((ip) => sw(ip.palette) === ip.palette ? ip
+        : { ...ip, palette: sw(ip.palette), anchorStep: ip.anchorPinned ? ip.anchorStep : interactiveStepFor(sw(ip.palette)) }),
+    };
+    const moved = buildGradient(input.gradients, palettes, root, swaps).gradients;
+    if (JSON.stringify(moved) !== JSON.stringify(gradient.gradients)) gradientsByMode[m] = moved;
+    notes.push(`modePalettes: in ${m}, ${Object.entries(swaps).map(([f, t]) => `${f} → ${t}`).join(', ')} — every role, link, interactive column and gradient stop on a swapped palette uses its replacement there, anchored at the replacement's own shade and held to the same contrast floors.`);
+  }
+  if (Object.keys(gradientsByMode).length) gradient.gradientsByMode = gradientsByMode;
+
   // The inverse surface context has no lever since #895.
   const neutralEmphasis = input.neutralEmphasis ?? 'subtle';
   notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — a bold near-black or near-white fill' : ' (default) — a light gray fill'}; inverse-surface variants are always generated.`);
@@ -1057,6 +1102,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     ...(Object.keys(radiusByMode).length || Object.keys(familiesByMode).length || Object.keys(weightRolesByMode).length || Object.keys(lineHeightRepointByMode).length || Object.keys(letterSpacingRepointByMode).length || Object.keys(motionByMode).length || Object.keys(easingRolesByMode).length || Object.keys(shadowByMode).length || Object.keys(sizesByMode).length ? { modeLevers } : {}),
     roleAnchorStep: { brand: anchorStep, neutral: 500, success: 500, warning: 500, danger: 500, info: 500, action: actionAnchorStep },
     linkPalette, linkAnchorStep,
+    ...(Object.keys(modePalettes).length ? { modePalettes } : {}),
     surfaces: input.surfaces,
     overrides: input.overrides,
     modeAnchors: input.modeAnchors,

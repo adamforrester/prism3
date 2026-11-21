@@ -183,6 +183,15 @@ export type Dims = {
 /** A declared palette promoted to a full `interactive.<name>.*` column (docs/20 §3). `name` is
  *  the role suffix (`interactive.<name>.*`); `palette` is a defined palette; `anchorStep` is the
  *  fill step its rest colour anchors to (default 500 at generation time). */
+/** One mode's resolved palette swap (#1729): the map as authored, and the routing `resolveMode` reads in its place. */
+export type ModePaletteSwap = {
+  swaps: Record<string, string>;
+  roleToPalette: Record<Role, string>;
+  roleAnchorStep: Record<Role, number>;
+  linkPalette: string;
+  linkAnchorStep: number;
+  interactivePalettes: InteractivePalette[];
+};
 export type InteractivePalette = { name: string; palette: string; anchorStep?: number;
   /** True when `anchorStep` was AUTHORED rather than derived. `brandTheme` always resolves
    *  `anchorStep` (pinned ?? computed), so by the time `modes.ts` reads it the two are
@@ -437,6 +446,11 @@ export type Theme = {
   // deviate a single mode. The re-derived radius ramps land on `dims.radiusByMode`; this carries the
   // raw levers for round-trip.
   modeLevers?: Partial<Record<ModeName, ModeLevers>>;
+  // Per-mode PALETTE SWAPS (#1729), resolved: for each mode that swaps, the palette map as authored plus the
+  // color routing it produces — every role, the link, each interactive column and every gradient stop that
+  // drew from a swapped palette draws from its replacement in that mode, re-anchored and re-gated there. The
+  // primitives stay mode-invariant: a swap re-points aliases between ramps every mode already ships.
+  modePalettes?: Partial<Record<ModeName, ModePaletteSwap>>;
   // Disabled-state contrast. BOTH branches are gated — this system never ships disabled
   // ink below 3:1, so neither leans on the WCAG 1.4.3/1.4.11 inactive-component exemption
   // (owner decision, 2026-07-29; supersedes the old 'accessible'/'conventional' pair where
@@ -668,6 +682,13 @@ export type BrandInput = {
    *  doesn't generate throws, and a radius outside [0,2] throws. Distinct from the GLOBAL `radiusScale`
    *  (the baseline every mode inherits) — modeLevers deviate a single mode. Omit for none (byte-identical). */
   modeLevers?: Partial<Record<ModeName, ModeLevers>>;
+  /** Per-mode PALETTE SWAPS (#1729): `{ 'brand-b': { primary: 'brand-b-primary', accent: 'brand-b-accent' } }` reads
+   *  "in this mode, whatever draws from `primary` draws from `brand-b-primary` instead". Every role, the link, each
+   *  interactive column and every gradient stop on a swapped palette follows, re-anchored at the replacement's own
+   *  shade and re-gated against the same contrast floors. Customizable modes other than `light` (light is the
+   *  baseline: change the palette itself there). A source is `primary` or a `brandColors` name; a replacement is a
+   *  `brandColors` name, so its ramp ships in every mode and the swap only re-points aliases. Omit for none. */
+  modePalettes?: Partial<Record<ModeName, Record<string, string>>>;
   /** Optional measured status overrides; omit to let the engine synthesise. */
   status?: Partial<Record<'success' | 'warning' | 'danger' | 'info', OKLCH & { chroma: number }>>;
   /** Disabled-state contrast. Default `'reduced'` — a dialable `disabledMin` floor

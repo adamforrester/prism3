@@ -60,7 +60,13 @@ const ok = (cond: boolean, label: string): void => {
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const tokens = JSON.parse(readFileSync(join(REPO, 'packages/engine/out/prism3.tokens.json'), 'utf8'));
 const ROOT = Object.keys(tokens).find((k) => !k.startsWith('$'))!;
-const prism3 = (exampleBrands as Record<string, BrandInput>).prism3;
+/** The default theme without Brand B (#1729), its custom mode: these fixtures write per-mode levers and compare the
+ *  whole per-mode map, and they build every mode they use themselves. Brand B's own cascade is test-brand-input's. */
+const withoutBrandB = (b: BrandInput): BrandInput => {
+  const { customModes: _c, modePalettes: _p, modeLevers: _l, ...rest } = structuredClone(b);
+  return { ...rest, brandColors: (rest.brandColors ?? []).filter((c) => !c.name.startsWith('brand-b-')) };
+};
+const prism3 = withoutBrandB((exampleBrands as Record<string, BrandInput>).prism3);
 const PRISTINE = JSON.stringify(prism3);
 const reset = (input: BrandInput = prism3): void => store.initSession(structuredClone(input), { kind: 'example', id: 'prism3' });
 const pristine = (): boolean => JSON.stringify(store.brandState) === PRISTINE;
@@ -864,8 +870,9 @@ for (const brand of ['prism3', 'aurora', 'harbor']) {
       `${at}: the "not checked" line holds: no field border, button border or focus ring is measured on the floor (${floor}) — on it: ${JSON.stringify(onFloor)}; seen ${notChecked.length}`);
   }
 }
-// Floor (docs/34 shape 9): the sweep ran over every mode it claims to, three brands with four modes each.
-ok(floorModes === 12, `the floor's groups were checked in 12 brand modes — checked ${floorModes}`);
+// Floor (docs/34 shape 9): the sweep ran over every mode it claims to, three brands with four modes each, plus prism3's
+// Brand B (#1729).
+ok(floorModes === 13, `the floor's groups were checked in 13 brand modes — checked ${floorModes}`);
 
 console.log(`\n${executed - failed}/${executed} Surfaces & fills write assertions passed.`);
 if (failed) process.exit(1);

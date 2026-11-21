@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 290 of 831 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 290 of 872 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members. A key marked "not drawn" names the token but no member draws it; another key on the row does.
 
@@ -4243,7 +4243,7 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-261 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+261 semantic token(s) and 321 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
@@ -4319,12 +4319,14 @@ Declared, not drawn: `color.border.focus`
 - **core.font.line-height** — 7 token(s)
 - **core.font.line-height-role** — 7 token(s)
 - **core.font.size** — 22 token(s)
-- **core.font.typeface** — 3 token(s)
+- **core.font.typeface** — 4 token(s)
 - **core.font.weight** — 6 token(s)
 - **core.font.weight-role** — 5 token(s)
 - **core.palette.accent** — 20 token(s)
 - **core.palette.black** — 1 token(s)
 - **core.palette.black-alpha** — 10 token(s)
+- **core.palette.brand-b-accent** — 20 token(s)
+- **core.palette.brand-b-primary** — 20 token(s)
 - **core.palette.danger** — 20 token(s)
 - **core.palette.info** — 20 token(s)
 - **core.palette.neutral** — 20 token(s)

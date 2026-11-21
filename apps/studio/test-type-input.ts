@@ -36,7 +36,13 @@ const ok = (cond: boolean, label: string): void => {
   failed++;
   console.error(`  ✗ ${label}`);
 };
-const brands = exampleBrands as Record<string, BrandInput>;
+/** The default theme without Brand B (#1729), its custom mode: these fixtures write per-mode levers and compare the
+ *  whole per-mode map, and they build every mode they use themselves. Brand B's own cascade is test-brand-input's. */
+const withoutBrandB = (b: BrandInput): BrandInput => {
+  const { customModes: _c, modePalettes: _p, modeLevers: _l, ...rest } = structuredClone(b);
+  return { ...rest, brandColors: (rest.brandColors ?? []).filter((c) => !c.name.startsWith('brand-b-')) };
+};
+const brands = { ...(exampleBrands as Record<string, BrandInput>), prism3: withoutBrandB((exampleBrands as Record<string, BrandInput>).prism3) };
 let loaded = '';
 const reset = (id = 'prism3'): void => {
   store.initSession(structuredClone(brands[id]), { kind: 'example', id });

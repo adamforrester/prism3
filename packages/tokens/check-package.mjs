@@ -89,6 +89,8 @@ const PREFIX = '--pds3-';
 const PROMISED_BLOCKS = [
   [':root', 'base'], ['[data-theme="light"]', 'base'],
   ['[data-theme="dark"]', 'dark'], ['[data-theme="hc-dark"]', 'hc-dark'], ['[data-theme="hc-light"]', 'hc-light'],
+  // #1729: the default theme's Brand B, a second brand in the same file, is a theme mode like the others.
+  ['[data-theme="brand-b"]', 'brand-b'],
   // #4140 (owner decision A): a page that sets no `data-theme` follows the OS into dark, and `dark.css` carries it.
   [`${SYSTEM_DARK} :root:not([data-theme])`, 'dark'],
 ];

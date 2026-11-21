@@ -2874,6 +2874,14 @@ export const interactiveStateRungs = (st: string): number => {
   return st === 'default' || st === 'rest' ? 0 : (st === 'hover' || st === 'focused') ? STATE_RUNGS : STATE_RUNGS * 2;
 };
 
+/** The theme one mode resolves against (#1729): a mode with a palette swap (`theme.modePalettes[mode]`) reads its
+ *  own color routing — roles, link, interactive columns — in place of the brand's; every other mode reads the
+ *  theme unchanged. The swap was resolved in `brandTheme`; nothing here re-derives it. */
+export const withModePalettes = (theme: Theme, mode: ModeName): Theme => {
+  const mp = theme.modePalettes?.[mode];
+  return mp ? { ...theme, roleToPalette: mp.roleToPalette, roleAnchorStep: mp.roleAnchorStep, linkPalette: mp.linkPalette, linkAnchorStep: mp.linkAnchorStep, interactivePalettes: mp.interactivePalettes } : theme;
+};
+
 export const resolveAllModes = (theme: Theme): ModeResult[] => {
   const ramps = new Map(theme.palettes.map((p) => [p.palette, p.steps] as const));
   const neutral = ramps.get(theme.roleToPalette.neutral)!;
@@ -2890,7 +2898,7 @@ export const resolveAllModes = (theme: Theme): ModeResult[] => {
   // Only the modes the brand opted into (light always; dark/HC opt-in — docs/11 Pillar 1; customs
   // appended last). Canonical order preserved (Object.keys order: built-ins first, then customs),
   // so `rp.modes` is stable regardless of input order.
-  const results = (Object.keys(cfgs) as ModeName[]).filter((m) => theme.modes.includes(m)).map((m) => resolveMode(m, must(cfgs[m], `mode config '${m}'`), theme, ramps));
+  const results = (Object.keys(cfgs) as ModeName[]).filter((m) => theme.modes.includes(m)).map((m) => resolveMode(m, must(cfgs[m], `mode config '${m}'`), withModePalettes(theme, m), ramps));
   // Tests the lever directly, for the reason spelled out at the `overlay-neutral` branch in `resolveMode`.
   if (theme.outlineInteraction === 'solid-tint') settleSolidTint(theme, results);
   // THE SELECTED TINT FOR EVERY BRAND THAT HAS AN OUTLINE FILL (owner, 2026-09-29). A selectable control (Tag's

@@ -333,7 +333,7 @@ import type { CellsApi } from './src/style-guide-cells';
 import { STYLE_GUIDE_GROUPS, styleGuideGroupOf } from '@prism3/engine/figma';
 import { planStyleGuide, runStyleGuide, removeRetiredTables, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp, tableMovesDue, relocateTables } from './src/style-guide';
 import { createRunGuard, busyMessage } from './src/run-guard';
-import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
+import type { StyleGuideApi, SgCatalog, SgCollection, SgVariable, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd, brandTheme, resolveAllModes } from '@prism3/engine';
 
 let failures = 0;
@@ -1003,7 +1003,10 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyl
 
 /** The prism3 variables, as a theme write leaves them: `core` (Default) and `color` (four modes). */
 const prism3Variables = (): { cols: ShimCol[]; vars: ShimVar[] } => {
-  const core = readJson('core.palette.json');
+  // The four appearance modes' file: Brand B (#1729), the default theme's custom mode, is left out with its two ramps,
+  // so every count below is the four-mode file's. The style guide draws a custom mode's ramps like any other palette.
+  const core0 = readJson('core.palette.json');
+  const core = { ...core0, variables: core0.variables.filter((v) => !/\/core\/palette\/brand-b-/.test(v.name)) };
   const modes = ['light', 'dark', 'hc-light', 'hc-dark'];
   const byMode = modes.map((m) => readJson(`color.${m}.json`));
   const cols: ShimCol[] = [
@@ -1029,7 +1032,10 @@ const prism3Variables = (): { cols: ShimCol[]; vars: ShimVar[] } => {
   return { cols, vars };
 };
 
-const input = parseDesignMd(readFileSync(join(here, '../../packages/engine/examples/prism3.design.md'), 'utf8')).input;
+const input0 = parseDesignMd(readFileSync(join(here, '../../packages/engine/examples/prism3.design.md'), 'utf8')).input;
+// The contract for the same four-mode file: prism3 without Brand B (#1729), its custom mode, palette swap and two ramps.
+const { customModes: _bbModes, modePalettes: _bbSwap, modeLevers: _bbLevers, ...input1 } = input0;
+const input = { ...input1, brandColors: (input1.brandColors ?? []).filter((c) => !c.name.startsWith('brand-b-')) };
 const contract = resolveAllModes(brandTheme(input));
 
 /** The owner-cell Text table's width (section 2): its fourteen HUG tracks, 2,940px by the shim's own metric, with no
@@ -1098,7 +1104,8 @@ const phase2Variables = (): { cols: ShimCol[]; vars: ShimVar[]; styles: ShimStyl
   ];
   // Every file's variables, per collection and mode, ids assigned before any alias is read.
   const sources: [string, string[], Em[][]][] = [
-    ['core', ['core:0'], [[...em('core.dimension.json'), ...em('core.font.json')]]],
+    // `core.font.Default.json`: prism3's per-mode font (Brand B, #1729) splits `core.font.json` by mode; Default is the base.
+    ['core', ['core:0'], [[...em('core.dimension.json'), ...em('core.font.Default.json')]]],
     ['space', ['space:0'], [em('space.json')]],
     ['radius', ['radius:0'], [em('radius.json')]],
     ['size', ['size:0'], [em('size.json')]],
@@ -1386,6 +1393,13 @@ const main = async (): Promise<void> => {
     ok(noBrand.tables.every((t) => t.rows.every((r) => r.cells.every((c) => c.contrast === null))) && noBrand.notes.some((n) => n.startsWith('No saved brand')), '3: no saved brand — every contrast "—", said once');
     ok(planStyleGuide(catalog, contract, { types: ['motion'] }).tables.length === 0 && planStyleGuide(catalog, contract, { types: ['motion'] }).notes.includes('motion: not in this phase — this phase draws color, dimension, borderWidth, opacity, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography, shadow, gradient, grid'), '3: a later-phase type is named, not drawn');
     ok(planStyleGuide(catalog, contract, { valueFormat: 'rgba' }).tables.find((t) => t.title === 'Scrim')!.rows[0].cells[0].value === 'rgba(0, 0, 0, 0.4)', '3: rgba format');
+    // Brand B's two ramps (#1729), left out of the four-mode file above, title as the Studio names the mode: "Brand B
+    // primary", never "Brand b primary" (owner decision 2026-11-19 on #4269). The titles are typed here.
+    const bbCol: SgCollection = { id: 'VariableCollectionId:bb', name: 'core', modes: [{ modeId: 'bb:0', name: 'Default' }], defaultModeId: 'bb:0' };
+    const bbVars: SgVariable[] = readJson('core.palette.json').variables.filter((v) => /\/core\/palette\/(brand-b-(primary|accent)|primary)\//.test(v.name))
+      .map((v, i) => ({ id: `VariableID:bb:${i}`, name: v.name, variableCollectionId: bbCol.id, resolvedType: v.resolvedType, description: v.description, valuesByMode: { 'bb:0': v.value } }));
+    const bbTitles = planStyleGuide({ collections: [bbCol], variables: bbVars }, null).tables.filter((t) => t.kind === 'primitive').map((t) => t.title);
+    ok(JSON.stringify(bbTitles) === JSON.stringify(['Primary', 'Brand B primary', 'Brand B accent']), `3: #1729 Brand B's ramps title "Brand B primary" and "Brand B accent" (${JSON.stringify(bbTitles)})`);
   }
 
   console.log('4. numeric order');
@@ -3360,7 +3374,7 @@ const main = async (): Promise<void> => {
 
     // (3) FONT WEIGHT SPLIT (owner decision Q133 A): the raw weights on Primitive tokens beside font family and size, the
     // weight roles on Semantic tokens. Which is which is read off the emission: a literal is a raw weight, an alias a role.
-    const fontEm = (JSON.parse(readFileSync(join(OUT, 'core.font.json'), 'utf8')) as { variables: { name: string; resolvedType: string; alias: unknown; scopes?: string[] }[] }).variables
+    const fontEm = (JSON.parse(readFileSync(join(OUT, 'core.font.Default.json'), 'utf8')) as { variables: { name: string; resolvedType: string; alias: unknown; scopes?: string[] }[] }).variables
       .filter((v) => /\/core\/font\/weight(-role)?\//.test(v.name));
     const rawW = fontEm.filter((v) => !v.alias).map((v) => v.name);
     const roleW = fontEm.filter((v) => v.alias).map((v) => v.name);

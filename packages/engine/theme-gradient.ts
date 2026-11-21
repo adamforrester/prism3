@@ -57,7 +57,9 @@ export type ResolvedGradient = {
   sampled: { hex: string; position: number }[];  // baked sRGB approximation (Figma)
   worstOnWhite: number; worstOnBlack: number;     // lowest contrast of any sampled stop
 };
-export type GradientAxis = { gradients: ResolvedGradient[] };
+// `gradientsByMode` (#1729): a mode whose palette swap (`modePalettes`) moves a stop carries its own resolved
+// gradients, same names and geometry, each stop on the replacement ramp. Absent when no swap touches a stop.
+export type GradientAxis = { gradients: ResolvedGradient[]; gradientsByMode?: Record<string, ResolvedGradient[]> };
 
 const DEFAULT_BRAND_GRADIENT = (brandPalette: string): GradientInput => ({
   name: 'brand', kind: 'linear', angle: 135,
@@ -71,7 +73,7 @@ const lerpHue = (h1: number, h2: number, t: number): number => {
 const lerpOklch = (a: OKLCH, b: OKLCH, t: number): OKLCH => ({ l: a.l + (b.l - a.l) * t, c: a.c + (b.c - a.c) * t, h: lerpHue(a.h, b.h, t) });
 const lerpRgb = (a: RGB, b: RGB, t: number): RGB => ({ r: Math.round(a.r + (b.r - a.r) * t), g: Math.round(a.g + (b.g - a.g) * t), b: Math.round(a.b + (b.b - a.b) * t) });
 
-export const buildGradient = (spec: BrandInput['gradients'], palettes: PaletteBuild[], root: string): GradientAxis => {
+export const buildGradient = (spec: BrandInput['gradients'], palettes: PaletteBuild[], root: string, swaps: Record<string, string> = {}): GradientAxis => {
   if (!spec) return { gradients: [] };
   const inputs: GradientInput[] = spec === true ? [DEFAULT_BRAND_GRADIENT('primary')] : spec;
   // L-06: a gradient name becomes a token path segment (`<root>.gradient.<name>`), so it
@@ -101,8 +103,9 @@ export const buildGradient = (spec: BrandInput['gradients'], palettes: PaletteBu
     const stops: GradientStop[] = g.stops
       .slice().sort((a, b) => a.position - b.position)
       .map((st) => {
-        const s = stepOf(st.palette, st.step);
-        return { aliasOf: `${root}.${CORE_TIER}.palette.${st.palette}.${s.key}`, position: st.position, rgb: s.rgb, hex: s.hex, oklch: s.oklch };
+        const palette = swaps[st.palette] ?? st.palette;   // a mode's palette swap (#1729) re-points the stop
+        const s = stepOf(palette, st.step);
+        return { aliasOf: `${root}.${CORE_TIER}.palette.${palette}.${s.key}`, position: st.position, rgb: s.rgb, hex: s.hex, oklch: s.oklch };
       });
     // Pre-sample the curve at N evenly-spaced positions (the chosen interpolation
     // space), output sRGB — the baked stops Figma needs (it can't interpolate OKLCH).

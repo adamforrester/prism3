@@ -195,6 +195,7 @@
           "description": "A font role's alias, or a type style's composite value: each property an alias or a literal."
         },
         "used_by": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/path" }, "description": "The type styles that carry this weight role." },
+        "mode_overrides": { "type": "object", "description": "The value in each mode, keyed by mode name. Present only when a mode moves the role, such as a per-mode font family (#1729)." },
         "modifiers": {
           "type": "object",
           "additionalProperties": false,
@@ -244,6 +245,7 @@
         "when_to_use": { "$ref": "#/$defs/prose" },
         "avoid_when": { "$ref": "#/$defs/prose", "description": "Which ink holds on the gradient at every sampled point, and which does not." },
         "resolves_to": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/reference" }, "description": "The stop colors, in order." },
+        "mode_overrides": { "type": "object", "additionalProperties": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/reference" } }, "description": "The stop colors in each mode, keyed by mode name. Present only when a mode's palette swap moves a stop (#1729)." },
         "a11y": {
           "type": "object",
           "description": "The gradient's worst-case text contrast, sampled along it.",

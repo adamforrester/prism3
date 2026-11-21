@@ -302,6 +302,10 @@ const sentence = (s: string): string => {
   const w = s.replace(/[-_]/g, ' ');
   return w.charAt(0).toUpperCase() + w.slice(1);
 };
+/** A table's title from its family or palette name: sentence case, except that a one-letter word is a letter's name
+ *  and keeps its capital, so the palette `brand-b-primary` reads "Brand B primary", as the Studio names the mode
+ *  "Brand B" (#1729, owner decision 2026-11-19). */
+const titleOf = (s: string): string => sentence(s).replace(/(^| )([a-z])(?= |$)/g, (_, sp: string, c: string) => sp + c.toUpperCase());
 
 const pct = (a: number): string => `${Math.round(a * 100)}%`;
 const hex2 = (n: number): string => Math.round(n * 255).toString(16).padStart(2, '0').toUpperCase();
@@ -472,7 +476,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
       // since both roots draw the same families onto the same page.
       // An inverse family is "Inverse text": its own title, apart from "Text" (the tables filter matches a title).
       const family = !primitive && g.includes('/') ? g.split('/').join(' ') : g.split('/').pop()!;
-      const title = g !== '' ? `${sentence(family)}${multiRoot ? ` — ${root}` : ''}`
+      const title = g !== '' ? `${titleOf(family)}${multiRoot ? ` — ${root}` : ''}`
         : groupsInRoot(root) === 1 ? `${sentence(col.name)}${multiRoot ? ` — ${root}` : ''}`
         : `${sentence(col.name)} — ${multiRoot ? `${root} base` : 'base'}`;
 

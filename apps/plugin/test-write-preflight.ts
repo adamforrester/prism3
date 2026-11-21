@@ -531,8 +531,9 @@ const foreignSnap = (x: ReturnType<typeof foreignFile>): string => JSON.stringif
   ok(g.ok, `Q112 rename: applies${g.ok ? '' : ` — ${'threw' in g ? `threw: ${g.threw}` : conflictSummary(g.conflicts, 3)}`}`);
   ok(foreignSnap(x) === before, 'Q112 rename: the hand-made collection, both its variables and the designer\'s style are untouched');
   const col2 = x.f.collections.find((c) => c.name === 'color (Prism3)');
-  ok(!!col2 && (col2.data.get('prism3/modes:owned') ?? '') !== '' && col2.modes.length === 4,
-    'Q112 rename: `color (Prism3)` is made, stamped, with the four appearance modes');
+  // Five: the four appearance modes and the default theme's Brand B (#1729).
+  ok(!!col2 && (col2.data.get('prism3/modes:owned') ?? '') !== '' && col2.modes.length === 5,
+    'Q112 rename: `color (Prism3)` is made, stamped, with the four appearance modes and Brand B');
   const v2 = x.f.vars.find((v) => v.name === `${VAR} (Prism3)`);
   const white = x.f.vars.find((v) => v.name === 'pds3/core/palette/white');
   ok(!!v2 && v2.variableCollectionId === col2?.id && v2.resolvedType === 'COLOR' && (Object.values(v2.valuesByMode)[0] as any)?.id === white?.id,
@@ -822,7 +823,7 @@ for (const c of ['skip', 'rename'] as const) {
 // ── THE MODE CAPACITY (#4157) ──
 // `modesNeeded` is what the file's collections will hold once the apply has run, for each collection it adds a mode to;
 // `modeLimitOf` asks the host's probe only when there is one. Expected values are literals typed here: a fresh file's
-// `color` collection gets the four color modes, and a Prism3 file the apply already wrote needs no mode added at all.
+// `color` collection gets the five color modes (Brand B is the fifth, #1729), and a Prism3 file the apply already wrote needs no mode added at all.
 {
   const plan = (): PreflightPlan => {
     const t = brandTheme(structuredClone(PRISM3));
@@ -832,9 +833,9 @@ for (const c of ['skip', 'rename'] as const) {
   };
   const p = plan();
   const colorModes = p.modes?.find((m) => m.collection === 'color')?.names ?? [];
-  ok(JSON.stringify(colorModes) === JSON.stringify(['light', 'dark', 'hc-light', 'hc-dark']), `#4157 premise: the plan reconciles the four color modes into color (${JSON.stringify(colorModes)})`);
+  ok(JSON.stringify(colorModes) === JSON.stringify(['light', 'dark', 'hc-light', 'hc-dark', 'brand-b']), `#4157 premise: the plan reconciles the five color modes into color (${JSON.stringify(colorModes)})`);
   const fresh = modesNeeded(p, []);
-  ok(fresh.length > 0 && fresh.includes(4) && fresh.every((n) => n > 1), `#4157 fresh file: every collection of more than one mode needs its count, color 4 (${JSON.stringify(fresh)})`);
+  ok(fresh.length > 0 && fresh.includes(5) && fresh.every((n) => n > 1), `#4157 fresh file: every collection of more than one mode needs its count, color 5 (${JSON.stringify(fresh)})`);
   const f = new FileShim();
   const first = await apply(f);
   const asked: number[] = [];
@@ -845,14 +846,14 @@ for (const c of ['skip', 'rename'] as const) {
   const color = f.collections.find((c) => c.name === 'color');
   color.modes = color.modes.slice(0, 2);
   const short = modesNeeded(p, await f.getLocalVariableCollectionsAsync());
-  ok(JSON.stringify(short) === '[4]', `#4157 a color collection holding 2 of its 4 modes needs 4 (${JSON.stringify(short)})`);
+  ok(JSON.stringify(short) === '[5]', `#4157 a color collection holding 2 of its 5 modes needs 5 (${JSON.stringify(short)})`);
   const lim = await modeLimitOf(p, api);
-  ok(JSON.stringify(lim) === '{"allowed":1,"needed":4}' && JSON.stringify(asked) === '[4]', `#4157 a cap of 1 against that need is a limit, asked once for 4 (${JSON.stringify(lim)}, asked ${JSON.stringify(asked)})`);
+  ok(JSON.stringify(lim) === '{"allowed":1,"needed":5}' && JSON.stringify(asked) === '[5]', `#4157 a cap of 1 against that need is a limit, asked once for 5 (${JSON.stringify(lim)}, asked ${JSON.stringify(asked)})`);
   // reconcileModes' step 2: a lone mode under a name the plan doesn't use is renamed, not added beside, so a color
-  // collection holding one mode called "Foo" grows to 4, not 5 (#4157 review). Off by one here, a file that fits is refused.
+  // collection holding one mode called "Foo" grows to 5, not 6 (#4157 review). Off by one here, a file that fits is refused.
   color.modes = [{ ...color.modes[0], name: 'Foo' }];
   const lone = modesNeeded(p, await f.getLocalVariableCollectionsAsync());
-  ok(JSON.stringify(lone) === '[4]', `#4157 a color collection holding one mode under a name the plan doesn't use is renamed, so it needs 4 (${JSON.stringify(lone)})`);
+  ok(JSON.stringify(lone) === '[5]', `#4157 a color collection holding one mode under a name the plan doesn't use is renamed, so it needs 5 (${JSON.stringify(lone)})`);
 }
 
 // ── #1908 A GRADIENT AT A NEGATIVE OR EXPONENT ANGLE, BEFORE THE MARK: still Prism3's ────────────────────

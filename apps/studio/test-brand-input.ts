@@ -15,6 +15,7 @@ import { brandTheme, type BrandInput } from '@prism3/engine';
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import * as store from './src/state/store';
 import * as B from './src/state/brand-input';
+import { paletteRemovalEffects } from './src/state/name-refs';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -24,7 +25,14 @@ const ok = (cond: boolean, label: string): void => {
   console.error(`  ✗ ${label}`);
 };
 const prism3 = (exampleBrands as Record<string, BrandInput>).prism3;
-const reset = (): void => store.initSession(structuredClone(prism3), { kind: 'example', id: 'prism3' });
+/** The default theme without Brand B (#1729), its one custom mode: sections 3b and 4 build their custom modes from
+ *  none, so their names and counts are the ones typed below. Section 6 works on the default theme as it ships. */
+const withoutBrandB = (b: BrandInput): BrandInput => {
+  const { customModes: _c, modePalettes: _p, modeLevers: _l, ...rest } = structuredClone(b);
+  return { ...rest, brandColors: (rest.brandColors ?? []).filter((c) => !c.name.startsWith('brand-b-')) };
+};
+const reset = (): void => store.initSession(withoutBrandB(prism3), { kind: 'example', id: 'prism3' });
+const resetShipped = (): void => store.initSession(structuredClone(prism3), { kind: 'example', id: 'prism3' });
 const takes = (): boolean => { try { brandTheme(structuredClone(store.brandState)); return true; } catch { return false; } };
 
 console.log('\n1. The namespace (T2)');
@@ -171,6 +179,26 @@ for (const [a, b] of [['soft', 'sharp'], ['dense', 'generous'], ['calm', 'energe
   }
 }
 ok(B.PERSONALITY_ORDER_LINE.length > 0 && B.PERSONALITY_ORDER_LINE.length <= 90, `#3976 the order line is one line of at most 90 characters (${B.PERSONALITY_ORDER_LINE.length})`);
+
+console.log('\n6. Brand B, the default theme\'s custom mode (#1729)');
+// The default theme ships one custom mode, brand-b, with a palette swap and a per-mode font. Renaming it carries both
+// per-mode keys to the new name; removing it takes both out, and the engine still builds. Names and keys typed here.
+resetShipped();
+ok(JSON.stringify(B.customModes()) === '[{"name":"brand-b","base":"light"}]' && takes(), `#1729 the default theme ships brand-b, built on light (${JSON.stringify(B.customModes())})`);
+ok(B.renameCustomMode(0, 'second') && takes()
+  && JSON.stringify(Object.keys(store.brandState.modePalettes ?? {})) === '["second"]' && JSON.stringify(Object.keys(store.brandState.modeLevers ?? {})) === '["second"]',
+  `#1729 renaming brand-b carries its palette swap and its font to the new name (${JSON.stringify({ modePalettes: store.brandState.modePalettes, modeLevers: Object.keys(store.brandState.modeLevers ?? {}) })})`);
+resetShipped();
+B.removeCustomMode(0);
+ok(store.brandState.customModes === undefined && store.brandState.modePalettes === undefined && store.brandState.modeLevers === undefined && takes(),
+  `#1729 removing brand-b takes its palette swap and its font with it, and the engine still builds (${JSON.stringify({ modePalettes: store.brandState.modePalettes, modeLevers: store.brandState.modeLevers })})`);
+
+// The removal confirm names the mode as the mode control shows it, "Brand B", never the slug `brand-b` (owner decision
+// 2026-11-19 on #4269). The line is typed here, not read from `name-refs.ts` or the label rule.
+resetShipped();
+const swapLines = paletteRemovalEffects(structuredClone(store.brandState), 'brand-b-accent').filter((l) => l.includes('swapped'));
+ok(JSON.stringify(swapLines) === JSON.stringify(['In Brand B, accent is no longer swapped for brand-b-accent.']),
+  `#1729 removing brand-b-accent confirms "In Brand B, accent is no longer swapped for brand-b-accent." (${JSON.stringify(swapLines)})`);
 
 console.log(`\n${executed - failed}/${executed} brand-input assertions passed.`);
 if (failed) process.exit(1);

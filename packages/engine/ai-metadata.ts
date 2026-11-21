@@ -1025,6 +1025,14 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       when_to_use: 'Brand / marketing surfaces, hero backgrounds, decorative fills.',
       avoid_when: avoid,
       resolves_to: g.stops.map((s) => `{${s.aliasOf}}`),
+      // A mode whose palette swap moves a stop (#1729): the stops in each mode, read off the token's own mode entries.
+      ...(() => {
+        const modeOv = nodeAt(`gradient.${g.name}`)?.$extensions?.prism3?.modes;
+        if (!modeOv || typeof modeOv !== 'object') return {};
+        const per: Record<string, string[]> = { light: g.stops.map((s) => `{${s.aliasOf}}`) };
+        for (const [m, v] of Object.entries<any>(modeOv)) if (Array.isArray(v?.$value)) per[m] = v.$value.map((st: { color: string }) => st.color);
+        return { mode_overrides: per };
+      })(),
       a11y: { worst_on_white: r2(g.worstOnWhite), worst_on_black: r2(g.worstOnBlack) },
     };
   }

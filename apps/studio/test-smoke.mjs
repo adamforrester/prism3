@@ -1467,7 +1467,8 @@ const NOT_RAMPS = ['white', 'black', 'transparent', 'black-alpha', 'white-alpha'
  *  brand, from the committed emissions; a brand the start screen offers that is not listed fails by name. */
 const strips2 = (ps) => [...ps, 'opacity'].flatMap((p) => [`${p}-1`, `${p}-2`]);
 const EXPECT_STRIPS = {
-  prism3: strips2(['primary', 'accent', 'neutral', 'success', 'warning', 'danger', 'info']),
+  // prism3 adds Brand B's two ramps (#1729), the palettes its custom mode swaps in.
+  prism3: strips2(['primary', 'accent', 'brand-b-primary', 'brand-b-accent', 'neutral', 'success', 'warning', 'danger', 'info']),
   aurora: strips2(['primary', 'accent', 'neutral', 'success', 'warning', 'danger', 'info']),
   harbor: strips2(['primary', 'neutral', 'success', 'warning', 'danger', 'info']),
 };

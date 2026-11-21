@@ -163,6 +163,11 @@ export type AdaptationNotes = {
   modeAxes: Record<string, string[]>;
   /** `collection: name @mode` where two files of one mode both defined it — must be 0 (W2). */
   overwrittenModeValues: string[];
+  /** Per collection, how many variables a MODE-INVARIANT file (one that names only the collection's default mode) gave
+   *  the other modes, as Figma does when a mode is added to a collection: the new mode starts with the default's value
+   *  (#1729: prism3's `core` collection gains Brand B's mode from its per-mode font files, while its palette and
+   *  dimension files stay single-mode). Counted so the fill is visible rather than silent. */
+  filledFromDefault: Record<string, number>;
   /** How many aliases were rewritten from a name to a synthetic id (W1). */
   aliasesRebound: number;
   /** Tinted washes passed through as `{ color: alias, opacity: alias }`, as Apply Theme writes them (W1, #2365). */
@@ -241,6 +246,7 @@ export const adaptBrand = (brand: string, figmaDir: string): Adapted => {
     brand,
     modeAxes: {},
     overwrittenModeValues: [],
+    filledFromDefault: {},
     aliasesRebound: 0,
     washesComposed: 0,
     unresolvedAliasNames: [],
@@ -357,6 +363,20 @@ export const adaptBrand = (brand: string, figmaDir: string): Adapted => {
           adapted.valuesByMode[modeId] = v.value;
         }
       }
+    }
+    // A variable a mode-invariant file defined only in the DEFAULT mode takes that value in every other mode, as in
+    // a Figma file, where a mode added to a collection starts as a copy of the default. Only that exact shape is
+    // filled; a variable missing from some other subset of modes is still refused by `assertAdaptable` (W2).
+    const defaultModeId = modeIdFor(collName, modeNames[0]);
+    if (modeNames.length > 1) {
+      let filled = 0;
+      for (const v of byName.values()) {
+        const keys = Object.keys(v.valuesByMode);
+        if (keys.length !== 1 || keys[0] !== defaultModeId) continue;
+        for (const m of modeNames.slice(1)) v.valuesByMode[modeIdFor(collName, m)] = v.valuesByMode[defaultModeId];
+        filled++;
+      }
+      if (filled) notes.filledFromDefault[collName] = filled;
     }
     variables.push(...byName.values());
   }

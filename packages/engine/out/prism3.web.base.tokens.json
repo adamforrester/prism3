@@ -323,6 +323,210 @@
             "$description": "Brand accent 050 — Highlight band (near-white tints, steps 025–050)"
           }
         },
+        "brand-b-primary": {
+          "100": {
+            "$type": "color",
+            "$value": "#dadaed",
+            "$description": "Brand brand-b-primary 100 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "150": {
+            "$type": "color",
+            "$value": "#cccce8",
+            "$description": "Brand brand-b-primary 150 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "200": {
+            "$type": "color",
+            "$value": "#bebee3",
+            "$description": "Brand brand-b-primary 200 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "250": {
+            "$type": "color",
+            "$value": "#b1b0de",
+            "$description": "Brand brand-b-primary 250 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "300": {
+            "$type": "color",
+            "$value": "#a3a2da",
+            "$description": "Brand brand-b-primary 300 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "350": {
+            "$type": "color",
+            "$value": "#9694d6",
+            "$description": "Brand brand-b-primary 350 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "400": {
+            "$type": "color",
+            "$value": "#8a86d2",
+            "$description": "Brand brand-b-primary 400 — Mid-Tone band (mid tones, steps 400–600)"
+          },
+          "450": {
+            "$type": "color",
+            "$value": "#7d77ce",
+            "$description": "Brand brand-b-primary 450 — Mid-Tone band (mid tones, steps 400–600)"
+          },
+          "500": {
+            "$type": "color",
+            "$value": "#7269ca",
+            "$description": "Brand brand-b-primary 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)"
+          },
+          "550": {
+            "$type": "color",
+            "$value": "#5e4bc3",
+            "$description": "Brand brand-b-primary 550 — Mid-Tone band (mid tones, steps 400–600)"
+          },
+          "600": {
+            "$type": "color",
+            "$value": "#5241af",
+            "$description": "Brand brand-b-primary 600 — Mid-Tone band (mid tones, steps 400–600)"
+          },
+          "650": {
+            "$type": "color",
+            "$value": "#47379b",
+            "$description": "Brand brand-b-primary 650 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "700": {
+            "$type": "color",
+            "$value": "#3d2d87",
+            "$description": "Brand brand-b-primary 700 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "750": {
+            "$type": "color",
+            "$value": "#322474",
+            "$description": "Brand brand-b-primary 750 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "800": {
+            "$type": "color",
+            "$value": "#281b61",
+            "$description": "Brand brand-b-primary 800 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "850": {
+            "$type": "color",
+            "$value": "#1f124f",
+            "$description": "Brand brand-b-primary 850 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "900": {
+            "$type": "color",
+            "$value": "#15093e",
+            "$description": "Brand brand-b-primary 900 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "950": {
+            "$type": "color",
+            "$value": "#0d032d",
+            "$description": "Brand brand-b-primary 950 — Shadow band (near-black shade, step 950)"
+          },
+          "025": {
+            "$type": "color",
+            "$value": "#f6f6fd",
+            "$description": "Brand brand-b-primary 025 — Highlight band (near-white tints, steps 025–050)"
+          },
+          "050": {
+            "$type": "color",
+            "$value": "#e8e8f4",
+            "$description": "Brand brand-b-primary 050 — Highlight band (near-white tints, steps 025–050)"
+          }
+        },
+        "brand-b-accent": {
+          "100": {
+            "$type": "color",
+            "$value": "#ccdee9",
+            "$description": "Brand brand-b-accent 100 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "150": {
+            "$type": "color",
+            "$value": "#b6d2e2",
+            "$description": "Brand brand-b-accent 150 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "200": {
+            "$type": "color",
+            "$value": "#a0c5dc",
+            "$description": "Brand brand-b-accent 200 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "250": {
+            "$type": "color",
+            "$value": "#89b9d6",
+            "$description": "Brand brand-b-accent 250 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "300": {
+            "$type": "color",
+            "$value": "#71add0",
+            "$description": "Brand brand-b-accent 300 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "350": {
+            "$type": "color",
+            "$value": "#56a1cb",
+            "$description": "Brand brand-b-accent 350 — Quarter-Tone band (light tints, steps 100–350)"
+          },
+          "400": {
+            "$type": "color",
+            "$value": "#3595c6",
+            "$description": "Brand brand-b-accent 400 — Mid-Tone band (mid tones, steps 400–600)"
+          },
+          "450": {
+            "$type": "color",
+            "$value": "#0088be",
+            "$description": "Brand brand-b-accent 450 — Mid-Tone band (mid tones, steps 400–600)"
+          },
+          "500": {
+            "$type": "color",
+            "$value": "#007cbb",
+            "$description": "Brand brand-b-accent 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)"
+          },
+          "550": {
+            "$type": "color",
+            "$value": "#006e99",
+            "$description": "Brand brand-b-accent 550 — Mid-Tone band (mid tones, steps 400–600)"
+          },
+          "600": {
+            "$type": "color",
+            "$value": "#006188",
+            "$description": "Brand brand-b-accent 600 — Mid-Tone band (mid tones, steps 400–600)"
+          },
+          "650": {
+            "$type": "color",
+            "$value": "#005476",
+            "$description": "Brand brand-b-accent 650 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "700": {
+            "$type": "color",
+            "$value": "#004766",
+            "$description": "Brand brand-b-accent 700 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "750": {
+            "$type": "color",
+            "$value": "#003b55",
+            "$description": "Brand brand-b-accent 750 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "800": {
+            "$type": "color",
+            "$value": "#003045",
+            "$description": "Brand brand-b-accent 800 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "850": {
+            "$type": "color",
+            "$value": "#002436",
+            "$description": "Brand brand-b-accent 850 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "900": {
+            "$type": "color",
+            "$value": "#001928",
+            "$description": "Brand brand-b-accent 900 — Three-Quarter-Tone band (dark shades, steps 650–900)"
+          },
+          "950": {
+            "$type": "color",
+            "$value": "#000f1a",
+            "$description": "Brand brand-b-accent 950 — Shadow band (near-black shade, step 950)"
+          },
+          "025": {
+            "$type": "color",
+            "$value": "#f2f8fb",
+            "$description": "Brand brand-b-accent 025 — Highlight band (near-white tints, steps 025–050)"
+          },
+          "050": {
+            "$type": "color",
+            "$value": "#e0ebf1",
+            "$description": "Brand brand-b-accent 050 — Highlight band (near-white tints, steps 025–050)"
+          }
+        },
         "success": {
           "100": {
             "$type": "color",
@@ -1089,6 +1293,20 @@
               "monospace"
             ],
             "$description": "typeface — JetBrains Mono"
+          },
+          "clash-display": {
+            "$type": "fontFamily",
+            "$value": [
+              "Clash Display",
+              "system-ui",
+              "-apple-system",
+              "Segoe UI",
+              "Roboto",
+              "Helvetica",
+              "Arial",
+              "sans-serif"
+            ],
+            "$description": "typeface — Clash Display"
           }
         },
         "family": {

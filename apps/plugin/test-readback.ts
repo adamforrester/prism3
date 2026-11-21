@@ -10,9 +10,9 @@
  * Asserts the snapshot round-trips (colour var count + alias targets match the plan) and every
  * contract check passes. Mirrors `test-write.ts`'s shim + dependency-free `ok(...)` style.
  */
-import { buildFigmaColor, buildWritePlan, verifyReadback, verifyFloatReadback, verifyStylesReadback, buildFloatWritePlan, buildStylesPlan } from '@prism3/engine/figma';
+import { buildFigmaColor, buildWritePlan, verifyReadback, verifyFloatReadback, verifyStylesReadback, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan } from '@prism3/engine/figma';
 import { brandTheme, nbThemeFrom, type BrandInput } from '@prism3/engine';
-import { applyWritePlan, applyFloatPlan } from './src/write-figma';
+import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './src/write-figma';
 import { applyStylesPlan } from './src/write-styles';
 import { readFigmaVariables } from './src/read-figma';
 import { persistInput } from './src/persist-figma';
@@ -504,6 +504,52 @@ ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWi
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const u = verifyReadback(await readFigmaVariables(unstamped as any), { skipped: 'not under test in this arm' });
     ok(u.plannedModes.status === 'none', `planned modes (no record): a file with no record reads none (${u.plannedModes.status})`);
+  }
+
+  // (D) The default theme carries Brand B (#1729). Prism3 declares a fifth mode, the custom `brand-b`, and both
+  // read-backs must name it: the saved brand's declared modes, and the color collection's planned modes. The
+  // expected lists are WRITTEN, not read off the theme, so dropping the mode from the theme fails here by name.
+  {
+    const PRISM3_MODES = '["light","dark","hc-light","hc-dark","brand-b"]';
+    const prism3 = structuredClone(exampleBrands['prism3'] as unknown as BrandInput);
+    const vars = makeCapped(10);
+    const root = rootOf();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(prism3))), vars as any);
+    persistInput(root, prism3);
+    const declared = declaredModesOf(root);
+    ok('modes' in declared && JSON.stringify(declared.modes) === PRISM3_MODES,
+      `brand B (#1729): the saved default theme declares brand-b (${JSON.stringify(declared)})`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const snap = await readFigmaVariables(vars as any);
+    ok(JSON.stringify(snap.modesPlanned?.['color']) === PRISM3_MODES,
+      `brand B (#1729): the color collection's planned modes list brand-b (${JSON.stringify(snap.modesPlanned?.['color'])})`);
+    const v = verifyReadback(snap, declared);
+    ok(v.declaredModes.status === 'pass' && v.plannedModes.status === 'pass' && v.ok,
+      `brand B (#1729): the read-back passes with brand-b declared, planned and landed (declared ${v.declaredModes.status}, planned ${v.plannedModes.status})`);
+  }
+
+  // (E) ONE VALUE, EVERY MODE (#1729). Brand B's per-mode face gives `core` a second mode, and its palette and dimension
+  // rows are one value each. On a re-apply `core` already holds brand-b when they are written, and on a first apply the
+  // font pass adds it after them: either way, every `core` primitive must hold the same value in both modes. Written in
+  // the order a re-apply meets them: the font pass first, then floats and color with a changed primary.
+  {
+    const prism3 = structuredClone(exampleBrands['prism3'] as unknown as BrandInput);
+    const moved: BrandInput = { ...prism3, primary: { l: 0.45, c: 0.2, h: 150 } };
+    const vars = makeCapped(10);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await applyVarCollectionPlan(buildFontVarPlan(brandTheme(prism3)), vars as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await applyFloatPlan(buildFloatWritePlan(brandTheme(moved)), vars as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(moved))), vars as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const core = (await vars.getLocalVariableCollectionsAsync()).find((c: any) => c.name === 'core')!;
+    const prim = (await vars.getLocalVariablesAsync()).filter((v) => v.variableCollectionId === core.id && /\/core\/(palette|dimension)\//.test(v.name));
+    const [m0, m1] = core.modes;
+    const differ = prim.filter((v) => JSON.stringify(v.valuesByMode[m0.modeId]) !== JSON.stringify(v.valuesByMode[m1?.modeId ?? '']));
+    ok(JSON.stringify(core.modes.map((m) => m.name)) === '["Default","brand-b"]' && prim.length > 200 && differ.length === 0,
+      `brand B (#1729): every core palette and dimension primitive holds one value in both core modes (${prim.length} read, ${differ.length} differ${differ.length ? `, e.g. ${differ[0].name}` : ''})`);
   }
 }
 

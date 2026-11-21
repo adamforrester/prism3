@@ -20,8 +20,44 @@
           "c": 0.2634,
           "h": 289.32
         }
+      },
+      {
+        "name": "brand-b-primary",
+        "oklch": {
+          "l": 0.5,
+          "c": 0.18,
+          "h": 285
+        }
+      },
+      {
+        "name": "brand-b-accent",
+        "oklch": {
+          "l": 0.55,
+          "c": 0.15,
+          "h": 235
+        }
       }
     ],
+    "customModes": [
+      {
+        "name": "brand-b",
+        "base": "light"
+      }
+    ],
+    "modePalettes": {
+      "brand-b": {
+        "primary": "brand-b-primary",
+        "accent": "brand-b-accent"
+      }
+    },
+    "modeLevers": {
+      "brand-b": {
+        "families": {
+          "display": "Clash Display",
+          "title": "Clash Display"
+        }
+      }
+    },
     "surfaces": {
       "light": {
         "base": "white"

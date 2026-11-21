@@ -932,6 +932,8 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
   // non-primary icon at the non-text bar (3:1, 4.5:1 in HC).
   const MODE_OF: Record<string, { family: 'light' | 'dark'; hc: boolean }> = {
     light: { family: 'light', hc: false }, dark: { family: 'dark', hc: false }, 'hc-light': { family: 'light', hc: true }, 'hc-dark': { family: 'dark', hc: true },
+    // prism3's Brand B (#1729), a custom mode built on light: light's bars.
+    'brand-b': { family: 'light', hc: false },
   };
   const barOf = (fam: 'text' | 'icon', ink: string, hc: boolean, icon31: boolean): number =>
     (fam === 'icon' && icon31) || ink === 'tertiary' ? (hc ? 4.5 : 3) : (hc ? 7 : 4.5);
@@ -6588,6 +6590,99 @@ arm: {
     'C1(g): an empty customModes array produces byte-identical output (the primary guard)');
 }
 
+// BRAND B AND THE PER-MODE PALETTE SWAP (#1729, owner decision Q-BB1 A). Prism3, the default theme, carries a second
+// brand as the custom mode `brand-b` (built on light): `modePalettes` swaps primary and accent for Aurora's pair, and
+// `modeLevers.families` puts display and title on Aurora's display face. Expected values are WRITTEN here, never read
+// off the theme under test, so a lever that stops swapping fails by name rather than agreeing with itself (docs/34).
+{
+  const threw = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const prism3 = exampleBrands()['prism3'] as BrandInput;
+  const theme = brandTheme(prism3);
+  const modes = resolveAllModes(theme);
+  const bb = modes.find((r) => r.mode === 'brand-b');
+  const light = modes.find((r) => r.mode === 'light')!;
+  ok(JSON.stringify(theme.modes) === '["light","dark","hc-light","hc-dark","brand-b"]',
+    `#1729 prism3 declares brand-b after the four built-in modes (${JSON.stringify(theme.modes)})`);
+  ok(!!bb, '#1729 resolveAllModes resolves prism3\'s brand-b mode');
+
+  // (a) EVERY contrast contract passes in brand-b — each gated role, each second tier, each second pair — and no
+  // override warning is raised. The same three counts `buildTree` exits on, filtered to the one mode.
+  const failsIn = (mr: NonNullable<typeof bb>): string[] => [
+    ...Object.entries(mr.roles).filter(([, r]) => r.min > 0 && r.ratio < r.min).map(([k, r]) => `${k} ${r.ratio}<${r.min}`),
+    ...(mr.tierChecks ?? []).filter((c) => c.ratio < c.min).map((c) => `${c.role} on ${c.against} ${c.ratio}<${c.min}`),
+    ...Object.entries(mr.roles).filter(([, r]) => r.alsoAgainst).filter(([, r]) => {
+      const partner = mr.roles[r.alsoAgainst!.against];
+      return !partner || contrast(hexToRgb(r.hex), hexToRgb(partner.hex)) < r.alsoAgainst!.min;
+    }).map(([k]) => `${k} second pair`),
+  ];
+  const gated = Object.values(bb!.roles).filter((r) => r.min > 0).length;
+  ok(gated > 100 && failsIn(bb!).length === 0 && !(bb!.warnings ?? []).length,
+    `#1729 every contrast contract passes in brand-b (${gated} gated roles; failing: ${JSON.stringify(failsIn(bb!))}; warnings: ${JSON.stringify(bb!.warnings ?? [])})`);
+
+  // (b) The swap moves every role off Prism3's primary and accent: no brand-b role draws from either, and every
+  // role that draws from one in light draws from its replacement in brand-b.
+  const onPal = (path: string, pal: string): boolean => path.startsWith(`pds3.core.palette.${pal}.`);
+  const leftover = Object.entries(bb!.roles).filter(([, r]) => onPal(r.path, 'primary') || onPal(r.path, 'accent')).map(([k]) => k);
+  ok(leftover.length === 0, `#1729 no brand-b role draws from Prism3's primary or accent (left: ${JSON.stringify(leftover.slice(0, 5))})`);
+  const movedFromPrimary = Object.entries(light.roles).filter(([, r]) => onPal(r.path, 'primary')).map(([k]) => k);
+  const notMoved = movedFromPrimary.filter((k) => !onPal(bb!.roles[k]?.path ?? '', 'brand-b-primary'));
+  ok(movedFromPrimary.length > 30 && notMoved.length === 0,
+    `#1729 every one of light's ${movedFromPrimary.length} primary roles draws from brand-b-primary in brand-b (not: ${JSON.stringify(notMoved.slice(0, 5))})`);
+  ok(bb!.roles['interactive.primary.fill.rest']?.path === 'pds3.core.palette.brand-b-primary.550',
+    `#1729 brand-b's primary fill anchors on Brand B's own shade, brand-b-primary.550 (${bb!.roles['interactive.primary.fill.rest']?.path})`);
+
+  // (c) Nothing else moves: dropping the swap leaves light, dark and the high-contrast modes byte-identical.
+  const { modePalettes: _drop, ...unswapped } = prism3;
+  const plain = resolveAllModes(brandTheme(unswapped as BrandInput));
+  for (const m of ['light', 'dark', 'hc-light', 'hc-dark'])
+    ok(JSON.stringify(plain.find((r) => r.mode === m)?.roles) === JSON.stringify(modes.find((r) => r.mode === m)?.roles),
+      `#1729 the swap leaves ${m} untouched`);
+
+  // (d) The gradients follow the swap in brand-b, and only there: light's stops stay on Prism3's palettes.
+  const tree = buildTree(theme).tree.pds3;
+  const stopsIn = (g: string, m?: string): string => JSON.stringify((m ? tree.gradient[g].$extensions.prism3.modes?.[m]?.$value : tree.gradient[g].$value)?.map((st: { color: string }) => st.color));
+  ok(stopsIn('brand', 'brand-b') === '["{pds3.core.palette.brand-b-primary.600}","{pds3.core.palette.brand-b-accent.500}"]',
+    `#1729 the brand gradient in brand-b runs Brand B's primary to its accent (${stopsIn('brand', 'brand-b')})`);
+  ok(stopsIn('glow', 'brand-b') === '["{pds3.core.palette.brand-b-accent.400}","{pds3.core.palette.brand-b-primary.700}"]',
+    `#1729 the glow gradient in brand-b runs Brand B's accent to its primary (${stopsIn('glow', 'brand-b')})`);
+  ok(stopsIn('brand') === '["{pds3.core.palette.primary.600}","{pds3.core.palette.accent.500}"]',
+    `#1729 light's brand gradient keeps Prism3's stops (${stopsIn('brand')})`);
+  ok(JSON.stringify(Object.keys(tree.gradient.brand.$extensions.prism3.modes ?? {})) === '["brand-b"]',
+    `#1729 only brand-b carries a gradient mode entry (${JSON.stringify(Object.keys(tree.gradient.brand.$extensions.prism3.modes ?? {}))})`);
+
+  // (e) The display face: display and title on Clash Display in brand-b, with the mode's own description; body
+  // and the other categories stay Prism3's.
+  const fam = tree.core.font.family;
+  ok(fam.display.$extensions.prism3.modes?.['brand-b']?.$value === '{pds3.core.font.typeface.clash-display}'
+    && fam.title.$extensions.prism3.modes?.['brand-b']?.$value === '{pds3.core.font.typeface.clash-display}',
+    '#1729 display and title set in Clash Display in brand-b');
+  ok(fam.display.$extensions.prism3.modes?.['brand-b']?.description === 'font family — display → Clash Display',
+    `#1729 the brand-b family entry names its own face (${fam.display.$extensions.prism3.modes?.['brand-b']?.description})`);
+  ok(!fam.body.$extensions.prism3.modes?.['brand-b'] && !fam.eyebrow.$extensions.prism3.modes?.['brand-b'],
+    '#1729 body and eyebrow keep Prism3\'s faces in brand-b');
+
+  // (f) Radius, density and motion stay Prism3's: brand-b carries no per-mode value for any of them.
+  ok(!theme.dims.radiusByMode?.['brand-b'] && !theme.dims.sizesByMode?.['brand-b'] && !theme.motion.motionByMode?.['brand-b'] && !theme.motion.easingRolesByMode?.['brand-b'],
+    '#1729 radius, density and motion stay Prism3\'s in brand-b');
+
+  // (g) Validation, each refusal by name.
+  const swapBase = { id: 'mp', root: 'mp', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 },
+    brandColors: [{ name: 'other', oklch: { l: 0.55, c: 0.12, h: 200 } }], customModes: [{ name: 'b', base: 'light' }] } as unknown as BrandInput;
+  const withSwap = (mp: unknown) => brandTheme({ ...swapBase, modePalettes: mp } as unknown as BrandInput);
+  ok(threw(() => withSwap({ light: { primary: 'other' } })).startsWith("modePalettes: 'light' is the baseline"), '#1729 a light swap is refused');
+  ok(threw(() => withSwap({ 'hc-light': { primary: 'other' } })).includes('generate-only'), '#1729 a generate-only mode swap is refused');
+  ok(threw(() => withSwap({ nope: { primary: 'other' } })).includes("mode 'nope' is not in this brand's modes"), '#1729 an unknown mode is refused');
+  ok(threw(() => withSwap({ b: { neutral: 'other' } })).includes("'neutral' is not a palette a mode can swap"), '#1729 swapping neutral is refused');
+  ok(threw(() => withSwap({ b: { primary: 'success' } })).includes("'success' is not a brandColors name"), '#1729 a replacement outside brandColors is refused');
+  ok(threw(() => withSwap({ b: { other: 'other' } })).includes('swaps the palette for itself'), '#1729 a self-swap is refused');
+
+  // (h) An empty swap map is byte-identical to none, and the lever survives the design.md round trip.
+  ok(JSON.stringify(buildTree(brandTheme(swapBase)).tree) === JSON.stringify(buildTree(withSwap({ b: {} })).tree),
+    '#1729 an empty modePalettes entry produces byte-identical output');
+  ok(JSON.stringify(parseDesignMd(toDesignMd(prism3)).input.modePalettes) === JSON.stringify(prism3.modePalettes),
+    `#1729 parseDesignMd(toDesignMd(prism3)) preserves modePalettes (${JSON.stringify(parseDesignMd(toDesignMd(prism3)).input.modePalettes)})`);
+}
+
 // PER-MODE RADIUS LEVER (Phase D) — a customizable mode overrides the `radius` scale; the engine
 // RE-DERIVES that mode's radius ramp (the SAME radiusScale as the baseline) and a rung whose px
 // DIFFERS from light carries a `$extensions.prism3.modes.<mode>` override aliasing `dimension.<px>`.
@@ -7181,8 +7276,9 @@ arm: {
     ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
     ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
   ]);
-  // 5 brands x 4 modes, a literal: a brand or a mode silently dropping out of the measurement fails the count.
-  const CELLS = 20;
+  // 5 brands x 4 modes, plus prism3's Brand B (#1729), a literal: a brand or a mode silently dropping out of the
+  // measurement fails the count.
+  const CELLS = 21;
   const measure = (a: string, b: string, floor: number): { measured: number; low: string[] } => {
     const low: string[] = [];
     let measured = 0;
@@ -7269,7 +7365,7 @@ arm: {
   // the page's INVERSE: near-black on the light and hc-light pages, near-white on dark and hc-dark (owner decision
   // Q2983.6 A, 2026-10-24, keeps it). Held per mode from literal luminance bands, so a fill that stopped inverting, or a near-black
   // that drifted grey, fails by cell; the ink on it is held at 4.5:1 by the contrast loop above.
-  const NEAR: Record<string, 'black' | 'white'> = { light: 'black', 'hc-light': 'black', dark: 'white', 'hc-dark': 'white' };
+  const NEAR: Record<string, 'black' | 'white'> = { light: 'black', 'hc-light': 'black', dark: 'white', 'hc-dark': 'white', 'brand-b': 'black' };   // brand-b: prism3's light-based Brand B (#1729)
   const offNeutral: string[] = [];
   let neutralCells = 0;
   for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
@@ -7573,7 +7669,7 @@ arm: {
       ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
       ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
     ]);
-    const CELLS = 20;
+    const CELLS = 21;   // 5 brands × 4 modes, plus prism3's Brand B (#1729)
     const measure = (a: string, b: string, floor: number): { measured: number; low: string[]; min: number } => {
       const low: string[] = [];
       let measured = 0, min = Infinity;
@@ -7641,7 +7737,7 @@ arm: {
     ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
   ]);
   // The non-text bar per mode, as a literal: 3:1, and 4.5:1 in the two high-contrast modes.
-  const NON_TEXT: Record<string, number> = { light: 3, dark: 3, 'hc-light': 4.5, 'hc-dark': 4.5 };
+  const NON_TEXT: Record<string, number> = { light: 3, dark: 3, 'hc-light': 4.5, 'hc-dark': 4.5, 'brand-b': 3 };   // brand-b: prism3's light-based Brand B (#1729)
   const wrong: string[] = [];
   let cells = 0;
   for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
@@ -7652,8 +7748,8 @@ arm: {
     if (fill?.against !== 'background.primary' || fill?.min !== bar) wrong.push(`${brand}/${m.mode} inverse.foreground.tertiary ${fill?.against}@${fill?.min}`);
     if (JSON.stringify(fill?.alsoAgainst) !== JSON.stringify({ against: 'inverse.text.primary', min: 4.5 })) wrong.push(`${brand}/${m.mode} inverse.foreground.tertiary second pair ${JSON.stringify(fill?.alsoAgainst)}`);
   }
-  ok(cells === 20 && wrong.length === 0,
-    `#1745 the three neutral pairs are contracted in all ${cells} of 20 brand × mode cells: border.tertiary and inverse.foreground.tertiary against background.primary at 3:1 (4.5:1 in HC), and inverse.text.primary on inverse.foreground.tertiary at 4.5:1${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
+  ok(cells === 21 && wrong.length === 0,
+    `#1745 the three neutral pairs are contracted in all ${cells} of 21 brand × mode cells: border.tertiary and inverse.foreground.tertiary against background.primary at 3:1 (4.5:1 in HC), and inverse.text.primary on inverse.foreground.tertiary at 4.5:1${wrong.length ? ` — ${wrong.slice(0, 6).join('; ')}` : ''}`);
 
   const ratioOf = (m: any, a: string, b: string): number => contrast(hexToRgb(m.roles[a].hex), hexToRgb(m.roles[b].hex));
   const lightOf = (bi: BrandInput) => resolveAllModes(brandTheme(bi)).find((m) => m.mode === 'light')!;
@@ -8253,7 +8349,7 @@ arm: {
       ['prism3', on('prism3', exampleBrands()['prism3'])], ['wendys', on('wendys', wendysInput)],
     ]);
   };
-  const TAG_CELLS = 20;
+  const TAG_CELLS = 21;   // 5 brands × 4 modes, plus prism3's Brand B (#1729)
   const ref = (key: string) => tagDef.tokens[key]?.replace(/^color\./, '') ?? `(unbound ${key})`;
   const colorOf = (roles: any, name: string, under: RGB): RGB | undefined => {
     const r = roles[name];
@@ -12899,7 +12995,8 @@ arm: {
   // (#3219, owner Q3212.4 A), so its light text and icon secondary are pinned at the page fit, #767576 (4.6:1 on
   // white; main's floor fit was #696869). Its inverse ink stays on the band's floor and does not move.
   const BEFORE: Record<string, Record<string, string>> = {
-    prism3: { light: '#67696b #67696b #808284', dark: '#808284 #808284 #67696b', 'hc-light': '#424346 #424346 #999a9c', 'hc-dark': '#a6a7a9 #a6a7a9 #4e5052' },
+    // brand-b (#1729): prism3's light-based Brand B swaps only brand colors, so its neutral inks are light's.
+    prism3: { light: '#67696b #67696b #808284', dark: '#808284 #808284 #67696b', 'hc-light': '#424346 #424346 #999a9c', 'hc-dark': '#a6a7a9 #a6a7a9 #4e5052', 'brand-b': '#67696b #67696b #808284' },
     aurora: { light: '#68686d #818286 #818286', dark: '#818286 #68686d #68686d', 'hc-light': '#434347 #68686d #9a9a9e', 'hc-dark': '#a7a7aa #818286 #4f4f54' },
     harbor: { light: '#5e5b58 #5e5b58 #83817e', dark: '#83817e #83817e #6b6865', 'hc-light': '#454341 #454341 #9c9a98', 'hc-dark': '#a8a6a5 #a8a6a5 #514f4c' },
     wendys: { light: '#67696a #67696a #808283', dark: '#808283 #808283 #67696a', 'hc-light': '#424345 #424345 #999a9c', 'hc-dark': '#a6a7a8 #a6a7a8 #4e5051' },
@@ -13400,7 +13497,7 @@ arm: {
 //   4. `border.tertiary` is the FIRST step that clears: one notch toward the page misses the bar somewhere.
 //   (Distinct rungs are (10g-ii)'s, just above.)
 {
-  const NON_TEXT_2569: Record<string, number> = { light: 3, dark: 3, 'hc-light': 4.5, 'hc-dark': 4.5, wireframe: 3 };
+  const NON_TEXT_2569: Record<string, number> = { light: 3, dark: 3, 'hc-light': 4.5, 'hc-dark': 4.5, wireframe: 3, 'brand-b': 3 };   // brand-b: prism3's light-based Brand B (#1729)
   const GROUNDS_2569 = ['background.primary', 'background.secondary', 'background.tertiary', 'foreground.primary', 'foreground.secondary', 'foreground.tertiary'];
   const rows2569: { id: string; theme: any }[] = [
     ...corpus(),
@@ -13620,7 +13717,8 @@ arm: {
     hueCells++;
     const inkPal = paletteOf(m.roles['interactive.primary.text.rest']?.path), fillPal = paletteOf(m.roles['interactive.primary.fill.rest']?.path);
     if (!inkPal || inkPal !== fillPal) offHue.push(`${id}/${m.mode}: interactive.primary.text.rest on '${inkPal}', the primary fill on '${fillPal}'`);
-    const linkWant = m.mode === 'wireframe' ? theme.roleToPalette.neutral : theme.linkPalette;
+    // A mode with a palette swap (#1729) puts its link on the swapped palette.
+    const linkWant = m.mode === 'wireframe' ? theme.roleToPalette.neutral : (theme.modePalettes?.[m.mode]?.linkPalette ?? theme.linkPalette);
     for (const st of ['default', 'hover', 'pressed', 'visited', 'focused']) {
       const lp = paletteOf(m.roles[`text.link.${st}`]?.path);
       if (lp !== linkWant) offHue.push(`${id}/${m.mode}: text.link.${st} on '${lp}', the link palette is '${linkWant}'`);
@@ -14795,7 +14893,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // holds pure black under a white glass and pure white under a black glass), and the WCAG 2 math is written out here
   // rather than imported from `./color`. A 32px blur cannot lower the floor: a uniform worst-case ground blurs to itself.
   {
-    const GLASS_STEP: Record<string, string> = { light: 'white-alpha.70', dark: 'black-alpha.70', 'hc-light': 'white-alpha.90', 'hc-dark': 'black-alpha.90' };
+    const GLASS_STEP: Record<string, string> = { light: 'white-alpha.70', dark: 'black-alpha.70', 'hc-light': 'white-alpha.90', 'hc-dark': 'black-alpha.90', 'brand-b': 'white-alpha.70' };
     const lin = (c: number) => { const s = c / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
     const lum = ([r, g, b]: number[]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
     const wcag = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
@@ -14814,7 +14912,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const leafOf = (ref: string): any => { let v: any = ref; for (let i = 0; i < 8 && /^\{.+\}$/.test(String(v)); i++) v = String(v).slice(1, -1).split('.').reduce((n: any, k) => n?.[k], tr)?.$value; return v; };
       const surf = tr[root].color?.glass?.surface, text = tr[root].color?.text?.primary, page = tr[root].color?.background?.primary;
       const seen = ['light', ...Object.keys(surf?.$extensions?.prism3?.modes ?? {})];
-      ok(seen.length === 4 && seen.every((m) => m in GLASS_STEP), `glass ${brand}: the modes read are exactly light, dark, hc-light, hc-dark (got ${seen.join(', ')})`);
+      // prism3 adds its light-based Brand B (#1729); every other brand ships the four built-in modes.
+      const wantModes = brand === 'prism3' ? 'light, dark, hc-light, hc-dark, brand-b' : 'light, dark, hc-light, hc-dark';
+      ok(seen.join(', ') === wantModes && seen.every((m) => m in GLASS_STEP), `glass ${brand}: the modes read are exactly ${wantModes} (got ${seen.join(', ')})`);
       const steps: string[] = [], polarity: string[] = [], floor: string[] = [];
       for (const m of Object.keys(GLASS_STEP)) {
         const ref = inMode(surf, m);
@@ -19907,7 +20007,7 @@ arm: {
         ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
         ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
       ]);
-      const SLIDER_CELLS = 20;
+      const SLIDER_CELLS = 21;   // 5 brands × 4 modes, plus prism3's Brand B (#1729)
       const role = (v: unknown): string => String(v ?? '(unbound)').replace(/^color\//, '').replace(/\//g, '.');
       // The ring the thumb nests at focus-visible, at the coordinate it nests (surface=default), as that member strokes it.
       const ringNest = findIn(tOf('medium', 'focus-visible')!.root, 'focusRing');
@@ -31353,7 +31453,9 @@ arm: {
     `#1119 reachable: the picker offers harbor (${picker.join(', ')}) and the reference emission holds ${reference.length} files`);
   for (const b of picker) {
     const have = filesOf(b);
-    const missing = reference.filter((f) => !have.includes(f));
+    // A brand with per-mode typography (prism3's Brand B, #1729) splits `core.font.json` into one file per mode, so
+    // the single file counts as held when its per-mode files are.
+    const missing = reference.filter((f) => !have.includes(f) && !(f === 'core.font.json' && have.includes('core.font.Default.json')));
     ok(have.length > 0 && missing.length === 0,
       `#1119 ${b}: out/figma/${b}/ holds every Figma file the reference brand ships${have.length ? (missing.length ? ` — missing ${missing.slice(0, 4).join(', ')}` : '') : ' — the directory is absent'}`);
   }
@@ -31594,7 +31696,10 @@ arm: {
     if (!files) continue;
     // Same reason as the budget loop: a pass that throws fails this brand's arm by name and the suite goes on.
     try {
-      const modes = MODE_ORDER.filter((m) => files.has(`color.${m}.json`));
+      // The built-in modes in order, then any custom mode the brand emits (prism3's brand-b, #1729), sorted — the
+      // order `materialise-to-figma.ts` reads them in.
+      const extra = [...files.keys()].flatMap((f) => /^color\.([^.]+)\.json$/.exec(f)?.[1] ?? []).filter((m) => !MODE_ORDER.includes(m)).sort();
+      const modes = [...MODE_ORDER.filter((m) => files.has(`color.${m}.json`)), ...extra];
       const colorFiles = modes.map((m) => JSON.parse(files.get(`color.${m}.json`)!) as FigmaCollectionFile);
       // EXPECTED, from the emitted colour files: `<var> @ <mode>` -> the alias each file names.
       const expected = new Map<string, string>();
@@ -36804,6 +36909,7 @@ arm: {
     'wendys light': [5.88, 4.85, 4.25], 'wendys dark': [4.05, 3.73, 3.32], 'wendys hc-light': [9.77, 9.77, 9.77], 'wendys hc-dark': [9.19, 9.19, 9.19],
     'minimal light': [4.97, 4.1, 3.59], 'minimal dark': [3.91, 3.61, 3.22], 'minimal hc-light': [8.65, 8.65, 8.65], 'minimal hc-dark': [8.44, 8.44, 8.44],
     'prism3 light': [7.82, 6.44, 5.65], 'prism3 dark': [4.24, 3.91, 3.51], 'prism3 hc-light': [9.38, 9.38, 9.38], 'prism3 hc-dark': [8.88, 8.88, 8.88],
+    'prism3 brand-b': [6.42, 5.29, 4.64],   // Brand B (#1729): Brand B's own primary, brand-b-primary.550, on light's page tiers
     'NB master light': [19.36, 15.95, 14.01],
   };
   const tierWrong: string[] = [];
@@ -42025,7 +42131,7 @@ arm: {
       ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
       ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
     ]);
-    const CELLS = 20;
+    const CELLS = 21;   // 5 brands × 4 modes, plus prism3's Brand B (#1729)
     const role = (v: string | undefined) => (v ?? '(unbound)').replace(/^color\//, '').replace(/\//g, '.');
     const at = (sel: string, st: string, type = 'page', style = 'border') => items.find((m) => (m.coord as Record<string, string>).type === type && (m.coord as Record<string, string>).selection === sel && (m.coord as Record<string, string>).style === style && m.size === 'medium' && (m.coord as Record<string, string>).state === st)!;
     const sel = at('selected', 'rest'), under = at('selected', 'rest', 'page', 'underline');

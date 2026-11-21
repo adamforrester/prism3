@@ -2204,7 +2204,8 @@ if (runs('1')) for (const host of ['web', 'figma']) {
       for (const c of m.controls) lows.target = Math.min(lows.target, c.w, c.h);
       if (SHOTS) await page.screenshot({ path: join(SHOTS, `s12-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}.png`) });
       // Focus rings: every chrome control Tab reaches.
-      const rings = await focusRings(page);
+      // 40: the default theme's Brand B (#1729) adds its two brand colors' rows ahead of the preview header's verdict.
+      const rings = await focusRings(page, { max: 40 });
       console.log(`    focus: ${rings.length} controls reached by Tab (lowest ring ${rings.length ? Math.min(...rings.map((r) => r.r)) : NaN}:1)`);
       const reached = new Set(rings.map((r) => r.hook));
       for (const want of FOCUS_STOPS[column]) ok(reached.has(hooks.role(want)), `${where}: Tab reaches ${want} and its ring was measured`);
@@ -2780,11 +2781,11 @@ if (runs('7')) for (const host of ['web', 'figma']) {
 // =============================================================================================
 if (runs('8')) console.log(`\nInspect — the verdict opens Contrast, with Health first\n${'='.repeat(78)}`);
 /** The verdict, as the owner decided it (v4 review Q2, v5 Q2) and concept v6 words it: literals. */
-const VERDICT_LINE = 'All 964 pairs at or above floor';   // 956 until #2750 rated disabled.border and its inverse; 884 until #3346 added the 18 selection-mark roles per mode
+const VERDICT_LINE = 'All 1205 pairs at or above floor';   // 964 until #1729 added Brand B, a fifth mode of 241; 956 until #2750 rated disabled.border and its inverse; 884 until #3346 added the 18 selection-mark roles per mode
 // #3366 (owner decision Q3366.3 A): Health says "minimum" for a pair's own ratio; the bar keeps "floor".
-const HEALTH_LINE = 'All 964 pairs at or above their minimum.';
+const HEALTH_LINE = 'All 1205 pairs at or above their minimum.';
 const HEALTH_FLOOR_LINE = 'Most text, icon and fill colors are checked against the contrast floor: neutral 050 in Light, neutral 900 in Dark.';
-const HEALTH_MODES = ['Light: 241 of 241 at or above', 'Dark: 241 of 241 at or above', 'High contrast light: 241 of 241 at or above', 'High contrast dark: 241 of 241 at or above'];
+const HEALTH_MODES = ['Light: 241 of 241 at or above', 'Dark: 241 of 241 at or above', 'High contrast light: 241 of 241 at or above', 'High contrast dark: 241 of 241 at or above', 'Brand B: 241 of 241 at or above'];
 /** #2909 Q2909.7 A: the Decisions log, Inspect's third view, is cut; its two notes no lever said are on their levers
  *  (section "IA v2 phase 2" holds them). The notes still ship: the committed default theme still records them. */
 const INSPECT_TABS = ['Contrast', 'Tokens'];
@@ -2966,8 +2967,9 @@ for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 1280, h: 900 }
 // =============================================================================================
 if (runs('9')) console.log(`\nThe preview header — the mode control and Inspect (Color › Surfaces & fills)\n${'='.repeat(78)}`);
 /** The default theme's modes, as the mode control must show them, and which are derived (hatched): the
- *  owner's mode model (Q1, model B) and the engine's mode registry, typed here. */
-const EXPECT_MODES = [['light', 'Light', false], ['dark', 'Dark', false], ['hc-light', 'HC light', true], ['hc-dark', 'HC dark', true]];
+ *  owner's mode model (Q1, model B) and the engine's mode registry, typed here. Brand B (#1729) is the default
+ *  theme's custom mode: its slug `brand-b` reads "Brand B", and a custom mode is editable, so not hatched. */
+const EXPECT_MODES = [['light', 'Light', false], ['dark', 'Dark', false], ['hc-light', 'HC light', true], ['hc-dark', 'HC dark', true], ['brand-b', 'Brand B', false]];
 /** How many of the mode control's radios and select are held (`disabled` or `aria-disabled`): 0 where it is live. */
 const modeHeld = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-option"], [data-p3="mode-select"]')]
   .filter((n) => n.disabled || n.getAttribute('aria-disabled') === 'true').length);
@@ -4277,7 +4279,10 @@ const EMITTED_AT = (() => {
   return (mode, role) => resolveHex(withOverlay(mode), `${root}.color.${role}`);
 })();
 /** Each mode's `color.background.primary`. */
-const EMITTED = Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark'].map((m) => [m, EMITTED_AT(m, 'background.primary')]));
+/** The default theme's one per-mode lever as it ships (#1729): Brand B's display face. Typed here, never read from the
+ *  input, so an edit that wrote to a per-mode map it should not touch fails by name. */
+const BRAND_B_LEVERS = JSON.stringify({ 'brand-b': { families: { display: 'Clash Display', title: 'Clash Display' } } });
+const EMITTED = Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark', 'brand-b'].map((m) => [m, EMITTED_AT(m, 'background.primary')]));   // brand-b: the default theme's Brand B (#1729)
 /** PM1 B (#2321): Palettes always shows Light, so its opacity scale's ink is Light's `color.text.primary`. */
 const EMITTED_LIGHT_INK = EMITTED_AT('light', 'text.primary');
 if (runs('11')) {
@@ -4290,7 +4295,8 @@ ok(EMITTED.light !== EMITTED.dark, `the oracle's light and dark page colors diff
  *  draws at 1280, as palette-strip, where each must be a specimen root on the page color. prism3 emits seven
  *  ramps of 20 steps (two strips of ten each), and the opacity scale's 12 steps make two strips more. The
  *  alpha ramps are not here: they draw on a checkerboard by design (`preview/palettes.ts`). Literal. */
-const EXPECT_SPECIMENS = ['primary', 'accent', 'neutral', 'success', 'warning', 'danger', 'info', 'opacity'].flatMap((p) => [`${p}-1`, `${p}-2`]);
+// brand-b-*: the default theme's Brand B ramps (#1729), drawn after accent.
+const EXPECT_SPECIMENS = ['primary', 'accent', 'brand-b-primary', 'brand-b-accent', 'neutral', 'success', 'warning', 'danger', 'info', 'opacity'].flatMap((p) => [`${p}-1`, `${p}-2`]);
 /** Every strip in the preview, named by its palette and its place in that palette (1-based), whether it is
  *  marked a specimen root, and the ground it composites onto. The checkerboard alpha strips are skipped. */
 const groundsOf = (page) => page.evaluate(() => {
@@ -4621,7 +4627,8 @@ console.log(`\nRemove a brand color — the confirm\n${'='.repeat(78)}`);
   await hooks.click(rmAccent);
   const p1 = await panel();
   confirmChecks: {
-  const WANT_ITEMS = ['The success color goes back to Auto.', 'In the brand gradient, 1 stop switches to primary.', 'In the glow gradient, 1 stop switches to primary.'];
+  // #1729: the default theme's Brand B swaps accent for its own, so that swap goes too, and the confirm says so.
+  const WANT_ITEMS = ['The success color goes back to Auto.', 'In Brand B, accent is no longer swapped for brand-b-accent.', 'In the brand gradient, 1 stop switches to primary.', 'In the glow gradient, 1 stop switches to primary.'];
   ok(p1.n === 1 && p1.title === 'Remove accent?' && p1.named === 'Remove accent?' && p1.focus === 'brand-color-confirm-go',
     `confirm: Remove accent asks first, "Remove accent?" names it and focus is on its action, as S3's confirms do (${JSON.stringify(p1)})`);
   ok(JSON.stringify(p1.items) === JSON.stringify(WANT_ITEMS), `confirm: it names what else the removal changes — ${JSON.stringify(p1.items)}, want ${JSON.stringify(WANT_ITEMS)}`);
@@ -4648,6 +4655,7 @@ console.log(`\nRemove a brand color — the confirm\n${'='.repeat(78)}`);
   delete want.roleColors.success;
   if (!Object.keys(want.roleColors).length) delete want.roleColors;
   for (const g of want.gradients ?? []) for (const st of g.stops) if (st.palette === 'accent') st.palette = 'primary';
+  delete want.modePalettes['brand-b'].accent;   // #1729: Brand B keeps its primary swap and drops the accent one
   await hooks.click(rmAccent);
   await hooks.click(page.locator('[data-p3="brand-color-confirm-go"]'));
   await page.waitForFunction(() => ![...document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')].some((n) => n.dataset.palette === 'accent'), null, { timeout: 5000 }).catch(() => {});
@@ -5011,8 +5019,10 @@ const NS_WARN = { pds3: 'pds3 is the default theme’s placeholder. Set your bra
 const DARK_OFF_TITLE = 'Turn off Dark and high contrast dark';
 /** The Dark-off confirm's line when a custom mode is based on dark (orchestrator review of #1939), the reviewer's
  *  decision in the words chosen for it, typed here. */
-const BASED_ON_DARK = 'Custom mode custom-1 is based on Dark, so turning Dark off is refused until it is based on Light or removed.';
-const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 482 pairs leave the verdict (964 becomes 482).';
+// custom-2: beside the default theme's Brand B (#1729), the first added custom mode is the second.
+const BASED_ON_DARK = 'Custom mode custom-2 is based on Dark, so turning Dark off is refused until it is based on Light or removed.';
+// 1205 since #1729: Brand B, built on light, stays when Dark goes.
+const DARK_OFF_LINE = 'High contrast dark follows dark, so it turns off too. The two modes’ 482 pairs leave the verdict (1205 becomes 723).';
 const persisted = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
 const modeRadios = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => b.dataset.mode));
 const checkState = (page, sel) => page.evaluate((x) => { const b = document.querySelector(x); return b ? { checked: b.getAttribute('aria-checked'), locked: b.getAttribute('aria-disabled') === 'true', note: b.querySelector('.p3-check-note')?.textContent } : null; }, sel);
@@ -5118,7 +5128,7 @@ for (const host of ['web', 'figma']) {
   ok((await persisted(page))?.personality === undefined, `personality: unpressing the last word clears it (${JSON.stringify((await persisted(page))?.personality)})`);
 
   // Q3: dark off takes high contrast dark with it, after a confirm that says what goes and what the verdict becomes.
-  ok(JSON.stringify(await modeRadios(page)) === '["light","dark","hc-light","hc-dark"]', `Q3: the default theme previews four modes (${await modeRadios(page)})`);
+  ok(JSON.stringify(await modeRadios(page)) === '["light","dark","hc-light","hc-dark","brand-b"]', `Q3: the default theme previews five modes, Brand B the fifth (#1729) (${await modeRadios(page)})`);
   await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
   await hooks.need(page, '[data-p3="mode-off-confirm"]');
   const dc = await page.evaluate(() => ({ title: document.querySelector('[data-p3="mode-off-confirm"] .p3-confirm-title')?.textContent, lines: [...document.querySelectorAll('[data-p3="mode-off-confirm"] .p3-confirm-line')].map((n) => n.textContent), focus: document.activeElement?.getAttribute('data-p3'), go: document.querySelector('[data-p3="mode-off-confirm-go"]')?.textContent }));
@@ -5130,20 +5140,20 @@ for (const host of ['web', 'figma']) {
   ok(kept?.checked === 'true' && await page.evaluate(() => document.activeElement?.getAttribute('data-p3')) === 'mode-on-dark', `Q3: Cancel keeps dark on and returns focus to it (${JSON.stringify(kept)})`);
   await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
   await hooks.click(page.locator('[data-p3="mode-off-confirm-go"]'));
-  await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 2);
+  await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 3);
   const hcd = await checkState(page, '[data-p3="mode-on-hc-dark"]');
   const verdictNow = await page.evaluate(() => document.querySelector('[data-p3="verdict-tip"]')?.textContent);
-  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 482 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
+  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light","brand-b"]' && verdictNow === 'All 723 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
   ok(hcd?.checked === 'false' && hcd.locked && hcd.note === 'Off while dark is off: it follows dark.', `Q3: high contrast dark stays off and locked while dark is off, and says why (${JSON.stringify(hcd)})`);
   // A locked check keeps its focus stop (aria-disabled), so it is activated the way a keyboard user would:
   // Playwright refuses a click on an aria-disabled element, which is itself the pointer half of the claim.
   await page.locator('[data-p3="mode-on-hc-dark"]').focus();
   await page.keyboard.press('Space');
-  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]', `Q3: the locked high contrast dark cannot be turned on (${await modeRadios(page)})`);
+  ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light","brand-b"]', `Q3: the locked high contrast dark cannot be turned on (${await modeRadios(page)})`);
   await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
-  await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 3);
+  await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 4);
   const back = await checkState(page, '[data-p3="mode-on-hc-dark"]');
-  ok(JSON.stringify(await modeRadios(page)) === '["light","dark","hc-light"]' && back?.checked === 'false' && !back.locked, `Q3: dark on again unlocks high contrast dark and leaves it off (${await modeRadios(page)}, ${JSON.stringify(back)})`);
+  ok(JSON.stringify(await modeRadios(page)) === '["light","dark","hc-light","brand-b"]' && back?.checked === 'false' && !back.locked, `Q3: dark on again unlocks high contrast dark and leaves it off (${await modeRadios(page)}, ${JSON.stringify(back)})`);
   // A mode with nothing to drop turns off at once: wireframe on, then off.
   await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
   await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"]'));
@@ -5152,13 +5162,13 @@ for (const host of ['web', 'figma']) {
   ok(!wf.confirm && !wf.radio, `modes: wireframe turns on, and off again with no confirm (it drops nothing) (${JSON.stringify(wf)})`);
   // A custom mode: added, named, previewable, removed.
   await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
-  await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'));
-  const cm = await page.evaluate(() => ({ name: document.querySelector('[data-p3="custom-mode-name"]')?.value, focus: document.activeElement?.getAttribute('data-p3') }));
-  ok(cm.name === 'custom-1' && cm.focus === 'custom-mode-name', `custom modes: Add custom mode adds custom-1, previewable, its name focused (${JSON.stringify(cm)})`);
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="custom-2"]'));
+  const cm = await page.evaluate(() => ({ name: [...document.querySelectorAll('[data-p3="custom-mode-name"]')].pop()?.value, focus: document.activeElement?.getAttribute('data-p3') }));
+  ok(cm.name === 'custom-2' && cm.focus === 'custom-mode-name', `custom modes: Add custom mode adds custom-2, previewable, its name focused (${JSON.stringify(cm)})`);
   // A custom mode based on Dark makes the engine refuse Dark off (orchestrator review of #1939): the confirm says
   // so first, and confirming anyway is refused whole, the brand and the saved brand exactly as they were.
-  await page.locator('[data-p3="custom-mode-base"]').selectOption('dark');
-  await page.waitForFunction(() => document.querySelector('[data-p3="custom-mode-base"]')?.value === 'dark');
+  await page.locator('[data-p3="custom-mode-base"]').last().selectOption('dark');
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="custom-mode-base"]')].pop()?.value === 'dark');
   const savedBefore = JSON.stringify(await persisted(page));
   await hooks.click(page.locator('[data-p3="mode-on-dark"]'));
   await hooks.need(page, '[data-p3="mode-off-confirm"]');
@@ -5166,14 +5176,14 @@ for (const host of ['web', 'figma']) {
   ok(based === BASED_ON_DARK, `Q3: the Dark-off confirm names the custom mode based on dark — says ${JSON.stringify(based)}`);
   await hooks.click(page.locator('[data-p3="mode-off-confirm-go"]'));
   const refusedNow = await page.evaluate(() => ({ refused: document.querySelector('[data-p3="lever-modes"]')?.dataset.refused ?? null, dark: document.querySelector('[data-p3="mode-on-dark"]')?.getAttribute('aria-checked') }));
-  ok(refusedNow.refused === 'true' && refusedNow.dark === 'true' && JSON.stringify(await modeRadios(page)) === '["light","dark","hc-light","custom-1"]',
+  ok(refusedNow.refused === 'true' && refusedNow.dark === 'true' && JSON.stringify(await modeRadios(page)) === '["light","dark","hc-light","brand-b","custom-2"]',
     `Q3: a refused Dark off marks Modes refused and leaves dark on (${JSON.stringify(refusedNow)}, modes ${await modeRadios(page)})`);
   ok(JSON.stringify(await persisted(page)) === savedBefore, 'Q3: a refused Dark off leaves the saved brand exactly as it was');
-  await hooks.click(page.locator('[data-p3="custom-mode-remove"]'));
+  await hooks.click(page.locator('[data-p3="custom-mode-remove"]').last());
   // D10 (#2487 PR 5): a bounded wait whose result is the assertion, so a regression fails here by name instead of
   // timing out into the catch and skipping the rest of the Brand case.
-  const customGone = await page.waitForFunction(() => !document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'), null, { timeout: 5000 }).then(() => true, () => false);
-  ok(customGone, `custom modes: removing custom-1 takes it out of the preview's modes (modes ${await modeRadios(page)})`);
+  const customGone = await page.waitForFunction(() => !document.querySelector('[data-p3="mode-option"][data-mode="custom-2"]'), null, { timeout: 5000 }).then(() => true, () => false);
+  ok(customGone, `custom modes: removing custom-2 takes it out of the preview's modes (modes ${await modeRadios(page)})`);
 
   // The Style guide is lent, and its own control redraws it in place, inside the preview (never a legacy tier).
   const sg = () => page.evaluate(() => ({ ground: document.querySelector('[data-p3="brand-style-guide"] [data-p3="style-guide-ground"]')?.value ?? null, roots: document.querySelectorAll('[data-p3="preview-body"] [data-p3="brand-style-guide"] [data-p3="specimen"]').length }));
@@ -5230,8 +5240,8 @@ for (const { w, h } of WIDTHS) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w, h });
   try {
     await goPlace(page, 'brand');
-    const want = ['light', 'dark', 'hc-light', 'hc-dark'];
-    // The default theme's four modes first: none clipped at any width (at 640 they did not fit, and the old
+    const want = ['light', 'dark', 'hc-light', 'hc-dark', 'brand-b'];
+    // The default theme's five modes first (four built-in and Brand B, #1729): none clipped at any width (at 640 they did not fit, and the old
     // scroll hid one; the select shows them all).
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
     // The control fits itself one frame after its header resizes (`modeControl`'s observer), and revealing the
@@ -5239,9 +5249,10 @@ for (const { w, h } of WIDTHS) {
     // to the select (web light 380 flaked on main at d61c9e23, #3033); a fixed two frames is not enough under a
     // slow frame. `settled` also stands in for #3028's bounded wait, which checked the same condition here.
     const c4 = await settled(page);
-    ok(c4.clipped.length === 0 && JSON.stringify(c4.modes) === JSON.stringify(want), `web light ${w} / brand, 4 modes: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c4)}`);
+    ok(c4.clipped.length === 0 && JSON.stringify(c4.modes) === JSON.stringify(want), `web light ${w} / brand, 5 modes: every mode is choosable in the preview header, none clipped — ${JSON.stringify(c4)}`);
     if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
-    for (const n of [1, 2]) {
+    // A new custom mode is numbered after the ones the brand has, so beside Brand B (#1729) the first is custom-2.
+    for (const n of [2, 3]) {
       await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
       want.push(`custom-${n}`);
       await page.waitForFunction((k) => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === k, want.length);
@@ -5323,7 +5334,8 @@ const EMITTED_FLOOR = (() => {
     const m = /^\{(.+)\}$/.exec(v);
     return m ? resolveHex(tree, m[1], seen + 1) : v.toLowerCase();
   };
-  return Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark'].map((m) => {
+  // brand-b: the default theme's Brand B (#1729), read through its own overlay like the built-in modes.
+  return Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark', 'brand-b'].map((m) => {
     const t = treeFor(m);
     // #2552: the overlays carry no `$extensions`, so `against` is read from the canonical tree's own record for this
     // mode (its `modes.<mode>` entry, else the leaf's), the same tree the engine writes and the projection reads.
@@ -6391,7 +6403,7 @@ if (runs('18-s4f')) {
 // picker's contains its visible label as one contiguous piece (WCAG 2.5.3), and the floor's on Auto is exactly the
 // owner's option 1 on #2193, its mode word from the literal map below.
 {
-  const MODE_WORD = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
+  const MODE_WORD = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe', 'brand-b': 'Brand B' };   // brand-b: the default theme's Brand B (#1729)
   /** The computed accessible name of every Default background fills picker, in row order. */
   const axNames = async (cdp) => {
     const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
@@ -7085,8 +7097,8 @@ for (const host of ['web', 'plugin']) {
         below: wrap ? wrap.querySelectorAll('[data-p3="link-mode"][data-below="true"]').length : null,
         follow: wrap?.querySelector('[data-p3="link-follow"]')?.textContent ?? null };
     }), ROLES);
-    ok(lines.every((l) => l.modes?.length === 4 && l.below === 0 && /hover \d+.*visited \d+.*pressed \d+/.test(l.follow ?? '')),
-      `${host} #2990: each text-link row shows its contrast in all four modes, none below floor, and the steps its states follow (${JSON.stringify(lines)})`);
+    ok(lines.every((l) => l.modes?.length === 5 && l.below === 0 && /hover \d+.*visited \d+.*pressed \d+/.test(l.follow ?? '')),
+      `${host} #2990: each text-link row shows its contrast in all five modes (four built-in and Brand B, #1729), none below floor, and the steps its states follow (${JSON.stringify(lines)})`);
     if (host === 'web') {
       const role = 'inverse.text.link.default';
       await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="int-pick"][data-role="${role}"]`));
@@ -7297,7 +7309,20 @@ if (runs('19')) {
     const fromLight = await addSet();
     const rm = await page.evaluate(() => { const b = document.querySelector('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'); return { text: b?.textContent?.trim() ?? null, label: b?.getAttribute('aria-label') ?? null }; });
     ok(rm.text === 'Remove button set' && rm.label === 'Remove the Accent button set', `Q53: remove reads "Remove button set", named "Remove the Accent button set" (${JSON.stringify(rm)})`);
+    // #1729: the default theme's Brand B ramps are brand colors too, so they are added as well before nothing is left,
+    // then removed, so the brand returns to the one with accent's set alone.
+    const BRAND_B_SETS = ['brand-b-primary', 'brand-b-accent'];
+    for (const p of BRAND_B_SETS) {
+      await hooks.click(page.locator('[data-p3="column-add-open"]'));
+      await page.locator('[data-p3="column-promote-select"]').selectOption(p);
+      await hooks.click(page.locator('[data-p3="column-promote"]'));
+      await page.waitForFunction((c) => !!document.querySelector(`[data-p3="interactive-column"][data-column="${c}"]`), p, { timeout: 5000 }).catch(() => {});
+    }
     const hint = await page.evaluate(() => ({ select: !!document.querySelector('[data-p3="column-promote-select"]'), hint: document.querySelector('[data-p3="column-promote-hint"]')?.textContent ?? null }));
+    for (const p of BRAND_B_SETS) {
+      await hooks.click(page.locator(`[data-p3="interactive-column"][data-column="${p}"] [data-p3="column-remove"]`));
+      await page.waitForFunction((c) => !document.querySelector(`[data-p3="interactive-column"][data-column="${c}"]`), p, { timeout: 5000 }).catch(() => {});
+    }
     ok(!hint.select && hint.hint === ADD_SET_HINT, `Q53: with nothing left to add, the hint reads "${ADD_SET_HINT}" (${JSON.stringify(hint)})`);
     const lightRemoved = await removeSet();
     await chooseAnyMode(page, 'dark');
@@ -7352,6 +7377,9 @@ if (runs('19')) {
       const blob0 = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
       await page.evaluate(() => {
         const o = JSON.parse(localStorage.getItem('prism3:brandInput'));
+        // Without the default theme's Brand B (#1729), whose two ramps would be free colors too: accent is the one left.
+        delete o.input.customModes; delete o.input.modePalettes; delete o.input.modeLevers;
+        o.input.brandColors = (o.input.brandColors ?? []).filter((c) => !c.name.startsWith('brand-b-'));
         (o.input.brandColors ??= []).push(...['acc-n', 'own-n'].map((name, h) => ({ name, oklch: { l: 0.55, c: 0.15, h: 40 + 90 * h } })));
         o.input.interactivePalettes = [{ name: 'own-n', palette: 'acc-n' }];
         localStorage.setItem('prism3:brandInput', JSON.stringify(o));
@@ -7547,7 +7575,15 @@ const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) =
     const a3 = await addState();
     ok(a3.open && !a3.select && a3.focus === 'column-add-open' && await stored() === before, `QA-I4: Escape in the add form does what Cancel does (${JSON.stringify(a3)})`);
     // The last color left to add: Add button set gives way to the hint, and focus must not drop to the page body. It
-    // lands on the new set's group, as that set's jump link would put it.
+    // lands on the new set's group, as that set's jump link would put it. The default theme's Brand B ramps (#1729) are
+    // brand colors too, so they are added first (and removed after), leaving accent the last.
+    const BRAND_B_SETS_I4 = ['brand-b-primary', 'brand-b-accent'];
+    for (const p of BRAND_B_SETS_I4) {
+      await hooks.click(page.locator('[data-p3="column-add-open"]'));
+      await page.locator('[data-p3="column-promote-select"]').selectOption(p);
+      await hooks.click(page.locator('[data-p3="column-promote"]'));
+      await page.waitForFunction((c) => !!document.querySelector(`[data-p3="interactive-column"][data-column="${c}"]`), p, { timeout: 5000 }).catch(() => {});
+    }
     await hooks.click(page.locator('[data-p3="column-add-open"]'));
     await page.locator('[data-p3="column-promote-select"]').selectOption('accent');
     await hooks.click(page.locator('[data-p3="column-promote"]'));
@@ -7558,8 +7594,10 @@ const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) =
     }));
     ok(lastAdd.hint && !lastAdd.body && lastAdd.focus === 'interactive-column' && lastAdd.column === 'accent',
       `QA-I4: adding the last color left keeps focus off the page body, on the new set's group (${JSON.stringify(lastAdd)})`);
-    await hooks.click(page.locator('[data-p3="interactive-column"][data-column="accent"] [data-p3="column-remove"]'));
-    await page.waitForFunction(() => !document.querySelector('[data-p3="interactive-column"][data-column="accent"]'), null, { timeout: 5000 }).catch(() => {});
+    for (const c of ['accent', ...BRAND_B_SETS_I4]) {
+      await hooks.click(page.locator(`[data-p3="interactive-column"][data-column="${c}"] [data-p3="column-remove"]`));
+      await page.waitForFunction((x) => !document.querySelector(`[data-p3="interactive-column"][data-column="${x}"]`), c, { timeout: 5000 }).catch(() => {});
+    }
 
     // QA-I8: the switch, its captions, its writes, and the chips only while it is off.
     const dis = () => page.evaluate(() => {
@@ -7849,8 +7887,9 @@ if (runs('19')) {
       await goPlace(page, 'color-interactive');
       await hooks.need(page, SEL);
       const opts = await page.evaluate((s) => [...document.querySelector(s).options].map((o) => `${o.value}=${o.textContent}`), SEL);
-      ok(JSON.stringify(opts) === JSON.stringify(['primary=Primary', 'neutral=Neutral', 'accent=Accent']),
-        `#3365 ${host}: the Action palette select offers Primary, Neutral, Accent, in that order (${opts.join(', ')})`);
+      // #1729: the default theme's Brand B ramps are brand colors, so they are offered after accent.
+      ok(JSON.stringify(opts) === JSON.stringify(['primary=Primary', 'neutral=Neutral', 'accent=Accent', 'brand-b-primary=Brand-b-primary', 'brand-b-accent=Brand-b-accent']),
+        `#3365 ${host}: the Action palette select offers Primary, Neutral, Accent, then Brand B's two colors, in that order (${opts.join(', ')})`);
       const before = await page.locator(FILL).textContent();
       await page.locator(SEL).selectOption('neutral');
       await page.waitForFunction((f) => /neutral/i.test(document.querySelector(f)?.textContent ?? ''), FILL, { timeout: 5000 }).catch(() => {});
@@ -8119,7 +8158,7 @@ for (const host of ['web', 'figma']) {
     await body.selectOption('JetBrains Mono');
     await page.waitForFunction(() => document.querySelector('[data-p3="family-select"][data-group="body"]')?.value === 'JetBrains Mono');
     const p1 = await persisted(page);
-    ok(p1?.typography?.families?.body === 'JetBrains Mono' && p1?.modeLevers === undefined, `type: in Light, the body face writes typography.families.body (${JSON.stringify({ body: p1?.typography?.families?.body, modeLevers: p1?.modeLevers })})`);
+    ok(p1?.typography?.families?.body === 'JetBrains Mono' && JSON.stringify(p1?.modeLevers) === BRAND_B_LEVERS, `type: in Light, the body face writes typography.families.body (${JSON.stringify({ body: p1?.typography?.families?.body, modeLevers: p1?.modeLevers })})`);
     await body.selectOption('Inter');
     await page.waitForFunction(() => document.querySelector('[data-p3="family-select"][data-group="body"]')?.value === 'Inter');
     ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), 'type: setting body back to Inter returns the persisted brand to its bytes');
@@ -8383,7 +8422,8 @@ for (const host of ['web', 'figma']) {
     await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('1');
     await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '1');
     const pLight = await persisted(page);
-    ok(pLight?.typography?.leadingShift?.body === 1 && pLight?.modeLevers === undefined, `type: in Light, body one step looser writes typography.leadingShift.body 1 (${JSON.stringify(pLight?.typography?.leadingShift)})`);
+    // The default theme's only per-mode lever is Brand B's display face (#1729), which a Light edit leaves as it is.
+    ok(pLight?.typography?.leadingShift?.body === 1 && JSON.stringify(pLight?.modeLevers) === BRAND_B_LEVERS, `type: in Light, body one step looser writes typography.leadingShift.body 1 (${JSON.stringify(pLight?.typography?.leadingShift)})`);
     await page.locator('[data-p3="nudge-lh"][data-group="body"]').selectOption('0');
     await page.waitForFunction(() => document.querySelector('[data-p3="nudge-lh"][data-group="body"]')?.value === '0');
     const pZero = await persisted(page);
@@ -9710,13 +9750,14 @@ for (const host of ['web', 'figma']) {
     await goPlace(page, 'brand');
     await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
     await hooks.need(page, '[data-p3="custom-mode-base"]');
-    await page.locator('[data-p3="custom-mode-base"]').selectOption('dark');
+    // The added mode is the last row, beside the default theme's Brand B (#1729), so it is custom-2.
+    await page.locator('[data-p3="custom-mode-base"]').last().selectOption('dark');
     await openDepth(page);
     await openTint(page);
-    await chooseModeAny(page, 'custom-1');
+    await chooseModeAny(page, 'custom-2');
     const t = await autoOf('tempo');
     const lightTempo = { snappy: 'Snappy', standard: 'Standard', relaxed: 'Relaxed' }[b5?.motionPersonality?.tempo ?? 'standard'];
-    ok(t.auto === `Auto: follows Light (${lightTempo})`, `Q22: previewing custom-1 (based on Dark), Auto names Light's value, not its base's override — says ${JSON.stringify(t.auto)}, want "Auto: follows Light (${lightTempo})" (Dark is relaxed)`);
+    ok(t.auto === `Auto: follows Light (${lightTempo})`, `Q22: previewing custom-2 (based on Dark), Auto names Light's value, not its base's override — says ${JSON.stringify(t.auto)}, want "Auto: follows Light (${lightTempo})" (Dark is relaxed)`);
     // Q59: a derived mode draws the preview and disables every control.
     await chooseModeAny(page, 'hc-light');
     const d = await page.evaluate(() => {
@@ -10494,6 +10535,11 @@ for (const host of ['web', 'figma']) {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
     await goPlace(page, 'brand');
+    // Brand B (#1729) removed first: this case needs five modes, the count at which Shape's header fits radios once the
+    // fit has run, so the window it holds open is the one #3700 found. Six never fit radios at 1280.
+    await hooks.click(page.locator('[data-p3="custom-mode-remove"]'));
+    await hooks.click(page.locator('[data-p3="custom-mode-confirm-go"]'));   // it carries a swap and a face, so it asks first
+    await page.waitForFunction(() => !document.querySelector('[data-p3="mode-option"][data-mode="brand-b"], [data-p3="mode-select"] option[value="brand-b"]'), null, { timeout: 5000 });
     await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="custom-1"]'));
     await settleModes(page);
@@ -11035,7 +11081,7 @@ const Q59_WORDS = "is auto-derived and can't be edited here.";
     await page.waitForFunction(() => document.querySelector('[data-p3="button-label-weight-choice-default"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
     const pd = await persisted(page);
     // #3129 Q3129.14 B: Dark is chosen on Theme, and Components previews Light.
-    ok(pd?.buttonLabelWeight === 'default' && !pd?.modeLevers, `Q54: with Dark chosen on Theme, Default writes buttonLabelWeight: default and no per-mode value (${JSON.stringify({ w: pd?.buttonLabelWeight, modeLevers: pd?.modeLevers ?? null })})`);
+    ok(pd?.buttonLabelWeight === 'default' && JSON.stringify(pd?.modeLevers) === BRAND_B_LEVERS, `Q54: with Dark chosen on Theme, Default writes buttonLabelWeight: default and no per-mode value (${JSON.stringify({ w: pd?.buttonLabelWeight, modeLevers: pd?.modeLevers ?? null })})`);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     ok(errors.length === 0, `components Q54: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -11950,7 +11996,7 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => document.querySelector('[data-p3="verdict"]')?.dataset.state === 'fail', null, { timeout: 5000 }).catch(() => {});
         const c1 = await page.evaluate(CONTRAST_PROBE);
         const lead = /^(\d+) of \d+ below floor, \d+ modes?$/.exec(c1.tip ?? '');
-        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 964 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
+        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 1205 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
           `${where}: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor (${JSON.stringify(c1)})`);
         ok(c1.name === `Verdict: ${c1.tip}. Open Inspect, Contrast`, `${where}: Contrast keeps its name, the full line ("${c1.name}")`);
 
@@ -18704,7 +18750,10 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await page.evaluate(() => window.__prism3TestEdit('status.danger', undefined));
       await page.waitForFunction(() => !!document.querySelector('[data-p3="palettes-levers"] [data-p3="gamut-note"]'), null, { timeout: 5000 }).catch(() => {});
       const gw = await page.evaluate(() => [...document.querySelectorAll('[data-p3="palettes-levers"] [data-p3="gamut-note"]')].map((n) => ({ text: n.textContent, lever: n.closest('[data-p3^="lever-"]')?.getAttribute('data-p3') ?? null })));
-      ok(gw.length === 1 && /^Anchor 'primary' \(oklch [^)]*\) is outside the sRGB gamut/.test(gw[0].text) && gw[0].lever === 'lever-primary',
+      // #1729: the default theme's Brand B accent is Aurora's verbatim, which is outside sRGB too, so it carries its own.
+      const gwP = gw.filter((g) => g.lever === 'lever-primary'), gwOther = gw.filter((g) => g.lever !== 'lever-primary');
+      ok(gw.length === 2 && gwP.length === 1 && /^Anchor 'primary' \(oklch [^)]*\) is outside the sRGB gamut/.test(gwP[0].text)
+        && gwOther.length === 1 && /^Anchor 'brand-b-accent' \(oklch 0\.55 0\.15 235\) is outside the sRGB gamut/.test(gwOther[0].text),
         `${where}: Q2909.7 A: Primary carries the engine's gamut warning, in its words, under its lever (${JSON.stringify(gw)})`);
       await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
       await hooks.need(page, '[data-p3="danger-hue-note"]');
@@ -23231,6 +23280,14 @@ if (runs('3553-q1')) {
     const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
     let step = 'open';
     try {
+      // Q-UI1 was decided on the four-mode default theme. Brand B (#1729) makes it five, and at 1280 four of these pages
+      // then fall back to the select. The owner accepted that for now (#4269 decision 2, B); the header's room for five
+      // is #4422. Until it lands, the rule is held on the four modes it was decided for, Brand B removed first.
+      step = 'remove Brand B';
+      await goPlace(page, 'brand');
+      await hooks.click(page.locator('[data-p3="custom-mode-remove"]'));
+      await hooks.click(page.locator('[data-p3="custom-mode-confirm-go"]'));
+      await page.waitForFunction(() => !document.querySelector('[data-p3="mode-option"][data-mode="brand-b"], [data-p3="mode-select"] option[value="brand-b"]'), null, { timeout: 5000 });
       for (const place of ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout']) {
         step = place;
         await goPlace(page, place);

@@ -18,6 +18,7 @@
  */
 import { brandTheme, type BrandInput, resolvePreview } from '@prism3/engine';
 import { brandState } from './store';
+import { modeLabel } from './mode-label';
 
 type Rec = Record<string, unknown>;
 type ByMode = Record<string, Rec | undefined>;
@@ -113,6 +114,31 @@ export const PALETTE_REFS: readonly NameRef[] = [
     },
     effects: (b, x) => Object.entries((b.roleColors ?? {}) as Record<string, string>).filter(([, v]) => v === x).map(([r]) =>
       (['success', 'warning', 'danger', 'info'].includes(r) ? `The ${r} color goes back to Auto.` : `The ${r} role goes back to its default palette.`)),
+  },
+  {
+    // A per-mode palette swap (#1729) names a palette on both sides: the palette a mode replaces and its replacement.
+    // A rename follows either side; a removal drops every swap naming the palette, so that mode stops swapping it. The
+    // confirm names the mode as the mode control does ("In Brand B"), not by its slug (owner decision 2026-11-19).
+    field: 'modePalettes.<mode>.<palette>', kind: 'palette',
+    rename: (b, p, n) => {
+      for (const sw of Object.values((b.modePalettes ?? {}) as Record<string, Record<string, string> | undefined>)) {
+        if (!sw) continue;
+        for (const [from, to] of Object.entries(sw)) if (to === p) sw[from] = n;
+        if (p in sw) { sw[n] = sw[p]!; delete sw[p]; }
+      }
+    },
+    remove: (b, x) => {
+      const mp = b.modePalettes as Record<string, Record<string, string> | undefined> | undefined;
+      if (!mp) return;
+      for (const [m, sw] of Object.entries(mp)) {
+        if (!sw) continue;
+        for (const [from, to] of Object.entries(sw)) if (from === x || to === x) delete sw[from];
+        if (!Object.keys(sw).length) delete mp[m];
+      }
+      if (!Object.keys(mp).length) b.modePalettes = undefined;
+    },
+    effects: (b, x) => Object.entries((b.modePalettes ?? {}) as Record<string, Record<string, string> | undefined>).flatMap(([m, sw]) =>
+      Object.entries(sw ?? {}).filter(([from, to]) => from === x || to === x).map(([from, to]) => `In ${modeLabel(m)}, ${from} is no longer swapped for ${to}.`)),
   },
   {
     field: 'interactivePalettes[].palette', kind: 'palette',
@@ -326,7 +352,7 @@ export const COLUMN_REFS: readonly NameRef[] = [
 // ── mode rows ───────────────────────────────────────────────────────────────────────────────────
 
 /** A field keyed by mode: a rename moves the key, a removal drops it, and a container it empties is pruned. */
-const byMode = (field: 'overrides' | 'modeLevers' | 'modeAnchors' | 'surfaces' | 'outlineHoverFill', line: (k: string, v: unknown) => string[]): NameRef => ({
+const byMode = (field: 'overrides' | 'modeLevers' | 'modeAnchors' | 'modePalettes' | 'surfaces' | 'outlineHoverFill', line: (k: string, v: unknown) => string[]): NameRef => ({
   field: `${field}.<mode>`, kind: 'mode',
   rename: (b, p, n) => { const o = bag(b)[field] as Rec | undefined; if (o && p in o) { o[n] = o[p]; delete o[p]; } },
   remove: (b, x) => {
@@ -346,6 +372,7 @@ export const MODE_REFS: readonly NameRef[] = [
   byMode('overrides', (r) => [`Role override: ${r}`]),
   byMode('modeLevers', (k, v) => leaves(v, k).map((l) => `Setting: ${l}`)),
   byMode('modeAnchors', (c, v) => [`Anchor: ${c} at ${String(v)}`]),
+  byMode('modePalettes', (from, to) => [`Palette swap: ${from} → ${String(to)}`]),
   byMode('surfaces', (k, v) => [`Surface: ${k} = ${isObj(v) ? `${(v as { palette?: string }).palette} ${(v as { step?: number }).step}` : String(v)}`]),
   byMode('outlineHoverFill', (k, v) => (k === 'sets'
     ? Object.entries(isObj(v) ? v : {}).map(([set, p]) => `Outline hover fill of ${set}: ${(p as { hover?: string }).hover}`)

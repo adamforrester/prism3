@@ -208,7 +208,7 @@ const gradientCss = (g: ResolvedGradient, fmt: 'rgb' | 'hex'): string => {
   if (g.kind === 'radial') return `radial-gradient(${g.shape} at ${round3(g.center[0] * 100)}% ${round3(g.center[1] * 100)}%${space}, ${stopList})`;
   return `linear-gradient(${g.angle}deg${space}, ${stopList})`;
 };
-const gradientLeaf = (g: ResolvedGradient, fmt: 'rgb' | 'hex'): Token => {
+const gradientLeaf = (g: ResolvedGradient, fmt: 'rgb' | 'hex', byMode: Record<string, ResolvedGradient> = {}): Token => {
   const paintType = g.kind === 'radial' ? 'GRADIENT_RADIAL' : 'GRADIENT_LINEAR';
   const geom = g.kind === 'radial' ? { center: g.center, shape: g.shape } : { angle: g.angle };
   // #2422: each ink is judged on its OWN measured worst case. The old free-text note tested
@@ -222,6 +222,12 @@ const gradientLeaf = (g: ResolvedGradient, fmt: 'rgb' | 'hex'): Token => {
     $description: `gradient ${g.name} — ${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ` (${g.shape})`}, ${g.stops.length} stops, ${g.interpolation} interpolation — brand gradient (opt-in)`,
     $extensions: { prism3: { generated: true, role: 'composite', kind: g.kind, ...geom, interpolation: g.interpolation,
       css: gradientCss(g, fmt),
+      // A mode whose palette swap moves a stop (#1729) carries its own stops, wrapped in `$value` like every
+      // mode entry (#708) so the overlay projection carries it. Absent for every gradient no swap touches.
+      ...(Object.keys(byMode).length ? { modes: Object.fromEntries(Object.entries(byMode).map(([m, mg]) =>
+        [m, { $value: mg.stops.map((s) => ({ color: `{${s.aliasOf}}`, position: round3(s.position) })), css: gradientCss(mg, fmt),
+          a11y: { worstOnWhite: floorRatio(mg.worstOnWhite), worstOnBlack: floorRatio(mg.worstOnBlack), floor: TEXT_ON_GRADIENT_FLOOR,
+            clears: { white: mg.worstOnWhite >= TEXT_ON_GRADIENT_FLOOR, black: mg.worstOnBlack >= TEXT_ON_GRADIENT_FLOOR } } }])) } : {}),
       a11y: { worstOnWhite: wOnW, worstOnBlack: wOnB, floor: TEXT_ON_GRADIENT_FLOOR, clears },
       figma: { kind: 'paint-style', styleType: 'PAINT', paintType, binds: ['gradientStops[].color'], baked: ['type', g.kind === 'radial' ? 'center/shape' : 'angle', 'positions'],
         sampledStops: g.sampled, requires: 'plugin-api', interpolation: 'srgb' } } },
@@ -1249,7 +1255,10 @@ const buildTreeOnce = (theme: Theme): BuiltTree => {
       const mf = fams.find((x) => x.group === f.group);
       if (!mf || stackKey(mf.stack) === stackKey(f.stack)) continue;   // same stack -> no diff -> no override
       const mslug = typefaceSlug(must(mf.stack[0], `${mf.group}'s first family in ${mode}`));
-      modeOverrides[mode] = { $value: `{${root}.${CORE_TIER}.font.typeface.${mslug}}`, aliasOf: `${root}.${CORE_TIER}.font.typeface.${mslug}`, face: mf.stack[0] };
+      modeOverrides[mode] = { $value: `{${root}.${CORE_TIER}.font.typeface.${mslug}}`, aliasOf: `${root}.${CORE_TIER}.font.typeface.${mslug}`, face: mf.stack[0],
+        // The mode's own prose (#1729): the overlay carries a mode entry's `description` in place of light's, which
+        // named light's face and so misdescribed every per-mode family.
+        description: `font family \u2014 ${f.group} \u2192 ${mf.stack[0]}` };
     }
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
     family[f.group] = leaf;
@@ -1395,7 +1404,9 @@ const buildTreeOnce = (theme: Theme): BuiltTree => {
 
   // ---- gradient axis (brand-opt-in; empty for brands that declare none) ----
   const gradient: Record<string, Token> = {};
-  for (const g of theme.gradient.gradients) gradient[g.name] = gradientLeaf(g, theme.colorFormat);
+  for (const g of theme.gradient.gradients)
+    gradient[g.name] = gradientLeaf(g, theme.colorFormat, Object.fromEntries(Object.entries(theme.gradient.gradientsByMode ?? {})
+      .flatMap(([m, gs]) => gs.filter((mg) => mg.name === g.name && mg.stops.some((st, i) => st.aliasOf !== g.stops[i]?.aliasOf)).map((mg) => [m, mg] as const))));
 
   // ---- layout axis: breakpoints + responsive grid + containers ----
   // Breakpoints = min-width floors; grid columns/gutter/margin per breakpoint
