@@ -328,7 +328,7 @@ export const progress: ComponentDef = {
         class: 'runtime-behavior',
         disposition: 'lowered',
         description:
-          'the indeterminate ring — the same `<svg>` with the arc\'s `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) linear infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (one turn per `motion.duration.sweep`, Progress\'s own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)`: slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o\'clock. In right-to-left the arc turns counterclockwise.',
+          'the indeterminate ring — the same `<svg>` with the arc\'s `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) var(--motion-easing-linear) infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (one turn per `motion.duration.sweep`, Progress\'s own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)`: slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o\'clock. In right-to-left the arc turns counterclockwise.',
       },
       {
         class: 'right-to-left',
@@ -452,8 +452,8 @@ export const progress: ComponentDef = {
 
   composition: {
     composesWith: ['field-message'],
-    alternativeTo: ['spinner', 'steps'],
-    planned: ['skeleton', 'meter'],
+    alternativeTo: ['spinner', 'skeleton', 'steps'],
+    planned: ['meter'],
     replacesPatterns: ['a bar that creeps to 99% while the real amount is unknown', 'a label printed inside the moving fill'],
   },
 

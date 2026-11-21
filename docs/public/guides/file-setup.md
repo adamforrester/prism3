@@ -2,7 +2,7 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Update file checklist for #3264). -->
 
-Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:2007-2077#390740ed -->
+Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:2015-2085#390740ed -->
 It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet, or lacks something setup builds: "The pages, the templates and the style-guide cells. The cover too, while Docs has it on." <!-- src: apps/studio/src/state/update-file.ts:339-340 -->
 
 ## Set up a new file
@@ -16,7 +16,7 @@ Setting up again is safe: it adds only what is missing, matched by name. <!-- sr
 
 ## The pages it creates
 
-The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxonomy.ts:1-17#54450f84 --> <!-- src: apps/plugin/src/file-taxonomy.ts:77-208#e05286f9 -->
+The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxonomy.ts:1-17#54450f84 --> <!-- src: apps/plugin/src/file-taxonomy.ts:77-211#ee55e754 -->
 
 - `Cover`
 - A divider, then `Foundations`, with `↳ Primitive tokens`, `↳ Semantic tokens` and `↳ Grids & layouts`
@@ -35,7 +35,7 @@ A file with no brand yet gets its cover once the theme is written. <!-- src: app
 
 ## The helper components
 
-On `↳ File Components`, setup builds the components the plugin draws page furniture, usage panels and style guides with. All but `_Doc-block` are built on any file; `_Doc-block` needs other sets first (below). <!-- src: apps/plugin/src/file-taxonomy.ts:208 -->
+On `↳ File Components`, setup builds the components the plugin draws page furniture, usage panels and style guides with. All but `_Doc-block` are built on any file; `_Doc-block` needs other sets first (below). <!-- src: apps/plugin/src/file-taxonomy.ts:211 -->
 
 | Component | What it is for |
 |---|---|
@@ -44,15 +44,15 @@ On `↳ File Components`, setup builds the components the plugin draws page furn
 | `_Doc-block` | The blocks a usage panel is drawn from. <!-- src: apps/plugin/src/doc-block.ts:46 --> It is assembled from the file's own Badge, Tag, List Item and Divider sets and the theme, so setup builds it only once all four sets and the theme are in the file. Until then the result says what is missing. <!-- src: apps/plugin/src/doc-block.ts:185-188#ef13b52f --> |
 | `_style-guide-swatches`, `_style-guide-text-cells`, `_style-guide-spacing-cells` | The cells [Build style guides](style-guides.md) draws its tables from. <!-- src: apps/plugin/src/style-guide-cells.ts:26-28 --> |
 
-The names start with an underscore because Figma treats such components as private and doesn't publish them to the library. If the file already holds these sets, setup uses them rather than building new ones. <!-- src: apps/plugin/src/main.ts:2030-2059#3fa249a3 -->
+The names start with an underscore because Figma treats such components as private and doesn't publish them to the library. If the file already holds these sets, setup uses them rather than building new ones. <!-- src: apps/plugin/src/main.ts:2038-2067#3fa249a3 -->
 
 ## The result
 
-The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:2069-2071 -->
+The Activity drawer reports `✓ file set up` and lists the pages it created, or `(all present)` when there was nothing to add. <!-- src: apps/plugin/src/main.ts:2077-2079 -->
 
 | Result | Meaning |
 |---|---|
-| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:2060 --> |
-| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:2075 --> |
+| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:2068 --> |
+| `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:2083 --> |
 
 While any write runs, setup is refused, and while setup runs, every other write is: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->

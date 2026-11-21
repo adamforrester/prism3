@@ -28,6 +28,7 @@ import { type Theme, buttonMinWidth, ICON_SIZES, sizeRefPx, densitySpacingStep, 
 import type { ButtonLayoutView } from '../../state/button-input';
 import { el, specimen, type SgCtx } from './kit';
 import { radiusIn, shapeRef } from './radius';
+import { must } from '../../must';
 
 /** The roles a button is drawn in (G7 A): the primary action's resting fill and the ink on it. */
 export const BUTTON_FILL = 'interactive.primary.fill.rest';
@@ -70,7 +71,7 @@ export const buttonLayoutSection = (layout: ButtonLayoutView, theme: Theme, c: S
   for (const b of BUTTON_SIZES) {
     const h = sizes.find((x) => x.name === b.step);
     if (!h) continue;
-    const at = (k: string): number => { const key = `size.${b.size.toLowerCase()}.${k}`; return spacePx(densitySpacingStep(key, (BUTTON_SPACING as Record<string, string>)[key], theme.dims.density)) ?? 0; };
+    const at = (k: string): number => { const key = `size.${b.size.toLowerCase()}.${k}`; return spacePx(densitySpacingStep(key, must((BUTTON_SPACING as Record<string, string>)[key], key), theme.dims.density)) ?? 0; };
     const z = { height: h.height, padX: at('padding-x'), padXVisual: at('padding-x-visual'), gap: at('gap') };
     const off = smaller && b.step === 'md';
     const iconPx = ICON_SIZES.find((i) => i.name === (off ? 'xs' : b.icon))?.px ?? 16;

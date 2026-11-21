@@ -305,6 +305,7 @@ const EXPECT_ANATOMY = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', '_slider-thumb', 'slider',
   'code-input-cell', 'code-input', 'provider-logo', 'card-number-field', 'page-nav-item', 'page-nav',
+  'skeleton',
   'popover',
   // #3055: Steps and its step.
   'step-item', 'steps',
@@ -317,6 +318,8 @@ const EXPECT_PAINTERS = [
   'pagination-item',
   // #2669: the thumb's disc and halo; the Slider's rail and selected bar.
   '_slider-thumb', 'slider',
+  // #4109: the bars and the block, one surface in pieces.
+  'skeleton',
   // #2457 Q287 A: the round shape's edge and wash. The flush shape's box resolves none of them.
   // Q295.2 B: three families, as IconButton's three.
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',

@@ -52,4 +52,4 @@ StepItem's own default is "1", so an inserted Steps read 1, 1 before. `#3055 ste
 905,404, past `test-open-large-file.ts`'s `CHECK_CAP` of 900,000. Neither PR alone crossed it. The cap is now
 950,000, with the measurement in its comment. The regressions it exists for stay far above it: `fileBlockers`
 reading every name per set again measured 1.8M and failed `check/calls` by name. The merge also takes
-`EXECUTOR_REVISION` to 67, because `CANVAS_FURNITURE` is executor-run code since #4325.
+`EXECUTOR_REVISION` to 68 (67 went to #4295, Skeleton, before this merged), because `CANVAS_FURNITURE` is executor-run code since #4325.

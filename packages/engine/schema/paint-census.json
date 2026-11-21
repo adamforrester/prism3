@@ -757,6 +757,18 @@
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
     },
+    "skeleton": {
+      "set": {
+        "members": 4,
+        "assignments": 8,
+        "sha256": "6558ff3d60678f48a6b31dfee222d19ee5f0f8a59e011a3062b67512730543ca"
+      },
+      "grid": {
+        "members": 4,
+        "assignments": 8,
+        "sha256": "6610537978aef736d4d8471336052897bc2cc0afbc5de4db231a0df3d9928cc6"
+      }
+    },
     "popover": {
       "set": {
         "members": 1,

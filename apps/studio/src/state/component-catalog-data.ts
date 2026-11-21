@@ -696,7 +696,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "radio-control",
     "name": "Radio.Control",
     "category": "form",
-    "summary": "Outlined radio ring; dot and brand ring on select. Nested by a radio row; no label.",
+    "summary": "Outlined radio ring; dot and action color on select. Nested by a radio row; no label.",
     "unit": "variants",
     "spacing": [],
     "page": "Radio",
@@ -1855,6 +1855,20 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "page-nav-item"
     ]
+  },
+  {
+    "id": "skeleton",
+    "name": "Skeleton",
+    "category": "foundations",
+    "summary": "Content-shaped placeholder for a first load. Reserves the box so nothing shifts on arrival.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Skeleton",
+    "section": "Subcomponents",
+    "buildable": true,
+    "reason": null,
+    "members": 4,
+    "nests": []
   },
   {
     "id": "popover",

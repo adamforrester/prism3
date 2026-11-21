@@ -200,6 +200,9 @@ export const TAXONOMY: Taxonomy = {
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
+        // #4109 — PROVISIONAL, held for the owner (the proposal left the page open): beside Spinner, the loading part a
+        // host nests, and Image placeholder, whose loading state nests it next (#4113).
+        { page: 'Skeleton', defs: ['skeleton'] },
       ],
     },
     {

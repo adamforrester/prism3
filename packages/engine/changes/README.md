@@ -20,7 +20,9 @@ where the number goes; the fold fills it in.
   - **`major`** is refused while `ENGINE_VERSION` is below 1.0, by the gate and by the fold. Going to 1.0
     is the owner's decision.
   - The fold takes the highest class in the batch. A change that owes no bump carries no note.
-- **Prose:** plain text, folded into `CHANGELOG.md` as written. No `{{` other than the placeholder, and no line that opens with a version number or
+- **Prose:** plain text, folded into `CHANGELOG.md` as written, and into the served release page's
+  "In detail" section. So it is shipped prose: `lint-us-english.ts` and `lint-voice.ts` read every note here
+  while its PR is open (Q181 A, #3574), because once folded it can no longer be edited. No `{{` other than the placeholder, and no line that opens with a version number or
   with the placeholder, which becomes one once folded. Two changelog entries take two notes
   (`<slug>.md`, `<slug>-2.md`).
 - **Once merged, a note is not edited.** It is another PR's declaration until the fold consumes it, and
