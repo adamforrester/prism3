@@ -1598,7 +1598,7 @@ const exportView = (): ExportView => {
     none: settings.length ? null : exportArtifact === 'component-specs' ? SPECS_NO_SETTINGS : 'Nothing to set — the brief is written one way.',
     right,
     // #3553 Q-UI8 A: the word alone; the bar draws the vendored download icon before it.
-    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component contracts' : 'Download tokens', off },
+    go: { text: exportArtifact === 'design-md' ? 'Download brief' : exportArtifact === 'component-specs' ? 'Download component specs' : 'Download tokens', off },
   };
 };
 
@@ -1758,8 +1758,8 @@ const readbackOf = (): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
   const refused = err ? `Saved brand not restored — ${err}` : null;
   if (!o) return { state: 'bad', ref: err, verdict: SHORT.notRestored, summary: refused };
   const [text, ok] = o.state === 'error' ? [o.message, false]
-    : o.state === 'absent' ? ['No existing Prism3 theme in this file — start from the knobs.', true]
-      : [isUnrecoverable(o) ? `${o.detail} — knobs not stored in this file, so these are defaults` : o.detail, o.contractOk];
+    : o.state === 'absent' ? ['No Prism3 theme in this file. The settings start from defaults.', true]
+      : [isUnrecoverable(o) ? `${o.detail.replace(/[.\s]+$/, "")}. The settings aren't stored in this file, so they start from defaults.` : o.detail, o.contractOk];
   const verdict = o.state === 'error' ? SHORT.failed
     : o.state === 'absent' ? SHORT.noTheme
       : o.contractOk ? SHORT.clean
@@ -1941,9 +1941,9 @@ const BRIEF_IS_FAILED = "This is the file's saved brand, which didn't open, not 
 const BRIEF_NONE = "Nothing to export: this file's saved brand couldn't be read.";
 const TOKENS_NONE = "Off after a failed restore: these tokens would be the demo brand's, not this file's.";
 /** #3425 (DRAFT wording for the owner, Q3425.1); "component contracts" since #1325 (Q-CC1 A, DRAFT). */
-const SPECS_NONE = "Off after a failed restore: these component contracts would be the demo brand's, not this file's.";
-const SPECS_NO_SETTINGS = "Nothing to set — the component contracts follow this brand's component settings.";
-const SPECS_WEB_OFF = 'In the Figma plugin: the component contracts are built from the component definitions, which the web Studio leaves out.';   // a fallback no host reaches since #3429: the plugin provides the exporter, the web a loader
+const SPECS_NONE = "Off after a failed restore: these component specs would be the demo brand's, not this file's.";
+const SPECS_NO_SETTINGS = "Nothing to set — the component specs follow this brand's component settings.";
+const SPECS_WEB_OFF = 'In the Figma plugin: the component specs are built from the component definitions, which the web Studio leaves out.';   // a fallback no host reaches since #3429: the plugin provides the exporter, the web a loader
 /** The error bar after a failed restore, by kind (owner, 2026-10-02). Every kind says "until a brand loads": the
  *  owner's words (#4222, 2026-11-19), though a rebuild that resolves also ends `unresolved`. */
 const RESTORE_BAR: Record<RestoreFailure['kind'], (reason: string) => string> = {

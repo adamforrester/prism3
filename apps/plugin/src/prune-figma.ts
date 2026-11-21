@@ -454,7 +454,7 @@ export const computePrunePlan = (input: PruneInput): PrunePlan => {
 export const styleOrphanNote = (styles: PrunePlan['styles']): string => {
   const n = styles.reduce((t, g) => t + g.names.length, 0);
   if (n === 0) return '';
-  return `⚠ ${n} orphaned style${n === 1 ? '' : 's'} not in the plan (${styles.map((g) => `${g.kind}: ${g.names.length}`).join(', ')}) — likely from an earlier brand; nothing was deleted`;
+  return `⚠ ${n} style${n === 1 ? '' : 's'} the brand no longer writes (${styles.map((g) => `${g.kind}: ${g.names.length}`).join(', ')}). Nothing was deleted — Update file › Clean up lists them`;
 };
 
 /** Total items a prune plan would remove — the count shown to the designer before they confirm. */
@@ -722,13 +722,12 @@ export const prunePreviewSummary = (p: PrunePlan): string => {
   const styles = p.styles.reduce((n, g) => n + g.names.length, 0);
   const count = prunePlanCount(p);
   if (count === 0) {
-    return 'No stale items — every style, mode, variable and collection in this file is in the current plan.';
+    return 'No stale items — every style, mode, variable and collection in this file is one the brand writes.';
   }
   const one = count === 1;
   return (
-    `${parts(styles, modes, vars, p.collections.length)} ${one ? 'is' : 'are'} in this file but not in ` +
-    `the current plan, all within this theme's namespace. Deleting ${one ? 'it' : 'them'} also removes any ` +
-    `bindings made to ${one ? 'it' : 'them'}; anything outside the namespace is left in place.` +
+    `${parts(styles, modes, vars, p.collections.length)} the brand no longer uses, all within this theme's namespace. ` +
+    `Deleting ${one ? 'it' : 'them'} unbinds any layer that uses ${one ? 'it' : 'them'}; nothing outside the namespace is touched.` +
     varNote(p) +
     modeNote(p) +
     styleNote(p)
@@ -750,7 +749,7 @@ export const pruneAppliedSummary = (r: PruneResult): string => {
  */
 export const PRUNE_COPY = {
   /** The confirm's input is not the brand the file holds (`holdsInput`), so the plan may name what the file still uses. */
-  notApplied: "Nothing removed — the file doesn't hold this brand yet. Apply the theme first, then check again.",
+  notApplied: "Nothing removed — the file doesn't hold this brand yet. Run Update file with Theme ticked, then check again.",
   /** The confirm's `previewHash` is not the plan a fresh read gives now. */
   moved: 'Nothing removed — the file changed after the check. Check again.',
   /** The named version could not be saved, so nothing is removed. */
@@ -760,7 +759,7 @@ export const PRUNE_COPY = {
   /** A throw outside a removal, with the counts removed before it. */
   stopped: (r: PruneResult, why: string): string => {
     const total = r.variables + r.collections + r.modes + r.styles;
-    return `Prune stopped — ${why}. ` + (total
+    return `Clean up stopped — ${why}. ` + (total
       ? `Removed ${total} stale item${total === 1 ? '' : 's'} before it stopped: ${parts(r.styles, r.modes, r.variables, r.collections)}.`
       : 'Nothing was removed.');
   },

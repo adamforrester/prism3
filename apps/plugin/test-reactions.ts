@@ -318,7 +318,7 @@ section('orphan — a destination the host still resolves, to a node with no par
       for (const n of w.page.children) if (n.type === 'COMPONENT_SET') (n.setSharedPluginData as (a: string, b: string, c: string) => void)('prism3', 'updatesOff', '');
       const { res } = await confirm(w, TAG, { handEdits: choice });
       const why = res.outcomes[0]?.skipped.find((x) => x.member === T('rest'))?.reason ?? '';
-      ok(why === 'a layer was added or removed by hand, and its prototype reactions point at a member no longer in the set' && dumpOf(rest) === before,
+      ok(why === 'a layer was added or removed by hand, and its prototype reactions point at a variant no longer in the set' && dumpOf(rest) === before,
         `orphan/under a layer skip (${choice}): the skip names the layer and the dangling reactions, and the member is left exactly (${why || 'not skipped'}; ${dumpOf(rest) === before ? 'untouched' : 'written'})`);
     }
   } finally { delete (globalThis as any).figma; }
@@ -386,8 +386,8 @@ section('converge — a set built before reactions existed is updated once, then
   ok(membersOf(w).every((m) => reactionsOf(m).length === 0), 'premise: no member carries a reaction');
   const { pre, res } = await confirm(w, TAG);
   const lines = previewVerdict(pre).lines.filter((l) => l.includes('prototype reactions'));
-  ok(lines.length === 2 && lines.some((l) => l === `tag · the member · prototype reactions: the plan says While hovering → state=hover; While pressing → state=pressed, the file has none (9 members).`)
-    && lines.some((l) => l === `tag · the member · prototype reactions: the plan says While pressing → state=pressed, the file has none (9 members).`), `converge/dry run: the missing reactions are named, plan against file (${lines.join(' | ')})`);
+  ok(lines.length === 2 && lines.some((l) => l === `tag · the member · prototype reactions: Prism3 expects While hovering → state=hover; While pressing → state=pressed, the file has none (9 variants).`)
+    && lines.some((l) => l === `tag · the member · prototype reactions: Prism3 expects While pressing → state=pressed, the file has none (9 variants).`), `converge/dry run: the missing reactions are named, plan against file (${lines.join(' | ')})`);
   ok(pre.sets[0].handEdits.length === 0, `converge/no hand edits: a record from before reactions claims nothing about them (${JSON.stringify(pre.sets[0].handEdits.slice(0, 2))})`);
   ok(applyVerdict(res).ok, `converge/apply: ${applyVerdict(res).headline} (${applyVerdict(res).lines.join(' | ')})`);
   const total = membersOf(w).reduce((k, m) => k + reactionsOf(m).length, 0);
@@ -432,7 +432,7 @@ section('touch — Rest keeps While pressing, and a file built under the hover-o
   ok(seeded === 9 && JSON.stringify(named(w, member(w, S('rest')))) === JSON.stringify([`ON_HOVER→${S('hover')}`]), `premise: 9 Rest members seeded hover-only, ${S('rest')} among them (${named(w, member(w, S('rest'))).join('; ')})`);
   const { pre, res } = await confirm(w, TAG);
   const lines = previewVerdict(pre).lines.filter((l) => l.includes('prototype reactions'));
-  ok(lines.length === 1 && lines[0] === 'tag · the member · prototype reactions: the plan says While hovering → state=hover; While pressing → state=pressed, the file has While hovering → state=hover (9 members).',
+  ok(lines.length === 1 && lines[0] === 'tag · the member · prototype reactions: Prism3 expects While hovering → state=hover; While pressing → state=pressed, the file has While hovering → state=hover (9 variants).',
     `touch/dry run: the missing press reaction on Rest is named as a reaction difference (${lines.join(' | ')})`);
   ok(pre.sets[0].handEdits.length === 0 && pre.sets[0].states.filter((x) => x.state === 'update').length === 9, `touch/not hand-edited: the 9 Rest members read to update, none hand-edited (${JSON.stringify(pre.sets[0].counts)}; ${JSON.stringify(pre.sets[0].handEdits.slice(0, 2))})`);
   ok(applyVerdict(res).ok, `touch/apply: ${applyVerdict(res).headline} (${applyVerdict(res).lines.join(' | ')})`);
