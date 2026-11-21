@@ -28,6 +28,7 @@
  * separable steps.
  */
 import { BrandInput } from './theme';
+import { copyBaseSurfaces, withOwnSurfaces } from './custom-surfaces';
 
 export type DesignMd = { input: BrandInput; prose: string };
 
@@ -255,6 +256,10 @@ export const parseYamlSubset = (src: string): Record<string, unknown> => {
  * trailing prose, compile the frontmatter to a `BrandInput`. Throws with a clear
  * message if the frontmatter fence is missing (an unfenced file is a mistake, not
  * an empty brand). The returned `input` is NOT yet schema-validated.
+ *
+ * #1946 5b C: a custom mode with no `surfaces.<name>` is from a file written before #1946 (the export always writes
+ * the key), so it is given a copy of its base's surfaces, as a saved v2 brand is (`copyBaseSurfaces`). A key that is
+ * present is taken as it is.
  */
 export const parseDesignMd = (text: string): DesignMd => {
   const nl = text.indexOf('\n');
@@ -271,7 +276,7 @@ export const parseDesignMd = (text: string): DesignMd => {
   if (closeIdx < 0) throw new Error("design.md frontmatter is not closed with a '---' line");
   const fm = restLines.slice(0, closeIdx).join('\n');
   const prose = restLines.slice(closeIdx + 1).join('\n').trim();
-  return { input: parseYamlSubset(fm) as unknown as BrandInput, prose };
+  return { input: copyBaseSurfaces(parseYamlSubset(fm) as unknown as BrandInput), prose };
 };
 
 // --- serialize: BrandInput → design.md (the inverse of parseDesignMd) ----------
@@ -307,9 +312,11 @@ const serValue = (v: unknown): string => {
   return serScalar(v);
 };
 
-/** Serialize a `BrandInput` to `design.md` text (frontmatter + optional prose). */
+/** Serialize a `BrandInput` to `design.md` text (frontmatter + optional prose). #1946 5b C: every custom mode is
+ *  written with its own `surfaces.<name>` (`{}` where it has none), so `parseDesignMd` can tell this file from one
+ *  written before #1946, which has no such key. */
 export const toDesignMd = (input: BrandInput, prose = ''): string => {
-  const fm = Object.entries(input as Record<string, unknown>)
+  const fm = Object.entries(withOwnSurfaces(input) as Record<string, unknown>)
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => `${k}: ${serValue(v)}`);
   const body = prose.trim();

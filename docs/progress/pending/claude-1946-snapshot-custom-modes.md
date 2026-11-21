@@ -43,21 +43,27 @@ frozen at creation, with no live link afterward; provenance records where it sta
 - **5a: brand-wide settings still reach custom modes**, built as the current behavior. Light has no per-mode
   non-color levers (`modeLevers.light` is refused: light's are the brand-wide ones), and every mode shares the
   palettes and globals. Those flow into a custom mode as brand edits; the snapshot covers per-mode values only.
-- **5b: a design.md or JSON import saved before #1946 migrates the same way a saved brand does.** Not built yet:
-  an import carries no version stamp, so how an older file is told apart is held for the owner (below).
+- **5b: a design.md import saved before #1946 migrates the same way a saved brand does.** Built, as 5b C below.
 
-### Held for the owner
+### Owner decisions 5b C and the copy (2026-11-21), built
 
-- **How 5b tells an older import apart.** A: copy `surfaces[base]` on every import wherever `surfaces[name]` is
-  absent. B: stamp the design.md and JSON export with a version. C: always write `surfaces.<name>` for each custom
-  mode from now on, so an absent key means the file predates #1946.
-- **Copy.** The DECISIONS LOG note (`custom modes: … (started from dark) — each keeps the copy …`) and the schema
-  descriptions of `customModes`, `customModes[].base` and `surfaces` are DRAFT, as are the `surfaces.<key>` refusal
-  (`… is not light, dark or a custom mode of this brand …`) and Background fills' line for a custom mode (`Custom
-  modes keep the surfaces they were given when they were made.`). Also DRAFT, from O1 B: the source select's label
-  `Start from` (its accessible name `Start the new custom mode from`, options `Light` and `Dark`, and the disabled
-  Dark's reason `Dark is off, so it has no settings to copy.`), the row's record `Started from Light` / `Started from
-  Dark`, and the add row's line `Copies the mode it starts from; later changes to that mode don’t reach it.`
+- **5b C: the export writes the key, so its absence dates the file.** `toDesignMd` always writes `surfaces.<name>`
+  for every custom mode, as `{}` where it has none (`{}` resolves exactly as no entry does). So a custom mode with no
+  such key is from a file written before #1946 (the schema refused the key then), and `parseDesignMd` gives only that
+  mode a copy of its base's surfaces. A key that is present, `{}` included, is taken as is. No version stamp, and no
+  copy where the key is present. The copy is `copyBaseSurfaces` (`custom-surfaces.ts`), which the v2 saved-brand
+  migration now shares, own-key checks included. Every design.md reader goes through `parseDesignMd`: Studio's
+  import and paste, the CLI and the MCP's `theme_from_brief` (whose `derivedBrandInput` is the migrated input). A
+  saved JSON brand already migrates by its version (O2 A). `lint-design-md-round-trip` owes the `{}` key back for
+  each custom mode with none, typed from the decision, so an export that skips it fails `LOST: surfaces.<name>`.
+- **The copy is approved as written:** the DECISIONS LOG note (`custom modes: … (started from dark) — each keeps the
+  copy …`), the schema descriptions of `customModes`, `customModes[].base` and `surfaces`, the `surfaces.<key>`
+  refusal (`… is not light, dark or a custom mode of this brand …`), Background fills' line for a custom mode
+  (`Custom modes keep the surfaces they were given when they were made.`), the custom-mode floor sentence with its
+  lowercase slug, and from O1 B the source select's label `Start from` (its accessible name `Start the new custom
+  mode from`, options `Light` and `Dark`, and the disabled Dark's reason `Dark is off, so it has no settings to
+  copy.`), the row's record `Started from Light` / `Started from Dark`, and the add row's line `Copies the mode it
+  starts from; later changes to that mode don’t reach it.`
 
 ### Verification
 
@@ -79,3 +85,11 @@ surfaces; no export of the module writes `base`; with dark off, Dark is no sourc
 v2 saved brand loads with `surfaces[base]` copied to each custom mode and keeps each page; the next save is v3, and a
 v3 blob is not migrated. `test-chrome.mjs`: the record is text with no control in the row, a mode created from Dark
 records Dark, and with Dark off Dark is not offered.
+
+5b C (2026-11-21): `test.ts`: an exported custom mode whose base's page moved after it was made comes back from
+import with its own `{}` and its own page; a design.md typed as written before #1946 imports with each custom mode
+given its base's surfaces and page; an explicit `surfaces.<name>` (`{}` or set) is taken as is while a mode without
+one beside it is given its base's. Each failed before the fix. Mutations, each failing by name: the export skips the
+key (`… keeps its own surfaces through import after its base's page moved`, and the round-trip gate's `SELF-CHECK`
+and `LOST: surfaces.<name>`); the import copies whether or not the key is present (`… explicit surfaces.<name> … is
+not overwritten …`, the same round-trip arm, and the v2 `… keeps them (the copy is only where absent)`).

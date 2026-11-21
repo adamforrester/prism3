@@ -31,6 +31,7 @@
  * 100 kB shared-data entry cap.
  */
 import type { BrandInput } from './theme';
+import { copyBaseSurfaces } from './custom-surfaces';
 
 /** Schema version of the persisted blob. Bump on an incompatible `BrandInput` change — a stored
  *  blob whose `v` differs is REJECTED (throws `UnrecognizedPersistedInputError`), never mis-read,
@@ -48,20 +49,9 @@ export const PERSIST_VERSION = 3;
  * `surfaces[name]`, this copies `surfaces[base]` to it, so each mode looks as it did when saved.
  * Only v2 blobs are migrated: a v3 custom mode with no surfaces of its own is a snapshot that took
  * none, and copying its base's surfaces into it then would bring back the live link #1946 removed.
- * A deep copy by JSON (the Figma main thread is not guaranteed `structuredClone`); never mutates `input`.
+ * The copy itself is `copyBaseSurfaces` (`custom-surfaces.ts`), which a design.md import shares (5b C).
  */
-const migrateV2 = (input: BrandInput): BrandInput => {
-  const surfaces = input.surfaces as Record<string, unknown> | undefined;
-  if (!surfaces || typeof surfaces !== 'object' || !Array.isArray(input.customModes)) return input;
-  const next: Record<string, unknown> = { ...surfaces };
-  let moved = false;
-  for (const c of input.customModes) {
-    if (!c || typeof c.name !== 'string' || Object.prototype.hasOwnProperty.call(next, c.name) || !Object.prototype.hasOwnProperty.call(surfaces, c.base) || surfaces[c.base] === undefined) continue;
-    next[c.name] = JSON.parse(JSON.stringify(surfaces[c.base]));
-    moved = true;
-  }
-  return moved ? { ...input, surfaces: next as BrandInput['surfaces'] } : input;
-};
+const migrateV2 = (input: BrandInput): BrandInput => copyBaseSurfaces(input);
 
 /** The wire shape written to shared-data: the version tag + the verbatim `BrandInput`. */
 type Persisted = { v: number; input: BrandInput };

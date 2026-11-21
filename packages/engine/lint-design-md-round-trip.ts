@@ -17,7 +17,8 @@
  *   · one VARIANT per other choice: each other `oneOf`/`anyOf` branch, each other enum value and `false` for each
  *     boolean, written into a copy of the main witness at that one path. A choice nested inside a non-first branch is
  *     reached from that branch's variant, so every property under every branch is set somewhere.
- * Each witness goes through `toDesignMd`, then `parseDesignMd`, and must come back deep-equal. A string with no
+ * Each witness goes through `toDesignMd`, then `parseDesignMd`, and must come back deep-equal, except for the one
+ * addition the export owes: `surfaces.<name>` (as `{}`) for each custom mode with none (#1946 5b C, `expectedBack`). A string with no
  * pattern gets a value that needs quoting (a quote, a colon, a `#`, a backslash); a string with a pattern gets the
  * first candidate below that matches it; a number gets a fraction inside its bounds; an integer a whole one.
  *
@@ -250,6 +251,22 @@ export const diff = (a: Json, b: Json, path: Path = []): { path: Path; sent: Jso
 
 export const roundTrip = (w: Json): Json => parseDesignMd(toDesignMd(w as BrandInput)).input;
 
+/** What a witness must come back as. The one difference the export is promised to make (#1946, owner decision 5b C,
+ *  2026-11-21): every custom mode is written with its own `surfaces.<name>`, as `{}` where the witness has none, so an
+ *  import can tell a file written before #1946 (no key) from one written after. Typed here from the decision, not read
+ *  from `design-md.ts`: an export that skips the key comes back without it and is named `LOST: surfaces.<name>`. */
+export const expectedBack = (w: Json): Json => {
+  if (!w || typeof w !== 'object' || Array.isArray(w)) return w;
+  const o = w as Record<string, Json>;
+  const names = (Array.isArray(o.customModes) ? o.customModes : [])
+    .map((c) => (c && typeof c === 'object' && !Array.isArray(c) ? (c as Record<string, Json>).name : undefined))
+    .filter((n): n is string => typeof n === 'string');
+  if (!names.length) return w;
+  const surfaces = (o.surfaces && typeof o.surfaces === 'object' && !Array.isArray(o.surfaces) ? o.surfaces : {}) as Record<string, Json>;
+  const add = names.filter((n) => !Object.prototype.hasOwnProperty.call(surfaces, n));
+  return add.length ? { ...o, surfaces: { ...surfaces, ...Object.fromEntries(add.map((n) => [n, {}])) } } : w;
+};
+
 export type Witness = { name: string; value: Json };
 export const witnessesOf = (schema: Schema): { witnesses: Witness[]; declared: Set<string>; set: Set<string>; unread: string[] } => {
   const { main, choices, declared, set, unread } = buildWitnesses(schema);
@@ -276,7 +293,7 @@ export const check = (witnesses: Witness[], trip: (w: Json) => Json = roundTrip)
       out.push(`UNPARSEABLE: ${culprits.join(', ') || '(no single property)'}: ${(e as Error).message.split('\n')[0]} [witness: ${w.name}]`);
       continue;
     }
-    for (const d of diff(w.value, back)) out.push(`LOST: ${pathName(d.path)} — sent ${short(d.sent)}, read back ${short(d.got)} [witness: ${w.name}]`);
+    for (const d of diff(expectedBack(w.value), back)) out.push(`LOST: ${pathName(d.path)} — sent ${short(d.sent)}, read back ${short(d.got)} [witness: ${w.name}]`);
   }
   return out;
 };
@@ -323,6 +340,11 @@ const selfCheck = (): string[] => {
   const foreign: Schema = { type: 'object', properties: { m: { type: 'object', patternProperties: { '^w': { type: 'number' } } }, c: { type: 'object', if: { properties: { a: { const: 1 } } }, then: { properties: { extra: { type: 'string' } } } }, b: { type: 'number', oneOf: [{ type: 'number' }, { minimum: 5 }] } } };
   const fu = witnessesOf(foreign).unread;
   for (const want of ['m uses patternProperties', 'c uses if', 'c uses then', 'b has a oneOf branch that only constrains (minimum)']) if (!fu.some((l) => l.startsWith(want))) bad.push(`a schema node that ${want.replace(/^\S+ /, '')} is not reported (${fu.join('; ')})`);
+  // #1946 5b C: a custom mode with no surfaces of its own is owed `surfaces.<name>` on the way back; a trip that returns
+  // the witness as sent (an export that skips the key) is named LOST with that path, and one that writes it is not.
+  const cm: Witness[] = [{ name: 'custom', value: { customModes: [{ name: 'promo', base: 'dark' }], surfaces: { dark: { base: 800 } } } }];
+  if (!check(cm, (w) => w).some((l) => l.startsWith('LOST: surfaces.promo —'))) bad.push('a round trip that skips a custom mode\'s surfaces.<name> is not named LOST');
+  if (check(cm).length) bad.push(`a custom mode's surfaces.<name> does not survive the real round trip as {}: ${check(cm).join('; ')}`);
   if (diff({ a: 1, b: [1, 2] }, { b: [1, 2], a: 1 }).length) bad.push('the diff reads key order as a difference');
   if (diff({ a: '1' }, { a: 1 }).length !== 1) bad.push('the diff does not tell a string from a number');
   return bad;

@@ -102,6 +102,12 @@ import { isDeepStrictEqual } from 'node:util';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
+// #1946 5b C: what a design.md round trip owes back: the brand as sent, plus `surfaces.<name>` as {} for each custom mode
+// with none (the export writes the key so an import can tell a file written before #1946). Typed here, not imported.
+const owedBack = (x: any): any => {
+  const missing = (x.customModes ?? []).map((c: any) => c.name).filter((n: string) => !Object.prototype.hasOwnProperty.call(x.surfaces ?? {}, n));
+  return missing.length ? { ...x, surfaces: { ...(x.surfaces ?? {}), ...Object.fromEntries(missing.map((n: string) => [n, {}])) } } : x;
+};
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 /** The `icon/<glyph>` components a plan nests (#2380) — FIXTURE SETUP for the stub file, so a paste that is
@@ -6581,7 +6587,7 @@ arm: {
   ok(threw(() => brandTheme({ ...base, customModes: [{ name: 'Marketing Dark', base: 'dark' }] } as unknown as BrandInput)), 'C1(e): a non-slug name (Marketing Dark) throws');
 
   // (f) design.md round-trip preserves customModes through parse∘serialize.
-  ok(JSON.stringify(stable(parseDesignMd(toDesignMd(withCustom)).input)) === JSON.stringify(stable(withCustom)),
+  ok(JSON.stringify(stable(parseDesignMd(toDesignMd(withCustom)).input)) === JSON.stringify(stable(owedBack(withCustom))),
     'C1(f): parseDesignMd(toDesignMd(inputWithCustomModes)) preserves customModes');
 
   // (g) byte-identical guard — a brand with no customModes (or []) matches the field-absent build.
@@ -6726,6 +6732,31 @@ arm: {
     ok(protoBase !== null && JSON.stringify(protoBase.surfaces) === '{"light":{"base":50},"dark":{"base":900}}',
       `#1946: a saved custom mode whose base names a prototype key ('${protoKey}') loads with nothing copied (${protoBaseErr || JSON.stringify(protoBase?.surfaces)})`);
   }
+  // 5b C (owner decision 2026-11-21): a design.md carries no version, so the export always writes surfaces.<name> for
+  // every custom mode, and an import reads a custom mode with no such key as written before #1946 (the schema refused
+  // the key then): only that mode is given a copy of its base's surfaces, as a v2 saved brand is. A key that is
+  // present, {} included, is taken as is. EXPECTED pages and copies are typed here; ACTUAL is the engine's round trip.
+  // (1) Export then import: promo was made from dark while dark had no surfaces, and dark's page moved afterwards. The
+  // export says promo has surfaces of its own (none), so the import does not hand it dark's new page.
+  const movedBase = { ...base, customModes: [{ name: 'promo', base: 'dark' }], surfaces: { dark: { base: 800 } } } as unknown as BrandInput;
+  const tripped = parseDesignMd(toDesignMd(movedBase)).input as any;
+  ok(Object.prototype.hasOwnProperty.call(tripped.surfaces ?? {}, 'promo') && JSON.stringify(tripped.surfaces.promo) === '{}'
+    && bgOf(tripped, 'promo') === bgOf(movedBase, 'promo') && bgOf(tripped, 'promo') !== bgOf(tripped, 'dark'),
+    `#1946 5b C: an exported custom mode keeps its own surfaces through import after its base's page moved (surfaces ${JSON.stringify(tripped.surfaces)}, promo ${bgOf(tripped, 'promo')}, dark ${bgOf(tripped, 'dark')})`);
+  ok(JSON.stringify((movedBase as any).surfaces) === '{"dark":{"base":800}}', '#1946 5b C: the export does not write into the brand it was given');
+  // (2) A design.md written before #1946, typed here: no surfaces.<name>, so each custom mode gets its base's copy and
+  // draws the page the pre-#1946 engine drew it with (its family's).
+  const fm = (lines: string[]) => `---\nid: d\nmodes: [light, dark]\nprimary: { l: 0.55, c: 0.18, h: 285 }\nneutral: { hue: 285, chroma: 0.01 }\n${lines.join('\n')}\n---\n`;
+  const oldMd = parseDesignMd(fm(['customModes: [{ name: promo, base: dark }, { name: paper, base: light }]', 'surfaces: { light: { base: 50 }, dark: { base: 800 } }'])).input as any;
+  ok(JSON.stringify(oldMd.surfaces) === '{"light":{"base":50},"dark":{"base":800},"promo":{"base":800},"paper":{"base":50}}'
+    && bgOf(oldMd, 'promo') === bgOf(oldMd, 'dark') && bgOf(oldMd, 'paper') === bgOf(oldMd, 'light'),
+    `#1946 5b C: a design.md written before snapshots (no surfaces.<name>) imports with its base's surfaces copied to each custom mode (${JSON.stringify(oldMd.surfaces)})`);
+  // (3) A key that is present is the file's word: {} and a set value are each taken as is, while a mode without one
+  // beside them is still given its base's.
+  const newMd = parseDesignMd(fm(['customModes: [{ name: promo, base: dark }, { name: neon, base: dark }, { name: paper, base: light }]', 'surfaces: { light: { base: 50 }, dark: { base: 800 }, promo: {}, neon: { base: 900 } }'])).input as any;
+  ok(JSON.stringify(newMd.surfaces) === '{"light":{"base":50},"dark":{"base":800},"promo":{},"neon":{"base":900},"paper":{"base":50}}'
+    && bgOf(newMd, 'promo') !== bgOf(newMd, 'dark'),
+    `#1946 5b C: an import's explicit surfaces.<name> ({} or set) is not overwritten by its base's; only a mode with none is given a copy (${JSON.stringify(newMd.surfaces)})`);
 }
 
 // PER-MODE RADIUS LEVER (Phase D) — a customizable mode overrides the `radius` scale; the engine
@@ -9011,7 +9042,7 @@ arm: {
   ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { shadow: { tint: { amount: 2 } } } } } as unknown as BrandInput)), 'D-shadow(f): a shadow tint amount of 2 (>1) throws');
 
   // (g) design.md round-trip preserves modeLevers.shadow through parse∘serialize.
-  ok(JSON.stringify(stable(parseDesignMd(toDesignMd(perMode)).input)) === JSON.stringify(stable(perMode)),
+  ok(JSON.stringify(stable(parseDesignMd(toDesignMd(perMode)).input)) === JSON.stringify(stable(owedBack(perMode))),
     'D-shadow(g): parseDesignMd(toDesignMd(input)) preserves modeLevers.shadow');
 
   // (h) validateBrandInput ACCEPTS per-mode shadow — RETURNS an empty error array (never throws).
