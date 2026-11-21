@@ -610,8 +610,9 @@ const refsIn = (v: any): string[] => {
 export type AiMetadataOptions = { tokensFile?: string };
 
 /** The sidecar's schema id. The JSON Schema at `schema/ai-metadata.schema.json` carries the same `$id`,
- *  and a test holds the two equal — bump both together when a field is added, renamed or removed. */
-export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.6';
+ *  and a test holds the two equal — bump both together when a field is added, renamed or removed.
+ *  0.6 — `motion_presets` (#2857). 0.7 — `icons`, the brand icon map (#3076). */
+export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.7';
 
 /** The one normative sentence (AI/C-1) — a check a reader can run with `tokens.json` alone: resolve both
  *  roles in each mode, composite a translucent one over its ground, compare with the floor. `lint-voice.ts`

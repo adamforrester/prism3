@@ -15,9 +15,9 @@ rides on the def as `brandGlyphs`, attached only where the projector draws or na
 reads it before `ICON_PATHS`. A brand with no block gets every def back as the same object, so `component-surface.json`
 and every committed plan are unmoved.
 
-**Code side.** The component-defs export carries `brand.settings.icons` (format 1.5), and its `spec` follows the map
+**Code side.** The component-defs export carries `brand.settings.icons` (format 1.7, after #2778 took 1.6), and its `spec` follows the map
 (its `def` is the authored one in every export, by design). `<brand>.ai.json` gains `icons: { note, map, names }`
-(schema 0.6). That version is the only committed byte that moves, in every brand's `.ai.json`.
+(schema 0.7, after #2857 took 0.6). That version is the only committed byte that moves, in every brand's `.ai.json`.
 
 **Gates (docs/34).** The expected side is typed from #3076's own table of where the core icons are used, plus the
 counter (the proposal's finding 2), never read from `icon-map.ts`.
