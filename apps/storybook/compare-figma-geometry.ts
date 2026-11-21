@@ -35,6 +35,32 @@ import { load, ARM_1, boxedParts } from './arm-contract';
 
 const HERE = import.meta.dirname ?? '';
 const FIGMA = resolve(HERE, 'figma-geometry.json');
+const SCRIPT = resolve(HERE, 'figma-geometry.js');
+
+/**
+ * The Mac script must RETURN its record: the Desktop Bridge's `figma_execute` wraps the code in an async function body
+ * and hands back only an explicit `return`, so a bare `(async () => { ... })();`, or an IIFE that drops its own
+ * `return`, comes back `undefined`. So the self-test runs the script's source the way the bridge does, in an async
+ * function body with `figma` in scope, against a stub file of one set, one member and one text layer, and holds what
+ * comes back. Read from the script's source, not from any copy of it. Returns the failure, or null.
+ */
+export const scriptReturns = async (src: string): Promise<string | null> => {
+  const box = (x: number, y: number, width: number, height: number) => ({ x, y, width, height });
+  const label = { id: '2:3', name: 'label', type: 'TEXT', visible: true, characters: 'Go', layoutSizingHorizontal: 'HUG', absoluteBoundingBox: box(112, 108, 30, 20) };
+  const member = { id: '2:1', type: 'COMPONENT', variantProperties: { state: 'rest' }, absoluteBoundingBox: box(100, 100, 54, 36), children: [label], strokes: [] };
+  const set = { id: '1:1', name: 'button', type: 'COMPONENT_SET', componentPropertyDefinitions: {}, children: [member] };
+  const stub = { loadAllPagesAsync: async () => {}, root: { findAllWithCriteria: () => [set] } };
+  const AsyncFunction = (async () => {}).constructor as new (...args: string[]) => (figma: unknown) => Promise<unknown>;
+  let got: unknown;
+  try { got = await new AsyncFunction('figma', src)(stub); } catch (e) { return `figma-geometry.js throws when run as figma_execute runs it: ${(e as Error).message}`; }
+  if (typeof got !== 'string') return `figma-geometry.js, run as figma_execute runs it, returns ${got === undefined ? 'undefined' : typeof got}, not the record as a JSON string: figma_execute hands back only an explicit return`;
+  let part: Record<string, unknown> | undefined;
+  try { part = JSON.parse(got).components?.button?.members?.[0]?.parts?.['container/label']; } catch { return 'figma-geometry.js returns a string that is not JSON'; }
+  const want = { id: '2:3', type: 'TEXT', x: 12, y: 8, w: 30, h: 20, text: 'Go' };
+  const off = Object.entries(want).filter(([k, v]) => part?.[k] !== v).map(([k]) => k);
+  if (!part || off.length) return `figma-geometry.js returns a record without the stub's label as container/label {x: 12, y: 8, w: 30, h: 20} (${part ? `differs in ${off.join(', ')}` : 'missing'})`;
+  return null;
+};
 const CODE = resolve(HERE, 'storybook-static/geometry.code.json');
 const EPS = 0.01 + 1e-9;
 const KPI_STATES = ['rest', 'hover', 'focus-visible', 'disabled', 'pending'];
@@ -222,6 +248,9 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma
   const code: CodeRecord = JSON.parse(readFileSync(CODE, 'utf8'));
   if (process.argv.includes('--self-test')) {
     let bad = 0;
+    const script = await scriptReturns(readFileSync(SCRIPT, 'utf8'));
+    if (script) { bad++; console.error(`FAIL self-test: ${script}`); }
+    else console.log('OK self-test: figma-geometry.js, run in an async function body as figma_execute runs it, returns the record (a stub set\'s label read back as container/label)');
     const base = plantFigma(code);
     const clean = compare(base, code, partList(code));
     for (const n of clean.notes) console.log(`  named: ${n}`);
