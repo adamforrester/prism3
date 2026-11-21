@@ -2510,3 +2510,42 @@ committed first and restored with `git show`, and each fails that case by name:
 card would then show a measured 0 for a manifest that matched nothing. The guard is now `unmeasurable()`, which the CLI
 and the self-test both call, and an 11th case plants a manifest whose only tag matches no def and requires the FAIL line,
 never `0 mismatches`. With the guard emptied, that case fails by name.
+
+## Figma geometry, after #4432's owner decisions: line boxes, root causes, fields (#3408 S6)
+
+### What was built
+- **Decision 1 A, one finding per root cause.** `compare-figma-geometry.ts` groups its lines. The button's root
+  border (1px transparent in CSS, no stroke in Figma) is one finding. It holds the border lines, and every width or x
+  line whose residual equals the border's difference on that side exactly, by arithmetic. The same difference in
+  several cases of one component is one finding. The summary line names both counts, and the scorecard's FAIL cell
+  carries that line.
+- **Decision 2 C, Figma's line box modeled.** `check-geometry.ts` records `font: { size, lineHeight }` (computed, in px,
+  unrounded) on each part that holds text of its own. For a Figma TEXT part, the code's height is held to Figma's less
+  round(L) − ⌊64L⌋/64. A text Figma centers has its y held to Figma's plus half of that, truncated to 1/64px. The rule
+  stays 0.01px.
+- **Decision 3 A, fields reached.** Each field gets `RestNoMessage`, `HoverNoMessage`, `FocusVisibleNoMessage`,
+  `DisabledNoMessage` and `ErrorNoMessage`, in both forms: 20 stories. They're added to the expected stories, ARIA
+  snapshots (10) and check-build's field checks. ARIA adds a `LACKS` row: no description with the message off at
+  default. `stateOf` (`a11y-harness.ts`) maps `hover-no-message` to hover for forcing, keyboard, geometry and right to
+  left.
+
+### Counts, against the record at 40d7fc01
+| | before (98 of 241) | after (100 of 509, 13 findings) |
+|---|---|---|
+| 1 and 2: the button's border | 58 lines | 58 lines, **1 finding** |
+| 3: text line boxes | 30 lines | **0** |
+| 4: field members unreached | 10 | **2**, the error members |
+| field geometry, newly compared | not compared | 40 lines, 10 findings |
+
+The two error members stay unreached because the field writes its message at error whatever `showMessage` says
+(Q-POC2 A), so `error-no-message` draws one. The new field findings:
+- the control's content and entry insets, 17 in code and 16 in Figma, probably the control's CSS border against
+  Figma's inside stroke;
+- the Show/Hide toggle's y and height, 5.2/15.8 in code and 0/21 in Figma;
+- the password field's label-cell right inset, 41.97 in code and 40 in Figma.
+
+### Surprises
+- Chromium's LayoutUnit **truncates** to 1/64px. Rounding to 1/64 missed the large label by 0.0156px, because 20.7px
+  is laid out as 20.6875. The centered offset truncates too: the small label sits at 11.09375, not 11.1016.
+- check-build already required every field to describe a message, so the no-message stories failed it on the first
+  build. It now requires the absence instead, and that the box at each no-message state equals its state's.

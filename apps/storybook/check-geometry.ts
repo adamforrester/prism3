@@ -16,6 +16,9 @@
  * this passes). `compare-figma-geometry.ts` sets it beside Figma's own record (`figma-geometry.json`, from the Mac job
  * in `figma-geometry.md`).
  *
+ * TEXT: a part that sets text itself (a text node of its own) also records its computed font size and line height in px,
+ * unrounded (`font`), which the Figma comparison needs to model Figma's whole-pixel line box (#4432 decision 2 C).
+ *
  * THE FOCUS RING is an outline in code, with no box of its own. Its box is derived from the root's box, the outline's
  * offset and its width, and recorded as `container/focusRing` in the focus-visible case only.
  *
@@ -25,7 +28,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { load, ARM_1, boxedParts } from './arm-contract';
-import { stories, open, context, result, main, at, dirsFor, DROPPED, STATIC, type Plant, type Result, type Story, type Dir } from './a11y-harness';
+import { stories, open, context, result, main, at, dirsFor, DROPPED, STATIC, stateOf, type Plant, type Result, type Story, type Dir } from './a11y-harness';
 
 /** The anatomy's part paths that have a box in code, per component, and where each is in the code's markup: arm 1's
  *  input contract (`arm-1.contract.json`, checked by `check-arm-contract.ts`), the same file an arm 2 supplies. */
@@ -33,7 +36,7 @@ const CONTRACT = load(ARM_1);
 export const PARTS: Record<string, Record<string, string>> = boxedParts(CONTRACT);
 const ROOTS: Record<string, string> = Object.fromEntries(Object.entries(CONTRACT.components).map(([id, c]) => [id, c.root]));
 
-export type Box = { x: number; y: number; w: number; h: number };
+export type Box = { x: number; y: number; w: number; h: number; font?: { size: number; lineHeight: number | null } };
 export type RootGeometry = { w: number; h: number; padding: number[]; border: number[]; radius: number[] };
 export type Measure = { where: Record<string, string>; root: RootGeometry; parts: Record<string, Box>; text?: string };
 const DP = 100; // 0.01px
@@ -59,6 +62,14 @@ const MEASURE = `(([component, rootSel, parts, state, dp]) => {
     const b = el.getBoundingClientRect();
     if (!b.width && !b.height) continue;
     out[part] = { x: r2(b.left - rb.left), y: r2(b.top - rb.top), w: r2(b.width), h: r2(b.height) };
+    // a part that sets text itself (a non-empty text node of its own): its computed font size and line height, in px,
+    // unrounded, so the comparison can model how Figma rounds a line box (#4432 decision 2 C)
+    if ([...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) {
+      const ts = getComputedStyle(el);
+      const size = parseFloat(ts.fontSize);
+      const lh = ts.lineHeight === 'normal' ? null : /px$/.test(ts.lineHeight) ? parseFloat(ts.lineHeight) : parseFloat(ts.lineHeight) * size;
+      out[part].font = { size, lineHeight: lh };
+    }
   }
   const text = component === 'button' ? root.querySelector(':scope > .p3-button__label')?.textContent?.trim() : undefined;
   if (component === 'button' && state === 'focus-visible' && cs.outlineStyle !== 'none') {
@@ -79,7 +90,7 @@ const MEASURE = `(([component, rootSel, parts, state, dp]) => {
 })`;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const measure = async (page: any, s: Story, parts = PARTS): Promise<Measure | string> =>
-  page.evaluate(`${MEASURE}(${JSON.stringify([s.component, ROOTS[s.component], parts[s.component], STATES.has(s.case) ? s.case : 'rest', DP])})`);
+  page.evaluate(`${MEASURE}(${JSON.stringify([s.component, ROOTS[s.component], parts[s.component], STATES.has(stateOf(s)) ? stateOf(s) : 'rest', DP])})`);
 
 /** Every difference between two records of one case, by name, to 0.01px. `a` and `b` name the two sides. */
 export const diff = (where: string, x: Measure, y: Measure, a: string, b: string): string[] => {
@@ -95,6 +106,7 @@ export const diff = (where: string, x: Measure, y: Measure, a: string, b: string
     const [p, q] = [x.parts[part], y.parts[part]];
     if (!p || !q) { out.push(`${where}: ${part} is drawn in the ${p ? a : b} only`); continue; }
     for (const k of ['x', 'y', 'w', 'h'] as const) if (!near(p[k], q[k])) out.push(`${where}: ${part} ${({ x: 'x', y: 'y', w: 'width', h: 'height' })[k]} is ${p[k]} in the ${a}, ${q[k]} in the ${b}`);
+    if (JSON.stringify(p.font) !== JSON.stringify(q.font)) out.push(`${where}: ${part} font (size, line height) is ${JSON.stringify(p.font ?? null)} in the ${a}, ${JSON.stringify(q.font ?? null)} in the ${b}`);
   }
   return out;
 };

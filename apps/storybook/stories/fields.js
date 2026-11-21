@@ -46,7 +46,8 @@ const COPY = {
 
 /**
  * The cases, shared by both fields and both forms. One per def state (rest, filled, hover, focus-visible, each
- * validation status, disabled, read-only, pending, required), each size, and the visuals. The password field adds
+ * validation status, disabled, read-only, pending, required), each size, and the visuals; and each KPI 2 state again
+ * with the message off (`<State>NoMessage`), which Figma's geometry record compares with. The password field adds
  * `Shown`, which presses Show.
  */
 export const casesFor = (kind) => {
@@ -69,6 +70,13 @@ export const casesFor = (kind) => {
     Medium: { props: { ...help, size: 'medium' } },
     Large: { props: { ...help, size: 'large' } },
     WithIcons: { props: { ...help }, leading: true, trailing: kind === 'text-field' },
+    // Each KPI 2 state with the message off, as Figma's members are built (its `message` property defaults to false):
+    // #4432's decision 3 A. At error the message is written anyway (Q-POC2 A), so ErrorNoMessage still draws one.
+    RestNoMessage: { props: {} },
+    HoverNoMessage: { props: {}, pseudo: { hover: true } },
+    FocusVisibleNoMessage: { props: {}, pseudo: { focusVisible: true } },
+    DisabledNoMessage: { props: { disabled: true } },
+    ErrorNoMessage: { props: { ...status('error'), showMessage: false, helpText: undefined } },
   };
   if (kind === 'password-field') {
     cases.Shown = { props: { ...help, defaultValue: c.value }, press: true };

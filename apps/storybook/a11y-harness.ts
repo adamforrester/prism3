@@ -25,6 +25,9 @@ export const STATIC = resolve(HERE, 'storybook-static');
 export const require = createRequire(import.meta.url);
 
 export type Story = { id: string; component: string; form: 'element' | 'html'; case: string };
+/** The state a case shows: its name, less the `-no-message` suffix of a field case drawn with the message off
+ *  (`hover-no-message` is forced to hover, `disabled-no-message` is disabled). */
+export const stateOf = (s: Pick<Story, 'case'>): string => s.case.replace(/-no-message$/, '');
 export type Dir = 'ltr' | 'rtl';
 /** The directions every check promises. Written here, not read from the build. */
 export const DIRS: readonly Dir[] = ['ltr', 'rtl'];
@@ -92,7 +95,7 @@ export const open = async (page: any, origin: string, s: Story, theme: 'light' |
   page.on('pageerror', (e: Error) => errors.push(e.message));
   await page.goto(`${origin}/iframe.html?id=${s.id}&viewMode=story&globals=theme:${theme};dir:${dir}`);
   await page.waitForSelector('#storybook-root [data-component]', { timeout: 15000 });
-  if (FORCED[s.case]) await page.waitForSelector(`#storybook-root.${FORCED[s.case]}`, { timeout: 10000 });
+  if (FORCED[stateOf(s)]) await page.waitForSelector(`#storybook-root.${FORCED[stateOf(s)]}`, { timeout: 10000 });
   if (s.component === 'password-field') {
     await page.waitForFunction(() => [...document.querySelectorAll('.p3-password-field__toggle')].every((b) => !(b as HTMLElement).hidden), null, { timeout: 10000 });
     if (s.case.startsWith('shown')) {

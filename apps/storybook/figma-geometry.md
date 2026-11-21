@@ -36,9 +36,10 @@ decision on #3408. Never name the file or its key in a public issue, PR or comme
    npm run -w @prism3/storybook build && npx tsx apps/storybook/check-geometry.ts && npx tsx apps/storybook/compare-figma-geometry.ts
    ```
 
-   It prints `OK figma geometry: …`, or `FAIL figma geometry: N of M comparisons differ` with one line per difference:
-   `<component> <case> (<node id>): <what> is <code> in code, <figma> in Figma`. A difference is a finding, not a
-   failure of the job.
+   It prints `OK figma geometry: …`, or `FAIL figma geometry: N of M comparisons differ, in K findings` with one line
+   per difference: `<component> <case> (<node id>): <what> is <code> in code, <figma> in Figma`. Lines that share a
+   root cause print under one finding (`compare-figma-geometry.ts`, ROOT CAUSES): the button's root border, and the same
+   difference repeated across cases. A difference is a finding, not a failure of the job.
 6. Post the output verbatim to #3408, and push `figma-geometry.json` on a branch for a PR into `poc/arm-1`. The record
    names node ids and layer names only, no file name.
 
@@ -49,6 +50,18 @@ explicitly `return`s. The first live run got `undefined` back from a bare `(asyn
 now starts `return (async () => {`. `compare-figma-geometry.ts --self-test` (in `check:build`) runs the script's
 source the same way, in an async function body with a stub `figma` (one set, one member, one text layer), and fails by
 name unless the record comes back. So dropping either `return`, the outer one or the IIFE's own, fails.
+
+## Settled by the owner on the first record (#4432, 2026-11-21)
+
+- **The button's transparent border** (CSS reserves 1px on every appearance; Figma's filled and text members have no
+  stroke) is a real difference, and stays. It counts as **one finding**, not one per line: the comparison groups every
+  border line, and every width or x line the border's difference explains exactly, under it.
+- **Text line boxes** are modeled, not tolerated: Figma sets round(font size × line height), Chromium truncates the
+  same product to 1/64px, and a centered text moves by half the difference. The code record carries each text part's
+  computed font size and line height for this.
+- **The fields** are compared through stories drawn with the message off (`<State>NoMessage`, at rest, hover,
+  focus-visible, disabled and error), since Figma's members record `message` at its default, false. At error the code
+  writes the message anyway (Q-POC2 A), so Figma's error member stays unreached: a finding, not a missing story.
 
 ## Not yet verified live
 

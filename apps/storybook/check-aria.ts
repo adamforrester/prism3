@@ -37,7 +37,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { at, context, dirsFor, DROPPED, main, open, require, result, stories, type Dir, type Plant, type Story, type Result } from './a11y-harness.ts';
+import { at, context, dirsFor, DROPPED, main, open, require, result, stateOf, stories, type Dir, type Plant, type Story, type Result } from './a11y-harness.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASELINE = resolve(HERE, 'aria-snapshots.json');
@@ -62,7 +62,8 @@ const MESSAGE: Record<string, Record<string, string>> = {
 const STATUS: Record<string, string> = { error: 'error', warning: 'warning', success: 'success', 'shown-error': 'error' };
 
 /** What each case must expose, as lines that must appear in its snapshot. Written from the defs, not read from them. */
-const HAS = (component: string, c: string): string[] => {
+const HAS = (component: string, kase: string): string[] => {
+  const c = stateOf({ case: kase });
   if (component === 'button') {
     const name = c === 'pending' ? 'Saving' : c === 'with-visuals' ? 'Add item' : 'Save changes';
     // disabled, inactive and pending are all unavailable to assistive tech: native disabled, or aria-disabled
@@ -73,7 +74,10 @@ const HAS = (component: string, c: string): string[] => {
   const status = STATUS[c] ?? 'default';
   const box = `textbox "${LABEL[kind]}"${status === 'error' ? ' [invalid]' : ''}${c === 'disabled' ? ' [disabled]' : ''}`;
   const set = c === 'disabled' ? ['disabled'] : ['focusable', ...(status === 'error' ? ['invalid'] : []), ...(c === 'required' ? ['required'] : []), ...(c === 'read-only' ? ['readonly'] : []), ...(c === 'pending' ? ['busy'] : [])];
-  const lines = [`- ${box}`, `description of ${box}: ${MESSAGE[kind][status]}`, `states of textbox "${LABEL[kind]}": ${set.join(', ')}`];
+  // a field drawn with the message off has no description, except at a validation status, where the message is
+  // written anyway (Q-POC2 A, #1712 A); LACKS holds the absence
+  const described = !kase.endsWith('-no-message') || status !== 'default';
+  const lines = [`- ${box}`, ...(described ? [`description of ${box}: ${MESSAGE[kind][status]}`] : []), `states of textbox "${LABEL[kind]}": ${set.join(', ')}`];
   if (kind === 'password-field') {
     const shown = c.startsWith('shown');
     const toggle = `${shown ? 'Hide' : 'Show'} password`;
@@ -82,6 +86,10 @@ const HAS = (component: string, c: string): string[] => {
   }
   return lines;
 };
+
+/** What a case must NOT expose, as line prefixes: a field with the message off at default has no description. */
+const LACKS = (component: string, kase: string): string[] =>
+  component !== 'button' && kase.endsWith('-no-message') && !STATUS[stateOf({ case: kase })] ? ['description of '] : [];
 
 /** The control states read from Chromium's tree, in this order. */
 const STATES = ['focusable', 'disabled', 'invalid', 'required', 'readonly', 'busy'];
@@ -135,6 +143,10 @@ export const run = async (browser: unknown, origin: string, plant: Plant = {}, o
       for (const line of HAS(s.component, s.case)) {
         const present = line.startsWith('- ') ? snap.split('\n').some((l) => l.trim() === line || l.trim().startsWith(`${line}:`)) : snap.split('\n').includes(line);
         r.ok(present, `${where}: the accessibility tree lacks «${line}» (HAS, written from the def)`);
+      }
+      for (const prefix of LACKS(s.component, s.case)) {
+        const hit = snap.split('\n').find((l) => l.startsWith(prefix));
+        r.ok(!hit, `${where}: the accessibility tree has «${hit}», and a field with the message off has none (LACKS)`);
       }
     }
   } finally {
