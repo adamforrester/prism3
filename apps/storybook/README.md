@@ -59,6 +59,12 @@ ARIA snapshots and the keyboard suite run from Playwright over the static build 
   field's message; `aria-invalid="true"` is on the input at error only; and no field holds a live region.
 - The element and HTML stories of one case compute the same styles.
 
+**The arm input contract (#3408).** `check-arm-contract.ts` checks that `arm-1.contract.json` is complete against
+the engine's anatomy, the emitted token tree and the built `index.json`. It then runs eight mutants, and each must fail
+by name. The geometry scripts read each component's root and part selectors from the contract, and the Figma
+comparison takes `--contract`. The pieces that still read arm 1 directly are listed in `ARM-CONTRACT.md`
+("Still arm 1's").
+
 **Geometry (#3408 S6, KPI 2 with Q32 A).** `check:build` then runs two more scripts:
 - **`check-geometry.ts`** measures every story, in both forms and both directions: the root's extent, padding, border
   and corner radii, and each anatomy part's box, from the browser's layout. Parts are keyed by the def's part path, the
