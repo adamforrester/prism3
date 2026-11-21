@@ -190,6 +190,9 @@
 .p3-menu-item:where(:not(:disabled, [aria-disabled="true"])):hover { background: var(--p3-fill-1); }
 .p3-menu-item[disabled] { color: var(--p3-text-2); cursor: not-allowed; }
 .p3-menu-item .p3-ico { color: var(--p3-icon-2); }
+/* #3977: an example's name over its few words, muted and small, as the menu's other secondary text. */
+.p3-menu-twoline { display: grid; gap: var(--p3-space-025); padding-block: var(--p3-space-075); min-width: 0; }
+.p3-menu-desc { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); line-height: var(--p3-lh-cozy); }
 .p3-menu-note { margin-left: auto; padding-left: var(--p3-space-200); color: var(--p3-text-2); font-size: var(--p3-fs-12); }
 /* The build stamp at the foot of the Inspect menu (#474, owner decision C3 A): small, secondary, selectable. */
 .p3-menu-stamp { display: flex; flex-wrap: wrap; gap: var(--p3-space-050) var(--p3-space-150); margin: var(--p3-space-050) 0 0; padding: var(--p3-space-100) var(--p3-space-150) var(--p3-space-050);
@@ -351,6 +354,10 @@
 .p3-errstrip[hidden] { display: none; }
 .p3-errstrip > .p3-ico { color: var(--p3-bad-icon); margin-top: var(--p3-space-025); }
 .p3-errstrip-text { min-width: 0; overflow-wrap: anywhere; }
+/* #4222: the line, and under it the refusal's own words behind a closed Details. */
+.p3-errstrip-msg { min-width: 0; display: grid; gap: var(--p3-space-050); }
+.p3-errstrip-detail > summary { cursor: pointer; width: fit-content; }
+.p3-errstrip-detail-text { margin: var(--p3-space-050) 0 0; overflow-wrap: anywhere; }
 
 /* ── the dialogs (S13.1): Export and the prune review, on a scrim ─────────────────────────── */
 /* Their own `p3-bardlg-*` names, not `p3-dialog-*` or `p3-scrim` (the start window and its guard's, S12): no rule here
@@ -1695,7 +1702,11 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-start-row > .p3-colorfield { flex: 0 1 auto; }
 .p3-colorfield[data-refused="true"] { border-color: var(--p3-bad-icon); }
 .p3-frame[data-w="narrow"] .p3-start-row > .p3-start-go { margin-left: 0; }
-.p3-start-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); margin-top: var(--p3-space-150); }
+/* Owner decision 2026-11-20: a wider column gap than row gap, so the examples' lines, side by side on one row, read as
+   three lines and not one sentence (they ran together at 8px). */
+.p3-start-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-300); margin-top: var(--p3-space-150); }
+/* #3977: each example is its chip with its few muted words beneath (`.p3-start-desc`, the cards' own secondary text). */
+.p3-start-ex { display: grid; justify-items: start; align-content: start; gap: var(--p3-space-050); min-width: 0; }
 .p3-btn.p3-start-chip { border-radius: var(--p3-radius-pill); padding: 0 var(--p3-space-150) 0 var(--p3-space-100); font-weight: var(--p3-fw-default); }
 .p3-start-dot { flex: none; width: var(--p3-space-150); height: var(--p3-space-150); border-radius: var(--p3-radius-pill); }
 .p3-start-paste {
