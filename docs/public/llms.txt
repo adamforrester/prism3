@@ -6,7 +6,7 @@ The engine is dependency-free TypeScript in `packages/engine/`, run with `npx ts
 
 ## Use the MCP server
 
-The server runs from a clone of the repository, with Node 20 or later and no install step: `npx --yes tsx@4 packages/engine/mcp.ts`, run from the clone's root. It speaks MCP over stdio. A client registers the same command with an absolute path, for example `{ "mcpServers": { "prism3": { "command": "npx", "args": ["--yes", "tsx@4", "/path/to/prism3/packages/engine/mcp.ts"] } } }`. [Connect an agent](https://github.com/adamforrester/prism3/blob/main/packages/engine/README.md#connect-an-agent-mcp) covers Claude Code, the protocol versions and where `export_theme` writes.
+The server runs from a clone of the repository, with Node 20 or later and no install step: `npx --yes tsx@4 packages/engine/mcp.ts`, run from the clone's root. It speaks MCP over stdio. A client registers the same command with an absolute path, for example `{ "mcpServers": { "prism3": { "command": "npx", "args": ["--yes", "tsx@4", "/path/to/prism3/packages/engine/mcp.ts"] } } }`. [Connect an agent](https://github.com/prism-ds/prism3/blob/main/packages/engine/README.md#connect-an-agent-mcp) covers Claude Code, the protocol versions and where `export_theme` writes.
 
 One minimal call per tool. Each line is the `params` of a `tools/call` request, and each runs as written (`mcp-test.ts` runs them). A brand needs `id`, `primary` as OKLCH (`l` 0 to 1, `c` chroma, `h` hue in degrees) and `neutral` (`hue` as degrees, `warm` or `cool`; `chroma` 0 to 0.03).
 
@@ -54,15 +54,15 @@ Task guides for designers, in task order. Every write to a Figma file goes throu
 
 ## Outputs
 
-- [DTCG token files](https://github.com/adamforrester/prism3/tree/main/packages/engine/out): one set per example brand, such as `prism3.tokens.json` (the full tree), `prism3.base.tokens.json` (the base mode) and one overlay file for each other mode.
-- [Agent metadata](https://github.com/adamforrester/prism3/blob/main/packages/engine/out/prism3.ai.json): `<brand>.ai.json` sits beside each token set and says what each token means, when to use it and when not to. Its shape is [ai-metadata.schema.json](https://github.com/adamforrester/prism3/blob/main/packages/engine/schema/ai-metadata.schema.json).
-- [Component catalog](https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/components.ai.json): every built component, with its props, states, accessibility and when to use it. A component exists only when it has an entry here. Each also has a page beside it, `<id>.md`, with the same content for a person to read.
-- [Brand input schema](https://github.com/adamforrester/prism3/blob/main/packages/engine/schema/theme-schema.json): the BrandInput shape every theming tool and command accepts.
+- [DTCG token files](https://github.com/prism-ds/prism3/tree/main/packages/engine/out): one set per example brand, such as `prism3.tokens.json` (the full tree), `prism3.base.tokens.json` (the base mode) and one overlay file for each other mode.
+- [Agent metadata](https://github.com/prism-ds/prism3/blob/main/packages/engine/out/prism3.ai.json): `<brand>.ai.json` sits beside each token set and says what each token means, when to use it and when not to. Its shape is [ai-metadata.schema.json](https://github.com/prism-ds/prism3/blob/main/packages/engine/schema/ai-metadata.schema.json).
+- [Component catalog](https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/components.ai.json): every built component, with its props, states, accessibility and when to use it. A component exists only when it has an entry here. Each also has a page beside it, `<id>.md`, with the same content for a person to read.
+- [Brand input schema](https://github.com/prism-ds/prism3/blob/main/packages/engine/schema/theme-schema.json): the BrandInput shape every theming tool and command accepts.
 
 ## Skills
 
-- [prism3-theme](https://github.com/adamforrester/prism3/tree/main/skills/prism3-theme): author a brand.
-- [prism3-build-ui](https://github.com/adamforrester/prism3/tree/main/skills/prism3-build-ui): build UI from generated tokens. Formerly `prism3-consume`.
-- [prism3-motion](https://github.com/adamforrester/prism3/tree/main/skills/prism3-motion): animate UI with the brand's motion tokens, reduced motion included.
-- [prism3-rebind](https://github.com/adamforrester/prism3/tree/main/skills/prism3-rebind): move an existing Figma file onto Prism3.
-- [prism3-build-component](https://github.com/adamforrester/prism3/tree/main/skills/prism3-build-component): author a new component definition in the engine.
+- [prism3-theme](https://github.com/prism-ds/prism3/tree/main/skills/prism3-theme): author a brand.
+- [prism3-build-ui](https://github.com/prism-ds/prism3/tree/main/skills/prism3-build-ui): build UI from generated tokens. Formerly `prism3-consume`.
+- [prism3-motion](https://github.com/prism-ds/prism3/tree/main/skills/prism3-motion): animate UI with the brand's motion tokens, reduced motion included.
+- [prism3-rebind](https://github.com/prism-ds/prism3/tree/main/skills/prism3-rebind): move an existing Figma file onto Prism3.
+- [prism3-build-component](https://github.com/prism-ds/prism3/tree/main/skills/prism3-build-component): author a new component definition in the engine.

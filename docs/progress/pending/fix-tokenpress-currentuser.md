@@ -1,9 +1,0 @@
-## (2026-11-19) — TokenPress stops asking for the `currentuser` permission (#4121)
-
-**STATUS: branch `fix/tokenpress-currentuser`.** TokenPress only. No engine change, no committed artifact moves, no ENGINE bump. `CONTRACT_VERSION` unchanged.
-
-TokenPress, the public Community plugin, declared `"permissions": ["currentuser"]`, which gives it the signed-in user's name, id and photo and shows on its listing. The one read was a null check at the top of `checkFilePermissions()`, `src/code.ts`, whose error said to sign in. No one opens a file in the editor signed out, so it guarded nothing, and nothing past it used the value.
-
-- The permission is gone from `manifest.json`, and the check with it. Without the permission Figma throws on any read of `figma.currentUser`, so the two have to move together. The variables-API probe, the check that matters for export, stays with its friendly error, and so do the other error patterns it matches; only the `currentUser` one went.
-- **The test:** `tests/unit/manifest-permissions.test.ts`, 3 assertions in the `ADDED` census. It holds both halves: the manifest asks for no `currentuser`, and no file under `src/` reads `currentUser` outside a comment. The permission and property names are typed in the test, and a self-check proves the scan finds a read and skips a comment. Both fail on main. Mutations, each failing by name: the permission put back in the manifest fails `manifest.json does not ask for the currentuser permission`; a `figma.currentUser` read put back in `checkFilePermissions()` fails `no source file reads figma.currentUser, which throws without the permission`.
-- Guest-app rule kept: the edit is the two lines, in TokenPress's own style, plus a `### Security` line in its changelog. The built `dist/code.js` carries no `currentUser`, and `tools/exporter-comparison/gate.ts` still agrees across every brand.

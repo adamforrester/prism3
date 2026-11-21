@@ -51,7 +51,8 @@ import { CONTRACT_VERSION, ENGINE_VERSION } from './version';
 import { localeFreeCompare } from './locale-free-order';
 
 // 1.5 (#576): `settings.button.borderWeight`, the outline button's border weight.
-export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.5';
+// 1.6 (#2778): `def.docs.implementation`, the build rules' own list.
+export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.6';
 /** The Specs schema version the projection is written against. `packages/tokens/package.json` pins the schema package
  *  `check-specs.mjs` validates with ([PIN]); `test.ts` holds this constant equal to that pin (#4145), so a bump of one
  *  without the other fails by name. */

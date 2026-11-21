@@ -50,7 +50,7 @@ If the update writes every set and some still differ from the plan, the run goes
 
 ## The rules every write follows
 
-- **Check first, write second.** The theme step reads everything it will touch before its first write, and writes nothing if anything conflicts, unless you choose Skip or Rename for each conflict. <!-- src: apps/plugin/src/apply-theme.ts:78-123#82e91aee --> <!-- src: apps/plugin/src/preflight.ts:162-221#328537d5 -->
+- **Check first, write second.** The theme step reads everything it will touch before its first write, and writes nothing if anything conflicts, unless you choose Skip or Rename for each conflict. <!-- src: apps/plugin/src/apply-theme.ts:78-123#82e91aee --> <!-- src: apps/plugin/src/preflight.ts:171-230#328537d5 -->
 - **Prism3 changes only what Prism3 made.** Each collection, style and component Prism3 creates carries a mark saying so, and later runs read that mark before changing anything. <!-- src: apps/plugin/src/provenance.ts:1-57#dce1a9a1 --> <!-- src: apps/plugin/src/preflight.ts:21#f83b8069 -->
 - **Nothing is deleted unless you ask.** The **Update** tab never deletes. Removing what the brand no longer uses is the **Clean up** tab, and it shows what it will delete before it deletes. <!-- src: apps/studio/src/state/update-file.ts:333-334 -->
 - **One write at a time.** While any write runs, every other write is refused, whether the panel or an agent asked. <!-- src: apps/plugin/src/run-guard.ts:1-20#802b70d3 -->
@@ -85,6 +85,7 @@ Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/upda
 | A variant the brand dropped | Kept in the set and marked deprecated, with its name recorded. Never deleted. <!-- src: apps/plugin/src/update-apply.ts:20-21#bc79ac24 --> |
 | A variant Prism3 did not build | Skipped. <!-- src: apps/plugin/src/update-apply.ts:23#833d0bf0 --> |
 | A variant whose layer structure was edited | Skipped whole, because its parts can no longer be matched one by one. <!-- src: apps/plugin/src/update-apply.ts:26#488f7db7 --> |
+| A hand edit on a variant, such as a recolor, when the update adds, removes or retypes a layer in that variant | Skipped whole, and the set's updates turn off. <!-- src: apps/plugin/src/update-apply.ts:381#04ebeceb --> The **Overwrite** choice writes it instead. <!-- src: apps/studio/src/state/update-file.ts:405 --> |
 | A set that would collapse when an option is removed | Refused, because those variants could not stay in the set, and deleting them is never the default. <!-- src: apps/plugin/src/update-apply.ts:26-27#db53431a --> |
 
 One undo reverts the whole update. If a run stops partway, the finished sets are current and the rest are still due; running Update file again finishes them. <!-- src: apps/plugin/src/update-apply.ts:36-40#04be1a16 -->
@@ -97,11 +98,11 @@ A set can have its updates off. Update file then leaves it as it is, and every h
 Such a set is never due, and once the whole file has been read, the count on the button leaves it out. Right after the file opens, the count can include it for a moment. <!-- src: apps/plugin/src/as-built-ledger.ts:291#222872f0 -->
 
 Updates turn off by themselves only when an update can't apply around a set's hand edits: it had to skip a member whole for them, such as one with a layer you added. The rest of the set is still updated in that run. <!-- src: apps/plugin/src/update-apply.ts:1221#ef6ef842 -->
-An ordinary hand edit, such as a recolor, stays a hand edit, and the set keeps updating.
+An ordinary hand edit, such as a recolor, stays a hand edit, and the set keeps updating, unless an update changes that variant's layers. <!-- src: apps/plugin/src/update-apply.ts:381#04ebeceb -->
 
 To turn a set's updates off yourself, choose **Turn off updates** on its row under **Due**. <!-- src: apps/studio/src/state/update-file.ts:397 -->
 A set whose updates are off is listed under **Updates off** in the dialog. <!-- src: apps/studio/src/state/update-file.ts:395 --> When the update turned it off, its row adds "Turned off when an update couldn’t apply around your edits." <!-- src: apps/studio/src/state/update-file.ts:396 -->
-Choose **Turn updates back on** to hand it back. <!-- src: apps/studio/src/state/update-file.ts:398 --> That writes nothing to the set but the setting: the next Update file checks it as it checks any other set, and Keep still holds your edits until you choose otherwise. <!-- src: apps/plugin/src/main.ts:2454#c00ec9d7 -->
+Choose **Turn updates back on** to hand it back. <!-- src: apps/studio/src/state/update-file.ts:398 --> That writes nothing to the set but the setting: the next Update file checks it as it checks any other set, and Keep still holds your edits until you choose otherwise. <!-- src: apps/plugin/src/main.ts:2456#c00ec9d7 -->
 
 The setting is kept in the file, on the set, so it holds when the file is opened again. <!-- src: apps/plugin/src/updates-off.ts:30#eb506b52 -->
 
@@ -123,8 +124,8 @@ What Clean up can delete: <!-- src: apps/plugin/src/prune-figma.ts:18-32#6e2fac9
 - Text, effect, paint and grid styles the brand no longer emits, when they sit in a style group the brand still uses. A style in a group of your own stays.
 - Canvas labels beside a component set that is no longer in the file.
 
-The delete works out the list again from a fresh read of the file before it deletes anything. <!-- src: apps/plugin/src/main.ts:600-601#88108fd2 -->
-If the list is not the one the tab showed, or the file does not hold the brand in the panel yet, it deletes nothing. Otherwise it saves a named version, then deletes. <!-- src: apps/plugin/src/main.ts:724-727#40ecfc79 -->
+The delete works out the list again from a fresh read of the file before it deletes anything. <!-- src: apps/plugin/src/main.ts:602-603#88108fd2 -->
+If the list is not the one the tab showed, or the file does not hold the brand in the panel yet, it deletes nothing. Otherwise it saves a named version, then deletes. <!-- src: apps/plugin/src/main.ts:726-729#40ecfc79 -->
 
 After a style-guide run that found tables Prism3 no longer draws, **Clean up** lists them too: "2 style-guide tables the generator no longer draws." Choose **Remove *N* tables** to delete them. <!-- src: apps/studio/src/state/update-file.ts:440-441 -->
 
@@ -147,9 +148,9 @@ Removing a mode removes its values from every variable in the collection, so mov
 
 | You see | Why | What to do |
 |---|---|---|
-| `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:242 --> | Rename or remove the named items, then run Update file again. |
+| `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:299 --> | Rename or remove the named items, then run Update file again. |
 | "is already running. Try again when it finishes." | Another write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:49-52 --> | Wait for it to finish. |
-| "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1929 --> | Load the brand again, for example from its `design.md`. |
+| "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1949 --> | Load the brand again, for example from its `design.md`. |
 | `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:1045 --> | Open Update file again and read the new check. |
 | "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:1145 --> | Try again. Nothing in the file changed. |
-| `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1074 --> | Rename or move the existing set. |
+| `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1076 --> | Rename or move the existing set. |

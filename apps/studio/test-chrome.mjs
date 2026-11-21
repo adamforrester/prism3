@@ -5363,7 +5363,9 @@ const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', 
   // #3073: the Glass section is the glassRoles lever's block, holding the shipped glass read-only and the brand's own.
   ['glassRoles', '[data-p3="lever-glass-roles"]'],
   // #3050: the Scrim section is the scrimStrength lever's block, its chips above the scrim's read-only row.
-  ['scrimStrength', '[data-p3="lever-scrim-strength"]']];
+  ['scrimStrength', '[data-p3="lever-scrim-strength"]'],
+  // #3339: Background fills holds Controls sit on (`interactiveGround`) under the contrast floor.
+  ['interactiveGround', '[data-p3="lever-interactive-ground"]']];
 /** S4f (QA-B1): Background fills' rows, by the role each names: the three page tiers (Primary was "Page", QA-B3),
  *  the contrast floor (a setting, named by its input), and the inverse fill's three tiers. Literal. */
 const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'background.tertiary', 'surfaces.floorStep',
@@ -5937,6 +5939,36 @@ if (runs('18')) {
     ok(false, `#3050 Scrim: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 18-scrim
+// #3339 (owner C; DRAFT copy): Surfaces & fills › Background fills › Controls sit on. Two chips, Every surface checked on
+// a brand without the setting; The page only writes `interactiveGround: 'page'`, Every surface writes 'floor'. The labels
+// are literals from the build PR's draft; ACTUAL is the persisted brand and the DOM.
+if (runs('18')) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    const read = () => page.evaluate(() => {
+      const b = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-interactive-ground"]');
+      return {
+        section: b?.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent ?? null,
+        chips: [...(b?.querySelectorAll('[data-p3^="interactive-ground-choice-"]') ?? [])].map((n) => [n.textContent, n.getAttribute('aria-checked')]),
+      };
+    });
+    const r0 = await read();
+    ok(r0.section === 'Background fills' && JSON.stringify(r0.chips) === JSON.stringify([['Every surface', 'true'], ['The page only', 'false']]),
+      `#3339: Surfaces & fills › Background fills holds Controls sit on's chips, Every surface checked on a brand without the setting (${JSON.stringify(r0)})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-page"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-page"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+    const pg = await persisted(page);
+    ok(pg?.interactiveGround === 'page' && (await read()).chips[1]?.[1] === 'true', `#3339: The page only writes interactiveGround: page (${pg?.interactiveGround})`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-floor"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="interactive-ground-choice-floor"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+    const fl = await persisted(page);
+    ok(fl?.interactiveGround === 'floor', `#3339: Every surface writes interactiveGround: floor (${fl?.interactiveGround})`);
+    ok(errors.length === 0, `#3339 Controls sit on: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#3339 Controls sit on: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+} // 18-interactive-ground
 // =============================================================================================
 // S4d owner copy (2026-10-02): "subtle" not "muted" (Q57), "fill" not "band" (Q58), and every control on Surfaces &
 // fills read-only in a derived mode, the Unpair button included (Q56, Q59)
@@ -11520,7 +11552,7 @@ const STRIP_PROBE = () => {
   const ink = parse(getComputedStyle(text).color), glyphInk = parse(getComputedStyle(e.querySelector('svg')).color);
   const r = e.getBoundingClientRect(), bar = document.querySelector('[data-p3="top-bar"]').getBoundingClientRect();
   const frame = document.querySelector('[data-p3="frame"]').getBoundingClientRect();
-  return { mounted: true, shown: !e.hidden && getComputedStyle(e).display !== 'none', text: text.textContent, groundLum: Math.round(lum(g) * 1000) / 1000,
+  return { mounted: true, shown: !e.hidden && getComputedStyle(e).display !== 'none', text: text.textContent, detail: e.querySelector('.p3-errstrip-detail-text')?.textContent ?? null, groundLum: Math.round(lum(g) * 1000) / 1000,
     textR: ink ? ratio(over(ink, g), g) : 0, glyphR: glyphInk ? ratio(over(glyphInk, g), g) : 0,
     fullWidth: Math.abs(r.left - frame.left) <= 1 && Math.abs(r.right - frame.right) <= 1, underBar: Math.abs(r.top - bar.bottom) <= 1,
     rect: [Math.round(r.left), Math.round(r.top), Math.round(r.right)], barBottom: Math.round(bar.bottom) };
@@ -11795,7 +11827,7 @@ for (const { w, h } of WIDTHS) {
         else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), S131_REFUSED);
         await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && !e.hidden; }, null, { timeout: 5000 }).catch(() => {});
         const st = await page.evaluate(STRIP_PROBE);
-        ok(st.mounted && st.shown && /background\.secondary/.test(st.text ?? ''), `${where}: the error strip shows the refusal, naming the field ("${String(st.text).slice(0, 70)}")`);
+        ok(st.mounted && st.shown && /background\.secondary/.test((host === 'web' ? st.text : st.detail) ?? ''), `${where}: the error strip shows the refusal, naming the field (#4222: a refused restore's under Details) ("${String(host === 'web' ? st.text : st.detail).slice(0, 70)}")`);
         ok(theme === 'dark' ? st.groundLum < DARK_GROUND_MAX : st.groundLum > LIGHT_GROUND_MIN,
           `${where}: the error strip's ground follows the ${theme} theme (luminance ${st.groundLum}, ${theme === 'dark' ? `below ${DARK_GROUND_MAX}` : `above ${LIGHT_GROUND_MIN}`})`);
         ok(st.textR >= TEXT_MIN && st.glyphR >= NONTEXT_MIN, `${where}: the error strip's line clears ${TEXT_MIN}:1 (${st.textR}:1) and its glyph ${NONTEXT_MIN}:1 (${st.glyphR}:1)`);
@@ -11826,6 +11858,34 @@ for (const { w, h } of WIDTHS) {
             `${where} / error strip: the chrome around the plugin's strip draws no dim strip text, no shadow and no inline value (${dim.map((t) => `${t.el} ${t.r}:1`).join(' | ') || 'clean'})`);
         }
         if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-strip.png`) });
+        // #4222 (owner A): a refused restore's strip says its own frame; the engine's sentence sits under it, behind a
+        // closed Details the alert does not read. The words checked absent are the issue's: the sentence is the author's.
+        if (host === 'figma') {
+          const rd = await page.evaluate(() => {
+            const e = document.querySelector('[data-p3="error-bar"]'), d = e?.querySelector('[data-p3="error-detail"]');
+            return { line: e?.querySelector('.p3-errstrip-text')?.textContent ?? '', summary: d?.querySelector('summary')?.textContent ?? null, open: d?.open ?? null,
+              detail: d?.querySelector('[data-p3="error-detail-text"]')?.textContent ?? '', role: e?.getAttribute('role') };
+          });
+          ok(rd.line === "This file's saved brand didn't resolve. Update file and Clean up are off until a brand loads. Load an example or import a design.md to continue.",
+            `${where}: #4222 the refused restore's line is the strip's own frame, with none of the engine's words ("${rd.line.slice(0, 90)}")`);
+          ok(rd.summary === 'Details' && rd.open === false && /GROUND/.test(rd.detail) && /background\.secondary/.test(rd.detail) && rd.role === 'alert',
+            `${where}: #4222 the engine's sentence is under a closed Details in the alert (${JSON.stringify({ ...rd, line: undefined, detail: rd.detail.slice(0, 50) })})`);
+          // #4206 (owner A): a brand stored before #3707 (an empty link list) loads, migrated, and the strip says what changed.
+          const LEGACY = { ...S131_REFUSED, id: 'legacy-brand', overrides: undefined, typography: { links: [] } };
+          await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LEGACY);
+          await page.waitForFunction(() => /updated to load/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+          const lg = await page.evaluate(() => {
+            const e = document.querySelector('[data-p3="error-bar"]');
+            return { shown: !!e && !e.hidden, line: e?.querySelector('.p3-errstrip-text')?.textContent ?? '', close: e?.querySelector('[data-p3="restore-migrated-close"]')?.textContent ?? null,
+              detail: !!e?.querySelector('[data-p3="error-detail"]'), brand: document.querySelector('[data-p3="brand-switcher"]')?.textContent ?? '' };
+          });
+          ok(lg.shown && lg.line.startsWith("This file's saved brand was updated to load") && /Link styles use the default text types/.test(lg.line) && lg.close === 'Close' && !lg.detail && lg.brand.includes('legacy-brand'),
+            `${where}: #4206 a stored brand with an empty link list loads, and the strip names the change with a Close (${JSON.stringify({ ...lg, line: lg.line.slice(0, 90) })})`);
+          await hooks.click(page.locator('[data-p3="restore-migrated-close"]'));
+          await page.waitForFunction(() => document.querySelector('[data-p3="error-bar"]')?.hidden === true, null, { timeout: 5000 }).catch(() => {});
+          const gone = await page.evaluate(() => document.querySelector('[data-p3="error-bar"]')?.hidden ?? null);
+          ok(gone === true, `${where}: #4206 Close takes the migration note down (hidden ${gone})`);
+        }
 
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
@@ -16557,6 +16617,9 @@ for (const [theme, H] of [['light', 420], ['dark', 420], ['light', 300]]) {
   try {
     await page.evaluate((input) => window.postMessage({ pluginMessage: { type: 'restore-input', input } }, '*'), REFUSED_2105);
     await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    // #4222: the line is the strip's short frame now, and the refusal's own words are under Details. Opened, they are the
+    // long text #2105 measured, so the cap below is held against them.
+    await page.evaluate(() => { const d = document.querySelector('[data-p3="error-detail"]'); if (d) d.open = true; return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); });
     const g = await page.evaluate(() => {
       const r = (s) => { const n = document.querySelector(s); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: b.height }; };
       const err = document.querySelector('[data-p3="error-bar"]');
@@ -19213,11 +19276,11 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       await p3.evaluate(() => { window.__due = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'due-request') window.__due.push(m.seq); }); });
       await postMsg(p3, FILE);
       await postMsg(p3, { type: 'restore-input', input: REFUSED_3081 });
-      await p3.waitForFunction(() => /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+      await p3.waitForFunction(() => /didn't resolve\. Update file and Clean up are off until a brand loads/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
       await goPlace(p3, 'components');
       await p3.evaluate(() => { const n = document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]'); if (n) HTMLElement.prototype.click.call(n); });
       await p3.waitForTimeout(600);
-      const failedAt = await p3.evaluate(() => ({ asked: window.__due.length, unresolved: /until a brand resolves/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''),
+      const failedAt = await p3.evaluate(() => ({ asked: window.__due.length, unresolved: /didn't resolve\. Update file and Clean up are off until a brand loads/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''),
         changed: document.querySelector('[data-p3="cp-shared"] [data-p3="control-shape-choice-pill"]')?.getAttribute('aria-checked') ?? null }));
       await postMsg(p3, { type: 'file-due', seq: 1, present: FILE.present, theme: true, due: { ...DUE, tag: { state: 'due', reason: 'definition' } } });
       await p3.waitForTimeout(300);
@@ -22483,7 +22546,7 @@ if (runs('2069')) {
     await page.waitForFunction(() => window.__issues.length > 0, null, WAIT).catch(() => {});
     const posts = await page.evaluate(() => window.__issues);
     const body = posts.length ? decodeURIComponent(String(posts[0].url).split('&body=')[1] ?? '') : '';
-    ok(posts.length === 1 && String(posts[0].url).startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && body === REPORT_PASTE,
+    ok(posts.length === 1 && String(posts[0].url).startsWith('https://github.com/prism-ds/prism3/issues/new?title=Problem%20report&body=') && body === REPORT_PASTE,
       `#2069 ${where}: Open a prefilled issue posts open-issue with the title and the paste line alone (${posts.length} posts, body ${JSON.stringify(body.slice(0, 160))})`);
     const clip = await page.evaluate(() => ({ clip: window.__clip, copy: document.querySelector('[data-p3="report-copy"]')?.textContent ?? null }));
     ok(clip.clip.length === 1 && clip.clip[0] === t1 && clip.copy === 'Copied',
@@ -22529,7 +22592,7 @@ if (runs('2069')) {
       const opened = await page.evaluate(() => window.__opened);
       const body = opened.length ? decodeURIComponent(opened[0].u.split('&body=')[1] ?? '') : '';
       const clip = await page.evaluate(() => window.__clip);
-      ok(opened.length === 1 && opened[0].u.startsWith('https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body=') && opened[0].t === '_blank' && body === REPORT_PASTE
+      ok(opened.length === 1 && opened[0].u.startsWith('https://github.com/prism-ds/prism3/issues/new?title=Problem%20report&body=') && opened[0].t === '_blank' && body === REPORT_PASTE
         && clip.length === 1 && clip[0] === d0.text,
         `#3524 ${where}: Open a prefilled issue opens the issue form in a new tab with the title and the paste line alone, the report shown on the clipboard (${opened.length} opened, ${clip.length} copies)`);
       step = 'escape';
@@ -23801,6 +23864,93 @@ if (runs('4235')) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
 } // 4235
+// #3977 (owner decision 2026-11-18, Q-EB1 A, copy APPROVED): A FEW WORDS UNDER EACH EXAMPLE BRAND, so a designer knows
+// what an example is before opening it. Held on both hosts, both themes, at 1280, in both places the examples are listed
+// (the brand menu, and the start window "+ New brand" opens):
+//   · the listed examples are exactly the three below, each once (REPRESENTED: a list that lost one, or grew one with
+//     no approved line, fails by name);
+//   · each example's line reads the approved copy, sits under its name, and is muted: the chrome's secondary text ink
+//     (a `.p3-sub` probe's), not the name's, at no larger a size (recessive, voice-standard §1);
+//   · in the start window, the line describes the chip (`aria-describedby`), so a screen reader hears it too.
+// The approved strings are typed here, never read from `example-registry.ts`: a line deleted or reworded there fails
+// here by its example's name (docs/34). A mutation that drops the line → `#3977 … aurora has its line`.
+const EXAMPLE_LINE_GAP = 20;   // px, the least gap between two examples' lines on one row (owner decision 2026-11-20)
+const EXAMPLE_LINES = { prism3: 'The default. Saturated blue, balanced.', aurora: 'Soft purple, rounder, quick.', harbor: 'Muted teal, calm, square.' };
+if (runs('3977')) {
+  console.log(`\nA few words under each example brand (#3977)\n${'='.repeat(78)}`);
+  /** Each listed example: its name, its line, where the line sits and how it is set. `at` is the list read: the brand
+   *  menu's items, whose line is inside the item, or the start window's chips, whose line sits beside the chip. */
+  const readLines = (page, at) => page.evaluate((menu) => {
+    const items = menu ? document.querySelectorAll('[data-p3="brand-menu"] [data-p3="brand-menu-example"]') : document.querySelectorAll('[data-p3="start-example"]');
+    // The chrome's secondary text ink, read off a probe in the list's own theme: `.p3-sub`, the muted line under a lever.
+    const probe = document.createElement('span');
+    probe.className = 'p3-sub';
+    probe.textContent = 'probe';
+    (items[0]?.closest('[data-theme]') ?? document.querySelector('[data-p3="frame"]') ?? document.body).append(probe);
+    const secondary = getComputedStyle(probe).color;
+    probe.remove();
+    return [...items].filter((n) => n.getClientRects().length > 0).map((item) => {
+      const name = menu ? item.querySelector('.p3-menu-label') : item.querySelector('span:not(.p3-start-dot)');
+      const desc = menu ? item.querySelector('[data-p3="brand-menu-example-desc"]') : item.parentElement?.querySelector('[data-p3="start-example-desc"]') ?? null;
+      const nb = name?.getBoundingClientRect(), db = desc?.getBoundingClientRect();
+      const ncs = name && getComputedStyle(name), dcs = desc && getComputedStyle(desc);
+      return {
+        name: name?.textContent.trim() ?? null, desc: desc?.textContent ?? null,
+        below: !!nb && !!db && db.width > 0 && db.top >= nb.bottom - 0.5,
+        muted: !!ncs && !!dcs && dcs.color !== ncs.color && dcs.color === secondary && parseFloat(dcs.fontSize) <= parseFloat(ncs.fontSize),
+        ink: dcs ? `${dcs.color} ${dcs.fontSize}` : null, nameInk: ncs ? `${ncs.color} ${ncs.fontSize}` : null, secondary,
+        describes: item.getAttribute('aria-describedby') ? document.getElementById(item.getAttribute('aria-describedby')) === desc : null,
+      };
+    });
+  }, at === 'brand menu');
+  const hold = (where, at, rows, { describes }) => {
+    const names = rows.map((r) => r.name);
+    ok(JSON.stringify([...names].sort()) === JSON.stringify(Object.keys(EXAMPLE_LINES).sort()),
+      `#3977 ${where} / ${at}: lists exactly the examples with an approved line, each once — lists ${JSON.stringify(names)}`);
+    for (const ex of Object.keys(EXAMPLE_LINES)) {
+      const r = rows.find((x) => x.name === ex);
+      ok(!!r && r.desc === EXAMPLE_LINES[ex], `#3977 ${where} / ${at}: ${ex} has its line, "${EXAMPLE_LINES[ex]}" — reads ${JSON.stringify(r?.desc ?? null)}`);
+      ok(!!r && r.below, `#3977 ${where} / ${at}: ${ex}'s line sits under its name (${JSON.stringify(r)})`);
+      ok(!!r && r.muted, `#3977 ${where} / ${at}: ${ex}'s line is muted, the chrome's secondary ink (${r?.secondary}) and no larger than its name — line ${r?.ink}, name ${r?.nameInk}`);
+      if (describes) ok(!!r && r.describes === true, `#3977 ${where} / ${at}: ${ex}'s chip is described by its line (aria-describedby) — ${JSON.stringify(r?.describes ?? null)}`);
+    }
+  };
+  for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+    const where = `3977 ${host} ${theme} 1280`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    let step = 'brand menu';
+    try {
+      await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+      await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-example-desc"]');
+      hold(where, 'brand menu', await readLines(page, 'brand menu'), { describes: false });
+      step = 'start window';
+      await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+      await hooks.need(page, '[data-p3="start-example-desc"]');
+      hold(where, 'start window', await readLines(page, 'start window'), { describes: true });
+      // Owner decision 2026-11-20 (A): the examples' lines must not run together across a row into one sentence (they
+      // did at 8px). Read from the rendered boxes: every pair of lines side by side on one row is at least
+      // EXAMPLE_LINE_GAP apart. 20px is over 1.5em of the 12px line, well past a sentence's space (a few px), so the
+      // eye reads a new column, not the next clause; it sits under the chrome's 24px step so sub-pixel layout can't flake.
+      const pairs = await page.evaluate(() => {
+        const rs = [...document.querySelectorAll('[data-p3="start-example-desc"]')].filter((n) => n.getClientRects().length > 0)
+          .map((n) => { const b = n.getBoundingClientRect(); return { text: n.textContent, left: b.left, right: b.right, top: b.top }; });
+        const out = [];
+        for (const a of rs) for (const b of rs) {
+          if (a === b || Math.abs(a.top - b.top) > 2 || b.left < a.right - 0.5) continue;
+          if (rs.some((c) => c !== a && c !== b && Math.abs(c.top - a.top) <= 2 && c.left >= a.right - 0.5 && c.right <= b.left + 0.5)) continue;
+          out.push({ from: a.text, to: b.text, gap: Math.round((b.left - a.right) * 10) / 10 });
+        }
+        return out;
+      });
+      const tightest = pairs.reduce((m, p) => (!m || p.gap < m.gap ? p : m), null);
+      ok(!!tightest && tightest.gap >= EXAMPLE_LINE_GAP,
+        `#3977 ${where} / start window: adjacent example lines on one row are at least ${EXAMPLE_LINE_GAP}px apart, so they don't read as one sentence — ${tightest ? `tightest ${tightest.gap}px, "${tightest.from}" → "${tightest.to}"` : 'NOT MEASURED: no two lines shared a row'}`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // 3977
 // ── the end of the run (#2898) ───────────────────────────────────────────────────────────────────
 // The checks below read the WHOLE sweep (the check boxes measured, every hook rendered, the exemptions and the lowest
 // readings), so a shard, which saw part of it, leaves them to `--merge`: it reads every shard's record, adds up what the

@@ -1,7 +1,7 @@
 {
   "$comment": "The one source for docs/public/ecosystem/index.html, both views. Hand-authored on purpose: packages/engine/lint-ecosystem.ts checks it against the code (paths, members, which lane can reach what), so the code is the oracle and this file is the subject. How to update it: README.md in this folder.",
   "version": 2,
-  "repo": "https://github.com/adamforrester/prism3/blob/main/",
+  "repo": "https://github.com/prism-ds/prism3/blob/main/",
   "statuses": [
     {
       "id": "shipped",
