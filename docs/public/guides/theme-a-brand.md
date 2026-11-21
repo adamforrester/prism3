@@ -36,7 +36,7 @@ A lever is one brand setting, such as the primary color, the type scale or the c
 
 Component settings, such as how buttons place their icons, are in the **Components** area, beside the list of component sets. See [Build components](build-components.md). <!-- src: apps/studio/src/shell/pages.ts:385-426 -->
 
-Some sections start folded. Open them with the "Show N advanced" button under the section list. <!-- src: apps/studio/src/domains/color-palettes.ts:331 -->
+Some sections start folded. Open them with the "Show N advanced" button under the section list. <!-- src: apps/studio/src/domains/color-palettes.ts:338 -->
 
 **Personality** words fill the settings you have not set yet. Settings you set win. <!-- src: apps/studio/src/shell/pages.ts:161 -->
 Picking a word turns its opposite off: soft and sharp, dense and generous, calm and energetic, bold and restrained. Where two words fill the same setting, the first one picked wins. <!-- src: packages/engine/vocabulary.ts:149-154#26cbcd4d --> <!-- src: apps/studio/src/state/brand-input.ts:79-94#5e35eb13 -->
