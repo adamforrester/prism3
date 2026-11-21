@@ -39531,7 +39531,7 @@ arm: {
         const unset = [...new Set(named)].filter((v) => !set.has(v));
         if (unset.length) premiseBroken.push(`no single-parent commit in the history of ${at} sets ${unset.slice(0, 5).join(', ')}${unset.length > 5 ? ` and ${unset.length - 5} more` : ''}, so the folds the tree's release notes name are not in it`);
       }
-      const inPrism3 = process.env.GITHUB_REPOSITORY === 'adamforrester/prism3';
+      const inPrism3 = process.env.GITHUB_REPOSITORY === 'prism-ds/prism3';
       if (premiseBroken.length && inPrism3) {
         for (const b of premiseBroken) ok(false, `#3985 integration replay: in prism3's own CI its premise must hold, and it does not — ${b}`);
         failSpan('integration-replay', premiseBroken.join('; '));

@@ -1,0 +1,8 @@
+## (2026-11-20) — Repository references follow the move to prism-ds/prism3
+
+The repository moved from `adamforrester/prism3` to `prism-ds/prism3` on 2026-11-20. Every live reference now names the new owner: the issue-template links, the studio's and plugin's "report a problem" issue URL (and the three tests that pin it), the public `llms.txt` and `ecosystem.json` links, the component doc links that `emit-figma-conventions.ts` writes (regenerated, never hand-edited), the reviewer command, and the issue links in the #4109–#4113 wireframe.
+
+- **One reference was a behavior, not a link.** `test.ts`'s integration replay asks `GITHUB_REPOSITORY === '<owner>/prism3'` to decide whether a broken premise fails or skips. Under the new owner the old literal never matched, so in prism3's own CI the replay had quietly gone back to skipping. It now names `prism-ds/prism3`.
+- **One reference keeps both owners on purpose.** The agent-adherence contamination probe (`tools/agent-adherence/orchestrate.ts`) voids a run that fetches the repository. The old owner's URLs still redirect, so a fetch through either owner reaches the repo; the pattern matches both, and `selftest.ts` gained an old-owner arm.
+- **Left as written, because they are records:** `docs/progress/archive/**`, the history in `docs/00-progress.md`, the pending entry that quotes the old `GITHUB_REPOSITORY` from its own mutation run, the dated Vercel deploy plan and spec of 2026-07-29 (they record the import as it was done), and citations of other repositories (`adamforrester/knowledge-base`, `adamforrester/brand-skills`, `adamforrester/prism3-tokens`), whose owners this move does not change.
+- **No GitHub Pages URL** for the repository exists in the tree, so none needed checking.
