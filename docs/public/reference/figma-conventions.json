@@ -2065,7 +2065,7 @@
             "type": "BOOLEAN"
           }
         ],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/avatar.md"
+        "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/avatar.md"
       },
       {
         "id": "tag",

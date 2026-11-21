@@ -7696,6 +7696,7 @@
           "Use color as the only way to tell people apart, or the dot as the only sign of presence",
           "Show the full name or email from the record when the interface shows less"
         ],
+        "implementation": [],
         "contentGuidelines": "Write the name the way the interface writes it next to the avatar, with the same shortening. Initials are uppercase, at most two letters, and one letter below medium. For an email address, the initials come from the part before the at sign. For presence, use the plain word for the state: online, away, busy, offline."
       },
       "ai": {
