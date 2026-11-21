@@ -6,7 +6,7 @@ To write the brand you set in the studio into the open Figma file, choose **Upda
 The item reads "The brand's variables and styles. Layers bound to them restyle at once." <!-- src: apps/studio/src/state/update-file.ts:343-344 -->
 It is ticked when the dialog opens only if the file's variables differ from the brand. <!-- src: apps/studio/src/state/update-file.ts:179-186#dcd3d3c6 -->
 When they already match, it is unticked and reads "Up to date"; tick it to write the brand again. <!-- src: apps/studio/src/state/update-file.ts:346 -->
-It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:113#1bd757c2 -->
+It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:117#1bd757c2 -->
 
 Each run checks the file first and writes only once nothing conflicts, or once you have chosen what happens to each conflict. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:79-124#82e91aee --> <!-- src: apps/plugin/src/preflight.ts:171-230#328537d5 -->
 The rest of the checklist, and how a run works, is in [Update a Figma file](update-a-file-safely.md).
@@ -65,7 +65,7 @@ Three more cases stop the theme before it starts:
 
 - The file's Figma plan allows fewer modes per collection than the theme writes. The line names both numbers and the next step: "Move the file to a team on a plan with more modes." Nothing is written, and no version is saved. <!-- src: apps/plugin/src/preflight.ts:274 -->
 - Another write is running, from an agent: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->
-- The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1955 -->
+- The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1973 -->
 
 ## Writing it again
 

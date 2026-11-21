@@ -15,7 +15,9 @@ The first time the studio opens, a start window offers three ways in. <!-- src: 
 | **Explore an example** | Opens one of the example brands, fully built. A few words under each example say what it is, such as "Muted teal, calm, square." <!-- src: apps/studio/src/shell/start.ts:202 --> <!-- src: packages/engine/example-registry.ts:16-21 --> |
 | **Import a design.md** | Loads a whole brand from a `design.md` brief. Paste it into the box and choose **Import**, or choose **Upload…** to pick a file. <!-- src: apps/studio/src/shell/start.ts:225-237 --> |
 
-To come back to these later, open the brand menu at the left of the top bar and choose **New brand**. The same menu lists the examples, each with its few words, and has **Import design.md…**. <!-- src: apps/studio/src/shell/bar.ts:227-253 -->
+To come back to these later, open the brand menu at the left of the top bar and choose **New brand**. The same menu lists the examples, each with its few words, and has **Import design.md…**. <!-- src: apps/studio/src/shell/bar.ts:231-257 -->
+
+If opening another brand would replace edits that aren't saved anywhere else, the studio asks first. Before you choose **Replace brand** or **Cancel**, you can keep a copy with **Download design.md** or **Download tokens**; a download leaves the question open. <!-- src: apps/studio/src/state/leave-guard.ts:25-28 --> <!-- src: apps/studio/src/shell/bar.ts:280-302 --> On the web, the browser also asks before you leave the page while the brand has unsaved edits. <!-- src: apps/studio/src/main.ts:1377-1388#b587cb67 -->
 
 *[Screenshot placeholder: the start window with its three cards.]*
 
@@ -59,14 +61,14 @@ A contrast miss is reported, never blocked. On **Foreground fills**, for example
 - It also keeps what the brand started from, so edits you made before a reload still count after it: choosing another brand asks first, as it did before the reload. <!-- src: apps/studio/src/persist-local.ts:120-136#8ee40881 -->
 - In the Figma plugin, the brand is kept in the Figma file each time Update file writes the theme, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:191-193#ede61fb0 --> <!-- src: apps/plugin/src/main.ts:2211-2218#e56247fc -->
 
-If a stored brand can't be opened, the web studio offers it as a `design.md` download instead of discarding it. <!-- src: apps/studio/src/entry.ts:130-159 -->
+If a stored brand can't be opened, the web studio offers it as a `design.md` download instead of discarding it. <!-- src: apps/studio/src/entry.ts:133-162 -->
 
 ## Import and export a design.md brief
 
 A `design.md` is a brand written as a short document: settings at the top, prose below. <!-- src: packages/engine/mcp.ts:361 -->
 The studio reads both the Prism3 form and the standard design.md form, <!-- src: apps/studio/src/state/start-input.ts:176-190#569bb71c --> which lists colors as a flat `colors:` map. <!-- src: packages/engine/standard-design-md.ts:109-110 -->
 
-- Import: **Import design.md…** in the brand menu, then paste the brief and choose **Load**, or choose **Upload .md**. The **Import a design.md** card in the start window works the same way. <!-- src: apps/studio/src/shell/bar.ts:238-294 -->
-- Export: open **Export** in the rail, choose **Brand brief**, then **Download brief**. The file is named `<brand>.design.md`. The brief has no settings: "Nothing to set — the brief is written one way." <!-- src: apps/studio/src/export-settings.ts:114 --> <!-- src: apps/studio/src/main.ts:1528-1555 -->
+- Import: **Import design.md…** in the brand menu, then paste the brief and choose **Load**, or choose **Upload .md**. The **Import a design.md** card in the start window works the same way. <!-- src: apps/studio/src/shell/bar.ts:242-311 -->
+- Export: open **Export** in the rail, choose **Brand brief**, then **Download brief**. The file is named `<brand>.design.md`. The brief has no settings: "Nothing to set — the brief is written one way." <!-- src: apps/studio/src/export-settings.ts:114 --> <!-- src: apps/studio/src/main.ts:1544-1571 -->
 
 A brief is the way to hand a brand to someone else, or to an agent: importing it rebuilds the same brand. For token files, see [Export tokens](export-tokens.md).

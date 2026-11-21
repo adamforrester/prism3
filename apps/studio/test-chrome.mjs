@@ -11790,14 +11790,31 @@ for (const { w, h } of WIDTHS) {
         }
         // ── the overwrite confirm (web) and the prune review (plugin), measured as chrome (#2124 review, finding 3d) ──
         if (w === 1280 && host === 'web') {
+          // #3982 (Q-WS1 A): the browser's leave-page prompt is armed only while the brand has unsaved edits. Read by
+          // dispatching a cancelable `beforeunload`: an armed page cancels it. Before the edit, then after it.
+          const leaveAsks = () => page.evaluate(() => { const e = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; });
+          const cleanAsks = await leaveAsks();
+          ok(cleanAsks === false, `${where} / #3982 leaving an untouched brand does not ask (beforeunload cancelled: ${cleanAsks})`);
           await page.evaluate(() => window.__prism3TestEdit('id', 'edited-brand'));
+          const dirtyAsks = await leaveAsks();
+          ok(dirtyAsks === true, `${where} / #3982 leaving a brand with unsaved edits asks first (beforeunload cancelled: ${dirtyAsks})`);
           await hooks.click(page.locator('[data-p3="brand-switcher"]'));
           await hooks.click(page.locator('[data-p3="brand-menu-example"]').filter({ hasText: 'aurora' }));
           await hooks.need(page, '[data-p3="overwrite-confirm"]');
           const mo = await measure(page, `${where} / overwrite confirm`, host, w);
-          check(mo, `${where} / overwrite confirm`, column, PLACE_FLOOR, { extra: ['[data-p3="overwrite-replace"]', '[data-p3="overwrite-cancel"]'] });
+          check(mo, `${where} / overwrite confirm`, column, PLACE_FLOOR, { extra: ['[data-p3="overwrite-save-brief"]', '[data-p3="overwrite-save-tokens"]', '[data-p3="overwrite-replace"]', '[data-p3="overwrite-cancel"]'] });
           const oc = await page.evaluate(INK_PROBE, '[data-p3="overwrite-confirm"]');
           ok(oc.r >= TEXT_MIN, `${where} / overwrite confirm: its sentence's contrast ${oc.r}:1, at least ${TEXT_MIN}:1`);
+          // #3982: the confirm offers both downloads, typed here, and a download leaves the confirm open.
+          const saves = await page.evaluate(() => ['overwrite-save-brief', 'overwrite-save-tokens'].map((k) => document.querySelector(`[data-p3="brand-menu"] [data-p3="${k}"]`)?.textContent?.trim() ?? null));
+          ok(JSON.stringify(saves) === JSON.stringify(['Download design.md', 'Download tokens']),
+            `${where} / #3982 the replace confirm offers Download design.md and Download tokens (${JSON.stringify(saves)})`);
+          if (saves[0]) {
+            const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 5000 }).catch(() => null), hooks.click(page.locator('[data-p3="overwrite-save-brief"]'))]);
+            const stays = await page.locator('[data-p3="brand-menu"] [data-p3="overwrite-confirm"]').count();
+            ok(!!dl && dl.suggestedFilename().endsWith('.design.md') && stays === 1,
+              `${where} / #3982 Download design.md writes the brief and leaves the confirm open (${dl?.suggestedFilename() ?? 'no download'}; confirm drawn ${stays})`);
+          }
           await hooks.click(page.locator('[data-p3="overwrite-cancel"]'));
           await page.keyboard.press('Escape');
         }

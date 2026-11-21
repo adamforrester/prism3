@@ -69,6 +69,7 @@ import { displayNameOf, entryOf } from './state/component-groups';
 import { brandControlShape } from './state/shape-input';
 import { shownName } from './state/brand-input';
 import { stillOffered, type UndoLoad } from './state/undo-load';
+import { leaveGuard } from './state/leave-guard';
 // The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
 // Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
 // `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
@@ -1373,6 +1374,19 @@ const endUndoOnEdit = (): void => {
 subscribe('brand', endUndoOnEdit);
 subscribe('identity', endUndoOnEdit);
 
+/** #3982 (Q-WS1 A): the browser's leave-page prompt, armed while the brand has unsaved edits, by the rule the replace
+ *  confirm asks (`needsOverwriteConfirm`), and disarmed otherwise (`state/leave-guard.ts`). Web only: closing the
+ *  plugin is Figma's to handle, and its panel is not a page the designer navigates away from. */
+const leaving = commit.isFigma ? null : leaveGuard(window);
+/** Arms or disarms the leave prompt from the current provenance. Exported for `entry.ts`, which calls it once after
+ *  `initSession`: a reload that restores unsaved edits (#3880) publishes no topic, so without that call the prompt
+ *  would stay off until the next edit while the replace confirm already asks. Not called here at module load:
+ *  `provenance` is not set until `initSession` runs. */
+export const syncLeaving = (): void => leaving?.sync(needsOverwriteConfirm(brandState, provenance));
+subscribe('brand', syncLeaving);
+subscribe('identity', syncLeaving);
+subscribe('origin', syncLeaving);
+
 /** Trigger a client-side file download (Blob → object URL → anchor click). */
 const download = (filename: string, text: string, mime: string): void => {
   const url = URL.createObjectURL(new Blob([text], { type: mime }));
@@ -1635,6 +1649,10 @@ const barActions: BarActions = {
     if (p.origin.kind === 'file' && heldRestore === p.input) heldRestoreLoaded();   // #3697 Q-R9.1 A: the offer's confirm
   },
   cancelReplace: () => { pendingLoad = null; barChanged(); },
+  // #3982 (Q-WS1 A): the Export area's own downloads, of the brand at risk. They touch neither `pendingLoad` nor the
+  // menu, so the confirm stays open and nothing loads until the designer answers it.
+  saveBrief: () => exportDesignMd(),
+  saveTokens: () => exportTokens(),
   undoLoad: () => undoLastLoad(),
   toggleExport: () => { exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; barChanged(); },
   closeExport: () => { exportMenuOpen = false; barChanged(); },

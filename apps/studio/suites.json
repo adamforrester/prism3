@@ -37,6 +37,7 @@
     { "file": "test-docs-route.ts", "floor": 187 },
     { "file": "test-status-order.ts", "floor": 43 },
     { "file": "test-run-time.ts", "floor": 11 },
+    { "file": "test-leave-guard.ts", "floor": 12 },
     { "file": "test-report.ts", "floor": 122 },
     { "file": "test-run-ended.ts", "floor": 7 },
     { "file": "test-collisions.ts", "floor": 22 },

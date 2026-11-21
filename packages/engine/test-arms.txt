@@ -592,6 +592,7 @@ apps/studio/test-chrome.mjs #3911
 apps/studio/test-chrome.mjs #3938
 apps/studio/test-chrome.mjs #3976
 apps/studio/test-chrome.mjs #3977
+apps/studio/test-chrome.mjs #3982
 apps/studio/test-chrome.mjs #4127
 apps/studio/test-chrome.mjs #4188
 apps/studio/test-chrome.mjs #4192
@@ -682,6 +683,7 @@ apps/studio/test-layout-input.ts #2047
 apps/studio/test-layout-input.ts #2513
 apps/studio/test-layout-input.ts #3052
 apps/studio/test-layout-input.ts #3878
+apps/studio/test-leave-guard.ts #3982
 apps/studio/test-legacy-input.ts #3707
 apps/studio/test-legacy-input.ts #3873
 apps/studio/test-legacy-input.ts #4206
@@ -745,6 +747,7 @@ apps/studio/test-smoke.mjs #330
 apps/studio/test-smoke.mjs #3429
 apps/studio/test-smoke.mjs #388
 apps/studio/test-smoke.mjs #3880
+apps/studio/test-smoke.mjs #3982
 apps/studio/test-smoke.mjs #576
 apps/studio/test-smoke.mjs #775
 apps/studio/test-smoke.mjs #779

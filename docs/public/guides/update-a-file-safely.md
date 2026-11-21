@@ -3,8 +3,8 @@
 <!-- DRAFT for owner review (#2637, lane 4; rewritten around Update file for #3264). Every factual claim cites its source in an HTML comment of the form `src: path:line`, and a claim that quotes nothing carries the cited block's fingerprint (`src: path:line#1a2b3c4d`, #3417), and `lint-guide-claims.ts` checks each one still holds what the claim quotes. -->
 
 Every write Prism3 makes to a Figma file goes through **Update file**. <!-- src: apps/studio/src/state/update-file.ts:330 -->
-It is the filled button at the right of the plugin's top bar, and it opens a checklist: you tick what to write, and the plugin writes it in one run. <!-- src: apps/studio/src/shell/bar.ts:189#d91b8a4a --> <!-- src: apps/studio/src/shell/update-file.ts:1-10#84faa64c -->
-It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:113#1bd757c2 -->
+It is the filled button at the right of the plugin's top bar, and it opens a checklist: you tick what to write, and the plugin writes it in one run. <!-- src: apps/studio/src/shell/bar.ts:193#d91b8a4a --> <!-- src: apps/studio/src/shell/update-file.ts:1-10#84faa64c -->
+It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:117#1bd757c2 -->
 
 A file that people already work in holds things Prism3 did not make: your own variables and styles, hand edits on components, instances placed across other files. This guide covers what each part of Update file writes, how it treats that work, and how to check a change before it happens.
 
@@ -150,7 +150,7 @@ Removing a mode removes its values from every variable in the collection, so mov
 |---|---|---|
 | `✗ N conflicts`, "Nothing was written." | The file holds a same-named collection or style that Prism3 did not create, or a variable of another type. <!-- src: apps/plugin/src/preflight.ts:299 --> | Rename or remove the named items, then run Update file again. |
 | "is already running. Try again when it finishes." | Another write is already running, from the panel or an agent. <!-- src: apps/plugin/src/run-guard.ts:49-52 --> | Wait for it to finish. |
-| "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1951 --> | Load the brand again, for example from its `design.md`. |
+| "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." | The brand saved in this file didn't open. The dialog's **Update file** button, Clean up's delete and every other write stay off. <!-- src: apps/studio/src/main.ts:1969 --> | Load the brand again, for example from its `design.md`. |
 | `✗ update refused`, "the file changed since the check" | Something in the file moved between the check and the update. <!-- src: apps/plugin/src/update-apply.ts:1045 --> | Open Update file again and read the new check. |
 | "the named version could not be saved" | Figma refused to save the safety version, so the update wrote nothing. <!-- src: apps/plugin/src/update-apply.ts:1145 --> | Try again. Nothing in the file changed. |
 | `nothing built — set '…' on this page varies by different axes and was left as it is` | A set with that name already exists on the page, built with different options. <!-- src: apps/plugin/src/main.ts:1076 --> | Rename or move the existing set. |
