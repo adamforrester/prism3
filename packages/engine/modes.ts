@@ -785,6 +785,19 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const baseRgb = cfg.surface.rgb;
   const floorRgb = cfg.floor.rgb;
   const invRgb = cfg.inverseSurface;
+  // THE INTERACTIVE GROUND (#3339, owner C, 2026-11-18). A brand may declare the darkest ground its controls sit on.
+  // 'floor' (default) is today's: interactive fills, disabled ink, field borders, the destructive outline and the field
+  // status borders are measured on the contrast floor (or the tertiary tier, where each already was), so they hold on
+  // every page tier. 'page' measures each of them on `background.primary` (and the inverse band's on
+  // `inverse.background.primary`), so they run as light as the page allows. It is the brand's commitment, not a
+  // contrast setting: nothing is relaxed, only the ground each check names. Light and dark only: high contrast keeps
+  // the strictest ground. Each role names the ground it was measured on, so `against` and every gate that recomputes a
+  // ratio from it read the declared ground.
+  const pageControls = theme.interactiveGround === 'page' && !hc;
+  const pageGroundRgb = (): RGB => asGround('background.primary', baseRgb);
+  const ctlFloorRgb = (): RGB => (pageControls ? pageGroundRgb() : floorRgb);
+  const ctlFloorName = (): string => (pageControls ? 'background.primary' : cfg.floorName);
+  const ctlFloorLabel = (): string => (pageControls ? 'background.primary' : cfg.floorLabel);
   const onMin = 4.5; // text on a saturated fill targets AA (a vivid mid-tone is gamut-bounded)
   // The bar a BOLD FILL clears against the floor surface. A fill carries no text of its own, so the
   // governing criterion is SC 1.4.11 non-text, not 1.4.3 — the label's legibility is `on-fill`'s
@@ -1184,7 +1197,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const disabledFloor = theme.disabledStrategy === 'full' ? 4.5 : theme.disabledMin;
   const disabledTarget = hc ? Math.max(disabledFloor, 4.5) : disabledFloor;
   const disabledText = (): { r: Rated; against: string; min: number } =>
-    ({ r: pickMinPass(textCands, floorRgb, disabledTarget), against: cfg.floorName, min: disabledTarget });
+    ({ r: pickMinPass(textCands, ctlFloorRgb(), disabledTarget), against: ctlFloorName(), min: disabledTarget });
   // The label/ink on a DISABLED fill (disabled.fill, a muted neutral). A dedicated
   // pair — Carbon's `text-on-color-disabled` — resolved against the disabled FILL (not
   // the page), so it stays muted-but-legible on it rather than landing at the wrong
@@ -1423,7 +1436,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const fillStateCand = (rest: RatedNum, palette: string, st: typeof FILL_STATES[number], fillMin: number): Cand => {
     // Measure the origin here rather than trusting `rest.ratio` — an `exact` pin carries the ratio
     // it was picked with, and this must be the contrast against the ground `put` will use.
-    const g = guardFrom(contrast(rest.rgb, floorRgb), floorRgb, fillMin);
+    const g = guardFrom(contrast(rest.rgb, ctlFloorRgb()), ctlFloorRgb(), fillMin);
     // FOCUSED AND SELECTED RIDE REST (#1626 / #1763, owner, 2026-09-29: "rest fill + deeper inverse ink").
     // They used to walk like hover/pressed, and in `dark` that walk goes LIGHTER under a near-white label:
     // the on-fill measured 2.32–2.62:1 on `fill.selected` (the switch's on thumb, the checkbox's checked
@@ -1459,8 +1472,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const fillTierRgb = asGround('background.tertiary', cfg.bg.tertiary.rgb);
   const tierGated: string[] = [];
   const restFill = (name: string, palette: string, anchor: number, exact: boolean): RatedNum => {
-    tierGated.push(name);
-    return chromatic(palette, anchor, floorRgb, fillFloorMin, exact, [fillTierRgb]);
+    // Under a 'page' interactive ground the fill clears the page alone: the tertiary arm (#1773) guards a control
+    // placed on the tertiary tier, which the brand has excluded.
+    if (!pageControls) tierGated.push(name);
+    return chromatic(palette, anchor, ctlFloorRgb(), fillFloorMin, exact, pageControls ? [] : [fillTierRgb]);
   };
   // Authored pin → `exact` (#331): applied as picked, floor miss reported not corrected.
   const actionRest = paAnchor !== undefined
@@ -1506,8 +1521,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // against the fill. #375 split rest (4.5) from the other states (3) only because relaxing
       // rest then broke the NB fixture and forced a banned ink; both are handled deliberately here,
       // so the split is degenerate and gone.
-      put(`interactive.${name}.fill.${stKey}`, rated(c, floorRgb),
-        `${name} interactive fill — ${stKey}, clears ${fillMin}:1 on ${cfg.floorLabel}`, cfg.floorName, fillMin);
+      put(`interactive.${name}.fill.${stKey}`, rated(c, ctlFloorRgb()),
+        `${name} interactive fill — ${stKey}, clears ${fillMin}:1 on ${ctlFloorLabel()}`, ctlFloorName(), fillMin);
     }
     put(`interactive.${name}.on-fill`, onColor(asGround(`interactive.${name}.fill.rest`, rest.rgb)), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
   };
@@ -1516,7 +1531,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const neutralStepR = (num: number): RatedNum => {
     const steps = ramps.get(r2p.neutral)!;
     const s = steps.reduce((a, b) => (Math.abs(b.num - num) < Math.abs(a.num - num) ? b : a));
-    return { path: `${ns}.${r2p.neutral}.${s.key}`, rgb: s.rgb, num: s.num, ratio: contrast(s.rgb, floorRgb) };
+    return { path: `${ns}.${r2p.neutral}.${s.key}`, rgb: s.rgb, num: s.num, ratio: contrast(s.rgb, ctlFloorRgb()) };
   };
   // The outline / text ink, per interactive state (docs/20 §2) — `text.{rest,hover,pressed}`. rest is
   // the gated pick; hover/pressed walk the palette toward MORE contrast (like the fill states), so an
@@ -1664,8 +1679,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // 'background.tertiary'. They are two expressions, not one — so reverting `dTextGround` to `baseRgb`
   // (the light red) leaves `against` at the strict surface and drops the recomputed ratio below the
   // floor, failing `lint-ratio-truth` BY NAME (docs/34: the gate and its subject stay independent).
-  const dTextGround = asGround('background.tertiary', cfg.bg.tertiary.rgb);
-  iBorder('destructive', iText('destructive', paletteRole('danger', dTextGround, cfg.secondaryMin), r2p.danger, true, dTextGround, 'background.tertiary'), dTextGround, '', 'background.tertiary');
+  // Under a 'page' interactive ground (#3339) the strictest page ground is the page itself.
+  const dTextName = pageControls ? 'background.primary' : 'background.tertiary';
+  const dTextGround = pageControls ? pageGroundRgb() : asGround('background.tertiary', cfg.bg.tertiary.rgb);
+  iBorder('destructive', iText('destructive', paletteRole('danger', dTextGround, cfg.secondaryMin), r2p.danger, true, dTextGround, dTextName), dTextGround, '', dTextName);
 
   // neutral — the achromatic column that was the historical miss (docs/20 §12). The
   // `neutralEmphasis` lever picks the fill: 'subtle' (default) a light grey (min 0 — a
@@ -1914,7 +1931,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the LIGHTEST inverse surface (least contrast for a light ink) — mirroring the page fix (#1352). The
   // light red (~danger 450, e.g. #d9554c) cleared 4.95 on the darkest band but only ~4.1 on the lighter
   // inverse card; the stricter ground lands it a rung lighter so it clears 4.5 on every inverse tier.
-  invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger, asGround('inverse.background.tertiary', cfg.bgInverse.tertiary.rgb), 'inverse.background.tertiary');
+  invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger,
+    pageControls ? asGround('inverse.background.primary', invRgb) : asGround('inverse.background.tertiary', cfg.bgInverse.tertiary.rgb),
+    pageControls ? 'inverse.background.primary' : 'inverse.background.tertiary');
   invColumn('neutral', null, 0);
   for (const entry of theme.interactivePalettes) invColumn(entry.name, entry.palette, modeAnchor(entry.name) ?? entry.anchorStep ?? 500);
 
@@ -2036,11 +2055,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   putSurf('inverse.disabled.fill', neutralLowInverse(), 'Disabled control fill on an inverse surface — one muted neutral, any intent');
   put('inverse.disabled.on-fill', pickMinPass(textCands, asGround('inverse.disabled.fill', neutralLowInverse().rgb), disabledTarget),
     `Label / icon on a disabled fill on an inverse surface — muted but clears ${disabledTarget}:1`, 'inverse.disabled.fill', disabledTarget);
-  { const r = pickMinPass(textCands, invFloorRgb, disabledTarget);
-    put('inverse.disabled.text', r, `Disabled text on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget);
-    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget);
-    // The inverse edge follows the page's (#2750).
-    put('inverse.disabled.border', r, `Disabled control border on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget); }
+  { const ig = pageControls ? 'inverse.background.primary' : 'inverse.background.secondary';
+    const r = pickMinPass(textCands, pageControls ? asGround('inverse.background.primary', invRgb) : invFloorRgb, disabledTarget);
+    put('inverse.disabled.text', r, `Disabled text on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, ig, disabledTarget);
+    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, ig, disabledTarget);
+    // The inverse edge follows the page's (#2750), on the same declared ground (#3339).
+    put('inverse.disabled.border', r, `Disabled control border on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, ig, disabledTarget); }
 
   // ---- field — form-element chrome (docs/20 §17). Deliberately MINIMAL + gated: a field
   // surface, a PERCEIVABLE resting border, and a READABLE placeholder. Everything stateful
@@ -2073,9 +2093,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // Rest is a perceivable boundary; hover is a subtly STRONGER boundary — never the sole state
   // carrier (KB §4). Focus swaps to border.focus, validation to border.<semantic>, disabled to
   // disabled.border — those compose from generic families, so only rest/hover live in field.*.
-  const fieldGroundRgb = asGround('background.secondary', cfg.bg.secondary.rgb);
+  // Under a 'page' interactive ground (#3339) the field is measured on the page itself, so it says so.
+  const fieldGroundName = pageControls ? 'background.primary' : 'background.secondary';
+  const fieldGroundRgb = pageControls ? pageGroundRgb() : asGround('background.secondary', cfg.bg.secondary.rgb);
   const fieldRest = pickMinPass(ramp, fieldGroundRgb, cfg.nonTextMin);
-  put('field.border.rest', fieldRest, `Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against \`background.secondary\`, the ground it is gated on, not the page alone`, 'background.secondary', cfg.nonTextMin);
+  put('field.border.rest', fieldRest, `Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against \`${fieldGroundName}\`, the ground it is gated on${pageControls ? ', the page this brand places its controls on' : ', not the page alone'}`, fieldGroundName, cfg.nonTextMin);
   // Hover is a STATE DELTA expressed as a step offset from rest, not a second absolute ratio.
   //
   // It used to target `secondaryMin` — a TEXT constant — which is the same category error the bold
@@ -2094,7 +2116,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // step is a far weaker cue on 1px of chrome than on a filled button.
   const FIELD_HOVER_STEPS = 4;
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
-  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, FIELD_HOVER_STEPS, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on \`background.secondary\`. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'background.secondary', cfg.nonTextMin);
+  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, FIELD_HOVER_STEPS, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on \`${fieldGroundName}\`. A field draws no hover fill, so this border is its hover cue, with the pointer`, fieldGroundName, cfg.nonTextMin);
   // `secondaryTextGround: 'page'` (owner Q-TXT1 A) fits the page's secondary ink on `background.primary`, the same
   // ground `text.primary` names, so it is the lightest secondary that still clears its bar on the page. Light and
   // dark only (owner Q3212.3 B): high contrast keeps its floor fit, because HC is for maximum legibility and the
@@ -2136,11 +2158,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   putSurf('inverse.field.fill', cand(`${ns}.transparent`, BLACK), 'Form field fill on an inverse surface — transparent by default (no paint), the same paint-less field the page takes; the border frames it on the inverse band');
   // `-dir` throughout: on the page a stronger neutral steps toward the ink, and on the inverse band
   // that direction reverses. The same idiom the inverse interactive column already uses.
-  const fieldInvGroundRgb = asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
+  const fieldInvGroundName = pageControls ? 'inverse.background.primary' : 'inverse.background.secondary';
+  const fieldInvGroundRgb = pageControls ? asGround('inverse.background.primary', invRgb) : asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
   const fieldInvRest = pickMinPass(ramp, fieldInvGroundRgb, cfg.nonTextMin);
-  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against \`inverse.background.secondary\`, the ground it is gated on`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against \`${fieldInvGroundName}\`, the ground it is gated on`, fieldInvGroundName, cfg.nonTextMin);
   const fieldInvRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldInvRest.path)!.num;
-  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, FIELD_HOVER_STEPS, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on \`inverse.background.secondary\`. A field draws no hover fill, so this border is its hover cue, with the pointer`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, FIELD_HOVER_STEPS, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — four ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on \`${fieldInvGroundName}\`. A field draws no hover fill, so this border is its hover cue, with the pointer`, fieldInvGroundName, cfg.nonTextMin);
   put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a readable hint, ${cfg.secondaryMin}:1 on \`inverse.background.secondary\` behind the transparent fill`, 'inverse.background.secondary', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
@@ -2429,10 +2452,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // and Figma `a: 0.1`, so compositing NB at 0.102 held it to a wash darker than the one it ships (nb dark
   // warning moved 500 → 450 on that difference alone). A contract has to hold on what ships, per dialect.
   const fieldWashA = fieldWash?.alpha !== undefined ? emittedAlpha(fieldWash.alpha, theme.colorFormat) : undefined;
+  // Under a 'page' interactive ground (#3339) a field never sits on the inset, so its status borders clear the page
+  // and the page under the hover wash only.
   const fieldStatusGrounds: RGB[] = [
-    fieldInsetRgb,
+    ...(pageControls ? [] : [fieldInsetRgb]),
     ...(fieldWashRgb && fieldWashA !== undefined
-      ? [composite(fieldPageRgb, fieldWashRgb, fieldWashA), composite(fieldInsetRgb, fieldWashRgb, fieldWashA)]
+      ? [composite(fieldPageRgb, fieldWashRgb, fieldWashA), ...(pageControls ? [] : [composite(fieldInsetRgb, fieldWashRgb, fieldWashA)])]
       : []),
   ];
   // #1782 DECISION 2 (owner, 2026-09-29) — A STATUS BORDER NEVER TAKES THE FOCUS RING'S COLOUR. A field swaps

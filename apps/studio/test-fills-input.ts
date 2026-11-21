@@ -254,6 +254,25 @@ ok(store.brandState.scrimStrength === 'standard' && scrimReads() === 'black-alph
 reset();
 ok(F.brandScrimStrength() === 'standard', `#3050: a brand without the lever reads as Standard (${F.brandScrimStrength()})`);
 
+// #3339 (owner C): Controls sit on. "The page only" writes `interactiveGround: 'page'` and nothing else, and the light
+// field border reads one step lighter, measured on the page (neutral.450 → neutral.400 for this brand, the step the
+// build PR measured, typed here); "Every surface" writes 'floor' and reads today's step; an unset brand reads as floor.
+const fieldStep = (m: string): string => String(F.rolesIn(m)['field.border.rest']?.path ?? 'none').split('.').slice(-2).join('.');
+reset();
+F.setInteractiveGround('page');
+store.rebuild();
+ok(JSON.stringify(store.brandState) === JSON.stringify({ ...prism3, interactiveGround: 'page' }) && F.brandInteractiveGround() === 'page',
+  `#3339: The page only writes interactiveGround "page" and nothing else (${JSON.stringify(store.brandState.interactiveGround)})`);
+const hcPage = `${fieldStep('hc-light')} ${fieldStep('hc-dark')}`;
+ok(fieldStep('light') === 'neutral.400', `#3339: under The page only the light field border reads neutral.400 (read ${fieldStep('light')})`);
+F.setInteractiveGround('floor');
+store.rebuild();
+ok(store.brandState.interactiveGround === 'floor' && fieldStep('light') === 'neutral.450',
+  `#3339: Every surface writes "floor" and the light field border reads neutral.450 (read ${fieldStep('light')})`);
+ok(`${fieldStep('hc-light')} ${fieldStep('hc-dark')}` === hcPage, `#3339: high contrast reads the same field border under either setting (page ${hcPage}, floor ${fieldStep('hc-light')} ${fieldStep('hc-dark')})`);
+reset();
+ok(F.brandInteractiveGround() === 'floor', `#3339: a brand without the setting reads as Every surface (${F.brandInteractiveGround()})`);
+
 
 // ── 4. S4d: every Surfaces & fills role has a home (owner decisions Q20, Q49, Q50) ─────────────────────
 console.log('\n4. Every Surfaces & fills role is a row, a lever, or read-only by a declared reason (oracle: the emission)');

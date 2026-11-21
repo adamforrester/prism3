@@ -8,7 +8,7 @@ import { radiusScale, componentSizes, type RadiusStep, type SizeStep, controlSiz
 import { inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName } from './modes';
 import { resolveVocabulary } from './vocabulary';
-import { type BrandInputAuthored, type Theme, type BrandInput, ALL_MODES, VALID_MODES, validOutlineHoverFill, validOutlineWash, outlineWashSteps, OUTLINE_INTERACTION_VALUES, RAISED_SURFACE_VALUES, SCRIM_STRENGTH_VALUES, SECONDARY_TEXT_GROUND_VALUES, validGlassRoles, n2, n4, type PaletteBuild, type Role, type InteractivePalette, type InverseSurfaceSpec, type SurfaceStep, CORE_TIER } from './theme-types';
+import { type BrandInputAuthored, type Theme, type BrandInput, ALL_MODES, VALID_MODES, validOutlineHoverFill, validOutlineWash, outlineWashSteps, OUTLINE_INTERACTION_VALUES, RAISED_SURFACE_VALUES, SCRIM_STRENGTH_VALUES, SECONDARY_TEXT_GROUND_VALUES, INTERACTIVE_GROUND_VALUES, validGlassRoles, n2, n4, type PaletteBuild, type Role, type InteractivePalette, type InverseSurfaceSpec, type SurfaceStep, CORE_TIER } from './theme-types';
 import { PALETTE_NAME_RE, RESERVED_PALETTES, STATUS_DEFAULTS, statusRamp, inRedTerritory, hueDist, RED_CHROMA_FLOOR, normalizeDisabledStrategy, normalizeDisabledMin } from './theme-color';
 import { buildDims } from './theme-dims';
 import { buildMotion, type MotionAxis } from './theme-motion';
@@ -286,6 +286,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'raisedSurface', value: input.raisedSurface, options: RAISED_SURFACE_VALUES },
     { path: 'scrimStrength', value: input.scrimStrength, options: SCRIM_STRENGTH_VALUES },
     { path: 'secondaryTextGround', value: input.secondaryTextGround, options: SECONDARY_TEXT_GROUND_VALUES },
+    { path: 'interactiveGround', value: input.interactiveGround, options: INTERACTIVE_GROUND_VALUES },
     { path: 'radioDot', value: input.radioDot, options: RADIO_DOT_SHARES },
   ];
   for (const { path, value, options } of enumLevers) {
@@ -1078,6 +1079,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     ...(input.raisedSurface ? { raisedSurface: input.raisedSurface } : {}),
     ...(input.scrimStrength ? { scrimStrength: input.scrimStrength } : {}),
     ...(input.secondaryTextGround ? { secondaryTextGround: input.secondaryTextGround } : {}),
+    ...(input.interactiveGround ? { interactiveGround: input.interactiveGround } : {}),
     ...(glassRoles ? { glassRoles } : {}),
     ...(radioDot !== RADIO_DOT_DEFAULT ? { radioDot } : {}),
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,

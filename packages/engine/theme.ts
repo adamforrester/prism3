@@ -17,8 +17,8 @@
  * re-exports exactly the names `theme.ts` exported before the split, so no importer changes. It holds
  * nothing but re-exports; `lint-theme-split.ts` holds it to that.
  */
-export { ALL_MODES, VALID_MODES, RESERVED_ROOTS, CORE_TIER, RAISED_SURFACE_VALUES, SCRIM_STRENGTH_VALUES, SECONDARY_TEXT_GROUND_VALUES, SHIPPED_GLASS_ROLE, GLASS_ROLE_NAME, validGlassRoles, OUTLINE_INTERACTION_VALUES, validOutlineHoverFill, OUTLINE_WASH_STEPS, OUTLINE_WASH_DEFAULTS, validOutlineWash, outlineWashSteps } from './theme-types';
-export type { NbMeasured, Role, OKLCH, PaletteBuild, ModeLevers, Dims, InteractivePalette, LinkStateRungs, RaisedSurface, ScrimStrength, SecondaryTextGround, GlassRoleInput, OutlineInteraction, OutlineHoverPick, OutlineHoverFill, OutlineWash, Theme, SurfaceSpec, SurfaceStep, InverseSurfaceSpec, SurfaceMode, SurfacesConfig, BrandInput, BrandInputAuthored } from './theme-types';
+export { ALL_MODES, VALID_MODES, RESERVED_ROOTS, CORE_TIER, RAISED_SURFACE_VALUES, SCRIM_STRENGTH_VALUES, SECONDARY_TEXT_GROUND_VALUES, INTERACTIVE_GROUND_VALUES, SHIPPED_GLASS_ROLE, GLASS_ROLE_NAME, validGlassRoles, OUTLINE_INTERACTION_VALUES, validOutlineHoverFill, OUTLINE_WASH_STEPS, OUTLINE_WASH_DEFAULTS, validOutlineWash, outlineWashSteps } from './theme-types';
+export type { NbMeasured, Role, OKLCH, PaletteBuild, ModeLevers, Dims, InteractivePalette, LinkStateRungs, RaisedSurface, ScrimStrength, SecondaryTextGround, InteractiveGround, GlassRoleInput, OutlineInteraction, OutlineHoverPick, OutlineHoverFill, OutlineWash, Theme, SurfaceSpec, SurfaceStep, InverseSurfaceSpec, SurfaceMode, SurfacesConfig, BrandInput, BrandInputAuthored } from './theme-types';
 export { isReservedPalette, RED_CHROMA_FLOOR, inRedTerritory, DISABLED_FLOOR_MIN, DISABLED_FLOOR_MAX, normalizeDisabledStrategy, normalizeDisabledMin } from './theme-color';
 export { buildDims } from './theme-dims';
 export { EASING_ROLE_DEFAULTS, SPIN_ROLE, SPIN_MS, SPIN_REDUCED_MS, SWEEP_ROLE, SWEEP_MS, SWEEP_REDUCED_MS, LOOP_ROLES } from './theme-motion';

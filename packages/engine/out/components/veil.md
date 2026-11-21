@@ -39,7 +39,6 @@ Place a veil between a photograph (or video) and the text set over it, so the te
 - Use a directional wash from the edge the text sits on — from-bottom for a caption along the bottom
 - Verify the text's contrast against the actual photo; the intensity is a magnitude, not a guaranteed ratio
 - Size the veil to its media container and keep the text and controls as siblings on top of it
-- Mark the veil aria-hidden — it is a presentational background layer
 
 ### Don't
 
@@ -74,6 +73,8 @@ The veil holds no copy. Where its variants surface in a UI, name the polarity an
   - a hand-tuned semi-transparent rectangle over an image with an ad-hoc opacity
 
 ## Building it in code
+
+- Mark the veil aria-hidden — it is a presentational background layer
 
 ### Props
 

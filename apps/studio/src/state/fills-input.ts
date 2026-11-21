@@ -34,7 +34,7 @@
  * writes are surface writes, like the Page's and the band's, never `setRoleOverride`: `setSurfaceTier` (the
  * page's type) and `setInverseTier` (the band's type). Auto clears the input, pruning as an override clears.
  */
-import { brandTheme, type GradientInput, type ScrimStrength, leverManifest, BUILTIN_MODES, resolveAllModes } from '@prism3/engine';
+import { brandTheme, type GradientInput, type ScrimStrength, type InteractiveGround, leverManifest, BUILTIN_MODES, resolveAllModes } from '@prism3/engine';
 import { brandState, getPath, setPath, theme } from './store';
 import { resolvedModes } from './verdict';
 import { STATUS_ROLES } from './palette-input';
@@ -111,6 +111,12 @@ export const SCRIM_ROLE = 'scrim.default';
 export const brandScrimStrength = (): ScrimStrength =>
   (getPath(brandState, 'scrimStrength') ?? leverManifest.find((l) => l.key === 'scrimStrength')?.default ?? 'standard') as ScrimStrength;
 export const setScrimStrength = (v: ScrimStrength): void => { setPath(brandState, 'scrimStrength', v); };
+/** The darkest ground the brand's controls may sit on (#3339, owner C; the control's copy is a DRAFT). Brand-wide, like
+ *  the scrim's strength: the engine holds the per-mode grounds itself, so it writes the same bytes from any editable
+ *  mode. Unset reads as the manifest's default, `floor`, today's behavior. */
+export const brandInteractiveGround = (): InteractiveGround =>
+  (getPath(brandState, 'interactiveGround') ?? leverManifest.find((l) => l.key === 'interactiveGround')?.default ?? 'floor') as InteractiveGround;
+export const setInteractiveGround = (v: InteractiveGround): void => { setPath(brandState, 'interactiveGround', v); };
 /** A wash's read-out: its primitive by palette and step (`black-alpha 40`), and its opacity in percent. */
 export const washReadOf = (r: FillRole): { primitive: string; opacity: number } => {
   const parts = (r.path ?? '').split('.');

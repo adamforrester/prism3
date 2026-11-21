@@ -46,8 +46,6 @@ Use for a binary on/off setting that applies immediately — notifications, dark
 - Apply the change the instant it is toggled — the immediacy is the contract
 - Put the label first and the switch at the row's trailing edge; flip to control-leading only when a switch sits inline among other form controls
 - Name the setting, not the state, and keep the label the same on and off
-- Default to optimistic: flip immediately, then revert and say what failed if the effect did not take
-- Guard the re-toggle race — lock input on the first interaction until the effect resolves
 - Support read-only for settings a user may review but not change: focusable, in the tab order, at full contrast
 - Let thumb position carry the state, and add the thumb glyph (showStateLabel) where legibility demands a cue beyond color
 
@@ -103,6 +101,9 @@ The label names the setting and never changes. The description says what turning
   - an `aria-pressed` toggle button misused to hold a state setting
 
 ## Building it in code
+
+- Default to optimistic: flip immediately, then revert and say what failed if the effect did not take
+- Guard the re-toggle race — lock input on the first interaction until the effect resolves
 
 ### Props
 
