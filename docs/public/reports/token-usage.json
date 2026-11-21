@@ -7685,24 +7685,6 @@
             }
           }
         },
-        "slider": {
-          "keys": [
-            "indicator"
-          ],
-          "parts": {
-            "bar": {
-              "members": 24,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
         "switch-control": {
           "keys": [
             "off.border"
@@ -8715,6 +8697,24 @@
                 ],
                 "type": [
                   "page"
+                ]
+              }
+            }
+          }
+        },
+        "slider": {
+          "keys": [
+            "indicator"
+          ],
+          "parts": {
+            "bar": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
                 ]
               }
             }
@@ -33594,7 +33594,7 @@
         "color.disabled.icon",
         "color.disabled.text",
         "color.field.border.rest",
-        "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.indicator.rest",
         "color.text.primary",
         "color.text.secondary",
         "radius.round",

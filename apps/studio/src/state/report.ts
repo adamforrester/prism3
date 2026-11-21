@@ -19,7 +19,7 @@
 import { isReservedPalette } from '@prism3/engine';
 
 /** Where the prefilled issue opens. The one URL the plugin's main thread will open for a report (`isIssueUrl`). */
-export const ISSUE_BASE = 'https://github.com/adamforrester/prism3/issues/new';
+export const ISSUE_BASE = 'https://github.com/prism-ds/prism3/issues/new';
 
 /** One operation's latest result, as the Activity drawer holds it. */
 export type ReportEntry = { readonly title: string; readonly verdict: string | null; readonly lines: readonly string[]; readonly agent: boolean };

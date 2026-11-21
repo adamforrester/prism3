@@ -19777,14 +19777,14 @@ arm: {
         const dis = state === 'disabled';
         if (control?.bound?.height !== 'size/md/min-height') trackOff.push(`${size}/${type}/${state}: control height ${String(control?.bound?.height)}`);
         if (track?.bound?.height !== TRACK[size] || track?.paints?.fills !== (dis ? 'color/disabled/fill' : 'color/field/border/rest')) trackOff.push(`${size}/${type}/${state}: track ${String(track?.bound?.height)} ${String(track?.paints?.fills)}`);
-        if (bar?.bound?.height !== TRACK[size] || bar?.paints?.fills !== (dis ? 'color/disabled/icon' : 'color/interactive/neutral/border/rest') || bar?.bound?.topLeftRadius !== undefined) trackOff.push(`${size}/${type}/${state}: bar ${String(bar?.bound?.height)} ${String(bar?.paints?.fills)} radius ${String(bar?.bound?.topLeftRadius)}`);
+        if (bar?.bound?.height !== TRACK[size] || bar?.paints?.fills !== (dis ? 'color/disabled/icon' : 'color/interactive/neutral/indicator/rest') || bar?.bound?.topLeftRadius !== undefined) trackOff.push(`${size}/${type}/${state}: bar ${String(bar?.bound?.height)} ${String(bar?.paints?.fills)} radius ${String(bar?.bound?.topLeftRadius)}`);
         for (const n of ['spaceStart', 'spaceEnd']) { const sp = findIn(m.root, n); if (sp && (sp.bound?.height !== TRACK[size] || sp.paints?.fills !== undefined)) trackOff.push(`${size}/${type}/${state}: ${n} ${String(sp.bound?.height)} ${String(sp.paints?.fills)}`); }
         const kids = (track?.children ?? []).map((k) => k.name);
         if (JSON.stringify(kids) !== JSON.stringify(ORDER[type])) trackOff.push(`${size}/${type}/${state}: track holds ${kids.join(', ')}`);
         if (!['bar', 'spaceEnd', ...(type === 'range' ? ['spaceStart'] : [])].every((n) => findIn(m.root, n)?.layoutGrow === 1)) trackOff.push(`${size}/${type}/${state}: a segment does not grow`);
       }
       ok(trackOff.length === 0,
-        `#2669 Q550 a / e the track: one thickness per size (border-width/thick, heavy, x-heavy) in color/field/border/rest, the square-ended bar at the same thickness in color/interactive/neutral/border/rest, growing segments around the thumbs in a size/md/min-height control row at every size, disabled track color/disabled/fill and bar color/disabled/icon (${trackOff.length} off — ${trackOff.slice(0, 3).join('; ') || 'none'})`);
+        `#2669 Q550 a / e the track: one thickness per size (border-width/thick, heavy, x-heavy) in color/field/border/rest, the square-ended bar at the same thickness in color/interactive/neutral/indicator/rest (the thumb's mark, #3398 A), growing segments around the thumbs in a size/md/min-height control row at every size, disabled track color/disabled/fill and bar color/disabled/icon (${trackOff.length} off — ${trackOff.slice(0, 3).join('; ') || 'none'})`);
 
       // Q550 e, in pixels: the three track rungs above resolve to 2 / 4 / 6px in the emitted tree of every corpus brand.
       // The arm above pins which rung each size binds; this pins what the rung is worth, so a regenerated 5px x-heavy
@@ -39691,15 +39691,18 @@ arm: {
           const v = /^\+export const ENGINE_VERSION = '(\d+\.\d+\.\d+)'/m.exec(rec)?.[1];
           if (sha && parents.length === 1 && v) set.add(v);
         }
-        const releases = join(REPO, 'docs/public/releases');
+        // The versions named AT THE BASE, not in the working tree (the 0.239.0 fold): a fold PR's tree names the version it
+        // is minting, which no commit of main can set until that PR merges, so reading the tree failed every fold in CI.
+        // Every version main's own record names must still be set by a single-parent commit in its history.
         const named = [
-          ...(existsSync(releases) ? readdirSync(releases).filter((f) => /^\d+\.\d+\.\d+\.json$/.test(f)).map((f) => f.slice(0, -5)) : []),
-          /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(readFileSync(join(REPO, 'packages/engine/version.ts'), 'utf8'))?.[1] ?? 'the working tree\'s ENGINE_VERSION (unreadable)',
+          ...raw(['ls-tree', '--name-only', base, 'docs/public/releases/']).stdout.split('\n')
+            .map((f) => /\/(\d+\.\d+\.\d+)\.json$/.exec(f.trim())?.[1]).filter((v): v is string => !!v),
+          /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(raw(['show', `${base}:packages/engine/version.ts`]).stdout)?.[1] ?? `the ENGINE_VERSION at ${base.slice(0, 8)} (unreadable)`,
         ];
         const unset = [...new Set(named)].filter((v) => !set.has(v));
         if (unset.length) premiseBroken.push(`no single-parent commit in the history of ${at} sets ${unset.slice(0, 5).join(', ')}${unset.length > 5 ? ` and ${unset.length - 5} more` : ''}, so the folds the tree's release notes name are not in it`);
       }
-      const inPrism3 = process.env.GITHUB_REPOSITORY === 'adamforrester/prism3';
+      const inPrism3 = process.env.GITHUB_REPOSITORY === 'prism-ds/prism3';
       if (premiseBroken.length && inPrism3) {
         for (const b of premiseBroken) ok(false, `#3985 integration replay: in prism3's own CI its premise must hold, and it does not — ${b}`);
         failSpan('integration-replay', premiseBroken.join('; '));
@@ -44397,6 +44400,31 @@ arm: {
   ok(MARKS.length === 13 && bindOff.length === 0,
     `#3346-E1 the five selection marks bind interactive.<c>.indicator.*: the tab's selected bar, the radio's checked ring, the tag's selected outline, the switch's off thumb and the slider's disc (${bindOff.length} off — ${bindOff.slice(0, 3).join('; ') || 'none'})`);
 
+  // (4b) #3398 A (owner, 2026-11-18): THE THREE NEARBY BINDINGS, EACH KEY A LITERAL. The slider's selected bar is a mark
+  // like the disc it meets, so it binds the thumb's `interactive.neutral.indicator.*` at rest; the nav-item preview's
+  // resting indicator is a mark on `interactive.primary.indicator.rest`, on its binding AND on the contract that
+  // measures it; Tag Underline's unselected line stays an EDGE on `interactive.primary.border.*` (the role Q589 named),
+  // so the outline-edge setting may quiet it. The expected refs are typed here, never read from the defs.
+  // MUTATION: put the slider's bar back on `interactive.neutral.border.rest`, or the nav-item's indicator back on
+  // `interactive.primary.border.rest`, and the arm fails by name; move the unselected line to the indicator and it fails too.
+  {
+    const off3398: string[] = [];
+    const sliderBar = componentDefs.find((d) => d.id === 'slider')?.tokens['indicator'];
+    if (sliderBar !== 'color.interactive.neutral.indicator.rest') off3398.push(`slider indicator: ${sliderBar ?? 'unbound'}`);
+    const navSel = previewSpec.components.find((c) => c.id === 'nav-item')?.variants.find((v) => v.name === 'selected');
+    const navInd = (navSel?.bindings as Record<string, string> | undefined)?.indicator;
+    if (navInd !== 'color.interactive.primary.indicator.rest') off3398.push(`nav-item selected indicator: ${navInd ?? 'unbound'}`);
+    const navCt = navSel?.contracts?.find((ct) => ct.label === 'indicator')?.fg;
+    if (navCt !== 'color.interactive.primary.indicator.rest') off3398.push(`nav-item indicator contract: ${navCt ?? 'none'}`);
+    const uTag = applyTagStyle(componentDefs.find((d) => d.id === 'tag')!, 'underline');
+    for (const st of STATES3) {
+      const k = st === 'rest' ? 'unselected.border' : `unselected.border.${st}`;
+      if (uTag.tokens[k] !== `color.interactive.primary.border.${st}`) off3398.push(`tag underline ${k}: ${uTag.tokens[k] ?? 'unbound'}`);
+    }
+    ok(off3398.length === 0,
+      `#3398 the slider's selected bar and the nav-item preview indicator are marks (interactive.<c>.indicator.rest); Tag Underline's unselected line stays an edge (interactive.primary.border.*) (${off3398.length} off — ${off3398.join('; ') || 'none'})`);
+  }
+
   // (5) NO SHAPE BINDS A TEXT ROLE (owner, 2026-11-03), even where the values match. SUBJECT = every projected member
   // of every def; a node whose part is a `box` may not fill or stroke with a `text` role on either band. The oracle is
   // the rule, typed here. `TEXT_CARET` is the one exception, exempt by owner decision (#3397 A, 2026-11-18): the text
@@ -45388,6 +45416,25 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(files.get('./e/acme.base.tokens.json') === JSON.stringify(projected.base, null, 2) + '\n'
     && files.get('./e/acme.dark.overlay.tokens.json') === JSON.stringify(projected.overlays.find((o) => o.mode === 'dark')?.tree, null, 2) + '\n',
     '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
+}
+
+// #1716 — `notes.contested` refuses a decided entry by the verbs decided entries USE, not by four opening words.
+// #1700's check read Settled/Resolved/RESOLVED/CLOSED and broke at colons, so it refused argued prose and passed
+// "Decided: …" and "Chosen: …". The literals below are the issue's own examples, in both directions; the corpus arm
+// names the three entries the issue found decided in `contested`, read off the defs themselves.
+{
+  const contestedErrs = (entry: string) => validateComponentDef({ ...focusRing, notes: { contested: [entry] } } as ComponentDef).errors
+    .filter((e) => /notes\.contested/.test(e));
+  for (const entry of ['Where the ring is drawn — on the edge or outside it. Decided as the offset sibling.', 'A or B. Chosen: B, for reach.',
+    'error as a border swap vs a set — settled as text-field settles it.'])
+    ok(contestedErrs(entry).length === 1, `#1716 contested refuses a decided entry: "${entry}" (got ${contestedErrs(entry).length} refusal(s))`);
+  for (const entry of ['Brief §4: Settled in the brief, argued here.', 'Whether the dot reads at 6px, e.g. Resolved later? Unmeasured.',
+    'Legacy icon fonts are settled as dead; the font model is not.'])
+    ok(contestedErrs(entry).length === 0, `#1716 contested keeps an argued entry: "${entry}" (got ${contestedErrs(entry).join(' | ') || 'no refusal'})`);
+  const contestedOf = (id: string) => componentDefs.find((d) => d.id === id)?.notes?.contested ?? [];
+  const stillContested = [['text-field', /ship both/], ['checkbox-row', /BORDER AND FILL AT ONE COORDINATE/], ['select', /settled as text-field settles it/]]
+    .filter(([id, re]) => contestedOf(id as string).some((e) => (re as RegExp).test(e))).map(([id]) => id);
+  ok(stillContested.length === 0, `#1716 the three entries that describe themselves as decided are out of contested (still there: ${stillContested.join(', ') || 'none'})`);
 }
 
 if (pass + fails.length < MIN_ASSERTIONS) {
