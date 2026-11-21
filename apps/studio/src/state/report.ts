@@ -19,7 +19,7 @@
 import { isReservedPalette } from '@prism3/engine';
 
 /** Where the prefilled issue opens. The one URL the plugin's main thread will open for a report (`isIssueUrl`). */
-export const ISSUE_BASE = 'https://github.com/adamforrester/prism3/issues/new';
+export const ISSUE_BASE = 'https://github.com/prism-ds/prism3/issues/new';
 
 /** One operation's latest result, as the Activity drawer holds it. */
 export type ReportEntry = { readonly title: string; readonly verdict: string | null; readonly lines: readonly string[]; readonly agent: boolean };
@@ -126,6 +126,9 @@ const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
  *  so far. A letter or digit never does, so an ordinary word that holds the name stays whole (`tidewaters`). */
 const SEGMENT = '[^\\p{L}\\p{N}]';
 
+/** The placeholders `scrub` writes, captured so a split keeps them (at the odd indexes). */
+const PLACEHOLDER = /(\[brand\]|\[removed\])/;
+
 /** Take out of one line what could carry a file name or a key. `words`: the brand's words to take out too. */
 export const scrub = (text: string, words: readonly BrandWord[] = []): string => {
   let t = text
@@ -142,11 +145,17 @@ export const scrub = (text: string, words: readonly BrandWord[] = []): string =>
     .replace(/\b(?=[A-Za-z0-9_-]*[0-9])(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{20,}\b/g, REDACTED)
     // A Figma file key with no digit: 22 letters, upper and lower case. A token name never matches: it is lower case.
     .replace(/\b(?=[A-Za-z]*[A-Z])(?=[A-Za-z]*[a-z])[A-Za-z]{22}\b/g, REDACTED);
+  // #3957: a word is never looked for inside a placeholder the scrub already wrote (`[brand]`, `[removed]`), so a brand
+  // word such as `brand` or `remove` cannot wrap one again (`[[brand]]`). The text between placeholders is scrubbed as
+  // before: a placeholder's brackets bound a segment just as the placeholder's own text did. A word that itself holds a
+  // placeholder's text (`Zork [brand] Quux`) could never match a split text, so it is looked for in the whole text, as
+  // before the split (#4393 review): its match spans the placeholder, so it cannot wrap one in another.
   for (const bw of words) {
     const w = wordText(bw);
-    t = typeof bw !== 'string' || w.length < SHORT_WORD
-      ? t.replace(new RegExp(`(^|${SEGMENT})${escapeRe(w)}(?=$|${SEGMENT})`, 'giu'), '$1[brand]')
-      : t.replace(new RegExp(escapeRe(w), 'gi'), '[brand]');
+    const re = typeof bw !== 'string' || w.length < SHORT_WORD
+      ? new RegExp(`(^|${SEGMENT})${escapeRe(w)}(?=$|${SEGMENT})`, 'giu') : new RegExp(escapeRe(w), 'gi');
+    const put = (x: string): string => x.replace(re, (m: string, at?: string) => `${typeof at === 'string' ? at : ''}[brand]`);
+    t = new RegExp(PLACEHOLDER.source, 'i').test(w) ? put(t) : t.split(PLACEHOLDER).map((x, i) => (i % 2 ? x : put(x))).join('');
   }
   return t;
 };
@@ -207,11 +216,33 @@ const reduceRefused = (l: string): string => {
   }
   return `${l.slice(0, from)}${REDACTED})`;
 };
-const reduceLine = (l: string): string => reduceRefused(l)
+/** A prune that threw after removals began (`PRUNE_COPY.stopped`, `prune-figma.ts`): `Prune stopped — <detail>. <counts>`,
+ *  the detail in `failureDetail` form (#3865). The counts are the part a report needs (a half-pruned file must not read
+ *  as 0 removed, #3697 R6), and they follow the host's message, which can hold `. ` itself. So the report keeps the
+ *  class and the counts and drops the message between them: the counts are matched by their own closed grammar, anchored
+ *  at the line's end, so only digits and the copy's own words can survive in that place, never a host's text. A line
+ *  whose counts do not read that way (the copy changed) keeps the class alone: it loses the counts, never leaks. */
+const STOPPED_HEAD = 'Prune stopped — ';
+const STOPPED_PART = '\\d+ (?:style|mode|variable|collection)s?';
+const STOPPED = new RegExp(`^${STOPPED_HEAD}(${CLASS})(?:: [\\s\\S]*?)?\\. (Removed \\d+ stale items? before it stopped: ${STOPPED_PART}(?:, ${STOPPED_PART})*\\.|Nothing was removed\\.)$`);
+const STOPPED_BARE = new RegExp(`^${STOPPED_HEAD}(${CLASS})(?=[:.]|$)[\\s\\S]*$`);
+const reduceStopped = (l: string): string => l
+  .replace(STOPPED, (_, cls: string, counts: string) => `${STOPPED_HEAD}${cls}. ${counts}`)
+  .replace(STOPPED_BARE, (whole: string, cls: string) => (STOPPED.test(whole) ? whole : `${STOPPED_HEAD}${cls}`));
+const reduceLine = (l: string): string => reduceRefused(reduceStopped(l))
   .replace(HEAD_DETAIL, (_, head: string, cls: string) => `${head}${cls}${head.endsWith('(') ? ')' : ''}`)
   .replace(DETAIL, (_, at: string, cls: string) => `${at}${cls}${at === '(' ? ')' : ''}`);
 
-export const reduceFailure = (line: string): string => reduceWriteFailure(line).split('\n').map(reduceLine).join('\n');
+/** Update file's slot migrations name each placed instance by the client's own layer and page names (`<set> instance
+ *  "<name>" on <page>: …`, `slot-migration.ts`, `slot-text-migration.ts`), and what follows carries the client's own
+ *  text too: the rows' labels, the body that moves, the values read back (#4351). The drawer keeps all of it. The
+ *  report keeps the set and says an instance was named, and cuts the rest of the entry from the name on (DRAFT, an
+ *  owner decision on #4351): a name can hold anything, a quote or a line break included, so no end inside it is
+ *  trusted, and the cut runs to the end of the entry, never to a line's end only. */
+const INSTANCE = / instance "[\s\S]*$/;
+const reduceInstance = (entry: string): string => entry.replace(INSTANCE, ` instance ${REDACTED}`);
+
+export const reduceFailure = (line: string): string => reduceWriteFailure(reduceInstance(line)).split('\n').map(reduceLine).join('\n');
 
 /** The bundle, as Markdown, ready to paste into an issue. */
 export const buildReport = (r: ReportInput): string => {

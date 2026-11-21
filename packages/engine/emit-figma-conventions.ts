@@ -143,7 +143,7 @@ const component = (d: (typeof componentDefs)[number]) => {
     variantProperties: variantProperties(plans.map(planComponentName)),
     properties: props.filter((p) => p.type !== 'SLOT').map((p) => ({ name: p.name, type: p.type, ...(p.type === 'INSTANCE_SWAP' ? { swapTarget: p.swapTarget } : {}) })),
     ...(codeOnlyAxes.length || codeOnlyStates.length ? { codeOnly: { ...(codeOnlyAxes.length ? { axes: codeOnlyAxes } : {}), ...(codeOnlyStates.length ? { states: codeOnlyStates } : {}) } } : {}),
-    doc: `https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/${d.id}.md`,
+    doc: `https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/${d.id}.md`,
   };
 };
 

@@ -75,6 +75,8 @@
  * SCOPE NOT REPRESENTED against the stated `REQUIRED_DECISION_DOCS`, so a dead detector cannot report a clean
  * zero) · delete one doc's baseline rows and retitle its heading (fails as SCOPE NOT REPRESENTED and REQUIRED
  * DOC NOT INDEXED, #1162; before, the floor was read off the baseline and this reported clean).
+ * delete a row from `docs/42`'s table, or cite an issue there its heading does not (DOCS/42 ROW MISSING / ROW
+ * UNINDEXED, arm C, #4305; before, the table was never read and both passed).
  * Negative control: appending a heading plus its baseline row via `--accept` passes.
  *
  * SCOPE — every tracked `docs/**\/*.md` file, and every untracked one git does not ignore (#2358),
@@ -400,6 +402,71 @@ for (const doc of new Set([...KNOWN_DECISION_DOCS, ...docsWithHeadings])) {
     );
   }
 }
+
+// ── ARM C, the page (#4305) ──────────────────────────────────────────────────────────────────────
+// docs/42's table is the router a reader uses, and arms A and B never read it: with the heading and the baseline
+// row present, deleting the table row passed. Its rows are held to the baseline in BOTH directions, keyed on doc,
+// date and issues, with the § agreeing wherever the heading carries a numeric prefix (the decision column is a
+// reader's summary, not the heading's title, so it is not compared).
+// The table is parsed here from its own cells, not through the heading or baseline readers (docs/34).
+export const TABLE_HEADER = '| decision | date | doc § | issue |';
+type TableRow = { key: string; sec: string; line: number; text: string };
+const tableRows = (src: string): TableRow[] | null => {
+  const ls = src.split('\n');
+  const at = ls.findIndex((l) => l.trim() === TABLE_HEADER);
+  if (at < 0) return null;
+  const out: TableRow[] = [];
+  for (let i = at + 2; i < ls.length && ls[i].trim().startsWith('|'); i++) {
+    const cells = ls[i].trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+    const date = cells[cells.length - 3], docCell = cells[cells.length - 2], issueCell = cells[cells.length - 1];
+    const doc = /`([^`]+)`/.exec(docCell)?.[1] ?? `(no doc in "${docCell}")`;
+    const sec = /§\s*([\d.]+)/.exec(docCell)?.[1] ?? '';
+    const refs = [...issueCell.matchAll(/#(\d+)/g)].map((m) => m[1]).join('+');
+    out.push({ key: `${doc} ${date} ${refs ? `#${refs}` : 'no issue'}`, sec, line: i + 1, text: cells[0].slice(0, 70) });
+  }
+  return out;
+};
+const rowKey = (d: Decision): string => {
+  const refs = issuesOf(d).join('+');
+  return `${d.doc} ${d.date} ${refs ? `#${refs}` : 'no issue'}`;
+};
+/** Both directions, as multisets: a row the table lacks, and a table row the baseline lacks. */
+export const tableDisagreements = (src: string, decisions: Decision[], page = 'docs/42-current-decisions.md'): string[] => {
+  const rows = tableRows(src);
+  if (rows === null) return [`DOCS/42 TABLE NOT FOUND: ${page} has no \`${TABLE_HEADER}\` header line, so no row in it can be checked`];
+  if (!rows.length) return [`DOCS/42 TABLE EMPTY: ${page}'s table has no rows under its header, against ${decisions.length} baseline decision(s)`];
+  const out: string[] = [];
+  const left = [...rows];
+  for (const d of decisions) {
+    // Among rows with this key, one whose § agrees with the heading's own prefix, where the heading has one. The
+    // table may name a § the heading carries no prefix for (a parent section); it may not name a different one.
+    const want = (d.section ?? '').replace(/\.$/, '');
+    const i = left.findIndex((r) => r.key === rowKey(d) && (!want || r.sec === want));
+    if (i >= 0) left.splice(i, 1);
+    else out.push(`DOCS/42 ROW MISSING: ${cite(d)} is in ${BASELINE} and has no row in ${page}'s table (keyed ${rowKey(d)}). A reader routed by the page never finds it: add the row.`);
+  }
+  for (const r of left) out.push(`DOCS/42 ROW UNINDEXED: ${page}:${r.line} ("${r.text}…", keyed ${r.key}) matches no ${BASELINE} row. Fix its doc, §, date or issue, or remove it.`);
+  return out;
+};
+{
+  // SELF-CHECK (#4305): a synthetic page, so the arm is known to fail by name in both directions before it reads the real one.
+  const d1 = { date: '2026-01-01', issue: 1, title: 't', doc: 'docs/x.md', section: '1.2' } as Decision;
+  const d2 = { date: '2026-01-02', issue: null, title: 'u', doc: 'docs/y.md' } as Decision;
+  const page = (...rows: string[]) => [TABLE_HEADER, '|---|---|---|---|', ...rows, ''].join('\n');
+  const r1 = '| T | 2026-01-01 | `docs/x.md` §1.2 | #1 |', r2 = '| U | 2026-01-02 | `docs/y.md` | — |';
+  const probes: [string, string[], string][] = [
+    ['both rows', tableDisagreements(page(r1, r2), [d1, d2]), ''],
+    ['a row deleted', tableDisagreements(page(r2), [d1, d2]), 'DOCS/42 ROW MISSING'],
+    ['a row the baseline lacks', tableDisagreements(page(r1, r2), [d2]), 'DOCS/42 ROW UNINDEXED'],
+    ['the header renamed', tableDisagreements(page(r1, r2).replace('doc §', 'doc'), [d1, d2]), 'DOCS/42 TABLE NOT FOUND'],
+  ];
+  for (const [label, got, want] of probes)
+    if (want ? !got.some((g) => g.startsWith(want)) : got.length)
+      failures.push(`DOCS/42 SELF-CHECK: ${label} — expected ${want || 'no failure'}, got ${JSON.stringify(got).slice(0, 200)}`);
+}
+const page42 = readFileSync(join(repo, 'docs/42-current-decisions.md'), 'utf8');
+failures.push(...tableDisagreements(page42, baseline.decisions));
+lines.push(`  page:     ${tableRows(page42)?.length ?? 0} table row(s) in docs/42-current-decisions.md, held to the baseline both ways`);
 
 lines.push(`  baseline: ${baseline.decisions.length} decision(s) across ${KNOWN_DECISION_DOCS.length} doc(s)`);
 lines.push(`  corpus:   ${allHeadings.length} 'Decided (...)' heading(s) found across ${tracked.length} scanned file(s)${untracked.length ? `, ${untracked.length} of them untracked (${untracked.join(', ')})` : ''}`);

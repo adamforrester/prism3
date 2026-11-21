@@ -175,6 +175,20 @@ const sectionEndAnchor = (api: PagesApi, section: TaxonomySection, next?: Taxono
   return children[end] && next && after && ownIn(next)(after) ? children[end] : children[end - 1];
 };
 
+/**
+ * WHERE THE FIRST SECTION'S CREATED HEADER HANGS OFF (#2634): Cover, read as a span the way `sectionEndAnchor` reads one.
+ * When the page straight after Cover is a divider and the page after that is one of `first`'s own leaves, the anchor is
+ * that divider, so a created header reuses it and lands where a deleted one stood, ahead of its own pages. Otherwise
+ * Cover itself, and the created header gets a divider of its own.
+ */
+const coverAnchor = (api: PagesApi, cover: PageLike, first?: TaxonomySection): PageLike => {
+  const children = api.root.children;
+  const i = children.indexOf(cover);
+  const div = children[i + 1];
+  const after = children[i + 2];
+  return i >= 0 && first && div && isDivider(div) && after && ownIn(first)(after) ? div : cover;
+};
+
 /** What `scaffoldSkeleton` reconciled — page names created this run, and the File Components page node so
  *  the caller can build the template assets onto it. */
 export interface ScaffoldResult {
@@ -201,8 +215,8 @@ export const scaffoldSkeleton = async (api: PagesApi, taxonomy: Taxonomy = TAXON
     return page;
   };
 
-  // Cover, first.
-  let anchor: PageLike = ensureAt(taxonomy.cover, null);
+  // Cover, first. The first section's header hangs off it, or off the divider after it that leads into its pages (#2634).
+  let anchor: PageLike = coverAnchor(api, ensureAt(taxonomy.cover, null), taxonomy.sections[0]);
   let fileComponentsPage: PageLike | null = null;
 
   for (const [i, section] of taxonomy.sections.entries()) {
@@ -235,7 +249,7 @@ export const scaffoldSkeleton = async (api: PagesApi, taxonomy: Taxonomy = TAXON
 /**
  * Ensure a section's header page exists — the minimal skeleton the page-aware build needs when it runs before
  * (or without) a full `scaffoldSkeleton`. A header it CREATES goes at the end of the previous section's span
- * (`sectionEndAnchor`), else after Cover, else at the end, with a divider before it. An existing header is returned as found:
+ * (`sectionEndAnchor`), else after Cover (`coverAnchor` for the first section), else at the end, with a divider before it. An existing header is returned as found:
  * the build creates no divider beside it and moves nothing (#2597), whatever page sits before it.
  */
 const ensureSectionHeader = (api: PagesApi, taxonomy: Taxonomy, section: TaxonomySection): PageLike => {
@@ -243,7 +257,8 @@ const ensureSectionHeader = (api: PagesApi, taxonomy: Taxonomy, section: Taxonom
   if (found) return found;
   const idx = taxonomy.sections.indexOf(section);
   const prev = idx > 0 ? sectionEndAnchor(api, taxonomy.sections[idx - 1], section) : null;
-  const anchor = prev ?? findNamed(api, taxonomy.cover);
+  const cover = findNamed(api, taxonomy.cover);
+  const anchor = prev ?? (cover && idx === 0 ? coverAnchor(api, cover, section) : cover);
   const header = ensureNamed(api, section.header).page;
   placeAfter(api, header, anchor);
   ensureDividerBefore(api, header);

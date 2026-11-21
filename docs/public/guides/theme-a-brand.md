@@ -7,15 +7,15 @@ Everything in this guide works in both places. Writing the brand to a Figma file
 
 ## Start a brand
 
-The first time the studio opens, a start window offers three ways in. <!-- src: apps/studio/src/shell/start.ts:167-218#9e39b78a -->
+The first time the studio opens, a start window offers three ways in. <!-- src: apps/studio/src/shell/start.ts:167-225#de4c818b -->
 
 | Card | What it does |
 |---|---|
 | **Start from your color** | Takes your primary brand color and fills every other setting with a default you can change. **Start blank** begins from a neutral gray instead. <!-- src: apps/studio/src/shell/start.ts:167-181 --> |
-| **Explore an example** | Opens one of the example brands, fully built. <!-- src: apps/studio/src/shell/start.ts:202 --> |
-| **Import a design.md** | Loads a whole brand from a `design.md` brief. Paste it into the box and choose **Import**, or choose **Upload…** to pick a file. <!-- src: apps/studio/src/shell/start.ts:218-230 --> |
+| **Explore an example** | Opens one of the example brands, fully built. A few words under each example say what it is, such as "Muted teal, calm, square." <!-- src: apps/studio/src/shell/start.ts:202 --> <!-- src: packages/engine/example-registry.ts:16-21 --> |
+| **Import a design.md** | Loads a whole brand from a `design.md` brief. Paste it into the box and choose **Import**, or choose **Upload…** to pick a file. <!-- src: apps/studio/src/shell/start.ts:225-237 --> |
 
-To come back to these later, open the brand menu at the left of the top bar and choose **New brand**. The same menu lists the examples and has **Import design.md…**. <!-- src: apps/studio/src/shell/bar.ts:246-250 -->
+To come back to these later, open the brand menu at the left of the top bar and choose **New brand**. The same menu lists the examples, each with its few words, and has **Import design.md…**. <!-- src: apps/studio/src/shell/bar.ts:226-252 -->
 
 *[Screenshot placeholder: the start window with its three cards.]*
 
@@ -57,7 +57,7 @@ A contrast miss is reported, never blocked. On **Foreground fills**, for example
 
 - On the web, the studio keeps your working brand in this browser and reopens it next time. <!-- src: apps/studio/src/persist-local.ts:39-102#8ee27da6 -->
 - It also keeps what the brand started from, so edits you made before a reload still count after it: choosing another brand asks first, as it did before the reload. <!-- src: apps/studio/src/persist-local.ts:120-136#8ee40881 -->
-- In the Figma plugin, the brand is kept in the Figma file each time Update file writes the theme, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:190-192#ede61fb0 --> <!-- src: apps/plugin/src/main.ts:2201-2208#e56247fc -->
+- In the Figma plugin, the brand is kept in the Figma file each time Update file writes the theme, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:190-192#ede61fb0 --> <!-- src: apps/plugin/src/main.ts:2203-2210#e56247fc -->
 
 If a stored brand can't be opened, the web studio offers it as a `design.md` download instead of discarding it. <!-- src: apps/studio/src/entry.ts:129-158 -->
 
@@ -67,6 +67,6 @@ A `design.md` is a brand written as a short document: settings at the top, prose
 The studio reads both the Prism3 form and the standard design.md form, <!-- src: apps/studio/src/state/start-input.ts:176-190#569bb71c --> which lists colors as a flat `colors:` map. <!-- src: packages/engine/standard-design-md.ts:109-110 -->
 
 - Import: **Import design.md…** in the brand menu, then paste the brief and choose **Load**, or choose **Upload .md**. The **Import a design.md** card in the start window works the same way. <!-- src: apps/studio/src/shell/bar.ts:237-293 -->
-- Export: open **Export** in the rail, choose **Brand brief**, then **Download brief**. The file is named `<brand>.design.md`. The brief has no settings: "Nothing to set — the brief is written one way." <!-- src: apps/studio/src/export-settings.ts:114 --> <!-- src: apps/studio/src/main.ts:1514-1541 -->
+- Export: open **Export** in the rail, choose **Brand brief**, then **Download brief**. The file is named `<brand>.design.md`. The brief has no settings: "Nothing to set — the brief is written one way." <!-- src: apps/studio/src/export-settings.ts:114 --> <!-- src: apps/studio/src/main.ts:1528-1555 -->
 
 A brief is the way to hand a brand to someone else, or to an agent: importing it rebuilds the same brand. For token files, see [Export tokens](export-tokens.md).
