@@ -23733,6 +23733,208 @@ if (runs('3938')) {
     } finally { await ctx.close(); }
   }
 } // 3938
+if (runs('focus-audit')) {
+  console.log(`\nKeyboard focus and names the overnight audit found (#4216, #4217, #4218, #4225, #4226, #4228)\n${'='.repeat(78)}`);
+  const active = (page) => page.evaluate(() => {
+    const a = document.activeElement;
+    return a && a !== document.body ? (a.getAttribute('data-p3') ?? a.tagName) : 'BODY';
+  });
+  // #4216: a load from the start window closed it with `dismiss(null)`, and focus fell to <body>. EXPECTED (typed
+  // here): the brand switcher, on every start path, both hosts. Mutation that fails here BY NAME: `syncStart`
+  // dismissing with `null` again → `#4216 … focus after the load`.
+  for (const host of ['web', 'figma']) {
+    const where = `4216 ${host} light 1280`;
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 }, colorScheme: 'light' });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
+    let step = 'boot';
+    try {
+      if (host === 'web') await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
+      else {
+        await page.goto(`${ORIGIN}/plugin?figma=light`, { waitUntil: 'load' });
+        await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
+      }
+      step = 'first run: Enter on Start from this color';
+      await hooks.need(page, '[data-p3="start-go"]');
+      await page.locator('[data-p3="start-go"]').focus();
+      await page.keyboard.press('Enter');
+      await hooks.need(page, '[data-p3="palettes-levers"]');
+      await settle(page);
+      const first = await active(page);
+      ok(first === 'brand-switcher', `#4216 ${where}: first run, Enter on Start from this color — focus after the load is the brand switcher (${first})`);
+      step = 'reopen: New brand, Enter on an example';
+      await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+      await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+      const ex = page.locator('[data-p3="start-example"]').filter({ hasText: 'aurora' });
+      await hooks.need(page, '[data-p3="start-example"]');
+      await ex.focus();
+      await page.keyboard.press('Enter');
+      await page.waitForFunction(() => !document.querySelector('[data-p3="start-example"]'), null, { timeout: 5000 }).catch(() => {});
+      await settle(page);
+      const again = await active(page);
+      ok(again === 'brand-switcher', `#4216 ${where}: reopen, Enter on the aurora example — focus after the load is the brand switcher (${again})`);
+      ok(errors.length === 0, `${where}: 0 uncaught errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  // #4225: a lever's ⓘ closes on Escape, with focus kept on it. EXPECTED (typed here): aria-expanded "false", the tip
+  // hidden, focus on the ⓘ. Mutation that fails here BY NAME: `infoTip` without its keydown → `#4225 …`.
+  // #4226: the Activity bar button's name is "Activity" (plugin; the studio mounts no drawer). Read from the
+  // accessibility tree, not the DOM. Mutation that fails here BY NAME: the hidden "Expand Activity" span back → `#4226 …`.
+  for (const host of ['web', 'figma']) {
+    const where = `focus-audit ${host} light 1280`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 860 });
+    let step = 'boot';
+    try {
+      step = 'the first lever ⓘ';
+      const info = page.locator('[data-p3="levers-pane"] [data-p3="lever-info"]').first();
+      await info.focus();
+      await page.keyboard.press('Enter');
+      const opened = await info.getAttribute('aria-expanded');
+      await page.keyboard.press('Escape');
+      const after = await info.evaluate((b) => ({
+        expanded: b.getAttribute('aria-expanded'),
+        tipHidden: document.getElementById(b.getAttribute('aria-controls') ?? '')?.hidden ?? null,
+        focused: document.activeElement === b,
+      }));
+      ok(opened === 'true' && after.expanded === 'false' && after.tipHidden === true && after.focused,
+        `#4225 ${where}: Escape closes an open ⓘ tip and keeps focus on the ⓘ (opened ${opened}, after ${JSON.stringify(after)})`);
+      if (host === 'figma') {
+        step = 'the Activity toggle';
+        const snap = await page.locator('[data-p3="activity-toggle"]').ariaSnapshot();
+        const name = /button "([^"]*)"/.exec(snap)?.[1] ?? null;
+        ok(name === 'Activity', `#4226 ${where}: the Activity bar button's accessible name is "Activity", with aria-expanded for its state (${JSON.stringify(snap.split('\n')[0])})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  // #4217 and #4218, Update file in the plugin. Turn off, back on and Delete redraw the control the person used away;
+  // focus followed it to the dialog, and the next repaint put it on the X. EXPECTED (typed here): a turn off lands on
+  // the set's "Turn updates back on"; a turn back on, with no other set off, on the Components fold; Delete, on the
+  // result line once it lands. A refused turn on keeps focus on its button, its line is an alert, and the button is
+  // described by it. Mutations that fail here BY NAME: `movedFrom` returning null → `#4217 … turn off` and `… turn
+  // back on`; Delete without `awaitKey` → `#4217 … Delete`; the line without `role` → `#4218 …`.
+  {
+    const where = 'focus-audit figma light 1280, Update file';
+    const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 860 });
+    let step = 'boot';
+    // `tag` stays due throughout, so Components stays open (it folds itself once nothing is due or blocked, Q-UD3 A).
+    const sets = (due) => ({ type: 'file-sets', present: ['button', 'badge', 'tag'], setUp: true, due: { tag: { state: 'due', reason: 'definition' }, ...due } });
+    const key = () => page.evaluate(() => {
+      const a = document.activeElement;
+      return a && a !== document.body ? (a.dataset.key ?? a.getAttribute('data-p3') ?? a.tagName) : 'BODY';
+    });
+    try {
+      step = 'open Update file';
+      await hooks.click(page.locator('[data-p3="update-file"]'), WAIT);
+      await hooks.need(page, '[data-p3="update-dialog"]', WAIT);
+      await postMsg(page, sets({ button: { state: 'due', reason: 'definition' }, badge: { state: 'off', by: 'auto' } }));
+      await hooks.need(page, '[data-key="turn-on=badge"]', WAIT);
+      step = 'refused turn on';
+      // Every error line inserted from here on, with its role: a live region speaks as an alert is inserted.
+      await page.evaluate(() => {
+        window.__offLines = [];
+        new MutationObserver((recs) => { for (const r of recs) for (const n of r.addedNodes) if (n instanceof Element)
+          for (const e of n.matches('[data-p3="update-off-error"]') ? [n] : n.querySelectorAll('[data-p3="update-off-error"]')) window.__offLines.push([e.textContent, e.getAttribute('role')]); })
+          .observe(document.body, { childList: true, subtree: true });
+      });
+      await page.locator('[data-key="turn-on=badge"]').focus();
+      await page.keyboard.press('Enter');
+      await postMsg(page, { type: 'updates-off', def: 'badge', off: false, ok: false, error: 'the set is locked' });
+      await hooks.need(page, '[data-p3="update-off-error"]', WAIT);
+      await postMsg(page, sets({ button: { state: 'due', reason: 'definition' }, badge: { state: 'off', by: 'auto' } }));
+      await settle(page);
+      const refused = await page.evaluate(() => {
+        const e = document.querySelector('[data-p3="update-off-error"]');
+        const b = document.querySelector('[data-key="turn-on=badge"]');
+        return { inserted: window.__offLines, describes: !!e?.id && b?.getAttribute('aria-describedby') === e.id, focus: document.activeElement === b };
+      });
+      // The harness's host may refuse first by itself ("not written"), before the refusal posted above: each distinct
+      // refusal is said once, as it is first drawn, and never again on a repaint.
+      const texts = [...new Set(refused.inserted.map(([t]) => t))];
+      const once = texts.every((t) => { const rs = refused.inserted.filter(([x]) => x === t).map(([, r]) => r); return rs[0] === 'alert' && rs.filter((r) => r === 'alert').length === 1; });
+      ok(texts.includes('Turn updates back on: the set is locked.') && refused.inserted.length > texts.length && once && refused.describes && refused.focus,
+        `#4218 ${where}: a refused turn back on is announced once (the first line drawn is an alert, a repaint's is not), describes its button, and focus stays on the button (${JSON.stringify(refused)})`);
+      step = 'turn off';
+      await page.locator('[data-key="turn-off=button"]').focus();
+      await page.keyboard.press('Enter');
+      await postMsg(page, { type: 'updates-off', def: 'button', off: true, ok: true });
+      await postMsg(page, sets({ button: { state: 'off', by: 'designer' }, badge: { state: 'off', by: 'auto' } }));
+      await page.waitForFunction(() => !document.querySelector('[data-key="turn-off=button"]'), null, { timeout: 5000 }).catch(() => {});
+      await settle(page);
+      const offK = await key();
+      ok(offK === 'turn-on=button', `#4217 ${where}: after a turn off, focus is on the same set's "Turn updates back on" (${offK})`);
+      step = 'turn back on, twice';
+      for (const [id, rest] of [['button', { badge: { state: 'off', by: 'auto' } }], ['badge', {}]]) {
+        await page.locator(`[data-key="turn-on=${id}"]`).focus();
+        await page.keyboard.press('Enter');
+        await postMsg(page, { type: 'updates-off', def: id, off: false, ok: true });
+        await postMsg(page, sets({ button: { state: 'current' }, badge: { state: 'current' }, ...rest }));
+        await page.waitForFunction((k) => !document.querySelector(`[data-key="${k}"]`), `turn-on=${id}`, { timeout: 5000 }).catch(() => {});
+        await settle(page);
+      }
+      const onK = await key();
+      ok(onK === 'fold=components', `#4217 ${where}: after the last set is turned back on, focus is on the Components fold, not the X (${onK})`);
+      step = 'Clean up, Delete';
+      await hooks.click(page.locator('[data-p3="update-tab-clean"]'), WAIT);
+      await postMsg(page, { type: 'prune-result', ok: true, applied: false, count: 3, summary: '3 stale items: 3 variables.' });
+      await hooks.need(page, '[data-p3="clean-prune-confirm"]', WAIT);
+      await page.locator('[data-p3="clean-prune-confirm"]').focus();
+      await page.keyboard.press('Enter');
+      await settle(page);
+      const busyK = await key();
+      await postMsg(page, { type: 'prune-result', ok: true, applied: true, count: 3, summary: 'Removed 3 stale items.' });
+      await hooks.need(page, '[data-p3="clean-prune-result"]', WAIT);
+      await settle(page);
+      const delK = await key();
+      ok(delK === 'prune-result' && busyK !== 'x', `#4217 ${where}: after Delete, focus waits on the dialog and lands on the result line (while out ${busyK}, after ${delK})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  // #4228: the agent link's pairing prompt, in the plugin's network build. "Not now" hid the box that held focus, and
+  // focus fell to <body>. The prompt shows only while the desktop bridge asks for a code, so a stand-in socket plays
+  // the bridge: it opens and sends its challenge, and with no token stored the relay asks for the code. EXPECTED
+  // (typed here): focus on the Agent switch after Not now. Mutation that fails here BY NAME: `renderPair` hiding the
+  // box without moving focus → `#4228 …`.
+  {
+    const where = 'focus-audit figma light 1280, the pairing prompt';
+    const prep = (page) => page.addInitScript(() => {
+      window.WebSocket = class {
+        constructor() {
+          this.readyState = 0;
+          setTimeout(() => { this.readyState = 1; this.onopen?.({}); this.onmessage?.({ data: JSON.stringify({ type: 'challenge', nonce: 'n0' }) }); }, 0);
+        }
+        send() {}
+        close() { this.readyState = 3; }
+      };
+    });
+    const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 860, prep });
+    let step = 'boot';
+    try {
+      step = 'the link on, no token';
+      await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
+      await postMsg(page, { type: 'agent-bridge-token', token: null });
+      await page.waitForFunction(() => document.querySelector('[data-p3="agent-pair"]')?.hidden === false, null, { timeout: 5000 }).catch(() => {});
+      const shown = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
+      step = 'Not now';
+      await page.locator('[data-p3="agent-pair-later"]').focus();
+      await page.keyboard.press('Enter');
+      await settle(page);
+      const after = await page.evaluate(() => ({ hidden: document.querySelector('[data-p3="agent-pair"]')?.hidden ?? null, focus: document.activeElement === document.body ? 'BODY' : document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName }));
+      ok(shown === 'agent-pair-code' && after.hidden === true && after.focus === 'agent-toggle',
+        `#4228 ${where}: the prompt took focus into its field, and after Not now focus is on the Agent switch (shown with focus on ${shown}; after ${JSON.stringify(after)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+} // focus-audit
 if (runs('markup-audit')) {
   console.log(`\nMarkup the overnight audit found: placeholders, Export's choices, the preview tables (#4220, #4221, #4223, #4224)\n${'='.repeat(78)}`);
   // In-page helpers, as strings so each evaluate can take them: an rgb() parse, sRGB contrast, and the opaque ground

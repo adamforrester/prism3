@@ -2467,7 +2467,10 @@ const syncStart = (): void => {
   // A home holds the first run, so the start window opens over one only from its button (`homeStart`).
   const want: StartMode | null = firstRun() ? (shown ? (homeStart ? 'home' : null) : 'first') : startReopened ? 'reopen' : null;
   if (startWindow && want && startWindow.mode === want) return;
-  startWindow?.dismiss(null);
+  // A load closes the window with focus inside it (#4216): focus goes to the brand switcher, which names the brand just
+  // loaded and is where the reopen's X returns. A window that replaces this one takes focus itself, and an X's own
+  // return (`close` below, `toHome`) moves it on after this.
+  startWindow?.dismiss(want ? null : frame?.barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]') ?? null);
   startWindow = null;
   if (!want || !frame) return;
   // The X (Q613 6 A, 7 A): a reopen returns to the brand, a window over a home returns to it, and the plugin's first run
