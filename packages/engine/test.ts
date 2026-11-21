@@ -45474,6 +45474,58 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
 }
 
+// #811 — the engine README names only roles the engine emits. `foreground.danger.<state>` was retired (the
+// interactive-family arm above asserts it gone), and the README still taught `.default` and `.pressed`. ACTUAL is
+// read off a freshly resolved theme, never off the README or a list kept beside it, so a renamed role fails here
+// the day the README stops matching.
+{
+  const t = brandTheme({ id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 }, modes: ['light'] } as BrandInput);
+  const keys = Object.keys(resolveAllModes(t).find((m) => m.mode === 'light')!.roles);
+  const md = readFileSync(resolve(HERE, './README.md'), 'utf8');
+  const named = [...new Set([...md.matchAll(/`((?:foreground|interactive|background|text|border|inverse|disabled|overlay)(?:\.[a-z0-9-]+)+)`/g)].map((m) => m[1]))];
+  const unknown = named.filter((n) => !keys.includes(n) && !keys.some((k) => k.startsWith(`${n}.`)));
+  ok(named.length >= 10, `#811 the README scan finds the role names it teaches (found ${named.length})`);
+  ok(unknown.length === 0, `#811 every role the engine README names is one the engine emits (not emitted: ${unknown.join(', ') || 'none'})`);
+}
+
+// #1754 — the selection controls' shipped prose names the ROLE their selected ink takes, never "brand". The checked
+// ring binds `interactive.primary.indicator.*`, and a brand that points its action at the neutral palette (the
+// nb-redesign example) draws that ring gray. The arm first proves the claim is false in a shipped example, from the
+// def's own binding resolved in that brand, so the prose rule rests on a measured fact and not on taste.
+{
+  const nb = exampleTheme('nb-redesign', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input));
+  const ring = String((radioControl.tokens as Record<string, string>)['checked.border']).replace(/^color\./, '');
+  const path = nb ? String((resolveAllModes(nb).find((m) => m.mode === 'light')!.roles as Record<string, { path?: string }>)[ring]?.path) : '';
+  ok(/\.palette\.neutral\./.test(path), `#1754 nb-redesign's checked radio ring (${ring}) resolves to a neutral step, so "brand-colored" is untrue there (got ${path || 'nothing'})`);
+  const shipped = (d: ComponentDef): string[] => [d.summary ?? '', d.description ?? '', ...(d.docs?.do ?? []), ...(d.docs?.dont ?? []), ...(d.docs?.implementation ?? []),
+    ...(d.props ?? []).map((p) => p.description ?? '')];
+  const claim = /\bbrand(?:-colou?red| colou?r| ring| edge)\b|\bring to brand\b/i;
+  const hits = componentDefs.filter((d) => /^(checkbox|radio|switch)-/.test(d.id))
+    .flatMap((d) => shipped(d).filter((s) => claim.test(s)).map((s) => `${d.id}: "${s.match(claim)![0]}"`));
+  ok(hits.length === 0, `#1754 no selection control's shipped prose says its selected ink is the brand color (found: ${hits.join('; ') || 'none'})`);
+  // #4389 owner decision (2026-11-20, Radio wording → A): one thing, one name. The role is "action color", the term the
+  // Action palette setting uses, never "primary action color". The term is the decision's, typed here. Mutation that
+  // fails BY NAME: "primary action color" back in any shipped field → `#4389 the selection controls call the role …`.
+  const misnamed = componentDefs.filter((d) => /^(checkbox|radio|switch)-/.test(d.id))
+    .flatMap((d) => shipped(d).filter((s) => /\bprimary action colou?r\b/i.test(s)).map(() => d.id));
+  const radioNames = shipped(radioControl as ComponentDef).filter((s) => /\baction color\b/.test(s)).length;
+  ok(misnamed.length === 0 && radioNames >= 4, `#4389 the selection controls call the role "action color", never "primary action color" (misnamed in: ${misnamed.join(', ') || 'none'}; Radio.Control fields naming it: ${radioNames} of at least 4)`);
+}
+
+// #1819 — the prism3-theme skill's `actionPalette` row lists every built-in palette the engine accepts there, as the
+// `linkPalette` row beside it does. ACTUAL: the engine compiles a brand with each value; the row is read as text.
+{
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-theme/SKILL.md'), 'utf8');
+  const row = skill.split('\n').find((l) => l.startsWith('| `actionPalette` |')) ?? '';
+  const values = row.split(/(?<!\\)\|/)[2] ?? ''; // a `\|` inside a cell is the table's escaped pipe, not a column break
+  const base = { id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 }, modes: ['light'] };
+  for (const v of ['primary', 'neutral']) {
+    let compiles = true;
+    try { brandTheme({ ...base, actionPalette: v } as BrandInput); } catch { compiles = false; }
+    ok(compiles && values.includes(`\`${v}\``), `#1819 the prism3-theme actionPalette row lists \`${v}\`, which the engine accepts (compiles: ${compiles}; row: ${values.trim() || 'MISSING'})`);
+  }
+}
+
 // #1716 — `notes.contested` refuses a decided entry by the verbs decided entries USE, not by four opening words.
 // #1700's check read Settled/Resolved/RESOLVED/CLOSED and broke at colons, so it refused argued prose and passed
 // "Decided: …" and "Chosen: …". The literals below are the issue's own examples, in both directions; the corpus arm
