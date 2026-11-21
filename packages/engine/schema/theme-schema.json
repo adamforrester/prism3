@@ -302,6 +302,12 @@
       "default": "floor",
       "description": "OPTIONAL. The ground the page's secondary ink is fitted against (owner Q-TXT1 A). 'floor' (default): `text.secondary` and `icon.secondary` clear their bar on the contrast floor, `background.secondary` unless `floorStep` moves it. 'page': they clear it on `background.primary` only, the lightest secondary that still passes on the page, and may fall below it on `background.secondary`. 'page' applies in light and dark; high contrast and the inverse band keep their floor. No token name changes."
     },
+    "interactiveGround": {
+      "type": "string",
+      "enum": ["floor", "page"],
+      "default": "floor",
+      "description": "OPTIONAL. The darkest ground the brand's controls may sit on (#3339). 'floor' (default): every interactive contrast check (the interactive fills, disabled text and icon, field borders, the destructive outline and the field status borders) is measured on the contrast floor, `background.secondary` unless `floorStep` moves it. 'page': they are measured on `background.primary` (on the inverse band, `inverse.background.primary`), so they run as light as the page allows and may fall below their bar on `background.secondary`. The brand commits to no controls there, or on a card on that step. 'page' applies in light and dark; high contrast keeps the floor. No token name changes."
+    },
     "glassRoles": {
       "type": "object",
       "description": "OPTIONAL. Brand-added glass roles (#3073): `color.glass.<name>`, each a translucent fill beside the shipped `color.glass.surface` (white or black glass). The key is the role name, lower-case kebab-case, never `surface`. Each names exactly one color source, `role` (a semantic role whose palette color is read per mode, such as `foreground.primary`, the card ground) or `palette` (one palette color, such as `neutral.050`, `white` or `black`), plus `alpha`, a whole percent from 1 to 99. The engine emits it as a palette alpha step, so a Figma fill bound to it stays translucent. Brand-dependent: never part of the guaranteed token names.",

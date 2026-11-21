@@ -763,10 +763,17 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const radius: Record<string, Token> = {};
   const wireframe = theme.modes.includes('wireframe');
   const radiusByMode = theme.dims.radiusByMode ?? {};
+  // #4161 (owner decision A): the two pill rungs say which one a pill control binds, so `round` is not read as a circle
+  // and neither is picked for the other's job (scale.ts `radiusScale` has why there are two).
+  const PILL_USE: Record<string, string> = {
+    round: '. For small fixed-size parts, such as a switch track, a radio or a badge count. A pill button binds `radius.capsule`',
+    capsule: '. The pill a button binds under `controlShape: pill`, full at any height. Small fixed-size parts bind `radius.round`',
+  };
   for (const r of theme.dims.radius) {
+    const use = PILL_USE[r.name] ?? '';
     const leaf = gridSet.has(r.px)
-      ? dimAlias(`${root}.${CORE_TIER}.dimension.${r.px}`, `radius ${r.name} — ${r.px}px${r.pill ? ' (pill)' : ''}`, { px: r.px, radiusScale: theme.dims.radiusScaleValue })
-      : dimLeaf(r.px, `radius ${r.name} — ${r.px}px (off-grid literal)`);
+      ? dimAlias(`${root}.${CORE_TIER}.dimension.${r.px}`, `radius ${r.name} — ${r.px}px${r.pill ? ` (pill${use})` : ''}`, { px: r.px, radiusScale: theme.dims.radiusScaleValue })
+      : dimLeaf(r.px, `radius ${r.name} — ${r.px}px (off-grid literal${use})`);
     const modeOverrides: Record<string, unknown> = {};
     if (wireframe && r.px !== 0)
       modeOverrides.wireframe = { $value: `{${root}.${CORE_TIER}.dimension.0}`, px: 0 };
