@@ -368,8 +368,10 @@ if (!namedMain) cannotRun('no main ref to read landing order from (tried origin/
 // every fragment the seed held reads as landed at the seed, on that day, and the fold that folded them reads as
 // misplacing them all). Then `main` is the newest one the tree carries, read from its own history (`carriedMainBase`):
 // its first-parent chain is prism3's. A push run asks it of HEAD's first parent. Only this read moves: the diff arms
-// below were measured passing on a carry with their own base (#3408), so they keep it.
-const carriedChain = carriedMainBase(git, namedMain === 'HEAD' ? `HEAD^1` : namedMain!);
+// below were measured passing on a carry with their own base (#3408), so they keep it. The question is the ref's
+// FIRST-PARENT chain, not its ancestry: a carried `main` that took a carry in holds the fold through the carry's merge,
+// while its chain is still the seed's (`lint-push-base.ts`' replay in the carried repo, #3408).
+const carriedChain = carriedMainBase(git, namedMain === 'HEAD' ? `HEAD^1` : namedMain!, { firstParent: true });
 const mainRef = carriedChain?.base ?? namedMain;
 const mainChain = git('rev-list', '--first-parent', mainRef!);
 if (!mainChain.ok) cannotRun(`git rev-list over ${mainRef} failed.`, mainChain.err);

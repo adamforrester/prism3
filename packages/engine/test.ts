@@ -39243,6 +39243,25 @@ arm: {
       ]);
       ok(pev.status === 0 && pev.out.includes(TIP) && ppo.status === 0 && !ppo.out.includes('✗'),
         `#3408 carried repo: the push run of the merged carry reads from the newest main it carries too (emission-version exit ${pev.status}: ${said(pev, /FOLD|base /)}; progress-order exit ${ppo.status}: ${said(ppo, /✗/)})`);
+      // The carried `main` AFTER the carry merged, and the next change on it: the state `lint-push-base.ts` replays in
+      // the carried repo (its `main` is the carry's checkout, a merge into the seed). That `main` holds the fold as an
+      // ancestor, through the carry's merge, but its first-parent chain is the seed's, so progress-order asks
+      // `carriedMainBase` about the CHAIN (`firstParent`). Before, the ancestry test stepped aside, and every fragment
+      // the seed held read as landed on the seed and deleted unfolded: FOLDED ENTRIES, as lint-push-base's control and
+      // keeps-the-rule cases failed on the carried repo's gates run. MUTATION VERIFIED: progress-order without
+      // `{ firstParent: true }` fails both arms here by name.
+      git(['update-ref', 'refs/remotes/origin/main', carriedPR(git(['rev-parse', 'refresh']))]);
+      put('docs/progress/pending/replay-carried-next.md', '## (2026-03-01) — Replay carried next\n\nThe next change on the carried main, once the carry merged (#3408).\n');
+      commit('the next change on the carried main');
+      const [npr, npush] = await Promise.all([
+        tsxAsync('packages/engine/lint-progress-order.ts', CARRIED),
+        tsxAsync('packages/engine/lint-progress-order.ts', { GITHUB_EVENT_NAME: 'push' }),
+      ]);
+      ok(npr.status === 0 && !npr.out.includes('✗'),
+        `#3408 carried repo, the carry merged: progress-order reads where a fragment landed from the newest main the tree carries, not the carried main's seed chain (exit ${npr.status}: ${said(npr, /✗|folded entries/)})`);
+      ok(npush.status === 0 && !npush.out.includes('✗'),
+        `#3408 carried repo, the carry merged: the next push run's progress-order reads landings from the newest main carried too, as lint-push-base replays it (exit ${npush.status}: ${said(npush, /✗|folded entries/)})`);
+      git(['update-ref', 'refs/remotes/origin/main', seed]);
       // Teeth, in the carried repo: the carry's OWN patch note over its own moved artifact.
       git(['checkout', '-q', '-b', 'carried-own', 'refresh']); moveArtifact(); note('replay-carried-patch', 'patch');
       carriedPR(commit('the carry moves an artifact under a patch note'));
