@@ -33306,6 +33306,23 @@ arm: {
   }
 }
 
+// ---- #2997: the shadcn/Tailwind projectors enumerate brands, not each brand's web base --------------------------
+// #4155 added `<brand>.web.base.tokens.json` beside `<brand>.base.tokens.json`. Both end `.base.tokens.json`, so a
+// suffix match read `aurora.web` as a brand and the projectors threw for its missing dark overlay. The expected list is
+// the committed handoff's own `.tokens.json` canonicals, never `handoffBrands`' rule. A dynamic import, so no line above
+// the public guide's cited test.ts blocks moves (lint-guide-claims).
+{
+  const { handoffBrands, readHandoff } = await import('./emit-shadcn');
+  const OUT = resolve(HERE, 'out');
+  const want = readdirSync(OUT).filter((f) => /^[^.]+\.tokens\.json$/.test(f) && existsSync(resolve(OUT, f.replace(/\.tokens\.json$/, '.base.tokens.json'))))
+    .map((f) => f.split('.')[0]!).sort();
+  const got = handoffBrands(OUT);
+  ok(want.length >= 5 && JSON.stringify(got) === JSON.stringify(want),
+    `#2997: handoffBrands lists each brand once, no web base among them (want ${want.join(', ')}; got ${got.join(', ')})`);
+  ok(got.every((b) => { try { readHandoff(b, OUT); return true; } catch { return false; } }),
+    `#2997: every brand handoffBrands lists reads as a handoff, its overlays present`);
+}
+
 // ---- Arc 2's primitives: `icon` and `focus-ring` as real defs (#741) ---------------------------
 // The two defs Button and IconButton already NOMINATE by name. Before this, both nested references
 // resolved against whatever the Figma file happened to contain (`compByName.get(n.nestTarget)`), which
