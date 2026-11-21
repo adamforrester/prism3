@@ -16,12 +16,16 @@
  * a role with a stronger promise raises the bar, and a remap to a weaker role is still held to WCAG.
  *
  * KNOWN FAILURES. Owner decision Q2997.8 A: shadcn uses `destructive` and `primary` both as a fill and as text, and in
- * dark mode no one fill clears 4.5 against both white ink and the page. Those pairs are listed in `KNOWN` with the
- * decision and reported, never failed; the engine question is #4279. `KNOWN_PENDING` holds a pair awaiting an owner
- * decision (raised on the PR), so the build is not silently green over it either: it prints on every run.
+ * dark mode no one fill clears 4.5 against both white ink and the page. Those pairs are listed in `KNOWN`, per brand,
+ * with the decision and the ratio accepted, and reported, not failed, while they hold that ratio; the engine question
+ * is #4279. `KNOWN_PENDING` holds the regression fixture's pair the owner accepted on #4289 (owner decision 2026-11-19
+ * A: a legacy fixture, not engine-derived). It is held the same way: to the ratio accepted, printed on every run, STALE
+ * once it passes.
  *
  * MUTATION: map `muted-foreground` → `color.text.tertiary` and this fails `prism3 light: muted-foreground on muted 3.17 <
- * 4.5` by name.
+ * 4.5` by name. Emit prism3's dark `primary` as `oklch(0.25 0.1 266.7)` and it fails `prism3 dark: primary on background
+ * 1.19 < 4.5 — BELOW ACCEPTED 4.24` by name: a known pair is held to the ratio the owner accepted, not muted at any ratio.
+ * Darken nb's light `muted` and it fails `nb light: muted-foreground on muted … — BELOW ACCEPTED 3.77` by name.
  */
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -63,15 +67,50 @@ export const PAIRS: ReadonlyArray<readonly [string, string, Kind]> = [
 ];
 const WCAG: Record<Kind, number> = { 'text': 4.5, 'non-text': 3 };
 
-/** Q2997.8 A: the dual-use pairs, failing in dark on every corpus brand. `<ink> on <ground> (<mode>)`, any brand. */
-export const KNOWN: Readonly<Record<string, string>> = {
-  'destructive on background (dark)': 'Q2997.8 A — destructive is a fill under white ink; the engine question is #4279',
-  'destructive on card (dark)': 'Q2997.8 A — card is background.primary (Q2997.1 B); #4279',
-  'primary on background (dark)': 'Q2997.8 A — primary is a fill under white ink; #4279',
+/**
+ * Q2997.8 A: the dual-use pairs, failing in dark on every corpus brand. Keyed `<brand> <mode>: <ink> on <ground>`, as
+ * `KNOWN_PENDING` is, each with the ratio the owner accepted: the value measured when the decision was built, floored to
+ * two places. A known pair that falls BELOW its accepted floor fails by name, so the entry mutes the pair the owner saw,
+ * not any ratio on any brand forever (docs/34, a gate with no memory). An entry whose pair now passes, or whose brand is
+ * gone, fails as STALE. The floors are written here by hand from that measurement, never read back from a run.
+ */
+export type Accepted = { floor: number; why: string };
+export const KNOWN: Readonly<Record<string, Accepted>> = {
+  'aurora dark: destructive on background': { floor: 4.25, why: 'Q2997.8 A — destructive is a fill under white ink; the engine question is #4279' },
+  'aurora dark: destructive on card': { floor: 4.25, why: 'Q2997.8 A — card is background.primary (Q2997.1 B); #4279' },
+  'aurora dark: primary on background': { floor: 4.25, why: 'Q2997.8 A — primary is a fill under white ink; #4279' },
+  'harbor dark: destructive on background': { floor: 4.25, why: 'Q2997.8 A — destructive is a fill under white ink; the engine question is #4279' },
+  'harbor dark: destructive on card': { floor: 4.25, why: 'Q2997.8 A — card is background.primary (Q2997.1 B); #4279' },
+  'harbor dark: primary on background': { floor: 4.23, why: 'Q2997.8 A — primary is a fill under white ink; #4279' },
+  'nb dark: destructive on background': { floor: 4.24, why: 'Q2997.8 A — destructive is a fill under white ink; the engine question is #4279' },
+  'nb dark: destructive on card': { floor: 4.24, why: 'Q2997.8 A — card is background.primary (Q2997.1 B); #4279' },
+  'nb dark: primary on background': { floor: 4.24, why: 'Q2997.8 A — primary is a fill under white ink; #4279' },
+  'prism3 dark: destructive on background': { floor: 4.25, why: 'Q2997.8 A — destructive is a fill under white ink; the engine question is #4279' },
+  'prism3 dark: destructive on card': { floor: 4.25, why: 'Q2997.8 A — card is background.primary (Q2997.1 B); #4279' },
+  'prism3 dark: primary on background': { floor: 4.24, why: 'Q2997.8 A — primary is a fill under white ink; #4279' },
+  'wendys dark: destructive on background': { floor: 4.22, why: 'Q2997.8 A — destructive is a fill under white ink; the engine question is #4279' },
+  'wendys dark: destructive on card': { floor: 4.22, why: 'Q2997.8 A — card is background.primary (Q2997.1 B); #4279' },
+  'wendys dark: primary on background': { floor: 4.04, why: 'Q2997.8 A — primary is a fill under white ink; #4279' },
 };
-/** Pairs awaiting an owner decision, `<brand> <mode>: <ink> on <ground>`. Printed on every run. */
-export const KNOWN_PENDING: Readonly<Record<string, string>> = {
-  'nb light: muted-foreground on muted': 'OWNER DECISION on #2997 PR 2: nb (the legacy fixture) puts text.secondary at 3.77 on background.secondary',
+/**
+ * The regression fixture's pair, raised on #4289 and accepted there (owner decision 2026-11-19 A), kept here as the owner
+ * said. Same key and shape as `KNOWN`; the floor is the 3.77 the owner saw, written by hand. Printed on every run.
+ */
+export const KNOWN_PENDING: Readonly<Record<string, Accepted>> = {
+  'nb light: muted-foreground on muted': { floor: 3.77, why: 'Owner decision 2026-11-19 A — legacy fixture, not engine-derived' },
+};
+
+/**
+ * How a pair under its floor is reported. `known` (a `KNOWN` entry) and `accepted` (a `KNOWN_PENDING` entry) print and
+ * pass while the ratio holds its entry's floor; below that floor, or with no entry, the pair is `failing`. `listed` says
+ * the key has an entry, which is what the STALE arms read.
+ */
+export const judgeBelowFloor = (key: string, r: number, known: Readonly<Record<string, Accepted>> = KNOWN,
+  pending: Readonly<Record<string, Accepted>> = KNOWN_PENDING): { verdict: 'known' | 'accepted' | 'failing'; note: string; listed: boolean } => {
+  const k = known[key], entry = k ?? pending[key];
+  if (!entry) return { verdict: 'failing', note: '', listed: false };
+  if (r < entry.floor) return { verdict: 'failing', note: ` — BELOW ACCEPTED ${entry.floor} (${entry.why})`, listed: true };
+  return { verdict: k ? 'known' : 'accepted', note: k ? '' : ` — ${entry.why}`, listed: true };
 };
 
 type Ext = { min?: number; modes?: Record<string, { min?: number }> };
@@ -88,8 +127,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const tmp = mkdtempSync(join(tmpdir(), 'prism3-shadcn-'));
   process.on('exit', () => rmSync(tmp, { recursive: true, force: true }));
   emitShadcn(tmp);
-  const failures: string[] = [], known: string[] = [], pending: string[] = [];
-  const seenPending = new Set<string>();
+  const failures: string[] = [], known: string[] = [], accepted: string[] = [];
+  const seenPending = new Set<string>(), seenKnown = new Set<string>();
   let measured = 0;
   const brands = handoffBrands();
   for (const brand of brands) {
@@ -109,24 +148,25 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
           measured++;
           if (r >= floor) return;
           const line = `${brand} ${mode}: ${ink} on ${ground} ${floor2(r)} < ${floor}`;
-          const pendingKey = `${brand} ${mode}: ${ink} on ${ground}`;
-          if (KNOWN[`${ink} on ${ground} (${mode})`]) known.push(line);
-          else if (KNOWN_PENDING[pendingKey]) { pending.push(`${line} — ${KNOWN_PENDING[pendingKey]}`); seenPending.add(pendingKey); }
-          else failures.push(line);
+          const key = `${brand} ${mode}: ${ink} on ${ground}`;
+          const { verdict, note, listed } = judgeBelowFloor(key, r);
+          if (listed) (KNOWN[key] ? seenKnown : seenPending).add(key);
+          (verdict === 'known' ? known : verdict === 'accepted' ? accepted : failures).push(line + note);
         });
       }
     } finally { await page.close(); }
   }
-  for (const k of Object.keys(KNOWN_PENDING)) if (!seenPending.has(k)) failures.push(`STALE PENDING ${k} — it passes now; take it out of KNOWN_PENDING`);
+  for (const k of Object.keys(KNOWN)) if (!seenKnown.has(k)) failures.push(`STALE KNOWN ${k} — it passes now, or its brand is gone; take it out of KNOWN`);
+  for (const k of Object.keys(KNOWN_PENDING)) if (!seenPending.has(k)) failures.push(`STALE PENDING ${k} — it passes now, or its brand is gone; take it out of KNOWN_PENDING`);
   for (const k of known) console.log(`  known  ${k}`);
-  for (const p of pending) console.log(`  PENDING ${p}`);
+  for (const p of accepted) console.log(`  accepted ${p}`);
   if (failures.length) {
     console.error(`✗ shadcn contrast: ${failures.length} failure(s)`);
     for (const f of failures) console.error(`    ${f}`);
     console.error('\n  Fix: remap the ink in projections/shadcn.ts to a role that clears the floor. A pair the owner accepts as a');
-    console.error('  known failure goes in KNOWN with its decision.');
+    console.error('  known failure goes in KNOWN with its decision and the ratio accepted; one below that ratio is a new failure.');
     process.exit(1);
   }
   console.log(`✓ shadcn contrast — ${measured} pairs measured in Chromium over ${brands.length} brands × 2 modes (${PAIRS.length} pairs each); ` +
-    `${known.length} known (Q2997.8 A), ${pending.length} pending an owner decision, 0 failing.`);
+    `${known.length} known (Q2997.8 A), ${accepted.length} accepted as a legacy fixture (owner decision 2026-11-19 A), 0 failing.`);
 }

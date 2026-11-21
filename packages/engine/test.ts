@@ -35,6 +35,8 @@ import { buildIdentity } from './build-identity';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import type { FigmaCollectionFile } from './emit-figma';
 import { MOTION_FIGMA_COVERAGE, springBounce } from './emit-figma-dims';
+import { judgeBelowFloor, KNOWN_PENDING } from './lint-shadcn-contrast';
+import { handoffBrands, readHandoff } from './emit-shadcn';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput, readExampleBrand, contractReportRow, emitTheme } from './emit-dtcg';
@@ -45675,6 +45677,40 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(files.get('./e/acme.base.tokens.json') === JSON.stringify(projected.base, null, 2) + '\n'
     && files.get('./e/acme.dark.overlay.tokens.json') === JSON.stringify(projected.overlays.find((o) => o.mode === 'dark')?.tree, null, 2) + '\n',
     '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
+}
+
+// #2997: the shadcn contrast gate holds an accepted pair to the ratio the owner accepted. The regression fixture's pair
+// (owner decision 2026-11-19 A, on #4289) is muted at 3.77 and above, and fails by name below it, as a KNOWN pair does.
+{
+  const key = 'nb light: muted-foreground on muted';
+  ok(KNOWN_PENDING[key]?.floor === 3.77 && /2026-11-19 A/.test(KNOWN_PENDING[key]?.why ?? ''),
+    `#2997 the fixture's accepted pair records its floor 3.77 and the owner decision (got ${JSON.stringify(KNOWN_PENDING[key])})`);
+  const held = judgeBelowFloor(key, 3.775);
+  ok(held.verdict === 'accepted' && held.listed, `#2997 the fixture's pair at its accepted ratio is reported, not failed (got ${held.verdict})`);
+  const fell = judgeBelowFloor(key, 2.57);
+  ok(fell.verdict === 'failing' && fell.note.includes('BELOW ACCEPTED 3.77'),
+    `#2997 the fixture's pair below its accepted 3.77 fails by name (got ${fell.verdict}${fell.note})`);
+  ok(judgeBelowFloor('nb light: muted-foreground on card', 3.9).verdict === 'failing', '#2997 a pair with no entry fails');
+  const k = judgeBelowFloor('prism3 dark: primary on background', 1.19);
+  ok(k.verdict === 'failing' && k.note.includes('BELOW ACCEPTED 4.24'), `#2997 a KNOWN pair below its accepted floor fails by name (got ${k.verdict}${k.note})`);
+}
+
+// #4428: a regression arm for #4155's filter in the shadcn projector's brand walk (`handoffBrands`). Since #4282 the
+// handoff also carries a web-only `<brand>.web.base.tokens.json` with no overlays; read as a brand, it crashed both
+// Chromium gates. A planted web base is skipped, and every brand the walk returns over the committed handoff reads.
+// BY-NAME MUTATION: drop the `.web.base.tokens.json` exclusion from `handoffBrands` → both arms below fail.
+{
+  const dir = mkdtempSync(join(tmpdir(), 'prism3-4428-'));
+  try {
+    for (const f of ['acme.tokens.json', 'acme.base.tokens.json', 'acme.dark.overlay.tokens.json', 'acme.web.base.tokens.json']) {
+      writeFileSync(join(dir, f), '{"acme":{}}\n');
+    }
+    const got = handoffBrands(dir);
+    ok(JSON.stringify(got) === '["acme"]', `#4428 a web-only base is not read as a brand (got ${JSON.stringify(got)})`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+  const unread = handoffBrands().filter((b) => { try { readHandoff(b); return false; } catch { return true; } });
+  ok(handoffBrands().length > 0 && unread.length === 0,
+    `#4428 every brand the walk returns over the committed handoff reads (unreadable: ${JSON.stringify(unread)})`);
 }
 
 // #811 — the engine README names only roles the engine emits. `foreground.danger.<state>` was retired (the
