@@ -306,6 +306,18 @@ if (!import.meta.url.endsWith('?cov')) {
           if (n === 0) unexecuted.push(`test.ts:${i + 1}  ${t.slice(0, 110)}`);
         }
       });
+      // #3960, #4333: THE SUMMARY LINE COUNTS EVERY ARM. An `ok(` site below the report line counts in neither of
+      // its numbers, so a late arm that fails prints `N passed, 0 failed` above its own ❌ (the exit code was
+      // still right; the headline, and any PR body quoting it, was not). One report line, and no site after it.
+      const reportAt = source.flatMap((l, i) => (l.startsWith('console.log(`\\nPrism3 engine tests: ${pass} passed') ? [i] : []));
+      if (reportAt.length !== 1) siteFails.push(`#3960 the report line: found ${reportAt.length} \`Prism3 engine tests: \${pass} passed\` line(s) at column 0, expected exactly one`);
+      else {
+        const late = source.flatMap((text, i) => {
+          const t = text.trim();
+          return i > reportAt[0] && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') && /(?<![\w.$])ok\(/.test(text) ? [`test.ts:${i + 1}`] : [];
+        });
+        if (late.length) siteFails.push(`#3960 the report line (test.ts:${reportAt[0] + 1}) has ${late.length} \`ok\` call site(s) after it, which its "passed, failed" counts miss: move them above it — ${late.slice(0, 10).join(', ')}${late.length > 10 ? ` … and ${late.length - 10} more` : ''}`);
+      }
       for (const [label, n] of skippedSites) console.log(skippedNow.has(label)
         ? `  ⊘ assertion sites (#1268): ${n} site(s) in '${label}' SKIPPED, not run and not passed — ${skippedNow.get(label)}`
         : `  ⊘ assertion sites (#1268): ${n} site(s) in '${label}' not run, because its premise FAILED by name above — ${failedNow.get(label)}`);
@@ -44702,9 +44714,6 @@ arm: {
   }
 }
 
-// ------------------------------------------------------------------- report
-console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
-
 // A FLOOR on the population, not on the outcome (#659). `fails.length === 0` is the outcome, and it is
 // vacuously true over zero assertions: neutering `ok()` printed **`0 passed, 0 failed`** followed by
 // `✓ colour math + extreme-brand contracts all hold`, at exit 0. Nothing else in the suite noticed,
@@ -45528,6 +45537,12 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     .filter(([id, re]) => contestedOf(id as string).some((e) => (re as RegExp).test(e))).map(([id]) => id);
   ok(stillContested.length === 0, `#1716 the three entries that describe themselves as decided are out of contested (still there: ${stillContested.join(', ') || 'none'})`);
 }
+
+// ------------------------------------------------------------------- report
+// LAST, after every arm (#3960, #4333). It sat ~640 lines up, so a late arm that failed printed
+// `N passed, 0 failed` above its own ❌. The #1268 scan at the top of this file fails by name if an `ok(`
+// site follows this line, so append new arms ABOVE it.
+console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
