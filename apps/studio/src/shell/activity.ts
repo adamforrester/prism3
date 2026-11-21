@@ -337,7 +337,7 @@ export const RUN_COPY = { notes: (n: number): string => (n === 1 ? 'Note' : 'Not
  *  dropped, its first letter raised. */
 const stepWords = (s: UpdateStepReading): string => {
   const w = s.state === 'skip' ? RUN_COPY.notRun : verdictWords(s.words);
-  return w ? w[0].toUpperCase() + w.slice(1) : w;
+  return w ? w.charAt(0).toUpperCase() + w.slice(1) : w;
 };
 /** One operation's record: what the drawer has seen of it this session. `at` orders the records by what happened last,
  *  finer than `t`'s minute (#3326 PR 2: a run row and an operation's row can share one). */

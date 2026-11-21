@@ -29,6 +29,7 @@
  */
 import { subscribe } from '../state/store';
 import { glyph, h, hook, isLeaving, leave, unleave } from './dom';
+import { must } from '../must';
 
 /** The brand menu's state, read from `main.ts` on every repaint. */
 export type BarView = {
@@ -357,7 +358,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
         : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
       if (to < 0) return;
       e.preventDefault();
-      act.artifact(x.artifacts[to].id);
+      act.artifact(must(x.artifacts[to], `artifact ${to}`).id);
       // The page is drawn again for the new artifact; the key moves focus with the selection, as Documentation's tabs do.
       requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-p3="export-artifact"][aria-selected="true"]')?.focus());
     });
@@ -396,7 +397,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
           const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
           if (i < 0 || !step) return;
           e.preventDefault();
-          opts[(i + step + opts.length) % opts.length].click();
+          opts[(i + step + opts.length) % opts.length]?.click();
           // The page is drawn again for the new setting; focus follows the selection, as the artifact tabs' keys do.
           requestAnimationFrame(() => document.querySelector<HTMLElement>(`.p3-export-oseg[data-key="${CSS.escape(s.key)}"] [aria-checked="true"]`)?.focus());
         });
