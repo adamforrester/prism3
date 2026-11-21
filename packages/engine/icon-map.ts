@@ -27,7 +27,7 @@
  * Every rule below fails BY NAME (`iconMapErrors`), and `brandTheme` refuses a brand that breaks one, the choke point
  * every entry path passes through.
  */
-import { ICON_NAMES, ICON_PATHS } from './icon-glyphs';
+import { ICON_NAMES } from './icon-glyphs';
 import { COMPONENT_GLYPHS } from './component-glyphs';
 import type { ComponentDef, PartDef } from './component-schema';
 
