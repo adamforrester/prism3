@@ -521,6 +521,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   // #2983 (owner direction 2026-10-24): medium is today's status label, so it leads and every existing member lands
   // on it in place.
   badge: Q1B,
+  // #4109: the text skeleton's two body sizes, medium first (Q1 B).
+  skeleton: Q1B,
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -566,7 +568,7 @@ const SIZE_IN_PROSE: Record<string, string> = {
  * this list whole — the forward half alone let nine size-axis defs sit unlisted, each droppable in silence.
  */
 const MUST_COVER = [
-  'icon', 'provider-logo', 'spinner', 'progress',
+  'icon', 'provider-logo', 'spinner', 'progress', 'skeleton',
   'button', 'button-destructive', 'button-neutral', 'wallet-button', 'sign-in-button',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',

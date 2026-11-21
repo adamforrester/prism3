@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 64,
+  defs: 65,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -26,7 +26,8 @@ export const USED_BY = {
         "IconButton",
         "SegmentedControl",
         "Pagination",
-        "Banner"
+        "Banner",
+        "Skeleton"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -42,7 +43,8 @@ export const USED_BY = {
         "Badge",
         "Tag",
         "List",
-        "Slider"
+        "Slider",
+        "Skeleton"
       ],
       "radius.sm": [
         "ProviderLogo",
@@ -55,7 +57,8 @@ export const USED_BY = {
         "Counter",
         "SearchField",
         "CardNumberField",
-        "CodeInput"
+        "CodeInput",
+        "Skeleton"
       ],
       "radius.xl": [
         "Toast"
@@ -79,7 +82,8 @@ export const USED_BY = {
       "radius.md": [
         "SegmentedControl",
         "Pagination",
-        "Banner"
+        "Banner",
+        "Skeleton"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -95,7 +99,8 @@ export const USED_BY = {
         "Badge",
         "Tag",
         "List",
-        "Slider"
+        "Slider",
+        "Skeleton"
       ],
       "radius.sm": [
         "ProviderLogo",
@@ -108,7 +113,8 @@ export const USED_BY = {
         "Counter",
         "SearchField",
         "CardNumberField",
-        "CodeInput"
+        "CodeInput",
+        "Skeleton"
       ],
       "radius.xl": [
         "Toast"
@@ -127,7 +133,8 @@ export const USED_BY = {
       "radius.md": [
         "SegmentedControl",
         "Pagination",
-        "Banner"
+        "Banner",
+        "Skeleton"
       ],
       "radius.none": [
         "Button",
@@ -155,13 +162,15 @@ export const USED_BY = {
         "Badge",
         "Tag",
         "List",
-        "Slider"
+        "Slider",
+        "Skeleton"
       ],
       "radius.sm": [
         "ProviderLogo",
         "Badge",
         "SegmentedControl",
-        "Counter"
+        "Counter",
+        "Skeleton"
       ],
       "radius.xl": [
         "Toast"
@@ -194,7 +203,8 @@ export const USED_BY = {
       "radius.md": [
         "SegmentedControl",
         "Pagination",
-        "Banner"
+        "Banner",
+        "Skeleton"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -210,13 +220,15 @@ export const USED_BY = {
         "Badge",
         "Tag",
         "List",
-        "Slider"
+        "Slider",
+        "Skeleton"
       ],
       "radius.sm": [
         "ProviderLogo",
         "Badge",
         "SegmentedControl",
-        "Counter"
+        "Counter",
+        "Skeleton"
       ],
       "radius.xl": [
         "Toast"
