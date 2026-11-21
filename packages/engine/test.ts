@@ -39698,6 +39698,35 @@ arm: {
   }
 }
 
+// #4197 — run-suites.ts proves its count parser on every run, not behind a flag nothing passed. The audit's mutation,
+// replayed on a copy: `countOf` returning 99999 read a collapsed suite as at its floor, at exit 0. The copy runs over an
+// empty app (no suite to spawn), so the only thing that can fail it is the runner's own self-test. A control runs the
+// unmutated copy over the same app and passes, so the failure is the mutation's, not the fixture's.
+{
+  const runner = readFileSync(join(resolve(HERE, '..', '..'), 'run-suites.ts'), 'utf8');
+  const broken = runner.replace(/(export const countOf = \(stdout: string\): number \| null => \{)/, '$1\n  return 99999;');
+  ok(broken !== runner, '#4197: the mutation (countOf returns 99999) applies to run-suites.ts — the anchor still matches');
+  const dir = mkdtempSync(join(tmpdir(), 'prism3-4197-'));
+  try {
+    const app = join(dir, 'app');
+    mkdirSync(app);
+    writeFileSync(join(app, 'suites.json'), JSON.stringify({ suites: [], elsewhere: {} }));
+    writeFileSync(join(app, 'package.json'), JSON.stringify({ scripts: { test: 'npx tsx ../run-suites.ts' } }));
+    const run = (src: string) => {
+      writeFileSync(join(dir, 'run-suites.ts'), src);
+      const r = spawnSync(process.execPath, [...process.execArgv, join(dir, 'run-suites.ts')], { cwd: app, encoding: 'utf8' });
+      return { status: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
+    };
+    const bad = run(broken);
+    ok(bad.status === 1 && /run-suites self-test: \d+ failed/.test(bad.out),
+      `#4197: run-suites.ts with a broken countOf fails its own self-test on a plain run, before any suite (exit ${bad.status}: ${bad.out.trim().split('\n').at(-1)})`);
+    const good = run(runner);
+    ok(good.status === 0, `#4197: the unmutated runner passes over the same empty app (exit ${good.status}: ${good.out.trim().split('\n').at(-1)})`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 // ------------------------------------------------------------------- component renames (#2265)
 // The ledger an in-place update reads to tell a renamed member from a dropped one plus an added one, and
 // the accounting `lint-component-renames.ts` runs over it. Hand-built inputs throughout: the lint's
