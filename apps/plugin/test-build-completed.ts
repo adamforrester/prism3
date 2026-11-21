@@ -618,7 +618,8 @@ for (const [name, r, min] of [['the fresh build', first, 3], ['the refused rebui
     `#2177 ${name}: its lines are its summary's items, in order, in its words, at least ${min} (${JSON.stringify(r?.lines)})`);
 }
 // The set's own facts stay one line; the misses and the build note are lines of their own.
-ok(!!first && /^set '.*refs across \d+ members$/.test(String(first.lines?.[0])) && /^Built from /.test(String(first.lines?.at(-1))),
+// #4185 B row 2: the set's facts on screen are its variants and axes; the grid, size, properties and links go to the console.
+ok(!!first && /^[a-z-]+: \d+ variants \(\d+ new, \d+ already there(, \d+ stale)?\), axes \S+$/.test(String(first.lines?.[0])) && /^Built from /.test(String(first.lines?.at(-1))),
   `#2177 the fresh build: the set's facts are its first line, the build note its last (${JSON.stringify(first?.lines?.[0])} … ${JSON.stringify(first?.lines?.at(-1))})`);
 
 // 5. #2995 (should-fix 2): Documentation's Cover switch, read by Set up file on the main thread (`main.ts` `fileSetup`).
@@ -1086,9 +1087,21 @@ ok(JSON.stringify(specDefs()) === JSON.stringify([LEVER_DEF]) && !!drew && /^. d
 // file lacks. Mutation: the build's own misses (`...real`) dropped from its cause → `causes/misses`.
 const tagBuilt = await build('tag');
 const tagCause = tagBuilt?.causes?.find((c: any) => c.subject === 'tag');
+// #4185 B (owner decision 2026-11-19, option b): on screen the misses are one line, with no engine path in it; each
+// miss line itself is in the file's run log, which the agent link's `activity` reads. Expected words typed here.
 ok(tagBuilt?.ok === false && tagCause?.kind === 'warn' && tagCause.what === 'built with problems'
-  && (tagCause.reasons as string[]).includes('label.textStyle -> label/md/emphasis'),
-  `causes/misses: a build that missed the file's style names it among its reasons (${JSON.stringify(tagCause)?.slice(0, 300)})`);
+  && (tagCause.reasons as string[]).some((x) => /^⚠ \d+ bindings? Prism3 couldn't make\.$/.test(x))   // owner decision 2026-11-20 on #4364
+  && !(tagCause.reasons as string[]).some((x) => x.includes(' -> ')),
+  `#4185 causes/misses: a build that missed shows one line for its misses, and no engine path (${JSON.stringify(tagCause)?.slice(0, 300)})`);
+{
+  (shim.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'agent-link', on: true });
+  const res = (await ask({ type: 'agent-command', command: { v: 1, id: 'act-4185', cmd: 'activity', args: {}, issuedAt: new Date().toISOString() } }, 'agent-result'))[0]?.result;
+  (shim.ui as { onmessage: (m: unknown) => void }).onmessage({ type: 'agent-link', on: false });
+  const runs = (res?.result?.data?.runs ?? []) as any[];
+  const tagProblems = runs.flatMap((r) => r.problems ?? []).filter((p: any) => p.set === 'tag');
+  ok(tagProblems.some((p: any) => (p.reasons as string[]).includes('label.textStyle -> label/md/emphasis')),
+    `#4185 causes/misses: the miss line itself is in the file's run log, where a maintainer reads it (${JSON.stringify(tagProblems).slice(0, 300)})`);
+}
 
 // #3326 PR 1 review S2: THE INVARIANT, over every verdict this suite's runs posted. A verdict that is not ok says why: at
 // least one cause, each subject an engine def id, or null for the run's own cause. Mutations: any of the build's or the

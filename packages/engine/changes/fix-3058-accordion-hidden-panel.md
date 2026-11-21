@@ -1,4 +1,0 @@
----
-engine: minor
----
-A collapsed Accordion member keeps its panel slot, built hidden, so content a designer puts in the slot survives a switch to collapsed and back (#3058, owner decision 2026-11-18 A). Before, the collapsed members had no `content` node, and expanding an instance again showed the default placeholder. The new part field `hiddenWhenAbsent: true` makes this possible. On a box gated by `presentWhen` on a variant axis, it builds the part hidden (`visible: false`) wherever the gate fails, instead of leaving it out. The hidden part lays out as absent, so the collapsed member's footprint is unchanged. The validator refuses the field on any other kind, and on a part with no variant gate to soften. Files built before this change show their Accordion as due, and Update file adds the hidden slot in place.

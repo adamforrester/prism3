@@ -528,6 +528,37 @@ variables, and it keeps `packages/tokens`' no-custom-code rule. The adherence sc
 instead of stripping it. The `pds3` / `p3-` mismatch with §9.2 is accepted: renaming the token root
 would be a breaking contract change.
 
+## 10. Where primitives sit in the token tree
+
+### 10.1 Decided (2026-11-19, #4163): no rename; the primitive placement is recorded, not changed
+
+Owner decision A. A **primitive** holds a raw value and names no purpose. A **role** aliases a primitive and names
+what it's for. Components and agents bind roles (`prism3-build-ui`: never reach for a raw primitive), so a reader has
+to know which leaves are primitives. The path doesn't say: primitives have two homes, and the primitive/role split is
+spelled four ways.
+
+| Family | Primitive | Role over it | Home |
+|---|---|---|---|
+| color | `core.palette.<hue>.<step>`, `core.palette.black-alpha.<n>` | `color.*` | `core` |
+| dimension | `core.dimension.<px>` | `space.*`, `radius.*`, `size.*`, … | `core` |
+| font weight | `core.font.weight.500` | `core.font.weight-role.emphasis` | `core` (`x` / `x-role`) |
+| line height | `core.font.line-height.115` | `core.font.line-height-role.snug` | `core` (`x` / `x-role`) |
+| letter spacing | `core.font.letter-spacing.neg-20` | `core.font.letter-spacing-role.tight` | `core` (`x` / `x-role`) |
+| duration | `motion.duration-ms.200` | `motion.duration.normal` | top level (`x-ms` / `x`) |
+| easing | `motion.easing.standard` | `motion.easing-role.enter` | top level (`x` / `x-role`) |
+| opacity | `opacity.30` | none | top level (no split) |
+
+**The rule a reader can rely on is the `.ai.json` tier, not the path.** Every leaf in `<brand>.ai.json`'s `primitives`
+tier is a primitive, and its `note` names the primitive families. It also lists `motion.spring`, `shadow`,
+`breakpoint` and `container`, whose leaves hold literal values with no role above them. A family outside `core.*` is
+still a primitive.
+
+**Why nothing moves.** Moving `motion.duration-ms`, `motion.easing` and `opacity` under `core`, or giving the easing
+role the plain name (#4163 options B and C), moves guaranteed names: a MAJOR `CONTRACT_VERSION` with a `DEPRECATIONS`
+alias for every path. The cost lands on every consumer, and the only gain is a predictable path, which the tier
+already provides. A new family follows the `core` convention: primitives under `core.<family>`, with the role named
+`<family>-role` when it shares a group with its primitive.
+
 ---
 
 *Refs: `19` §2 (ejectability, the two delivery modes), §3 (WC-primary rationale), §4

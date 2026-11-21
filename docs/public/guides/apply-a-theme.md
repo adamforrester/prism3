@@ -8,7 +8,7 @@ It is ticked when the dialog opens only if the file's variables differ from the 
 When they already match, it is unticked and reads "Up to date"; tick it to write the brand again. <!-- src: apps/studio/src/state/update-file.ts:346 -->
 It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:112#1bd757c2 -->
 
-Each run checks the file first and writes only once nothing conflicts, or once you have chosen what happens to each conflict. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:78-123#82e91aee --> <!-- src: apps/plugin/src/preflight.ts:162-221#328537d5 -->
+Each run checks the file first and writes only once nothing conflicts, or once you have chosen what happens to each conflict. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:78-123#82e91aee --> <!-- src: apps/plugin/src/preflight.ts:171-230#328537d5 -->
 The rest of the checklist, and how a run works, is in [Update a Figma file](update-a-file-safely.md).
 
 ## What gets written
@@ -46,25 +46,26 @@ The variables the plugin writes match the ones the engine emits for the same bra
 
 ## What makes it refuse
 
-Before the first write, the plugin reads everything it is about to touch. If the file already holds something with the same name that Prism3 did not create, it writes nothing and lists each conflict: <!-- src: apps/plugin/src/preflight.ts:162-221#328537d5 -->
+Before the first write, the plugin reads everything it is about to touch. If the file already holds something with the same name that Prism3 did not create, it writes nothing and lists each conflict: <!-- src: apps/plugin/src/preflight.ts:171-230#328537d5 -->
 
 > Nothing was written. 2 conflicts with existing content: …
 
-Each conflict says why: <!-- src: apps/plugin/src/preflight.ts:188#bdc1c449 --> <!-- src: apps/plugin/src/preflight.ts:196#a4c4f21e --> <!-- src: apps/plugin/src/preflight.ts:217#52946846 --> <!-- src: apps/plugin/src/preflight.ts:242#e2d4345c -->
+Each conflict says why: <!-- src: apps/plugin/src/preflight.ts:197#bdc1c449 --> <!-- src: apps/plugin/src/preflight.ts:205#a4c4f21e --> <!-- src: apps/plugin/src/preflight.ts:226#52946846 --> <!-- src: apps/plugin/src/preflight.ts:299#e2d4345c -->
 
 - `already in this file, not created by Prism3`: a collection or style with that name exists and carries no Prism3 mark.
 - `Prism3 writes`: a variable with that name exists with a different type. The conflict names both types and the collection.
 
 The plugin then lists the conflicts and asks what to do with each: **Skip** leaves the item as it is and writes the rest, and **Rename** writes Prism3's own beside it under a new name. One choice can cover them all. Until each conflict has a choice, nothing is written, and Cancel leaves the file as it is. The choice holds for that run only. <!-- src: apps/studio/src/state/collisions.ts:48 -->
 
-Or rename or remove the named items yourself, then run Update file again. A file with its own library collections can take Prism3's alongside them as long as no names collide. <!-- src: apps/plugin/src/preflight.ts:162-221#328537d5 -->
+Or rename or remove the named items yourself, then run Update file again. A file with its own library collections can take Prism3's alongside them as long as no names collide. <!-- src: apps/plugin/src/preflight.ts:171-230#328537d5 -->
 
 One exception: a grid style whose name is taken is skipped for that breakpoint, and the rest of the theme is written. <!-- src: apps/plugin/src/write-grid-styles.ts:37-42#3eb25501 -->
 
-Two more cases stop the theme before it starts:
+Three more cases stop the theme before it starts:
 
+- The file's Figma plan allows fewer modes per collection than the theme writes. The line names both numbers and the next step: "Move the file to a team on a plan with more modes." Nothing is written, and no version is saved. <!-- src: apps/plugin/src/preflight.ts:274 -->
 - Another write is running, from an agent: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->
-- The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1933 -->
+- The file's saved brand didn't open. Update file's write stays off, with the reason: "Off until a brand loads. This file's saved brand didn't open, and writing now would put the demo brand over it." <!-- src: apps/studio/src/main.ts:1953 -->
 
 ## Writing it again
 

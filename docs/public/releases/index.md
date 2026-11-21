@@ -4,6 +4,7 @@ One page per engine version, newest first. Each is generated when the version is
 
 | Version | Date | Breaking | New | Fixes |
 |---|---|---|---|---|
+| [0.239.0](0.239.0.md) | 2026-11-21 | 1 | 6 | 24 |
 | [0.238.0](0.238.0.md) | 2026-11-15 | 24 | 147 | 33 |
 | [0.237.0](0.237.0.md) | 2026-10-15 | 0 | 29 | 1 |
 | [0.236.0](0.236.0.md) | 2026-10-10 | 0 | 5 | 11 |
