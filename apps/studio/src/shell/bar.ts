@@ -35,7 +35,7 @@ import { must } from '../must';
 export type BarView = {
   readonly brand: { readonly name: string; readonly hex: string };
   readonly menuOpen: boolean;
-  readonly examples: readonly { readonly name: string; readonly hex: string; readonly current: boolean }[];
+  readonly examples: readonly { readonly name: string; readonly hex: string; readonly current: boolean; readonly desc: string }[];
   /** A load waiting on the overwrite confirm (#160, #722, #1033): beneath the examples for an example, in place of
    *  the import box for an import. `text` is `main.ts`'s sentence, which names both origins. */
   readonly confirm: { readonly at: 'example' | 'import'; readonly text: string } | null;
@@ -234,7 +234,10 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       d.setAttribute('data-content', '');
       d.style.background = ex.hex;
       s.append(d);
-      b.append(s, h('span', 'p3-menu-label', ex.name));
+      // #3977: the example's few words under its name, muted, in the item's own label block.
+      const label = h('span', 'p3-menu-twoline');
+      label.append(h('span', 'p3-menu-label', ex.name), hook(h('span', 'p3-menu-desc', ex.desc), 'brand-menu-example-desc'));
+      b.append(s, label);
       b.onclick = () => act.example(ex.name);
       menu.append(b);
     }

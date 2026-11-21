@@ -20,9 +20,9 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Check contrast in every mode | ✓ Inspect › Contrast <!-- src: apps/studio/src/shell/pages.ts:120-122#9232e735 --> | ✓ Inspect › Contrast | – | ✓ `theme_brand`, `theme_from_brief` |
 | Keep the working brand | ✓ in this browser <!-- src: apps/studio/src/persist-local.ts:39-102#8ee27da6 --> | ✓ in the Figma file, when Update file writes the theme <!-- src: apps/plugin/src/persist-figma.ts:29-34#ba150bb3 --> | – | – |
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
-| Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1386 --> | ✓ | – | – |
+| Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1400 --> | ✓ | – | – |
 
-<!-- src: apps/studio/src/shell/start.ts:167-218#9e39b78a --> <!-- src: packages/engine/mcp.ts:271-433 -->
+<!-- src: apps/studio/src/shell/start.ts:167-225 --> <!-- src: packages/engine/mcp.ts:271-433 -->
 
 ## Figma file
 

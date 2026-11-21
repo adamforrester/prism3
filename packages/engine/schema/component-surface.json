@@ -463,7 +463,7 @@
     },
     "spinner": {
       "members": 4,
-      "sha256": "ea89c251f0a29b2686e2f4ed1bbec1c6668f189c8ddaa13f69ac16442f6849cc",
+      "sha256": "026d0538f54969c21d7fc45b393981e52600ba7f230f70e95bc9221c92f89a37",
       "properties": []
     },
     "badge": {
@@ -757,7 +757,7 @@
     },
     "progress": {
       "members": 12,
-      "sha256": "d339572d714207b5a327577167f258b404f4f3bfbd0506ef621947c01b2a0835",
+      "sha256": "a66783e7a0804ab6638efa9851d96e363ec88a54258ba9c96647a61ad6f02872",
       "properties": [
         "complete value text:TEXT",
         "label text:TEXT",
@@ -816,7 +816,7 @@
     },
     "slider": {
       "members": 30,
-      "sha256": "eafd14313e9d7a0fba3f15bc73b6f1aa994421aed8dfeafc8dff008cb3c9de3a",
+      "sha256": "ac592648690ee336b0b7bff61c3332e72ea9aa1dbd1e63605721d4338b03705d",
       "properties": [
         "inputs:BOOLEAN",
         "label:BOOLEAN",

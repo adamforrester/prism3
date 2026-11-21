@@ -197,7 +197,7 @@ export const DOMAINS = [
         sections: [
           // S4f (QA-B10): the scrim left Background fills for its own read-only section, so Background fills' description
           // dropped its scrim clause (the owner's Q26 intro again), as the preview's Background section's did (Q23).
-          { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
+          { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }, { ctl: 'controlGround', keys: ['interactiveGround'] }] },
           // #3050 (owner Q825 B): Scrim strength's one home, the Scrim section, above the scrim's read-only row.
           { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim', keys: ['scrimStrength'] }] },
           // #3073 (owner Q806, Q807 A): the shipped white glass, read-only, and the glass fills a brand adds (`glassRoles`).
