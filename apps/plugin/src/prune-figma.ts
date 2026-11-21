@@ -323,6 +323,26 @@ export const isEngineDescription = (
  * arm in `test-write-preflight.ts` (a real Rename, then this) holds the two spellings together.
  */
 const RENAMED = / \(Prism3\)$/;
+/** A name with every trailing ` (Prism3)` stripped: what a collision Rename wrote it in place of (#3558, #3869). */
+const unrenamed = (name: string): string => {
+  let n = name;
+  while (RENAMED.test(n)) n = n.replace(RENAMED, '');
+  return n;
+};
+/**
+ * THE PLAN'S OWN NAME, AS A RENAME WROTE IT (#3869, #3860; owner decision A, 2026-11-18). A variable or style whose
+ * name, with every ` (Prism3)` suffix stripped, is a planned name is the plan's own, whatever else the file holds: a
+ * collision Rename (#1909) wrote it there. It is never an orphan, so Prune never offers it, and Apply Theme's orphan
+ * notes never count it. A renamed variable is a live alias target (#3869's reproduction left 44 aliases pointing at
+ * the deleted one), and sparing only ever errs toward keeping. A name with no suffix is not touched by this: it is
+ * planned or not exactly as before. The one rule Prune's variables arm, `orphanStyles` and Apply's variable note read.
+ */
+export const isRenamedPlanned = (name: string, planned: ReadonlySet<string>): boolean => name !== unrenamed(name) && planned.has(unrenamed(name));
+/** `orphans` without the names `isRenamedPlanned` gives back to the plan. Order kept. */
+export const unlessRenamedPlanned = (orphans: readonly string[], planned: Iterable<string>): string[] => {
+  const set = new Set(planned);
+  return orphans.filter((n) => !isRenamedPlanned(n, set));
+};
 export const ownedCollectionNames = (planned: Iterable<string>, file: readonly FileCollection[]): { of: (name: string) => string; kept: string[] } => {
   const stamped = (c: FileCollection | undefined): boolean => !!c?.ownedModeIds?.length;
   const byName = new Map(file.map((c) => [c.name, c] as const));
@@ -330,12 +350,7 @@ export const ownedCollectionNames = (planned: Iterable<string>, file: readonly F
   const kept: string[] = [];
   for (const p of new Set(planned)) {
     if (stamped(byName.get(p))) continue;
-    const renamed = file.filter((c) => {
-      let n = c.name;
-      if (!RENAMED.test(n)) return false;
-      while (RENAMED.test(n)) n = n.replace(RENAMED, '');
-      return n === p && stamped(c);
-    });
+    const renamed = file.filter((c) => RENAMED.test(c.name) && unrenamed(c.name) === p && stamped(c));
     if (renamed.length !== 1) continue;
     to.set(p, renamed[0].name);
     if (byName.has(p)) kept.push(p);
@@ -357,8 +372,8 @@ export const ownedCollectionNames = (planned: Iterable<string>, file: readonly F
  * next apply renames in place (`LEGACY_GRID_PREFIX`), not a stale one.
  *
  * Exported since #1737: Apply Theme reports this set as the styles the brand does not plan, so its report and Prune's
- * offer share one rule. They differ only in the planned names each passes: Apply adds the names a collision Rename
- * wrote, Prune does not yet (#3860), so after a Rename Prune offers the `… (Prism3)` style and Apply's note does not.
+ * offer share one rule. A style a collision Rename wrote (`<planned> (Prism3)`) is the plan's own and never an orphan
+ * (`unlessRenamedPlanned`, #3860), so the two agree after a Rename too, whichever planned names each passes.
  */
 export const orphanStyles = (fileStyles: FileStyles, plannedStyles: StyleNames): PrunePlan['styles'] => {
   const styles: PrunePlan['styles'] = [];
@@ -369,7 +384,7 @@ export const orphanStyles = (fileStyles: FileStyles, plannedStyles: StyleNames):
     const live = (fileStyles[kind] ?? []).map(asFileStyle);
     const described = new Map(live.map((s) => [s.name, s.description ?? ''] as const));
     const byProvenance: string[] = [];
-    const orphans = orphansOf(live.map((s) => s.name), planned).filter((n) => {
+    const orphans = unlessRenamedPlanned(orphansOf(live.map((s) => s.name), planned), planned).filter((n) => {
       if (awaitingRename.has(n)) return false;
       if (plannedGroups.has(styleGroup(n))) return true;
       if (!isEngineDescription(kind, described.get(n) ?? '', planned)) return false;
@@ -392,11 +407,12 @@ export const computePrunePlan = (input: PruneInput): PrunePlan => {
 
   // VARIABLES — orphans inside a plan-owned collection, restricted to the engine namespace. `orphansOf`
   // is the exact subtraction the executors' orphan reports use; the `inRoot` filter is the only addition,
-  // and it is what leaves a hand-added foreign-root variable alone.
+  // and it is what leaves a hand-added foreign-root variable alone. A variable a collision Rename wrote
+  // (`<planned> (Prism3)`) is the plan's own, never offered (#3869): it is what the plan's aliases point at.
   const variables: PrunePlan['variables'] = [];
   for (const c of input.collections) {
     if (!ownedCollections.has(c.name)) continue;
-    const orphans = orphansOf(c.variableNames, plannedVars).filter((n) => inRoot(n, root));
+    const orphans = unlessRenamedPlanned(orphansOf(c.variableNames, plannedVars), plannedVars).filter((n) => inRoot(n, root));
     if (orphans.length) variables.push({ collection: c.name, names: orphans });
   }
 

@@ -126,12 +126,16 @@ apps/plugin/test-paste-reactions.ts #3414
 apps/plugin/test-persist.ts #341
 apps/plugin/test-persist.ts #415
 apps/plugin/test-persist.ts #480
+apps/plugin/test-prune-main.ts #3860
+apps/plugin/test-prune-main.ts #3869
 apps/plugin/test-prune-main.ts #4185
 apps/plugin/test-prune.ts #1577
 apps/plugin/test-prune.ts #1581
 apps/plugin/test-prune.ts #1585
 apps/plugin/test-prune.ts #1623
 apps/plugin/test-prune.ts #2467
+apps/plugin/test-prune.ts #3860
+apps/plugin/test-prune.ts #3869
 apps/plugin/test-readback-parity.ts #2365
 apps/plugin/test-readback-parity.ts #2412
 apps/plugin/test-readback-parity.ts #3081
