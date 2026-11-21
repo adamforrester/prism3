@@ -429,7 +429,7 @@ lands without a second bump.
 | `CONTRACT_VERSION` | PR | guaranteed paths added |
 |---|---|---|
 | 15.1.0 | (#3408, Q-HT1 A) | `space.550`, the 44px step beside the half steps `space.150` and `space.250`: the hit-target floor a medium or large Button binds in code |
-| 15.2.0 | (#3510, Q-SP1 E) | `motion.spring-easing.{snappy,gentle,bouncy}` and `motion.spring-duration.{snappy,gentle,bouncy}`: each spring as CSS plays it, a `linear()` curve and its settle time |
+| 15.3.0 | (#3510, Q-SP1 E) | `motion.spring-easing.{snappy,gentle,bouncy}` and `motion.spring-duration.{snappy,gentle,bouncy}`: each spring as CSS plays it, a `linear()` curve and its settle time |
 
 ### The contract and the token CSS (#3510)
 
