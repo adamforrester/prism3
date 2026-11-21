@@ -301,7 +301,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'theme_brand',
     title: 'Generate a design-token system',
-    description: `Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes, each failure as { role, mode, ratio, against, min }), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via \`include\` because they are large — for a four-mode brand they measure roughly ${PAYLOAD_CHARS.tokens.toLocaleString('en-US')} and ${PAYLOAD_CHARS.aiMetadata.toLocaleString('en-US')} characters respectively (~370,000 tokens combined). Arguments: { brand, include }; the plugin's agent link takes the same object as \`input\`. Call list_levers to see the controls, or validate_brand to check an input first. Each field description in the \`brand\` schema below is a one-line summary; list_levers with \`describe\` returns the full text.`,
+    description: `Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes, each failure as { role, mode, ratio, against, min }), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via \`include\` because they are large — for a four-mode brand they measure roughly ${PAYLOAD_CHARS.tokens.toLocaleString('en-US')} and ${PAYLOAD_CHARS.aiMetadata.toLocaleString('en-US')} characters respectively (~395,000 tokens combined). Arguments: { brand, include }; the plugin's agent link takes the same object as \`input\`. Call list_levers to see the controls, or validate_brand to check an input first. Each field description in the \`brand\` schema below is a one-line summary; list_levers with \`describe\` returns the full text.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -447,7 +447,8 @@ export const toolDefs = (brandSchema: unknown) => [
  *
  *  (Measured when `notes` became a default. Re-measured 2026-09-24, #1623: tokens ~850,000 and
  *  aiMetadata ~500,000; re-measured 2026-09-26, #1670: ~890,000 and ~590,000, the aiMetadata figure having
- *  drifted to the edge of the test's 15% band — the tool descriptions carry the current figures.)
+ *  drifted to the edge of the test's 15% band; re-measured 2026-11-21, #3510 with #2857: ~900,000 and ~694,000, the
+ *  aiMetadata figure past the band again — the tool descriptions carry the current figures.)
  *
  *  Withholding the two huge payloads is right — no client can spend half a megabyte on one result.
  *  Withholding 3.6KB cost an agent the single most decision-relevant thing the engine produces, and
@@ -456,7 +457,7 @@ export const toolDefs = (brandSchema: unknown) => [
 export const DEFAULT_THEME_SECTIONS = ['notes'];
 /** #4200 D (DRAFT): the two large payloads' size for a four-mode brand, one figure each, stated once. The description and
  *  the withheld-section hint both read it, and test.ts holds it to ±15% of the measured size. */
-export const PAYLOAD_CHARS = { tokens: 890_000, aiMetadata: 590_000 } as const;
+export const PAYLOAD_CHARS = { tokens: 890_000, aiMetadata: 690_000 } as const;
 
 /** Accept both `{ brand, include }` and a bare BrandInput (the pre-wrap calling convention). Detected
  *  by the presence of a `brand` key, which BrandInput itself has no property named. */

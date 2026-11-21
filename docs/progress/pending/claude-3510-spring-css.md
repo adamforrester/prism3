@@ -41,3 +41,8 @@ owner decision, with the alternatives.
 - `check-consumability.mjs` counted every non-DTCG leaf as a corrupt (`[object Object]`) value in the
   canonical build. Only object-valued ones corrupt; a non-DTCG string passes through. It now counts those.
 - `MOTION_FIGMA_COVERAGE` names both new families with no Figma form yet: the duration waits for G5's name.
+- **A drifted figure this tipped over (after the merge of `5df3acca`).** `test.ts` holds `theme_brand`'s stated
+  payload sizes to 15% of measured. With #2857's presets on main, aiMetadata measured 691,538 against the stated
+  590,000 (inside the band by 2,580 characters); the spring leaves took it to 694,330, past it. `PAYLOAD_CHARS`
+  now states 690,000 (tokens stays 890,000, measured 900,699), and the description's combined figure is ~395,000
+  tokens. The #1670 precedent.

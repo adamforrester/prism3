@@ -45429,7 +45429,7 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(t.hint?.startsWith('Not included: tokens (~890,000 characters') && /Add them with include/.test(t.hint),
     `#4200 the omitted-sections hint says what is not included and how to add it, from one size figure (got ${JSON.stringify(t.hint)})`);
   const desc = toolDefs({}).find((d: any) => d.name === 'theme_brand')!.description as string;
-  ok(desc.includes('roughly 890,000 and 590,000 characters') && /agent link takes the same object as `input`/.test(desc),
+  ok(desc.includes('roughly 890,000 and 690,000 characters') && /agent link takes the same object as `input`/.test(desc),
     `#4200 theme_brand states the one size figure the hint uses, and names the agent link's \`input\` alias`);
 }
 
