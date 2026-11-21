@@ -1,0 +1,4 @@
+---
+engine: minor
+---
+MCP `tools/list` compacts the inline brand schema a second step (owner decision, 2026-11-21: compress, not raise). The schema's own description and each top-level field's one-line summary stay, and so do the summaries beneath the three required fields (`id`, `primary`, `neutral`) and in the `oklch` shape they use, so a first call can still be written from `tools/list` alone. Every other description, beneath an optional field or in a shared shape only optional fields use, is dropped from the inline copy. Every type, enum, range, default and `required` list is unchanged, so validation and every tool's input contract are too. The dropped prose is one call away: `list_levers` with `describe` returns each named field exactly as `schema/theme-schema.json` has it. `tools/list` measures 41,731 characters, down from 54,897, against the unchanged 60,000 ceiling and 55,000 alarm.

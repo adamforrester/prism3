@@ -176,7 +176,9 @@ await new Promise((r) => setTimeout(r, 3000));
   // The size ceiling that keeps discovery affordable — the schema must be inlined once, not per tool.
   // 60,000 is our own ceiling, not raised (#1368). Since #1760 it fails 5,000 chars BEFORE that wall,
   // room for ~20 more levers, and the inline schema carries one-line summaries so a lever's full prose
-  // never counts here. Kept in lockstep with test.ts, which also holds the per-summary cap.
+  // never counts here. Kept in lockstep with test.ts, which also holds the per-summary cap. At 54,509 and 491
+  // under the alarm (2026-11-21) the owner chose to scale again rather than move it: the inline copy now drops
+  // the descriptions beneath every optional field (54,897 → 41,731), and test.ts holds where prose stays.
   const listChars = JSON.stringify(list.tools ?? []).length;
   ok(listChars <= 55_000, `conformance: tools/list keeps 5,000 chars of headroom under its 60,000 ceiling (${listChars.toLocaleString()} chars; fails above 55,000)`);
 
@@ -567,6 +569,20 @@ await new Promise((r) => setTimeout(r, 3000));
   // Matched past the first sentence, so only the full text passes (#2053 retired the lever; the text says so).
   ok(/is always emitted/.test(described?.properties?.radiusHairline?.description ?? ''),
     'journey ①b: list_levers describe returns a field\'s full description over the wire');
+  // ①c What tools/list no longer carries, `describe` does (2026-11-21): a description beneath an optional
+  // field is absent from the inline schema and comes back in full over the wire. A required field keeps its
+  // sub-field summaries inline, so a first call can be written from tools/list alone.
+  const listed = (await server.reply(server.send('tools/list'))).result?.tools ?? [];
+  const inlineBrand = listed.find((t: any) => t.name === 'theme_brand')?.inputSchema?.properties?.brand;
+  const familiesFull = (await server.callJson('list_levers', { describe: ['typography'] })).payload.described?.properties?.typography?.properties?.families?.description;
+  ok(typeof inlineBrand?.properties?.typography?.description === 'string'
+    && inlineBrand?.properties?.typography?.properties?.families !== undefined
+    && !('description' in inlineBrand.properties.typography.properties.families)
+    && typeof familiesFull === 'string' && familiesFull.length > 0,
+    'journey ①c: a description beneath an optional field is dropped from tools/list and returned by list_levers describe');
+  ok(typeof inlineBrand?.properties?.neutral?.properties?.hue?.oneOf?.[0]?.description === 'string'
+    && typeof inlineBrand?.$defs?.oklch?.properties?.l?.description === 'string',
+    'journey ①c: the required fields (and the oklch shape they use) keep their sub-field summaries in tools/list');
 
   // ② Generate from a brief, the way an agent working from prose would.
   const brief = ['---', 'id: journey', 'primary: { l: 0.58, c: 0.17, h: 265 }', 'neutral: { hue: 265, chroma: 0.008 }',
