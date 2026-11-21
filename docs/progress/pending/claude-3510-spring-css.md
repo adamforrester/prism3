@@ -15,7 +15,7 @@ mass 1), starting at rest:
   spring stays inside that band, found on the curve, not its exponential envelope (the envelope over-states
   it). snappy 317ms, gentle 435ms, bouncy 360ms. The CSS steps the last 0.1% at the end: under a pixel for any
   move shorter than 1000px.
-- **Sampling density: one stop every 5ms**, rounded to 3 decimals. Interpolation error is at most h²/8 · k
+- **Sampling density: at most every 5ms**, rounded to 3 decimals. Interpolation error is at most h²/8 · k
   for a spring that starts at rest, 0.0032 at k = 1000, plus 0.0005 of rounding, so the stated bound is
   **0.005 of the travel**. `test.ts` measures it against the analytic spring densely: the shipped springs
   come in at 0.0013–0.0021, and the worst of a 30-spring sweep (ζ 0.1–1, k 50–1000) stays under it. A
