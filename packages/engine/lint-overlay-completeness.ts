@@ -182,6 +182,31 @@ if (!brands.length) {
   process.exit(1);
 }
 
+/**
+ * One spelling per value, for ARM C (#4123). The overlay writes a literal color or dimension in its DTCG 2025.10
+ * object form, and the canonical tree in the older string form, so both are read to one spelling here, by this gate's
+ * own parser: a color to `rgba(r,g,b,a)` on 0–255 integers and alpha at 2 places, a dimension to `<n><unit>`. Anything
+ * else is compared as written, at any depth, so a moved offset, layer or alias still differs.
+ */
+const spelled = (v: unknown): unknown => {
+  if (Array.isArray(v)) return v.map(spelled);
+  const rgba = (c: number[], a: number) => `rgba(${c.map((x) => Math.round(x)).join(',')},${Math.round(a * 100) / 100})`;
+  if (typeof v === 'string') {
+    const h = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})?$/i.exec(v);
+    if (h) return rgba([h[1], h[2], h[3]].map((x) => parseInt(x!, 16)), h[4] ? parseInt(h[4], 16) / 255 : 1);
+    const r = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(v);
+    if (r) return rgba([r[1], r[2], r[3]].map(Number), r[4] === undefined ? 1 : Number(r[4]));
+    return v;
+  }
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    if (Array.isArray(o.components)) return rgba((o.components as number[]).map((c) => c * 255), typeof o.alpha === 'number' ? o.alpha : 1);
+    if (typeof o.value === 'number' && typeof o.unit === 'string' && Object.keys(o).length === 2) return `${o.value}${o.unit}`;
+    return Object.fromEntries(Object.entries(o).map(([k, x]) => [k, spelled(x)]));
+  }
+  return v;
+};
+
 const failures: string[] = [];
 let modesChecked = 0;
 let leavesAsserted = 0;
@@ -243,7 +268,7 @@ for (const brand of brands) {
     for (const [path, want] of expected) {
       if (!actual.has(path)) continue;
       const got = actual.get(path);
-      if (JSON.stringify(got) !== JSON.stringify(want)) {
+      if (JSON.stringify(spelled(got)) !== JSON.stringify(spelled(want))) {
         failures.push(`${brand}/${mode}: WRONG VALUE for '${path}' — ${divergence(got, want)}`);
       }
     }

@@ -1196,6 +1196,8 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
     'color.ts': [/fmt === 'hex' \? Math\.round\(a \* 255\) \/ 255 : Math\.round\(a \* 100\) \/ 100/],
     // A dark-mode shadow layer's alpha, not a ratio.
     'theme-shadow.ts': [/const darkAlpha = .*Math\.round\(a \* \(0\.3 \+ 0\.09 \* i\) \* 100\) \/ 100/],
+    // #4128: a type style's tracking in px, to 0.01px, not a ratio.
+    'emit-dtcg-overlay.ts': [/const r = Math\.round\(mult \* sizePx \* 100\) \/ 100;/],
   };
   const engineSrc = readdirSync(HERE).filter((n) => n.endsWith('.ts') && n !== 'test.ts' && !n.endsWith('-test.ts') && !n.startsWith('lint-'));
   const engineRolled = engineSrc.flatMap((n) => readFileSync(resolve(HERE, n), 'utf8').split('\n').flatMap((text, i) =>
@@ -44641,6 +44643,91 @@ arm: {
     const offText = nodes.filter((n) => n.textStyle !== undefined && n.type !== 'TEXT').map((n) => `${n.name}:${n.type}`);
     ok(parts[h.part]?.kind === h.kind && !!typeKey && !threw && host !== undefined && host.textStyle === undefined && offText.length === 0,
       `#3783 a '${h.kind}' part carrying 'type' (${h.def}.${h.part}, synthetic) plans NO text style — only a TEXT node takes one (${threw ? `threw: ${threw}` : !host ? 'the part was not built at this coordinate' : `text style on ${offText.join(', ') || 'none'}`})`);
+  }
+}
+
+// ------------------------------------------------------------------- #4123 / #4128: the projection's value forms
+// The handoff writes DTCG 2025.10 object forms, and a type style's tracking resolved to px, per mode. No committed
+// brand varies tracking by mode or writes `rgb()` outside the reference brand, so a synthetic canonical tree pins both.
+// Expected values are literals. Mutations: drop `conformValues` from `buildOverlaySet` → the #4123 rows fail; drop
+// `trackingInPx` → the #4128 rows fail.
+{
+  const ext = (modes: Record<string, unknown>) => ({ $extensions: { prism3: { modes } } });
+  const canon = { r: {
+    c: { $type: 'color', $value: 'rgba(255, 128, 0, 0.5)', ...ext({ dark: { $value: '#102030' } }) },
+    d: { $type: 'dimension', $value: '1.5rem' },
+    t: { $type: 'duration', $value: '200ms' },
+    size: { $type: 'dimension', $value: '3rem', $extensions: { prism3: { px: 48 } } },
+    tight: { $type: 'number', $value: -0.02, ...ext({ dark: { $value: -0.05 } }) },
+    ty: { $type: 'typography', $value: { fontFamily: 'Inter', fontSize: '{r.size}', fontWeight: 400, lineHeight: 1.2, letterSpacing: '{r.tight}' } },
+  } };
+  const set = buildOverlaySet(canon) as any;
+  const dark = set.overlays.find((o: any) => o.mode === 'dark')?.tree;
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  ok(same(set.base.r.c.$value, { colorSpace: 'srgb', components: [1, 0.502, 0], alpha: 0.5, hex: '#ff8000' })
+    && same(dark?.r?.c?.$value, { colorSpace: 'srgb', components: [0.0627, 0.1255, 0.1882], hex: '#102030' }),
+    `#4123 a literal color reaches the projection as a DTCG color object, rgba() and #hex alike (base ${JSON.stringify(set.base.r.c.$value)}, dark ${JSON.stringify(dark?.r?.c?.$value)})`);
+  ok(same(set.base.r.d.$value, { value: 1.5, unit: 'rem' }) && set.base.r.t.$value === '200ms',
+    `#4123 a dimension is { value, unit } and a duration stays a string (dimension ${JSON.stringify(set.base.r.d.$value)}, duration ${JSON.stringify(set.base.r.t.$value)})`);
+  ok(same(set.base.r.ty.$value.letterSpacing, { value: -0.96, unit: 'px' }) && same(dark?.r?.ty?.$value?.letterSpacing, { value: -2.4, unit: 'px' }),
+    `#4128 a type style's tracking is resolved to px from its own size, per mode: -0.02 × 48 in base, -0.05 × 48 in dark (base ${JSON.stringify(set.base.r.ty.$value.letterSpacing)}, dark ${JSON.stringify(dark?.r?.ty?.$value?.letterSpacing)})`);
+  ok(canon.r.ty.$value.letterSpacing === '{r.tight}', `#4128 the canonical tree keeps the alias; only the projection resolves it (${canon.r.ty.$value.letterSpacing})`);
+}
+
+// ---- #4123 / #2997: the shadcn/Tailwind projectors read the handoff's DTCG 2025.10 value forms --------------------
+// The projectors read `<brand>.base.tokens.json` and the dark overlay, which #4123 writes as color objects and
+// `{ value, unit }` dimensions, a shadow layer's color and lengths included. A synthetic handoff spelled both ways must
+// project to the same CSS, and the string spelling is the one main's projector already read. Expected literals are
+// written here, never derived from `conformColor`. Mutation: put back the `typeof value !== 'string'` guard in
+// `colorValue` / `dimensionValue` → these rows fail by name (and `check:shadcn`, `lint-shadcn-contrast` throw).
+{
+  const { shadcnCss, dimensionValue, toOklchCss, readHandoff, handoffBrands, shadcnRegistryItem } = await import('./emit-shadcn');
+  const { tailwindThemeCss, shadowCss } = await import('./emit-tailwind');
+  const { SHADCN_COLOR_VARS, SHADCN_DIMENSION_VARS, SHADCN_THEME_VARS } = await import('./projections/shadcn');
+  const { TAILWIND_DIMENSIONS, TAILWIND_FONTS, TAILWIND_SHADOWS } = await import('./projections/tailwind');
+  const put = (tree: Record<string, any>, path: string, tok: unknown) => {
+    const ks = path.split('.'); let n = tree;
+    for (const k of ks.slice(0, -1)) n = (n[k] ??= {});
+    n[ks[ks.length - 1]!] = tok;
+  };
+  const handoff = (objects: boolean) => {
+    const base: Record<string, any> = {};
+    const translucent = objects ? { colorSpace: 'srgb', components: [1, 0.502, 0], alpha: 0.5, hex: '#ff8000' } : 'rgba(255, 128, 0, 0.5)';
+    const opaque = objects ? { colorSpace: 'srgb', components: [0.0392, 0.0706, 0.1569], hex: '#0a1228' } : '#0a1228';
+    const dim = (v: number, u: string) => (objects ? { value: v, unit: u } : `${v}${u}`);
+    put(base, 'z.ink', { $type: 'color', $value: opaque });
+    put(base, 'z.veil', { $type: 'color', $value: translucent });
+    Object.values(SHADCN_COLOR_VARS).forEach((role, i) => put(base, role, { $type: 'color', $value: i % 3 === 0 ? '{q.z.ink}' : i % 3 === 1 ? translucent : opaque }));
+    for (const role of [...Object.values(SHADCN_DIMENSION_VARS), ...Object.values(TAILWIND_DIMENSIONS), ...Object.entries(SHADCN_THEME_VARS).filter(([k]) => !k.startsWith('font-')).map(([, r]) => r)])
+      put(base, role, { $type: 'dimension', $value: dim(0.5, 'rem') });
+    for (const role of [...Object.values(TAILWIND_FONTS), ...Object.entries(SHADCN_THEME_VARS).filter(([k]) => k.startsWith('font-')).map(([, r]) => r)])
+      put(base, role, { $type: 'fontFamily', $value: 'Inter' });
+    for (const role of Object.values(TAILWIND_SHADOWS))
+      put(base, role, { $type: 'shadow', $value: [
+        { color: translucent, offsetX: dim(0, 'px'), offsetY: dim(1, 'px'), blur: dim(2, 'px'), spread: dim(-1, 'px') },
+        { color: '{q.z.veil}', offsetX: dim(0, 'px'), offsetY: dim(4, 'px'), blur: dim(6, 'px'), spread: dim(0, 'px'), inset: true },
+      ] });
+    return { brand: 'q', root: 'q', base, overlays: { dark: {} } } as any;
+  };
+  const obj = handoff(true), str = handoff(false);
+  const shadowRole = Object.values(TAILWIND_SHADOWS)[0]!;
+  let objCss = '', strCss = '', err = '';
+  try { strCss = shadcnCss(str) + tailwindThemeCss(str); objCss = shadcnCss(obj) + tailwindThemeCss(obj); } catch (e) { err = (e as Error).message; }
+  ok(!err && objCss.length > 0 && objCss === strCss,
+    `#4123 the shadcn/Tailwind projectors write the same CSS from a handoff in DTCG 2025.10 object forms as from its string spelling (${err || 'CSS differs'})`);
+  let dimGot = '', shadowGot = '';
+  try { dimGot = dimensionValue(obj, 'radius.lg'); shadowGot = shadowCss(obj, shadowRole, 'light'); } catch (e) { dimGot = (e as Error).message; }
+  ok(dimGot === '0.5rem', `#4123 a { value, unit } dimension projects as its CSS length (got ${JSON.stringify(dimGot)})`);
+  ok(shadowGot === `0px 1px 2px -1px ${toOklchCss('rgba(255, 128, 0, 0.5)')}, inset 0px 4px 6px 0px ${toOklchCss('rgba(255, 128, 0, 0.5)')}`,
+    `#4123 a shadow layer's color object and { value, unit } lengths project as a CSS box-shadow (got ${JSON.stringify(shadowGot)})`);
+  let p3 = '';
+  try { toOklchCss({ colorSpace: 'display-p3', components: [1, 0, 0], hex: '#ff0000' }); } catch (e) { p3 = (e as Error).message; }
+  ok(/display-p3/.test(p3), `#4123 a color object outside srgb is refused by name, not read as srgb (got ${JSON.stringify(p3)})`);
+  const OUT = resolve(HERE, 'out');
+  for (const b of handoffBrands(OUT)) {
+    let e = '';
+    try { const h = readHandoff(b, OUT); shadcnRegistryItem(h); tailwindThemeCss(h); } catch (x) { e = (x as Error).message; }
+    ok(!e, `#4123 ${b}: the committed handoff projects to shadcn and Tailwind CSS (${e})`);
   }
 }
 

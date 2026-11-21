@@ -13,7 +13,7 @@
  * Literal values, not `var(--pds3-…)` aliases: shadcn switches modes with `.dark`, `@prism3/tokens` with
  * `[data-theme="dark"]`, so an alias would not flip.
  *
- * COLOR FORMAT (Q2997.14 A). `oklch()`, converted from the emitted hex or rgb() with `color.ts`, as shadcn's stock themes are.
+ * COLOR FORMAT (Q2997.14 A). `oklch()`, converted from the emitted color (a DTCG 2025.10 object, #4123) with `color.ts`, as shadcn's stock themes are.
  * The precision is the smallest that keeps every corpus value on its own 8-bit hex; gate 2 (`lint-shadcn-roundtrip`,
  * #2997 PR 2) proves that through Chromium's own parser, which shares no code with this file. A value with alpha
  * keeps it in the `oklch(L C H / NN%)` form shadcn uses for its dark `border`.
@@ -98,9 +98,24 @@ const trim = (v: number, places: number): string => {
   return s === '-0' ? '0' : s;
 };
 
-/** An emitted color — `#rrggbb`, `#rrggbbaa`, or `rgb()`/`rgba()` for a brand whose `colorFormat` is rgb — as its
- *  8-bit channels and an alpha in [0, 1]. Throws on anything else, so a new emitted format fails here by name. */
-export const parseEmittedColor = (value: string): { r: number; g: number; b: number; alpha: number } => {
+/** An emitted color as its 8-bit channels and an alpha in [0, 1]. Two spellings reach it: the handoff's DTCG 2025.10
+ *  Color-module object (#4123) — `{ colorSpace: "srgb", components: [r, g, b] (0–1), alpha?, hex? }`, read from its
+ *  `components`, as stock Style Dictionary reads it — and a string, `#rrggbb`, `#rrggbbaa`, or `rgb()`/`rgba()` for a
+ *  brand whose `colorFormat` is rgb (the canonical tree's spelling). Throws on anything else, a color space other than
+ *  srgb included, so a new emitted format fails here by name. Its own reading of the spec: it shares no code with the
+ *  engine's `conformColor`. */
+export const parseEmittedColor = (value: unknown): { r: number; g: number; b: number; alpha: number } => {
+  if (value && typeof value === 'object') {
+    const o = value as { colorSpace?: unknown; components?: unknown; alpha?: unknown };
+    const cs = Array.isArray(o.components) ? o.components : [];
+    if (o.colorSpace !== 'srgb') throw new Error(`not an srgb color object (colorSpace ${JSON.stringify(o.colorSpace)}): ${JSON.stringify(value)}`);
+    if (cs.length !== 3 || !cs.every((c) => typeof c === 'number' && c >= 0 && c <= 1)) throw new Error(`not a color object's three 0–1 components: ${JSON.stringify(value)}`);
+    const alpha = o.alpha === undefined ? 1 : o.alpha;
+    if (typeof alpha !== 'number' || alpha < 0 || alpha > 1) throw new Error(`not a color object's 0–1 alpha: ${JSON.stringify(value)}`);
+    const [r, g, b] = (cs as number[]).map((c) => Math.round(c * 255));
+    return { r: r!, g: g!, b: b!, alpha };
+  }
+  if (typeof value !== 'string') throw new Error(`not an emitted color: ${JSON.stringify(value)}`);
   const v = value.trim();
   const hx = /^#([0-9a-fA-F]{6})([0-9a-fA-F]{2})?$/.exec(v);
   if (hx) return { ...hexToRgb(hx[1]!), alpha: hx[2] ? parseInt(hx[2], 16) / 255 : 1 };
@@ -109,9 +124,20 @@ export const parseEmittedColor = (value: string): { r: number; g: number; b: num
   throw new Error(`not an emitted color: ${value}`);
 };
 
+/** An emitted dimension as a CSS length: the handoff's DTCG 2025.10 `{ value, unit }` (#4123), or the canonical
+ *  tree's string (`"16px"`, `"0.5rem"`), passed through. Throws on anything else. */
+export const dimensionCss = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  const o = (value && typeof value === 'object' ? value : {}) as { value?: unknown; unit?: unknown };
+  if (typeof o.value !== 'number' || !Number.isFinite(o.value) || (o.unit !== 'px' && o.unit !== 'rem')) {
+    throw new Error(`not an emitted dimension: ${JSON.stringify(value)}`);
+  }
+  return `${o.value}${o.unit}`;
+};
+
 /** An emitted color as CSS `oklch()`. L as a fraction, four places; C four places; H two places, and 0 for a color
  *  with no hue (CSS Color 4's convention, which shadcn's grays use). Alpha below 1 is written as a percentage. */
-export const toOklchCss = (value: string): string => {
+export const toOklchCss = (value: unknown): string => {
   const { r, g, b, alpha } = parseEmittedColor(value);
   const { l, c, h: hue } = rgbToOklch({ r, g, b });
   const cs = trim(c, 4);
@@ -122,14 +148,14 @@ export const toOklchCss = (value: string): string => {
 
 const colorValue = (h: Handoff, role: string, mode: ShadcnMode): string => {
   const { type, value } = resolveRole(h, role, mode);
-  if (type !== 'color' || typeof value !== 'string') throw new Error(`${h.brand} ${mode}: ${role} is not a color string (${type})`);
+  if (type !== 'color') throw new Error(`${h.brand} ${mode}: ${role} is not a color (${type})`);
   return toOklchCss(value);
 };
 
 export const dimensionValue = (h: Handoff, role: string): string => {
   const { type, value } = resolveRole(h, role, 'light');
-  if (type !== 'dimension' || typeof value !== 'string') throw new Error(`${h.brand}: ${role} is not a dimension (${type})`);
-  return value;
+  if (type !== 'dimension') throw new Error(`${h.brand}: ${role} is not a dimension (${type})`);
+  return dimensionCss(value);
 };
 
 export const fontValue = (h: Handoff, key: string, role: string): string => {

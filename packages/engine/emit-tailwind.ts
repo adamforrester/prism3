@@ -19,13 +19,14 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION } from './version.ts';
 import {
-  dimensionValue, fontValue, handoffBrands, OUT_DIR, readHandoff, resolveRole, shadcnModeVars, toOklchCss,
+  dimensionCss, dimensionValue, fontValue, handoffBrands, OUT_DIR, readHandoff, resolveRole, shadcnModeVars, toOklchCss,
   type Handoff, type ShadcnMode,
 } from './emit-shadcn.ts';
 import { SHADCN_COLOR_VARS } from './projections/shadcn.ts';
 import { shadowModeVar, TAILWIND_DIMENSIONS, TAILWIND_FONTS, TAILWIND_MAP_VERSION, TAILWIND_SHADOWS } from './projections/tailwind.ts';
 
-type Layer = { color: string; offsetX: string; offsetY: string; blur: string; spread: string; inset?: boolean };
+/** A shadow layer as the handoff writes it: color and lengths in DTCG 2025.10 object forms (#4123), or a color alias. */
+type Layer = { color: unknown; offsetX: unknown; offsetY: unknown; blur: unknown; spread: unknown; inset?: boolean };
 
 /** A DTCG shadow (one layer or several) as a CSS `box-shadow` value, its colors in `oklch()`. */
 export const shadowCss = (h: Handoff, role: string, mode: ShadcnMode): string => {
@@ -33,8 +34,9 @@ export const shadowCss = (h: Handoff, role: string, mode: ShadcnMode): string =>
   const layers = (Array.isArray(value) ? value : [value]) as Layer[];
   if (type !== 'shadow' || !layers.length) throw new Error(`${h.brand} ${mode}: ${role} is not a shadow (${type})`);
   return layers.map((l) => {
-    const color = /^\{/.test(l.color) ? String(resolveRole(h, l.color.slice(h.root.length + 2, -1), mode).value) : l.color;
-    return `${l.inset ? 'inset ' : ''}${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread} ${toOklchCss(color)}`;
+    const color = typeof l.color === 'string' && /^\{/.test(l.color) ? resolveRole(h, l.color.slice(h.root.length + 2, -1), mode).value : l.color;
+    const len = [l.offsetX, l.offsetY, l.blur, l.spread].map(dimensionCss).join(' ');
+    return `${l.inset ? 'inset ' : ''}${len} ${toOklchCss(color)}`;
   }).join(', ');
 };
 

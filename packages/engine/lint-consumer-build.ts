@@ -76,11 +76,43 @@ const clip = (s: string) => (s.length > 120 ? `${s.slice(0, 120)}…` : s);
 const toolNameIn = (text: string): string | undefined => TOOL_RE.exec(text)?.[0];
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
+/**
+ * The DTCG 2025.10 value form a consumer file carries (#4123), typed here from the spec, not imported: a literal
+ * color `#rrggbb[aa]` / `rgb[a](…)` becomes `{ colorSpace: 'srgb', components, alpha (below 1 only), hex }` with
+ * components and alpha rounded to 4 places, and a `<n>px` / `<n>rem` dimension becomes `{ value, unit }`, at the leaf
+ * and inside a shadow layer. A duration stays a string. An alias is left alone.
+ */
+const r4 = (x: number) => Math.round(x * 10000) / 10000;
+const formColor = (v: unknown): unknown => {
+  if (typeof v !== 'string') return v;
+  const h = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})?$/i.exec(v);
+  const r = h ? null : /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(v);
+  if (!h && !r) return v;
+  const ch = h ? [h[1], h[2], h[3]].map((x) => parseInt(x!, 16)) : [r![1], r![2], r![3]].map(Number);
+  const a = h ? (h[4] ? parseInt(h[4], 16) / 255 : 1) : r![4] === undefined ? 1 : Number(r![4]);
+  const out: Record<string, unknown> = { colorSpace: 'srgb', components: ch.map((c) => r4(c / 255)) };
+  if (a < 1) out.alpha = r4(a);
+  out.hex = '#' + ch.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('');
+  return out;
+};
+const formDim = (v: unknown): unknown => {
+  const m = typeof v === 'string' ? /^(-?\d+(?:\.\d+)?)(px|rem)$/.exec(v) : null;
+  return m ? { value: Number(m[1]), unit: m[2] } : v;
+};
+const formLayer = (l: unknown): unknown => {
+  if (!isObj(l)) return l;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(l)) out[k] = k === 'color' ? formColor(v) : ['offsetX', 'offsetY', 'blur', 'spread'].includes(k) ? formDim(v) : v;
+  return out;
+};
+const form = (type: unknown, v: unknown): unknown =>
+  type === 'color' ? formColor(v) : type === 'dimension' ? formDim(v) : type === 'shadow' ? (Array.isArray(v) ? v.map(formLayer) : formLayer(v)) : v;
+
 /** The leaf as a consumer reads it, in the canonical key order: `$type`, `$value`, `$description` where present. */
 const pick = (leaf: Record<string, unknown>, value: unknown, description: unknown): Record<string, unknown> => {
   const out: Record<string, unknown> = {};
   for (const k of Object.keys(leaf)) {
-    if (k === '$value') out.$value = value;
+    if (k === '$value') out.$value = form(leaf.$type, value);
     else if (k === '$description') out.$description = description;
     else if (k === '$type') out.$type = leaf.$type;
   }
@@ -88,16 +120,43 @@ const pick = (leaf: Record<string, unknown>, value: unknown, description: unknow
 };
 /** This gate's own derivation of one consumer file from the canonical tree. `mode` undefined is the base. */
 const derive = (canonical: unknown, mode?: string): unknown => {
+  // #4128: a type style's `letterSpacing` is the multiplier its alias names times its font size in px, to 0.01px, in
+  // the mode being derived. Typed here: a leaf's mode value wins over its `$value`, aliases are followed, and a size is
+  // `<n>px`, or `<n>rem` at 16px.
+  const at = (ref: string): Record<string, unknown> | undefined => {
+    const n = ref.split('.').reduce<unknown>((o, k) => (isObj(o) ? o[k] : undefined), canonical);
+    return isObj(n) && '$value' in n ? n : undefined;
+  };
+  const lit = (v: unknown, md: string | undefined, hops = 0): unknown => {
+    const ref = typeof v === 'string' ? /^\{([^}]+)\}$/.exec(v)?.[1] : undefined;
+    if (!ref || hops > 20) return v;
+    const leaf = at(ref);
+    const mv = md ? ((leaf?.$extensions as any)?.prism3?.modes ?? {})[md] : undefined;
+    return lit(isObj(mv) && '$value' in mv ? mv.$value : leaf?.$value, md, hops + 1);
+  };
+  const tracked = (v: unknown, md: string | undefined): unknown => {
+    if (!isObj(v) || !('letterSpacing' in v)) return v;
+    const k = lit(v.letterSpacing, md);
+    const size = lit(v.fontSize, md);
+    const m = typeof size === 'string' ? /^(-?\d+(?:\.\d+)?)(px|rem)$/.exec(size) : null;
+    if (typeof k !== 'number' || !m) return v;
+    const px = Math.round(k * Number(m[1]) * (m[2] === 'rem' ? 16 : 1) * 100) / 100;
+    return { ...v, letterSpacing: { value: px === 0 ? 0 : px, unit: 'px' } };
+  };
   const walk = (n: unknown): unknown => {
     if (!isObj(n)) return undefined;
     if ('$value' in n) {
       if (typeof n.$type !== 'string' || !DTCG_TYPES.has(n.$type)) return undefined;
-      if (mode === undefined) return pick(n, n.$value, n.$description);
+      const typed = (v: unknown, md: string | undefined) => (n.$type === 'typography' ? tracked(v, md) : v);
+      const base = typed(n.$value, undefined);
+      if (mode === undefined) return pick(n, base, n.$description);
       const m = ((n.$extensions as any)?.prism3?.modes ?? {})[mode];
-      if (!isObj(m)) return undefined;
-      const desc = typeof m.description === 'string' ? m.description : n.$description;
-      if (JSON.stringify(m.$value) === JSON.stringify(n.$value) && desc === n.$description) return undefined;
-      return pick(n, m.$value, desc);
+      // No mode entry: only a type style can still move, when its resolved tracking does.
+      const here = typed(isObj(m) ? m.$value : n.$value, mode);
+      const desc = isObj(m) && typeof m.description === 'string' ? m.description : n.$description;
+      if (!isObj(m) && n.$type !== 'typography') return undefined;
+      if (JSON.stringify(here) === JSON.stringify(base) && desc === n.$description) return undefined;
+      return pick(n, here, desc);
     }
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(n)) {
@@ -193,6 +252,10 @@ const shapeDefects = (file: string, tree: unknown, read: Read): string[] => {
     s: { $type: 'spring', $value: { stiffness: 1 } } } };
   if (serialize(derive(canon)) !== serialize({ r: { a: { $type: 'color', $value: '#fff', $description: 'Light' }, b: { $type: 'color', $value: '#111', $description: 'Same' } } })) fail('SELF-CHECK the base derivation is wrong');
   if (serialize(derive(canon, 'dark')) !== serialize({ r: { a: { $type: 'color', $value: '#000', $description: 'Dark' } } })) fail('SELF-CHECK the overlay derivation is wrong');
+  // #4123: the value forms, on a known input.
+  const forms = derive({ r: { c: { $type: 'color', $value: '#ff800080' }, d: { $type: 'dimension', $value: '16px' }, t: { $type: 'duration', $value: '200ms' } } });
+  if (serialize(forms) !== serialize({ r: { c: { $type: 'color', $value: { colorSpace: 'srgb', components: [1, 0.502, 0], alpha: 0.502, hex: '#ff8000' } }, d: { $type: 'dimension', $value: { value: 16, unit: 'px' } }, t: { $type: 'duration', $value: '200ms' } } }))
+    fail('SELF-CHECK the value forms are wrong (#4123)');
 }
 
 // ── the scan ────────────────────────────────────────────────────────────────────────────────────
