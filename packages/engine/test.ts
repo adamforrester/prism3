@@ -21262,7 +21262,7 @@ arm: {
       'button-destructive': 2, 'button-neutral': 2, 'wallet-button': 2, 'sign-in-button': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2, 'tag-group': 2,
       'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, popover: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
-      'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
+      'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, skeleton: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
       'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'radio-row': 9, 'pagination-item': 9, '_slider-thumb': 9,
@@ -34209,7 +34209,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter'];
+  const GATED_EXPECTED = ['skeleton', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -40710,6 +40710,49 @@ arm: {
   ok(missing.length === 0, `#2501: the axis order rule read every def it was raised on, each with values to order${missing.length ? ` — not read: ${missing.join(', ')}` : ''}`);
 }
 
+// ------------------------------------------------------------------- #4109: Skeleton
+// Each owner decision (OD-S1 to OD-S7, all A, 2026-11-19) held against a literal typed here from the proposal; ACTUAL is
+// the def and its projected plans, so a def that moves a member, a binding, a width or the announcement model fails by name.
+{
+  const def = componentDefs.find((d) => d.id === 'skeleton')!;
+  const set = figmaAnatomySet(def, {});
+  const at = (name: string) => set.find((p) => planComponentName(p) === name);
+  const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+  // OD-S6 A: four members, text at both sizes, circle and rect at medium only; text leads (the code default).
+  const NAMES = ['shape=text, size=medium', 'shape=text, size=small', 'shape=circle, size=medium', 'shape=rect, size=medium'];
+  ok(JSON.stringify(set.map(planComponentName)) === JSON.stringify(NAMES),
+    `#4109 skeleton (OD-S6 A): the set is text × [medium, small], circle and rect, text medium first (${set.map(planComponentName).join(' | ')})`);
+  // OD-S1 A: no `ghost` alias. OD-S2 A: one primitive with a shape axis, states [] (one visible condition).
+  ok(!def.aliases.includes('ghost') && JSON.stringify(def.variants.shape) === JSON.stringify(['text', 'circle', 'rect']) && def.states.length === 0,
+    `#4109 skeleton (OD-S1 A, OD-S2 A): no ghost alias, one def with shape [text, circle, rect], and no states`);
+  // OD-S4 A: every painted node takes the recessed neutral, nothing else.
+  const paints = set.flatMap((p) => planPaintVars(p.root));
+  ok(paints.length === 8 && paints.every((v) => v === 'color/background/tertiary'),
+    `#4109 skeleton (OD-S4 A): the 8 painted nodes (3 bars × 2 text members, the circle, the rect) all take color/background/tertiary (${[...new Set(paints)].join(', ')}; ${paints.length})`);
+  // The line row is one body line box tall (brief: bind to the type line height); OD-S5 A: the bar is inset by space.050
+  // above and below, so it is about two thirds of the line.
+  const LINE: Record<string, string> = { medium: 'type/body/md/line-box', small: 'type/body/sm/line-box' };
+  const lineOff = (['medium', 'small'] as const).filter((sz) => {
+    const r = at(`shape=text, size=${sz}`)?.root;
+    return !r || ['firstLine', 'middleLine', 'lastLine'].some((l) => { const b = findIn(r, l)?.bound ?? {}; return b.height !== LINE[sz] || b.paddingTop !== 'space/050' || b.paddingBottom !== 'space/050'; });
+  });
+  ok(lineOff.length === 0, `#4109 skeleton (OD-S5 A): every text line is one body line box tall with the bar inset space.050 above and below (off: ${lineOff.join(', ') || 'none'})`);
+  // The stepped ragged-right widths: 100 / 80 / 40% of the 320 build width.
+  const text = at('shape=text, size=medium')?.root;
+  ok(!!text && text.placementWidth === 320 && findIn(text, 'firstBar')?.layoutGrow === 1 && findIn(text, 'middleBar')?.minWidth === 256 && findIn(text, 'lastBar')?.minWidth === 128,
+    `#4109 skeleton: the text member is built 320 wide and its bars step 100 / 80 / 40% (firstBar grows, middleBar 256, lastBar 128)`);
+  // Corners: radius.sm on the bars, radius.md on the rect, radius.round on the circle; rect built 320×180, circle 40×40.
+  const corner = (name: string, part: string) => findIn(at(name)!.root, part)?.bound.topLeftRadius;
+  const rect = at('shape=rect, size=medium')?.root, circle = at('shape=circle, size=medium')?.root;
+  ok(corner('shape=text, size=medium', 'firstBar') === 'radius/sm' && corner('shape=rect, size=medium', 'block') === 'radius/md' && corner('shape=circle, size=medium', 'block') === 'radius/round'
+    && rect?.placementWidth === 320 && rect.placementHeight === 180 && circle?.placementWidth === 40 && circle.placementHeight === 40,
+    `#4109 skeleton: bars radius.sm, rect radius.md at 320×180, circle radius.round at 40×40`);
+  // OD-S3 A: the pulse period is motion.duration.sweep (no new token); OD-S7 A: Skeleton never speaks.
+  const announce = def.anatomy?.codeOnly.find((c) => c.class === 'announcement')?.description ?? '';
+  ok(def.tokens['motion.pulse'] === 'motion.duration.sweep' && /never speaks/.test(announce) && /aria-busy/.test(def.accessibility.aria) && /aria-hidden="true"/.test(def.accessibility.aria) && !def.props.some((p) => p.name === 'label'),
+    `#4109 skeleton (OD-S3 A, OD-S7 A): the pulse runs on motion.duration.sweep, every shape is aria-hidden, the region owns aria-busy and the status, and there is no label prop`);
+}
+
 // ------------------------------------------------------------------- #2428: Code input and its cell
 // Each owner decision held against a literal typed here from the decision (Q321, Q329, Q330, Q344, Q346, Q347/Q359);
 // ACTUAL is the projected plan, so a def that moves a size, a binding, the slot or a default fails the arm by name.
@@ -44705,6 +44748,26 @@ arm: {
   const expandEasing = stockPresets.expand?.easing;
   ok(expandEasing === 'motion.easing-role.default' && leafOf(expandEasing)?.$value === '{pds3.motion.easing.standard}',
     `#2857 owner 2026-11-20: expand takes the in-place default curve (motion.easing-role.default → standard; got ${expandEasing} → ${leafOf(expandEasing)?.$value})`);
+  // OWNER DECISION 2026-11-20 on #4332 (Accordion recipe → A): the prism3-motion skill's Accordion recipe plays the
+  // panel's height on the `expand` preset, both ways, instead of hand-picking the enter and exit transitions. The
+  // SUBJECT is the hand-written skill; the ORACLE is the emitted sidecar, so the recipe's preset must exist and every
+  // name it says `expand` resolves to must be the one prism3 emits. Every "`<name>` preset" the skill cites must be an
+  // emitted preset too. Mutations: the panel row back to `motion.transition.enter` / `.exit`, or the recipe naming a
+  // preset prism3 doesn't emit, fail this arm by name.
+  {
+    const motionSkill = readFileSync(resolve(HERE, '../../skills/prism3-motion/SKILL.md'), 'utf8');
+    const accordion = /\n### Accordion\n([\s\S]*?)(?=\n### )/.exec(motionSkill)?.[1] ?? '';
+    const panelRow = accordion.split('\n').find((l) => l.startsWith('| Panel height')) ?? '';
+    const cells = panelRow.split('|').slice(2, 4).map((c) => c.trim());
+    const rowOk = cells.length === 2 && cells.every((c) => c === 'the `expand` preset');
+    const cited = [...motionSkill.matchAll(/`([a-z][a-z-]*)` preset\b/g)].map((m) => m[1]);
+    const unknown = cited.filter((n) => !(n in stockPresets));
+    const exp = stockPresets.expand ?? {};
+    const resolvesTo = [exp.duration, exp.easing, exp.reduced_duration];
+    const missing = resolvesTo.filter((n) => !n || !accordion.includes(`\`${n}\``));
+    ok(rowOk && cited.includes('expand') && unknown.length === 0 && missing.length === 0,
+      `#4332 owner 2026-11-20: the prism3-motion Accordion recipe plays the panel on the \`expand\` preset both ways, and every preset and name it cites is emitted (panel row: ${JSON.stringify(cells)}; presets cited: ${cited.join(', ') || 'none'}${unknown.length ? `; not emitted: ${unknown.join(', ')}` : ''}${missing.length ? `; expand resolves to names the recipe doesn't cite: ${missing.join(', ')}` : ''})`);
+  }
   // The owner's own examples (Q-MP7 option 3) name `crossfade` and `surface`: a brand can map both.
   const mapped = sidecar({ ...prism3Input, motionPersonality: { ...(prism3Input.motionPersonality ?? {}), presets: { crossfade: 'long', surface: 'longest' } } } as BrandInput).motion_presets ?? {};
   ok(mapped.crossfade?.duration === 'motion.duration.long' && mapped.surface?.duration === 'motion.duration.longest',
@@ -45587,6 +45650,58 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   ok(files.get('./e/acme.base.tokens.json') === JSON.stringify(projected.base, null, 2) + '\n'
     && files.get('./e/acme.dark.overlay.tokens.json') === JSON.stringify(projected.overlays.find((o) => o.mode === 'dark')?.tree, null, 2) + '\n',
     '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
+}
+
+// #811 — the engine README names only roles the engine emits. `foreground.danger.<state>` was retired (the
+// interactive-family arm above asserts it gone), and the README still taught `.default` and `.pressed`. ACTUAL is
+// read off a freshly resolved theme, never off the README or a list kept beside it, so a renamed role fails here
+// the day the README stops matching.
+{
+  const t = brandTheme({ id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 }, modes: ['light'] } as BrandInput);
+  const keys = Object.keys(resolveAllModes(t).find((m) => m.mode === 'light')!.roles);
+  const md = readFileSync(resolve(HERE, './README.md'), 'utf8');
+  const named = [...new Set([...md.matchAll(/`((?:foreground|interactive|background|text|border|inverse|disabled|overlay)(?:\.[a-z0-9-]+)+)`/g)].map((m) => m[1]))];
+  const unknown = named.filter((n) => !keys.includes(n) && !keys.some((k) => k.startsWith(`${n}.`)));
+  ok(named.length >= 10, `#811 the README scan finds the role names it teaches (found ${named.length})`);
+  ok(unknown.length === 0, `#811 every role the engine README names is one the engine emits (not emitted: ${unknown.join(', ') || 'none'})`);
+}
+
+// #1754 — the selection controls' shipped prose names the ROLE their selected ink takes, never "brand". The checked
+// ring binds `interactive.primary.indicator.*`, and a brand that points its action at the neutral palette (the
+// nb-redesign example) draws that ring gray. The arm first proves the claim is false in a shipped example, from the
+// def's own binding resolved in that brand, so the prose rule rests on a measured fact and not on taste.
+{
+  const nb = exampleTheme('nb-redesign', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input));
+  const ring = String((radioControl.tokens as Record<string, string>)['checked.border']).replace(/^color\./, '');
+  const path = nb ? String((resolveAllModes(nb).find((m) => m.mode === 'light')!.roles as Record<string, { path?: string }>)[ring]?.path) : '';
+  ok(/\.palette\.neutral\./.test(path), `#1754 nb-redesign's checked radio ring (${ring}) resolves to a neutral step, so "brand-colored" is untrue there (got ${path || 'nothing'})`);
+  const shipped = (d: ComponentDef): string[] => [d.summary ?? '', d.description ?? '', ...(d.docs?.do ?? []), ...(d.docs?.dont ?? []), ...(d.docs?.implementation ?? []),
+    ...(d.props ?? []).map((p) => p.description ?? '')];
+  const claim = /\bbrand(?:-colou?red| colou?r| ring| edge)\b|\bring to brand\b/i;
+  const hits = componentDefs.filter((d) => /^(checkbox|radio|switch)-/.test(d.id))
+    .flatMap((d) => shipped(d).filter((s) => claim.test(s)).map((s) => `${d.id}: "${s.match(claim)![0]}"`));
+  ok(hits.length === 0, `#1754 no selection control's shipped prose says its selected ink is the brand color (found: ${hits.join('; ') || 'none'})`);
+  // #4389 owner decision (2026-11-20, Radio wording → A): one thing, one name. The role is "action color", the term the
+  // Action palette setting uses, never "primary action color". The term is the decision's, typed here. Mutation that
+  // fails BY NAME: "primary action color" back in any shipped field → `#4389 the selection controls call the role …`.
+  const misnamed = componentDefs.filter((d) => /^(checkbox|radio|switch)-/.test(d.id))
+    .flatMap((d) => shipped(d).filter((s) => /\bprimary action colou?r\b/i.test(s)).map(() => d.id));
+  const radioNames = shipped(radioControl as ComponentDef).filter((s) => /\baction color\b/.test(s)).length;
+  ok(misnamed.length === 0 && radioNames >= 4, `#4389 the selection controls call the role "action color", never "primary action color" (misnamed in: ${misnamed.join(', ') || 'none'}; Radio.Control fields naming it: ${radioNames} of at least 4)`);
+}
+
+// #1819 — the prism3-theme skill's `actionPalette` row lists every built-in palette the engine accepts there, as the
+// `linkPalette` row beside it does. ACTUAL: the engine compiles a brand with each value; the row is read as text.
+{
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-theme/SKILL.md'), 'utf8');
+  const row = skill.split('\n').find((l) => l.startsWith('| `actionPalette` |')) ?? '';
+  const values = row.split(/(?<!\\)\|/)[2] ?? ''; // a `\|` inside a cell is the table's escaped pipe, not a column break
+  const base = { id: 'acme', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 }, modes: ['light'] };
+  for (const v of ['primary', 'neutral']) {
+    let compiles = true;
+    try { brandTheme({ ...base, actionPalette: v } as BrandInput); } catch { compiles = false; }
+    ok(compiles && values.includes(`\`${v}\``), `#1819 the prism3-theme actionPalette row lists \`${v}\`, which the engine accepts (compiles: ${compiles}; row: ${values.trim() || 'MISSING'})`);
+  }
 }
 
 // #1716 — `notes.contested` refuses a decided entry by the verbs decided entries USE, not by four opening words.

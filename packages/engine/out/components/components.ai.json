@@ -5892,8 +5892,8 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "Outlined radio ring; dot and brand ring on select. Nested by a radio row; no label.",
-      "description": "The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle, half the ring's diameter unless the brand sets a larger radio dot, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.",
+      "summary": "Outlined radio ring; dot and action color on select. Nested by a radio row; no label.",
+      "description": "The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. A constant-weight outlined ring (no fill) at both selections that recolors on select — a neutral edge when unchecked, the action color when checked — with an inner filled circle, half the ring's diameter unless the brand sets a larger radio dot, also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.",
       "props": [
         {
           "name": "checked",
@@ -5993,12 +5993,12 @@
           "Place a bare circle as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target",
           "Double-label a nested control — the host row already provides the accessible name",
           "Fill the disc on select — the ring stays outlined and an inner circle shows the selection",
-          "Thicken the border to signal selection — the border weight is constant across states; selection recolors the ring to brand and adds the inner dot"
+          "Thicken the border to signal selection — the border weight is constant across states; selection recolors the ring to the action color and adds the inner dot"
         ],
         "implementation": [
           "Nest this from Radio.Row rather than redrawing the circle per host",
           "Let the host row expose selection and state and follow its size, so the nested control tracks the row",
-          "Let the inner circle and the ring recolor carry the selection; the ring border stays constant in weight across states, going brand-colored (not thicker) on select"
+          "Let the inner circle and the ring recolor carry the selection; the ring border stays constant in weight across states, taking the action color (not a thicker stroke) on select"
         ],
         "contentGuidelines": "The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it."
       },
@@ -7668,7 +7668,7 @@
       "ai": {
         "primaryPurpose": "Show that work is in progress with no known end, inside the control or region that is waiting.",
         "whenToUse": "A short indeterminate wait of about 200ms to 5s inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host's icon slot.",
-        "avoidWhen": "The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (Progress: a bar, or a ring in a small space), or is a task that ends in complete or error (a Progress ring, indeterminate until the amount is known), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.",
+        "avoidWhen": "The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (Progress: a bar, or a ring in a small space), or is a task that ends in complete or error (a Progress ring, indeterminate until the amount is known), the page is loading its layout (Skeleton), or you want a static icon — the spinner is behavior, not a glyph.",
         "commonPartners": [
           "button",
           "icon-button",
@@ -7696,13 +7696,12 @@
       "composition": {
         "composesWith": [],
         "alternativeTo": [
-          "progress"
+          "progress",
+          "skeleton"
         ],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "skeleton"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "an animated loading GIF",
           "a static loading glyph in the icon set"
@@ -13198,12 +13197,12 @@
           "field-message"
         ],
         "alternativeTo": [
-          "spinner"
+          "spinner",
+          "skeleton"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "skeleton",
           "meter",
           "stepper"
         ],
@@ -15585,6 +15584,216 @@
         },
         {
           "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        }
+      ]
+    },
+    "skeleton": {
+      "id": "skeleton",
+      "name": "Skeleton",
+      "aliases": [
+        "placeholder",
+        "loading-placeholder",
+        "shimmer",
+        "skeleton-text",
+        "skeleton-avatar",
+        "skeleton-image"
+      ],
+      "category": "foundations",
+      "status": "draft",
+      "summary": "Content-shaped placeholder for a first load. Reserves the box so nothing shifts on arrival.",
+      "description": "A quiet placeholder shaped like the content it stands for: lines of text, a circle for an avatar, or a rectangle for media or a card. It holds the final content's box during the first load of a known layout, so nothing moves when the content arrives. Compose skeletons inside the real layout, one per macro part of an item. A skeleton is hidden from assistive technology; the region that is loading carries the busy state and the one status message. In code it pulses softly, and the pulse stops under reduced motion.",
+      "props": [
+        {
+          "name": "shape",
+          "type": "enum: 'text' | 'circle' | 'rect'",
+          "default": "text",
+          "required": false,
+          "values": [
+            "text",
+            "circle",
+            "rect"
+          ],
+          "description": "What the skeleton stands for: lines of text, a circle for an avatar, or a rectangle for media, a card or a block of content."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium"
+          ],
+          "description": "Text only: the body text size the lines stand for, so each line takes the height of a line of that text."
+        },
+        {
+          "name": "lines",
+          "type": "number",
+          "default": 3,
+          "required": false,
+          "description": "Text only: how many lines to draw. Every line runs the full width except the last two, which step down to about 80% and 40%, the shape of a ragged paragraph."
+        },
+        {
+          "name": "width",
+          "type": "string",
+          "default": "100%",
+          "required": false,
+          "description": "A CSS length. Text and rect fill the width they are placed in by default; a circle takes its diameter from this."
+        },
+        {
+          "name": "height",
+          "type": "string",
+          "required": false,
+          "description": "A CSS length, required for a rect: set it to the height of the content it stands for, so the layout does not shift when that content arrives."
+        },
+        {
+          "name": "animation",
+          "type": "enum: 'pulse' | 'shimmer' | 'none'",
+          "default": "pulse",
+          "required": false,
+          "values": [
+            "pulse",
+            "shimmer",
+            "none"
+          ],
+          "description": "The pulse fades the shape between two opacities; the shimmer sweeps a highlight across it in the reading direction. Both stop under reduced motion, and the shape stays."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "shape": {
+          "values": [
+            "text",
+            "circle",
+            "rect"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "none: every shape is hidden with `aria-hidden=\"true\"`. The region that is loading carries `aria-busy` and owns one polite status message.",
+        "wcag": [
+          "1.1.1 Non-text Content (the shapes are decorative and hidden)",
+          "4.1.2 Name, Role, Value (the loading region carries `aria-busy` until its content arrives)",
+          "4.1.3 Status Messages (one polite status message per loading region, with no focus move)",
+          "2.2.2 Pause, Stop, Hide (targets: the pulse runs only while the content loads)",
+          "2.3.3 Animation from Interactions (targets: the pulse and the shimmer stop under reduced motion)"
+        ],
+        "focus": "None. Nothing in a skeleton takes focus, and focus does not move to the loaded content unless the load was the user's own action.",
+        "aria": "Set `aria-hidden=\"true\"` on every skeleton; a screen reader never reads the shapes. On the region that is loading, set `aria-busy=\"true\"` until its content arrives, then false. Keep one polite `role=\"status\"` region present and empty before the skeletons show, and write a descriptive, translatable label into it (\"Loading order history\"), so a region of many skeletons announces once. The shapes do not mirror in right-to-left; the shimmer runs in the reading direction."
+      },
+      "content": {
+        "labelPattern": "A skeleton carries no text. The loading region's status message names what is loading, in sentence case: \"Loading order history\", not a bare \"Loading\"."
+      },
+      "docs": {
+        "usage": "Use a skeleton for the first load of a layout you already know: a card, a list row, a profile header. Build it inside the real layout and abstract each item to its main parts, one circle, two lines and one rectangle, rather than one shape per badge or icon. Give a rect the size of the content it stands for and a circle its diameter, so nothing shifts when the content arrives. Hide every skeleton from assistive technology, and let the region that is loading carry `aria-busy` and one status message. For a short wait inside a control, use a spinner; for work with a known length, use progress.",
+        "do": [
+          "Match the skeleton to the content it replaces: the same box, radius and proportion",
+          "Abstract a complex item to its main parts: one circle, two lines, one rectangle",
+          "Set `aria-hidden=\"true\"` on every skeleton and `aria-busy` on the region that is loading",
+          "Announce the load once, from the region, with a label that names it (\"Loading order history\")",
+          "Let the host wait a moment before showing the skeleton, so a fast load does not flash"
+        ],
+        "dont": [
+          "Draw a skeleton that does not match the layout that arrives; a mismatched skeleton is worse than none",
+          "Build one page-sized skeleton; compose small ones inside the real layout",
+          "Use a skeleton for a short wait inside a control (use a spinner) or for work with a known length (use progress)",
+          "Use a skeleton for an empty result; that is an empty state",
+          "Let each skeleton announce itself; ten skeletons in one card should announce once",
+          "Fade slowly from the skeleton to content that is already there"
+        ],
+        "implementation": [],
+        "contentGuidelines": "The shapes hold no copy. The status message names what is loading, in sentence case (\"Loading order history\"), and is written once for the region."
+      },
+      "ai": {
+        "primaryPurpose": "Hold the shape and box of content that is loading for the first time, so the layout does not shift when it arrives.",
+        "whenToUse": "The first load of a layout whose shape is known: a card, a list row, a profile header, a media frame. Compose text, circle and rect skeletons inside the real layout, sized to the content they stand for.",
+        "avoidWhen": "The wait is short and inside a control (Spinner), the work has a known length (Progress), the result is empty (an empty state), the layout is not known in advance (a spinner in the region), or the content is already on screen and only refreshing.",
+        "commonPartners": [
+          "spinner",
+          "progress",
+          "image-placeholder",
+          "list-item"
+        ],
+        "triggerKeywords": [
+          "skeleton",
+          "skeleton screen",
+          "loading placeholder",
+          "content placeholder",
+          "shimmer",
+          "skeleton text",
+          "skeleton avatar",
+          "skeleton image",
+          "placeholder lines",
+          "loading state"
+        ],
+        "generationPriority": 3
+      },
+      "motion": {
+        "enter": "Shown at once when the host mounts it, after the host's short delay. The content replaces it at once or with a short crossfade on `motion.duration.fast` and `motion.easing-role.enter`.",
+        "exit": "Replaced by the content; no exit of its own.",
+        "reduceMotion": "The pulse runs one cycle every `motion.duration.sweep` while the content loads. Under prefers-reduced-motion the pulse and the shimmer stop and the shape stays still; the content crossfade, if any, runs on `motion.duration-reduced.fast`."
+      },
+      "composition": {
+        "composesWith": [],
+        "alternativeTo": [
+          "spinner",
+          "progress"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "avatar",
+          "card"
+        ],
+        "replacesPatterns": [
+          "a page-sized loading illustration",
+          "a gray box with no relation to the content that arrives"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "motion",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "announcement",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "live-geometry",
           "disposition": "LOWERED"
         },
         {

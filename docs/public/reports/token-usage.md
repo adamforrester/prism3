@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 290 of 831 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 291 of 831 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members. A key marked "not drawn" names the token but no member draws it; another key on the row does.
 
@@ -140,12 +140,16 @@ Type: color. Bound by 3 component(s).
 
 ### `color.background.tertiary`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | progress | `fill` | ringGlyph | shape: circular (8 of 12) |
 |  |  | track | shape: linear · size: medium (4 of 12) |
+| skeleton | `fill` | block | shape: circle, rect · size: medium (2 of 4) |
+|  |  | firstBar | shape: text (2 of 4) |
+|  |  | lastBar | shape: text (2 of 4) |
+|  |  | middleBar | shape: text (2 of 4) |
 | switch-control | `off.fill`, `off.icon` | offGlyph | selection: off · state: focus-visible, hover, pressed, rest (16 of 40) |
 |  |  | track | selection: off · state: focus-visible, hover, pressed, rest (16 of 40) |
 
@@ -2762,13 +2766,14 @@ Type: dimension. Bound by 19 component(s).
 
 ### `motion.duration-reduced.fast`
 
-Type: duration. Bound by 6 component(s).
+Type: duration. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `motion.state-reduced` | (not drawn) | — |
 | button-destructive | `motion.state-reduced` | (not drawn) | — |
 | button-neutral | `motion.state-reduced` | (not drawn) | — |
+| skeleton | `motion.swap-reduced` | (not drawn) | — |
 | spinner | `motion.enter-reduced` | (not drawn) | — |
 | toggle-button | `motion.state-reduced` | (not drawn) | — |
 | toggle-icon-button | `motion.state-reduced` | (not drawn) | — |
@@ -2783,13 +2788,14 @@ Type: duration. Bound by 1 component(s).
 
 ### `motion.duration.fast`
 
-Type: duration. Bound by 6 component(s).
+Type: duration. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `motion.press`, `motion.state` | (not drawn) | — |
 | button-destructive | `motion.press`, `motion.state` | (not drawn) | — |
 | button-neutral | `motion.press`, `motion.state` | (not drawn) | — |
+| skeleton | `motion.swap` | (not drawn) | — |
 | spinner | `motion.enter` | (not drawn) | — |
 | toggle-button | `motion.press`, `motion.state` | (not drawn) | — |
 | toggle-icon-button | `motion.press`, `motion.state` | (not drawn) | — |
@@ -2802,24 +2808,34 @@ Type: duration. Bound by 1 component(s).
 |---|---|---|---|
 | spinner | `motion.turn` | (not drawn) | — |
 
+### `motion.duration.sweep`
+
+Type: duration. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| skeleton | `motion.pulse` | (not drawn) | — |
+
 ### `motion.easing-role.default`
 
-Type: cubicBezier. Bound by 5 component(s).
+Type: cubicBezier. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `motion.press-easing`, `motion.state-easing` | (not drawn) | — |
 | button-destructive | `motion.press-easing`, `motion.state-easing` | (not drawn) | — |
 | button-neutral | `motion.press-easing`, `motion.state-easing` | (not drawn) | — |
+| skeleton | `motion.pulse-easing` | (not drawn) | — |
 | toggle-button | `motion.press-easing`, `motion.state-easing` | (not drawn) | — |
 | toggle-icon-button | `motion.press-easing`, `motion.state-easing` | (not drawn) | — |
 
 ### `motion.easing-role.enter`
 
-Type: cubicBezier. Bound by 1 component(s).
+Type: cubicBezier. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| skeleton | `motion.swap-easing` | (not drawn) | — |
 | spinner | `motion.enter-easing` | (not drawn) | — |
 
 ### `radius.2xl`
@@ -2850,7 +2866,7 @@ Type: dimension. Bound by 2 component(s).
 
 ### `radius.md`
 
-Type: dimension. Bound by 13 component(s).
+Type: dimension. Bound by 14 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2864,6 +2880,7 @@ Type: dimension. Bound by 13 component(s).
 | pagination-item | `radius` | container | every member (87 of 87) |
 | segmented-control | `radius` | track | every member (3 of 3) |
 | sign-in-button | `radius` | container | every member (96 of 96) |
+| skeleton | `rect.radius` | block | shape: rect · size: medium (1 of 4) |
 | toggle-button | `radius` | container | every member (120 of 120) |
 | toggle-icon-button | `radius` | container | every member (60 of 60) |
 | wallet-button | `radius` | container | every member (68 of 68) |
@@ -2883,7 +2900,7 @@ Type: dimension. Bound by 6 component(s).
 
 ### `radius.round`
 
-Type: dimension. Bound by 13 component(s).
+Type: dimension. Bound by 14 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2902,6 +2919,7 @@ Type: dimension. Bound by 13 component(s).
 | list-item | `radius` | bullet | type: unordered (4 of 12) |
 | radio-control | `radius` | control | every member (60 of 60) |
 |  |  | dot | selection: checked (30 of 60) |
+| skeleton | `circle.radius` | block | shape: circle · size: medium (1 of 4) |
 | slider | `radius` | track | every member (30 of 30) |
 | switch-control | `radius` | thumb | every member (40 of 40) |
 |  |  | track | every member (40 of 40) |
@@ -2909,7 +2927,7 @@ Type: dimension. Bound by 13 component(s).
 
 ### `radius.sm`
 
-Type: dimension. Bound by 11 component(s).
+Type: dimension. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2922,6 +2940,9 @@ Type: dimension. Bound by 11 component(s).
 | search-field | `radius` | control | every member (84 of 84) |
 | segmented-control-segment | `indicator-radius` | indicator | every member (30 of 30) |
 | select | `radius` | control | every member (84 of 84) |
+| skeleton | `text.radius` | firstBar | shape: text (2 of 4) |
+|  |  | lastBar | shape: text (2 of 4) |
+|  |  | middleBar | shape: text (2 of 4) |
 | text-field | `radius` | control | every member (84 of 84) |
 | textarea | `radius` | control | every member (84 of 84) |
 
@@ -3072,7 +3093,7 @@ Type: dimension. Bound by 1 component(s).
 
 ### `space.0`
 
-Type: dimension. Bound by 24 component(s).
+Type: dimension. Bound by 25 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3106,6 +3127,9 @@ Type: dimension. Bound by 24 component(s).
 |  |  | track | every member (3 of 3) |
 | segmented-control-segment | `pad-y`, `reserve-height` | content | every member (30 of 30) |
 |  |  | reserve | every member (30 of 30) |
+| skeleton | `bar-inline` | firstLine | shape: text (2 of 4) |
+|  |  | lastLine | shape: text (2 of 4) |
+|  |  | middleLine | shape: text (2 of 4) |
 | slider | `header-gap` | field | every member (30 of 30) |
 | switch-row | `pad-x` | row | every member (4 of 4) |
 | tab-item | `pad-y`, `reserve-height` | container | every member (30 of 30) |
@@ -3128,7 +3152,7 @@ Type: dimension. Bound by 3 component(s).
 
 ### `space.050`
 
-Type: dimension. Bound by 15 component(s).
+Type: dimension. Bound by 16 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3152,6 +3176,9 @@ Type: dimension. Bound by 15 component(s).
 | pagination-item | `gap` | container | every member (87 of 87) |
 | radio-row | `description-gap` | textStack | every member (6 of 6) |
 | segmented-control-segment | `inset` | container | every member (30 of 30) |
+| skeleton | `bar-inset` | firstLine | shape: text (2 of 4) |
+|  |  | lastLine | shape: text (2 of 4) |
+|  |  | middleLine | shape: text (2 of 4) |
 | tag | `size.large.dismissible.gap`, `size.large.dismissible.label-inset`, `size.medium.dismissible.gap`, `size.medium.dismissible.label-inset`, `size.small.check-gap`, `size.small.dismissible.label-inset`, `size.small.underline.inset` (not drawn) | content | selection: unselected · size: large, medium · type: dismissible (10 of 45) |
 |  |  | labelCheck | every member (25 of 45) |
 | toast | `controls-gap` | controls | every member (2 of 2) |
@@ -3491,12 +3518,15 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.line-box`
 
-Type: dimension. Bound by 2 component(s).
+Type: dimension. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
 | radio-row | `size.large.control-box` | controlCell | size: large (2 of 6) |
+| skeleton | `size.medium.line-box` | firstLine | shape: text · size: medium (1 of 4) |
+|  |  | lastLine | shape: text · size: medium (1 of 4) |
+|  |  | middleLine | shape: text · size: medium (1 of 4) |
 
 ### `type.body.md.strong`
 
@@ -3566,12 +3596,15 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.sm.line-box`
 
-Type: dimension. Bound by 4 component(s).
+Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
 | radio-row | `size.medium.control-box` | controlCell | size: medium (2 of 6) |
+| skeleton | `size.small.line-box` | firstLine | shape: text · size: small (1 of 4) |
+|  |  | lastLine | shape: text · size: small (1 of 4) |
+|  |  | middleLine | shape: text · size: small (1 of 4) |
 | switch-row | `size.medium.control-box` | controlCell | size: medium (2 of 4) |
 | toast | `glyph-cell` | glyphCell | intent: success (1 of 2) |
 
@@ -4224,6 +4257,14 @@ Declared, not drawn: `color.border.focus`
 
 `border-width.hairline`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
 
+### skeleton
+
+13 token(s); 4 design-file member(s).
+
+`color.background.tertiary`, `motion.duration-reduced.fast`, `motion.duration.fast`, `motion.duration.sweep`, `motion.easing-role.default`, `motion.easing-role.enter`, `radius.md`, `radius.round`, `radius.sm`, `space.0`, `space.050`, `type.body.md.line-box`, `type.body.sm.line-box`
+
+Declared, not drawn: `motion.duration-reduced.fast`, `motion.duration.fast`, `motion.duration.sweep`, `motion.easing-role.default`, `motion.easing-role.enter`
+
 ### slider
 
 17 token(s); 30 design-file member(s).
@@ -4330,7 +4371,7 @@ Declared, not drawn: `color.border.focus`, `motion.duration-reduced.fast`, `moti
 
 ## Tokens no component binds
 
-261 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+260 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
@@ -4349,7 +4390,7 @@ Declared, not drawn: `color.border.focus`, `motion.duration-reduced.fast`, `moti
 - **control** — `control.size.lg.inset`, `control.size.lg.track`, `control.size.lg.width`
 - **gradient** — `gradient.brand`, `gradient.glow`
 - **grid** — `grid.2xl.columns`, `grid.2xl.gutter`, `grid.2xl.margin`, `grid.lg.columns`, `grid.lg.gutter`, `grid.lg.margin`, `grid.md.columns`, `grid.md.gutter`, `grid.md.margin`, `grid.sm.columns`, `grid.sm.gutter`, `grid.sm.margin`, `grid.xl.columns`, `grid.xl.gutter`, `grid.xl.margin`
-- **motion** — `motion.duration-ms.0`, `motion.duration-ms.100`, `motion.duration-ms.1100`, `motion.duration-ms.1300`, `motion.duration-ms.1600`, `motion.duration-ms.200`, `motion.duration-ms.2600`, `motion.duration-ms.300`, `motion.duration-ms.40`, `motion.duration-ms.50`, `motion.duration-ms.500`, `motion.duration-ms.800`, `motion.duration-ms.900`, `motion.duration-reduced.instant`, `motion.duration-reduced.long`, `motion.duration-reduced.longer`, `motion.duration-reduced.longest`, `motion.duration-reduced.moderate`, `motion.duration-reduced.normal`, `motion.duration-reduced.slow`, `motion.duration-reduced.slower`, `motion.duration-reduced.sweep`, `motion.duration.instant`, `motion.duration.long`, `motion.duration.longer`, `motion.duration.longest`, `motion.duration.moderate`, `motion.duration.normal`, `motion.duration.slow`, `motion.duration.slower`, `motion.duration.sweep`, `motion.easing-role.emphasized`, `motion.easing-role.exit`, `motion.easing.accelerate`, `motion.easing.calm`, `motion.easing.decelerate`, `motion.easing.expressive`, `motion.easing.linear`, `motion.easing.standard`, `motion.spring.bouncy`, `motion.spring.gentle`, `motion.spring.snappy`, `motion.stagger`, `motion.transition.default`, `motion.transition.emphasized`, `motion.transition.enter`, `motion.transition.exit`
+- **motion** — `motion.duration-ms.0`, `motion.duration-ms.100`, `motion.duration-ms.1100`, `motion.duration-ms.1300`, `motion.duration-ms.1600`, `motion.duration-ms.200`, `motion.duration-ms.2600`, `motion.duration-ms.300`, `motion.duration-ms.40`, `motion.duration-ms.50`, `motion.duration-ms.500`, `motion.duration-ms.800`, `motion.duration-ms.900`, `motion.duration-reduced.instant`, `motion.duration-reduced.long`, `motion.duration-reduced.longer`, `motion.duration-reduced.longest`, `motion.duration-reduced.moderate`, `motion.duration-reduced.normal`, `motion.duration-reduced.slow`, `motion.duration-reduced.slower`, `motion.duration-reduced.sweep`, `motion.duration.instant`, `motion.duration.long`, `motion.duration.longer`, `motion.duration.longest`, `motion.duration.moderate`, `motion.duration.normal`, `motion.duration.slow`, `motion.duration.slower`, `motion.easing-role.emphasized`, `motion.easing-role.exit`, `motion.easing.accelerate`, `motion.easing.calm`, `motion.easing.decelerate`, `motion.easing.expressive`, `motion.easing.linear`, `motion.easing.standard`, `motion.spring.bouncy`, `motion.spring.gentle`, `motion.spring.snappy`, `motion.stagger`, `motion.transition.default`, `motion.transition.emphasized`, `motion.transition.enter`, `motion.transition.exit`
 - **opacity** — `opacity.0`, `opacity.10`, `opacity.100`, `opacity.20`, `opacity.30`, `opacity.40`, `opacity.5`, `opacity.50`, `opacity.60`, `opacity.70`, `opacity.80`, `opacity.90`
 - **radius** — `radius.3xl`, `radius.hairline`
 - **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.md`, `shadow.sm`, `shadow.xs`

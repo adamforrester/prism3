@@ -238,6 +238,7 @@ const MUST_PROJECT = [
   'page-nav-item', 'page-nav',
   '_slider-thumb', 'slider',
   'code-input', 'code-input-cell',
+  'skeleton',
   'popover',
 ];
 

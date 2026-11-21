@@ -100,6 +100,8 @@ const DENSITIES = ['compact', 'comfortable', 'spacious'] as const;
 
 /** Defs that bind a corner Control shape must not move, each with why. */
 const OUTSIDE_REASON: Record<string, string> = {
+  // #4109, held for the owner: a host passes the radius of the content the skeleton stands for.
+  'skeleton': 'a loading placeholder, not a control: its corners match the content it stands for, which a host sets',
   'provider-logo': 'a mark, not a control',
   'flush-icon-button': 'no box at rest: its square shape is radius.none and its circle intrinsic',
   'flush-icon-button-destructive': 'no box at rest: its square shape is radius.none and its circle intrinsic',

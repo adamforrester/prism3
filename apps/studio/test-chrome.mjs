@@ -2720,7 +2720,7 @@ if (runs('7')) console.log(`\nHomes (V1, V12) — one home per page, never moved
 /** Concept v6's homes, typed here (never imported from `src/shell/pages.ts`): each place's view id and the
  *  title the preview header shows for it. */
 const EXPECT_HOME = {
-  brand: ['guide', 'Style guide'], 'color-palettes': ['palettes', 'Palettes'], 'color-fills': ['surfaces', 'Surfaces & fills'],
+  brand: ['guide', 'Brand overview'], 'color-palettes': ['palettes', 'Palettes'], 'color-fills': ['surfaces', 'Surfaces & fills'],
   'color-interactive': ['interactive', 'Interactive'], type: ['type', 'Type'], shape: ['shape', 'Shape'],   // #3553 Q-UI9 A: the tab's own word
   depth: ['depth', 'Depth & motion'], layout: ['layout', 'Layout'], components: ['comps', 'Components'],
 };
@@ -3173,7 +3173,7 @@ const BUSY_OVERLAP = (sel) => {
 const BUSY_OVERLAP_MAX = 0;
 /** The drawer's note, per host: concept v6's plugin line, and the studio's own. Literal. */
 if (runs('10')) {
-const DRAWER_NOTE = { figma: 'Results of Apply, Build and Prune appear here after they run.', web: 'Nothing has run in this session.' };
+const DRAWER_NOTE = { figma: 'Each Update file run, and the steps it takes, appear here.', web: 'Nothing has run in this session.' };
 } // 10
 /** An agent-link state the main thread could publish, and the status line it must read as (today's words). */
 const AGENT_ON = { v: 1, on: true, since: '2026-10-01T09:00:00.000Z', engineVersion: 'x', build: 'x', pollMs: 1000, transports: { mailbox: true, bridge: false }, lastCommand: null, inboxError: null };
@@ -3388,9 +3388,9 @@ for (const host of ['web', 'figma']) {
         // polish (after the brand switcher, before Update file), and not on the rail. Its label is the word "Agent" at 1280 and
         // the agent glyph at 380 (#3553 Q-UI10 A; Q3083.6 A had dropped it there, a bare toggle). MUTATION: `agent` back in the
         // rail's `foot` and `minimize` back on the bar in `frame.ts` → this arm, by name, at every width and theme.
-        ok(a0.inBar && !a0.onRail && a0.afterBrand && a0.beforeUpdate && a0.name === 'Agent' && a0.role === 'switch' && a0.checked === 'false' && a0.pressed === null && !a0.dot
-          && a0.label === (narrow ? 'glyph:agent' : 'Agent'),
-          `Q731 #3083 ${where}: the Agent switch sits on the top bar, after the brand switcher and before Update file, where Minimize was, never on the rail; a switch named "Agent", aria-checked false, no dot, its label ${narrow ? 'the agent glyph at 380' : 'the word'} (#3553 Q-UI10 A) (${JSON.stringify(a0)})`);
+        ok(a0.inBar && !a0.onRail && a0.afterBrand && a0.beforeUpdate && a0.name === 'Agent link' && a0.role === 'switch' && a0.checked === 'false' && a0.pressed === null && !a0.dot
+          && a0.label === (narrow ? 'glyph:agent' : 'Agent link'),
+          `Q731 #3083 ${where}: the Agent switch sits on the top bar, after the brand switcher and before Update file, where Minimize was, never on the rail; a switch named "Agent link" (#4184), aria-checked false, no dot, its label ${narrow ? 'the agent glyph at 380' : 'the word'} (#3553 Q-UI10 A) (${JSON.stringify(a0)})`);
         hooks.absent(ok, { seen: chip.inBar, state: 'the Agent tile on the top bar' }, !chip.old && !chip.popover && chip.strays.length === 0,
           `D6 ${where}: the old chips are gone — no bottom-left chip, no Agent chip or popover, and nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'}, chip or popover ${chip.popover ? 'present' : 'absent'})`);
         const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
@@ -3423,7 +3423,7 @@ for (const host of ['web', 'figma']) {
         if (at) await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
         await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
         const a1 = await agentState();
-        ok(a1.name === 'Agent' && a1.role === 'switch' && a1.checked === 'true' && a1.pressed === null && !a1.dot, `T7 #3083 ${where}: the main thread's state turns the switch on: named "Agent", aria-checked true, no dot (the switch's on state says it) (${JSON.stringify(a1)})`);
+        ok(a1.name === 'Agent link' && a1.role === 'switch' && a1.checked === 'true' && a1.pressed === null && !a1.dot, `T7 #3083 ${where}: the main thread's state turns the switch on: named "Agent link", aria-checked true, no dot (the switch's on state says it) (${JSON.stringify(a1)})`);
         const mc = await measure(page, `${where} / Agent on`, host, w);
         check(mc, `${where} / Agent on`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="agent-toggle"]'] });
         await shot('agent');
@@ -3520,8 +3520,9 @@ for (const host of ['web', 'figma']) {
         const mw = await takeWrites(page);
         ok(isWire(mw, { type: 'minimize-ui', minimized: true }), `#2949 ${where}: Minimize asks the main thread to minimize (posted ${JSON.stringify(mw)})`);
         await page.evaluate(() => { document.querySelector('[data-p3="frame"]').__p3Mark = 'frame'; });
-        const LONGEST = 'Agent listening · last: update-components 59m ago';
-        await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, lastCommand: { id: 'x', cmd: 'update-components', ok: true, headline: '✓ done',
+        // #4185 D: the longest command in operation words (Clean up usage panels), with the age in the status line's form.
+        const LONGEST = 'Agent listening · last: Clean up usage panels 59 min ago';
+        await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, lastCommand: { id: 'x', cmd: 'panels-clean', ok: true, headline: '✓ done',
           finishedAt: await page.evaluate(() => new Date(Date.now() - 59 * 60000 - 30000).toISOString()) } } });
         await postMsg(page, { type: 'ui-minimized', minimized: true });
         await page.setViewportSize({ width: 480, height: 40 });
@@ -3536,7 +3537,7 @@ for (const host of ['web', 'figma']) {
           const box = (n) => { const b = n?.getBoundingClientRect(); return b ? [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)] : null; };
           return { drawn: !!st && !st.hidden && getComputedStyle(st).display !== 'none', rect: r ? [Math.round(r.width), Math.round(r.height)] : null,
             appDrawn: !!app && getComputedStyle(app).display !== 'none', text: t?.textContent ?? null, whole: !!t && t.scrollWidth <= t.clientWidth,
-            restore: rs?.getAttribute('aria-label') ?? null, off: off?.textContent ?? null, focus: document.activeElement?.getAttribute('data-p3') ?? null,
+            restore: rs?.getAttribute('aria-label') ?? null, off: off?.textContent ?? null, offName: off?.getAttribute('aria-label') ?? null, focus: document.activeElement?.getAttribute('data-p3') ?? null,
             // #3083: Restore, Minimize's counterpart, is its icon alone too: no text, its name as its tooltip, centered, over the floor.
             restoreBare: (() => { if (!rs) return null; const b = rs.getBoundingClientRect(), ic = rs.querySelector('svg')?.getBoundingClientRect();
               return { text: rs.textContent.trim(), tip: rs.getAttribute('title'), w: b.width, h: b.height,
@@ -3548,8 +3549,8 @@ for (const host of ['web', 'figma']) {
           `#2949 ${where}: minimized, the strip fills the 480×40 window and the panel is not drawn (${JSON.stringify({ drawn: s1.drawn, app: s1.appDrawn, rect: s1.rect })})`);
         ok(s1.text === LONGEST && s1.whole && s1.inside,
           `#2949 ${where}: the strip reads "${LONGEST}", whole, every part inside the strip (${JSON.stringify({ text: s1.text, whole: s1.whole, inside: s1.inside })})`);
-        ok(s1.restore === 'Restore' && s1.off === 'Turn off' && s1.focus === 'agent-strip-restore',
-          `#2949 ${where}: the strip carries Restore and Turn off, and focus moves to Restore (${JSON.stringify({ restore: s1.restore, off: s1.off, focus: s1.focus })})`);
+        ok(s1.restore === 'Restore' && s1.off === 'Turn off' && s1.offName === 'Turn off Agent link' && s1.focus === 'agent-strip-restore',
+          `#2949 ${where}: the strip carries Restore and Turn off, named Turn off Agent link (#4184), and focus moves to Restore (${JSON.stringify({ restore: s1.restore, off: s1.off, offName: s1.offName, focus: s1.focus })})`);
         const rb = s1.restoreBare;
         ok(!!rb && rb.text === '' && rb.tip === 'Restore' && rb.w >= 24 && rb.h >= 24 && rb.dx !== null && rb.dx <= 0.5 && rb.dy <= 0.5,
           `#3083 ${where}: the strip's Restore, Minimize's counterpart, is its icon alone, centered, named and titled "Restore", at least 24 × 24 (${JSON.stringify(rb)})`);
@@ -3557,7 +3558,7 @@ for (const host of ['web', 'figma']) {
         await postMsg(page, { type: 'agent-started', id: 'm1', cmd: 'update-components' });
         await page.waitForFunction(() => /^Agent running/.test(document.querySelector('[data-p3="agent-strip-text"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
         const s2 = await stripState();
-        ok(/^Agent running update-components… \d+s$/.test(s2.text ?? '') && s2.whole, `#2949 ${where}: while a command runs the strip reads "Agent running update-components… <age>" (${JSON.stringify(s2.text)})`);
+        ok(/^Agent running Update file… \d+s$/.test(s2.text ?? '') && s2.whole, `#2949 ${where}: while a command runs the strip reads "Agent running Update file… <age>" (#4185) (${JSON.stringify(s2.text)})`);
         await postMsg(page, { type: 'agent-finished', id: 'm1', cmd: 'update-components' });
         await hooks.click(page.locator('[data-p3="agent-strip-restore"]'), WAIT);
         const rw = await takeWrites(page);
@@ -3579,7 +3580,7 @@ for (const host of ['web', 'figma']) {
         await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, on: false, since: null } });
         await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-checked') === 'false', null, { timeout: 5000 }).catch(() => {});
         const a2 = await agentState();
-        ok(a2.name === 'Agent' && a2.role === 'switch' && a2.checked === 'false' && !a2.dot, `T7 #3083 ${where}: the published off state turns the switch off, aria-checked false (${JSON.stringify(a2)})`);
+        ok(a2.name === 'Agent link' && a2.role === 'switch' && a2.checked === 'false' && !a2.dot, `T7 #3083 ${where}: the published off state turns the switch off, aria-checked false (${JSON.stringify(a2)})`);
         const m2 = await minTile();
         ok(m2.shown && m2.name === 'Minimize', `#2909 ${where}: with the link off again, Minimize is still drawn (the owner's direction of 2026-10-24) (${JSON.stringify(m2)})`);
         await takeWrites(page);
@@ -3765,8 +3766,8 @@ for (const host of ['web', 'figma']) {
         await postMsg(page, { type: 'agent-finished', id: 'ag533', cmd: 'build-components' });
         await page.waitForFunction(() => window.__runEnded.length > 0, null, { timeout: 5000 }).catch(() => {});
         const endedAfter = await page.evaluate(() => window.__runEnded.slice());
-        ok(JSON.stringify(endedAfter) === '["Prune stale finished."]',
-          `#533 ${where}: once the agent's build ends too, the prune's end posts one run-ended, "Prune stale finished." (posted ${JSON.stringify(endedAfter)})`);
+        ok(JSON.stringify(endedAfter) === '["Clean up finished."]',
+          `#533 ${where}: once the agent's build ends too, the prune's end posts one run-ended, "Clean up finished." (posted ${JSON.stringify(endedAfter)})`);
         await hooks.click(page.locator('[data-p3="update-x"]'), WAIT);
         // #3467 (Q3 A, Q4 A): a set-up file whose read lists something Set up file owns is offered Set up file, unticked, its
         // line naming what the file lacks; a set-up file whose read lists nothing is not. Literals. (mutation: the shell's
@@ -12021,12 +12022,12 @@ for (const host of ['web', 'figma']) {
             const f = await page.evaluate(SWITCH_PROBE);
             const at = `29b ${host} ${f.theme} ${w}`;
             const state = on ? 'on' : 'off';
-            ok(f.role === 'switch' && f.name === 'Agent' && f.checked === String(on) && !f.retired,
-              `${at}: #3083 Q3083.5 B: with the link ${state}, the Agent control is a switch named "Agent", aria-checked ${on}, with no tile mark and no dot (${JSON.stringify(f)})`);
+            ok(f.role === 'switch' && f.name === 'Agent link' && f.checked === String(on) && !f.retired,
+              `${at}: #3083 Q3083.5 B: with the link ${state}, the Agent control is a switch named "Agent link" (#4184), aria-checked ${on}, with no tile mark and no dot (${JSON.stringify(f)})`);
             ok(JSON.stringify(f.track) === JSON.stringify([36, 20]) && f.knobIn && !!f.hit && f.hit[0] >= TARGET_MIN && f.hit[1] >= TARGET_MIN,
               `${at}: #3083 Q3083.7 B: the Agent switch's track is the bar-only 36 × 20, its knob inside it, and its hit target ${TARGET_MIN}px or more each way (track ${JSON.stringify(f.track)}, knob inside ${f.knobIn}, hit ${JSON.stringify(f.hit)})`);
-            ok(f.label === (narrowBar ? 'glyph:agent' : 'Agent'),
-              `${at}: #3553 Q-UI10 A: the Agent switch's label is ${narrowBar ? 'the agent glyph at 380 (Q3083.6 A had dropped it, a bare toggle)' : 'the word "Agent" at 1280'} (label ${JSON.stringify(f.label)})`);
+            ok(f.label === (narrowBar ? 'glyph:agent' : 'Agent link'),
+              `${at}: #3553 Q-UI10 A: the Agent switch's label is ${narrowBar ? 'the agent glyph at 380 (Q3083.6 A had dropped it, a bare toggle)' : 'the word "Agent link" at 1280 (#4184)'} (label ${JSON.stringify(f.label)})`);
             const knobOn = ratio(f.knob, f.fill);
             if (on) {
               const trackOn = ratio(f.fill, f.ground);
@@ -13383,6 +13384,48 @@ for (const host of ['web', 'figma']) {
           status: document.querySelector('[data-p3="search-status"]')?.textContent ?? '' };
       });
       ok(r.source && r.anchorBlocks === 0, `${where}: unpinned, searching "${q}" reaches the Neutral source group, where Pinned is chosen (${JSON.stringify(r)})`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+
+// #2206 (the studio accessibility fix lane, 2026-11-20): pinned, the hue and chroma sliders are a read-only readout drawn
+// disabled, and the state line says so. In the accessibility tree each slider keeps its value and has that line as its
+// description, on both hosts. EXPECTED is the line's words, typed here; ACTUAL is CDP's computed description and value.
+// Mutation: the `aria-describedby` line removed (color-palettes.ts) → `#2206 … the hue readout is described by the state line …`.
+{
+  const PN2206_STATE = 'A pinned neutral sets the ramp: #5c6670. Hue and chroma are its readout.';
+  const axSlider = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      if (!nodeId) return null;
+      const n = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes.find((x) => !x.ignored);
+      return { role: n?.role?.value ?? '', desc: n?.description?.value ?? '', value: String(n?.value?.value ?? ''),
+        disabled: !!n?.properties?.find((p) => p.name === 'disabled')?.value?.value };
+    } finally { await cdp.detach(); }
+  };
+  for (const host of ['web', 'figma']) {
+    const where = `#2206 ${host} light 1280`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    try {
+      const before = await axSlider(page, '[data-p3="neutral-hue-slider"]');
+      ok(before && before.desc === '', `${where}: unpinned, the hue slider has no pinned description (${JSON.stringify(before)})`);
+      await hooks.click(page.locator('[data-p3="neutral-source-pinned"]'));
+      await hooks.need(page, '[data-p3="neutral-anchor-hex"]');
+      const f = page.locator('[data-p3="neutral-anchor-hex"]');
+      await f.fill('#5c6670');
+      await f.press('Enter');
+      await page.waitForFunction((t) => document.querySelector('[data-p3="lever-neutral-hue"] .p3-lever-state')?.textContent.trim() === t, PN2206_STATE, { timeout: 5000 }).catch(() => {});
+      for (const [what, sel] of [['hue', '[data-p3="neutral-hue-slider"]'], ['chroma', '[data-p3="neutral-chroma-slider"]']]) {
+        const r = await axSlider(page, sel);
+        ok(!!r && r.role === 'slider' && r.disabled && r.value !== '' && r.desc === PN2206_STATE,
+          `${where}: pinned, the ${what} readout is described by the state line and keeps its value (${JSON.stringify(r)})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
@@ -17938,6 +17981,85 @@ console.log(`\n#2487 names, landmarks, the selected segment and the display-only
     }
   }
 }
+// #2492 and #4223 (the studio accessibility fix lane, 2026-11-20).
+//   · #2492: Inspect › Token list's Primitives and Semantics buttons say which is selected: the accessibility tree reports
+//     the selected one pressed and the other not pressed, and the two swap when the other is chosen.
+//   · #4223: the preview body is a Tab stop exactly when it scrolls and holds nothing a keyboard can reach, Chromium's own
+//     rule written out for Safari. Read on every place, both hosts, at 1280 and 380 (the preview pane shown).
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the pressed values, and the rule worked out from the body's measured
+// overflow and a focusable list written in this file. ACTUAL is CDP's `pressed` property and the body's own `tabindex`.
+// Mutations, each failing here by name: the `aria-pressed` line removed (main.ts) → `#2492 … the selected tier is
+// pressed …`; the body's stop never set (frame.ts) → `#4223 … the preview body is a Tab stop exactly when …`.
+{
+  const pressedOf = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      if (!nodeId) return 'absent';
+      const n = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes.find((x) => !x.ignored);
+      return String(n?.properties?.find((p) => p.name === 'pressed')?.value?.value ?? 'none');
+    } finally { await cdp.detach(); }
+  };
+  const BODY_REACH = 'button, select, textarea, input:not([type="hidden"]), a[href], [contenteditable="true"], [tabindex]:not([tabindex="-1"]), [role="slider"], [role="radio"], [role="tab"], [role="checkbox"], [role="switch"], [role="button"]';
+  const bodyRead = (page) => page.evaluate((reach) => {
+    const b = document.querySelector('[data-p3="preview-body"]');
+    if (!b || !b.getClientRects().length) return null;
+    const scrolls = b.scrollHeight > b.clientHeight + 1 || b.scrollWidth > b.clientWidth + 1;
+    const reachable = [...b.querySelectorAll(reach)].filter((n) => n.tabIndex >= 0 && !n.disabled && n.getClientRects().length > 0).length;
+    return { scrolls, reachable, tabindex: b.getAttribute('tabindex') };
+  }, BODY_REACH);
+  for (const host of ['web', 'figma']) {
+    const where = `#2492 ${host} light 1280`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'brand');
+      await hooks.click(page.locator('[data-p3="inspect-open"]'), WAIT);
+      await hooks.click(page.locator('[data-p3="inspect-option-tokens"]'), WAIT);
+      await hooks.click(page.locator('[data-p3="token-tier-semantic"]'), WAIT);
+      await hooks.need(page, '[data-p3="token-path-full"]');
+      const s = [await pressedOf(page, '[data-p3="token-tier-semantic"]'), await pressedOf(page, '[data-p3="token-tier-primitive"]')];
+      ok(s[0] === 'true' && s[1] === 'false', `${where}: Inspect › Token list, the selected tier is pressed and the other is not, Semantics chosen (semantic ${s[0]}, primitive ${s[1]})`);
+      await hooks.click(page.locator('[data-p3="token-tier-primitive"]'), WAIT);
+      await page.waitForFunction(() => !document.querySelector('[data-p3="token-path-full"]'), null, { timeout: 5000 }).catch(() => {});
+      const p = [await pressedOf(page, '[data-p3="token-tier-semantic"]'), await pressedOf(page, '[data-p3="token-tier-primitive"]')];
+      ok(p[0] === 'false' && p[1] === 'true', `${where}: Inspect › Token list, the selected tier is pressed and the other is not, Primitives chosen (semantic ${p[0]}, primitive ${p[1]})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+  for (const host of ['web', 'figma']) {
+    for (const w of [1280, 380]) {
+      const where = `#4223 ${host} light ${w}`;
+      const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+      let step = 'boot';
+      try {
+        const seen = { stop: 0, held: 0 };
+        for (const place of NEW_PAGES) {
+          step = place;
+          await goPlace(page, place);
+          if (w === 380) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'), WAIT);
+          await settle(page);
+          await page.waitForTimeout(120);
+          const r = await bodyRead(page);
+          if (!r) { ok(false, `${where} / ${place}: the preview body is drawn and shown (read nothing)`); continue; }
+          const want = r.scrolls && r.reachable === 0;
+          if (want) seen.stop++; else if (r.scrolls) seen.held++;
+          ok((r.tabindex === '0') === want,
+            `${where} / ${place}: the preview body is a Tab stop exactly when it scrolls and holds nothing a keyboard reaches (${JSON.stringify(r)})`);
+          if (w === 380) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'), WAIT);
+        }
+        ok(seen.stop > 0, `${where}: some place drew a scrolling preview body with nothing to reach, so the stop was measured (${JSON.stringify(seen)})`);
+        ok(seen.held > 0, `${where}: some place drew a scrolling preview body that holds controls, so the stop's absence was measured (${JSON.stringify(seen)})`);
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
 } // 45
 // =============================================================================================
 // §46 — DRAG AND REBUILD SPEED (#2487 PR 2: B1, A9, A10, A13; the merged review, comment 6098371348 §4)
@@ -18759,7 +18881,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
         `${where}: Q699 A: the checklist's due read and its check each send the brand the panel holds (${askedSets.length} file-sets-request; ${[...askedSets, ...asked].map((m) => wireDiff(m.input, PANEL_BRAND)).join(', ')})`);
       const sets = [
         { def: 'button', hash: 'hb', members: 648, update: 12, add: 0, drop: 0, handEdited: 2, noBaseline: 0, blocked: false, upToDate: false, breaks: '1 change affects files that use this library: 1 layer removed, which breaks those files: overrides on it are lost.',
-          changes: { count: 1, lines: ['Button · content/check · removed from 12 members — breaks files that use this library: overrides on it are lost.'] } },
+          changes: { count: 1, lines: ['Button · content/check · removed from 12 variants — breaks files that use this library: overrides on it are lost.'] } },
         { def: 'select', hash: 'hs', members: 30, update: 0, add: 0, drop: 0, handEdited: 0, noBaseline: 0, blocked: false, upToDate: true },
       ];
       // #3302 (the owner's Q3302.1–.3 A, 2026-11-02; the strings approved as written): the check's progress in the
@@ -18831,7 +18953,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
           last: call?.parentElement?.getAttribute('data-p3') === 'update-foot-msg' && call.parentElement.nextElementSibling?.getAttribute('data-p3') === 'update-foot-actions', go: document.querySelector('[data-p3="update-go"]')?.textContent ?? null };
       });
       ok(lib.title === 'Files that use this library' && lib.sub === '1 change in this update reaches them at the next library publish:'
-        && JSON.stringify(lib.lines) === JSON.stringify(['Button · content/check · removed from 12 members — breaks files that use this library: overrides on it are lost.'])
+        && JSON.stringify(lib.lines) === JSON.stringify(['Button · content/check · removed from 12 variants — breaks files that use this library: overrides on it are lost.'])
         && lib.last && lib.go === 'Update, including 1 library change',
         `${where}: #3711 Q-UF2 A: a callout above the button names the library change, and the button carries the count (${JSON.stringify(lib)})`);
       // #3083 (the owner's Q3083.3 A and Q3083.4 A, 2026-10-28): the hand-edits choice is a compact select, "Hand edits",
@@ -18884,7 +19006,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
       // it. Theme is unticked here, so a set only Theme blocks is blocked too. Literals, DRAFT copy. MUTATION:
       // `blockedDueOf` returning [] (the blocked set left in Due, ticked) → this arm, by name.
       step = 'a blocked set';
-      const blockedSet = { ...sets[1], blocked: true, upToDate: false, reasons: ['Not in this file: icon/close. Build icon first, then run the update again'] };
+      const blockedSet = { ...sets[1], blocked: true, upToDate: false, reasons: ['Not in this file: icon/close. Build icon first, then run Update file again'] };
       await postMsg(page, { type: 'update-check', previewHash: 'H-1', missing: [], refused: [], sets: [sets[0], blockedSet] });
       await page.waitForFunction(() => !!document.querySelector('[data-p3="update-blocked-row"]'), null, { timeout: 5000 }).catch(() => {});
       const bl = await page.evaluate(() => ({
@@ -22435,8 +22557,8 @@ if (runs('2069')) {
     ok(d0.modal === 'true' && d0.focusIn, `#2069 ${where}: Report a problem opens a modal with focus inside it (${JSON.stringify({ modal: d0.modal, focusIn: d0.focusIn })})`);
     ok(d0.box === false && !d0.text.includes('### Brand settings') && !d0.text.includes('pds3') && d0.text.includes('[brand]/color/background/primary'),
       `#2069 ${where}: the brand's settings are off by default, and its prefix reads [brand] (box ${d0.box})`);
-    ok(d0.text.includes('- Host: Figma plugin') && d0.text.includes('- Theme: ✗ 1 conflict') && /- Engine: \d+\.\d+\.\d+/.test(d0.text),
-      `#2069 ${where}: the report shows the host, the engine and the failed apply${d0.text.includes('- Theme: ✗ 1 conflict') ? '' : ` — ${JSON.stringify(d0.text.slice(0, 600))}`}`);
+    ok(d0.text.includes('- Host: Figma plugin') && d0.text.includes('- Apply theme: ✗ 1 conflict') && /- Engine: \d+\.\d+\.\d+/.test(d0.text),
+      `#2069 ${where}: the report shows the host, the engine and the failed apply${d0.text.includes('- Apply theme: ✗ 1 conflict') ? '' : ` — ${JSON.stringify(d0.text.slice(0, 600))}`}`);
     step = 'opt in';
     await hooks.click(page.locator('[data-p3="report-brand"]'), WAIT);
     const t1 = await page.evaluate(() => document.querySelector('[data-p3="report-text"]')?.value ?? '');
@@ -22489,8 +22611,8 @@ if (runs('2069')) {
       const d0 = await page.evaluate(() => ({ modal: document.querySelector('[data-p3="report-dialog"]')?.getAttribute('aria-modal'),
         box: document.querySelector('[data-p3="report-brand"]')?.checked, text: document.querySelector('[data-p3="report-text"]')?.value ?? '',
         focusIn: !!document.activeElement?.closest('[data-p3="report-dialog"]') }));
-      ok(d0.modal === 'true' && d0.focusIn && d0.box === false && d0.text.includes('- Host: Web studio') && d0.text.includes('- Nothing has run in this session.'),
-        `#3524 ${where}: the rail's Report a problem opens the dialog, modal, focus inside, the brand's settings off, the host the web studio (${JSON.stringify({ modal: d0.modal, focusIn: d0.focusIn, box: d0.box })})`);
+      ok(d0.modal === 'true' && d0.focusIn && d0.box === false && d0.text.includes('- Host: Web Studio') && d0.text.includes('- Nothing has run in this session.'),
+        `#3524 ${where}: the rail's Report a problem opens the dialog, modal, focus inside, the brand's settings off, the host the web Studio (${JSON.stringify({ modal: d0.modal, focusIn: d0.focusIn, box: d0.box })})`);
       step = 'open issue';
       await page.evaluate(() => { window.__clip = []; Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (t) => { window.__clip.push(String(t)); } } }); });
       await hooks.click(page.locator('[data-p3="report-open-issue"]'), WAIT);

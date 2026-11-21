@@ -942,6 +942,11 @@
         "items:SLOT"
       ]
     },
+    "skeleton": {
+      "members": 4,
+      "sha256": "d5fb95a417fd6345fde819fa98741b4926fe9cbaa90a9150a8b88fcf8d3eafe7",
+      "properties": []
+    },
     "popover": {
       "members": 1,
       "sha256": "f52139a7c315b16de3bd467183303b65e6c32f9aae441da4b4395e105ef9a4b5",
