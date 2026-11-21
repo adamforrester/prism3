@@ -5,7 +5,7 @@
   "description": "Agent-readable metadata for one generated brand, companion to its DTCG token tree (<brand>.tokens.json). Every token in the tree has exactly one entry, keyed by its path below the brand root. Every field is generated from the token data on each build. The sidecar's own `$schema` value equals this schema's `$id`; both change together when a field is added, renamed or removed.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "brand", "generated", "note", "color_fields", "typography_fields", "layout_fields", "motion_fields", "primitive_fields", "color", "typography", "layout", "motion", "primitives"],
+  "required": ["$schema", "brand", "generated", "note", "color_fields", "typography_fields", "layout_fields", "motion_fields", "primitive_fields", "color", "typography", "layout", "motion", "motion_presets", "primitives"],
   "properties": {
     "$schema": { "const": "prism3-ai-metadata/0.6", "description": "The schema version this file follows. Equal to this schema's `$id`." },
     "brand": { "$ref": "#/$defs/path", "description": "The brand id, as in the token tree's file name." },
@@ -41,6 +41,12 @@
       "additionalProperties": false,
       "patternProperties": { "^motion(\\.[a-z0-9-]+)+$": { "$ref": "#/$defs/thinEntry" } }
     },
+    "motion_presets": {
+      "type": "object",
+      "description": "Motion presets (`surface`, `crossfade`), keyed by preset name. A preset is not a token: it names the step of the shared duration scale it plays on, from the brand's preset mapping, with its easing role and its reduced-motion duration. Each value is a path in the `motion` tier.",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)?$": { "$ref": "#/$defs/presetEntry" } }
+    },
     "icons": {
       "type": "object",
       "description": "Present only when the brand sets an icon map (#3076). Component docs name Prism3 icons; resolve each through `map`.",
@@ -66,6 +72,16 @@
     }
   },
   "$defs": {
+    "presetEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["duration", "easing", "reduced_duration"],
+      "properties": {
+        "duration": { "type": "string", "pattern": "^motion\\.duration\\.[a-z0-9-]+$", "description": "The duration step the preset plays on." },
+        "easing": { "type": "string", "pattern": "^motion\\.easing-role\\.[a-z0-9-]+$", "description": "The easing role the preset plays with." },
+        "reduced_duration": { "type": "string", "pattern": "^motion\\.duration-reduced\\.[a-z0-9-]+$", "description": "The duration its reduced-motion form plays on." }
+      }
+    },
     "path": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9-]*(\\.[a-z0-9-]+)*$",

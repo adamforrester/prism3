@@ -39,6 +39,11 @@
 import { applyIconMap, applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT, type WeightAvailability, type ButtonLayout, type ComponentDef } from '@prism3/engine/components';
 import { componentSizes, sizeRefPx, SPACE_BASE, type SizeStep, type Density, brandTheme, weightAvailability, type BrandInput, type Theme } from '@prism3/engine';
 
+/** #4237: how many times `brandLevers` has built a brand's theme in this process, so a test can hold "once per run" by a
+ *  count, not by how the caller is spelled. Read-only outside this module. */
+let leverBuilds = 0;
+export const brandLeverBuilds = (): number => leverBuilds;
+
 /** The theme-derived levers, off ONE `brandTheme` call — or the defaults when there is no usable brand. */
 const brandLevers = (input: BrandInput | null): { avail: WeightAvailability; outline: Theme['outlineInteraction']; sizes: SizeStep[]; density: Density } => {
   // THE DEFAULT DENSITY'S HEIGHTS when there is no usable brand (#1667): the button floor applies to every
@@ -46,6 +51,7 @@ const brandLevers = (input: BrandInput | null): { avail: WeightAvailability; out
   const fallback = { avail: DEFAULT_WEIGHT_AVAILABILITY, outline: 'overlay-neutral' as const, sizes: componentSizes('comfortable', SPACE_BASE), density: 'comfortable' as Density };
   if (!input) return fallback;
   try {
+    leverBuilds++;
     const theme = brandTheme(input);
     // `solid-tint` binds the tinted-wash VARIABLE (#1614, #1646): the opacity step the engine chose for this
     // brand lives in that variable's value, so nothing brand-specific rides on the def beyond the lever.
