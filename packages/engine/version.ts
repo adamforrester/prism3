@@ -728,6 +728,44 @@ export const ENGINE_VERSION = '0.239.0';
  */
 export const CONTRACT_VERSION = '15.2.0';
 
+/**
+ * THE COMPONENT VERSIONS (#1325 Option 3, #1326 decision 3, owner decision Q-CC1 A, 2026-11-18). Two more numbers,
+ * after Nathan Curtis's *Component Contracts and Schemas*: a component CONTRACT is one component's spec as data, a
+ * component SCHEMA is the model a contract is written in, and the two are versioned apart from each other and from
+ * the token contract above.
+ *
+ *  - `COMPONENT_SCHEMA_VERSION`   — "can my reader still parse a component contract?" The model: the published shape of
+ *                                   one component's entry, as `schema/component-defs.schema.json` states it. Its
+ *                                   MAJOR.MINOR is that schema's `$id` and the export's `format`
+ *                                   (`prism3-component-defs/<major>.<minor>`); a PATCH is reserved, since a wording-only
+ *                                   edit to the schema moves no shape and needs no bump.
+ *  - `COMPONENT_CONTRACT_VERSION` — "can my file and my code still resolve the component API they reference?" The
+ *                                   guaranteed component-API surface: each def's id and name, its props (name, type,
+ *                                   required, default, values), its states, its variant axes and values, and its
+ *                                   slots.
+ *
+ * Neither is `CONTRACT_VERSION`: a component consumer and a token consumer hold different names, and one number for
+ * both would cry wolf at each of them for the other's changes (#1325 Option 2, rejected).
+ *
+ * Both are gated by `component-contract.ts --check` against `schema/component-contract.json`, which only
+ * `component-contract.ts --accept` writes, and only after the version the diff needs is raised here. The bump classes
+ * are in that file's header and in `docs/30`. Like `CONTRACT_VERSION`, a PR raises these itself, in the PR that moves
+ * the surface; the fold does not assign them.
+ *
+ * 1.0.0 (the contract): the first baseline, every registered def recorded whatever its `status`.
+ * 1.4.0 (the schema): starts at the shape the export already declared, `prism3-component-defs/1.4`, so the number
+ * a consumer has been reading does not move under them.
+ * 1.1.0 (the contract, MINOR): `tag-group` added, a component main registered after the first baseline was cut, and
+ *   `dialog`'s `hideTitle` prop added (#4057).
+ * 1.5.0 (the schema, MINOR): #4074's `prism3-component-defs/1.5`, the button's `borderWeight` setting added.
+ * 1.2.0 (the contract, MINOR): `popover` added (#4252).
+ * 2.0.0 (the contract, MAJOR): `dialog`'s `size` variant axis removed (#4091, #3392 A: a width-only size is no variant).
+ * 1.6.0 (the schema, MINOR): #4099's `prism3-component-defs/1.6`, the `docs.implementation` field added.
+ * 2.1.0 (the contract, MINOR): `skeleton` added (#4295).
+ */
+export const COMPONENT_SCHEMA_VERSION = '1.6.0';
+export const COMPONENT_CONTRACT_VERSION = '2.1.0';
+
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
   /** The retired path, below the configurable root (`color.text.primary`, not `prism.color…`). */

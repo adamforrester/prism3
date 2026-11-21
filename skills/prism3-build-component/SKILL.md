@@ -921,11 +921,18 @@ skill-only change like this file needs no note.
 guaranteed **token-name** surface only. A component id, prop name or variant value is not a
 token name, so binding existing roles leaves `CONTRACT_VERSION` unmoved.
 
-The component-API surface has its own decided direction: a distinct `COMPONENT_CONTRACT_VERSION`
-(#1325 Option 3, #1326 decision 3), MAJOR/MINOR by add-versus-rename, evolved from the
-component-surface baseline. **The direction is settled; the mechanism is a separate follow-up arc
-and does not exist in code today** — do not stamp a component-contract version or gate against
-one until that arc builds it.
+The component-API surface has its own two versions (#1325, owner decision Q-CC1 A), both in
+`packages/engine/version.ts`. `COMPONENT_CONTRACT_VERSION` covers the **component contract**: each
+def's id and name, status, props (type, required, default, values), states, variant axes and
+values, and slots. `COMPONENT_SCHEMA_VERSION` covers the **component schema**, the shape of one
+published entry. Say "component contract" or "token contract", never a bare "contract".
+
+`npx tsx packages/engine/component-contract.ts --check` fails when a def moves that surface, and
+names each change with its class: a removed or renamed name is MAJOR, an added one MINOR, a moved
+default PATCH (`docs/30` has the full table). A new def is a MINOR. Raise
+`COMPONENT_CONTRACT_VERSION` by that increment in the same PR, then run
+`npx tsx packages/engine/component-contract.ts --accept`, which refuses until the number is high
+enough. Like `CONTRACT_VERSION`, you raise this number yourself; the fold does not assign it.
 
 ## Before you finish
 
