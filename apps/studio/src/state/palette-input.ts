@@ -15,6 +15,7 @@ import { type BrandInput, brandTheme, isReservedPalette, ACHROMATIC_C, hex, oklc
 import { brandState, lastGoodInput, theme } from './store';
 import { commitAtomic, paletteRemovalEffects, removePalette, renamePalette } from './name-refs';
 import { resolvedModes } from './verdict';
+import { must } from '../must';
 
 export const STATUS_ROLES = ['success', 'warning', 'danger', 'info'] as const;
 export type StatusRole = typeof STATUS_ROLES[number];
@@ -27,7 +28,7 @@ export const oklchOf = (h: string): OKLCH => storedOklch(rgbToOklch(hexToRgb(h))
 /** A six-digit hex, with or without its `#`, or null. */
 export const parseHex = (s: string): string | null => {
   const m = /^#?([0-9a-f]{6})$/i.exec(s.trim());
-  return m ? `#${m[1].toLowerCase()}` : null;
+  return m ? `#${must(m[1], 'the hex group').toLowerCase()}` : null;
 };
 
 // ── anchors ─────────────────────────────────────────────────────────────────────────────────────
@@ -102,7 +103,7 @@ export const renameBrandColor = (i: number, raw: string): boolean => {
   if (taken.has(next) || isReservedPalette(next)) return false;
   const prev = bc.name;
   // Atomic (#3697 M1): a rename the engine refuses changes nothing, and the field puts the old name back.
-  return commitAtomic((b) => { b.brandColors![i].name = next; renamePalette(b, prev, next); }) === null;
+  return commitAtomic((b) => { must(b.brandColors?.[i], `brand color ${i}`).name = next; renamePalette(b, prev, next); }) === null;
 };
 /** Remove brand color `i` and run the cascade, atomically (#3697 M1): a removal the engine refuses (a role or a glass
  *  still drawn from the color, held by #3391) returns the engine's message and leaves the brand as it was, byte for

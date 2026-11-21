@@ -4947,6 +4947,21 @@
           "$value": "800ms",
           "$description": "duration primitive — 800ms (literal; the semantic tier names the use)"
         },
+        "900": {
+          "$type": "duration",
+          "$value": "900ms",
+          "$description": "duration primitive — 900ms (literal; the semantic tier names the use)"
+        },
+        "1100": {
+          "$type": "duration",
+          "$value": "1100ms",
+          "$description": "duration primitive — 1100ms (literal; the semantic tier names the use)"
+        },
+        "1300": {
+          "$type": "duration",
+          "$value": "1300ms",
+          "$description": "duration primitive — 1300ms (literal; the semantic tier names the use)"
+        },
         "1600": {
           "$type": "duration",
           "$value": "1600ms",
@@ -4989,6 +5004,21 @@
           "$value": "{wds.motion.duration-ms.800}",
           "$description": "motion duration slower — 800ms (tempo: standard)"
         },
+        "long": {
+          "$type": "duration",
+          "$value": "{wds.motion.duration-ms.900}",
+          "$description": "motion duration long — 900ms (tempo: standard)"
+        },
+        "longer": {
+          "$type": "duration",
+          "$value": "{wds.motion.duration-ms.1100}",
+          "$description": "motion duration longer — 1100ms (tempo: standard)"
+        },
+        "longest": {
+          "$type": "duration",
+          "$value": "{wds.motion.duration-ms.1300}",
+          "$description": "motion duration longest — 1300ms (tempo: standard)"
+        },
         "spin": {
           "$type": "duration",
           "$value": "{wds.motion.duration-ms.800}",
@@ -5030,6 +5060,21 @@
           "$type": "duration",
           "$value": "{wds.motion.duration-ms.0}",
           "$description": "reduce-motion slower — 0ms (eliminated — substitute a cross-fade)"
+        },
+        "long": {
+          "$type": "duration",
+          "$value": "{wds.motion.duration-ms.0}",
+          "$description": "reduce-motion long — 0ms (eliminated — substitute a cross-fade)"
+        },
+        "longer": {
+          "$type": "duration",
+          "$value": "{wds.motion.duration-ms.0}",
+          "$description": "reduce-motion longer — 0ms (eliminated — substitute a cross-fade)"
+        },
+        "longest": {
+          "$type": "duration",
+          "$value": "{wds.motion.duration-ms.0}",
+          "$description": "reduce-motion longest — 0ms (eliminated — substitute a cross-fade)"
         },
         "spin": {
           "$type": "duration",
