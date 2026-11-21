@@ -181,11 +181,20 @@ export const carriedMain = (git: Git, baseRef: string): { mainRef: string; point
  * carry that brings newer `main` commits but no new fold gets null, and its base is the earlier carry's merge: `main`'s
  * commits since then read as the carry's own again. Filed as #4453.
  *
+ * FIRST-PARENT (`opts.firstParent`, #3408 the push-base replay): a caller that reads where a commit LANDED from the
+ * base's first-parent chain, not what the base contains, asks whether that CHAIN holds the commit the fold was made on.
+ * A carried `main` that has taken a carry in holds the fold as an ancestor, through the carry's merge, but its
+ * first-parent chain is the seed snapshot's, so every fragment the seed held reads as landed there. That is the state
+ * `lint-push-base.ts` replays in the carried repo (its `main` is the carry's checkout, a merge into the seed), and the
+ * #4453 state for this one read. In prism3 `main`'s first-parent chain always holds it (`fold.ts` runs on `main`), so
+ * a caller whose base is a `main` (progress-order's: `origin/main`, the push run's HEAD, the merge group's parent) is
+ * exactly as strict as before. Only progress-order passes it; the diff readers keep the ancestry test.
+ *
  * Null too where the fold cannot be found (a shallow checkout, no readable version, no single-parent commit setting
  * it): the caller keeps its base, which fails loud rather than passes. `base` is the commit the gate would compare
  * against; for a push run, HEAD's first parent.
  */
-export const carriedMainBase = (git: Git, base: string): ComparisonBase | null => {
+export const carriedMainBase = (git: Git, base: string, opts: { firstParent?: boolean } = {}): ComparisonBase | null => {
   if (git('rev-parse', '--is-shallow-repository').out.trim() !== 'false') return null;
   const v = /^export const ENGINE_VERSION = '(\d+\.\d+\.\d+)'/m.exec(git('show', 'HEAD:packages/engine/version.ts').out)?.[1];
   if (!v) return null;
@@ -198,7 +207,11 @@ export const carriedMainBase = (git: Git, base: string): ComparisonBase | null =
     if (!sha || parents.length !== 1 || !rec.split('\n').includes(sets)) continue;
     if (!fold || Number(t) < fold.t) fold = { sha, parent: parents[0], t: Number(t) };
   }
-  if (!fold || git('merge-base', '--is-ancestor', fold.parent, base).ok) return null;
+  if (!fold) return null;
+  const holds = opts.firstParent
+    ? git('rev-list', '--first-parent', base).out.split('\n').some((l) => l.trim() === fold!.parent)
+    : git('merge-base', '--is-ancestor', fold.parent, base).ok;
+  if (holds) return null;
   const path = git('rev-list', '--ancestry-path', '--topo-order', '--reverse', '--parents', `${fold.sha}..HEAD`);
   const chain = new Set([fold.sha]);
   const extended = new Set<string>();
