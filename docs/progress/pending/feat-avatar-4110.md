@@ -1,7 +1,7 @@
 ## (2026-11-19) — Avatar: a photo, initials or a glyph, with a presence dot outside the mask (#4110)
 
 Built from the proposal with every owner decision at its recommendation (OD-A1 to OD-A8, all A, 2026-11-19), after
-the wireframe in #4148. Engine {{ENGINE_VERSION}}; `CONTRACT_VERSION` 15.1.0 → 15.2.0.
+the wireframe in #4148. Engine {{ENGINE_VERSION}}; `CONTRACT_VERSION` 15.2.0 → 15.3.0.
 
 ### What landed
 

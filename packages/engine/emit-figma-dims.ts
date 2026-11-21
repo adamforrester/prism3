@@ -543,6 +543,7 @@ export const MOTION_FIGMA_COVERAGE: Record<string, { figma: 'TIMING' | 'EASING' 
   'easing-role': { figma: 'EASING' },
   spring: { figma: 'EASING' },
   transition: { none: 'Figma has no composite variable; a transition is its duration and its easing role, both emitted' },
+  brand: { none: 'the brand-only group (#2857) is custom-typed one-offs with no Figma variable type yet; emitted only for a brand that sets it' },
 };
 
 /** Milliseconds from a DTCG duration `$value` — a `"200ms"` literal or a `{…}` alias to one. */

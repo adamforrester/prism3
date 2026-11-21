@@ -33,6 +33,7 @@ import {
   type DurationsCopy, type TransitionsCopy,
 } from './sections/index';
 import { SG_SURFACES, ground, oppositeOf, palSection, sgContext, type SgRole } from './sections/kit';
+import { must } from '../must';
 
 const PAGE = DOMAINS.find((d) => d.id === 'depth') as PageData;
 /** A lever section's heading and description, from the page data the levers draw them from (Q23). */
@@ -94,7 +95,7 @@ export const mountDepthPreview = (host: HTMLElement, cleanups: (() => void)[]): 
   const paint = (why: 'mount' | 'brand' | 'mode'): void => {
     const all = resolvedModes(theme);
     const rolesByMode = new Map<string, Record<string, SgRole | undefined>>(all.map((x) => [x.mode as string, x.roles as Record<string, SgRole | undefined>]));
-    const cur: string = rolesByMode.has(currentMode) ? currentMode : rp.modes[0];
+    const cur: string = rolesByMode.has(currentMode) ? currentMode : must(rp.modes[0], 'the first mode');
     const c = sgContext({
       rolesByMode, cur, opp: oppositeOf(cur, rp.modes, (m) => rolesByMode.has(m)), namespace: theme.namespace, modeLabel, badges: false,
       paletteHex: (p, s) => theme.palettes.find((x) => x.palette === p)?.steps.find((x) => x.key === s)?.hex ?? null,

@@ -18226,6 +18226,28 @@
             }
           }
         },
+        "1170": {
+          "$type": "duration",
+          "$value": "1170ms",
+          "$description": "duration primitive — 1170ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 1170
+            }
+          }
+        },
+        "1430": {
+          "$type": "duration",
+          "$value": "1430ms",
+          "$description": "duration primitive — 1430ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 1430
+            }
+          }
+        },
         "1600": {
           "$type": "duration",
           "$value": "1600ms",
@@ -18234,6 +18256,17 @@
             "prism3": {
               "generated": true,
               "ms": 1600
+            }
+          }
+        },
+        "1690": {
+          "$type": "duration",
+          "$value": "1690ms",
+          "$description": "duration primitive — 1690ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 1690
             }
           }
         },
@@ -18319,6 +18352,42 @@
               "role": "semantic",
               "aliasOf": "hds.motion.duration-ms.1040",
               "ms": 1040
+            }
+          }
+        },
+        "long": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.1170}",
+          "$description": "motion duration long — 1170ms (tempo: relaxed)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.1170",
+              "ms": 1170
+            }
+          }
+        },
+        "longer": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.1430}",
+          "$description": "motion duration longer — 1430ms (tempo: relaxed)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.1430",
+              "ms": 1430
+            }
+          }
+        },
+        "longest": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.1690}",
+          "$description": "motion duration longest — 1690ms (tempo: relaxed)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.1690",
+              "ms": 1690
             }
           }
         },
@@ -18412,6 +18481,42 @@
           "$type": "duration",
           "$value": "{hds.motion.duration-ms.0}",
           "$description": "reduce-motion slower — 0ms (eliminated — substitute a cross-fade)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.0",
+              "ms": 0
+            }
+          }
+        },
+        "long": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.0}",
+          "$description": "reduce-motion long — 0ms (eliminated — substitute a cross-fade)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.0",
+              "ms": 0
+            }
+          }
+        },
+        "longer": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.0}",
+          "$description": "reduce-motion longer — 0ms (eliminated — substitute a cross-fade)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.motion.duration-ms.0",
+              "ms": 0
+            }
+          }
+        },
+        "longest": {
+          "$type": "duration",
+          "$value": "{hds.motion.duration-ms.0}",
+          "$description": "reduce-motion longest — 0ms (eliminated — substitute a cross-fade)",
           "$extensions": {
             "prism3": {
               "role": "semantic",

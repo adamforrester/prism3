@@ -718,12 +718,21 @@ export const ENGINE_VERSION = '0.239.0';
  * break a reference. Nothing is removed or retyped. It is a step of the scale, not of the density ladder (`scale.ts`).
  */
 /**
- * 15.2.0 (owner OD-A3 A on #4110, 2026-11-19): MINOR. `icon.size.2xl` (64px) joins the guaranteed surface: Avatar's
- * x-large size. Avatar binds the icon ladder at its other four sizes, so the one new step extends that ladder past the
- * control rungs it pairs with (`ICON_PAIRED` in `scale.ts`). One added path; an added path cannot break a reference.
- * Nothing is removed or retyped. The name is held for the owner on the PR (OWNER DECISION OD-A3.1).
+ * 15.2.0 (#2857, owner Q-MP7 option 3, 2026-11-19): MINOR. The semantic duration scale gains three long steps past
+ * `slower`: `motion.duration.{long,longer,longest}` (900, 1100 and 1300ms at the standard tempo, scaled by tempo like
+ * every step) and their `motion.duration-reduced.*` twins (0ms, the reduce-motion rule for every step above 200ms).
+ * Motion presets and components share this one scale. Six added paths; an added path cannot break a reference.
+ * Nothing is removed or retyped. The names and values are DRAFT for the owner. The brand-only group
+ * (`motion.brand.*`) is not on the surface: no corpus member emits it. A MAJOR (#4165 with #1421) is being batched
+ * separately and is not part of this raise.
  */
-export const CONTRACT_VERSION = '15.2.0';
+/**
+ * 15.3.0 (owner OD-A3 A on #4110, 2026-11-19; name OD-A3.1 A, 2026-11-20): MINOR. `icon.size.2xl` (64px) joins the
+ * guaranteed surface: Avatar's x-large size. Avatar binds the icon ladder at its other four sizes, so the one new step
+ * extends that ladder past the control rungs it pairs with (`ICON_PAIRED` in `scale.ts`). One added path; an added path
+ * cannot break a reference. Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '15.3.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

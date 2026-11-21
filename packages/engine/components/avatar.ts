@@ -23,7 +23,7 @@
  *
  * The brief's scale, 20 / 24 / 32 / 40 / 64. The first four bind the icon ladder (`icon.size.sm` … `.xl`), so an
  * avatar fits any icon slot (Button's leading visual names an avatar); x-large binds `icon.size.2xl`, the one token
- * this build mints (CONTRACT 15.2.0). The words are the brief's, so `x-small` is 20px here where Icon's `x-small` is
+ * this build mints (CONTRACT 15.3.0). The words are the brief's, so `x-small` is 20px here where Icon's `x-small` is
  * 16px: an avatar's rungs are named for the avatar, not for the glyph ladder they bind.
  *
  * ── THE PRESENCE DOT (OD-A7 A) ──────────────────────────────────────────────────────────────────

@@ -51,6 +51,7 @@ import { buildAiMetadata } from './ai-metadata';
 import { buildLeverManifest } from './levers';
 import { figmaArtifacts } from './emit-figma';
 import { scoreConsumption, scoreContractCompliance, UsedPair } from './eval';
+import { floorRatio } from './color';
 import { parseDesignMd } from './design-md';
 import { ENGINE_VERSION } from './version';
 import { componentDefsFileNames, exportComponentDefs, toSpecsComponents } from './component-defs-export';
@@ -270,7 +271,8 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'list_levers',
     title: 'List brand controls',
-    description: 'List the complete BrandInput surface an agent can set: the lever catalog (grouped, labeled, typed, with enums, defaults and UI ranges — the same manifest the Figma plugin and web playground render from) PLUS the non-lever fields the manifest does not carry (identity, mode set, and the per-mode override layers). Call this first to learn what theme_brand accepts. Pass `describe` with field names to get those fields\' full schema descriptions instead.',
+    // #4200 E (DRAFT): what it lists, without the history of why the non-lever fields were added.
+    description: 'List every brand field theme_brand accepts: the levers (typed, with enums, defaults and ranges) and the non-lever fields (id, modes, per-mode overrides). Call first. Pass `describe` with field names for those fields\' full schema descriptions instead.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -299,7 +301,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'theme_brand',
     title: 'Generate a design-token system',
-    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 890,000 and 590,000 characters respectively (~370,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first. Each field description in the `brand` schema below is a one-line summary; list_levers with `describe` returns the full text.',
+    description: `Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes, each failure as { role, mode, ratio, against, min }), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via \`include\` because they are large — for a four-mode brand they measure roughly ${PAYLOAD_CHARS.tokens.toLocaleString('en-US')} and ${PAYLOAD_CHARS.aiMetadata.toLocaleString('en-US')} characters respectively (~370,000 tokens combined). Arguments: { brand, include }; the plugin's agent link takes the same object as \`input\`. Call list_levers to see the controls, or validate_brand to check an input first. Each field description in the \`brand\` schema below is a one-line summary; list_levers with \`describe\` returns the full text.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -347,7 +349,7 @@ export const toolDefs = (brandSchema: unknown) => [
       type: 'object',
       properties: {
         consumption: { type: 'object', description: 'total / valid / invented / inventedRate / primitiveLeaks / primitiveLeakRate.' },
-        contracts: { type: 'object', description: 'checked / pass / rate / failures / unresolved — omitted when no pairs were given.' },
+        contracts: { type: 'object', description: 'checked / pass / rate / vacuous / failures / unresolved — omitted when no pairs were given. vacuous is true when no pair resolved in any mode, so rate 1 measured nothing.' },
       },
       required: ['consumption'],
     },
@@ -452,6 +454,9 @@ export const toolDefs = (brandSchema: unknown) => [
  *  did it silently: an agent that never passes `include` gets a themed brand with no indication that
  *  fifteen choices were made for it. Defaults decide what most callers actually see. */
 export const DEFAULT_THEME_SECTIONS = ['notes'];
+/** #4200 D (DRAFT): the two large payloads' size for a four-mode brand, one figure each, stated once. The description and
+ *  the withheld-section hint both read it, and test.ts holds it to ±15% of the measured size. */
+export const PAYLOAD_CHARS = { tokens: 890_000, aiMetadata: 590_000 } as const;
 
 /** Accept both `{ brand, include }` and a bare BrandInput (the pre-wrap calling convention). Detected
  *  by the presence of a `brand` key, which BrandInput itself has no property named. */
@@ -460,6 +465,10 @@ export const readThemeArgs = (args: any): { brand: any; include: string[] } =>
     ? { brand: args.brand, include: Array.isArray(args.include) ? args.include : [...DEFAULT_THEME_SECTIONS] }
     : { brand: args, include: [...DEFAULT_THEME_SECTIONS] };
 
+/** #4200 C (DRAFT): the two failure headers every brand-taking tool uses, one for the shape and one for a value the
+ *  engine refuses, so an agent reads one phrase per kind across the surface. */
+export const FAILS_SCHEMA = 'the brand input fails the schema';
+export const REFUSED_BY_ENGINE = 'the engine refused the brand input';
 /** #4120: the brand a tool was given. `{ brand }` is the shape every brand-taking tool declares; a bare BrandInput
  *  (validate_brand's old shape, which theme_brand also read) is still accepted for one release where `bare` is set. */
 const readBrandArg = (args: any, bare: boolean): unknown =>
@@ -493,7 +502,7 @@ const stampBuild = (built: ReturnType<typeof buildTree>): ReturnType<typeof buil
 };
 const buildBrand = (brand: unknown): { theme: Theme; built: ReturnType<typeof buildTree> } | ToolResult => {
   try { const theme = brandTheme(brand as BrandInput); return { theme, built: stampBuild(buildTree(theme)) }; }
-  catch (e) { return text({ error: 'BrandInput refused by the engine', errors: [(e as Error).message] }, true); }
+  catch (e) { return text({ error: REFUSED_BY_ENGINE, errors: [(e as Error).message] }, true); }
 };
 const refused = (r: ReturnType<typeof buildBrand>): r is ToolResult => 'content' in r;
 
@@ -531,14 +540,18 @@ const scoreInputErrors = (refs: unknown[], pairs: unknown): string[] => {
  *  two can never report a brand differently depending on how it was supplied. */
 const themePayload = (brand: unknown, include: string[]): ToolResult => {
   const errors = validateBrandInput(brand);
-  if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
+  if (errors.length) return text({ error: FAILS_SCHEMA, errors }, true);
   const b = buildBrand(brand);
   if (refused(b)) return b;
   const { theme, built: { tree, modes, stats } } = b;
-  let checks = 0, pass = 0; const failures: string[] = [];
+  // #4200 owner decision 4 (a), 2026-11-19: each failure is data, { role, mode, ratio, against, min }, the fields
+  // the CLI's failure line (#4271) prints, instead of the string `dark.text.secondary 4.39<4.5`. score_consumption's
+  // failures share mode, ratio and min, but key by `pair` and carry no `against`. The ratio is
+  // floored for display, never rounded up onto the floor (#3759).
+  let checks = 0, pass = 0; const failures: { role: string; mode: string; ratio: number; against: string; min: number }[] = [];
   for (const m of modes) for (const [k, r] of Object.entries(m.roles)) {
-    const rr = r as { min: number; ratio: number };
-    if (rr.min > 0) { checks++; if (rr.ratio >= rr.min) pass++; else failures.push(`${m.mode}.${k} ${rr.ratio}<${rr.min}`); }
+    const rr = r as { min: number; ratio: number; against: string };
+    if (rr.min > 0) { checks++; if (rr.ratio >= rr.min) pass++; else failures.push({ role: k, mode: m.mode, ratio: floorRatio(rr.ratio), against: rr.against, min: rr.min }); }
   }
   // The VERIFICATION payload is the default, because that is what "generate and verify" is worth over
   // one call — and because the two omitted sections measure ~1,350,000 characters for a four-mode
@@ -554,8 +567,10 @@ const themePayload = (brand: unknown, include: string[]): ToolResult => {
   if (include.includes('aiMetadata')) out.aiMetadata = buildAiMetadata(theme, tree);
   if (include.includes('notes')) out.notes = theme.notes;
   // Say what was withheld and how to get it — a silently partial result is worse than a big one.
+  // #4200 D (DRAFT): true whether the caller passed `include` or not, with the sizes from the one constant.
   if ((out.omitted as string[]).length) {
-    out.hint = `Withheld by default: ${(out.omitted as string[]).join(', ')}. Re-call with include: [...] to add them (tokens ~850KB, aiMetadata ~500KB for a four-mode brand).`;
+    const size = (k: string): string => (k in PAYLOAD_CHARS ? ` (~${PAYLOAD_CHARS[k as keyof typeof PAYLOAD_CHARS].toLocaleString('en-US')} characters for a four-mode brand)` : '');
+    out.hint = `Not included: ${(out.omitted as string[]).map((k) => k + size(k)).join(', ')}. Add them with include: [...].`;
   }
   return structured(out);
 };
@@ -652,7 +667,7 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     const noBrand = missingBrand('export_theme', brand);
     if (noBrand) return noBrand;
     const errors = validateBrandInput(brand);
-    if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
+    if (errors.length) return text({ error: FAILS_SCHEMA, errors }, true);
     const want = include?.length ? include : [...DEFAULT_EXPORT_SECTIONS];
     const unknown = want.filter((s) => !EXPORT_SECTIONS.includes(s as never));
     if (unknown.length) return text({ error: `unknown include section(s): ${unknown.join(', ')}. Valid: ${EXPORT_SECTIONS.join(', ')}` }, true);
@@ -768,7 +783,7 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     const noBrand = missingBrand('score_consumption', args?.brand);
     if (noBrand) return noBrand;
     const errors = validateBrandInput(args?.brand);
-    if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
+    if (errors.length) return text({ error: FAILS_SCHEMA, errors }, true);
     if (!Array.isArray(args?.refs)) return text({ error: 'score_consumption requires `refs`: an array of token refs' }, true);
     const bad = scoreInputErrors(args.refs, args.pairs);
     if (bad.length) return text({ error: 'score_consumption input failed validation', errors: bad }, true);
@@ -805,7 +820,7 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     return themePayload(brand, include);
   }
 
-  return text({ error: `unknown tool: ${name}` }, true);
+  return text({ error: `Unknown tool: ${name}` }, true);   // #4200 C: one casing, the protocol error's
 };
 
 /** Handle one JSON-RPC message. Returns the response, or `null` for a notification
@@ -892,10 +907,12 @@ if (isMain) {
       if (!line) continue;
       let req: RpcRequest;
       try { req = JSON.parse(line); }
-      catch { send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'parse error' } }); continue; }
+      // #4200 A (DRAFT): the next action, not only the code.
+      catch { send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'parse error: a line on stdin is not JSON; send one JSON-RPC object per line' } }); continue; }
       let res: RpcResponse | null;
       try { res = handleRpc(req, brandSchema, fsIo); }
-      catch (e) { res = { jsonrpc: '2.0', id: req.id ?? null, error: { code: -32603, message: `internal error: ${(e as Error).message}` } }; }
+      // #4200 B (DRAFT): the backstop says the failure is the server's, so the caller does not rewrite a valid input.
+      catch (e) { res = { jsonrpc: '2.0', id: req.id ?? null, error: { code: -32603, message: `${req.method ?? 'the request'} failed inside the server: ${(e as Error).message}. The input may be valid; report it with the request that caused it.` } }; }
       if (res) send(res);
     }
   });
