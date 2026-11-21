@@ -35,12 +35,13 @@ Dropping a default step failed `surface/steps`.
 **Held for the owner** (PR body): the neutral line's color, a complete step without `href` (Figma always draws the
 Link), the Figma page section, the DRAFT copy ("Step name", the four hidden words, "Step 2 of 3: Payment"), the
 DRAFT spacing, the default last step's trailing line (nested overrides take no booleans), StepItem's aliases, the
-`responsive` prop, and the Q438 sentence's reach to orientation (all decided later the same day, below).
+`responsive` prop, and the Q438 sentence's reach to orientation (all decided 2026-11-20, below).
 
 **Owner decisions, 2026-11-20.** All A except the line color, which waited on a comparison render (decided later the same day: option 3, follow-up B): 16 members, the
 `↳ Steps` page, the DRAFT copy and spacing, the trailing line accepted, both aliases and `responsive` kept, and the
-wireframe rule waived for this PR. The summary's Q438 sentence now names orientation as well as size, as DRAFT wording
-("Size and orientation apply to the items you haven't edited …"). `lint-component-docs` ARM F holds it: a host
+wireframe rule waived for this PR. The summary's Q438 sentence now names orientation as well as size, in wording the
+owner approved as built ("Size and orientation apply to the items you haven't edited …"; owner decision 2026-11-20,
+DRAFT copy → A, posted 2026-11-21 01:48Z). `lint-component-docs` ARM F holds it: a host
 whose slot turns with an axis its items also carry (`directionWhen`, found from the anatomy, not listed) must end its
 summary with that sentence, in the def, the JSON and the page.
 
