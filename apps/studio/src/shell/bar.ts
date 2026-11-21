@@ -305,8 +305,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     fi.type = 'file';
     fi.accept = lend.importAccept;
     fi.onchange = () => { const f = fi.files?.[0]; if (f) act.importFile(f); };
-    up.append(glyph('upload'), h('span', undefined, 'Upload .md'), fi);
-    const load = hook(h('button', 'p3-btn p3-btn-primary', 'Load'), 'import-load');
+    up.append(glyph('upload'), h('span', undefined, 'Upload…'), fi);  // #4191 T1 (owner decision 2026-11-19, A): the start window's labels and weight, "Upload…" and the page button "Import".
+    const load = hook(h('button', 'p3-btn p3-btn-page', 'Import'), 'import-load');
     load.type = 'button';
     load.onclick = () => act.importLoad(ta.value);
     row.append(up, load);

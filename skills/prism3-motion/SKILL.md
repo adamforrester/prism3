@@ -90,8 +90,9 @@ effects split.
 
 **R5. Animate transform and opacity.** Position, scale and opacity move without reflowing the
 page. Animate size or layout only where the size change is the information: the accordion panel
-opening, a banner collapsing as it's dismissed, toasts closing ranks. Those run on
-`motion.transition.enter` and `motion.transition.exit` like any other change.
+opening, a banner collapsing as it's dismissed, toasts closing ranks. The accordion panel takes the
+`expand` preset (its recipe below); the others run on `motion.transition.enter` and
+`motion.transition.exit` like any other change.
 *Grounding:* KB `18-motion-foundations`, "May this animate layout?".
 
 **R6. Chrome stays quick.** A state change on a control (hover, press, check, select) takes
@@ -160,11 +161,17 @@ Move focus into the dialog when it opens, without waiting for the enter to finis
 
 | Track | Open | Close |
 |---|---|---|
-| Panel height (the R5 exception) and opacity | `motion.transition.enter` | `motion.transition.exit` |
+| Panel height (the R5 exception) and opacity | the `expand` preset | the `expand` preset |
 | Indicator glyph turn | `motion.transition.default` | `motion.transition.default` |
 
+The panel grows and shrinks where it already is, so it opens and closes on one preset, `expand`, on
+the in-place curve (R2). A preset isn't a token: find `expand` in the `motion_presets` block of the
+brand's `.ai.json`, and bind the `duration`, `easing` and `reduced_duration` it names. A brand can
+move the step it plays on. By default it plays on `motion.duration.normal` with
+`motion.easing-role.default`.
+
 **Reduced:** the height changes at once; the panel's fade stays, on `motion.duration-reduced.normal`
-both ways (R3). The indicator swaps without turning.
+both ways (R3), the `expand` preset's reduced duration. The indicator swaps without turning.
 
 ### Tabs indicator
 
