@@ -140,7 +140,7 @@ The label names the dimension. The value text shows the value with its unit; a r
 | `showMilestones` | boolean | `false` | no | Shows labeled milestones under the track: the minimum and the maximum at its ends, and any values in milestones between them, each under its own position. |
 | `milestones` | Array\<number \| { value: number; label: string }> | — | no | The values labeled under the track when showMilestones is on, such as [500, 1000]. A plain number is formatted like the value text; an object gives its own label. The minimum and the maximum are always labeled. |
 | `showInputs` | boolean | `false` | no | Shows paired number inputs under the track: one for a single value, "Minimum" and "Maximum" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off. |
-| `helpText` | string \| node | — | no | Guidance under the slider, in a field message. |
+| `helpText` | string \| node | — | no | Helper text, read by assistive tech through aria-describedby. Shown under the slider, in a field message. |
 | `showMessage` | boolean | `false` | no | Whether the field message is shown under the slider. Off by default; turn it on to show the help or error text. Never hides a message the slider needs: turn it on wherever there is help text or an error. |
 | `validation` | enum: 'default' \| 'error' | `default` | no | error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider's own value is always in range, so an error comes from a paired input or from validation elsewhere in the form. |
 | `validationMessage` | string | — | no | The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it. |

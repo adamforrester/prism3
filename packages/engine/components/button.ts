@@ -776,7 +776,8 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
       // #2350 (owner Q143) — DRAFT words, for the owner.
       'Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and, at medium and large sizes, extend its hit area to at least 44×44px with a transparent `::before` inset outward and centered on the label, so the target clears 44px while the box stays label-width; extend it the same way to at least 24×24px at small',
-      'Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant',
+      // #4204 (owner decision 2 a) — the one place "inactive" and "disabled" are defined; Counter and Pagination reuse the words. DRAFT.
+      'Use isInactive for a control the user can still unblock, such as Submit on an unfinished form; it stays focusable and says why. Use disabled only when the control doesn\'t apply right now',
       ...sibling.do,
     ],
     implementation: [

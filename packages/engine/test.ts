@@ -45250,6 +45250,50 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
     '#4144 the base + overlay files are the projection of the tree written beside them, as the CLI writes it');
 }
 
+// #4204 (owner decision 1 b, 2026-11-19) — the helper line under a label is one thing under two prop names, `description` on
+// the selection rows and `helpText` on the fields, until the next contract bump unifies them. Both are described by the same
+// lead sentence, typed here, and each def keeps its own guidance after it. The props are found by name across the registry
+// and asserted represented, so a def that adds one joins the arm. Mutation: one prop's lead reworded → this arm, by name.
+{
+  const LEAD = 'Helper text, read by assistive tech through aria-describedby.';
+  const ROWS = ['checkbox-row', 'radio-row', 'switch-row'];
+  const helpers = componentDefs.flatMap((d) => (d.props ?? []).filter((p) => p.name === 'helpText' || (p.name === 'description' && ROWS.includes(d.id))).map((p) => ({ def: d.id, prop: p.name, text: p.description ?? '' })));
+  const off = helpers.filter((h) => !h.text.startsWith(LEAD + ' '));
+  ok(helpers.length >= 12 && ROWS.every((r) => helpers.some((h) => h.def === r && h.prop === 'description')) && off.length === 0,
+    `#4204 the helper-text props open with one sentence: ${helpers.length} of them (${off.map((h) => `${h.def}.${h.prop}: "${h.text.slice(0, 50)}"`).join(' | ') || 'all hold'})`);
+  // Decision 2 a: two words, "inactive" (focusable, aria-disabled) and "disabled", defined once in Button's guidance and
+  // reused. Counter and Pagination.Item said "unavailable" for the same state. Every string the three defs ship is read.
+  const strings = (x: unknown): string[] => typeof x === 'string' ? [x] : Array.isArray(x) ? x.flatMap(strings) : x && typeof x === 'object' ? Object.values(x).flatMap(strings) : [];
+  const three = ['button', 'counter', 'pagination-item'].map((id) => componentDefs.find((d) => d.id === id));
+  const said = three.flatMap((d) => strings(d).filter((t) => /\bunavailable\b/i.test(t)).map((t) => `${d?.id}: "${t.slice(0, 60)}"`));
+  const defined = strings(three[0]?.docs).some((t) => t.startsWith('Use isInactive for a control the user can still unblock'));
+  ok(three.every(Boolean) && said.length === 0 && defined,
+    `#4204 Button defines inactive and disabled, and Counter and Pagination.Item say "inactive", never "unavailable" (${said.join(' | ') || 'none'}; defined ${defined})`);
+  // Owner decision on #4363 (2026-11-20, A): the definition takes a semicolon, as the issue's DRAFT did, not a colon.
+  // The decided line is typed here, not read from the def, and checked in the def and in each emitted Button page.
+  const DECIDED = 'Use isInactive for a control the user can still unblock, such as Submit on an unfinished form; it stays focusable and says why. Use disabled only when the control doesn\'t apply right now';
+  const inDef = strings(three[0]?.docs).includes(DECIDED);
+  const pages = ['button', 'button-neutral', 'button-destructive'].filter((p) => !readFileSync(resolve(HERE, `out/components/${p}.md`), 'utf8').includes(`- ${DECIDED}\n`));
+  ok(inDef && pages.length === 0,
+    `#4204 Button's inactive/disabled definition reads as decided, with the semicolon (def ${inDef}; pages without it: ${pages.join(', ') || 'none'})`);
+  // Review of #4363: "inactive" is the code-side word. A Counter anatomy note that tells the designer which state to set
+  // names the Figma state, so it must be a value on the nested button's exposed state axis, read from the nested def
+  // itself (not a list typed here). Both stepper notes are required to be represented. Mutation: "inactive" put back
+  // in one note → this arm, by name.
+  const nestedStates = Object.entries(counter.anatomy.parts).flatMap(([id, p]) => {
+    const m = /designer's to set: ([\w-]+)/.exec((p as { note?: string }).note ?? '');
+    if (!m) return [];
+    const nest = (p as { nests?: string }).nests;
+    const exposed = (p as { nesting?: { expose?: string[] } }).nesting?.expose ?? [];
+    const axis = componentDefs.find((d) => d.id === nest)?.figmaProperties?.stateAxis;
+    const onAxis = exposed.includes('state') && axis?.name === 'state' && axis.values.includes(m[1]);
+    return [{ id, word: m[1], onAxis, values: axis?.values.join(' | ') ?? `no state axis on ${nest}` }];
+  });
+  const offAxis = nestedStates.filter((n) => !n.onAxis);
+  ok(['decrement', 'increment'].every((id) => nestedStates.some((n) => n.id === id)) && offAxis.length === 0,
+    `#4204 Counter's designer-set button state names a value on the nested button's state axis (${offAxis.map((n) => `${n.id}: "${n.word}" not in ${n.values}`).join('; ') || `${nestedStates.length} hold`})`);
+}
+
 // #1716 — `notes.contested` refuses a decided entry by the verbs decided entries USE, not by four opening words.
 // #1700's check read Settled/Resolved/RESOLVED/CLOSED and broke at colons, so it refused argued prose and passed
 // "Decided: …" and "Chosen: …". The literals below are the issue's own examples, in both directions; the corpus arm

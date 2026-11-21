@@ -85,7 +85,7 @@ export const counter: ComponentDef = {
   status: 'draft',
   summary: 'A whole-number quantity between a minus and a plus button, such as an item count in a bag.',
   description:
-    'A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is unavailable. Outline draws the field\'s edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.',
+    'A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is inactive. Outline draws the field\'s edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.',
 
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'What is counted, such as "Quantity". The accessible name of the value, always present in code; shown above the counter unless hideLabel is set.' },
@@ -96,17 +96,17 @@ export const counter: ComponentDef = {
     { name: 'value', type: 'number', required: false, description: 'Controlled value; pair it with onChange.' },
     { name: 'defaultValue', type: 'number', required: false, description: 'The starting value when the counter manages its own state. Defaults to min.' },
     { name: 'onChange', type: 'function', required: false, description: 'Called with the new number after each step. Never called with a value outside min and max.' },
-    { name: 'min', type: 'number', default: 0, required: false, description: 'The lowest value. At min, the minus button is unavailable.' },
-    { name: 'max', type: 'number', required: false, description: 'The highest value, such as the stock or a per-order limit. At max, the plus button is unavailable. No max means no upper limit.' },
+    { name: 'min', type: 'number', default: 0, required: false, description: 'The lowest value. At min, the minus button is inactive.' },
+    { name: 'max', type: 'number', required: false, description: 'The highest value, such as the stock or a per-order limit. At max, the plus button is inactive. No max means no upper limit.' },
     { name: 'step', type: 'number', default: 1, required: false, description: 'How much one press or one arrow key changes the value.' },
     { name: 'appearance', type: "enum: 'outline' | 'ghost'", values: ['outline', 'ghost'], default: 'outline', required: false, description: 'outline draws the field edge around the row, with the minus and plus glyphs inside it. ghost draws no box, and the minus and plus are light circles at each end.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The row height (36, 44 or 56px), the value type (14, 16 or 18px) and the glyph (20, 20 or 24px). Each button keeps a hit area of at least 44×44px in code at every size.' },
-    { name: 'helpText', type: 'string | node', required: false, description: 'Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value\'s description.' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Helper text, read by assistive tech through aria-describedby. Shown under the counter, such as the reason for a limit ("Limit 5 per order").' },
     { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Shows the help text below the counter. Off by default.' },
     { name: 'decrementLabel', type: 'string', required: false, description: 'The minus button\'s accessible name. Defaults to "Decrease" followed by the label, such as "Decrease quantity". In a list of line items, include the item: "Decrease quantity, Trail runner".' },
     { name: 'incrementLabel', type: 'string', required: false, description: 'The plus button\'s accessible name. Defaults to "Increase" followed by the label. In a list of line items, include the item.' },
     { name: 'name', type: 'string', required: false, description: 'The form field name: a hidden input carries the value when the counter sits in a form.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole counter: the value leaves the Tab order and both buttons are unavailable.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole counter: the value leaves the Tab order and both buttons are disabled.' },
   ],
 
   states: ['rest', 'focus-visible', 'disabled'],
@@ -217,7 +217,7 @@ export const counter: ComponentDef = {
       decrement: {
         ...stepper,
         overrides: { swaps: { icon: 'minus' } },
-        note: 'The minus button, at the leading edge. Flush glyph on outline, a light circle on ghost. Its state is the designer\'s to set: unavailable at the minimum.',
+        note: 'The minus button, at the leading edge. Flush glyph on outline, a light circle on ghost. Its state is the designer\'s to set: disabled at the minimum.',
       },
       entry: {
         kind: 'box',
@@ -238,7 +238,7 @@ export const counter: ComponentDef = {
       increment: {
         ...stepper,
         overrides: { swaps: { icon: 'plus' } },
-        note: 'The plus button, at the trailing edge. Flush glyph on outline, a light circle on ghost. Its state is the designer\'s to set: unavailable at the maximum.',
+        note: 'The plus button, at the trailing edge. Flush glyph on outline, a light circle on ghost. Its state is the designer\'s to set: disabled at the maximum.',
       },
       focusRing: {
         kind: 'absolute',
@@ -361,7 +361,7 @@ export const counter: ComponentDef = {
     do: [
       'Set max when stock or a per-order limit exists, and state the limit in the message',
       'Name the buttons for the item in a list of line items ("Increase quantity, Trail runner")',
-      'Show a button at its limit as unavailable rather than hiding it, so the row does not move',
+      'Show a button at its limit as inactive rather than hiding it, so the row does not move',
     ],
     implementation: [
       'Leave each button its 44×44px hit area in code, at least 44px apart center to center',

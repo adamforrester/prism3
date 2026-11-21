@@ -9,7 +9,7 @@
 
 ## Overview
 
-A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is unavailable. Outline draws the field's edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.
+A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is inactive. Outline draws the field's edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.
 
 - **Purpose:** Set a small whole-number quantity with a minus and a plus button around the displayed value.
 - **Use when:** An item count on a product card or a bag line, a number of guests or tickets: a small count, usually changed by one, with a known minimum and often a maximum.
@@ -22,10 +22,10 @@ Shown on the default member: appearance `outline`, size `medium`.
 1. **Container** — The stack: an optional label above the row and an optional message below it. It hugs the row.
 2. **Label** (optional) — What is counted, such as "Quantity". Its label text, required marker, emphasis and weight surface on the Counter. Hidden by default: the label is always the value's accessible name, and shown only where nothing around the counter says what it counts.
 3. **Control** — The row: the minus button, the value and the plus button. Outline draws the field's fill and edge with the glyphs 12px inside it (16px at large); ghost draws nothing, and the round buttons are its ends.
-4. **Decrement** — The minus button, at the leading edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: unavailable at the minimum.
+4. **Decrement** — The minus button, at the leading edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: disabled at the minimum.
 5. **Entry** — The value, centered between the buttons and at least 32px wide, so the buttons hold still as the count reaches two digits.
 6. **Value** — The number, in the field's body type.
-7. **Increment** — The plus button, at the trailing edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: unavailable at the maximum.
+7. **Increment** — The plus button, at the trailing edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: disabled at the maximum.
 8. **Focus ring** — The shared focus ring on ghost, 2px outside the round buttons, while the value has keyboard focus. Outline draws no ring: its edge becomes the 2px focus edge.
 9. **Message** (optional) — An optional line below the row, such as the reason for a limit. Off by default.
 
@@ -50,7 +50,7 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 
 - Set max when stock or a per-order limit exists, and state the limit in the message
 - Name the buttons for the item in a list of line items ("Increase quantity, Trail runner")
-- Show a button at its limit as unavailable rather than hiding it, so the row does not move
+- Show a button at its limit as inactive rather than hiding it, so the row does not move
 
 ### Don't
 
@@ -113,17 +113,17 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 | `value` | number | — | no | Controlled value; pair it with onChange. |
 | `defaultValue` | number | — | no | The starting value when the counter manages its own state. Defaults to min. |
 | `onChange` | function | — | no | Called with the new number after each step. Never called with a value outside min and max. |
-| `min` | number | `0` | no | The lowest value. At min, the minus button is unavailable. |
-| `max` | number | — | no | The highest value, such as the stock or a per-order limit. At max, the plus button is unavailable. No max means no upper limit. |
+| `min` | number | `0` | no | The lowest value. At min, the minus button is inactive. |
+| `max` | number | — | no | The highest value, such as the stock or a per-order limit. At max, the plus button is inactive. No max means no upper limit. |
 | `step` | number | `1` | no | How much one press or one arrow key changes the value. |
 | `appearance` | enum: 'outline' \| 'ghost' | `outline` | no | outline draws the field edge around the row, with the minus and plus glyphs inside it. ghost draws no box, and the minus and plus are light circles at each end. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The row height (36, 44 or 56px), the value type (14, 16 or 18px) and the glyph (20, 20 or 24px). Each button keeps a hit area of at least 44×44px in code at every size. |
-| `helpText` | string \| node | — | no | Text below the counter, such as the reason for a limit ("Limit 5 per order"). Added to the value's description. |
+| `helpText` | string \| node | — | no | Helper text, read by assistive tech through aria-describedby. Shown under the counter, such as the reason for a limit ("Limit 5 per order"). |
 | `showMessage` | boolean | `false` | no | Shows the help text below the counter. Off by default. |
 | `decrementLabel` | string | — | no | The minus button's accessible name. Defaults to "Decrease" followed by the label, such as "Decrease quantity". In a list of line items, include the item: "Decrease quantity, Trail runner". |
 | `incrementLabel` | string | — | no | The plus button's accessible name. Defaults to "Increase" followed by the label. In a list of line items, include the item. |
 | `name` | string | — | no | The form field name: a hidden input carries the value when the counter sits in a form. |
-| `disabled` | boolean | `false` | no | Disables the whole counter: the value leaves the Tab order and both buttons are unavailable. |
+| `disabled` | boolean | `false` | no | Disables the whole counter: the value leaves the Tab order and both buttons are disabled. |
 
 ## Specs
 

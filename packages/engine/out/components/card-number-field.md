@@ -118,7 +118,7 @@ Label = "Card number", sentence case, no trailing colon. Placeholder = a format 
 | `defaultValue` | string | — | no | Uncontrolled initial value, digits only. |
 | `onChange` | function | — | no | Change handler (also onBlur / onFocus). Receives the digits without the group spaces. |
 | `placeholder` | string | — | no | A format example only, such as "1234 1234 1234 1234". It vanishes on input and never replaces the label. |
-| `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby, such as "The card type shows when you start typing." |
+| `helpText` | string \| node | — | no | Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status, such as "The card type shows when you start typing." |
 | `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. A number that fails the checksum is a warning, not an error, because some valid cards fail it. The tile never takes the status color. |
 | `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it, such as "Enter the card number." |
 | `showMessage` | boolean | `false` | no | Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message. Never hides a message the field needs. |

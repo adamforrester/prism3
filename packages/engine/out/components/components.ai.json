@@ -968,7 +968,7 @@
           "Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing",
           "Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
           "Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and, at medium and large sizes, extend its hit area to at least 44×44px with a transparent `::before` inset outward and centered on the label, so the target clears 44px while the box stays label-width; extend it the same way to at least 24×24px at small",
-          "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant"
+          "Use isInactive for a control the user can still unblock, such as Submit on an unfinished form; it stays focusable and says why. Use disabled only when the control doesn't apply right now"
         ],
         "dont": [
           "Set `inset=flush` on a filled or outline button — their visible edge needs its padding; flush is for `appearance=text`",
@@ -1298,7 +1298,7 @@
           "Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing",
           "Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
           "Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and, at medium and large sizes, extend its hit area to at least 44×44px with a transparent `::before` inset outward and centered on the label, so the target clears 44px while the box stays label-width; extend it the same way to at least 24×24px at small",
-          "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant",
+          "Use isInactive for a control the user can still unblock, such as Submit on an unfinished form; it stays focusable and says why. Use disabled only when the control doesn't apply right now",
           "Place it beside a neutral escape (\"Cancel\" / \"Keep\"), never alone; on a delete confirmation the safe choice is often the filled button and the destructive action sits at a lower appearance beside it"
         ],
         "dont": [
@@ -1628,7 +1628,7 @@
           "Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing",
           "Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
           "Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and, at medium and large sizes, extend its hit area to at least 44×44px with a transparent `::before` inset outward and centered on the label, so the target clears 44px while the box stays label-width; extend it the same way to at least 24×24px at small",
-          "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant"
+          "Use isInactive for a control the user can still unblock, such as Submit on an unfinished form; it stays focusable and says why. Use disabled only when the control doesn't apply right now"
         ],
         "dont": [
           "Set `inset=flush` on a filled or outline button — their visible edge needs its padding; flush is for `appearance=text`",
@@ -4075,7 +4075,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format before failure."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status. Show the format before failure."
         },
         {
           "name": "validation",
@@ -4425,7 +4425,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format and any length limit before failure. The same prop as TextField's."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status. Show the format and any length limit before failure. The same prop as TextField's."
         },
         {
           "name": "showMessage",
@@ -4963,7 +4963,7 @@
           "name": "description",
           "type": "node",
           "required": false,
-          "description": "Optional helper beneath the label, describedby-wired — the detail that qualifies the choice without lengthening the label."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the label: the detail that qualifies the choice without lengthening the label."
         },
         {
           "name": "onChange",
@@ -5618,7 +5618,7 @@
           "name": "description",
           "type": "node",
           "required": false,
-          "description": "Per-option helper beneath the label, describedby-wired. This is where the detail that makes an option distinguishable goes — the price, the delivery estimate, the caveat."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the label: the detail that makes an option distinguishable — the price, the delivery estimate, the caveat."
         },
         {
           "name": "validation",
@@ -6280,7 +6280,7 @@
           "name": "description",
           "type": "node",
           "required": false,
-          "description": "Helper beneath the label, describedby-wired. Where the consequence of the setting goes — what turning it on will actually do."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the label: the consequence of the setting, what turning it on does."
         },
         {
           "name": "labelPosition",
@@ -6554,7 +6554,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as the nested FieldMessage in its default status. Show the constraint before failure."
         },
         {
           "name": "validation",
@@ -10629,7 +10629,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. State the rules for a new password here, before the user types."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status. State the rules for a new password here, before the user types."
         },
         {
           "name": "validation",
@@ -11679,7 +11679,7 @@
       "category": "form",
       "status": "draft",
       "summary": "A whole-number quantity between a minus and a plus button, such as an item count in a bag.",
-      "description": "A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is unavailable. Outline draws the field's edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.",
+      "description": "A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is inactive. Outline draws the field's edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.",
       "props": [
         {
           "name": "label",
@@ -11717,13 +11717,13 @@
           "type": "number",
           "default": 0,
           "required": false,
-          "description": "The lowest value. At min, the minus button is unavailable."
+          "description": "The lowest value. At min, the minus button is inactive."
         },
         {
           "name": "max",
           "type": "number",
           "required": false,
-          "description": "The highest value, such as the stock or a per-order limit. At max, the plus button is unavailable. No max means no upper limit."
+          "description": "The highest value, such as the stock or a per-order limit. At max, the plus button is inactive. No max means no upper limit."
         },
         {
           "name": "step",
@@ -11759,7 +11759,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Text below the counter, such as the reason for a limit (\"Limit 5 per order\"). Added to the value's description."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the counter, such as the reason for a limit (\"Limit 5 per order\")."
         },
         {
           "name": "showMessage",
@@ -11791,7 +11791,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Disables the whole counter: the value leaves the Tab order and both buttons are unavailable."
+          "description": "Disables the whole counter: the value leaves the Tab order and both buttons are disabled."
         }
       ],
       "states": [
@@ -11839,7 +11839,7 @@
         "do": [
           "Set max when stock or a per-order limit exists, and state the limit in the message",
           "Name the buttons for the item in a list of line items (\"Increase quantity, Trail runner\")",
-          "Show a button at its limit as unavailable rather than hiding it, so the row does not move"
+          "Show a button at its limit as inactive rather than hiding it, so the row does not move"
         ],
         "dont": [
           "Use it for a large or precise number, such as a price or a measurement; use a number input",
@@ -12845,7 +12845,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. Off by default in most searches."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status. Off by default in most searches."
         },
         {
           "name": "validation",
@@ -13167,7 +13167,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby, such as \"The card type shows when you start typing.\""
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status, such as \"The card type shows when you start typing.\""
         },
         {
           "name": "validation",
@@ -14048,7 +14048,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Guidance under the slider, in a field message."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the slider, in a field message."
         },
         {
           "name": "showMessage",
@@ -14536,7 +14536,7 @@
           "name": "helpText",
           "type": "string | node",
           "required": false,
-          "description": "Persistent guidance (rendered as FieldMessage): how many characters and where the code was sent."
+          "description": "Helper text, read by assistive tech through aria-describedby. Shown under the cells as a FieldMessage: how many characters and where the code was sent."
         },
         {
           "name": "validation",

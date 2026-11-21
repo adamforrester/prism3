@@ -117,7 +117,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 | `defaultValue` | string | — | no | Uncontrolled initial value. |
 | `onChange` | function | — | no | Change handler (also onBlur / onFocus). |
 | `placeholder` | string | — | no | An example only; vanishes on input. The password rules belong in helper text or a list under the field, never here. |
-| `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. State the rules for a new password here, before the user types. |
+| `helpText` | string \| node | — | no | Helper text, read by assistive tech through aria-describedby. Shown under the field as a FieldMessage in its default status. State the rules for a new password here, before the user types. |
 | `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. The Show/Hide button never takes the status color. |
 | `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3). |
 | `showMessage` | boolean | `false` | no | Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message. Never hides a message the field needs. |
