@@ -12,7 +12,7 @@
     "used": 290,
     "unusedSemantic": 261,
     "unusedPrimitive": 280,
-    "components": 64
+    "components": 65
   },
   "tokens": {
     "border-width.hairline": {
@@ -11251,6 +11251,49 @@
               "where": {}
             }
           }
+        },
+        "tooltip": {
+          "keys": [
+            "fill"
+          ],
+          "parts": {
+            "bottomGlyph": {
+              "members": 1,
+              "where": {
+                "placement": [
+                  "bottom"
+                ]
+              }
+            },
+            "bubble": {
+              "members": 4,
+              "where": {}
+            },
+            "endGlyph": {
+              "members": 1,
+              "where": {
+                "placement": [
+                  "end"
+                ]
+              }
+            },
+            "startGlyph": {
+              "members": 1,
+              "where": {
+                "placement": [
+                  "start"
+                ]
+              }
+            },
+            "topGlyph": {
+              "members": 1,
+              "where": {
+                "placement": [
+                  "top"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -15271,6 +15314,17 @@
           "parts": {
             "message": {
               "members": 2,
+              "where": {}
+            }
+          }
+        },
+        "tooltip": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
               "where": {}
             }
           }
@@ -21617,6 +21671,17 @@
             }
           }
         },
+        "tooltip": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "bubble": {
+              "members": 4,
+              "where": {}
+            }
+          }
+        },
         "wallet-button": {
           "keys": [
             "radius"
@@ -24306,6 +24371,17 @@
               "where": {}
             }
           }
+        },
+        "tooltip": {
+          "keys": [
+            "pad-y"
+          ],
+          "parts": {
+            "bubble": {
+              "members": 4,
+              "where": {}
+            }
+          }
         }
       }
     },
@@ -25337,6 +25413,17 @@
           "parts": {
             "container": {
               "members": 2,
+              "where": {}
+            }
+          }
+        },
+        "tooltip": {
+          "keys": [
+            "pad-x"
+          ],
+          "parts": {
+            "bubble": {
+              "members": 4,
               "where": {}
             }
           }
@@ -28158,6 +28245,17 @@
           "parts": {
             "message": {
               "members": 2,
+              "where": {}
+            }
+          }
+        },
+        "tooltip": {
+          "keys": [
+            "type"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
               "where": {}
             }
           }
@@ -33593,6 +33691,27 @@
         "space.200",
         "type.body.sm.default",
         "type.body.sm.line-box"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "tooltip": {
+      "members": 4,
+      "axes": {
+        "placement": [
+          "bottom",
+          "end",
+          "start",
+          "top"
+        ]
+      },
+      "tokens": [
+        "color.inverse.background.primary",
+        "color.inverse.text.primary",
+        "radius.md",
+        "space.050",
+        "space.100",
+        "type.body.sm.default"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []

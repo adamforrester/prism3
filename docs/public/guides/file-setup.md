@@ -16,7 +16,7 @@ Setting up again is safe: it adds only what is missing, matched by name. <!-- sr
 
 ## The pages it creates
 
-The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxonomy.ts:1-17#54450f84 --> <!-- src: apps/plugin/src/file-taxonomy.ts:77-204#6703fbdb -->
+The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxonomy.ts:1-17#54450f84 --> <!-- src: apps/plugin/src/file-taxonomy.ts:77-207#27b35523 -->
 
 - `Cover`
 - A divider, then `Foundations`, with `↳ Primitive tokens`, `↳ Semantic tokens` and `↳ Grids & layouts`
@@ -26,7 +26,7 @@ The file's page list ends up in this order: <!-- src: apps/plugin/src/file-taxon
 
 The dividers are Figma's own `---` divider pages. <!-- src: apps/plugin/test-update-apply.ts:491-492 --> The section pages (Foundations, Components, Subcomponents, Sandbox) are empty headers in the page list. <!-- src: apps/plugin/src/file-taxonomy.ts:4-5#53a54c27 -->
 
-Component pages are not created here. Each component page, such as `↳ Buttons` or `↳ Checkbox`, appears the first time a set for it is added, so a file never holds empty component pages. <!-- src: apps/plugin/src/file-taxonomy.ts:99-105 --> `↳ Icons & assets`, under Foundations, appears the same way. <!-- src: apps/plugin/src/file-taxonomy.ts:87 --> Pages under Components and Subcomponents sit in alphabetical order. <!-- src: apps/plugin/src/file-taxonomy.ts:94#9c677188 --> <!-- src: apps/plugin/src/file-taxonomy.ts:186#9c677188 -->
+Component pages are not created here. Each component page, such as `↳ Buttons` or `↳ Checkbox`, appears the first time a set for it is added, so a file never holds empty component pages. <!-- src: apps/plugin/src/file-taxonomy.ts:99-105 --> `↳ Icons & assets`, under Foundations, appears the same way. <!-- src: apps/plugin/src/file-taxonomy.ts:87 --> Pages under Components and Subcomponents sit in alphabetical order. <!-- src: apps/plugin/src/file-taxonomy.ts:94#9c677188 --> <!-- src: apps/plugin/src/file-taxonomy.ts:189#9c677188 -->
 
 When the cover is on in Docs, setup also draws the library cover on the `Cover` page, with the brand's name and the Prism3 version. <!-- src: apps/studio/src/shell/documentation.ts:67-69 -->
 A file with no brand yet gets its cover once the theme is written. <!-- src: apps/plugin/src/cover-frame.ts:553#963de7ae -->
@@ -35,7 +35,7 @@ A file with no brand yet gets its cover once the theme is written. <!-- src: app
 
 ## The helper components
 
-On `↳ File Components`, setup builds the components the plugin draws page furniture, usage panels and style guides with. All but `_Doc-block` are built on any file; `_Doc-block` needs other sets first (below). <!-- src: apps/plugin/src/file-taxonomy.ts:204 -->
+On `↳ File Components`, setup builds the components the plugin draws page furniture, usage panels and style guides with. All but `_Doc-block` are built on any file; `_Doc-block` needs other sets first (below). <!-- src: apps/plugin/src/file-taxonomy.ts:207 -->
 
 | Component | What it is for |
 |---|---|

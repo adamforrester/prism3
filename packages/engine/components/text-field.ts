@@ -880,7 +880,7 @@ export const textField: ComponentDef = makeTextField({
     primaryPurpose: 'Capture a single line of free-form, non-enumerable text with an associated label and helper/validation message.',
     whenToUse: 'Names, emails, titles, SKUs, identifiers, short queries — any single-line text the system cannot offer as a fixed set.',
     avoidWhen: 'The value comes from a known set (Select, Radio.Group, or a combobox), spans multiple lines (Textarea), is numeric-formatted (a number field), is boolean (Checkbox.Row or Switch.Row), is a date (a date picker), or needs suggestions (a combobox — the moment a suggestion list attaches you are in combobox territory with a different ARIA contract).',
-    commonPartners: ['field-label', 'field-message', 'icon', 'button', 'spinner'],
+    commonPartners: ['field-label', 'field-message', 'icon', 'button', 'spinner', 'tooltip'],
     triggerKeywords: ['text field', 'text input', 'input', 'form field', 'textbox', 'email field', 'search field'],
     generationPriority: 2,
   },
@@ -891,7 +891,7 @@ export const textField: ComponentDef = makeTextField({
     composesWith: ['field-label', 'field-message'],
     alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row', 'password-field', 'search-field', 'counter', 'card-number-field', 'slider', 'code-input'],
     replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', '`type=number` for formatted numeric'],
-    planned: ['form', 'tooltip', 'combobox', 'number-field', 'date-picker'],
+    planned: ['form', 'combobox', 'number-field', 'date-picker'],
   },
 
   // KB text-field brief §8.

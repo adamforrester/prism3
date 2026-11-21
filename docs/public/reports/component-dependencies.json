@@ -3028,6 +3028,13 @@
       "affectedByChange": [],
       "inheritedBy": []
     },
+    "tooltip": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "veil": {
       "nests": [],
       "nestsTransitively": [],
@@ -3112,6 +3119,7 @@
     "text-field": 1,
     "textarea": 1,
     "toast": 2,
+    "tooltip": 0,
     "veil": 0,
     "wallet-button": 1
   }

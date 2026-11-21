@@ -1013,8 +1013,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'Where a layer sits over the page (#2609, owner decision Q303.1): centered, attached to the bottom edge as a bottom '
       + 'sheet, filling a small screen, or attached to the end edge as a side sheet (#2877, Q483 A, named `end` by Q488 A: '
       + 'the writing direction\'s end, so it mirrors in right-to-left text and a `start` can join it with no rename). `center` LEADS because it is the code '
-      + 'default on every screen and Figma\'s default member. Canonical since Popover joined the axis with its one '
-      + 'side (#4008), described against this set. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+      + 'default on every screen and Figma\'s default member. Canonical since Popover\'s one side (#4008) and Tooltip\'s side '
+      + 'placement (#4009) joined the axis, each described against this set. Distinct from `alignment` and `direction`, '
+      + 'argued in `VARIANT_AXES`.',
   },
   {
     axis: 'placement',
@@ -1026,6 +1027,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'where a layer sits, and its `bottom` means the same edge. Code takes top, bottom, start or end; with no arrow the '
       + 'panel draws the same on every side, so the set is one member at the default side, and a one-value axis is how '
       + 'the engine projects one member (owner decision 1 on #4252, 2026-11-19). Same vocabulary, shorter.',
+  },
+  {
+    axis: 'placement',
+    values: ['top', 'bottom', 'start', 'end'],
+    defs: ['tooltip'],
+    relation: 'overlapping',
+    reason:
+      'Which side of its trigger a tooltip sits on (#4009, owner OD-X2 A): above, below, at the start or at the end, in '
+      + 'writing-direction terms, so `start` and `end` swap sides in right-to-left text with no rename. `top` LEADS because '
+      + 'it is the code default and Figma\'s default member. OVERLAPPING with Dialog\'s canonical set by design: both use '
+      + '`end` for the writing direction\'s end edge (Q488 A) and `bottom` for the bottom edge, and each adds what its layer '
+      + 'needs. A dialog is placed against the viewport (centered, or full screen), a tooltip against its trigger, which is '
+      + 'why it has `top` and `start` and no `center` or `full`. The two words they share mean the same edge.',
   },
   {
     axis: 'kind',

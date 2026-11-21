@@ -111,6 +111,7 @@ const OUTSIDE_REASON: Record<string, string> = {
   'segmented-control': 'not a button, field or checkbox',
   'dialog': 'a surface',
   'toast': 'a surface',
+  'tooltip': 'a surface',
   'banner': 'a surface',
   'popover': 'a surface',
   'pagination-item': 'a pagination cell, not a button',

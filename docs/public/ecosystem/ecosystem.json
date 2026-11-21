@@ -343,7 +343,8 @@
           "code-input",
           "page-nav-item",
           "page-nav",
-          "popover"
+          "popover",
+          "tooltip"
         ]
       }
     },

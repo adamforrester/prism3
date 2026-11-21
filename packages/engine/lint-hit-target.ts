@@ -348,6 +348,7 @@ const EXCLUDED: Record<string, string> = {
   'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#2609, Q385 A)',
   'popover': 'a non-modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#4008)',
   'toast': 'a status message over the page, never itself a pointer target: its action and close button are a Button and a FlushIconButton.Neutral, each measured under its own name; the small close button\'s 44×44 hit area is extended in code, as IconButton records (#2668)',
+  'tooltip': 'a label shown on hover and focus, never itself a pointer target: it takes no focus and holds nothing interactive, and its trigger is measured under its own name (#4009)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
   'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
   '_accordion-indicator': 'a decorative glyph inside an Accordion header; the tap target is the header row, gated as accordion',

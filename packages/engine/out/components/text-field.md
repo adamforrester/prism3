@@ -93,7 +93,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 
 - **Built from:** `field-label`, `field-message`
 - **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`, `search-field`, `counter`, `card-number-field`, `slider`, `code-input`
-- **Often used with:** `icon`, `button`, `spinner`
+- **Often used with:** `icon`, `button`, `spinner`, `tooltip`
 - **Replaces:**
   - bare input without label wiring
   - placeholder-as-label

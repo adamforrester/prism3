@@ -1,0 +1,4 @@
+---
+engine: minor
+---
+Tooltip joins the component catalog (#4009, owner Q-FL2): a short label or description on the inverse surface, shown on hover and keyboard focus, never focusable. One `placement` axis (`top | bottom | start | end`, logical sides) projects 4 members; an `arrow` toggle (on by default) shows the arrow on the side facing the trigger, drawn as four new component-owned glyphs (`tooltip-arrow-*`, built at 8px). On an icon-only control the tooltip is the control's name (label mode). The max width (240px), the offset, the show and hide timing, positioning and motion are stated for code. Button, IconButton and TextField list Tooltip as a partner, FieldMessage as an alternative, and IconButton's usage names it, where each had listed it as planned. Popover and Tooltip name each other as alternatives. The prism3-build-ui skill's worked example of a missing component moves from Tooltip to Menu.

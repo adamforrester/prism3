@@ -164,6 +164,9 @@ export const TAXONOMY: Taxonomy = {
         // Toast (#2668, owner call 12 A) — its own page under Components, sorted alphabetically (Q260 A). It nests the
         // Button and the FlushIconButton.Neutral, which the build places first wherever their pages sort.
         { page: 'Toast', defs: ['toast'] },
+        // Tooltip (#4009) — its own page under Components, sorted alphabetically (Q260 A). It nests nothing. Its own page is
+        // owner decision OD-TB3 A (2026-11-19).
+        { page: 'Tooltip', defs: ['tooltip'] },
         // Counter (#2427, owner decision Q283.14 A) — its own page, alphabetical under Components (between Checkbox and
         // Divider). It nests FlushIconButton.Neutral, whose page is under Subcomponents.
         { page: 'Counter', defs: ['counter'] },

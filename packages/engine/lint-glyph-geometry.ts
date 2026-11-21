@@ -140,6 +140,8 @@ const MUST_COVER = [
   'progress.ringGlyph', 'progress.arcGlyph', 'progress.fullRingGlyph', 'progress.dotGlyph',
   'banner.infoGlyph', 'banner.successGlyph', 'banner.warningGlyph', 'banner.dangerGlyph',
   'toast.successGlyph',
+  // Tooltip's arrows (#4009), measured by the ARROW_GLYPH arm.
+  'tooltip.topGlyph', 'tooltip.bottomGlyph', 'tooltip.startGlyph', 'tooltip.endGlyph',
   '_breadcrumb-separator.chevronGlyph', '_breadcrumb-separator.slashGlyph', 'breadcrumbs.backGlyph',
   // The provider logos (#2343), measured by the MARK arm against their own artboards.
   'provider-logo.glyph',
@@ -224,6 +226,28 @@ const RING_BAND_PX: Record<string, number> = { small: 3, medium: 4 };
 const RING_VAR_PX: Record<string, number> = { 'icon/size/md': 24, 'icon/size/xl': 40, 'border-width/heavy': 4 };
 /** The stop dot's square in px (owner call 5: a 4px dot). */
 const STOP_PX = 4;
+
+/**
+ * TOOLTIP'S ARROW (#4009, OD-T6: an 8-unit arrow; OD-TB2 A, decided 2026-11-19: a right-angled tip half the base deep) — four
+ * component-owned glyphs of ONE filled triangle each, measured here against numbers typed in this file and never read
+ * from `component-glyphs.ts`, which is the subject:
+ *
+ *   · each arrow is built at a literal 8px square (`ARROW_PX`, `glyphPx`), binding no variable;
+ *   · its outline is exactly three corners: the two ends of the artboard edge that faces the bubble, and the tip at the
+ *     middle of the artboard, `ARROW_DEPTH` in from that edge, so the triangle points at the trigger;
+ *   · `points` is the side the tip faces, read from the placement: under a top bubble it points down;
+ *   · one arrow per member, at its own placement (`at`), compared with the def's `presentWhen` by value.
+ */
+const ARROW_GLYPH: Record<string, { glyph: string; points: 'down' | 'up' | 'left' | 'right'; at: Record<string, readonly string[]>; why: string }> = {
+  'tooltip.topGlyph': { glyph: 'tooltip-arrow-down', points: 'down', at: { placement: ['top'] }, why: 'under a bubble placed above its trigger, pointing down at it' },
+  'tooltip.bottomGlyph': { glyph: 'tooltip-arrow-up', points: 'up', at: { placement: ['bottom'] }, why: 'over a bubble placed below its trigger, pointing up at it' },
+  'tooltip.startGlyph': { glyph: 'tooltip-arrow-end', points: 'right', at: { placement: ['start'] }, why: 'at the end side of a bubble placed at the trigger\'s start, pointing at it (drawn left to right; code mirrors it)' },
+  'tooltip.endGlyph': { glyph: 'tooltip-arrow-start', points: 'left', at: { placement: ['end'] }, why: 'at the start side of a bubble placed at the trigger\'s end, pointing at it (drawn left to right; code mirrors it)' },
+};
+/** The arrow's square in px (OD-T6). */
+const ARROW_PX = 8;
+/** How far the tip sits in from the bubble's edge, in 24-unit artboard units: half the base (OD-TB2 A). */
+const ARROW_DEPTH = 12;
 
 /** The icon ladder in px, per rung variable — the owner's 16 / 20 / 24 / 32. */
 const RUNG_PX: Record<string, number> = { 'icon/size/xs': 16, 'icon/size/sm': 20, 'icon/size/md': 24, 'icon/size/lg': 32 };
@@ -846,6 +870,47 @@ for (const def of componentDefs as ComponentDef[]) {
       }
       continue;
     }
+    // TOOLTIP'S ARROWS (#4009), measured by their own arm against `ARROW_GLYPH` above.
+    const arrowRec = ARROW_GLYPH[key];
+    if (arrowRec) {
+      covered.add(key);
+      if (part.glyph !== arrowRec.glyph) { failures.push(`${def.id}.${partName}: the def draws glyph '${part.glyph ?? '(none)'}' and ARROW_GLYPH records '${arrowRec.glyph}'. One of the two moved.`); continue; }
+      if (!sameGate(arrowRec.at, (part.presentWhen ?? {}) as Record<string, readonly string[]>)) { failures.push(`${def.id}.${partName}: the def draws at ${JSON.stringify(part.presentWhen ?? {})} and ARROW_GLYPH records ${JSON.stringify(arrowRec.at)}. One of the two moved.`); continue; }
+      const W = vb.w, M = W / 2;
+      const want: Record<string, string[]> = {
+        down: [`0,0`, `${W},0`, `${M},${ARROW_DEPTH}`],
+        up: [`0,${W}`, `${W},${W}`, `${M},${W - ARROW_DEPTH}`],
+        right: [`0,0`, `0,${W}`, `${ARROW_DEPTH},${M}`],
+        left: [`${W},0`, `${W},${W}`, `${W - ARROW_DEPTH},${M}`],
+      };
+      let seen = 0;
+      for (const plan of set) {
+        const coord = plan.coord as Record<string, string | undefined>;
+        const at = JSON.stringify(coord);
+        const on = Object.entries(arrowRec.at).every(([a, vs]) => coord[a] !== undefined && vs.includes(coord[a]!)) ? 1 : 0;
+        const nodes = glyphNodes(plan).filter((g) => g.part === partName);
+        if (nodes.length !== on) { failures.push(`${def.id}.${partName} @ ${at}: ${nodes.length} GLYPH node(s), expected ${on} (gate ${JSON.stringify(arrowRec.at)}).`); continue; }
+        if (!on) continue;
+        seen++;
+        const node = nodes[0].node;
+        const els = [...(node.glyphSvg ?? '').matchAll(/<path\b[^>]*>/g)].map((m) => m[0]);
+        const attr = (e: string, a: string) => new RegExp(`\\s${a}="([^"]*)"`).exec(e)?.[1];
+        if (els.length !== 1) { failures.push(`${def.id}.${partName} @ ${at}: the document carries ${els.length} <path> element(s), expected exactly one filled triangle.`); continue; }
+        if (attr(els[0], 'fill') !== 'currentColor') failures.push(`${def.id}.${partName} @ ${at}: the triangle has fill="${attr(els[0], 'fill') ?? 'absent'}" — it takes the bubble's fill through the part's one ink.`);
+        let corners: string[] = [];
+        try { corners = [...new Set(lineVertices(attr(els[0], 'd') ?? '').map(([x, y]) => `${+x.toFixed(3)},${+y.toFixed(3)}`))]; }
+        catch (err) { failures.push(`${def.id}.${partName} @ ${at}: the outline could not be measured — ${(err as Error).message}`); continue; }
+        const exp = want[arrowRec.points];
+        if (corners.length !== 3 || !exp.every((c) => corners.includes(c)))
+          failures.push(`${def.id}.${partName} @ ${at}: ARROW SHAPE — the outline's corners are [${corners.join(' ')}], expected the triangle [${exp.join(' ')}]: the base along the edge facing the bubble and the tip ${ARROW_DEPTH} units in, pointing ${arrowRec.points}.`);
+        if (node.glyphPx !== ARROW_PX || node.bound?.width !== undefined)
+          failures.push(`${def.id}.${partName} @ ${at}: ARROW SIZE — built at ${node.glyphPx ?? '(no literal)'}px${node.bound?.width ? `, binding ${node.bound.width}` : ''}, expected a literal ${ARROW_PX}px square bound to no variable.`);
+        glyphChecks++;
+      }
+      if (!seen) failures.push(`${def.id}.${partName}: appeared at none of the set's ${set.length} members, so nothing was measured.`);
+      notes.push(`${key}: arrow '${arrowRec.glyph}' measured at ${seen} member(s)`);
+      continue;
+    }
     const ringRec = RING_GLYPH[key];
     if (ringRec) {
       covered.add(key);
@@ -1359,6 +1424,9 @@ for (const key of Object.keys(FIXED_GLYPH))
 for (const key of Object.keys(RING_GLYPH))
   if (!covered.has(key))
     failures.push(`STALE RING_GLYPH: '${key}' records a progress glyph '${RING_GLYPH[key].glyph}', and no def declares a vector part by that name.`);
+for (const key of Object.keys(ARROW_GLYPH))
+  if (!covered.has(key))
+    failures.push(`STALE ARROW_GLYPH: '${key}' records a tooltip arrow '${ARROW_GLYPH[key].glyph}', and no def declares a vector part by that name.`);
 for (const key of Object.keys(COMPOSED_GLYPH))
   if (!vectorParts.has(key))
     failures.push(`STALE COMPOSED_GLYPH: '${key}' records a composed '${COMPOSED_GLYPH[key].glyph}', and no def declares a vector part by that name.`);

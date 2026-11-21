@@ -319,10 +319,10 @@ export const popover: ComponentDef = {
 
   composition: {
     composesWith: ['flush-icon-button-neutral', 'button-group'],
-    alternativeTo: ['dialog'],
+    alternativeTo: ['dialog', 'tooltip'],
     replacesPatterns: ['an absolutely positioned div with a hand-written click-outside handler', 'a dialog used for a few lines of detail'],
     supersededBy: [],
-    planned: ['tooltip', 'menu'],
+    planned: ['menu'],
   },
 
   motion: {

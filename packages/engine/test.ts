@@ -4390,6 +4390,7 @@ for (const b of brands) {
       // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
       // glyph-to-message gap. The action-to-close 4px is not listed: it stays at the floor.
       toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
+      tooltip: { keys: [], sizes: [], bare: ['pad-y', 'pad-x'] },
       // Divider (#3051, #3143): the labeled divider's label-to-line gap, across a row and down a column.
       divider: { keys: [], sizes: [], bare: ['horizontal.gap', 'vertical.gap'] },
       'breadcrumb-item': { keys: ['gap'], sizes: ['small', 'medium'] },
@@ -4438,6 +4439,7 @@ for (const b of brands) {
       banner: { compact: 'bare 12/8/8', comfortable: 'bare 16/12/12', spacious: 'bare 20/16/16' },
       // Toast (#2668, the proposal's §8 approved by call 13 A): comfortable is 8/16/8 padding, 8 to the controls, 12 glyph to message.
       toast: { compact: 'bare 6/12/6/6/8', comfortable: 'bare 8/16/8/8/12', spacious: 'bare 12/20/12/12/16' },
+      tooltip: { compact: 'bare 2/6', comfortable: 'bare 4/8', spacious: 'bare 6/12' },
       // Divider (#3051, Q3051.4 A; #3143, Q3143.3 A): the label-to-line gap, horizontal / vertical. Comfortable is the
       // owner's space.300, 24px, across a row and space.150, 12px, down a column; the vertical one moves 8/12/16.
       divider: { compact: 'bare 20/8', comfortable: 'bare 24/12', spacious: 'bare 32/16' },
@@ -21255,6 +21257,8 @@ arm: {
       'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, 'search-field': 2, 'card-number-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2, 'tag-group': 2,
       'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, popover: 2, banner: 2, toast: 2, pagination: 2, slider: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
+      // Tooltip (#4009, generation priority 3, decided in Q-FL2): supports another component, as Badge does.
+      tooltip: 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
       'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9, 'radio-row': 9, 'pagination-item': 9, '_slider-thumb': 9,
@@ -34082,7 +34086,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter', 'tooltip'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -42366,6 +42370,126 @@ arm: {
   }
 
   ok(validateComponentDef(td).errors.length === 0, `#2668 toast validates clean (${validateComponentDef(td).errors.slice(0, 2).join('; ')})`);
+}
+
+// ------------------------------------------------------------------- #4009: the tooltip
+// The proposal on #4009 with every OD at its recommendation, and the owner's Q-FL2 record on #4007 and #4009
+// (2026-11-19): K6 B (label mode on an icon-only trigger), K7 B (a fade plus a small scale), K8 A (an owned positioning
+// layer), OD-X2 A (logical sides), OD-T6 (the numbers with no token, as placeholders). EXPECTED is typed here as literals
+// from those records; ACTUAL is the projected plan and, for contrast, the committed emission under `out/`, read as files,
+// never through the def. Mutations: the bubble's fill to `color.background.primary` → `#4009 tooltip bubble`; the arrow
+// boolean dropped → `#4009 tooltip properties`; the scale entrance removed from codeOnly → `#4009 tooltip code-side`.
+{
+  const td = componentDefs.find((d) => d.id === 'tooltip')!;
+  const plans = figmaAnatomySet(td, { swapTarget: 'FPO-default-icon' });
+  type TN = { name: string; type: string; children: TN[]; bound?: Record<string, string>; paints?: Record<string, string>; layoutMode?: string; textStyle?: string; glyphPx?: number; visibleProp?: string; descendantFills?: string; effectStyle?: string };
+  const find = (n: TN, name: string): TN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+
+  // THE SHAPE (OD-X2 A, OD-T2 A, OD-T3 A): 4 members, top first; no size, no state, no alignment axis.
+  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(['placement=top', 'placement=bottom', 'placement=start', 'placement=end']) && figmaVariantCount(td) === 4,
+    `#4009 tooltip: 4 members, placement top, bottom, start, end (OD-X2 A, OD-T3 A) (got ${plans.map(planComponentName).join(' | ')})`);
+  ok(JSON.stringify(td.variants) === JSON.stringify({ placement: ['top', 'bottom', 'start', 'end'] }) && td.states.length === 0 && !td.figmaProperties?.stateAxis
+    && td.props.find((p) => p.name === 'placement')?.default === 'top' && td.props.find((p) => p.name === 'align')?.default === 'center',
+    `#4009 tooltip: placement [top, bottom, start, end] only, top the code default, align center in code, no state axis (got ${JSON.stringify(td.variants)})`);
+  ok(td.name === 'Tooltip' && td.category === 'overlay' && JSON.stringify(td.aliases) === JSON.stringify(['hint', 'infotip', 'info-tip']) && td.ai.generationPriority === 3,
+    `#4009 tooltip: named Tooltip, category overlay, aliases hint, infotip and info-tip, generation priority 3 (got ${td.name}, ${td.category}, ${JSON.stringify(td.aliases)}, ${td.ai.generationPriority})`);
+
+  // THE BUBBLE (OD-X1, OD-T6): the inverse surface, radius md, padding 4 / 8, no border, no shadow.
+  const bubbleBad = plans.filter((p) => {
+    const b = find(p.root as TN, 'bubble');
+    return !(b && b.paints?.fills === 'color/inverse/background/primary' && !b.paints?.strokes && !b.effectStyle
+      && b.bound?.topLeftRadius === 'radius/md' && b.bound?.bottomRightRadius === 'radius/md'
+      && b.bound?.paddingTop === 'space/050' && b.bound?.paddingBottom === 'space/050' && b.bound?.paddingLeft === 'space/100' && b.bound?.paddingRight === 'space/100');
+  }).map(planComponentName);
+  ok(bubbleBad.length === 0, `#4009 tooltip bubble: inverse.background.primary with no border and no shadow, radius/md, padding 4/8 (OD-X1, OD-T6)${bubbleBad.length ? ` — WRONG: ${bubbleBad.join(', ')}` : ''}`);
+
+  // THE LABEL (OD-T6): inverse.text.primary in the 14px body style.
+  const labelBad = plans.filter((p) => { const l = find(p.root as TN, 'label'); return !(l && l.paints?.fills === 'color/inverse/text/primary' && l.textStyle === 'body/sm/default'); }).map(planComponentName);
+  ok(labelBad.length === 0, `#4009 tooltip label: inverse.text.primary in body/sm/default (OD-T6)${labelBad.length ? ` — WRONG: ${labelBad.join(', ')}` : ''}`);
+
+  // THE ARROW (OD-T2 A, OD-T6): one per member, on the bubble's trigger side, 8px literal, in the bubble's fill.
+  const SIDE: Record<string, { part: string; dir: string; order: string[] }> = {
+    top: { part: 'topGlyph', dir: 'VERTICAL', order: ['bubble', 'topGlyph'] },
+    bottom: { part: 'bottomGlyph', dir: 'VERTICAL', order: ['bottomGlyph', 'bubble'] },
+    start: { part: 'startGlyph', dir: 'HORIZONTAL', order: ['bubble', 'startGlyph'] },
+    end: { part: 'endGlyph', dir: 'HORIZONTAL', order: ['endGlyph', 'bubble'] },
+  };
+  const arrowBad = plans.filter((p) => {
+    const r = p.root as TN, s = SIDE[(p.coord as Record<string, string>).placement], g = s && find(r, s.part);
+    return !(s && g && g.type === 'GLYPH' && r.layoutMode === s.dir && JSON.stringify(r.children.map((c) => c.name)) === JSON.stringify(s.order)
+      && g.glyphPx === 8 && g.descendantFills === 'color/inverse/background/primary' && g.visibleProp === 'arrow');
+  }).map(planComponentName);
+  ok(arrowBad.length === 0, `#4009 tooltip arrow: one 8px arrow per member on the trigger side, in inverse.background.primary, shown by the arrow toggle (OD-T2 A, OD-T6)${arrowBad.length ? ` — WRONG: ${arrowBad.join(', ')}` : ''}`);
+
+  // THE PROPERTIES (OD-T2 A): the label text and the arrow toggle, on by default; lowercase names (Q345).
+  ok(JSON.stringify(planSetProperties(plans)) === JSON.stringify([{ name: 'label', type: 'TEXT', default: 'Tooltip text' }, { name: 'arrow', type: 'BOOLEAN', default: true }]),
+    `#4009 tooltip properties: label "Tooltip text", arrow on (OD-T2 A) (got ${JSON.stringify(planSetProperties(plans))})`);
+  ok(JSON.stringify(td.composition?.composesWith) === '[]', `#4009 tooltip nests nothing: its arrow is a component-owned glyph (got ${JSON.stringify(td.composition?.composesWith)})`);
+
+  // THE CODE-SIDE CONTRACT, each stated in codeOnly, the props or accessibility as literals.
+  const co = codeOnlyText(td.anatomy!.codeOnly).join('\n');
+  const kind = td.props.find((p) => p.name === 'kind');
+  // K7 A holds the motion to a fade, however a size change is worded (Delta review N2 at 0c32bc9c): the word scale, a
+  // grow, shrink or zoom, a transform, or a percentage, in the code motion entry or any of the motion field's lines.
+  const SIZE_CHANGE = /\bscal(?:e|es|ed|ing)\b|\b(?:grow|shrink|zoom)|\btransform|\d\s*%/i;
+  const tdMotionEntry = codeOnlyText(td.anatomy!.codeOnly).find((t) => /^motion — /.test(t)) ?? '';
+  const contract: [string, boolean][] = [
+    ['role tooltip, described by default', /`role="tooltip"`/.test(co) && /`aria-describedby`/.test(co) && kind?.default === 'description'],
+    ['label mode on an icon-only trigger, with no aria-label (K6 B)', JSON.stringify(kind?.values) === '["description","label"]' && /`aria-labelledby` pointing at it and no `aria-label`/.test(co)],
+    ['Escape hides it without moving focus, and it never takes focus (OD-T1 A)', /Escape hides it without moving focus/.test(co) && /It never takes focus/.test(co)],
+    ['at once on keyboard focus, after the delay on hover, at once in the skip window (OD-T4 A)', /after `delay`, at once on keyboard focus/.test(co) && /within the shared skip window/.test(co)],
+    ['a fade alone with no scale, no animation in the skip window, the reduced fade both ways (K7 A)', /show: opacity 0 to 1, a fade alone with no scale/.test(co) && !/scale from/.test(co) && [tdMotionEntry.replace('a fade alone with no scale', ''), td.motion?.enter ?? '', td.motion?.exit ?? '', td.motion?.reduceMotion ?? ''].every((t) => !SIZE_CHANGE.test(t)) && tdMotionEntry !== '' && /Inside the skip window it appears with no animation/.test(co) && /both ways fade on `motion\.duration-reduced\.fast`/.test(co)],
+    ['an owned positioning layer on the platform, no library (K8 A)', /`popover="manual"`/.test(co) && /CSS anchor positioning/.test(co) && /No positioning library/.test(co)],
+    ['max width 240, offset space.100 (OD-T6)', /up to 240px/.test(co) && /offset `space\.100` from the trigger to the arrow\\'s tip|offset `space\.100` from the trigger to the arrow's tip/.test(co)],
+    ['logical sides that mirror in right-to-left (OD-X2 A)', /start and end are logical/.test(co)],
+    ['never native disabled on the trigger', /never native `disabled`/.test(co)],
+  ];
+  const contractBad = contract.filter(([, v]) => !v).map(([k]) => k);
+  ok(contractBad.length === 0, `#4009 tooltip code-side contract, stated: ${contract.map(([k]) => k).join('; ')}${contractBad.length ? ` — MISSING: ${contractBad.join('; ')}` : ''}`);
+
+  // CONTRAST, over every committed brand × mode: the label on the bubble, and the bubble (and so the arrow) against the
+  // page. Read from `out/<brand>.tokens.json`, resolving aliases, never through the def.
+  {
+    const OUT = resolve(HERE, 'out');
+    const brands = readdirSync(OUT).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.') && !f.includes('.overlay.'));
+    const PAIRS: [string, string, number, string][] = [
+      ['color.inverse.text.primary', 'color.inverse.background.primary', 4.5, 'label on the bubble'],
+      ['color.inverse.background.primary', 'color.background.primary', 3, 'the bubble and arrow against the page'],
+    ];
+    const misses: string[] = [];
+    let checked = 0;
+    for (const f of brands) {
+      const doc = JSON.parse(readFileSync(resolve(OUT, f), 'utf8'));
+      const rootKey = Object.keys(doc).find((k) => !k.startsWith('$'))!;
+      const leaf = (path: string) => path.split('.').reduce((o: any, k) => o?.[k], doc[rootKey]);
+      const modes = ['light', ...Object.keys(leaf('color.inverse.background.primary')?.$extensions?.prism3?.modes ?? {})];
+      const valueAt = (path: string, mode: string, depth = 0): string | undefined => {
+        const l = leaf(path);
+        if (!l || depth > 12) return undefined;
+        const v = mode !== 'light' && l.$extensions?.prism3?.modes?.[mode] ? l.$extensions.prism3.modes[mode].$value : l.$value;
+        if (typeof v !== 'string') return undefined;
+        const m = /^\{(.+)\}$/.exec(v);
+        return m ? valueAt(m[1].replace(new RegExp(`^${rootKey}\\.`), ''), mode, depth + 1) : v;
+      };
+      const rgbOf = (v: string | undefined): RGB | undefined => {
+        if (!v) return undefined;
+        if (/^#[0-9a-f]{6}$/i.test(v)) return hexToRgb(v);
+        const m = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(v);
+        return m ? hexToRgb(`#${[m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('')}`) : undefined;
+      };
+      for (const mode of modes) for (const [fg, bg, floor, what] of PAIRS) {
+        const a = rgbOf(valueAt(fg, mode)), b = rgbOf(valueAt(bg, mode));
+        if (!a || !b) { misses.push(`${f}/${mode} ${what}: unresolved (${valueAt(fg, mode)} on ${valueAt(bg, mode)})`); continue; }
+        const ratio = contrast(a, b);
+        checked++;
+        if (ratio < floor) misses.push(`${f}/${mode} ${what}: ${ratio.toFixed(2)}:1 under ${floor}:1`);
+      }
+    }
+    ok(brands.length >= 5 && checked >= brands.length * 4 * PAIRS.length && misses.length === 0,
+      `#4009 tooltip contrast: ${PAIRS.length} inverse pairs clear their floors in every committed brand × mode (${brands.length} brands, ${checked} ratios)${misses.length ? ` — MISS: ${misses.slice(0, 4).join('; ')}` : ''}`);
+  }
+
+  ok(validateComponentDef(td).errors.length === 0, `#4009 tooltip validates clean (${validateComponentDef(td).errors.slice(0, 2).join('; ')})`);
 }
 
 // ------------------------------------------------------------------- #3165: the toast's message at 14px

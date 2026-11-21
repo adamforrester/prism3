@@ -90,7 +90,7 @@ Titles are short and in sentence case. Body text says what the user needs and no
 ## Related components
 
 - **Built from:** `flush-icon-button-neutral`, `button-group`
-- **Instead, consider:** `dialog`
+- **Instead, consider:** `dialog`, `tooltip`
 - **Often used with:** `button`, `button-neutral`, `icon-button`, `icon-button-neutral`, `link`, `text-field`, `select`, `checkbox-group`
 - **Replaces:**
   - an absolutely positioned div with a hand-written click-outside handler

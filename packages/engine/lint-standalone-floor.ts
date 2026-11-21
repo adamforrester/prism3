@@ -231,7 +231,7 @@ const MUST_PROJECT = [
   'field-label', 'field-message', 'text-field', 'textarea', 'select', 'password-field',
   'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row',
   'veil', 'image-placeholder', 'spinner', 'badge', 'tag', 'tag-group', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',
-  'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'counter', 'progress', 'search-field', 'card-number-field', 'banner', 'toast',
+  'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'counter', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', 'tooltip',
   'pagination-item', 'pagination',
   '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
   'page-nav-item', 'page-nav',

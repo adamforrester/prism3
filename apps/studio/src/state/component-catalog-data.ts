@@ -1873,5 +1873,28 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "icon",
       "button-group"
     ]
+  },
+  {
+    "id": "tooltip",
+    "name": "Tooltip",
+    "category": "overlay",
+    "summary": "A short text label for the control under the pointer or focus. It never takes focus.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad-y",
+        "ref": "space.050"
+      },
+      {
+        "key": "pad-x",
+        "ref": "space.100"
+      }
+    ],
+    "page": "Tooltip",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 4,
+    "nests": []
   }
 ];

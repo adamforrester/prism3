@@ -114,7 +114,9 @@ const WIRE_COMPONENTS: [string, string[]][] = [
   // #2343 PR 5: Sign-in button, on its own page (Q-S10 A).
   ['Sign-in button', ['SignInButton']],
   ['Slider', ['Slider', 'Slider.Thumb']], ['Switch', ['Switch.Control', 'Switch.Row']],
-  ['Tabs', ['Tab.Item', 'Tabs']], ['Toast', ['Toast']], ['Veil', ['Veil']],
+  ['Tabs', ['Tab.Item', 'Tabs']], ['Toast', ['Toast']],
+  // Tooltip (#4009) joins after the wireframe: its own page.
+  ['Tooltip', ['Tooltip']], ['Veil', ['Veil']],
   // #2343 PR 4: Wallet button, on its own page.
   ['Wallet button', ['WalletButton']],
 ];
@@ -191,8 +193,8 @@ ok(JSON.stringify(drawn('components')) === JSON.stringify(WIRE_COMPONENTS) && JS
   `note 2: a family's sets are alphabetical by component name, and call 12: a part set stays in its family (${JSON.stringify(drawn('components').filter((r) => r[1].length > 1).map((r) => r[1].join('/')))})`);
 ok(groups.find((g) => g.kind === 'subcomponents')?.rows.some((r) => r.ids.includes('icon') && r.page === 'Icons & assets') === true,
   'call 11: Icon lists under Subcomponents, and still lands on ↳ Icons & assets');
-ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 64,
-  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, Sign-in button since #2343 PR 5, Page navigation with its item since #3345, Tag.Group since #1739, and Popover since #4008)`);
+ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 65,
+  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, Sign-in button since #2343 PR 5, Page navigation with its item since #3345, Tag.Group since #1739, Popover since #4008, and Tooltip since #4009)`);
 ok(sentenceCase('Field Label') === 'Field label' && sentenceCase('Text field') === 'Text field' && sentenceCase('Icons & assets') === 'Icons & assets',
   'call 14: a page name reads in sentence case ("Field Label" → "Field label")');
 ok(GROUPS_COPY.sectionCount('components', 19, 32) === '19 families and sets · 32 sets' && GROUPS_COPY.sectionCount('subcomponents', 7, 9) === '7 entries · 9 sets'

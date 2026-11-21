@@ -1653,6 +1653,21 @@
       "message": "TEXT"
     }
   },
+  "tooltip": {
+    "axes": {
+      "placement": [
+        "bottom",
+        "end",
+        "start",
+        "top"
+      ]
+    },
+    "members": 4,
+    "properties": {
+      "arrow": "BOOLEAN",
+      "label": "TEXT"
+    }
+  },
   "veil": {
     "axes": {
       "direction": [

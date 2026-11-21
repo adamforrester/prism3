@@ -244,6 +244,12 @@
             ]
           },
           {
+            "name": "↳ Tooltip",
+            "components": [
+              "tooltip"
+            ]
+          },
+          {
             "name": "↳ Counter",
             "components": [
               "counter"
@@ -3558,6 +3564,37 @@
           }
         ],
         "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/popover.md"
+      },
+      {
+        "id": "tooltip",
+        "name": "Tooltip",
+        "figmaName": "tooltip",
+        "kind": "component set",
+        "page": "↳ Tooltip",
+        "section": "Components",
+        "members": 4,
+        "variantProperties": [
+          {
+            "name": "placement",
+            "values": [
+              "top",
+              "bottom",
+              "start",
+              "end"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "arrow",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/tooltip.md"
       }
     ]
   },
@@ -3950,7 +3987,8 @@
       "wallet-button",
       "sign-in-button",
       "page-nav-item",
-      "page-nav"
+      "page-nav",
+      "tooltip"
     ],
     "templates": [
       {

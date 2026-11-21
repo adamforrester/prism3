@@ -107,6 +107,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | text-field | 1 | field-label, field-message | field-label, field-message |
 | textarea | 1 | field-label, field-message | field-label, field-message |
 | toast | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
+| tooltip | 0 | — | — |
 | veil | 0 | — | — |
 | wallet-button | 1 | focus-ring, provider-logo | focus-ring, provider-logo |
 
