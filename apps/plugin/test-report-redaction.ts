@@ -291,7 +291,7 @@ const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
 // `reduceFailure` admits any class only after a head it knows (`DETAIL_HEADS`), so a new site would leak a
 // `DOMException`'s message. Read from the plugin's source, independent of the list: every `${failureDetail(` in a
 // template is preceded by one of the report's heads, or by `write failed: ` (cut by its own rule). The two calls
-// outside a template are named: prune's (`Clean up failed: ${why}`, a report head since #4184; `PRUNE_COPY.stopped`, its own rule since #3865, held in 13)
+// outside a template are named: prune's stopped line (`PRUNE_COPY.stopped`, its own rule since #3865, held in 13; its thrown-prune line, `Clean up failed: ${failureDetail(e)}`, is a template since #4184)
 // and its version note (`PRUNE_COPY.noVersion`, whose head is checked in `prune-figma.ts`), and since #4205 the four
 // Update file catches (`const why = failureDetail(e)`: the check or apply, Record, Adopt, Draw specs), held in 11.
 {

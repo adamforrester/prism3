@@ -1246,12 +1246,12 @@ section('#3474 nested main — a change that reaches a member only through its n
 // "1 left as it is", "2 left as they are". The lines are typed here whole. Mutation: either verdict back to a fixed
 // "left as they are" → `#3275 Record as built, 1 left` (or `#3275 Adopt, 1 left`) by name.
 {
-  const skip = (k: number) => Array.from({ length: k }, (_, i) => ({ member: `m${i}`, reason: 'not in the plan' }));
+  const skip = (k: number) => Array.from({ length: k }, (_, i) => ({ member: `m${i}`, reason: 'not a variant Prism3 builds' }));
   for (const [k, words] of [[1, 'it is'], [2, 'they are']] as const) {
     const c = captureVerdictText({ sets: [{ def: 'tag', set: 'Tag', recorded: 3, skipped: skip(k) }], missing: [], refused: [] });
-    ok(c.lines[0] === `Tag: 3 members recorded, ${k} left as ${words} (not in the plan).`, `#3275 Record as built, ${k} left: the pronoun agrees with the count (${JSON.stringify(c.lines[0])})`);
+    ok(c.lines[0] === `Tag: 3 variants recorded, ${k} left as ${words} (not a variant Prism3 builds).`, `#3275 Record as built, ${k} left: the pronoun agrees with the count (${JSON.stringify(c.lines[0])})`);
     const a = adoptVerdictText({ sets: [{ def: 'tag', set: 'Tag', adopted: 1, skipped: skip(k) }], missing: [], refused: [] });
-    ok(a.lines[0] === `Tag: 1 member adopted, ${k} left as ${words} (not in the plan).`, `#3275 Adopt, ${k} left: the pronoun agrees with the count (${JSON.stringify(a.lines[0])})`);
+    ok(a.lines[0] === `Tag: 1 variant adopted, ${k} left as ${words} (not a variant Prism3 builds).`, `#3275 Adopt, ${k} left: the pronoun agrees with the count (${JSON.stringify(a.lines[0])})`);
   }
 }
 

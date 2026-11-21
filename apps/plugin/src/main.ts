@@ -746,7 +746,7 @@ const prune = async (input: BrandInput, confirm: boolean, previewHash: string | 
     // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch. Once removals began,
     // with the running counts (#3697 R6): a half-pruned file never reads as 0 removed.
     const why = failureDetail(e);   // #3697 H4: as `applyTheme`'s
-    if (!removing) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: `Clean up failed: ${why}` }); return; }
+    if (!removing) { sink.post({ type: 'prune-result', ok: false, applied: false, count: 0, summary: `Clean up failed: ${failureDetail(e)}` }); return; }
     sink.data({ pruneApplied: counts });
     sink.post({ type: 'prune-result', ok: false, applied: true, count: counts.variables + counts.collections + counts.modes + counts.styles, summary: PRUNE_COPY.stopped(counts, why) });
   }
