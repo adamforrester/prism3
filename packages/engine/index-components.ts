@@ -10,7 +10,7 @@ export { fieldMessage } from './components/field-message';
 export { densitySpacingKeys, validateComponentDef } from './component-schema';
 export type { ComponentDef, PartDef, PartOfKind } from './component-schema';
 export {
-  CANVAS_FURNITURE, DEFAULT_BUTTON_LAYOUT, DEFAULT_WEIGHT_AVAILABILITY,
+  CANVAS_FURNITURE, DEFAULT_BUTTON_LAYOUT, DEFAULT_WEIGHT_AVAILABILITY, ICON_PLACEHOLDER,
   SWAP_NO_PROPERTY, SWAP_PLACEHOLDER, applyBannerStyle,
   applyButtonLayout, applyControlShape, applyCurrentIndicator, applyDialogTitleSize, applyFieldStyle,
   applyMinWidthRatio, applyNestItemPrefers, applyNestOverrides, applyOutlineInteraction, applySpacingDensity,

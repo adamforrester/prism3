@@ -194,6 +194,8 @@ apps/plugin/test-roundtrip.ts #3476
 apps/plugin/test-roundtrip.ts #3554
 apps/plugin/test-roundtrip.ts #3972
 apps/plugin/test-roundtrip.ts #865
+apps/plugin/test-slot-constraints.ts #4160
+apps/plugin/test-slot-constraints.ts #4164
 apps/plugin/test-slot-migration.ts #3697
 apps/plugin/test-slot-migration.ts #3762
 apps/plugin/test-slot-migration.ts #3763
@@ -1260,6 +1262,7 @@ packages/engine/test.ts #4153
 packages/engine/test.ts #4155
 packages/engine/test.ts #4161
 packages/engine/test.ts #4163
+packages/engine/test.ts #4164
 packages/engine/test.ts #4170
 packages/engine/test.ts #4171
 packages/engine/test.ts #4174

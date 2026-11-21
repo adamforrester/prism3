@@ -21,7 +21,7 @@
  *   · the miss for a preferred def not in the file dropped → `constraints/missing preferred named`;
  *   · the clear on Update dropped (the `hostHas` arm) → `constraints/cleared on update`.
  */
-import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef, type PartOfKind } from '@prism3/engine/components';
+import { figmaAnatomySet, ICON_PLACEHOLDER, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, type HostNode, type ReadPorts, type ComponentDef, type PartOfKind } from '@prism3/engine/components';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, type Node, type Page } from './component-shim';
 
@@ -203,6 +203,107 @@ console.log('\na host that cannot take them');
   const res = await applyComponentPlan(plans, api, {});
   ok(res.misses.some((m) => m === 'property dismiss.slotSettings -> REFUSED (Error: in editComponentProperty: slotSettings is not supported)') && slotDef(page)?.slotSettings === undefined,
     `constraints/refusal named: a host that refuses the edit is named, not passed (${JSON.stringify(res.misses.filter((m) => /slotSettings/.test(m)))})`);
+}
+
+console.log('\nicon swaps prefer every core icon (#4164)');
+{
+  // Owner decision A: an INSTANCE_SWAP whose target is a core icon offers every `icon/` component the file holds first in
+  // its picker, by key in name order. Tag's leading icon swap, built by the batch executor with three icons and a
+  // provider logo in the file. Expected values are literals: the icon names typed here, each component's key read off the
+  // host's own nodes. Mutation: the executor's ICON SWAPS pass dropped → `#4164 icon swaps/written`, `/updated`.
+  const tag = componentDefs.find((d) => d.id === 'tag')!;
+  // The plugin's own placeholder (`build-deps.ts`), a core icon; this file's `SWAP_TARGET` is not one.
+  const ICON_TARGET = 'icon/FPO-default-icon';
+  const plans = figmaAnatomySet(tag, { swapTarget: ICON_TARGET });
+  const ICONS = ['icon/check', 'icon/close', ICON_TARGET];
+  const { page, api } = host(plans, { comps: [...new Set([...plans.flatMap((p) => planComps(p.root)), ...ICONS, 'provider-logo/payment/generic'])] });
+  const res = await applyComponentPlan(plans, api, {});
+  const keyOf = new Map((api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as { name: string; key?: string }[]).map((c) => [c.name, c.key]));
+  // The placeholder is left out (owner decision 2026-11-20): it stays the default, it is not an icon to pick.
+  const want = JSON.stringify(['icon/check', 'icon/close'].map((n) => ({ type: 'COMPONENT', key: keyOf.get(n) })));
+  const swaps = () => Object.values(((setOf(page) as any).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+  ok(ICONS.every((n) => keyOf.get(n)) && swaps().length > 0 && swaps().every((d) => JSON.stringify(d.preferredValues) === want) && !res.misses.some((m) => /\.preferred ->/.test(m)),
+    `#4164 icon swaps/written: every icon swap on Tag prefers the two icons by key, in name order, and not the placeholder or the provider logo (${JSON.stringify(swaps().map((d) => d.preferredValues))}${res.misses.length ? `; ${res.misses.filter((m) => /preferred/.test(m)).slice(0, 2).join(' | ')}` : ''})`);
+  // THE PLACEHOLDER (owner decision 2026-11-20): no icon swap offers `icon/FPO-default-icon` as a preferred value, and
+  // each still defaults to it. Literal name, its key and id read off the host's own node. Mutation: the exclusion dropped
+  // (`.filter((n) => n !== ICON_PLACEHOLDER)` removed) → `#4164 icon swaps/placeholder`.
+  const placeholder = (api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as { name: string; key?: string; id?: string }[]).find((c) => c.name === 'icon/FPO-default-icon');
+  ok(ICON_PLACEHOLDER === 'icon/FPO-default-icon' && !!placeholder?.key && !!placeholder.id && swaps().length > 0
+    && swaps().every((d) => Array.isArray(d.preferredValues) && (d.preferredValues as { key?: string }[]).length > 0 && !(d.preferredValues as { key?: string }[]).some((v) => v.key === placeholder.key))
+    && swaps().every((d) => d.defaultValue === placeholder.id),
+    `#4164 icon swaps/placeholder: no icon swap prefers the placeholder, and each still defaults to it (${JSON.stringify(swaps().map((d) => ({ default: d.defaultValue, preferred: d.preferredValues })))}; placeholder ${JSON.stringify(placeholder)})`);
+  // An update in place writes the list again, so a set built before #4164 gains it.
+  for (const d of swaps()) delete d.preferredValues;
+  const members = new Map(((setOf(page).children as Node[])).map((m) => [String(m.name), { keep: new Set<string>() }]));
+  await applyComponentPlan(plans, api, { update: { members, retained: new Set() } });
+  ok(swaps().every((d) => JSON.stringify(d.preferredValues) === want), `#4164 icon swaps/updated: an update in place writes the preferred icons onto an existing swap (${JSON.stringify(swaps().map((d) => d.preferredValues))})`);
+  // A swap whose target is no icon (the same def, projected with a target outside `icon/`) is left open.
+  const plain = figmaAnatomySet(tag, { swapTarget: 'FPO-default-icon' });
+  const h2 = host(plain);
+  await applyComponentPlan(plain, h2.api, {});
+  const open = Object.values(((setOf(h2.page) as any).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+  ok(open.length > 0 && open.every((d) => d.preferredValues === undefined), `#4164 icon swaps/open: a swap whose target is not a core icon is written no preferred value (${JSON.stringify(open.map((d) => d.preferredValues))})`);
+  // A name held by two components (a stale copy) is left out of the list and named; the other icons are still written.
+  // Mutation: the exclusion dropped (`byName.get(n)!.length === 1 && …` → `byName.get(n)![0].key`) → `#4164 icon swaps/duplicate`.
+  const h3 = host(plans, { comps: [...new Set([...plans.flatMap((p) => planComps(p.root)), ...ICONS, 'provider-logo/payment/generic']), 'icon/check'] });
+  const r3 = await applyComponentPlan(plans, h3.api, {});
+  const keyOf3 = new Map((h3.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as { name: string; key?: string }[]).map((c) => [c.name, c.key]));
+  const want3 = JSON.stringify(['icon/close'].map((n) => ({ type: 'COMPONENT', key: keyOf3.get(n) })));
+  const dup = Object.values(((setOf(h3.page) as any).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+  const dupMisses = r3.misses.filter((m) => /\.preferred ->/.test(m));
+  ok(dup.length > 0 && dup.every((d) => JSON.stringify(d.preferredValues) === want3) && dupMisses.length === dup.length
+    && dupMisses.every((m) => /^property \S.*\.preferred -> 1 icon name\(s\) held by more than one component \(icon\/check; not offered in the swap\. Rename or remove the stale copies, then rebuild\)$/.test(m)),
+    `#4164 icon swaps/duplicate: an icon name two components hold is left out of the list and named as a miss (${JSON.stringify(dup.map((d) => d.preferredValues))}; ${JSON.stringify(dupMisses)})`);
+  // A file whose only `icon/` component is the placeholder: nothing to prefer, so nothing is written, and it is no miss
+  // either, since the file does hold an icon. Mutation: the miss keyed on the filtered list (`if (!byName.size)` →
+  // `if (!names.length)`) → `#4164 icon swaps/placeholder only`.
+  // Tag's own plan names icon/check and icon/close too; they are kept out of this file, so the placeholder is its only icon.
+  const h4 = host(plans, { comps: [...new Set([...plans.flatMap((p) => planComps(p.root)).filter((n) => !n.startsWith('icon/')), ICON_TARGET, 'provider-logo/payment/generic'])] });
+  const r4 = await applyComponentPlan(plans, h4.api, {});
+  const icons4 = (h4.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as { name: string }[]).map((c) => c.name).filter((n) => n.startsWith('icon/'));
+  const only = Object.values(((setOf(h4.page) as any).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+  const onlyMisses = r4.misses.filter((m) => /\.preferred ->/.test(m));
+  ok(JSON.stringify([...new Set(icons4)]) === JSON.stringify([ICON_TARGET]) && only.length > 0 && only.every((d) => d.preferredValues === undefined) && onlyMisses.length === 0,
+    `#4164 icon swaps/placeholder only: a file whose only icon is the placeholder gets no preferred list and no miss (icons ${JSON.stringify([...new Set(icons4)])}; ${JSON.stringify(only.map((d) => d.preferredValues))}; ${JSON.stringify(onlyMisses)})`);
+}
+
+console.log('\nthe executor searches the file for components with hidden instance children skipped, once per pass (#4160)');
+{
+  // Owner decision C on #4160: the executor's whole-file searches go through `searchComponents`, and the slot pass's two
+  // searches run once for the pass, not once per SLOT property. Subject: `write-components.ts`. Reference: a flag host
+  // installed as `figma` and every search the executor makes, recorded at the host's root with the flag as it stood.
+  // Mutations: a search not wrapped → `#4160 executor searches/skipped`; the slot pass's searches back inside the loop →
+  // `#4160 executor searches/once`.
+  const withSlots = (n: 1 | 2): ComponentDef => ({ ...tag, anatomy: { ...tag.anatomy!, parts: { ...tag.anatomy!.parts,
+    dismiss: { ...(tag.anatomy!.parts.dismiss as PartOfKind<'box'>), contentSlot: true, ...CONSTRAINED },
+    ...(n === 2 ? { labelCheck: { ...(tag.anatomy!.parts.labelCheck as PartOfKind<'box'>), contentSlot: true, ...CONSTRAINED } } : {}),
+  } } });
+  const g = globalThis as { figma?: { skipInvisibleInstanceChildren?: boolean } };
+  const run = async (n: 1 | 2) => {
+    const plans = figmaAnatomySet(withSlots(n), { swapTarget: 'icon/FPO-default-icon' });
+    const { page, api } = host(plans, { fileNodes: [BADGE], comps: [...new Set([...plans.flatMap((p) => planComps(p.root)), 'icon/check'])] });
+    const flagHost = { skipInvisibleInstanceChildren: false };
+    const seen: { types: string; flag: boolean }[] = [];
+    // The shim's root is frozen, so the executor is handed a view of the host whose root records each criteria search.
+    const realRoot = () => api.root;
+    const root = new Proxy({}, { get: (_t, k) => k === 'findAllWithCriteria'
+      ? (c?: { types?: string[] }) => { seen.push({ types: (c?.types ?? []).join('+'), flag: flagHost.skipInvisibleInstanceChildren }); return realRoot().findAllWithCriteria(c); }
+      : (typeof realRoot()[k] === 'function' ? realRoot()[k].bind(realRoot()) : realRoot()[k]) });
+    const view = new Proxy(api, { get: (t, k) => (k === 'root' ? root : Reflect.get(t, k)) });
+    const prev = g.figma;
+    g.figma = flagHost;
+    let res;
+    try { res = await applyComponentPlan(plans, view, {}); } finally { g.figma = prev; }
+    const slots = Object.values(((setOf(page) as any).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'SLOT');
+    return { seen, flagAfter: flagHost.skipInvisibleInstanceChildren, slots, misses: res.misses };
+  };
+  const one = await run(1), two = await run(2);
+  ok(two.slots.length === 2 && two.slots.every((d) => JSON.stringify(d.preferredValues) === '[{"type":"COMPONENT_SET","key":"SK:badge"}]'),
+    `premise: the two-slot set's SLOT properties each prefer Badge, so each needs the file's sets (${JSON.stringify(two.slots.map((d) => d.preferredValues))}; ${two.misses.slice(0, 2).join(' | ')})`);
+  ok(two.seen.length > 0 && [...one.seen, ...two.seen].every((x) => /^(COMPONENT|COMPONENT_SET)$/.test(x.types) && x.flag) && one.flagAfter === false && two.flagAfter === false,
+    `#4160 executor searches/skipped: every whole-file search for components or sets runs with hidden instance children skipped, and the flag is off again after (${JSON.stringify(two.seen)}; after ${two.flagAfter})`);
+  ok(two.seen.length === one.seen.length,
+    `#4160 executor searches/once: a set with two SLOT properties searches the file as often as one with one slot (${one.seen.length} with one slot, ${two.seen.length} with two)`);
 }
 
 console.log(`\n${executed - failed}/${executed} slot-constraint assertions passed.`);

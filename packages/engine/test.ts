@@ -61,7 +61,7 @@ import { rtlNote, withMirrors } from './rtl-mirror';
 import { RTL_MIRRORED_GLYPHS, ICON_SOURCES } from './icon-set';
 import { docSections } from './component-doc-sections';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, fieldStyleFor, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyDialogTitleSize, applyBannerStyle, applyCurrentIndicator, fieldStyleFor, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, ICON_PLACEHOLDER, type AnatomyPlan, type SwapFound, type FigmaPropertyPlan } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, slotTextUnclaimed, slotTextMigrationOf, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -24470,7 +24470,7 @@ arm: {
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; nestedItems?: Record<string, { name: string; set: string; member: string }[]>; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; unavailableFonts?: string[]; fontRefusal?: 'error' | 'string'; discardLiteralFills?: string[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; nestedItems?: Record<string, { name: string; set: string; member: string }[]>; compTexts?: Record<string, Record<string, string>>; effectStyles?: string[]; gradientDiscard?: 'paint' | 'bindings'; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[]; noSlots?: boolean; colors?: Record<string, { r: number; g: number; b: number; a: number }>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; unavailableFonts?: string[]; fontRefusal?: 'error' | 'string'; discardLiteralFills?: string[]; compKeys?: boolean };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -25081,6 +25081,9 @@ arm: {
             // resolved set is read off the host rather than off the name the payload asked for.
             const mk = (name: string, i: number, owner: { name: string; type: string } = { name: 'Page 1', type: 'PAGE' }) => ({
               name, id: `73:${37 + i}`, type: 'COMPONENT',
+              // #4164 — opt-in: a plain component's KEY, `CK:<name>`, which an icon swap's preferred value names. Off by
+              // default, so every arm written before it still sees the keyless components it was written against.
+              ...(opts.compKeys ? { key: `CK:${name}` } : {}),
               createInstance: () => {
                 const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec];
                 Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
@@ -27415,6 +27418,52 @@ arm: {
           && JSON.stringify(nSlot?.slotSettings) === '{"minChildren":1,"maxChildren":2,"allowPreferredValuesOnly":false,"displayEmptyByDefault":false}'
           && JSON.stringify(nSlot?.preferredValues) === '[]',
           `#2646 paste, preferred def not built: the payload names Badge as a miss and writes the slot open (${JSON.stringify(nRun.misses.filter((m) => /dismiss\./.test(m)))})`);
+
+        // #4164 (owner decision A) — AN ICON SWAP PREFERS EVERY CORE ICON. Projection: a swap whose target is a core icon
+        // (`icon/…`) carries `preferIcons`; one whose target is not, does not. Paste: the payload writes every `icon/`
+        // component the file holds, by key in name order, and nothing else, onto the swap. Expected values are literals.
+        // Mutations: the flag not projected → `#4164 projection`; `PAYLOAD_ICON_SWAPS` not shipped → `#4164 paste`.
+        const tagDef4164 = componentDefs.find((d) => d.id === 'tag')!;
+        const iconTag = figmaAnatomySet(tagDef4164, { swapTarget: 'icon/FPO-default-icon' });
+        const swaps4164 = (pl: AnatomyPlan[]) => planSetProperties(pl).filter((pp) => pp.type === 'INSTANCE_SWAP') as Extract<FigmaPropertyPlan, { type: 'INSTANCE_SWAP' }>[];
+        ok(swaps4164(iconTag).length > 0 && swaps4164(iconTag).every((pp) => pp.preferIcons === true) && swaps4164(figmaAnatomySet(tagDef4164, { swapTarget: 'FPO-default-icon' })).every((pp) => pp.preferIcons === undefined),
+          `#4164 projection: Tag's swaps prefer the icons when their target is icon/FPO-default-icon, and not when it is FPO-default-icon (${JSON.stringify(swaps4164(iconTag))})`);
+        const iPage = { children: [] as Record<string, unknown>[] };
+        const iRun = await runPayload(planSetToPluginJs(iconTag), { vars: iconTag.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: iconTag.flatMap((pl) => planTextStyles(pl.root)),
+          comps: ['icon/FPO-default-icon', 'icon/search', 'icon/check', 'provider-logo/payment/generic'], compKeys: true, page: iPage });
+        const iDefs = Object.values((((iPage.children.find((c) => c.type === 'COMPONENT_SET') ?? {}) as Record<string, unknown>).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+        // The placeholder is left out (owner decision 2026-11-20): it stays the default, it is not an icon to pick.
+        const ICONS = '[{"type":"COMPONENT","key":"CK:icon/check"},{"type":"COMPONENT","key":"CK:icon/search"}]';
+        ok(iDefs.length > 0 && iDefs.every((d) => JSON.stringify(d.preferredValues) === ICONS) && !iRun.misses.some((m) => /\.preferred ->/.test(m)),
+          `#4164 paste: every icon swap prefers the two icon components, by key in name order, and not the placeholder or the provider logo (${JSON.stringify(iDefs.map((d) => d.preferredValues))}${iRun.misses.length ? `; misses ${JSON.stringify(iRun.misses.filter((m) => /preferred/.test(m)).slice(0, 2))}` : ''})`);
+        // THE PLACEHOLDER (owner decision 2026-11-20): no icon swap offers `icon/FPO-default-icon` as a preferred value, and
+        // each still defaults to it: `73:37`, the stub's id for the first of `comps`, which is the placeholder. Mutation: the
+        // payload's exclusion dropped (`.filter(n=>n!==…)` removed) → `#4164 paste, placeholder`.
+        const iPlaceholderId = '73:37';
+        ok(ICON_PLACEHOLDER === 'icon/FPO-default-icon' && iDefs.length > 0
+          && iDefs.every((d) => Array.isArray(d.preferredValues) && (d.preferredValues as { key?: string }[]).length > 0 && !(d.preferredValues as { key?: string }[]).some((v) => v.key === 'CK:icon/FPO-default-icon'))
+          && iDefs.every((d) => d.defaultValue === iPlaceholderId),
+          `#4164 paste, placeholder: no icon swap prefers the placeholder, and each still defaults to it (${JSON.stringify(iDefs.map((d) => ({ default: d.defaultValue, preferred: d.preferredValues })))})`);
+        // A name two components hold (a stale copy of icon/check) is left out of the list and named; the rest are written.
+        // Mutation: the exclusion dropped (`by.get(n).length===1&&by.get(n)[0].key` → `by.get(n)[0].key`) → `#4164 paste, duplicate`.
+        const dPage = { children: [] as Record<string, unknown>[] };
+        const dRun = await runPayload(planSetToPluginJs(iconTag), { vars: iconTag.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: iconTag.flatMap((pl) => planTextStyles(pl.root)),
+          comps: ['icon/FPO-default-icon', 'icon/search', 'icon/check', 'icon/check', 'provider-logo/payment/generic'], compKeys: true, page: dPage });
+        const dDefs = Object.values((((dPage.children.find((c) => c.type === 'COMPONENT_SET') ?? {}) as Record<string, unknown>).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+        const dMisses = dRun.misses.filter((m) => /\.preferred ->/.test(m));
+        ok(dDefs.length > 0 && dDefs.every((d) => JSON.stringify(d.preferredValues) === '[{"type":"COMPONENT","key":"CK:icon/search"}]') && dMisses.length === dDefs.length
+          && dMisses.every((m) => /^property \S.*\.preferred -> 1 icon name\(s\) held by more than one component \(icon\/check; not offered in the swap\. Rename or remove the stale copies, then rebuild\)$/.test(m)),
+          `#4164 paste, duplicate: an icon name two components hold is left out of the list and named as a miss (${JSON.stringify(dDefs.map((d) => d.preferredValues))}; ${JSON.stringify(dMisses)})`);
+        // A file whose only `icon/` component is the placeholder: nothing to prefer, so nothing is written, and it is no
+        // miss either, since the file does hold an icon. Mutation: the miss keyed on the filtered list (`if(!by.size)` →
+        // `if(!names.length)`) → `#4164 paste, placeholder only`.
+        const oPage = { children: [] as Record<string, unknown>[] };
+        const oRun = await runPayload(planSetToPluginJs(iconTag), { vars: iconTag.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]), styles: iconTag.flatMap((pl) => planTextStyles(pl.root)),
+          comps: ['icon/FPO-default-icon', 'provider-logo/payment/generic'], compKeys: true, page: oPage });
+        const oDefs = Object.values((((oPage.children.find((c) => c.type === 'COMPONENT_SET') ?? {}) as Record<string, unknown>).componentPropertyDefinitions ?? {}) as Record<string, Record<string, unknown>>).filter((d) => d.type === 'INSTANCE_SWAP');
+        const oMisses = oRun.misses.filter((m) => /\.preferred ->/.test(m));
+        ok(oDefs.length > 0 && oDefs.every((d) => d.preferredValues === undefined) && oMisses.length === 0,
+          `#4164 paste, placeholder only: a file whose only icon is the placeholder gets no preferred list and no miss (${JSON.stringify(oDefs.map((d) => d.preferredValues))}; ${JSON.stringify(oMisses)})`);
       }
 
       // ---- #2645: PER-INSTANCE OVERRIDES on a nested instance — validator, projection, and the PASTE executor ----
@@ -28523,6 +28572,8 @@ arm: {
             comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget,
               ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value)]).filter((c): c is string => !!c))].filter((c) => !slotSets.includes(c)),
             fileNodes: slotSets.map((id) => ({ name: id, type: 'COMPONENT_SET' as const, variants: figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: 'FPO-default-icon' }).map(planComponentName) })),
+            // #4164 — as on a real host, every component carries a key, which an icon swap's preferred value names.
+            compKeys: true,
             // #2317 — each nested component's TEXT properties, from the NESTED def's own declaration (never from the
             // host's `nestTexts`, the value under test), so a nested instance has the property a host overrides.
             compTexts: Object.fromEntries(componentDefs.filter((d) => d.figmaProperties?.texts).map((d) =>
@@ -41665,8 +41716,8 @@ arm: {
   ok(li.tokens.icon === 'color.icon.primary' && li.tokens.indicator === 'color.icon.primary' && li.tokens.label === 'color.text.primary',
     `#2319 list-item inks: the bullet (indicator) and the icon on color.icon.primary, the number and text (label) on color.text.primary (Q273.8, #1471) (got ${li.tokens.indicator}, ${li.tokens.icon}, ${li.tokens.label})`);
   const props = planSetProperties(liPlans);
-  ok(JSON.stringify(props) === JSON.stringify([{ name: 'label', type: 'TEXT', default: 'List item' }, { name: 'number', type: 'TEXT', default: '1.' }, { name: 'swap icon', type: 'INSTANCE_SWAP', swapTarget: 'icon/check' }]),
-    `#2319 #3554 list-item properties: label "List item" (Q-CC19 A, the layer's name), number "1." and the icon swap defaulting to icon/check, with no presence toggle (Q273.3) (got ${JSON.stringify(props)})`);
+  ok(JSON.stringify(props) === JSON.stringify([{ name: 'label', type: 'TEXT', default: 'List item' }, { name: 'number', type: 'TEXT', default: '1.' }, { name: 'swap icon', type: 'INSTANCE_SWAP', swapTarget: 'icon/check', preferIcons: true }]),
+    `#2319 #3554 list-item properties: label "List item" (Q-CC19 A, the layer's name), number "1." and the icon swap defaulting to icon/check and preferring the core icons (#4164), with no presence toggle (Q273.3) (got ${JSON.stringify(props)})`);
 
   // THE LIST (Q273.2; #2649, owner decision Q307 A): an "items" slot of three List.Items stretched across the list,
   // every item following the list's type and size, the item gap on the slot. No item toggles remain.
