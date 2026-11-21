@@ -39188,6 +39188,78 @@ arm: {
       ok(onPoc.status === 1 && onPoc.out.includes(DROPPED),
         `#3863 release-notes: on a PR into the integration branch, a release missing a note main's fold folded still fails NOTES by name (exit ${onPoc.status}: ${said(onPoc, /NOTES|folds read/)})`);
     }
+
+    // #3408 — THE CARRIED REPO. `poc/arm-1` is carried, commit for commit, into another repository and opened there as a
+    // PR into THAT repository's `main`: a seed snapshot of prism3 plus its own commits. `GITHUB_BASE_REF` is `main`, so
+    // the ladders read `origin/main`, and `carriedMain` steps aside for a ref named `main`. Read from that stale snapshot,
+    // prism3's own fold since it was this diff's fold, and FOLD INTEGRITY failed 5 notes whose prose a correction on
+    // `main` had changed after the snapshot; progress-order read the seed's fragments as landed at the seed.
+    // `carriedMainBase` (`comparison-base.ts`) finds the `main` the tree carries in its own history: past the fold that
+    // set HEAD's version, along `main`'s first-parent chain, to its one tip (m2 here).
+    //   carried main: one parentless commit, m0's tree with replay-main-minor's note in an older wording (the snapshot
+    //   predates its correction) · CI's checkout: a merge of `refresh` into it. Before the fix emission-version fails
+    //   FOLD INTEGRITY on that note and progress-order fails FOLDED ENTRIES. Two controls keep the teeth: the PR's OWN
+    //   patch note over its own moved artifact still fails NOTE SHAPE in the carried repo, and in prism3's layout a fold
+    //   PR (its fold made on the base) that drops a note's prose still fails FOLD INTEGRITY, so the base moves only
+    //   where the base lacks the commit the fold was made on. MUTATIONS VERIFIED (#3408, each fails a case here by name):
+    //   `carriedMainBase` returning null · the made-on test dropped (the fold PR control, and #3833's refresh cases) · the
+    //   fold taken as the base in place of the chain's tip (executor-reach's label) · emission-version dropping its call ·
+    //   progress-order reading landings from `origin/main` again (FOLDED ENTRIES).
+    {
+      const m1 = git(['rev-parse', `${m2}^1`]);
+      const v = /ENGINE_VERSION = '(\d+\.\d+\.\d+)'/.exec(git(['show', `${m1}:packages/engine/version.ts`]))![1];
+      const NOTE = 'packages/engine/changes/replay-main-minor.md';
+      const CARRIED = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' };
+      const TIP = `the newest main HEAD carries, ${m2.slice(0, 8)}`;
+      const mainBefore = git(['rev-parse', 'refs/remotes/origin/main']);
+      git(['checkout', '-q', '-b', 'snapshot', m0]);
+      put(NOTE, `---\nengine: minor\n---\nThe #3833 replay's replay-main-minor, in the wording the snapshot holds.\n`);
+      const seed = git(['commit-tree', `${commit('the snapshot\'s older wording')}^{tree}`, '-m', 'seed: the carried repo\'s own main, a snapshot of prism3']);
+      const carriedPR = (tip: string): string => {
+        const ci = git(['commit-tree', `${tip}^{tree}`, '-p', seed, '-p', tip, '-m', 'CI: the carry merged into the carried repo\'s main']);
+        git(['checkout', '-q', '--detach', ci]);
+        return ci;
+      };
+      git(['update-ref', 'refs/remotes/origin/main', seed]);
+      carriedPR(git(['rev-parse', 'refresh']));
+      const [cev, cpo, cer] = await Promise.all([
+        tsxAsync('packages/engine/lint-emission-version.ts', CARRIED),
+        tsxAsync('packages/engine/lint-progress-order.ts', CARRIED),
+        tsxAsync('apps/plugin/lint-executor-reach.ts', CARRIED),
+      ]);
+      ok(cev.status === 0 && cev.out.includes(TIP),
+        `#3408 carried repo: emission-version reads a carry from the newest main it carries (${m2.slice(0, 8)}), not the carried repo's stale main, so main's fold is not this diff's fold (exit ${cev.status}: ${said(cev, /FOLD|ONE WRITER|NOTE SHAPE|base |clean/)})`);
+      ok(cpo.status === 0 && !cpo.out.includes('✗'),
+        `#3408 carried repo: progress-order reads landings and the fold from the newest main the carry carries, not the seed (exit ${cpo.status}: ${said(cpo, /✗|leaves/)})`);
+      ok(cer.status === 0 && cer.out.includes(`base ${m2.slice(0, 8)} (${TIP}`),
+        `#3408 carried repo: executor-reach reads a carry from the newest main it carries (exit ${cer.status}: ${said(cer, /base |✗/)})`);
+      // The push run once the carry has merged: HEAD is that merge, on the carried repo's main.
+      const [pev, ppo] = await Promise.all([
+        tsxAsync('packages/engine/lint-emission-version.ts', { GITHUB_EVENT_NAME: 'push' }),
+        tsxAsync('packages/engine/lint-progress-order.ts', { GITHUB_EVENT_NAME: 'push' }),
+      ]);
+      ok(pev.status === 0 && pev.out.includes(TIP) && ppo.status === 0 && !ppo.out.includes('✗'),
+        `#3408 carried repo: the push run of the merged carry reads from the newest main it carries too (emission-version exit ${pev.status}: ${said(pev, /FOLD|base /)}; progress-order exit ${ppo.status}: ${said(ppo, /✗/)})`);
+      // Teeth, in the carried repo: the carry's OWN patch note over its own moved artifact.
+      git(['checkout', '-q', '-b', 'carried-own', 'refresh']); moveArtifact(); note('replay-carried-patch', 'patch');
+      carriedPR(commit('the carry moves an artifact under a patch note'));
+      const cown = tsx('packages/engine/lint-emission-version.ts', CARRIED);
+      ok(cown.status === 1 && cown.out.includes('NOTE SHAPE — packages/engine/changes/replay-carried-patch.md declares `engine: patch`, and 1 committed artifact(s) moved (#1807).') && cown.out.includes(TIP),
+        `#3408 carried repo: the carry's OWN patch note over its own moved artifact still fails NOTE SHAPE by name (exit ${cown.status}: ${said(cown, /NOTE SHAPE|base /)})`);
+      // Teeth, in prism3's layout: a fold PR made on its base that drops a note's prose. The fold's parent is the base.
+      const PROSE = 'The #3833 replay\'s replay-main-minor.';
+      git(['checkout', '-q', '-b', 'fold-drops', m0]);
+      git(['read-tree', '-u', '--reset', m1]);
+      const log = readFileSync(join(clone, 'packages/engine/CHANGELOG.md'), 'utf8');
+      if (!log.includes(PROSE)) throw new Error(`#3408 replay: the fold's changelog does not carry "${PROSE}"`);
+      put('packages/engine/CHANGELOG.md', log.replace(PROSE, 'A fold that dropped what the note said.'));
+      commit('a fold that drops a note\'s prose');
+      git(['update-ref', 'refs/remotes/origin/main', m0]);
+      const drops = tsx('packages/engine/lint-emission-version.ts', CARRIED);
+      ok(drops.status === 1 && drops.out.includes(`${NOTE}: its prose is not in the ${v} section`) && !drops.out.includes('(#3408)'),
+        `#3408 prism3 layout: a fold PR made on its base keeps its merge base, and a fold that drops a note's prose still fails FOLD INTEGRITY by name (exit ${drops.status}: ${said(drops, /FOLD|base /)})`);
+      git(['update-ref', 'refs/remotes/origin/main', mainBefore]);
+    }
     // #1268 SKIPPABLE SPAN integration-replay END
     } // replay
     if ((skippedSpans.has('integration-replay') || failedSpans.has('integration-replay')) && pass + fails.length !== assertedBefore)

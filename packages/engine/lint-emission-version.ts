@@ -135,7 +135,7 @@ import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 import { PENDING_STAMP, STAMP_PATHS, auditStamps, readStamps, type StampSources } from './rename-stamp-audit';
-import { comparisonBase, integrationBase, mergeGroupBase } from './comparison-base';
+import { carriedMainBase, comparisonBase, integrationBase, mergeGroupBase } from './comparison-base';
 
 const here = resolve(fileURLToPath(import.meta.url), '..');
 const repo = resolve(here, '../..');
@@ -294,7 +294,11 @@ if (!mb.ok || !mb.out.trim())
 // `comparison-base.ts` has the reason, and `lint-push-base.ts` replays it against this gate. A PR that
 // merges `main` into another base branch is read from the newest `main` it carries instead (#3833, the same
 // file): `main`'s notes, folds and moved artifacts were judged by their own runs, not by this one.
-const cmp = integrationBase(git, baseRef!, mb.out.trim()) ?? comparisonBase(git, mb.out.trim(), die);
+// And where the base is not the `main` the tree carries at all (#3408, the carried repo: its `main` a stale snapshot of
+// prism3), the base is the newest `main` the tree carries, read from its own history (`carriedMainBase`, the same file):
+// prism3's own folds since the snapshot were judged by their own runs, and read here as one fold they fail FOLD INTEGRITY.
+const near = integrationBase(git, baseRef!, mb.out.trim()) ?? comparisonBase(git, mb.out.trim(), die);
+const cmp = carriedMainBase(git, near.base) ?? near;
 const base = cmp.base;
 
 // ---- SIDE A: did any artifact's content move? ----------------------------------------------------

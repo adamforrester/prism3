@@ -147,3 +147,68 @@ export const carriedMain = (git: Git, baseRef: string): { mainRef: string; point
   if (!mp.ok || !mp.out.trim()) return null;
   return { mainRef, point: mp.out.trim() };
 };
+
+/**
+ * THE BASE WHEN THE BASE BRANCH IS NOT THE `main` THE TREE CARRIES (#3408, the carry). `poc/arm-1` is carried,
+ * commit for commit, into another repository (the carried repo) and opened there as a PR into ITS `main`: a seed
+ * snapshot of prism3 plus that repository's own commits, with an earlier carry merged in. There `GITHUB_BASE_REF` is
+ * `main`, the ladder resolves `origin/main`, and `carriedMain` steps aside because the ref is named `main`. The diff
+ * then runs from a stale snapshot, and prism3's own work since it reads as this diff's: FOLD INTEGRITY found 5 notes,
+ * whose prose a later correction on `main` changed, "not in the 0.238.0 section"; progress-order read every fragment
+ * the seed held as landed at the seed; executor-reach measured `main`'s revisions 55 to 66 as one span. In prism3 the
+ * same commit passes.
+ *
+ * The `main` a tree carries is read from the tree's own history, never from a ref's name, as `test.ts`' replay does
+ * since #4394. FIRST the FOLD that set the `ENGINE_VERSION` HEAD commits: a single-parent commit setting it is a fold
+ * on `main` or a squash of `main` copying one (#3833's a96bdd6a), and the copy can only come after the fold, so the
+ * OLDEST is the fold. It is in every repository the tree's commits are in, and it is on `main`'s first-parent chain.
+ *
+ * The test is the commit the fold was MADE ON, its first parent. In prism3 that is always in the gate's base: `fold.ts`
+ * runs on a clean tree at `main`, and `main` only moves forward, so a PR into `main` (the fold's own PR included), a PR
+ * into an integration branch that merged `main`, a merge-group run and a push run all hold it, and this returns null:
+ * the gate is exactly as strict as before. A base that lacks it lacks the history the tree was built on, so it is not
+ * the `main` the tree carries.
+ *
+ * THEN the newest `main` the tree carries: of the commits between the fold and HEAD, those whose FIRST parent is the
+ * fold or another of them are `main`'s own chain past the fold (an integration branch takes `main` in as a merge's
+ * second parent, so its own commits never join), and its one tip is the merge base the tree has with prism3's `main`.
+ * Measured in prism3 at `poc/arm-1` b410e7ee: one tip, 0d7d289f, which is `git merge-base HEAD origin/main` there. Where
+ * the chain forks (a branch cut from `main` past the fold, merged in without `main`), the fold itself is the base:
+ * more in the diff, judged again, never less.
+ *
+ * Null too where the fold cannot be found (a shallow checkout, no readable version, no single-parent commit setting
+ * it): the caller keeps its base, which fails loud rather than passes. `base` is the commit the gate would compare
+ * against; for a push run, HEAD's first parent.
+ */
+export const carriedMainBase = (git: Git, base: string): ComparisonBase | null => {
+  if (git('rev-parse', '--is-shallow-repository').out.trim() !== 'false') return null;
+  const v = /^export const ENGINE_VERSION = '(\d+\.\d+\.\d+)'/m.exec(git('show', 'HEAD:packages/engine/version.ts').out)?.[1];
+  if (!v) return null;
+  const sets = `+export const ENGINE_VERSION = '${v}';`;
+  const log = git('log', '--full-history', '-U0', '--format=%x00%H %ct %P', '-G', 'ENGINE_VERSION = ', 'HEAD', '--', 'packages/engine/version.ts');
+  if (!log.ok) return null;
+  let fold: { sha: string; parent: string; t: number } | null = null;
+  for (const rec of log.out.split('\0')) {
+    const [sha, t, ...parents] = rec.split('\n')[0].trim().split(/\s+/);
+    if (!sha || parents.length !== 1 || !rec.split('\n').includes(sets)) continue;
+    if (!fold || Number(t) < fold.t) fold = { sha, parent: parents[0], t: Number(t) };
+  }
+  if (!fold || git('merge-base', '--is-ancestor', fold.parent, base).ok) return null;
+  const path = git('rev-list', '--ancestry-path', '--topo-order', '--reverse', '--parents', `${fold.sha}..HEAD`);
+  const chain = new Set([fold.sha]);
+  const extended = new Set<string>();
+  for (const line of path.ok ? path.out.split('\n') : []) {
+    const [sha, first] = line.trim().split(/\s+/);
+    if (sha && first && chain.has(first)) { chain.add(sha); extended.add(first); }
+  }
+  const tips = [...chain].filter((c) => !extended.has(c));
+  const point = path.ok && tips.length === 1 ? tips[0] : fold.sha;
+  const lacks = `the base ${base.slice(0, 8)} lacks the commit the fold ${fold.sha.slice(0, 8)} setting HEAD's ENGINE_VERSION ${v} was made on, so it is not the main this tree carries (#3408)`;
+  return {
+    base: point,
+    onBase: false,
+    label: point === fold.sha
+      ? `the fold ${fold.sha.slice(0, 8)} — ${lacks}${path.ok ? `, and main's chain past the fold has ${tips.length} tips` : ''}`
+      : `the newest main HEAD carries, ${point.slice(0, 8)} — ${lacks}`,
+  };
+};

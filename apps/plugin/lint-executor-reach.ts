@@ -36,7 +36,9 @@
  * In a merge-group run, the group's parent (`MERGE_GROUP_BASE_SHA`, `mergeGroupBase`, #4106), and nothing else.
  * Otherwise the merge base of HEAD and the base branch (`GITHUB_BASE_REF`, else `origin/main`, else `main`); on the base branch
  * itself, HEAD's first parent (`packages/engine/comparison-base.ts`, #2556); on a PR that merges `main` into another
- * base branch, the newest `main` it carries (`integrationBase`, #3833). No base is a failure, not a pass.
+ * base branch, the newest `main` it carries (`integrationBase`, #3833); where the base is not the `main` the tree carries
+ * at all (the carried repo), the newest one it does carry, from its own history (`carriedMainBase`, #3408). No base is a
+ * failure, not a pass.
  * The exported base tree gets one symlink, `node_modules/@prism3/engine` → this tree's engine, so its executor draws
  * this tree's plans: it is a scratch directory, not a worktree, and no package manager touches it.
  *
@@ -49,7 +51,7 @@ import { availableParallelism, tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { componentDefs } from '@prism3/engine/components';
-import { comparisonBase, integrationBase, mergeGroupBase } from '@prism3/engine/harness';
+import { carriedMainBase, comparisonBase, integrationBase, mergeGroupBase } from '@prism3/engine/harness';
 import type { ReachTable } from './src/executor-reach';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -89,7 +91,10 @@ const mb = git('merge-base', 'HEAD', baseRef!);
 if (!mb.ok || !mb.out.trim()) die([`no merge base between HEAD and ${baseRef} — this check CANNOT RUN.`, `    ${mb.err}`]);
 // A PR that merges `main` into another base branch is read from the newest `main` it carries (#3833): `main`'s
 // own revisions were each measured by their own runs, and measured again here as one span they are not.
-const { base, label } = integrationBase(git, baseRef!, mb.out.trim()) ?? comparisonBase(git, mb.out.trim(), die);
+// And a base that is not the `main` the tree carries at all (#3408, the carried repo, its `main` a stale snapshot of
+// prism3) is read from the newest `main` the tree does carry, found in its own history (`carriedMainBase`).
+const near = integrationBase(git, baseRef!, mb.out.trim()) ?? comparisonBase(git, mb.out.trim(), die);
+const { base, label } = carriedMainBase(git, near.base) ?? near;
 const show = (p: string): string | null => {
   const listed = git('ls-tree', '--name-only', base, '--', p);
   if (!listed.ok) die([`could not list ${p} at ${base.slice(0, 8)} — this check CANNOT RUN.`, `    ${listed.err}`]);
