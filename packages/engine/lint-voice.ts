@@ -163,6 +163,14 @@
  *     the entry's `min` / `token` / `composited_over` (never against the generator's function). A `MUST`
  *     anywhere else in the file, or a requirement naming a different token or floor, is still a hit.
  *
+ * One QUOTATION of the channel is carved too (the 0.239.0 fold): the release record
+ * (`docs/public/releases/<x.y.z>.{md,json}`) carries each folded change note verbatim, and can't be edited
+ * because `lint-release-notes.ts` re-derives it from git. So a note that quotes a sidecar's requirement
+ * (#1779's `"MUST clear 3:1 against …"`) ships that `MUST` in the record. `carveQuotedRequirements` blanks a
+ * `MUST` there only when it opens a double-quoted span whose text, with JSON `\n` escapes and whitespace
+ * collapsed, is VERBATIM a `requirement` some committed `out/*.ai.json` ships. The oracle is the sidecars, not
+ * this file's pattern: a paraphrase, an unquoted `MUST`, or a quote of a sentence no sidecar ships is still a hit.
+ *
  * The channel is fail-closed and self-checked like the scope: a sidecar that does not parse is `blind`,
  * and a run in which the carve-out removed nothing fails — a carve-out that matches nothing is either a
  * dead rule or a renamed field, and both would read as a pass.
@@ -331,6 +339,24 @@ const treeFloorsOf = (tree: any): TreeFloors => {
 const sameFloors = (a: Floors, b: Floors) => Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[k] === v);
 const isPayloadSidecar = (abs: string) => /\/packages\/engine\/out\/[^/]+\.ai\.json$/.test(abs);
 let channelExempted = 0, channelFiles = 0;
+
+/** The release record: one file per folded version, `.md` and `.json`. Not the index. */
+const isReleaseRecord = (abs: string) => /\/docs\/public\/releases\/\d+\.\d+\.\d+\.(?:md|json)$/.test(abs);
+/** In a release record, blank each `MUST` that opens a double-quoted span (`"…"`, or `\"…\"` inside JSON) whose
+ *  text, `\n` escapes and whitespace runs collapsed, is verbatim one of `shipped`. Same length out as in, so every
+ *  other hit keeps its line. See the header's payload-channel section. */
+export const carveQuotedRequirements = (txt: string, shipped: ReadonlySet<string>): { text: string; exempted: number } => {
+  let exempted = 0;
+  const text = txt.replace(/(\\?")(MUST\b[^"]*?)(\\?")/g, (all: string, open: string, body: string, close: string) => {
+    if (!shipped.has(body.replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim())) return all;
+    exempted++;
+    return `${open}    ${body.slice(4)}${close}`;
+  });
+  return { text, exempted };
+};
+/** Every contrast `requirement` the committed sidecars ship: the oracle for the quotes above. */
+const shippedRequirements = new Set<string>();
+let recordExempted = 0;
 /** The sidecar text with every valid contract requirement blanked, re-serialized the way the emitter
  *  writes it (2-space JSON), so line numbers on a remaining hit still point at the committed file. */
 const carvePayload = (raw: string, floorsOf: TreeFloors): { text: string; exempted: number } => {
@@ -401,6 +427,7 @@ const scan = (abs: string): Hit[] => {
       return [];
     }
   }
+  if (isReleaseRecord(abs)) { const c = carveQuotedRequirements(normText, shippedRequirements); normText = c.text; recordExempted += c.exempted; }
   return [...voiceHits(txt).map((h) => ({ ...h, src: txt })), ...normativeHits(normText).map((h) => ({ ...h, src: normText }))].map(({ rule, match, index, src }) => ({
     file: shown(abs),
     line: src.slice(0, index).split('\n').length,
@@ -551,6 +578,10 @@ const SELF_CHECK: { sample: string; expectRule: string | null }[] = [
   { sample: 'the skill drops its note that the def still dropped the fade', expectRule: null }, // "note", a noun
   { sample: 'A part note that cites an owner decision', expectRule: null },          // "note", a noun
   { sample: 'bound to the theme the run just wrote', expectRule: null },             // the time sense, a moment ago
+  // #4174's note: one modifier between the determiner and a lower-case `note` is still the noun.
+  { sample: 'each code-only note that names motion', expectRule: null },
+  { sample: 'each code-only\nnote that names motion', expectRule: 'filler' }, // the modifier never crosses a line
+  { sample: 'Read the guide Note that it moves.', expectRule: 'filler' },   // a capital `Note` opens a run-in sentence
   { sample: 'Oops, something went wrong.', expectRule: 'apology' },
   { sample: 'Sorry, we could not complete this.', expectRule: 'apology' },
   { sample: 'Applied — 88 variables written!', expectRule: 'exclamation' },
@@ -619,6 +650,19 @@ const LINE_SAMPLE = [
     { sample: 'links must be underlined; MUSTARD is a color', want: false },
   ];
   for (const { sample, want } of cases) if ((normativeHits(sample).length > 0) !== want) selfFails.push(`normative: "${sample}" should${want ? '' : ' NOT'} be flagged`);
+  // The release record's quotes of the channel: only a verbatim quote of a shipped requirement is carved.
+  const REQ = 'MUST clear 3:1 against `background.primary` in light and dark modes, and 4.5:1 in hc-light and hc-dark modes.';
+  const quoteCases: { sample: string; want: boolean }[] = [
+    { sample: `reads "MUST clear 3:1 against \`background.primary\` in light and dark modes, and 4.5:1 in hc-light and\nhc-dark modes." now`, want: false },
+    { sample: `"prose": "reads \\"MUST clear 3:1 against \`background.primary\` in light and dark modes, and 4.5:1 in hc-light and\\nhc-dark modes.\\" now"`, want: false },
+    { sample: `reads "MUST clear 3:1 against \`background.primary\` in every mode." now`, want: true },
+    { sample: `reads ${REQ} now`, want: true },
+    { sample: `reads "the token MUST clear 3:1." now`, want: true },
+  ];
+  for (const { sample, want } of quoteCases) {
+    if ((normativeHits(carveQuotedRequirements(sample, new Set([REQ])).text).length > 0) !== want) selfFails.push(`release-record quote: "${sample}" should${want ? '' : ' NOT'} be flagged`);
+  }
+  if (carveQuotedRequirements(`"${REQ}"`, new Set([REQ])).text.length !== REQ.length + 2) selfFails.push('release-record quote: the carve changed the text length, so later hits would report the wrong line');
   const sidecar = (cw: object, extra: object = {}) => JSON.stringify({ color: { 'text.primary': { avoid_when: 'Do not use on fills.', contrast_with: [cw], ...extra } } });
   // The tree beside the fixture: text.primary holds 7:1 in every mode; border.brand 3:1 in light and dark, 4.5:1 in HC.
   const FLOORS: Record<string, Floors> = { 'text.primary': { light: '7:1', dark: '7:1' }, 'border.brand': { light: '3:1', dark: '3:1', 'hc-light': '4.5:1', 'hc-dark': '4.5:1' },
@@ -755,6 +799,15 @@ if (selfFails.length) {
 // rather than scanning a bundle the issue no longer concerns and calling it clean.
 const VOCABULARY_MARKER = 'unknown personality trait';
 
+// The quote oracle (header: the payload channel), read before any release record is scanned. A sidecar that
+// does not parse is already `blind` through `scan`; an empty set with a release record in scope is blind too.
+for (const abs of gated.filter(isPayloadSidecar)) {
+  try {
+    for (const e of Object.values<any>(JSON.parse(readFileSync(abs, 'utf8')).color ?? {}))
+      for (const cw of e?.contrast_with ?? []) if (typeof cw?.requirement === 'string') shippedRequirements.add(cw.requirement);
+  } catch { /* reported by scan */ }
+}
+if (!shippedRequirements.size && gated.some(isReleaseRecord)) blind.push('the release record — no committed sidecar requirement was read, so a quoted one cannot be told from a stray MUST');
 const gatedHits = gated.flatMap(scan);
 
 // ---- the CLIENT NAMES scan (#1824) ----
