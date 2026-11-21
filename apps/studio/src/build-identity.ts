@@ -106,7 +106,10 @@ export const parseBuildId = (raw: string): BuildIdentity => {
     const builtAt = raw.slice(0, sp);
     const tail = raw.slice(sp + 1);
     const m = TREE_WITH_COMMIT.exec(tail);
-    return m ? { kind: 'tree', builtAt, tree: m[1], commit: m[2] } : { kind: 'tree', builtAt, tree: tail, commit: null };
+    // Both groups always capture on a match; reading them as possibly absent keeps this file import-free (#1182).
+    const tree = m?.[1];
+    const commit = m?.[2];
+    return tree !== undefined && commit !== undefined ? { kind: 'tree', builtAt, tree, commit } : { kind: 'tree', builtAt, tree: tail, commit: null };
   }
   if (raw === 'local') return { kind: 'local' };
   return { kind: 'commit', commit: raw };
