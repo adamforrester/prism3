@@ -35,7 +35,7 @@ import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } f
 import { computePrunePlan, orphanStyles, styleOrphanNote, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY } from './prune-figma';
 import type { PruneInput, PruneApi, FileStyles } from './prune-figma';
 import { isRefusal, rootOf, buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan, verifyReadback } from '@prism3/engine/figma';
-import { conflictSummary } from './preflight';
+import { conflictSummary, modeLimitLine } from './preflight';
 import { conflictKey, choiceNote, isChoices, type CollisionChoices } from './collision-choice';
 import { APPLY_STAGES, runApplyTheme, themePlans, type ApplyStage, type ThemePace } from './apply-theme';
 import { emissionOf, themeDue } from './theme-emission';
@@ -393,6 +393,8 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     // global `figma` is the host; everything below this line (the report) is unchanged.
     const { plans, pf, guarded, before, chose, exec, names, applied } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined), themePace(sink), choices);
     const { colorFiles, floatPlan, fontPlan, motionPlan } = plans;
+    // #4157 (owner A): the file's plan allows fewer modes than the apply adds. Refused whole, before any write, in one line.
+    if (!guarded.ok && guarded.limit) { sink.data({ modeLimit: guarded.limit }); const line = modeLimitLine(guarded.limit); postVerdict({ type: 'apply-result', ok: false, headline: '✗ not applied', summary: line, lines: [line] }, sink); return; }
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
       const conflicts = conflictSummary(guarded.conflicts);

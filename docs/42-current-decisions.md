@@ -104,7 +104,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | a PR declares the engine bump in a change note, and a fold assigns one version per batch | 2026-09-30 | `docs/30-versioning-and-compatibility.md` | #1807 |
 | never detach a Prism3 component to match a design; place it attached and file the differences | 2026-10-06 | `docs/46-never-detach.md` | #2259 |
 | emit a conforming DTCG projection beside the canonical `$extensions` tree, so Style Dictionary is a consumability gate rather than a dependency *(decided 2026-08-07; indexed 2026-10-09, after `19` §9 had described it as open for two months — the first code-layer decision in this table)* | 2026-08-07 | `docs/19-code-library-and-dx.md` §9 | #609 |
-| Inverse colors is its own group below Semantic colors, column-aligned; a group the style-guide generator draws or rearranges is never clipped and never overlaps the frames below it | 2026-10-19 | `docs/45-style-guide-generator.md` | #2818 |
+| Inverse colors is its own group below Semantic colors, column-aligned; a group the style-guide generator draws or rearranges is never clipped and never overlaps the frames below it (Q423 A, after the first real run of #2818) | 2026-10-19 | `docs/45-style-guide-generator.md` | — |
 | the effect-style and gradient-style tables each sit in a group frame of their own, Effect styles and Gradient styles, stacked last on the semantic page; an effect specimen sits at its header's x in every row, its shadow overflowing the cell | 2026-10-28 | `docs/45-style-guide-generator.md` | #3135 |
 | a brand's own glass roles are brand-dependent | 2026-10-27 | `docs/30-versioning-and-compatibility.md` | #3073 |
 | the opaque outline hover fill is brand-dependent | 2026-10-27 | `docs/30-versioning-and-compatibility.md` | #3071 |
@@ -113,6 +113,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | the class and custom-element prefix is `p3-` (Q97 A); the CSS custom-property prefix (Q98) is still open | 2026-11-07 | `docs/35-naming-and-packaging.md` §9.2 | #3408 |
 | `packages/tokens` also builds a shippable token output, beside its consumability gate (Q99 A) | 2026-11-07 | `docs/35-naming-and-packaging.md` §9.3 | #3408 |
 | CSS custom properties keep stock Style Dictionary's `--pds3-` prefix (Q98 A) | 2026-11-07 | `docs/35-naming-and-packaging.md` §9.4 | #3408 |
+| primitives keep their two homes (`core.*`, and top level for motion and opacity); the `.ai.json` `primitives` tier says which leaves are primitives (#4163 A) | 2026-11-19 | `docs/35-naming-and-packaging.md` §10.1 | #4163 |
 | the code POC's behavior is native HTML plus a small script (Q86 A); tranche 4's behavior question is decided in §7.2 | 2026-11-07 | `docs/41-internal-and-ejected.md` §7.1 | #3408 |
 | arm 1's packages are generated from the defs export, and a parity gate checks them (Q96 A) | 2026-11-07 | `docs/19-code-library-and-dx.md` §10.1 | #3408 |
 | `password-field` is in the POC as a third top-level component (Q100 A) | 2026-11-07 | `docs/19-code-library-and-dx.md` §10.2 | #3408 |

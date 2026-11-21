@@ -684,6 +684,8 @@ export const select: ComponentDef = {
       'Render a visible, associated label (FieldLabel) above the control',
       'Show a muted placeholder as a prompt, never as the label or a real option',
       'Drive validation through the status axis so the border and the nested message agree',
+    ],
+    implementation: [
       'Prefer the native control where its OS menu is acceptable — the listbox contract is correct for free',
     ],
     dont: [

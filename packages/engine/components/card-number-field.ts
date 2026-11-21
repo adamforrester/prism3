@@ -210,11 +210,13 @@ export const cardNumberField: ComponentDef = withMirrors(makeTextField({
   docs: {
     usage: 'Use for a payment card\'s number in a checkout or a saved-card form. The field nests FieldLabel above, the input box with the card network\'s tile at its trailing edge, and FieldMessage below. Set brand from the card-type detection, or from the payment provider\'s brand event, and `brandName` to the network\'s name, so the network is stated in text as well as shown. Ask for the expiration date and the security code in their own text fields, with `autocomplete` `cc-exp` and `cc-csc`. When the payment provider hosts the input, pass its mount point with `renderInput` and let the field draw everything around it.',
     do: [
+      'Warn, rather than block, when the number fails the checksum',
+    ],
+    implementation: [
       'Let the leading digits set the network, and swap the tile in place',
       'State the detected network in text with `brandName`, not by the tile alone',
       'Group the digits as the user types, and keep the value digits only',
       'Use the payment provider\'s hosted input in production, with `renderInput`',
-      'Warn, rather than block, when the number fails the checksum',
     ],
     dont: [
       'Recolor, dim or redraw the tile, at any state',
