@@ -15,7 +15,7 @@
 import { bandPhrase } from './figma-description';
 import { RGB, contrast, floorRatio, hex, hexToRgb, emittedAlpha } from './color';
 import { Step } from './ramp';
-import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, ResolvedUnderline, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION, gridGapLink } from './theme';
+import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, ResolvedUnderline, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION, gridGapLink, type MotionBrandOnly } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
 import { resolveAllModes, ModeResult, OPACITY_STEPS } from './modes';
 import { orderedRoleKeys } from './color-order';
@@ -53,7 +53,7 @@ const ROW_LABEL_RUNG: Record<string, string> = { sm: 'xs', md: 'sm', lg: 'md' };
 // tier + a shadow step, composed at the component layer (see docs/06). The shadow
 // ramp + the tonal foreground ladder carry it; no parallel `elevation.*` tokens.
 
-type Token = { $type: 'color' | 'dimension' | 'number' | 'strokeStyle' | 'duration' | 'cubicBezier' | 'transition' | 'spring' | 'fontFamily' | 'fontWeight' | 'typography' | 'shadow' | 'gradient'; $value: string | number | number[] | string[] | Record<string, unknown> | Record<string, unknown>[]; $description: string; $extensions: { prism3: Record<string, unknown> } };
+type Token = { $type: 'color' | 'dimension' | 'number' | 'strokeStyle' | 'duration' | 'cubicBezier' | 'transition' | 'spring' | 'distanceDuration' | 'gesture' | 'fontFamily' | 'fontWeight' | 'typography' | 'shadow' | 'gradient'; $value: string | number | number[] | string[] | Record<string, unknown> | Record<string, unknown>[]; $description: string; $extensions: { prism3: Record<string, unknown> } };
 
 // ---- colour leaves ----
 const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boolean, ramp: Step[], hueSource?: 'brand' | 'default'): Token => {
@@ -117,6 +117,20 @@ const springLeaf = (p: { damping: number; stiffness: number }, description: stri
   // stiffness/damping/mass) is inherently a per-platform step.
   $extensions: { prism3: { generated: true, customType: 'spring' } },
 });
+// The brand-only motion group (#2857, Q-MP7 option 3 item 3): a brand's true one-offs, outside the guaranteed
+// contract. Each leaf is a CUSTOM type, as `spring` is: DTCG has no type for a spring, a duration that scales with
+// distance, or gesture physics, so the conforming projection omits them (#642) and they live in the full tree only.
+// `brandOnly: true` marks the group's leaves, so a reader can tell them from the engine's own springs.
+const BRAND_ONLY_TYPE = { spring: 'spring', distance: 'distanceDuration', gesture: 'gesture' } as const;
+const brandOnlyLeaf = (name: string, v: MotionBrandOnly): Token => {
+  const { kind, ...value } = v;
+  const what = kind === 'spring' ? 'a spring' : kind === 'distance' ? 'a duration that scales with the distance moved' : 'gesture physics';
+  return {
+    $type: BRAND_ONLY_TYPE[kind], $value: value as Record<string, unknown>,
+    $description: `brand-only motion ${name} — ${what}, set by this brand and outside the guaranteed names`,
+    $extensions: { prism3: { brandOnly: true, customType: BRAND_ONLY_TYPE[kind] } },
+  };
+};
 // Composite (DTCG transition): bundles duration + easing by intent.
 const transitionLeaf = (durPath: string, easePath: string, description: string): Token => ({
   $type: 'transition', $value: { duration: `{${durPath}}`, timingFunction: `{${easePath}}`, delay: '0ms' },
@@ -1198,6 +1212,9 @@ const buildTreeOnce = (theme: Theme): BuiltTree => {
   const roleCurve = new Map(m.easingRoles.map((r) => [r.role, r.curve]));
   for (const t of m.transitions) motion.transition[t.name] = transitionLeaf(`${root}.motion.duration.${t.duration}`, `${root}.motion.easing-role.${t.name}`, `motion ${t.name} — ${t.desc} (${t.duration} + ${roleCurve.get(t.name) ?? t.easing})`);
   motion.stagger = durSemantic(m.stagger, `stagger standard — ${m.stagger}ms between siblings`, (mm) => mm.stagger);
+  // The brand-only group (#2857): emitted only for a brand that sets one, so no corpus member emits it and it is in
+  // neither the guaranteed nor the brand-dependent list (`token-contract.ts`).
+  if (m.brandOnly) motion.brand = Object.fromEntries(Object.entries(m.brandOnly).map(([name, v]) => [name, brandOnlyLeaf(name, v)]));
 
   // ---- typography axis — primitive tier (Phase 1) ----
   // Curated rem size ladder (brand-invariant, not ratio-derived); numeric weight
