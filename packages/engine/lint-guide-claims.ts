@@ -683,8 +683,53 @@ for (const doc of READER_DOCS) {
 }
 if (!areaMentions) fail('AREA', 'no guide names a rail area as the rail draws it, so the guides were not read for this arm');
 
+// GROUPS (#4194 A row 2) — every group the Update file dialog draws is named in its guide. The label check above
+// holds each BOLD label to a string in the source; it cannot see a group the guide leaves out, which is how three of
+// them went missing. ORACLE: the groups `apps/studio/src/shell/update-file.ts` draws (`inset('update-group-…',
+// UPDATE_COPY.<key>)`), each titled by its `UPDATE_COPY` string in `apps/studio/src/state/update-file.ts`, both read
+// as text. SUBJECT: `update-a-file-safely.md`, where each title must stand bold or as a heading.
+const ufShell = readFileSync(join(ROOT, 'apps/studio/src/shell/update-file.ts'), 'utf8');
+const ufState = readFileSync(join(ROOT, 'apps/studio/src/state/update-file.ts'), 'utf8');
+const groupKeys = [...new Set([...ufShell.matchAll(/inset\('update-group-[a-z-]+',\s*UPDATE_COPY\.([A-Za-z]+)\)/g)].map((m) => m[1]))];
+const groupTitle = (k: string): string | null => new RegExp(`^\\s+${k}: '([^']+)',`, 'm').exec(ufState)?.[1] ?? null;
+const ufGuide = guideFiles.includes('update-a-file-safely.md') ? readFileSync(join(guideDir, 'update-a-file-safely.md'), 'utf8') : '';
+if (groupKeys.length < 5) fail('GROUPS', `read ${groupKeys.length} groups from apps/studio/src/shell/update-file.ts, so this arm checked almost nothing`);
+if (!ufGuide) fail('GROUPS', `${GUIDES}/update-a-file-safely.md was not read`);
+for (const k of groupKeys) {
+  const t = groupTitle(k);
+  if (t === null) { fail('GROUPS', `UPDATE_COPY.${k}, a group the dialog draws, has no plain string title in apps/studio/src/state/update-file.ts`); continue; }
+  const n = norm(t);
+  const named = [...ufGuide.matchAll(/\*\*(.+?)\*\*|^#+ (.+)$/gm)].some((m) => norm(m[1] ?? m[2] ?? '') === n);
+  if (!named) fail('GROUPS', `${GUIDES}/update-a-file-safely.md never names the "${t}" group the Update file dialog draws (UPDATE_COPY.${k}). Name it, bold or as a heading.`);
+}
+// …and the guide's "in this order" table lists them in the order the dialog draws them (#4354 review): presence alone
+// let a new row sit below a group the dialog draws after it. ORACLE: the `inset('update-group-…')` sequence above, in
+// source order. SUBJECT: the table's rows, each read by its last bold label (`**Components** › **Due**` → Due).
+const orderAt = ufGuide.indexOf('lists these items, in this order:');
+let orderedGroups = 0;
+if (orderAt < 0) fail('GROUPS', `${GUIDES}/update-a-file-safely.md has no "lists these items, in this order:" table, so the order of the Update file groups was not read`);
+else {
+  const tableRows: string[] = [];
+  for (const line of ufGuide.slice(orderAt).split('\n').slice(1)) {
+    if (line.startsWith('|')) tableRows.push(line);
+    else if (tableRows.length) break;
+  }
+  const byTitle = new Map(groupKeys.map((k, i) => [norm(groupTitle(k) ?? ''), i] as const));
+  let prev: { i: number; label: string } | null = null;
+  for (const row of tableRows) {
+    const bolds = [...(row.split('|')[1] ?? '').matchAll(/\*\*(.+?)\*\*/g)].map((m) => norm(m[1]));
+    const i = bolds.length ? byTitle.get(bolds[bolds.length - 1]) : undefined;
+    if (i === undefined) continue;
+    orderedGroups++;
+    const label = bolds[bolds.length - 1];
+    if (prev && i < prev.i) fail('GROUPS', `${GUIDES}/update-a-file-safely.md's "in this order" table lists "${label}" after "${prev.label}", but the Update file dialog draws UPDATE_COPY.${groupKeys[i]} before UPDATE_COPY.${groupKeys[prev.i]}. Move the row.`);
+    prev = { i, label };
+  }
+  if (orderedGroups < 3) fail('GROUPS', `read ${orderedGroups} Update file groups from the "in this order" table, so the order check held almost nothing`);
+}
+
 if (fails.length) {
   console.error(`❌ ${TAG}: ${fails.length} failure${fails.length === 1 ? '' : 's'}\n${fails.map((f) => `  ✗ ${f}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}); ${commands.length} agent-link commands, each a row in the agent-link guide; ${areas.length} rail areas, named as the rail draws them in ${areaMentions} guide line(s) and no retired name (${retired.map((a) => `"${a.word}"`).join(', ')}) in a guide, an app string or the ${READER_DOCS.length} reader docs (READMEs and llms.txt, #4138).`);
+console.log(`✅ ${TAG}: ${guideFiles.length} guides; ${labels} bold labels, each a string in the app source (${SOURCE_TREES.map((t) => `${t} ${perTree.get(t)}`).join(', ')} literals); ${stats.cites} citations resolve, ${stats.cites - stats.unanchored} of them still holding what their claim quotes (${stats.unanchored} quote nothing and are held by their fingerprint; ${stats.fingerprinted} fingerprints match; ${stats.ordered} bold lists in the order their cited lines hold them; ${FIXTURES.length - 1} planted gaps named and the control clean); ${counts.length} component-set counts equal componentDefs (${defs}); ${commands.length} agent-link commands, each a row in the agent-link guide; ${groupKeys.length} Update file groups, each named in its guide, ${orderedGroups} of them in the dialog's order; ${areas.length} rail areas, named as the rail draws them in ${areaMentions} guide line(s) and no retired name (${retired.map((a) => `"${a.word}"`).join(', ')}) in a guide, an app string or the ${READER_DOCS.length} reader docs (READMEs and llms.txt, #4138).`);

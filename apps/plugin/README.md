@@ -2,7 +2,7 @@
 
 The Figma **write host** over the Prism3 engine (see `../../docs/18-plugin-and-host-architecture.md`
 and `22-plugin-plan.md`). The organizing goal is **one UI, many front doors**: the same vanilla
-`apps/studio/src` control UI that drives the web dashboard runs verbatim inside this plugin's iframe; only
+`apps/studio/src` control UI that drives the web Studio runs verbatim inside this plugin's iframe; only
 the write step below it is plugin-specific.
 
 ## Two contexts (the load-bearing split)
@@ -45,7 +45,8 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ✅ **Idempotent** find-by-name → update in place (via the async `getLocalVariables*Async` getters
   required under `dynamic-page`). Three passes: `core-palette` (hidden primitives) → `color` create
   (N modes, literal fallbacks) → `color` aliases (**per-mode** binding — the collapse-guard).
-- ✅ **Colour only** (`core-palette` + `color`), matching the CLI today. The theme is the bundled NB
+- ✅ **Colour only** (`core-palette` + `color`), #108's scope when it landed. Today's write is listed in
+  [What gets written](../../docs/public/guides/apply-a-theme.md#what-gets-written). The theme is the bundled NB
   fixture (`nbThemeFrom(nbMeasured)`, JSON inlined) — `buildFigmaColor` bundles with **zero `node:`
   builtins** thanks to the node-free `packages/engine/emit-figma-color.ts`. A UI button fires `apply-theme`.
 - ✅ **Tested** without a live Figma: `test-write.ts` drives the executor against an in-memory
@@ -491,7 +492,7 @@ releases to the dev-only markers and the offline manifest to `["none"]`.
 Development → Import plugin from manifest…** and pick `apps/plugin/release/manifest.json` (Prism3 Studio) or
 `apps/plugin/release-offline/manifest.json` (Prism3 Studio Offline). To share one, send its folder: the three files,
 `manifest.json`, `main.js` and `ui.html`. To publish privately to an organization, publish from the imported network
-build in Figma; the manifest's `reasoning` is the text Figma shows for the network access. Tune the brand with the knobs,
+build in Figma; the manifest's `reasoning` is the text Figma shows for the network access. Tune the brand with its settings,
 then choose **Update file** (on the top bar), leave **Theme** ticked and choose **Update file** in the dialog, to
 materialize the whole generated system — every variable collection, with its modes, that the generated
 `docs/public/reference/figma-conventions.json` lists, the shadow, gradient, grid and text Styles, and the font

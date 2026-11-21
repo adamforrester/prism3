@@ -2065,7 +2065,7 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
       if (cells.built.length) assetNote += `, built ${cells.built.join(' + ')}${cells.fontMisses.length ? ` (⚠ ${cells.fontMisses.slice(0, 2).join('; ')})` : ''}`;
       if (cells.adopted.length) assetNote += `, style-guide cells already present: ${cells.adopted.map((a) => a.page ? `${a.name} on ${a.page}` : a.name).join(', ')}`;
     } else {
-      assetNote = ', ⚠ no File Components page — assets not built';
+      assetNote = ', ⚠ no File Components page — helper components not built';
     }
     // THE LIBRARY COVER (#2859, owner decision Q509 A, Q?5 A): drawn on the Cover page the scaffold just made, with the
     // saved brand's name, and set as the file thumbnail while that is still Figma's default. Every Update keeps it current.

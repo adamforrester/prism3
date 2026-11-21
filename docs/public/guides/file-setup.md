@@ -2,7 +2,7 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the Update file checklist for #3264). -->
 
-Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:2015-2085#390740ed -->
+Setting up a file gives it the page structure Prism3 builds into, plus the helper components the other steps draw with. <!-- src: apps/plugin/src/main.ts:2015-2085#d08fa154 -->
 It is the first item of the **Update file** checklist, **Set up file**, listed while the file isn't set up yet, or lacks something setup builds: "The pages, the templates and the style-guide cells. The cover too, while Docs has it on." <!-- src: apps/studio/src/state/update-file.ts:339-340 -->
 
 ## Set up a new file
@@ -52,7 +52,7 @@ The Activity drawer reports `✓ file set up` and lists the pages it created, or
 
 | Result | Meaning |
 |---|---|
-| `✓ file set up`, with `⚠ no File Components page — assets not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:2068 --> |
+| `✓ file set up`, with `⚠ no File Components page — helper components not built` in the detail | The pages were set up, but the helper components were not. <!-- src: apps/plugin/src/main.ts:2068 --> |
 | `✗ setup failed` | Figma refused a write. The detail starts `file setup failed:` and gives Figma's message. <!-- src: apps/plugin/src/main.ts:2083 --> |
 
 While any write runs, setup is refused, and while setup runs, every other write is: "is already running. Try again when it finishes." <!-- src: apps/plugin/src/run-guard.ts:49-52 -->

@@ -4,10 +4,10 @@
 
 There are two ways to get token files out, and they start from different places:
 
-- Export, an area of the Prism3 studio on the web and in the plugin, writes the brand you set in the studio. <!-- src: apps/studio/src/shell/pages.ts:522#a3230059 --> <!-- src: apps/studio/src/export-settings.ts:63-70#9d917e16 -->
+- Export, an area of Studio on the web and in the plugin, writes the brand you set in Studio. <!-- src: apps/studio/src/shell/pages.ts:522#a3230059 --> <!-- src: apps/studio/src/export-settings.ts:63-70#9d917e16 -->
 - TokenPress, a separate Figma plugin, writes what a Figma file holds: its variables, text styles, effect styles and gradient paint styles, whoever made them. <!-- src: apps/tokenpress/README.md:3#9efac648 --> <!-- src: apps/tokenpress/README.md:107-116#07079251 -->
 
-## Export from the studio
+## Export from Studio
 
 1. Open **Export** in the rail. <!-- src: apps/studio/src/shell/pages.ts:522 -->
 2. Choose **Design tokens**: "The token set in the W3C design-token format, aliases intact: a base file and one overlay per mode. These are the files a build reads." <!-- src: apps/studio/src/export-settings.ts:105-110 -->
@@ -31,12 +31,12 @@ With **One per mode** <!-- src: apps/studio/src/export-settings.ts:218 -->, the 
 - `<brand>.base.tokens.json` holds every token at its default-mode value.
 - `<brand>.<mode>.overlay.tokens.json`, for example `<brand>.dark.overlay.tokens.json`, holds only the tokens whose value changes in that mode.
 
-A build reads the base and then the overlay for the mode it wants. Style Dictionary does this with its stock setup, and CI checks that it still does. <!-- src: packages/engine/emit-dtcg-overlay.ts:23-26#827e558d --> <!-- src: packages/tokens/check-consumability.mjs:279-288#306a7f75 -->
+A build reads the base and then the overlay for the mode it wants. Style Dictionary does this with its stock setup, and Prism3's automated tests check on every change that it still does. <!-- src: packages/engine/emit-dtcg-overlay.ts:23-26#827e558d --> <!-- src: packages/tokens/check-consumability.mjs:279-288#306a7f75 -->
 The modes here are the appearance modes (such as dark and the high-contrast pair). Breakpoint values travel inside the layout tokens themselves; the per-breakpoint detail the engine keeps for its own use is left out of these files. <!-- src: packages/engine/emit-dtcg-overlay.ts:38-42#daf3ffcf -->
 
 Several files arrive as several downloads, not as one ZIP. <!-- src: apps/studio/src/main.ts:1412-1419#12963735 -->
 
-The same brand exports the same files from the web studio and from the plugin; CI compares the two byte for byte. <!-- src: apps/studio/test-export-parity.mjs:1-3#2bb0d110 --> <!-- src: apps/studio/test-export-parity.mjs:259#21ecd0a3 -->
+The same brand exports the same files from the web Studio and from the plugin; Prism3's automated tests compare the two byte for byte on every change. <!-- src: apps/studio/test-export-parity.mjs:1-3#2bb0d110 --> <!-- src: apps/studio/test-export-parity.mjs:259#21ecd0a3 -->
 
 To hand over the brand itself rather than its tokens, choose **Brand brief** instead; see [Theme a brand](theme-a-brand.md#import-and-export-a-designmd-brief). <!-- src: apps/studio/src/export-settings.ts:112-116 -->
 
@@ -51,12 +51,13 @@ TokenPress is listed in Figma as "Token Press - DTCG Exporter". <!-- src: apps/t
 
 The ZIP holds one file per collection and mode, plus `typography.json` for text styles and `shadows.json` for effect styles. <!-- src: apps/tokenpress/README.md:107-115 -->
 
-When TokenPress exports a file Prism3 themed, CI checks that it writes the same token paths, with the same types, as the engine's own token files for that brand. Values are compared in a report, not checked, because the two write colors in different forms that are both valid DTCG. <!-- src: apps/plugin/test-readback-parity.ts:1-22#750fb90a --> <!-- src: tools/exporter-comparison/gate.ts:1-15#851c165f --> <!-- src: tools/exporter-comparison/gate.ts:69-78#5a5c2342 -->
+When TokenPress exports a file Prism3 themed, Prism3's automated tests check that it writes the same token paths, with the same types, as the engine's own token files for that brand. Values are compared in a report, not checked, because the two write colors in different forms that are both valid DTCG. <!-- src: apps/plugin/test-readback-parity.ts:1-22#750fb90a --> <!-- src: tools/exporter-comparison/gate.ts:1-15#851c165f --> <!-- src: tools/exporter-comparison/gate.ts:69-78#5a5c2342 -->
 
 ## Which one to use
 
 | You want | Use |
 |---|---|
-| The tokens for the brand you set in Prism3 | **Export**, in the studio's rail |
+| The tokens for the brand you set in Prism3 | **Export**, in Studio's rail |
 | The tokens a Figma file holds now, including hand changes or non-Prism3 collections | TokenPress |
 | The brand settings, to rebuild or share the brand | **Export** › **Brand brief** |
+| Each component's props, states, parts and tokens, for building it in code | **Export** › **Component specs** <!-- src: apps/studio/src/export-settings.ts:125 --> |

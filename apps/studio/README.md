@@ -1,10 +1,10 @@
-# @prism3/studio — the web dashboard
+# @prism3/studio — the web Studio
 
 The first **rendering host** over the Prism3 engine core (see `../../docs/09-architecture-and-repos.md`
-and `08-theming-interfaces.md`). It imports the same pure engine modules the Figma
-plugin will, and renders from the shared contracts:
+and `08-theming-interfaces.md`). It imports the same pure engine modules as the Figma
+plugin, which runs this UI whole in its panel, and renders from the shared contracts:
 
-- **Knobs** from the lever manifest (`packages/engine/levers.ts`).
+- **Settings** from the lever manifest (`packages/engine/levers.ts`).
 - **Live component preview + per-mode contrast overlay** from `previewSpec`
   (`preview.ts`) resolved through `resolvePreview(theme)` (`resolve-preview.ts`).
 - **Generated palette ramps** straight off `brandTheme(input).palettes`.

@@ -2,12 +2,12 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to the rail's areas and Update file for #3264). -->
 
-The studio is the same app on the web and inside the Figma plugin: the plugin's panel loads the web studio whole and adds its Figma controls. <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d --> <!-- src: apps/plugin/build.mjs:251#184e229f -->
+Studio is the same app on the web and inside the Figma plugin: the plugin's panel loads the web Studio whole and adds its Figma controls. <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d --> <!-- src: apps/plugin/build.mjs:251#184e229f -->
 Everything in this guide works in both places. Writing the brand to a Figma file is covered in [Write the theme to a Figma file](apply-a-theme.md).
 
 ## Start a brand
 
-The first time the studio opens, a start window offers three ways in. <!-- src: apps/studio/src/shell/start.ts:167-225#de4c818b -->
+The first time Studio opens, a start window offers three ways in. <!-- src: apps/studio/src/shell/start.ts:167-225#de4c818b -->
 
 | Card | What it does |
 |---|---|
@@ -16,6 +16,7 @@ The first time the studio opens, a start window offers three ways in. <!-- src: 
 | **Import a design.md** | Loads a whole brand from a `design.md` brief. Paste it into the box and choose **Import**, or choose **Upload…** to pick a file. <!-- src: apps/studio/src/shell/start.ts:225-237 --> |
 
 To come back to these later, open the brand menu at the left of the top bar and choose **New brand**. The same menu lists the examples, each with its few words, and has **Import design.md…**. <!-- src: apps/studio/src/shell/bar.ts:227-253 -->
+After you load an example or import a brief over a brand you had edited, **Undo load** appears beside the brand switcher and puts that brand back, edits included. It stays until your next edit or load. <!-- src: apps/studio/src/shell/bar.ts:150-154 -->
 
 *[Screenshot placeholder: the start window with its three cards.]*
 
@@ -46,25 +47,25 @@ On **Palettes**, your colors are pinned as anchors on their ramps and never shif
 
 Each tab shows its levers on one side and a preview on the other. <!-- src: apps/studio/src/shell/frame.ts:16-19#7ed29f7d -->
 
-- **Preview mode** switches the preview between the brand's modes. <!-- src: apps/studio/src/shell/preview.ts:78 -->
+- The row of mode names in the preview header (Light, Dark, …) switches the preview between the brand's modes. <!-- src: apps/studio/src/shell/preview.ts:78#d4f6626b -->
 - The **Palettes** tab always shows Light, and the mode control is off while it is open: "Palettes always show Light. Ramps are the same in every mode." <!-- src: apps/studio/src/preview/palettes.ts:32 -->
-- A derived mode, such as a high-contrast one, is shown but not edited. The studio says "is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit." <!-- src: apps/studio/src/shell/frame.ts:126 -->
+- A derived mode, such as a high-contrast one, is shown but not edited. Studio says "is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit." <!-- src: apps/studio/src/shell/frame.ts:126 -->
 - **Inspect** opens two views over any tab: **Contrast**, each pair against its floor, and **Tokens**. <!-- src: apps/studio/src/shell/pages.ts:122 --> <!-- src: apps/studio/src/shell/preview.ts:250 -->
 
 A contrast miss is reported, never blocked. On **Foreground fills**, for example, a pick below its floor is marked, not refused. <!-- src: apps/studio/src/shell/pages.ts:208 -->
 
 ## Where your work is kept
 
-- On the web, the studio keeps your working brand in this browser and reopens it next time. <!-- src: apps/studio/src/persist-local.ts:39-102#8ee27da6 -->
-- It also keeps what the brand started from, so edits you made before a reload still count after it: choosing another brand asks first, as it did before the reload. <!-- src: apps/studio/src/persist-local.ts:120-136#8ee40881 -->
+- On the web, Studio keeps your working brand in this browser and reopens it next time. <!-- src: apps/studio/src/persist-local.ts:39-102#8ee27da6 -->
+- After a reload, Studio still knows you have edits: choosing another brand asks before it replaces them. <!-- src: apps/studio/src/persist-local.ts:120-136#8ee40881 -->
 - In the Figma plugin, the brand is kept in the Figma file each time Update file writes the theme, and the plugin restores it when the file opens again. <!-- src: apps/plugin/src/apply-theme.ts:191-193#ede61fb0 --> <!-- src: apps/plugin/src/main.ts:2211-2218#e56247fc -->
 
-If a stored brand can't be opened, the web studio offers it as a `design.md` download instead of discarding it. <!-- src: apps/studio/src/entry.ts:130-159 -->
+If a stored brand can't be opened, the web Studio offers it as a `design.md` download instead of discarding it. <!-- src: apps/studio/src/entry.ts:130-159 -->
 
 ## Import and export a design.md brief
 
 A `design.md` is a brand written as a short document: settings at the top, prose below. <!-- src: packages/engine/mcp.ts:361 -->
-The studio reads both the Prism3 form and the standard design.md form, <!-- src: apps/studio/src/state/start-input.ts:176-190#569bb71c --> which lists colors as a flat `colors:` map. <!-- src: packages/engine/standard-design-md.ts:109-110 -->
+Studio reads both the Prism3 form and the standard design.md form, <!-- src: apps/studio/src/state/start-input.ts:176-190#569bb71c --> which lists colors as a flat `colors:` map. <!-- src: packages/engine/standard-design-md.ts:109-110 -->
 
 - Import: **Import design.md…** in the brand menu, then paste the brief and choose **Load**, or choose **Upload .md**. The **Import a design.md** card in the start window works the same way. <!-- src: apps/studio/src/shell/bar.ts:238-294 -->
 - Export: open **Export** in the rail, choose **Brand brief**, then **Download brief**. The file is named `<brand>.design.md`. The brief has no settings: "Nothing to set — the brief is written one way." <!-- src: apps/studio/src/export-settings.ts:114 --> <!-- src: apps/studio/src/main.ts:1528-1555 -->

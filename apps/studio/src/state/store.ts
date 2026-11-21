@@ -304,7 +304,9 @@ export const stashForLoad = (name: string): UndoLoad | null => stashBefore(brand
  *  the overwrite confirm still guards them. `loadInput` would make them the baseline and the confirm would stop asking. */
 export const restoreInput = (input: BrandInput, prov: Provenance, lastGood: BrandInput): void => {
   brandState = structuredClone(input);
-  provenance = prov;
+  // #4215: an Undo load back to the brand boot put there is a choice, so it never puts back the boot OBJECT, which
+  // `provenance === bootProvenance` reads as "nothing chosen" (#1197). A fresh frozen copy is equal by value.
+  provenance = prov === bootProvenance ? provenanceOf(prov.origin, prov.baseline) : prov;
   resolve();
   // The brand may have held a refused edit when the load replaced it (review of 6e73dba1): then the resolve above fails
   // and would leave the LOADED example's theme, last-good input and persisted copy in place. Resolve the last-good brand

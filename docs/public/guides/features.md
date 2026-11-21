@@ -2,9 +2,9 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; corrected to Update file for #3264). Kept in step with the ecosystem diagram's "Compare interfaces" view (#2643); where the two disagree, the code each row cites decides. -->
 
-What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`, #2643) shows how the surfaces connect; this page lists what you can do in each.
+What each Prism3 surface can do. The [ecosystem diagram](../ecosystem/) shows how the surfaces connect; this page lists what you can do in each.
 
-- Web studio: the studio in a browser. <!-- src: apps/studio/build-site.mjs:1-8#7ef7bf24 -->
+- Web Studio: Studio in a browser. <!-- src: apps/studio/build-site.mjs:1-8#7ef7bf24 -->
 - Figma plugin: the same studio inside Figma <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d -->, plus **Update file**, which writes to the file. <!-- src: apps/studio/src/state/update-file.ts:330 -->
 - Agent, through the agent link: an AI agent driving the open plugin. See [Use the agent link](agent-link.md). <!-- src: apps/plugin/src/agent-protocol.ts:42#6bb39596 -->
 - Agent, through the Prism3 MCP server: an AI agent using the engine directly, with no Figma file. <!-- src: packages/engine/mcp.ts:266-409#88134730 -->
@@ -44,7 +44,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | Feature | Web studio | Figma plugin | Agent link | MCP server |
 |---|---|---|---|---|
 | [Download DTCG token files](export-tokens.md): a base file and one overlay per mode | ✓ <!-- src: apps/studio/src/export-settings.ts:102-111#531be286 --> | ✓ | – | ✓ `export_theme` writes them to a folder |
-| Write the Figma variable files to a folder | – | – | – | ✓ `export_theme` |
+| Write the token files, the agent metadata and the Figma variable files to a folder | – | – | – | ✓ `export_theme` <!-- src: packages/engine/README.md:109 --> |
 | Score how generated UI used the tokens | – | – | – | ✓ `score_consumption` |
 
 <!-- src: packages/engine/mcp.ts:379-413 --> <!-- src: packages/engine/mcp.ts:322-357 -->

@@ -758,6 +758,7 @@ apps/studio/test-store.ts #2487
 apps/studio/test-store.ts #3878
 apps/studio/test-store.ts #3880
 apps/studio/test-store.ts #4209
+apps/studio/test-store.ts #4215
 apps/studio/test-store.ts #4234
 apps/studio/test-style-guides.ts #2372
 apps/studio/test-type-input.ts #1071
