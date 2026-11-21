@@ -4,7 +4,7 @@
 
 Prism3 generates a brand's design tokens from a small set of choices: a primary color, a neutral, type, shape, motion and a few more. <!-- src: packages/engine/levers.ts:320-328#6e625336 -->
 You make those choices in Studio, either on the web or inside the Figma plugin, and the preview updates as you go. <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d -->
-The engine checks every text and fill pairing it generates against a contrast floor, such as 4.5:1 for body text, in every mode the brand ships. <!-- src: packages/engine/mcp.ts:332-337#787f0dc9 -->
+The engine checks every text and fill pairing it generates against a contrast floor, such as 4.5:1 for body text, in every mode the brand ships. <!-- src: packages/engine/mcp.ts:334-339#787f0dc9 -->
 Secondary, status and link text is checked on the page and on the secondary background, and on every background nearer the page. Text on a deeper background isn't checked unless the brand moves its contrast floor there; then each of those colors is picked again to clear it. <!-- src: packages/engine/modes.ts:404-452#9bc65f19 --> <!-- src: packages/engine/test.ts:830-855#fd07d44a -->
 In Figma, **Update file** writes the result as variables, modes and styles, then builds component sets and style-guide tables that use them. <!-- src: apps/studio/src/state/update-file.ts:330-425 -->
 The same brand exports as DTCG token files or as a brand brief, so developers and agents read the same values you set. <!-- src: apps/studio/src/export-settings.ts:105-114#7f4a6381 -->

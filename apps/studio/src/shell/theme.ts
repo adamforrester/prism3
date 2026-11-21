@@ -16,6 +16,7 @@
  * light ground (#1031) while the chrome around it is dark.
  */
 import { persistThemePref, restoreThemePref, type LocalStore, type ThemePref } from '../persist-local';
+import { must } from '../must';
 
 export type { ThemePref };
 /** The plugin's choice: follow Figma, or a fixed theme. */
@@ -42,7 +43,7 @@ let save: ((p: FigmaThemePref) => void) | null = null;
 const watchers = new Set<() => void>();
 
 /** The choice this host shows as current. */
-export const themeChoice = (): ThemeChoice => THEME_CHOICES.find((c) => c.pref === pref) ?? THEME_CHOICES[0];
+export const themeChoice = (): ThemeChoice => THEME_CHOICES.find((c) => c.pref === pref) ?? must(THEME_CHOICES[0], 'the first theme choice');
 /** Repaint when the choice changes from outside a click (the plugin's stored choice arriving). */
 export const onThemeChange = (f: () => void): (() => void) => { watchers.add(f); return () => watchers.delete(f); };
 

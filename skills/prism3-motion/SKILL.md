@@ -38,7 +38,7 @@ picks the value.
 
 | Family | Roles | Use it for |
 |---|---|---|
-| `motion.duration.*` | `instant`, `fast`, `normal`, `moderate`, `slow`, `slower` | How long a change takes, shortest to longest. Scaled by the brand's tempo. |
+| `motion.duration.*` | `instant`, `fast`, `normal`, `moderate`, `slow`, `slower`, `long`, `longer`, `longest` | How long a change takes, shortest to longest. Scaled by the brand's tempo. |
 | | `spin`, `sweep` | Loop periods: one spinner turn, one pass of an indeterminate progress bar. Not tempo-scaled. |
 | `motion.duration-reduced.*` | the same role names | The twin of each duration under `prefers-reduced-motion`. |
 | `motion.easing-role.*` | `default`, `enter`, `exit`, `emphasized` | The curve, named by what the change does. |
@@ -92,7 +92,7 @@ opening, a banner collapsing as it's dismissed, toasts closing ranks. Those run 
 
 **R6. Chrome stays quick.** A state change on a control (hover, press, check, select) takes
 `motion.duration.instant` or `motion.duration.fast`. An entrance or exit stays at or under
-`motion.duration.moderate`. Keep `motion.duration.slow` and `motion.duration.slower` for moments that
+`motion.duration.moderate`. Keep `motion.duration.slow` and the steps above it for moments that
 replace the whole screen. Motion a person sees dozens of times a session gets in the way when it's
 slow.
 *Grounding:* KB `18-motion-foundations`, duration roles.
