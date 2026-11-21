@@ -483,8 +483,8 @@ whose actual value comes from the host, not from the plan.
 
   **A selection mark on the page is a shape, so it binds `color.interactive.<c>.indicator.*`, never a text role and
   never the outline edge** (#3346, owner 2026-11-03; narrowed by Q-CC13 A, 2026-11-11). That covers the selected
-  outline above, a selected tab's bar, a checked radio's ring, a switch's off thumb, a slider's disc and
-  Pagination.Item's current-page underline (Q-CC12 A). The indicator matches the label's color, overrides included,
+  outline above, a selected tab's bar, a checked radio's ring, a switch's off thumb, a slider's disc and its
+  selected bar (#3398 A), and Pagination.Item's current-page underline (Q-CC12 A). The indicator matches the label's color, overrides included,
   and a brand that quiets its outline edges (`border.*`) leaves it alone. A mark that sits on a fill takes the fill's
   side instead: a switch's on thumb, on the filled track, binds `interactive.<c>.on-fill`, and a checked radio's dot
   is fill-colored (`interactive.<c>.fill.selected`). One named exception: Link's current-page bar, which PageNav.Item

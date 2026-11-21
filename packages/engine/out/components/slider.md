@@ -257,7 +257,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -268,7 +268,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -279,7 +279,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -290,7 +290,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -312,7 +312,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueRange` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -323,7 +323,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueRange` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -334,7 +334,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueRange` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
@@ -345,7 +345,7 @@ Keyed by `type`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/field/header/valueRange` | — | — | `color.text.primary` | — |
 | `container/field/control/track` | `color.field.border.rest` | — | — | — |
-| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.indicator.rest` | — | — | — |
 | `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
 | `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
