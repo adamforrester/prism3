@@ -231,7 +231,9 @@ export interface HostSession {
    *  when the words are the same. A refusal is not a verdict: it settles no run and fills no verdict slot.
    *  The one slot it moves is the panel's own `pending`, and only when an agent's run holds the operation:
    *  the panel's request was then the one declined, and nothing is coming to answer it. */
-  readonly refused: { readonly op: OpKey; readonly message: string; readonly agent: boolean; readonly n: number } | null;
+  /** `held`: the operation holding the file (#3760), which since #3697 R7 can differ from `op`, the one asked for. Absent
+   *  when the host names none (a host older than the file-wide hold). */
+  readonly refused: { readonly op: OpKey; readonly held?: OpKey; readonly message: string; readonly agent: boolean; readonly n: number } | null;
   /** The file's Documentation settings (#2909, `apps/plugin/src/doc-settings.ts`), as the host last said them: `null`
    *  until it has (and always on the web). `error` is the host's words when a save was refused. */
   readonly docSettings: DocSettingsView | null;
@@ -394,7 +396,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       if (!op || op === 'readback') return s;
       // Draw specs, declined: it gets no verdict, so the host's words are its result.
       const specs = op === 'components' && !m.agent && s.specsState === 'pending' ? { specsState: { ok: false, headline: '✗ not drawn', summary: m.message } } : {};
-      const next = { ...s, ...specs, refused: { op, message: m.message, agent: m.agent, n: (s.refused?.n ?? 0) + 1 } };
+      const holder = m.held ? AGENT_OP[m.held] : undefined;
+      const next = { ...s, ...specs, refused: { op, ...(holder ? { held: holder } : {}), message: m.message, agent: m.agent, n: (s.refused?.n ?? 0) + 1 } };
       // The panel's own request, declined: it posted, set `pending`, and will get no verdict. Only a panel request
       // declined behind the panel's own run OF THE SAME operation leaves `pending` to that run's verdict, which fills
       // the same slot. Since #3697 R7 one write holds the whole file, so a request is also declined behind a

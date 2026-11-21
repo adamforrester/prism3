@@ -411,6 +411,13 @@
       "title": "the export package — no Style Dictionary preset, no value-shape options, a ZIP, CSS from the Style Dictionary build",
       "doc": "docs/12-token-press-monorepo-eval.md",
       "section": "12."
+    },
+    {
+      "date": "2026-11-19",
+      "issue": 4163,
+      "title": "no rename; the primitive placement is recorded, not changed",
+      "doc": "docs/35-naming-and-packaging.md",
+      "section": "10.1"
     }
   ]
 }

@@ -129,6 +129,12 @@ export const leverManifest: Lever[] = [
     options: enumOpts(['standard', 'Standard'], ['strong', 'Strong']),
     tip: 'How much the page dims behind a dialog. Strong keeps it from competing with the dialog.',
     description: 'How much the backdrop behind a dialog dims the page. Standard keeps the page readable behind it. Strong dims it further, so the page stops competing with the dialog.' },
+  // #3339 (owner C, 2026-11-18) — the key, the option values, the label, the option labels and the description are a
+  // DRAFT for the owner (on the build PR). It moves values, never a token name: each interactive role names the ground
+  // it was measured on. Its home in the Studio is Surfaces & fills, under the contrast floor, marked advanced.
+  { key: 'interactiveGround', group: 'color', kind: 'value', label: 'Controls sit on', control: 'enum', default: 'floor', advanced: true,
+    options: enumOpts(['floor', 'Every surface'], ['page', 'The page only']),
+    description: 'Which surfaces buttons, fields and other controls may sit on. Every surface keeps their colors at 3:1 on cards and on the second and third backgrounds. The page only measures them on the page background, so field borders, disabled text and the destructive outline can run a step lighter, and cards on another step carry no contrast promise for controls. High-contrast modes keep every surface.' },
   // `secondaryTextGround` (owner Q-TXT1 A) is deliberately not a lever (owner Q3212.7 A): a brand-fit setting with an accessibility cost, authored in the brand input, not flipped on a slider.
   // #3073 (owner Q806, Q807 A) — label and description are a DRAFT for the owner (on the build PR). It adds roles, it
   // never moves `color.glass.surface`. Its home in the Studio is Surfaces & fills › Glass.
