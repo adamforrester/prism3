@@ -165,7 +165,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { STAMP_PATHS, onlyFilledStamps } from './rename-stamp-audit';
-import { integrationBase, mergeGroupBase } from './comparison-base';
+import { carriedMainBase, integrationBase, mergeGroupBase } from './comparison-base';
 
 const repo = join(import.meta.dirname, '../..');
 const FILE = 'docs/00-progress.md';
@@ -359,11 +359,18 @@ const removed = walk('D');
 // landed would go unseen. The parent is authoritative there, as in every ladder (`mergeGroupBase`).
 const mg = mergeGroupBase(git);
 if (mg && !mg.ref) cannotRun(`no base for a merge-group run (#4106): ${mg.tried}.`, 'Under `merge_group`, `ci.yml` passes the group\'s parent as MERGE_GROUP_BASE_SHA.');
-const mainRef = process.env.GITHUB_EVENT_NAME === 'push'
+const namedMain = process.env.GITHUB_EVENT_NAME === 'push'
   ? 'HEAD'
   : mg ? mg.ref!
   : ['origin/main', 'main'].find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
-if (!mainRef) cannotRun('no main ref to read landing order from (tried origin/main, main).', 'Locally, `git fetch origin main`.');
+if (!namedMain) cannotRun('no main ref to read landing order from (tried origin/main, main).', 'Locally, `git fetch origin main`.');
+// Unless that ref is not the `main` the tree carries (#3408, the carried repo: its `main` a seed snapshot of prism3, so
+// every fragment the seed held reads as landed at the seed, on that day, and the fold that folded them reads as
+// misplacing them all). Then `main` is the newest one the tree carries, read from its own history (`carriedMainBase`):
+// its first-parent chain is prism3's. A push run asks it of HEAD's first parent. Only this read moves: the diff arms
+// below were measured passing on a carry with their own base (#3408), so they keep it.
+const carriedChain = carriedMainBase(git, namedMain === 'HEAD' ? `HEAD^1` : namedMain!);
+const mainRef = carriedChain?.base ?? namedMain;
 const mainChain = git('rev-list', '--first-parent', mainRef!);
 if (!mainChain.ok) cannotRun(`git rev-list over ${mainRef} failed.`, mainChain.err);
 const onMain = new Set(mainChain.out.split('\n').filter(Boolean));
