@@ -19,8 +19,14 @@
  *   [READS]       a color or shadow utility reads `var(--<name>)`, and the compiled CSS sets `--<name>` in both
  *                 `:root` and `.dark`, so the mode switch reaches it; a dimension or font utility computes to the
  *                 brand's DTCG value.
+ *   [COLLIDE]     no variable the theme sets per mode (`:root`, `.dark`) is a name the shipped token CSS writes
+ *                 (`@prism3/tokens`, built here by its own stock `sd.ship.mjs`). A page loading both files would
+ *                 otherwise have the shipped `[data-theme="dark"]` rule override the theme's value (owner decision
+ *                 on #4309, B: the shadow variables are `--shadow-<rung>-value`, not `--pds3-shadow-<rung>`).
  *
  * MUTATION: drop `--color-ring` from the emitter's `@theme` and this fails `outline-ring utility unresolved` by name.
+ * MUTATION: name the shadow variables `--pds3-shadow-<rung>` again (`shadowModeVar`) and this fails
+ * `[COLLIDE] … --pds3-shadow-md is also written by the shipped token CSS` by name.
  */
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -39,7 +45,7 @@ const FIXTURE = [
   ['bg-primary', 'background-color', { var: 'primary' }],
   ['text-muted-foreground', 'color', { var: 'muted-foreground' }],
   ['outline-ring', 'outline-color', { var: 'ring' }],
-  ['shadow-md', '--tw-shadow', { var: 'pds3-shadow-md' }],
+  ['shadow-md', '--tw-shadow', { var: 'shadow-md-value' }],
   ['rounded-lg', 'border-radius', { role: 'radius.lg' }],
   ['p-2', 'padding', { role: 'space.100' }],
   ['font-sans', 'font-family', { font: 'core.font.family.body' }],
@@ -85,6 +91,15 @@ const px = (v) => {
   return p ? Number(p[1]) : NaN;
 };
 
+// [COLLIDE] — every custom property the shipped token CSS declares, from its own stock build (gitignored `dist/`).
+const ship = spawnSync(process.execPath, [join(here, 'sd.ship.mjs')], { cwd: here, encoding: 'utf8' });
+if (ship.status !== 0) { console.error(`✗ sd.ship.mjs exited ${ship.status}: ${(ship.stderr || ship.stdout).trim()}`); process.exit(1); }
+const shipped = new Set(
+  readdirSync(join(here, 'dist', 'prism3')).filter((f) => f.endsWith('.css'))
+    .flatMap((f) => [...readFileSync(join(here, 'dist', 'prism3', f), 'utf8').matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1])),
+);
+if (!shipped.has('--pds3-shadow-md')) fail(`[COLLIDE] premise: the shipped token CSS no longer writes --pds3-shadow-md (${shipped.size} names read)`);
+
 const cli = require.resolve('@tailwindcss/cli/package.json').replace(/package\.json$/, '');
 const twIndex = require.resolve('tailwindcss/index.css');
 const files = readdirSync(join(tmp, 'tailwind')).filter((f) => f.endsWith('.theme.css')).sort();
@@ -98,6 +113,12 @@ for (const f of files) {
   const r = spawnSync(process.execPath, [join(cli, typeof bin === 'string' ? bin : bin.tailwindcss), '-i', input, '-o', output], { cwd: here, encoding: 'utf8' });
   if (r.status !== 0) { fail(`${brand}: the Tailwind CLI exited ${r.status}: ${(r.stderr || '').trim().split('\n').slice(-2).join(' / ')}`); continue; }
   const css = readFileSync(output, 'utf8');
+  const theme = readFileSync(join(tmp, 'tailwind', f), 'utf8');
+  for (const sel of [':root', '.dark']) {
+    for (const [, name] of (ruleBody(theme, sel) ?? '').matchAll(/(?:^|[;{\s])(--[\w-]+)\s*:/g)) {
+      if (shipped.has(name)) fail(`[COLLIDE] ${brand}: the theme sets ${name} in ${sel}, and ${name} is also written by the shipped token CSS`);
+    }
+  }
   const full = JSON.parse(readFileSync(join(engineOut, `${brand}.tokens.json`), 'utf8'));
   const root = Object.keys(full)[0];
   for (const [util, prop, want] of FIXTURE) {
@@ -123,4 +144,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`✓ check:shadcn — ${files.length} brand themes compiled by stock Tailwind ${pinned.tailwindcss}; ${held} utilities ` +
-  `(${FIXTURE.length} each) compiled; dimensions and fonts at the brand's value, every color and shadow variable set in :root and .dark.`);
+  `(${FIXTURE.length} each) compiled; dimensions and fonts at the brand's value, every color and shadow variable set in :root and .dark; ` +
+  `no per-mode name among the shipped token CSS's ${shipped.size}.`);

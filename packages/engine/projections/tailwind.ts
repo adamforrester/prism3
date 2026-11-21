@@ -6,8 +6,9 @@
  * Q2997.12 B (every radius rung from our scale), Q2997.16 A (`--font-sans` and `--font-mono` only). Shadows and
  * `--spacing` are the proposal's §2 list.
  *
- * Shadow values differ per mode, so each `--shadow-<rung>` reads a per-mode variable, `--pds3-shadow-<rung>`, which the
- * file sets in `:root` and `.dark`. Tailwind's `--shadow-2xs` and `--radius-4xl` have no rung here, so they keep
+ * Shadow values differ per mode, so each `--shadow-<rung>` reads a per-mode variable, `--shadow-<rung>-value`, which the
+ * file sets in `:root` and `.dark`. It is not `@prism3/tokens`' `--pds3-shadow-<rung>`: a page that loads both files
+ * would have the shipped `[data-theme="dark"]` rule override this file's value (owner decision on #4309, B). Tailwind's `--shadow-2xs` and `--radius-4xl` have no rung here, so they keep
  * Tailwind's defaults.
  *
  * `TAILWIND_MAP_VERSION` follows `SHADCN_MAP_VERSION`'s rule (#2997 §9): MAJOR when an emitted Tailwind name is
@@ -33,7 +34,7 @@ export const TAILWIND_FONTS: Readonly<Record<string, string>> = {
   'font-mono': 'core.font.family.code',
 };
 
-/** Per-mode `@theme` rows: `--shadow-<rung>: var(--pds3-shadow-<rung>)`. */
+/** Per-mode `@theme` rows: `--shadow-<rung>: var(--shadow-<rung>-value)`. */
 export const TAILWIND_SHADOWS: Readonly<Record<string, string>> = {
   'shadow-xs': 'shadow.xs',
   'shadow-sm': 'shadow.sm',
@@ -44,4 +45,4 @@ export const TAILWIND_SHADOWS: Readonly<Record<string, string>> = {
 };
 
 /** The per-mode variable a shadow row reads. */
-export const shadowModeVar = (key: string): string => `pds3-${key}`;
+export const shadowModeVar = (key: string): string => `${key}-value`;
