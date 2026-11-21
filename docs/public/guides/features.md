@@ -17,7 +17,7 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 |---|---|---|---|---|
 | Start from a color, an example or a `design.md` | ✓ | ✓ | – | ✓ from a `design.md` (`theme_from_brief`) |
 | Set levers with a live preview | ✓ | ✓ | – | ✓ list the levers (`list_levers`), no preview |
-| Check contrast in every mode | ✓ Inspect › Contrast <!-- src: apps/studio/src/shell/pages.ts:118-120#9232e735 --> | ✓ Inspect › Contrast | – | ✓ `theme_brand`, `theme_from_brief` |
+| Check contrast in every mode | ✓ Inspect › Contrast <!-- src: apps/studio/src/shell/pages.ts:120-122#9232e735 --> | ✓ Inspect › Contrast | – | ✓ `theme_brand`, `theme_from_brief` |
 | Keep the working brand | ✓ in this browser <!-- src: apps/studio/src/persist-local.ts:39-102#8ee27da6 --> | ✓ in the Figma file, when Update file writes the theme <!-- src: apps/plugin/src/persist-figma.ts:29-34#ba150bb3 --> | – | – |
 | Import a `design.md` brief | ✓ | ✓ | – | ✓ `theme_from_brief` |
 | Export a `design.md` brief | ✓ <!-- src: apps/studio/src/main.ts:1400 --> | ✓ | – | – |
@@ -32,9 +32,9 @@ What each Prism3 surface can do. The ecosystem diagram (`docs/public/ecosystem/`
 | [Set up file](file-setup.md): pages and helper components | – | ✓ Update file › Set up file | ✓ `file-setup` | – |
 | [Add component sets](build-components.md) | – (lists the sets) <!-- src: apps/studio/src/preview/sections/component-sets.ts:29#37b05aef --> | ✓ Components, then Update file › To add | ✓ `build-components` | – |
 | [Update sets in place](update-a-file-safely.md#update-sets-in-place) | – | ✓ Update file › Due | ✓ `update-components` | – |
-| [Draw style guides](style-guides.md) | – | ✓ Docs, then Update file › Style guides <!-- src: apps/studio/src/shell/pages.ts:534-539#aed5e5ff --> | ✓ `style-guide` | – |
+| [Draw style guides](style-guides.md) | – | ✓ Docs, then Update file › Style guides <!-- src: apps/studio/src/shell/pages.ts:536-541#aed5e5ff --> | ✓ `style-guide` | – |
 | [Remove what the brand no longer uses](update-a-file-safely.md#remove-what-the-brand-no-longer-uses), with a preview | – | ✓ Update file › Clean up | ✓ `prune` | – |
-| Draw spec panels | – | ✓ Docs › Specs <!-- src: apps/studio/src/shell/pages.ts:534-539#aed5e5ff --> | ✓ `draw-specs` | – |
+| Draw spec panels | – | ✓ Docs › Specs <!-- src: apps/studio/src/shell/pages.ts:536-541#aed5e5ff --> | ✓ `draw-specs` | – |
 | Read the file back | – | ✓ when the plugin opens | ✓ `readback`, `status` | – |
 
 <!-- src: apps/studio/src/state/update-file.ts:333-362 --> <!-- src: apps/plugin/src/agent-protocol.ts:42 -->

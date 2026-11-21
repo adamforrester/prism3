@@ -6,7 +6,7 @@ To write the brand you set in the studio into the open Figma file, choose **Upda
 The item reads "The brand's variables and styles. Layers bound to them restyle at once." <!-- src: apps/studio/src/state/update-file.ts:343-344 -->
 It is ticked when the dialog opens only if the file's variables differ from the brand. <!-- src: apps/studio/src/state/update-file.ts:179-186#dcd3d3c6 -->
 When they already match, it is unticked and reads "Up to date"; tick it to write the brand again. <!-- src: apps/studio/src/state/update-file.ts:346 -->
-It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:112#1bd757c2 -->
+It is in the Figma plugin only: the web studio has no file to write to. <!-- src: apps/studio/src/shell/bar.ts:113#1bd757c2 -->
 
 Each run checks the file first and writes only once nothing conflicts, or once you have chosen what happens to each conflict. It never deletes anything. <!-- src: apps/plugin/src/apply-theme.ts:79-124#82e91aee --> <!-- src: apps/plugin/src/preflight.ts:171-230#328537d5 -->
 The rest of the checklist, and how a run works, is in [Update a Figma file](update-a-file-safely.md).
@@ -55,7 +55,7 @@ Each conflict says why: <!-- src: apps/plugin/src/preflight.ts:197#bdc1c449 --> 
 - `already in this file, not created by Prism3`: a collection or style with that name exists and carries no Prism3 mark.
 - `Prism3 writes`: a variable with that name exists with a different type. The conflict names both types and the collection.
 
-The plugin then lists the conflicts and asks what to do with each: **Skip** leaves the item as it is and writes the rest, and **Rename** writes Prism3's own beside it under a new name. One choice can cover them all. Until each conflict has a choice, nothing is written, and Cancel leaves the file as it is. The choice holds for that run only. <!-- src: apps/studio/src/state/collisions.ts:48 -->
+The plugin then lists the conflicts and asks what to do with each: **Skip** leaves the item as it is and writes the rest, and **Rename** writes Prism3's own beside it under a new name. One choice can cover them all. Until each conflict has a choice, nothing is written, and Cancel leaves the file as it is. The choice holds for that run only. <!-- src: apps/studio/src/state/collisions.ts:50 -->
 
 Or rename or remove the named items yourself, then run Update file again. A file with its own library collections can take Prism3's alongside them as long as no names collide. <!-- src: apps/plugin/src/preflight.ts:171-230#328537d5 -->
 

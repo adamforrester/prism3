@@ -17,6 +17,7 @@
 import type { Theme } from '@prism3/engine';
 import { el, hook, subHead, tokenPillBadged, tokenPillWrapping, viewOnly } from './kit';
 import { curveOfRole, motionStageSvg } from './motion-curves';
+import { must } from '../../must';
 
 /** The playback divisors the Slow motion select offers, real speed first (D9: Off, 1/2, 1/4, 1/8). */
 export const MOTION_SLOWMO_OPTIONS = [1, 2, 4, 8];
@@ -62,7 +63,7 @@ export const motionTransitionsSection = (
     const ms = durOf(t.duration);
     const playMs = ms * playback.slowmo;
     const curve = curveOfRole(mo, mode, t.name);
-    const curveBez = mo.easing[curve] ?? mo.easing.standard;
+    const curveBez = must(mo.easing[curve] ?? mo.easing.standard, `the ${curve} curve`);
     const anim = `mo-trace-x ${playMs}ms linear both, mo-trace-y ${playMs}ms cubic-bezier(${curveBez.join(', ')}) both`;
     const col = hook(el('div', 'mo-col'), 'transition');
     col.dataset.transition = t.name;
