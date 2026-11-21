@@ -253,6 +253,8 @@ export const veil: ComponentDef = {
       'Use a directional wash from the edge the text sits on — from-bottom for a caption along the bottom',
       'Verify the text\'s contrast against the actual photo; the intensity is a magnitude, not a guaranteed ratio',
       'Size the veil to its media container and keep the text and controls as siblings on top of it',
+    ],
+    implementation: [
       'Mark the veil aria-hidden — it is a presentational background layer',
     ],
     dont: [
