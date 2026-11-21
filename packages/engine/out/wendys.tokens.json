@@ -22561,6 +22561,18 @@
               "px": 40
             }
           }
+        },
+        "2xl": {
+          "$type": "dimension",
+          "$value": "{wds.core.dimension.64}",
+          "$description": "`icon.size.2xl` — 64px artboard (fixed grid; past the control ladder, an x-large avatar)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "wds.core.dimension.64",
+              "px": 64
+            }
+          }
         }
       }
     },

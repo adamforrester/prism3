@@ -198,6 +198,14 @@ export const ICON_SOURCES: Record<string, string> = {
   // pinned into the control's corner, so the air above and to the left of the bars is what keeps them
   // off the value text. Authored for this project, not taken from Remix Icon (see `icons/NOTICE.md`).
   'resize-grip': 'resize-grip',
+
+  // ── identity ──────────────────────────────────────────────────────────────────────────────────
+  // Avatar's last fallback when there is no picture and no name to take initials from (#4110, owner OD-A6 A): the
+  // glyph follows the shape, a person in a circle and an organization in a square. Authored for this project on the
+  // 24px grid at the set's 2-unit line weight, not taken from Remix Icon (see `icons/NOTICE.md`). DRAFT artwork: the
+  // drawing is the owner's call, held on the PR. `person`, not `user`: it names who is shown, not an account.
+  person: 'person-line',
+  organization: 'organization-line',
 };
 
 /**

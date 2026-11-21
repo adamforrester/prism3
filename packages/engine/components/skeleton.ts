@@ -296,7 +296,7 @@ export const skeleton: ComponentDef = {
     primaryPurpose: 'Hold the shape and box of content that is loading for the first time, so the layout does not shift when it arrives.',
     whenToUse: 'The first load of a layout whose shape is known: a card, a list row, a profile header, a media frame. Compose text, circle and rect skeletons inside the real layout, sized to the content they stand for.',
     avoidWhen: 'The wait is short and inside a control (Spinner), the work has a known length (Progress), the result is empty (an empty state), the layout is not known in advance (a spinner in the region), or the content is already on screen and only refreshing.',
-    commonPartners: ['spinner', 'progress', 'image-placeholder', 'list-item'],
+    commonPartners: ['spinner', 'progress', 'image-placeholder', 'list-item', 'avatar'],
     triggerKeywords: ['skeleton', 'skeleton screen', 'loading placeholder', 'content placeholder', 'shimmer', 'skeleton text', 'skeleton avatar', 'skeleton image', 'placeholder lines', 'loading state'],
     generationPriority: 3,
   },
@@ -305,7 +305,7 @@ export const skeleton: ComponentDef = {
     // Nests nothing.
     composesWith: [],
     alternativeTo: ['spinner', 'progress'],
-    planned: ['avatar', 'card'],
+    planned: ['card'],
     replacesPatterns: ['a page-sized loading illustration', 'a gray box with no relation to the content that arrives'],
   },
 

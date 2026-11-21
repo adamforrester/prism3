@@ -102,7 +102,8 @@ const WIRE_LINKS: [string, string[]][] = [['Link', ['Link']]];
 // one row holds them, as Code input's row holds its cell.
 const WIRE_RADIOS: [string, string[]][] = [['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']]];
 const WIRE_COMPONENTS: [string, string[]][] = [
-  ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Breadcrumbs', ['BreadcrumbItem', 'Breadcrumbs', 'BreadcrumbSeparator']],
+  // Avatar (#4110) joins after the wireframe: its own page beside Badge.
+  ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Avatar', ['Avatar']], ['Badge', ['Badge']], ['Breadcrumbs', ['BreadcrumbItem', 'Breadcrumbs', 'BreadcrumbSeparator']],
   ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Counter', ['Counter']], ['Divider', ['Divider']],
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['List', ['List', 'List.Item']],
   // Pagination (#2665) joins after the wireframe: its own page, the row and its item, a family.
@@ -193,8 +194,8 @@ ok(JSON.stringify(drawn('components')) === JSON.stringify(WIRE_COMPONENTS) && JS
   `note 2: a family's sets are alphabetical by component name, and call 12: a part set stays in its family (${JSON.stringify(drawn('components').filter((r) => r[1].length > 1).map((r) => r[1].join('/')))})`);
 ok(groups.find((g) => g.kind === 'subcomponents')?.rows.some((r) => r.ids.includes('icon') && r.page === 'Icons & assets') === true,
   'call 11: Icon lists under Subcomponents, and still lands on ↳ Icons & assets');
-ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 65,
-  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, Sign-in button since #2343 PR 5, Page navigation with its item since #3345, Tag.Group since #1739, Skeleton since #4109, and Popover since #4008)`);
+ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 66,
+  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, Sign-in button since #2343 PR 5, Page navigation with its item since #3345, Tag.Group since #1739, Avatar since #4110, Skeleton since #4109, and Popover since #4008)`);
 ok(sentenceCase('Field Label') === 'Field label' && sentenceCase('Text field') === 'Text field' && sentenceCase('Icons & assets') === 'Icons & assets',
   'call 14: a page name reads in sentence case ("Field Label" → "Field label")');
 ok(GROUPS_COPY.sectionCount('components', 19, 32) === '19 families and sets · 32 sets' && GROUPS_COPY.sectionCount('subcomponents', 7, 9) === '7 entries · 9 sets'
@@ -390,7 +391,7 @@ const four = ['button', 'button-destructive', 'dialog', 'text-field'];
 const c4 = costOf(catalog, four);
 ok(c4.sets === 4 && c4.variants === 576 + 576 + 16 + 84 && c4.components === 0, `four sets cost ${c4.variants} variants (Dialog's 16: its end placement, #2877, and fill footer, #2880, with the width-only size off the variants since #3392 A)`);
 const ci = costOf(catalog, ['icon', 'badge']);
-ok(ci.variants === 50 && ci.components === 46, `a set built as separate components counts as components, not variants (Icon: ${ci.components}; Badge's 50 members, its contained status label at two sizes and three emphases since #2983 and its inline style since #3199: ${ci.variants})`);
+ok(ci.variants === 50 && ci.components === 48, `a set built as separate components counts as components, not variants (Icon: ${ci.components}, with person and organization since #4110; Badge's 50 members, its contained status label at two sizes and three emphases since #2983 and its inline style since #3199: ${ci.variants})`);
 ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinner', 'Focus ring', 'Flush icon button Neutral', 'Divider', 'Button Group', 'Field label', 'Field message']),
   `idea 7: the sets a build makes first, transitively, minus the selection, named as the list names them (Q392 on #2812) (${alsoBuilds(catalog, four).join(', ')})`);
 ok(displayNameOf(catalog, 'button-destructive') === 'Button Destructive' && displayNameOf(catalog, 'tab-item') === 'Tab Item' && displayNameOf(catalog, 'image-placeholder') === 'Image placeholder',

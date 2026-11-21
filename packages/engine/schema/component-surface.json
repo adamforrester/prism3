@@ -2,8 +2,8 @@
   "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless an engine bump is already declared (a change note in packages/engine/changes/, #1807) — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection, a sha256 over its sorted `planComponentName|planStamp` rows, and its non-variant component properties as sorted `name:TYPE` (#2649). `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its derived minimum width, the Locked to edges layout and the One step smaller medium content, against the default-density heights. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, add a change note declaring the bump, then accept.",
   "defs": {
     "icon": {
-      "members": 46,
-      "sha256": "10ad9afab46142d55db91c664d8f9806e9128069af18a4c8e68652ab71b0fc7a",
+      "members": 48,
+      "sha256": "0a4682cdb6dcfc41a429bda42c067d1201c43043a2b242e1be97fbfe4d8de2e4",
       "properties": []
     },
     "provider-logo": {
@@ -472,6 +472,14 @@
       "properties": [
         "label:TEXT",
         "value:TEXT"
+      ]
+    },
+    "avatar": {
+      "members": 30,
+      "sha256": "6bed9df0e00779c78ce3529ecc83f1f46e9c83438a5050c5fdfac3dd6280c91c",
+      "properties": [
+        "initials:TEXT",
+        "presence:BOOLEAN"
       ]
     },
     "tag": {

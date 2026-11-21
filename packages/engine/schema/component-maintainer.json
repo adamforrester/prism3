@@ -2802,11 +2802,6 @@
         },
         {
           "section": "related",
-          "field": "composition.alternativeTo",
-          "reason": "empty"
-        },
-        {
-          "section": "related",
           "field": "composition.supersedes",
           "reason": "empty"
         },
@@ -3036,6 +3031,101 @@
         {
           "section": "related",
           "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "empty"
+        }
+      ]
+    },
+    "avatar": {
+      "codeOnly": [
+        {
+          "class": "runtime-behavior",
+          "disposition": "UNSUPPORTED",
+          "description": "the fallback chain — in code it follows `src` and `name` at run time (a photo, then the initials, then the glyph), so the Figma axis that shows it has no prop behind it. It is the chain as a designer sees it in a file."
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "UNSUPPORTED",
+          "description": "the image-failure path — render the native <img> with its src at once, so a cached photo paints with the HTML; draw the fallback underneath; switch on the native error event, and check img.complete on mount to catch a photo that loaded before the handler attached. Not a script that loads a virtual image first, which flashes the fallback on server-rendered and cached pages. fallbackDelay holds the initials back while a photo loads; its value waits on the motion timing work (#3486)."
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED",
+          "description": "the loading placeholder — a circle or square Skeleton at the avatar size until the photo loads, then a short fade. Figma has no loading member; the image member is the mask with nothing in it, and a designer drops a photo on as an image fill."
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED",
+          "description": "the initials rule — first letters of the first and last words, uppercased; one letter for a one-word name; from an email address, the part before the @; one character for a Chinese, Japanese or Korean name; one letter at x-small and small. getInitials replaces the rule for a locale it does not fit. The Figma text is whatever the designer types (\"JD\" by default), at every size."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "the accessible-name wiring — informative: the photo's alt, or aria-label on the container for the initials and the glyph, is the name (\"Jane Doe\"), never \"Avatar of Jane Doe\" and never the initials. decorative: alt=\"\" and aria-hidden=\"true\" on the container. Presence joins the name (\"Jane Doe, online\") and the dot is aria-hidden. The name is the name as shown: if the interface shows \"Jane D.\", so does the name."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "CARRIED",
+          "description": "RTL — the presence dot is placed with logical properties, at the bottom inline-end corner (inset-inline-end), so it moves to the bottom left in a right-to-left layout. The photo, the initials and the glyph never mirror. Figma draws left to right, so the member pins the bottom right."
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED",
+          "description": "the presence placement — the dot sits in a wrapper that owns the stacking context, outside the clipped mask, and a circular avatar pulls it in toward the curve (Badge's circular overlap). The ring is a 2px box-shadow in the page color."
+        }
+      ],
+      "notes": {
+        "contested": [],
+        "unverified": [
+          "The presence ring at the bounding square's corner sits partly over the circle's edge at x-small and clear of it at x-large; the code pulls it in toward the curve. The Figma placement has not been checked on a live host.",
+          "The KB brief was not read directly by the build lane (no access to the knowledge-base repository in this session); the brief's positions here come from the proposal's paraphrase of it (#4110)."
+        ],
+        "evolution": [
+          "Built from the proposal (#4110) with every owner decision at its recommendation (OD-A1 to OD-A8, all A, 2026-11-19): Avatar only, circle and square, five sizes on the icon ladder plus one minted 64px step, one initial below medium, one neutral backdrop, person and organization glyphs, a nested Badge dot for presence, and a required name with a decorative flag.",
+          "Owner decisions on the PR (2026-11-20): the x-large token is `icon.size.2xl` (OD-A3.1 A); the shape values align on Icon button's words, `circular | square`, one convention across the library; presence maps online = success, away = warning, busy = danger, offline = neutral; the x-large initials stay on `type.label.lg`; the glyph sizes stay as built (`icon.size.xs`, `xs`, `sm`, `md`, `xl`).",
+          "Owner decision (2026-11-20): the Figma text is one default, \"JD\", at every size, since a set-level text property holds one default; the one-letter rule at x-small and small is applied in code. Avatar has its own page under Components, beside Badge. The person and organization glyphs are approved as drawn, on the 24px grid. The presence-dot, badge-dot and shape descriptions are approved as written.",
+          "The corner pin (`PartDef.corner`), first a glyph-only placement for the textarea grip, takes a box too, for the presence ring. Both executors already placed the pinned node by name, whatever its type."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
           "reason": "empty"
         },
         {

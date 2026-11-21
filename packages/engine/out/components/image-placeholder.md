@@ -68,6 +68,7 @@ The frame holds no copy. Where its ratio surfaces in a UI, name the proportion (
 
 ## Related components
 
+- **Instead, consider:** `avatar`
 - **Often used with:** `icon`, `veil`
 - **Replaces:**
   - a hand-drawn rectangle with a fixed width and height standing in for an image, which breaks its ratio the moment it is resized

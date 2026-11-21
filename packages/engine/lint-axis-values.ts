@@ -288,6 +288,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'type',
+    values: ['initials', 'icon', 'image'],
+    defs: ['avatar'],
+    relation: 'disjoint',
+    reason:
+      'Avatar\'s fallback chain as a designer sees it in a file (#4110, owner OD-A1 to OD-A8 A): the initials of the name, '
+      + 'a generic glyph when there is no name, and the empty mask a photo is dropped onto. DISJOINT from Badge\'s canonical '
+      + 'set: a badge type is a content kind a designer picks, and this is which link of a run-time chain shows, so no '
+      + 'value would mean the same on both. `initials` LEADS so the inserted member shows a name; code has no prop for '
+      + 'it, the chain follows `src` and `name`.',
+  },
+  {
+    axis: 'type',
     values: ['determinate', 'indeterminate'],
     defs: ['progress'],
     relation: 'disjoint',
@@ -396,7 +408,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'chevron-down', 'chevron-left', 'chevron-right', 'chevron-up', 'close', 'close-filled',
       'error-circle', 'error-circle-filled', 'external-link-filled', 'eye', 'eye-filled', 'eye-off',
       'eye-off-filled', 'FPO-default-icon', 'home', 'image', 'info-circle', 'info-circle-filled', 'link', 'menu', 'minus', 'minus-filled',
-      'more-horizontal-filled', 'more-vertical-filled', 'pause-circle', 'play-circle', 'plus', 'plus-circle', 'plus-circle-filled',
+      'more-horizontal-filled', 'more-vertical-filled', 'organization', 'pause-circle', 'person', 'play-circle', 'plus', 'plus-circle', 'plus-circle-filled',
       'plus-filled', 'resize-grip', 'search', 'slash', 'warning-triangle', 'warning-triangle-filled',
     ],
     defs: ['icon'],
@@ -640,6 +652,17 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
+    values: ['medium', 'x-small', 'small', 'large', 'x-large'],
+    defs: ['avatar'],
+    relation: 'superset',
+    reason:
+      'Avatar\'s five sizes, the brief\'s 20 / 24 / 32 / 40 / 64 scale (#4110, owner OD-A3 A): the canonical ladder plus '
+      + '`x-small` below it, the word Link, Icon and Spinner use, and `x-large` above it, the word Code input uses. Led by '
+      + '`medium`, the code default (#2752, Q1 B); the code enum keeps the ladder\'s own order. A superset by words only: '
+      + 'the rungs are the avatar\'s own, so a medium avatar is 32px where a medium icon is 24px.',
+  },
+  {
+    axis: 'size',
     values: ['medium', 'small'],
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
@@ -675,6 +698,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'scale rung), `ratio` (a width-to-height proportion) and `style` (a line treatment) — argued in '
       + '`VARIANT_AXES`. CANONICAL since #2457 added a second `shape` set (below): it came first and is shared by three '
       + 'defs.',
+  },
+  {
+    axis: 'shape',
+    values: ['circular', 'square'],
+    defs: ['avatar'],
+    relation: 'reordered',
+    reason:
+      'Avatar\'s entity type carried by its outline (#4110, owner OD-A2 A): a circle for a person, a square for a team, '
+      + 'an organization or an app, and the glyph follows it. Icon button\'s canonical words, one convention across the '
+      + 'library (owner decision on the PR, 2026-11-20): `square` is a rounded rectangle and `circular` a full-round disc '
+      + 'on both. REORDERED, not the same set: `circular` LEADS because it is the code default, a person, so the member '
+      + 'Figma inserts is a person\'s avatar (#2752, Q1 B).',
   },
   {
     axis: 'shape',

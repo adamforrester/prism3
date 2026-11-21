@@ -3,14 +3,14 @@
   "defs": {
     "icon": {
       "set": {
-        "members": 46,
-        "assignments": 46,
-        "sha256": "4050e35c90281646d097cf07a805d82ba610ad288e13c1fc5d95cec33f1cf6d3"
+        "members": 48,
+        "assignments": 48,
+        "sha256": "64b0798704f05a30b79b9757558d2306bffd9aa5ea3a98dba564d11634909441"
       },
       "grid": {
-        "members": 414,
-        "assignments": 414,
-        "sha256": "c0daf376b461a125879a0a8f64eddc07ef4b46c502424c4849bdb9de45fded25"
+        "members": 432,
+        "assignments": 432,
+        "sha256": "bef577ffb09e1cc05cbb99b24ba8a2c158624a64f32ed0cec136b85e6a547110"
       }
     },
     "provider-logo": {
@@ -371,6 +371,18 @@
         "members": 50,
         "assignments": 105,
         "sha256": "fe9301df5b770b1aedc6438bfac413ce0b26b53c5232c62847de7b573113ee4b"
+      }
+    },
+    "avatar": {
+      "set": {
+        "members": 30,
+        "assignments": 80,
+        "sha256": "cfc28ca5c3faa7a3a73ffde735f98134d4f47aed3f8448f79c262f5c47df3d31"
+      },
+      "grid": {
+        "members": 30,
+        "assignments": 80,
+        "sha256": "3fffd7438ae8933c230afcc2ba62701eefb3977e1837f1c3a58fd0b981ad7042"
       }
     },
     "tag": {

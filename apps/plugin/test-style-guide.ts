@@ -3515,9 +3515,9 @@ const main = async (): Promise<void> => {
     // ICON SIZE: a dimension table of its own collection, drawn as a size is: no type of its own.
     const icon = byTitle('Icon size');
     ok(!!icon && icon.type === 'dimension' && icon.key === 'dimension|VariableCollectionId:icon|pds3/icon/size' && icon.page === SEM
-      && JSON.stringify(icon.rows.map((r) => `${r.token}=${r.cells[0].value}/${r.cells[0].rem}`)) === JSON.stringify(['xs=16px/1rem', 'sm=20px/1.25rem', 'md=24px/1.5rem', 'lg=32px/2rem', 'xl=40px/2.5rem'])
+      && JSON.stringify(icon.rows.map((r) => `${r.token}=${r.cells[0].value}/${r.cells[0].rem}`)) === JSON.stringify(['xs=16px/1rem', 'sm=20px/1.25rem', 'md=24px/1.5rem', 'lg=32px/2rem', 'xl=40px/2.5rem', '2xl=64px/4rem'])
       && icon.rows.every((r) => r.specimen?.kind === 'spacing'),
-      `35: icon/size draws in a dimension table, xs 16px … xl 40px, with the spacing specimen (${icon?.key}; ${icon?.rows.map((r) => r.cells[0].value).join(', ')})`);
+      `35: icon/size draws in a dimension table, xs 16px … 2xl 64px (Avatar's x-large, #4110), with the spacing specimen (${icon?.key}; ${icon?.rows.map((r) => r.cells[0].value).join(', ')})`);
 
     // OPACITY: a table of its own on Primitive tokens, each value a percentage with its swatch, no REM.
     const op = byTitle('Opacity');

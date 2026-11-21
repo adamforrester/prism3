@@ -8,7 +8,7 @@
     "packages/engine/component-glyphs.ts"
   ],
   "note": "components.<id>.glyphs: each part that draws a fixed glyph (how: drawn) or starts its icon slot at one (how: swap default); source is the icon set, a component-owned glyph, or any glyph chosen through a prop. iconSlots: parts that take any icon. glyphs: the inverse, per glyph. notDrawnByAnyComponent: icon-set glyphs no definition names; each one is still reachable through Icon and every icon slot.",
-  "iconSetSize": 46,
+  "iconSetSize": 48,
   "components": {
     "_accordion-indicator": {
       "glyphs": [
@@ -92,6 +92,39 @@
           "when": {
             "type": [
               "slash"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
+    "avatar": {
+      "glyphs": [
+        {
+          "part": "organizationGlyph",
+          "glyph": "organization",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "icon"
+            ],
+            "shape": [
+              "square"
+            ]
+          }
+        },
+        {
+          "part": "personGlyph",
+          "glyph": "person",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "icon"
+            ],
+            "shape": [
+              "circular"
             ]
           }
         }
@@ -671,7 +704,13 @@
       "pagination-item"
     ],
     "more-vertical-filled": [],
+    "organization": [
+      "avatar"
+    ],
     "pause-circle": [],
+    "person": [
+      "avatar"
+    ],
     "play-circle": [],
     "plus": [
       "_accordion-indicator"

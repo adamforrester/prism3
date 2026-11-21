@@ -76,6 +76,23 @@
       ]
     },
     {
+      "from": "avatar",
+      "to": "badge",
+      "part": "presenceDot",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "type": "dot",
+        "style": "contained",
+        "size": "medium",
+        "emphasis": "bold",
+        "tone": "success"
+      },
+      "expose": [
+        "tone"
+      ]
+    },
+    {
       "from": "banner",
       "to": "button",
       "part": "action",
@@ -2041,13 +2058,26 @@
       "affectedByChange": [],
       "inheritedBy": []
     },
+    "avatar": {
+      "nests": [
+        "badge"
+      ],
+      "nestsTransitively": [
+        "badge"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "badge": {
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "avatar",
         "tab-item"
       ],
       "affectedByChange": [
+        "avatar",
         "tab-item",
         "tabs"
       ],
@@ -3061,6 +3091,7 @@
     "_breadcrumb-separator": 0,
     "_slider-thumb": 1,
     "accordion": 1,
+    "avatar": 1,
     "badge": 0,
     "banner": 2,
     "breadcrumb-item": 2,

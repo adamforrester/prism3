@@ -13,7 +13,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | _accordion-indicator | accordion | accordion |
 | _breadcrumb-separator | breadcrumb-item | breadcrumb-item, breadcrumbs |
 | _slider-thumb | slider | slider |
-| badge | tab-item | tab-item, tabs |
+| badge | avatar, tab-item | avatar, tab-item, tabs |
 | breadcrumb-item | breadcrumbs | breadcrumbs |
 | button | banner, button-group, password-field, toast | banner, button-group, dialog, password-field, popover, toast |
 | button-group | dialog, popover | dialog, popover |
@@ -49,6 +49,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | _breadcrumb-separator | 0 | — | — |
 | _slider-thumb | 1 | focus-ring | focus-ring |
 | accordion | 1 | _accordion-indicator, divider, focus-ring | _accordion-indicator, divider, focus-ring |
+| avatar | 1 | badge | badge |
 | badge | 0 | — | — |
 | banner | 2 | button, flush-icon-button-neutral, link | button, flush-icon-button-neutral, focus-ring, link, spinner |
 | breadcrumb-item | 2 | _breadcrumb-separator, flush-icon-button-neutral, link | _breadcrumb-separator, flush-icon-button-neutral, focus-ring, link |
@@ -122,6 +123,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-fixed | indicator=chevron, expansion=collapsed, size=medium | indicator, expansion, size | — |
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-fixed | indicator=chevron, expansion=collapsed, size=medium | indicator, expansion, size | — |
+| avatar | presenceDot | nest | badge | nest-exposed | type=dot, style=contained, size=medium, emphasis=bold, tone=success | — | tone |
 | banner | action | nest | button | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
 | banner | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=default, state=rest | — | — |
 | banner | link | nest | link | nest-fixed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | — | — |

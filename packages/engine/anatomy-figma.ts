@@ -2462,7 +2462,8 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'absolute' && p.inset && p.strokeInset ? { absoluteStrokeInset: varOf(p.strokeInset) } : {}),
       // THE CORNER PIN (textarea's resize grip): a glyph lifted out of the flow into its parent's corner.
       // Only on a pinned vector, so every other plan is byte-identical; the schema requires the inset.
-      ...(p.kind === 'vector' && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
+      // A pinned BOX (#4110, Avatar's presence ring) takes the same field: the executors' corner pass reads any node.
+      ...((p.kind === 'vector' || p.kind === 'box') && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
       // THE FOOT PIN (#2872, Link's current-page bar): a box lifted out of the flow across its parent's bottom edge.
       // Only on such a box, so every other plan is byte-identical.
       ...(p.kind === 'box' && p.foot ? { footPin: true } : {}),
@@ -5713,7 +5714,7 @@ for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+n
 export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
-  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tag-group', 'tab-item', 'tabs',
+  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'avatar', 'tag', 'tag-group', 'tab-item', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
   'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', '_slider-thumb', 'slider',

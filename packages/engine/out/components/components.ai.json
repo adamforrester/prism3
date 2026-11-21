@@ -57,7 +57,9 @@
             "minus-filled",
             "more-horizontal-filled",
             "more-vertical-filled",
+            "organization",
             "pause-circle",
+            "person",
             "play-circle",
             "plus",
             "plus-circle",
@@ -148,7 +150,9 @@
             "minus-filled",
             "more-horizontal-filled",
             "more-vertical-filled",
+            "organization",
             "pause-circle",
+            "person",
             "play-circle",
             "plus",
             "plus-circle",
@@ -243,7 +247,8 @@
       "composition": {
         "composesWith": [],
         "alternativeTo": [
-          "provider-logo"
+          "provider-logo",
+          "avatar"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -252,8 +257,7 @@
           "illustration",
           "logo",
           "thumbnail",
-          "emoji",
-          "avatar"
+          "emoji"
         ],
         "replacesPatterns": [
           "legacy icon fonts",
@@ -7078,7 +7082,9 @@
       },
       "composition": {
         "composesWith": [],
-        "alternativeTo": [],
+        "alternativeTo": [
+          "avatar"
+        ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [],
@@ -7476,7 +7482,8 @@
         "commonPartners": [
           "icon-button",
           "button",
-          "tab-item"
+          "tab-item",
+          "avatar"
         ],
         "triggerKeywords": [
           "badge",
@@ -7506,9 +7513,7 @@
         ],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "avatar"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "a hand-drawn colored pill",
           "a red circle with a number drawn over an icon"
@@ -7538,6 +7543,240 @@
         {
           "class": "visual-treatment",
           "disposition": "CARRIED"
+        }
+      ]
+    },
+    "avatar": {
+      "id": "avatar",
+      "name": "Avatar",
+      "aliases": [
+        "user-avatar",
+        "profile-picture",
+        "profile-image",
+        "avatar-image"
+      ],
+      "category": "foundations",
+      "status": "draft",
+      "summary": "A person or organization, shown as a photo, initials or a generic glyph, in that order.",
+      "description": "The picture of a specific person or organization. It shows a photo when there is one, the initials of the name when there is not, and a generic glyph when there is no name either: a person in a circle, an organization in a square. The circle is for a person and the square for a team, an organization or an app. Five sizes, from 20px in a dense list to 64px in a profile header. An optional presence dot sits on the bottom corner, outside the picture, so it is never cut off. An avatar is not interactive: one that opens a menu is a button holding an avatar.",
+      "props": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "The person or organization the avatar shows, exactly as the interface writes it next to the avatar. It is the accessible name and the source of the initials, so it stays the same when the photo fails to load."
+        },
+        {
+          "name": "src",
+          "type": "string",
+          "required": false,
+          "description": "The photo. When it is missing or fails to load, the avatar shows the initials, or the glyph when there is no name to take them from."
+        },
+        {
+          "name": "srcSet",
+          "type": "string",
+          "required": false,
+          "description": "Higher-density versions of the photo, for sharp rendering on high-density screens."
+        },
+        {
+          "name": "decorative",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Set it when the name is already visible beside the avatar, as in a list row or a comment header. The avatar is then hidden from assistive technology, so the name is not read twice."
+        },
+        {
+          "name": "shape",
+          "type": "enum: 'circular' | 'square'",
+          "default": "circular",
+          "required": false,
+          "values": [
+            "circular",
+            "square"
+          ],
+          "description": "circular = a person. square = a team, an organization or an app. The shape also picks the glyph shown when there is no photo and no name."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'x-small' | 'small' | 'medium' | 'large' | 'x-large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "x-small",
+            "small",
+            "medium",
+            "large",
+            "x-large"
+          ],
+          "description": "x-small = 20px, for dense lists and inline mentions. small = 24px, the size of a medium icon. medium = 32px, the default. large = 40px. x-large = 64px, for a profile header. Below medium the initials are one letter."
+        },
+        {
+          "name": "presence",
+          "type": "enum: 'online' | 'away' | 'busy' | 'offline'",
+          "required": false,
+          "values": [
+            "online",
+            "away",
+            "busy",
+            "offline"
+          ],
+          "description": "Shows a status dot on the bottom corner, in the badge tone for the status: online = success, away = warning, busy = danger, offline = neutral. Absent, there is no dot. The status is also added to the accessible name, so color is never the only signal."
+        },
+        {
+          "name": "getInitials",
+          "type": "function",
+          "required": false,
+          "description": "Replaces the default initials rule, for names it does not fit. The default takes the first letters of the first and last words, uppercased, one letter for a one-word name, the part before the at sign of an email address, and one character for a Chinese, Japanese or Korean name."
+        },
+        {
+          "name": "fallbackDelay",
+          "type": "number",
+          "required": false,
+          "description": "How long to wait before showing the initials while the photo loads, so a fast photo does not flash the initials first."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "x-small",
+            "small",
+            "large",
+            "x-large"
+          ],
+          "kind": "authoring"
+        },
+        "shape": {
+          "values": [
+            "circular",
+            "square"
+          ],
+          "kind": "authoring"
+        },
+        "type": {
+          "values": [
+            "initials",
+            "icon",
+            "image"
+          ],
+          "kind": "runtime"
+        }
+      },
+      "accessibility": {
+        "role": "img, with the name as its accessible name, when the avatar is the only sign of who it is. None, hidden from assistive technology, when the name is visible beside it.",
+        "wcag": [
+          "1.1.1 Non-text Content (the name is the text alternative, and an empty alternative when the avatar is decorative)",
+          "1.4.1 Use of Color, as intent (presence is in the accessible name as a word, so the dot color is never the only signal)",
+          "1.4.3 Contrast (the initials, `color.text.primary` on `color.background.tertiary`, clear 4.5:1 in every mode of the example brands, as measured)",
+          "1.4.11 Non-text Contrast, as intent (the presence dot is Badge's, separated from the picture by a ring in the page color)",
+          "4.1.2 Name, Role, Value (an informative avatar exposes the name; a decorative one exposes nothing)"
+        ],
+        "keyboard": "None. An avatar takes no focus and has no action. An avatar that opens a menu is inside a button, which carries the keyboard behavior.",
+        "focus": "Never focusable. A button holding an avatar carries the focus ring.",
+        "aria": "Informative, when the avatar is the only sign of who it is: give the photo an alt, or the container an aria-label for the initials and the glyph, that is the name, \"Jane Doe\", never \"Avatar of Jane Doe\" and never the initials. Decorative, when the name is visible beside it: alt=\"\" and aria-hidden=\"true\", so the name is read once. The name stays the same when the photo fails to load. With presence, the status joins the name, \"Jane Doe, online\", and the dot is aria-hidden. Use the name as the interface shows it: when the screen shows \"Jane D.\", the name is \"Jane D.\", never more of the record. The name is translatable; nothing in the avatar mirrors except the dot's corner."
+      },
+      "content": {
+        "labelPattern": "The name as the interface shows it: \"Jane Doe\", \"Design team\". The initials come from it: J and D, or J alone below medium. For presence, a word after a comma in the name: \"Jane Doe, online\"."
+      },
+      "docs": {
+        "usage": "Use an avatar to show who something belongs to: the author of a comment, the person in a list row, the owner of a card, the signed-in user. Use the circle for a person and the square for a team, an organization or an app. Pick the size from the density around it: x-small or small in a dense list or an inline mention, medium by default, x-large in a profile header. Mark it decorative when the name is visible beside it. Add presence only where status matters to the task, such as a chat or a team list. Drop a photo onto the image member as an image fill, and set the initials on the initials member.",
+        "do": [
+          "Pass the name as the interface shows it, so the initials and the accessible name both come from it",
+          "Mark the avatar decorative when its name is already visible beside it",
+          "Keep the circle for people and the square for teams, organizations and apps",
+          "Put presence into the accessible name, as in \"Jane Doe, online\"",
+          "Use one initial at x-small and small, and two from medium up"
+        ],
+        "dont": [
+          "Name it \"Avatar of Jane Doe\" or by its initials. The name is the name",
+          "Make the avatar itself clickable. Put it in a button or an icon button",
+          "Use an avatar for a concept or an action, such as a profile link. That is an icon",
+          "Use color as the only way to tell people apart, or the dot as the only sign of presence",
+          "Show the full name or email from the record when the interface shows less"
+        ],
+        "implementation": [],
+        "contentGuidelines": "Write the name the way the interface writes it next to the avatar, with the same shortening. Initials are uppercase, at most two letters, and one letter below medium. For an email address, the initials come from the part before the at sign. For presence, use the plain word for the state: online, away, busy, offline."
+      },
+      "ai": {
+        "primaryPurpose": "Show which person or organization something belongs to, as a photo, initials or a generic glyph.",
+        "whenToUse": "A specific person or organization needs a picture: a comment author, a list row, a card owner, the signed-in user in a header, a team or app in a switcher. Add presence when the task depends on whether the person is available.",
+        "avoidWhen": "The picture stands for an action or a concept rather than a specific person, such as a profile link or a settings icon (use Icon), the picture is content media with no identity (use ImagePlaceholder), or the avatar is a control that opens something (put it in a Button or an IconButton).",
+        "commonPartners": [
+          "badge",
+          "button",
+          "icon-button",
+          "list-item",
+          "tag",
+          "skeleton"
+        ],
+        "triggerKeywords": [
+          "avatar",
+          "user avatar",
+          "profile picture",
+          "profile photo",
+          "user picture",
+          "initials",
+          "presence",
+          "online status",
+          "team avatar",
+          "organization avatar"
+        ],
+        "generationPriority": 3
+      },
+      "motion": {
+        "enter": "The photo fades in over the backdrop or the loading placeholder on motion.duration.fast with motion.easing-role.enter. The box is reserved, so nothing moves.",
+        "exit": "None. A photo that fails to load is replaced by the initials at once.",
+        "reduceMotion": "Under prefers-reduced-motion the photo appears with no fade. The picture is the information, not the motion."
+      },
+      "composition": {
+        "composesWith": [
+          "badge"
+        ],
+        "alternativeTo": [
+          "icon",
+          "image-placeholder"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "avatar-group",
+          "card",
+          "image"
+        ],
+        "replacesPatterns": [
+          "a circular image with no fallback, which shows a broken image when the photo fails to load",
+          "an avatar labeled \"Avatar of\" a name, or named by its initials"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "runtime-behavior",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "static-placeholder",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "localization",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "CARRIED"
+        },
+        {
+          "class": "responsive-layout",
+          "disposition": "UNSUPPORTED"
         }
       ]
     },
@@ -7723,6 +7962,7 @@
           "icon",
           "checkbox-group",
           "radio-group",
+          "avatar",
           "popover"
         ],
         "triggerKeywords": [
@@ -7762,8 +8002,7 @@
         "supersededBy": [],
         "planned": [
           "combobox",
-          "toggle-button",
-          "avatar"
+          "toggle-button"
         ],
         "replacesPatterns": [
           "a removable token list built as a listbox",
@@ -15253,7 +15492,8 @@
           "spinner",
           "progress",
           "image-placeholder",
-          "list-item"
+          "list-item",
+          "avatar"
         ],
         "triggerKeywords": [
           "skeleton",
@@ -15283,7 +15523,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "avatar",
           "card"
         ],
         "replacesPatterns": [

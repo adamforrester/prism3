@@ -129,8 +129,8 @@ const spacePx = sizeRefPx(componentSizes('comfortable', 8));
 const last = new Map<string, SetBuild>([['button', 'ok'], ['tag', 'issues'], ['badge', 'failed']]);
 const view = setsView(committed, { density: 'comfortable', spacePx, plugin: true, lastOf: (id) => last.get(id) });
 const v = (id: string) => view.find((x) => x.id === id);
-ok(v('button')?.parts === '576 parts' && v('icon')?.parts === '46 components' && v('spinner')?.parts === '4 components',
-  `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 576 parts, 46 components, 4 components)`);
+ok(v('button')?.parts === '576 parts' && v('icon')?.parts === '48 components' && v('spinner')?.parts === '4 components',
+  `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 576 parts, 48 components, 4 components)`);
 ok(v('button')?.contains === 'Contains Icon, Spinner, FocusRing' && v('focus-ring')?.contains === 'Contains no other set',
   `contains: by the nested sets' names ("${v('button')?.contains}", "${v('focus-ring')?.contains}")`);
 // In the size axis's order, medium first since #2752 (owner decision Q1 B), as the fields' readout already was.

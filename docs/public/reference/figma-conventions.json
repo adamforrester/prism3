@@ -151,6 +151,12 @@
             ]
           },
           {
+            "name": "↳ Avatar",
+            "components": [
+              "avatar"
+            ]
+          },
+          {
             "name": "↳ Tag",
             "components": [
               "tag",
@@ -360,7 +366,7 @@
         "kind": "component set",
         "page": "↳ Icons & assets",
         "section": "Foundations",
-        "members": 46,
+        "members": 48,
         "variantProperties": [
           {
             "name": "name",
@@ -400,7 +406,9 @@
               "minus-filled",
               "more-horizontal-filled",
               "more-vertical-filled",
+              "organization",
               "pause-circle",
+              "person",
               "play-circle",
               "plus",
               "plus-circle",
@@ -2017,6 +2025,53 @@
           }
         ],
         "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/badge.md"
+      },
+      {
+        "id": "avatar",
+        "name": "Avatar",
+        "figmaName": "avatar",
+        "kind": "component set",
+        "page": "↳ Avatar",
+        "section": "Components",
+        "members": 30,
+        "variantProperties": [
+          {
+            "name": "shape",
+            "values": [
+              "circular",
+              "square"
+            ]
+          },
+          {
+            "name": "type",
+            "values": [
+              "initials",
+              "icon",
+              "image"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "x-small",
+              "small",
+              "large",
+              "x-large"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "initials",
+            "type": "TEXT"
+          },
+          {
+            "name": "presence",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/avatar.md"
       },
       {
         "id": "tag",
@@ -3637,7 +3692,9 @@
       "minus-filled",
       "more-horizontal-filled",
       "more-vertical-filled",
+      "organization",
       "pause-circle",
+      "person",
       "play-circle",
       "plus",
       "plus-circle",
@@ -3948,6 +4005,7 @@
       "veil",
       "image-placeholder",
       "badge",
+      "avatar",
       "tag",
       "tag-group",
       "tab-item",

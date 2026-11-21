@@ -589,7 +589,8 @@ export const tag: ComponentDef = {
     primaryPurpose: 'Render a small interactive token the user toggles or removes in place.',
     whenToUse: 'Inline filters toggled on and off (select), applied filters the user can remove, or recipients or keywords entered into a field (dismissible), usually in a group.',
     avoidWhen: 'Nobody can act on it (use Badge), it runs an action (use Button), or it is a structured choice in a form submission (use Checkbox.Group or Radio.Group).',
-    commonPartners: ['tag-group', 'badge', 'icon', 'checkbox-group', 'radio-group', 'popover'],
+    // `avatar` (#4110) moved here from `planned` when it was built: a recipient tag can lead with one.
+    commonPartners: ['tag-group', 'badge', 'icon', 'checkbox-group', 'radio-group', 'avatar', 'popover'],
     triggerKeywords: ['tag', 'chip', 'filter tag', 'filter chip', 'input tag', 'input chip', 'removable tag', 'dismissible tag', 'selectable tag', 'select tag', 'choice chip', 'facet', 'applied filter', 'recipient token'],
     generationPriority: 3,
   },
@@ -598,7 +599,7 @@ export const tag: ComponentDef = {
     // Exactly what the anatomy nests: the ring (an `absolute`). The × is a glyph of the tag's own, not a nest.
     composesWith: ['focus-ring'],
     alternativeTo: ['badge', 'button', 'checkbox-group', 'radio-group'],
-    planned: ['combobox', 'toggle-button', 'avatar'],
+    planned: ['combobox', 'toggle-button'],
     replacesPatterns: ['a removable token list built as a listbox', 'a clickable div styled as a pill', 'a bare × glyph with no accessible name'],
   },
 

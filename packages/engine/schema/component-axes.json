@@ -77,6 +77,31 @@
       "title": "TEXT"
     }
   },
+  "avatar": {
+    "axes": {
+      "shape": [
+        "circular",
+        "square"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small",
+        "x-large",
+        "x-small"
+      ],
+      "type": [
+        "icon",
+        "image",
+        "initials"
+      ]
+    },
+    "members": 30,
+    "properties": {
+      "initials": "TEXT",
+      "presence": "BOOLEAN"
+    }
+  },
   "badge": {
     "axes": {
       "emphasis": [
@@ -723,7 +748,9 @@
         "minus-filled",
         "more-horizontal-filled",
         "more-vertical-filled",
+        "organization",
         "pause-circle",
+        "person",
         "play-circle",
         "plus",
         "plus-circle",
@@ -736,7 +763,7 @@
         "warning-triangle-filled"
       ]
     },
-    "members": 46,
+    "members": 48,
     "properties": {}
   },
   "icon-button": {

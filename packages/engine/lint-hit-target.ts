@@ -355,6 +355,7 @@ const EXCLUDED: Record<string, string> = {
   'progress': 'a progress bar or ring shows system work and is never interactive (#2670) — a retry after an error is the host\'s own control, placed beside it, which is gated',
   'skeleton': 'a decorative loading placeholder hidden from assistive technology, never interactive; nothing in it takes a pointer or focus',
   'spinner': 'a decorative loading indicator on the icon ladder, never interactive — the tap target is the host control it sits in (a pending button), which is gated',
+  'avatar': 'a picture of who something belongs to, never interactive (#4110): an avatar that opens a menu sits inside a Button or IconButton, whose target is gated',
   'badge': 'a static marker, never interactive (owner decision, 2026-09-27) — a count or dot on an icon button relies on the host\'s target, which is gated',
   'checkbox-control': 'a nested-only atom — the tap target is the labeled row (checkbox-row), gated here',
   'radio-control': 'a nested-only atom — the tap target is the labeled row (radio-row), gated here',

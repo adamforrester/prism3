@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch, formatRatio, floorRatio } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
+import { radiusScale, ICON_SIZES, ICON_PAIRED, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { codeOnlyText } from './code-only-register';
 import { at, deref, pxOf, buildTree, familyOf, aliasFaults, type AliasFault } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, defaultTypeMode, type Theme } from './theme';
@@ -3558,8 +3558,25 @@ for (const b of brands) {
   // The ladder pairs 1:1 with the component-size names, which is what lets the anatomy layer (#327)
   // map control size -> icon size by identity instead of reconciling two differently-shaped scales.
   const sizeNames = nbTheme().dims.sizes.map((s: any) => s.name).join(',');
-  ok(ICON_SIZES.map((s) => s.name).join(',') === sizeNames,
-    `#324 icon steps pair 1:1 with size.* names (icon ${ICON_SIZES.map((s) => s.name).join('/')} vs size ${sizeNames})`);
+  ok(ICON_PAIRED.join(',') === sizeNames && ICON_PAIRED.every((n) => ICON_SIZES.some((s) => s.name === n)),
+    `#324 icon steps pair 1:1 with size.* names (paired ${ICON_PAIRED.join('/')} vs size ${sizeNames})`);
+  // #4110 (owner OD-A3 A): exactly one step runs past the pairing, the 64px x-large avatar.
+  const unpaired = ICON_SIZES.filter((s) => !ICON_PAIRED.includes(s.name));
+  ok(unpaired.length === 1 && unpaired[0].name === '2xl' && unpaired[0].px === 64,
+    `#4110 the icon ladder's one unpaired step is 2xl at 64px (got ${unpaired.map((s) => `${s.name}=${s.px}`).join(', ') || 'none'})`);
+  // #4110 delta review: docs/30's "Additions since 15.0.0" table and version.ts' contract history are two hand-written
+  // records of one fact. A merge renumbered Avatar's raise to 15.3.0 in version.ts and left the docs row at 15.2.0,
+  // which version.ts gives to #2857. Each table row's version must open a version.ts block that cites the row's PR.
+  {
+    const doc30 = readFileSync(resolve(HERE, '../../docs/30-versioning-and-compatibility.md'), 'utf8');
+    const versionTs = readFileSync(resolve(HERE, './version.ts'), 'utf8');
+    const table = doc30.split('### Additions since 15.0.0')[1]?.split('\n## ')[0] ?? '';
+    const rows = [...table.matchAll(/^\| (\d+\.\d+\.\d+) \| \(#(\d+)/gm)].map((m) => ({ v: m[1], pr: m[2] }));
+    const blockOf = (v: string) => versionTs.match(new RegExp(`/\\*\\*\\n \\* ${v.replace(/\./g, '\\.')} \\(([\\s\\S]*?)\\*/`))?.[1] ?? '';
+    const wrong = rows.filter((r) => !new RegExp(`#${r.pr}\\b`).test(blockOf(r.v)));
+    ok(rows.some((r) => r.pr === '4110') && wrong.length === 0,
+      `#4110 docs/30's contract additions table names each raise at the version version.ts records it under (${rows.length} rows${wrong.length ? ` — wrong: ${wrong.map((r) => `${r.v} (#${r.pr})`).join(', ')}` : ''})`);
+  }
 }
 
 
@@ -21240,6 +21257,98 @@ arm: {
     const whereMissed = whereCases.filter(([, d, re]) => !errs(d).some((e) => re.test(e))).map(([why]) => why);
     ok(whereMissed.length === 0, `#2343 PR 5 variantWhere: the validator refuses each unsafe joint mapping by name (missed: ${whereMissed.join(', ') || 'none'})`);
   }
+  // #4110 — AVATAR, each owner decision held against a literal from the approved proposal (OD-A1 to OD-A8, all A).
+  // EXPECTED is typed here from the proposal; ACTUAL is read off the projected plans and the emitted trees, never off the
+  // def's own tables (docs/34).
+  {
+    const av = componentDefs.find((d) => d.id === 'avatar')!;
+    const plans = figmaAnatomySet(av) as any[];
+    const kid = (n: any, name: string): any => (n.children ?? []).find((c: any) => c.name === name);
+    const find = (n: any, name: string): any => n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean);
+    // The set: 5 sizes × 2 shapes × 3 types, the wireframe's 30 members.
+    ok(plans.length === 30, `#4110 avatar: the Figma set is 30 members, 5 sizes × 2 shapes × 3 types (got ${plans.length})`);
+    // OD-A3 A: 20 / 24 / 32 / 40 / 64px, the first four on the icon ladder and x-large on the one minted step.
+    const BOX: Record<string, [string, number]> = { 'x-small': ['icon/size/sm', 20], small: ['icon/size/md', 24], medium: ['icon/size/lg', 32], large: ['icon/size/xl', 40], 'x-large': ['icon/size/2xl', 64] };
+    const wrongBox = plans.filter((p) => p.root.bound?.width !== BOX[p.size]?.[0] || p.root.bound?.height !== BOX[p.size]?.[0]
+      || kid(p.root, 'mask')?.bound?.width !== BOX[p.size]?.[0]);
+    ok(wrongBox.length === 0, `#4110 avatar OD-A3 A: the container and the mask bind the icon ladder at four sizes and icon.size.2xl at x-large${wrongBox.length ? ` — ${wrongBox.slice(0, 3).map((p) => `${p.size} ${p.root.bound?.width}`).join(', ')}` : ''}`);
+    const pxRows = (['prism3', 'aurora', 'harbor'] as const).map((b) => {
+      const th = exampleTheme(b, () => brandTheme(exampleBrands()[b] as BrandInput));
+      const t = th && (buildTree(th).tree as any);
+      const root = t && t[Object.keys(t)[0]];
+      return [b, Object.fromEntries(Object.entries(BOX).map(([z, [v]]) => [z, root?.icon?.size?.[v.split('/')[2]]?.$extensions?.prism3?.px]))] as [string, Record<string, number>];
+    });
+    const offPx = pxRows.filter(([, r]) => Object.entries(BOX).some(([z, [, px]]) => r[z] !== px));
+    ok(pxRows.length === 3 && offPx.length === 0, `#4110 avatar OD-A3 A: the five sizes resolve to 20/24/32/40/64px in every example brand${offPx.length ? ` — ${offPx.map(([b, r]) => `${b} ${JSON.stringify(r)}`).join('; ')}` : ''}`);
+    // OD-A2 A: a circle is round at every size; a square takes radius.sm below medium and radius.md from medium up.
+    const CORNER = (shape: string, size: string) => shape === 'circular' ? 'radius/round' : ['x-small', 'small'].includes(size) ? 'radius/sm' : 'radius/md';
+    const wrongCorner = plans.filter((p) => ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].some((c) => kid(p.root, 'mask')?.bound?.[c] !== CORNER(p.coord.shape, p.size)));
+    ok(wrongCorner.length === 0, `#4110 avatar OD-A2 A: the mask's corner is round on a circle, radius.sm on a square below medium and radius.md from medium up${wrongCorner.length ? ` — ${wrongCorner.slice(0, 3).map((p) => `${p.size}/${p.coord.shape} ${kid(p.root, 'mask')?.bound?.topLeftRadius}`).join(', ')}` : ''}`);
+    // The structural decision: only the mask clips, and the presence ring sits outside it, pinned to the container's corner.
+    const wrongClip = plans.filter((p) => p.root.clipsContent === true || kid(p.root, 'mask')?.clipsContent !== true
+      || !kid(p.root, 'presenceRing') || find(kid(p.root, 'mask'), 'presenceRing') || kid(p.root, 'presenceRing')?.cornerInset !== 'space/0');
+    ok(wrongClip.length === 0, `#4110 avatar: the container clips nothing, the mask clips, and the presence ring is the container's child pinned into its corner at space/0, outside the mask (${wrongClip.length} wrong)`);
+    // OD-A7 A: presence nests Badge at type=dot, its tone exposed, off by default.
+    const wrongDot = plans.filter((p) => { const d = find(p.root, 'presenceDot'); const r = kid(p.root, 'presenceRing');
+      return d?.nestTarget !== 'badge' || d?.nestVariant?.type !== 'dot' || JSON.stringify(d?.nestExpose) !== '["tone"]' || r?.visible !== false || r?.paints?.fills !== 'color/background/primary'; });
+    ok(wrongDot.length === 0, `#4110 avatar OD-A7 A: presence is a Badge at type=dot with its tone exposed, in a ring of color/background/primary, hidden by default (${wrongDot.length} wrong)`);
+    // OD-A6 A: the glyph follows the shape, at the icon member only; the initials show at the initials member only.
+    const wrongContent = plans.filter((p) => {
+      const m = kid(p.root, 'mask'); const names = (m?.children ?? []).map((c: any) => c.name).join(',');
+      const want = p.coord.type === 'initials' ? 'initials' : p.coord.type === 'icon' ? (p.coord.shape === 'circular' ? 'personGlyph' : 'organizationGlyph') : '';
+      const glyph = find(p.root, want);
+      return names !== want || (p.coord.type === 'icon' && glyph?.nestTarget !== (p.coord.shape === 'circular' ? 'icon/person' : 'icon/organization'));
+    });
+    ok(wrongContent.length === 0, `#4110 avatar OD-A6 A: the mask holds the initials at type=initials, the person glyph in a circle and the organization glyph in a square at type=icon, and nothing at type=image${wrongContent.length ? ` — ${wrongContent.slice(0, 3).map((p) => `${p.size}/${JSON.stringify(p.coord)}`).join(', ')}` : ''}`);
+    // OD-A5 A: one neutral backdrop, and the initials clear 4.5:1 on it in every brand and mode.
+    const wrongPaint = plans.filter((p) => kid(p.root, 'mask')?.paints?.fills !== 'color/background/tertiary');
+    ok(wrongPaint.length === 0, `#4110 avatar OD-A5 A: every member's backdrop is color/background/tertiary (${wrongPaint.length} wrong)`);
+    const avThemes: [string, any][] = loadedRows([
+      ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+      ['nb', nbTheme()],
+      ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+      ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+      ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+    ]);
+    // The pair is read off the plans, what the def binds, not typed here: a rebound ink or backdrop is the pair measured
+    // (#4110 review). Each distinct (ink, backdrop) pair at the initials members is measured in every brand and mode.
+    const role = (v: unknown): string => typeof v === 'string' ? v.replace(/^color\//, '').replace(/\//g, '.') : '';
+    const pairs = [...new Set(plans.filter((p) => p.coord.type === 'initials')
+      .map((p) => `${role(find(p.root, 'initials')?.paints?.fills)}|${role(kid(p.root, 'mask')?.paints?.fills)}`))];
+    const low: string[] = []; let cells = 0;
+    for (const pair of pairs) {
+      const [ink, ground] = pair.split('|');
+      for (const [b, th] of avThemes) for (const m of resolveAllModes(th)) {
+        const x = m.roles[ink], y = m.roles[ground];
+        if (!x?.hex || !y?.hex) { low.push(`${b}/${m.mode} ${ink} on ${ground}: missing`); continue; }
+        cells++;
+        const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
+        if (r < 4.5) low.push(`${b}/${m.mode} ${ink} on ${ground} ${r.toFixed(2)}`);
+      }
+    }
+    ok(pairs.length === 1 && cells === 20 && low.length === 0, `#4110 avatar: the initials' ink clears 4.5:1 on the backdrop the def binds (${pairs.join(', ').replace(/\|/g, ' on ')}) in all ${cells} of 20 brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+    // Owner decision (2026-11-20): presence maps online = success, away = warning, busy = danger, offline = neutral.
+    // EXPECTED is the decision, typed here; ACTUAL is read from the shipped spec, `out/components/avatar.md`: the
+    // `presence` prop row a developer reads and the presence-dot anatomy line a designer reads, never the def's notes,
+    // which do not ship (#4110 delta review). Each tone must also be one Badge's `tone` axis offers.
+    {
+      const PRESENCE: Record<string, string> = { online: 'success', away: 'warning', busy: 'danger', offline: 'neutral' };
+      const md = readFileSync(resolve(HERE, './out/components/avatar.md'), 'utf8').split('\n');
+      const parse = (line: string | undefined): Record<string, string> =>
+        Object.fromEntries([...(line ?? '').matchAll(/\b(online|away|busy|offline) = (\w+)/g)].map((m) => [m[1], m[2]]));
+      const shipped: [string, Record<string, string>][] = [
+        ['presence prop', parse(md.find((l) => l.startsWith('| `presence` |')))],
+        ['presence dot', parse(md.find((l) => /\*\*Presence dot\*\*/.test(l)))],
+      ];
+      const badgeTones = componentDefs.find((d) => d.id === 'badge')?.variants?.tone ?? [];
+      const presenceValues = av.props.find((p) => p.name === 'presence')?.values ?? [];
+      const offMap = shipped.filter(([, m]) => JSON.stringify(m) !== JSON.stringify(PRESENCE)).map(([w, m]) => `${w} ${JSON.stringify(m)}`);
+      const notTone = Object.values(PRESENCE).filter((t) => !badgeTones.includes(t));
+      const notValue = JSON.stringify(presenceValues) !== JSON.stringify(Object.keys(PRESENCE));
+      ok(offMap.length === 0 && notTone.length === 0 && !notValue, `#4110 avatar: the shipped spec maps presence online = success, away = warning, busy = danger, offline = neutral, in the presence prop and the presence dot, on Badge's tones${offMap.length ? ` — ${offMap.join('; ')}` : ''}${notTone.length ? ` — not a Badge tone: ${notTone.join(', ')}` : ''}${notValue ? ` — presence values ${JSON.stringify(presenceValues)}` : ''}`);
+    }
+  }
+
   // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's
   // number was set alone, so parts an agent must never generate on their own ranked from 2 to 9 and the
   // focus ring sat level with Text field. The tier of each def is a HAND-WRITTEN literal here, not read
@@ -21263,6 +21372,8 @@ arm: {
       'page-nav': 2, 'page-nav-item': 9,
       // Provider logo (#2343): a glyph other components carry, placed alone only in a row of accepted cards.
       'provider-logo': 3,
+      // Avatar (#4110): a top-level component that supports another, a list row, a card or a comment.
+      avatar: 3,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -23900,6 +24011,8 @@ arm: {
       // SIGNINBUTTON (#2343 PR 5): the label emphasis style per size, on Apple and Facebook; Google's label sets a literal
       // font instead (Q-S7 A), so its members carry no style and are not in this grid.
       { def: componentDefs.find((d) => d.id === 'sign-in-button')!, part: 'label', axes: { size: 3 }, at: { provider: 'apple', style: 'black' } },
+      // AVATAR (#4110, OD-A4 A): the initials on three label rungs across five sizes, at the initials member only.
+      { def: componentDefs.find((d) => d.id === 'avatar')!, part: 'initials', axes: { size: 3 }, at: { type: 'initials' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -33645,8 +33758,9 @@ arm: {
     // 41 since the textarea's `resize-grip` joined the set (2026-09-25); 42 since the hamburger `menu` did
     // (Q253 A, 2026-10-12); 43 since the breadcrumb `slash` did (Q382 A, 2026-10-16): each a new shape, so both counts
     // move by one and the three collisions below stay the only ones.
-    ok(byShape.size === 43,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 43 distinct RENDERED shapes (got ${byShape.size}) — 44 distinct path STRINGS, so string comparison is off by one`);
+    // 45 since Avatar's `person` and `organization` did (#4110, OD-A6 A), two new shapes.
+    ok(byShape.size === 45,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 45 distinct RENDERED shapes (got ${byShape.size}) — 46 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);
@@ -34082,7 +34196,7 @@ arm: {
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
   // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
   // `selection` and `style`.
-  const GATED_EXPECTED = ['skeleton', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter'];
+  const GATED_EXPECTED = ['skeleton', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'progress', 'search-field', 'card-number-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell', 'pagination-item', 'pagination', 'slider', 'divider', 'counter', 'avatar'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -35750,6 +35864,9 @@ arm: {
     // (the provider's own words), so the glyph centers against the only line, as Button's icon does.
     'sign-in-button.container':
       "a sign-in button is one fixed height and its label is the provider's one-line wording, which never wraps, so the glyph centers against the only line, as on Button.",
+    // `avatar` (#4110): the mask holds one or two initials, which never wrap, or a glyph, never both, in a fixed square.
+    'avatar.mask':
+      "an avatar's initials are one or two letters on one line, never wrapped, in a fixed square, so a centered glyph or line is the only case.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -40896,6 +41013,8 @@ arm: {
     'sign-in-button.style': { prop: 'style', map: { undefined: 'black' }, reason: 'style defaults per provider in code (black, light, blue; Q-S4 A), so no one value answers it; the first member is Apple\'s default, black' },
     // #3051 (owner Q3051.1 A): code has no labeled prop. A non-empty `label` is the labeled divider; unset, the plain rule.
     'divider.labeled': { prop: 'label', map: { undefined: 'false' }, reason: 'a divider is labeled by setting `label`; with no label it is the plain rule' },
+    // #4110: code has no type prop. With no `src` the chain shows the initials of the required `name`, the first member.
+    'avatar.type': { prop: 'src', map: { undefined: 'initials' }, reason: 'with no photo, an avatar shows the initials of its required name; the image and the glyph follow from src and name at run time' },
     'breadcrumbs.path': { prop: 'responsive', map: { undefined: 'full', false: 'full', true: 'full' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
   };
   // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and

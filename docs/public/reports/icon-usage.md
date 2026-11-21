@@ -1,6 +1,6 @@
 # Icon usage
 
-Which glyphs each component draws. The icon set holds 46 glyphs; a component draws a glyph from it at a fixed part, starts an icon slot at one, or draws a glyph it owns (the spinner ring), which is kept out of the icon set.
+Which glyphs each component draws. The icon set holds 48 glyphs; a component draws a glyph from it at a fixed part, starts an icon slot at one, or draws a glyph it owns (the spinner ring), which is kept out of the icon set.
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [icon-usage.json](icon-usage.json). All reports: [index](index.md).
 
@@ -14,6 +14,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | plusGlyph | `plus` | icon set | drawn | indicator: plus-minus; expansion: collapsed |
 | _breadcrumb-separator | chevronGlyph | `chevron-right` | icon set | drawn | type: chevron |
 |  | slashGlyph | `slash` | icon set | drawn | type: slash |
+| avatar | organizationGlyph | `organization` | icon set | drawn | type: icon; shape: square |
+|  | personGlyph | `person` | icon set | drawn | type: icon; shape: circular |
 | banner | dangerGlyph | `warning-triangle` | icon set | drawn | tone: danger |
 |  | infoGlyph | `info-circle` | icon set | drawn | tone: info |
 |  | successGlyph | `check-circle` | icon set | drawn | tone: success |
@@ -89,6 +91,8 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `info-circle` | banner |
 | `minus` | _accordion-indicator, checkbox-control |
 | `more-horizontal-filled` | pagination-item |
+| `organization` | avatar |
+| `person` | avatar |
 | `plus` | _accordion-indicator |
 | `progress-stop` | progress |
 | `resize-grip` | textarea |

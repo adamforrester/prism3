@@ -66,6 +66,19 @@
         "type": "VARIABLE_ALIAS",
         "name": "ads/core/dimension/40"
       }
+    },
+    {
+      "name": "ads/icon/size/2xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "64px icon artboard — an x-large avatar, past the control sizes",
+      "value": 64,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/dimension/64"
+      }
     }
   ]
 }

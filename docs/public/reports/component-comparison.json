@@ -231,6 +231,88 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "avatar",
+      "name": "Avatar",
+      "category": "foundations",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "size": [
+          "medium",
+          "x-small",
+          "small",
+          "large",
+          "x-large"
+        ],
+        "shape": [
+          "circular",
+          "square"
+        ],
+        "type": [
+          "initials",
+          "icon",
+          "image"
+        ]
+      },
+      "props": [
+        {
+          "name": "name"
+        },
+        {
+          "name": "src"
+        },
+        {
+          "name": "srcSet"
+        },
+        {
+          "name": "decorative",
+          "default": false
+        },
+        {
+          "name": "shape",
+          "default": "circular",
+          "values": [
+            "circular",
+            "square"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "x-small",
+            "small",
+            "medium",
+            "large",
+            "x-large"
+          ]
+        },
+        {
+          "name": "presence",
+          "values": [
+            "online",
+            "away",
+            "busy",
+            "offline"
+          ]
+        },
+        {
+          "name": "getInitials"
+        },
+        {
+          "name": "fallbackDelay"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "x-small",
+        "small",
+        "large",
+        "x-large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "badge",
       "name": "Badge",
       "category": "feedback",
@@ -2263,7 +2345,9 @@
           "minus-filled",
           "more-horizontal-filled",
           "more-vertical-filled",
+          "organization",
           "pause-circle",
+          "person",
           "play-circle",
           "plus",
           "plus-circle",
@@ -2326,7 +2410,9 @@
             "minus-filled",
             "more-horizontal-filled",
             "more-vertical-filled",
+            "organization",
             "pause-circle",
+            "person",
             "play-circle",
             "plus",
             "plus-circle",
@@ -6345,6 +6431,7 @@
           "square"
         ],
         "components": [
+          "avatar",
           "icon-button",
           "icon-button-destructive",
           "icon-button-neutral"
@@ -6469,6 +6556,18 @@
         "components": [
           "code-input",
           "code-input-cell"
+        ]
+      },
+      {
+        "values": [
+          "large",
+          "medium",
+          "small",
+          "x-large",
+          "x-small"
+        ],
+        "components": [
+          "avatar"
         ]
       }
     ],
@@ -6712,6 +6811,16 @@
         ],
         "components": [
           "pagination-item"
+        ]
+      },
+      {
+        "values": [
+          "icon",
+          "image",
+          "initials"
+        ],
+        "components": [
+          "avatar"
         ]
       },
       {
@@ -7092,6 +7201,10 @@
     ],
     "decorative": [
       {
+        "id": "avatar",
+        "default": false
+      },
+      {
         "id": "divider",
         "default": true
       }
@@ -7407,6 +7520,11 @@
         ]
       }
     ],
+    "fallbackDelay": [
+      {
+        "id": "avatar"
+      }
+    ],
     "footer": [
       {
         "id": "dialog",
@@ -7448,6 +7566,11 @@
     "getHref": [
       {
         "id": "pagination"
+      }
+    ],
+    "getInitials": [
+      {
+        "id": "avatar"
       }
     ],
     "getStatusText": [
@@ -8194,6 +8317,9 @@
     ],
     "name": [
       {
+        "id": "avatar"
+      },
+      {
         "id": "card-number-field"
       },
       {
@@ -8243,7 +8369,9 @@
           "minus-filled",
           "more-horizontal-filled",
           "more-vertical-filled",
+          "organization",
           "pause-circle",
+          "person",
           "play-circle",
           "plus",
           "plus-circle",
@@ -8604,6 +8732,17 @@
         "id": "text-field"
       }
     ],
+    "presence": [
+      {
+        "id": "avatar",
+        "values": [
+          "online",
+          "away",
+          "busy",
+          "offline"
+        ]
+      }
+    ],
     "previousLabel": [
       {
         "id": "pagination-item",
@@ -8827,6 +8966,14 @@
     ],
     "shape": [
       {
+        "id": "avatar",
+        "default": "circular",
+        "values": [
+          "circular",
+          "square"
+        ]
+      },
+      {
         "id": "flush-icon-button",
         "default": "flush",
         "values": [
@@ -9024,6 +9171,17 @@
           "small",
           "medium",
           "large"
+        ]
+      },
+      {
+        "id": "avatar",
+        "default": "medium",
+        "values": [
+          "x-small",
+          "small",
+          "medium",
+          "large",
+          "x-large"
         ]
       },
       {
@@ -9496,6 +9654,16 @@
     "spellCheck": [
       {
         "id": "textarea"
+      }
+    ],
+    "src": [
+      {
+        "id": "avatar"
+      }
+    ],
+    "srcSet": [
+      {
+        "id": "avatar"
       }
     ],
     "start": [
@@ -10561,6 +10729,7 @@
       "kind": "axis values",
       "subject": "axis shape",
       "components": [
+        "avatar",
         "flush-icon-button",
         "flush-icon-button-destructive",
         "flush-icon-button-neutral",
@@ -10570,7 +10739,7 @@
         "progress",
         "skeleton"
       ],
-      "detail": "the shape axis takes 4 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circle, rect, text] in skeleton; [circular, linear] in progress"
+      "detail": "the shape axis takes 4 value sets — [circular, square] in avatar, icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circle, rect, text] in skeleton; [circular, linear] in progress"
     },
     {
       "kind": "axis values",
@@ -10579,6 +10748,7 @@
         "_accordion-indicator",
         "_slider-thumb",
         "accordion",
+        "avatar",
         "badge",
         "breadcrumb-item",
         "breadcrumbs",
@@ -10629,7 +10799,7 @@
         "textarea",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, skeleton, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
+      "detail": "the size axis takes 5 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, skeleton, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell; [large, medium, small, x-large, x-small] in avatar"
     },
     {
       "kind": "axis values",
@@ -10691,6 +10861,7 @@
       "subject": "axis type",
       "components": [
         "_breadcrumb-separator",
+        "avatar",
         "badge",
         "list",
         "list-item",
@@ -10700,7 +10871,7 @@
         "slider",
         "tag"
       ],
-      "detail": "the type axis takes 8 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider"
+      "detail": "the type axis takes 9 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [icon, image, initials] in avatar; [range, single] in slider"
     },
     {
       "kind": "axis values",
@@ -10734,6 +10905,14 @@
         "accordion"
       ],
       "detail": "accordion declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "avatar",
+      "components": [
+        "avatar"
+      ],
+      "detail": "avatar declares its sizes as [medium, x-small, small, large, x-large], not smallest first"
     },
     {
       "kind": "size order",
@@ -11117,7 +11296,16 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 51 of 52 sized components default to medium"
+      "detail": "field-label defaults size to small; 52 of 53 sized components default to medium"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop decorative",
+      "components": [
+        "avatar",
+        "divider"
+      ],
+      "detail": "decorative defaults differ over the same values — false in avatar; true in divider"
     },
     {
       "kind": "prop default",
@@ -11183,6 +11371,14 @@
         "accordion"
       ],
       "detail": "accordion has the variant axis expansion and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "avatar",
+      "components": [
+        "avatar"
+      ],
+      "detail": "avatar has the variant axis type and no prop of that name"
     },
     {
       "kind": "axis without prop",

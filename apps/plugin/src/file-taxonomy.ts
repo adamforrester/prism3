@@ -122,6 +122,8 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Veil', defs: ['veil'] },
         // Badge — under Components, owner-decided 2026-10-04 (S8 scope, O1).
         { page: 'Badge', defs: ['badge'] },
+        // Avatar (#4110) — its own page under Components, beside Badge, whose dot it nests. The page is held for the owner.
+        { page: 'Avatar', defs: ['avatar'] },
         // Tag — under Components beside Badge, owner-decided 2026-10-04 (S8 scope, O1). It nests
         // IconButton.Neutral, whose page is earlier in this list, so the nest resolves when the file is built in order.
         // Tag.Group (#1739) beside Tag, built after it so its nested tags resolve on the same page. Held for the owner.
@@ -226,8 +228,8 @@ export const EXCLUDED_DEFS: readonly string[] = [];
  * not listed, and on a listed def that no longer is one (a stale entry).
  */
 export const STANDALONE_NESTED: Readonly<Record<string, string>> = {
-  // Badge: under Components, owner-decided 2026-10-04 (S8 scope, O1). Tab.Item nests it; a designer places it anywhere.
-  badge: 'S8 scope, O1',
+  // Badge left this list with Avatar (#4110): Tab.Item and Avatar both nest it now, so it is not one consumer's part and
+  // the rule does not reach it. It stays on its own page under Components (S8 scope, O1).
   // Text field: its own page under Components. Slider (#2669) nests it for the value input; a designer places it anywhere.
   'text-field': 'Text field page; nested by Slider since #2669',
 };

@@ -73,6 +73,10 @@ glyph for the need, and all three are covered by this repository's own license, 
   the same 24px grid, a 2px stroke like the chevrons, with no Remix artwork in it. The owner made it a permanent
   member of the icon set on 2026-10-22, with a standing rule: a glyph a component needs and the library lacks is
   added to the icon set when the component is built.
+- `person-line.svg` and `organization-line.svg`, the `person` and `organization` icons, Avatar's last fallback
+  (#4110, owner decision OD-A6 A): a head over shoulders, and a building with four windows and a door. Drawn on the
+  same 24px grid at the 2-unit line weight, with no Remix artwork in them, under the standing rule above. The
+  owner approved the drawings as drawn on 2026-11-20.
 
 ## Provider logos are not in this set, and cannot be
 

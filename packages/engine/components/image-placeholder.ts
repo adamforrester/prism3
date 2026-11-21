@@ -272,7 +272,8 @@ export const imagePlaceholder: ComponentDef = {
   composition: {
     // Nests nothing (#1700): the marker is a raw glyph from the set (a `vector` part), not a nested `icon`.
     composesWith: [],
-    alternativeTo: [],
+    // `avatar` (#4110): an identity picture, where this frame holds content media.
+    alternativeTo: ['avatar'],
     replacesPatterns: [
       'a hand-drawn rectangle with a fixed width and height standing in for an image, which breaks its ratio the moment it is resized',
     ],

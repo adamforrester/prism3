@@ -140,6 +140,8 @@ const MUST_COVER = [
   'progress.ringGlyph', 'progress.arcGlyph', 'progress.fullRingGlyph', 'progress.dotGlyph',
   'banner.infoGlyph', 'banner.successGlyph', 'banner.warningGlyph', 'banner.dangerGlyph',
   'toast.successGlyph',
+  // Avatar's last fallback (#4110, owner OD-A6 A): the glyph follows the shape.
+  'avatar.personGlyph', 'avatar.organizationGlyph',
   '_breadcrumb-separator.chevronGlyph', '_breadcrumb-separator.slashGlyph', 'breadcrumbs.backGlyph',
   // The provider logos (#2343), measured by the MARK arm against their own artboards.
   'provider-logo.glyph',
@@ -305,6 +307,10 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   // #2665 (owner Q414 A) — Pagination draws its own previous and next: each cell's chevron, on its own type only.
   'pagination-item.previousGlyph': { glyph: 'chevron-left', at: { type: ['previous'] }, why: 'the previous cell\'s chevron, pointing back' },
   'pagination-item.nextGlyph': { glyph: 'chevron-right', at: { type: ['next'] }, why: 'the next cell\'s chevron, pointing forward' },
+  // #4110 (owner OD-A6 A) — Avatar's last fallback, with no photo and no name: the glyph follows the shape, so each is
+  // fixed and gated on its own shape at the icon member. `glyph: '{shape}'` would look for glyphs named circular and square.
+  'avatar.personGlyph': { glyph: 'person', at: { type: ['icon'], shape: ['circular'] }, why: 'a generic person, in the circle a person takes' },
+  'avatar.organizationGlyph': { glyph: 'organization', at: { type: ['icon'], shape: ['square'] }, why: 'a generic building, in the square a team, an organization or an app takes' },
   'image-placeholder.markerGlyph': {
     glyph: 'image',
     // `at: {}` — present at EVERY coordinate, not gated by a variant. The marker is the "no image"

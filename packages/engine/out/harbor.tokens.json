@@ -21725,6 +21725,18 @@
               "px": 40
             }
           }
+        },
+        "2xl": {
+          "$type": "dimension",
+          "$value": "{hds.core.dimension.64}",
+          "$description": "`icon.size.2xl` — 64px artboard (fixed grid; past the control ladder, an x-large avatar)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "hds.core.dimension.64",
+              "px": 64
+            }
+          }
         }
       }
     },

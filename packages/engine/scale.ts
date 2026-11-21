@@ -356,11 +356,18 @@ export const componentSizes = (density: Density, _spaceBase = 8): SizeStep[] => 
 // 40 extends the field set by one on-grid step for hero / empty-state use; the KB's icon-vs-
 // illustration boundary is about NARRATIVE content ("larger, narrative, its own component"),
 // not a pixel threshold, so a 40px UI metaphor glyph is still an icon.
+//
+// 64 (`2xl`, #4110, owner OD-A3 A) is the one step past the pairing: Avatar binds the ladder at four sizes so an
+// avatar fits any icon slot, and its x-large size is 64px, a profile header's picture. It extends the ladder by one
+// more on-grid step, as 40 did, and pairs with no `size.*` rung, since no control is 64px tall: `ICON_PAIRED` is
+// the paired five. The ladder still prohibits arbitrary sizes; 64 is on the base-4 and base-8 grids.
 export type IconSizeStep = { name: string; px: number };
 export const ICON_SIZES: IconSizeStep[] = [
   { name: 'xs', px: 16 }, { name: 'sm', px: 20 }, { name: 'md', px: 24 },
-  { name: 'lg', px: 32 }, { name: 'xl', px: 40 },
+  { name: 'lg', px: 32 }, { name: 'xl', px: 40 }, { name: '2xl', px: 64 },
 ];
+/** The steps that pair 1:1 with the `size.*` rungs (xs…xl). `2xl` is past the control ladder. */
+export const ICON_PAIRED: readonly string[] = ['xs', 'sm', 'md', 'lg', 'xl'];
 export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }));
 
 // ---------------------------------------------------------------------------

@@ -4167,6 +4167,11 @@
           "$type": "dimension",
           "$value": "{nbds.core.dimension.40}",
           "$description": "`icon.size.xl` — 40px artboard (fixed grid; pairs with `size.xl`)"
+        },
+        "2xl": {
+          "$type": "dimension",
+          "$value": "{nbds.core.dimension.64}",
+          "$description": "`icon.size.2xl` — 64px artboard (fixed grid; past the control ladder, an x-large avatar)"
         }
       }
     },

@@ -536,7 +536,7 @@ export const badge: ComponentDef = {
     whenToUse: 'A short state or attribute shown next to what it describes (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot). Inline style: a quieter status in a list or table row or a card\'s details, where a filled label would draw too much attention.',
     avoidWhen: 'The user can click, toggle or remove it (use Tag), the message is feedback about an action (use Toast or Banner), or the color would be the only signal.',
     // `tab` moved here from `planned` when it was built (#2416): a tab nests a count badge.
-    commonPartners: ['icon-button', 'button', 'tab-item'],
+    commonPartners: ['icon-button', 'button', 'tab-item', 'avatar'],
     triggerKeywords: ['badge', 'status badge', 'status label', 'counter badge', 'count badge', 'notification badge', 'notification dot', 'unread count', 'presence dot', 'label', 'pill label'],
     generationPriority: 3,
   },
@@ -545,7 +545,6 @@ export const badge: ComponentDef = {
     composesWith: [],
     // `tag` moved here from `planned` when it was built (2026-09-27): the interactive alternative.
     alternativeTo: ['tag', 'banner'],
-    planned: ['avatar'],
     replacesPatterns: ['a hand-drawn colored pill', 'a red circle with a number drawn over an icon'],
   },
 

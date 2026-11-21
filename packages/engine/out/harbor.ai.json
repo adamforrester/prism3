@@ -8204,6 +8204,12 @@
       "when_to_use": "The rendered size of an icon glyph.",
       "resolves_to": "{hds.core.dimension.40}"
     },
+    "icon.size.2xl": {
+      "$description": "`icon.size.2xl` — 64px artboard (fixed grid; past the control ladder, an x-large avatar)",
+      "meaning": "Icon size step 2xl",
+      "when_to_use": "The rendered size of an icon glyph.",
+      "resolves_to": "{hds.core.dimension.64}"
+    },
     "grid.sm.columns": {
       "$description": "grid sm — 4 columns",
       "meaning": "Layout grid columns at the sm breakpoint",
@@ -11351,6 +11357,7 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "control.size.md.width",
+        "icon.size.2xl",
         "space.800"
       ]
     },

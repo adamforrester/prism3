@@ -106,6 +106,7 @@ const OUTSIDE_REASON: Record<string, string> = {
   'flush-icon-button-neutral': 'no box at rest: its square shape is radius.none and its circle intrinsic',
   'radio-control': 'intrinsically round',
   'switch-control': 'intrinsically round',
+  'avatar': 'an identity picture, not a control: its circle is radius.round and its square corner (radius.sm, radius.md) belongs to the avatar, so no Control shape setting reaches it (#4110)',
   'badge': 'a status label, not a control; its radius.sm must not follow a field setting',
   'tag': 'Tag style owns its shape',
   'list-item': 'a round bullet',
