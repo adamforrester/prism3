@@ -5448,7 +5448,7 @@ section('reach — a member stamped under an older revision is to update only wh
   // record's floor is to update, as every member was before #3101. Read off the dry run of the host's own members; the
   // stamps are rewritten on the host, as an older plugin left them.
   const QUIET = '_accordion-indicator';
-  // Revision 67 (#2865, the description record) redraws every set (`"all"`), so the record is read here with QUIET left
+  // Revision 68 (#2865, the description record) redraws every set (`"all"`), so the record is read here with QUIET left
   // out of every entry since 42, an "all" entry as every other projected set, and put back after.
   const committedReach = EXECUTOR_REACH.reach;
   const everySet = componentDefs.filter((d) => d.figmaProperties).map((d) => d.id);

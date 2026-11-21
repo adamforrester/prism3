@@ -424,7 +424,7 @@ const fsD = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
 ok(JSON.stringify(fsD?.due?.badge) === JSON.stringify({ state: 'due', reason: 'executor' }),
   `reach/due: recorded under 42, Badge is due for the executor, since revision 56 redrew it (${JSON.stringify(fsD?.due?.badge)})`);
 const committedReach = EXECUTOR_REACH.reach;
-// An "all" entry (revision 67, #2865) names Badge too, so it is read as every projected set but Badge.
+// An "all" entry (revision 68, #2865) names Badge too, so it is read as every projected set but Badge.
 const everySet = componentDefs.filter((d) => d.figmaProperties).map((d) => d.id);
 (EXECUTOR_REACH as { reach: typeof committedReach }).reach = Object.fromEntries(Object.entries(committedReach).map(([k, v]) => [k, Number(k) > 42 ? (v === 'all' ? everySet : v).filter((id) => id !== 'badge') : v]));
 const fsR = (await ask({ type: 'file-sets-request' }, 'file-sets'))[0];
