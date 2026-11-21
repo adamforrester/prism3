@@ -13,3 +13,6 @@ true in code, false in Figma`. How to close that coverage gap is an owner decisi
 **Proof.** `--self-test` (in `check:build`) plants Figma's field members with `message=false` and requires both the note
 and the KPI 2 failure to name `message`. It fails by name on the old text, and under two mutations: the property diff
 ignoring boolean properties, and the nearest pick sorted the wrong way.
+The self-test also requires the two other reasons to be named: a code-only axis (`fullWidth=true has no Figma axis or
+property`) and a Figma variant axis no case names (`variant density is not named in code`), each failing by name when
+its line is removed (#4435 review, S1).

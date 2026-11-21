@@ -246,6 +246,18 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma
       if (lines.some((x) => re.test(x))) console.log(`OK self-test: ${what} names the property that kept it apart (message)`);
       else { bad++; console.error(`FAIL self-test: ${what} does not name the property that kept it apart (message): ${lines.find((x) => x.startsWith('text-field')) ?? 'no line'}`); }
     }
+    // the two other reasons a case is kept apart: a code-only axis (the planted base leaves fullWidth=true code-only),
+    // and a variant axis Figma has that no case names (every password-field member gains `density`)
+    const extra = clone(base);
+    for (const m of extra.components['password-field'].members) m.variant = { ...m.variant, density: 'compact' };
+    const xr = compare(extra, code);
+    for (const [what, re, lines, prefix] of [
+      ['the code-only case', /^button--full-width: .*\(code only, not compared\): fullWidth=true has no Figma axis or property; nearest member /, clean.notes, 'button--full-width'],
+      ['the case a Figma variant axis keeps apart', /^password-field--rest: .*nearest member 9:password-field--rest differs in variant density is not named in code, compact in Figma$/, xr.notes, 'password-field--rest'],
+    ] as const) {
+      if (lines.some((l) => re.test(l))) console.log(`OK self-test: ${what} names the axis that kept it apart`);
+      else { bad++; console.error(`FAIL self-test: ${what} does not name the axis that kept it apart: ${lines.find((l) => l.startsWith(prefix)) ?? 'no line'}`); }
+    }
     for (const t of SELF) {
       const f = clone(base);
       t.plant(f);
