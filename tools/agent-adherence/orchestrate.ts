@@ -48,7 +48,8 @@ const CONTAMINATION: [RegExp, string][] = [
   [/CLAUDE\.md/i, 'a CLAUDE.md appears'],   // any case: `find / -iname claude.md` reaches the file too (#3567)
   // No hyphen required, either slash, any case (#3584): `cat skills/prism3*/SKILL.md` reads the skill through a glob.
   [/skills[\\/]+prism3/i, 'a read of skills/prism3-*'],
-  [/github\.com\/adamforrester\/prism3|raw\.githubusercontent\.com\/adamforrester\/prism3|api\.github\.com\/repos\/adamforrester\/prism3/i, 'a fetch of the repository'],
+  // Either owner: the repository moved to prism-ds on 2026-11-20, and the old owner's URLs still redirect to it.
+  [/(?:github\.com|raw\.githubusercontent\.com|api\.github\.com\/repos)\/(?:prism-ds|adamforrester)\/prism3/i, 'a fetch of the repository'],
 ];
 /** The tools whose input can reach the repo, a CLAUDE.md or a skill file. A `Skill` call is judged by its skill name. */
 /** `Grep`, `Glob` and a sub-agent (`Agent`, `Task`) can reach a skill file too (delta review nit). */

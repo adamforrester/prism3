@@ -34,10 +34,7 @@ Build this component first, then leave it to hosts: every focusable component ne
 
 ### Do
 
-- Nest the shared ring rather than re-authoring a focus treatment per component
 - Pick the inverse surface on a dark or brand-filled ground, where the default ring loses its 3:1 separation
-- Pick the field offset for inputs, whose own border already supplies the separation
-- Keep the ring outside the host's bounds and the host un-clipped, so the ring is never cut off (2.4.7)
 
 ### Don't
 
@@ -73,6 +70,10 @@ The ring carries no text of its own. The accessible name and any message shown o
   - a box-shadow focus glow
 
 ## Building it in code
+
+- Nest the shared ring rather than re-authoring a focus treatment per component
+- Pick the field offset for inputs, whose own border already supplies the separation
+- Keep the ring outside the host's bounds and the host un-clipped, so the ring is never cut off (2.4.7)
 
 ### Props
 

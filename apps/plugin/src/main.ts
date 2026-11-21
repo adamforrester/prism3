@@ -18,7 +18,7 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, failureDetail, conflictHeadline, componentHeadline, staleNote, missesLine, refsItems, partialWriteHeadline, partialWriteItem, fromClauses, motionReplacedItem } from './apply-summary';
 import { ENGINE_VERSION, formerDefIds, serializeBrandInput, resolveAllModes, brandTheme, UnrecognizedPersistedInputError, type BrandInput } from '@prism3/engine';
 import { appendBuildNote, buildNote, parseBuildId } from '../../studio/src/build-identity';
 import { isIssueUrl } from '../../studio/src/state/report';
@@ -35,7 +35,7 @@ import { classifyFile, libraryFileOf, outcomeOf, probeFile, type FileKindApi } f
 import { computePrunePlan, orphanStyles, unlessRenamedPlanned, styleOrphanNote, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, emptyPruneResult, prunePreviewHashOf, pruneConfirmRefusal, PRUNE_COPY } from './prune-figma';
 import type { PruneInput, PruneApi, FileStyles } from './prune-figma';
 import { isRefusal, rootOf, buildFigmaColor, buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildMotionVarPlan, buildTextStylePlan, verifyReadback } from '@prism3/engine/figma';
-import { conflictSummary } from './preflight';
+import { conflictSummary, modeLimitLine } from './preflight';
 import { conflictKey, choiceNote, isChoices, type CollisionChoices } from './collision-choice';
 import { APPLY_STAGES, runApplyTheme, themePlans, type ApplyStage, type ThemePace, type ThemePlans } from './apply-theme';
 import { emissionOf, themeDue } from './theme-emission';
@@ -402,6 +402,8 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     // global `figma` is the host; everything below this line (the report) is unchanged.
     const { plans, pf, guarded, before, chose, exec, names, applied } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined), themePace(sink), choices);
     const { colorFiles, floatPlan, fontPlan, motionPlan } = plans;
+    // #4157 (owner A): the file's plan allows fewer modes than the apply adds. Refused whole, before any write, in one line.
+    if (!guarded.ok && guarded.limit) { sink.data({ modeLimit: guarded.limit }); const line = modeLimitLine(guarded.limit); postVerdict({ type: 'apply-result', ok: false, headline: '✗ not applied', summary: line, lines: [line] }, sink); return; }
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
       const conflicts = conflictSummary(guarded.conflicts);
@@ -524,7 +526,7 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
     // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
     // rather than silently succeeding — it is the difference between "the guess was right" and "the
     // guess was wrong and would have cost these styles before".
-    const resolvedNote = ts.resolvedStyles ? `${ts.resolvedStyles} font styles name-resolved` : '';
+    const resolvedNote = ts.resolvedStyles ? `${ts.resolvedStyles} font style names matched to the installed font` : '';   // #4185 B (DRAFT)
     const skippedNote = ts.skipped.length
       ? `⚠ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
       : '';
@@ -540,11 +542,11 @@ const applyTheme = async (input: BrandInput, choices: CollisionChoices | undefin
       : '';
     // One item per axis and per note, each joined by `, ` (#2177: one line each in the Activity drawer).
     const { summary, lines } = fromClauses([
-      `palette ${r.paletteTotal} (+${r.paletteCreated})`, `color ${r.colorTotal} (+${r.colorCreated})`,
-      `dims/layout ${f.collections.length} collections (+${floatCreated})`,
-      `styles ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
-      `type ${pf.brandLoaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
-      `motion ${motionTotal} vars (+${motionCreated})`,
+      `Palette: ${r.paletteTotal} (+${r.paletteCreated})`, `Color: ${r.colorTotal} (+${r.colorCreated})`,   // #4185 B row 3: labels (owner, 2026-11-20)
+      `Layout: ${f.collections.length} collections (+${floatCreated})`,   // #4185 B row 3 (DRAFT): words, not abbreviations
+      `Styles: ${s.effects.total} effects (+${s.effects.created}, ${s.effects.bound} bound) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
+      `Type: ${pf.brandLoaded} fonts, ${fontVarTotal} font variables (+${fontVarCreated}), ${ts.total} text styles (+${ts.created})`,
+      `Motion: ${motionTotal} variables (+${motionCreated})`,
       // #2412 (Q293 A): the one deletion Apply makes, so it is always said (wording: Q302).
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
@@ -1057,17 +1059,17 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
     // #3467 Q5 A: read here, before the settle, because the verdict below is posted synchronously.
     const fix = await docBlockFixOf(furniture);
     const settleMs = await verdictBeforeSettle(measureSettle, () => {
-      // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
-      // starved file can produce one miss per binding per member and the whole list is not a summary.
-      const missNote = r.misses.length
-        ? `⚠ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
-        : '';
+      // #4185 B: the screen gets a count, never the list: a starved file can produce one miss per binding per
+      // member. The lines go to the console (every one) and the in-memory run log (at most REASONS_MAX).
+      const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));   // #4185 B: one line on screen;
+      const missNote = missesLine(real.length);   // each engine-internal miss line goes to the run log (`annotate`) and the console
+      if (real.length) console.log(`[prism3] build ${def.id}: ${real.length} misses\n${real.join('\n')}`);
       // THE STALE REASON, appended once (#827) — see `staleNote` for why the reason and the remedy are
-      // one clause. Placed after `missNote` because the per-member STALE lines are inside that list, and
-      // this is what explains them.
+      // one clause. The per-member STALE lines are not on screen (`real` drops them), so this one clause is
+      // what tells the designer some members are stale.
       const stale = staleNote(r.stale, ENGINE_VERSION);
       // One item for the set, then one per note after it (#2177: one line each in the Activity drawer). The set's own
-      // facts (variants, grid, size, axes, properties, refs) describe one set, so they stay one item.
+      // on-screen facts (variants, axes) stay one item; its grid, size, properties and refs go to the console (#4185 B).
       const head = r.emittedComponents !== undefined
         // #1012: the no-set arm. `emitAsComponents` defs build SEPARATE `<id>/<glyph>` components, so the
         // grid / axes / properties / refs the set arm prints do not exist — the useful facts are how many
@@ -1079,11 +1081,12 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
           ? [`nothing built — set '${r.axesChanged.set}' on this page varies by different axes and was left as it is`]
         : r.set === null
           ? ['nothing assembled — no set on this page and no member built']
-          : [`set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present` +
-            `${r.stale ? `, ${r.stale} stale` : ''}), ` +
-            `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
-            `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
-            `${r.refs} refs across ${r.wiredMembers} members`, ...refsItems(r.refsRelinked, r.refsUnsetBy)];
+          // #4185 B row 2 (DRAFT): the set's variants and axes on screen; its grid, size, properties and links in the console.
+          : [`${r.set}: ${r.variants} variants (${r.added} new, ${r.skipped} already there${r.stale ? `, ${r.stale} stale` : ''}), axes ${r.axes.join('/') || '—'}`,
+            ...refsItems(r.refsRelinked, r.refsUnsetBy)];
+      if (r.set !== null && r.emittedComponents === undefined && !r.axesChanged) {
+        console.log(`[prism3] build ${def.id}: grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, properties ${r.properties.join('/') || '—'}, ${r.refs} refs across ${r.wiredMembers} members`);
+      }
       // The stale note is the no-set and set arms' only: a refusal built nothing, so nothing in it can be stale.
       const staleItem = r.emittedComponents !== undefined || (!r.axesChanged && r.set !== null) ? stale ?? '' : '';
       // #1633: what was built first, so a designer is not surprised by a set they did not ask for.
@@ -1099,10 +1102,9 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink, opti
       // #3326 PR 1 (Q3326.1 A): why the build is not clean, by the rule its `ok` reads: a miss that is not a skipped or
       // stale member, the stale note once, or no set at all. The template line's causes join in `withTemplateWarning`.
       const ok = r.set !== null && r.misses.length === r.skipped;
-      const real = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
       const buildCauses = ok ? [] : r.set === null
-        ? [cause('bad', def.id, CAUSE_WHAT.failed, [head[0], ...real])]
-        : [cause('warn', def.id, CAUSE_WHAT.built, [...real, ...(r.stale && staleItem ? [staleItem] : [])])];
+        ? [cause('bad', def.id, CAUSE_WHAT.failed, [head[0], ...(missNote ? [missNote] : [])])]
+        : [cause('warn', def.id, CAUSE_WHAT.built, [...(missNote ? [missNote] : []), ...(r.stale && staleItem ? [staleItem] : [])])];
       // A missing furniture template makes the run a warning (Q284.3 A, `withTemplateWarning`); a missing `_Doc-block` is
       // the run's note, with the fix that works on this file (#3467 Q2 A, Q5 A; `fix` is read before the settle, above).
       postVerdict(withTemplateWarning({

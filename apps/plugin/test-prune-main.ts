@@ -112,6 +112,16 @@ const send = async (msg: unknown, kinds: readonly string[], ms = 120_000): Promi
 const applied = await send({ type: 'apply-theme', input }, ['apply-result']);
 if (applied?.type !== 'apply-result' || !applied.ok) throw new Error(`premise: Apply Theme did not run clean (${JSON.stringify(applied)?.slice(0, 400)})`);
 
+// #4185 B row 3 (owner decision 2026-11-20 on #4364): every axis line of Apply's summary is a capitalized label, "Word:"
+// and a space, as "Layout:", "Type:" and "Motion:" are. The labels and their order are typed here, not read from main.ts.
+// Mutation: `Palette:` back to `palette` (or any one label) in main.ts → `#4185 main/apply labels`.
+{
+  const LABELS = ['Palette', 'Color', 'Layout', 'Styles', 'Type', 'Motion'];
+  const heads = ((applied.lines ?? []) as string[]).slice(0, LABELS.length).map((l) => /^([^:]*): \d/.exec(l)?.[1] ?? l);
+  ok(JSON.stringify(heads) === JSON.stringify(LABELS),
+    `#4185 main/apply labels: Apply's axis lines read "Palette: …", "Color: …", "Layout: …", "Styles: …", "Type: …", "Motion: …" (${JSON.stringify(((applied.lines ?? []) as string[]).slice(0, LABELS.length))})`);
+}
+
 // #1109 — APPLY REPORTS THE CORE VARIABLES NO SLICE OWNS, ON ITS SUMMARY. `test-write.ts` holds `uc` on
 // `runApplyTheme`'s result; this holds the line a designer reads, through main.ts. Planted in `core`: a hand-made
 // `<root>/core/zzlegacy/1` and an un-rooted `zzmisc/1`, neither in any slice. Removed after, so the arms below start
