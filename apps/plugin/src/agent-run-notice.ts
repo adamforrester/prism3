@@ -30,8 +30,8 @@ import { guardFor } from './run-guard';
 /** The command in operation words: the Activity drawer's titles, as `agent-link-ui.ts` `AGENT_CMD_WORDS` has them. A
  *  copy, because the main thread does not bundle the shell; `test-agent-link.ts`'s `#2368 words` keeps them equal. */
 export const AGENT_RUN_WORDS: Readonly<Record<string, string>> = {
-  'apply-theme': 'Theme', 'build-components': 'Build set', 'file-setup': 'Set up file', 'style-guide': 'Style guides',
-  prune: 'Prune stale', 'draw-specs': 'Specs', 'update-components': 'Update sets', 'capture-baseline': 'Record the sets',
+  'apply-theme': 'Apply theme', 'build-components': 'Build set', 'file-setup': 'Set up file', 'style-guide': 'Style guides',
+  prune: 'Clean up', 'draw-specs': 'Specs', 'update-components': 'Update file', 'capture-baseline': 'Record the sets',
   'adopt-members': 'Adopt members', 'panels-clean': 'Clean up usage panels', 'set-override': 'Color override',
 };
 
