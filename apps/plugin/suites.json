@@ -38,7 +38,7 @@
     { "file": "test-native-slots.ts", "floor": 14 },
     { "file": "test-pagination-underline.ts", "floor": 7 },
     { "file": "test-tabs-indicator.ts", "floor": 5 },
-    { "file": "test-slot-migration.ts", "floor": 94 },
+    { "file": "test-slot-migration.ts", "floor": 101 },
     { "file": "test-slot-constraints.ts", "floor": 30 },
     { "file": "test-style-guide.ts", "floor": 598 },
     { "file": "test-style-guide-page.ts", "floor": 13 },
