@@ -283,6 +283,13 @@ jobs:
       - name: Token package gate (the packed @prism3/tokens installs and defines the contract's names)
         run: npm run -w @prism3/tokens check:package
 
+      # #2997 gate 5 — the engine's Tailwind v4 theme, compiled by the stock Tailwind CLI pinned in packages/tokens
+      # against a typed fixture. A utility that does not compile fails `<utility> utility unresolved` by name; a dimension
+      # or font that computes to the wrong value, or a variable `.dark` does not set, fails naming it. Color values are
+      # gate 2's (the shadcn round trip reads this file too).
+      - name: The Tailwind v4 theme compiles in a stock Tailwind (#2997)
+        run: npm run -w @prism3/tokens check:shadcn
+
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
       # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, skills/**
       # was not. Its first run found `prism3-consume` (now `prism3-build-ui`) teaching the pre-rename `action.*` family,
@@ -1124,6 +1131,14 @@ jobs:
       # The browser comes from the verdict step.
       - name: "A live styles.css rule is not removed without an accept (#2201)"
         run: npm run -w @prism3/studio lint:live-css
+
+      # #2997 gates 1 and 2 — the shadcn theme, rendered fresh and measured in Chromium (installed above): every typed
+      # ink-on-ground pair clears the higher of WCAG and the engine's own floor, and every oklch() parses back to the
+      # emitted 8-bit color. In this job because it is where the browser is.
+      - name: The shadcn theme clears its contrast floors in Chromium (#2997)
+        run: npx tsx packages/engine/lint-shadcn-contrast.ts
+      - name: Every shadcn oklch() is the emitted color, through Chromium (#2997)
+        run: npx tsx packages/engine/lint-shadcn-roundtrip.ts
 
       # The studio's DOM/interaction coverage (#767, deciding #333) — and the ONLY step in this
       # workflow that runs a browser. It loads every page in every mode across both corpus brands
