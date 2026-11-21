@@ -4577,7 +4577,7 @@ const leverErrors = (def: ComponentDef): string[] => {
     // The key is restated from `BORDER_WEIGHT_KEY` (anatomy-figma.ts): the schema cannot import the materializer.
     if (setting === 'buttonBorderWeight') {
       if (entry.edge !== true) errors.push(`levers.buttonBorderWeight.edge must be true when set (got ${JSON.stringify(entry.edge)})`);
-      else if (def.tokens['border-width'] === undefined) errors.push('levers.buttonBorderWeight needs a border-width key: the setting rebinds the edge it binds');
+      else if (!['', ...(def.variants?.selection ?? []).map((s) => `${s}.`)].some((p) => def.tokens[`${p}border-width`] !== undefined)) errors.push('levers.buttonBorderWeight needs a border-width key (or one per selection value): the setting rebinds the edge it binds');
     }
     if (setting === 'outlineInteraction' && entry.opaqueFill !== true) errors.push(`levers.outlineInteraction.opaqueFill must be true when set (got ${JSON.stringify(entry.opaqueFill)})`);
   }

@@ -99,7 +99,7 @@ Keep the label to one word where possible. Use the words the data or the user su
 ## Related components
 
 - **Built from:** `focus-ring`
-- **Instead, consider:** `badge`, `button`, `checkbox-group`, `radio-group`
+- **Instead, consider:** `badge`, `button`, `checkbox-group`, `radio-group`, `toggle-button`
 - **Often used with:** `tag-group`, `icon`, `popover`
 - **Replaces:**
   - a removable token list built as a listbox

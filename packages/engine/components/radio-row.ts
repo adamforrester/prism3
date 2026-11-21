@@ -568,7 +568,7 @@ export const radioRow: ComponentDef = {
     // Brief §12: Select supersedes radio when the option count grows past about 5-7; a segmented control
     // supersedes it when the presentation should be compact — not built yet, so it sits in `planned`.
     supersededBy: ['select'],
-    planned: ['form', 'card', 'toggle-button'],
+    planned: ['form', 'card'],
   },
 
   // Brief §8. The Row draws no motion of its own; the dot's transition belongs to the nested control.

@@ -1419,6 +1419,208 @@
         }
       ]
     },
+    "toggle-button": {
+      "codeOnly": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED",
+          "description": "touch-target-expansion — as on Button: the hit box is decoupled from the optical box, at least `size.<size>.hit-target` in code (24×24 at small, 44×44 at medium and large) through an invisible extension. Figma has no hit areas."
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED",
+          "description": "focus-ring-offset — as on Button: the ring projects as an absolute sibling nesting the shared `focus-ring`, and its position is frozen at paste from `focus.ring.offset` plus `focus.ring.width`."
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED",
+          "description": "Label overflow (button brief §9) — the label wraps rather than truncating, and the button takes no fixed English width. Figma holds one line of placeholder text."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "Pressed semantics (brief §6, §11) — a native `<button type=\"button\">` with `aria-pressed=\"true\"` or `\"false\"`, toggled on activation through Button's press primitive. Never `role=\"switch\"`, `aria-checked` or `aria-selected`. The accessible name is constant: no label that flips between \"Mute\" and \"Unmute\". Figma has no pressed attribute; it carries the look as the selection axis."
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED",
+          "description": "Controlled and uncontrolled (brief §11) — `selected` with `onSelectedChange`, or `defaultSelected`; a controlled toggle without a handler is frozen. The persistent selected look and the transient press are separate in both state and style: the press is Button's overlay step and its 0.98 scale, and it never stands in for selected."
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED",
+          "description": "Grouping (brief §5, §11; owner OD-T5 A) — no group component. A row of independent toggles (Bold, Italic, Underline) sits in a container with `role=\"group\"` and an accessible label; each toggle keeps its own tab stop. A set where exactly one is on is the Segmented control, with its own keyboard model."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED",
+          "description": "RTL mirroring (brief §9) — logical properties mirror the row, as on Button, and a toolbar of toggles reorders through logical layout. The selected look has no direction. Only directional glyphs flip, set per icon; pin, mute and format glyphs stay as drawn."
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "LOWERED",
+          "description": "The selected tint and outline — the tint is `interactive.primary.subtle-fill.selected`; a brand whose outline interaction is none emits no tint, and the 2px `interactive.primary.indicator` outline carries the selected state alone. In code the outline is drawn inside the box (`outline-offset: -2px` or an inset box-shadow), never a border that grows the button. In forced-colors mode the tint drops out and the 2px outline carries the state."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled toggle. In code (isInactive) it keeps tab order and the accessibility tree, carries aria-disabled, and surfaces the reason on focus."
+        }
+      ],
+      "notes": {
+        "contested": [
+          "constant name and aria-pressed (practice) against a label that flips with the state (brief §6, §15) — this component takes the constant name and has no selectedLabel prop."
+        ],
+        "unverified": [
+          "The neutral label on the tint is measured on Tag (10.19:1 on one corpus brand); this component reuses the same pair, and its own contrast is held by the paint census and the contrast arms, not by a separate measurement."
+        ],
+        "evolution": [
+          "2026-11-19 (#4112, owner OD-T1 to OD-T5 A): built on Button as two defs, with Tag's selected look, outline and text appearances only, and no group def. Button's own sets are unchanged.",
+          "2026-11-19 (#4353, owner decisions 1 B, 2 B, 3 A): the icon toggle's quiet appearance is ghost, IconButton's word; a text toggle's label is plain emphasis, with no link underline; and Button's six brand settings reach ToggleButton through Button's min-width derivation, and ToggleIconButton as far as they reach IconButton (Outline button border).",
+          "The brief lists a solid appearance and an icon-only versus icon-and-label shape axis (§15 variants). This component omits solid (OD-T3) and splits the icon-only shape into ToggleIconButton (OD-T4), as Button and IconButton split.",
+          "The brief's `toggle` alias is not taken: switch-row holds it, and one alias names one component."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "empty"
+        }
+      ]
+    },
+    "toggle-icon-button": {
+      "codeOnly": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED",
+          "description": "touch-target-expansion — as on IconButton: the small square is 36px in every example brand (28px at compact density), and the hit box in code is decoupled from it. Figma has no hit areas."
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED",
+          "description": "focus-ring-offset — as on IconButton: the ring projects as an absolute sibling nesting the shared `focus-ring`, frozen at paste from `focus.ring.offset` plus `focus.ring.width`."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "aria-label — the required accessible name, enforced at the type level in code. Figma cannot hold \"required\", and an empty text property would read as a name that had been provided. A tooltip may show the same words."
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED",
+          "description": "Pressed semantics (brief §6, §11) — a native `<button type=\"button\">` with `aria-pressed=\"true\"` or `\"false\"`, toggled on activation through Button's press primitive. Never `role=\"switch\"`, `aria-checked` or `aria-selected`. The accessible name is constant: no label that flips between \"Mute\" and \"Unmute\". Figma has no pressed attribute; it carries the look as the selection axis."
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED",
+          "description": "Controlled and uncontrolled (brief §11) — `selected` with `onSelectedChange`, or `defaultSelected`; a controlled toggle without a handler is frozen. The persistent selected look and the transient press are separate in both state and style: the press is Button's overlay step and its 0.98 scale, and it never stands in for selected."
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED",
+          "description": "Grouping (brief §5, §11; owner OD-T5 A) — no group component. A row of independent toggles (Bold, Italic, Underline) sits in a container with `role=\"group\"` and an accessible label; each toggle keeps its own tab stop. A set where exactly one is on is the Segmented control, with its own keyboard model."
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED",
+          "description": "RTL mirroring (brief §9) — only a directional glyph flips, set per icon (`autoMirror`); bold, mute and pin glyphs stay as drawn. The selected look has no direction, and a toolbar of toggles is reordered by its container, not by the toggle. Figma draws the glyph once."
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "LOWERED",
+          "description": "The selected tint and outline — the tint is `interactive.primary.subtle-fill.selected`; a brand whose outline interaction is none emits no tint, and the 2px `interactive.primary.indicator` outline carries the selected state alone. In code the outline is drawn inside the box (`outline-offset: -2px` or an inset box-shadow), never a border that grows the button. In forced-colors mode the tint drops out and the 2px outline carries the state."
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED",
+          "description": "inactive — not projected: its whole delta from `disabled` is behavioral, so a variant has nothing to encode, and the emitter special-cases `state === 'disabled'` only, so an `inactive` column would read as a normal enabled toggle. In code (isInactive) it keeps tab order and the accessibility tree, carries aria-disabled, and surfaces the reason on focus."
+        }
+      ],
+      "notes": {
+        "contested": [
+          "constant name and aria-pressed (practice) against a label that flips with the state (brief §6, §15) — this component takes the constant name and has no selectedLabel prop."
+        ],
+        "unverified": [
+          "The neutral label on the tint is measured on Tag (10.19:1 on one corpus brand); this component reuses the same pair, and its own contrast is held by the paint census and the contrast arms, not by a separate measurement."
+        ],
+        "evolution": [
+          "2026-11-19 (#4112, owner OD-T1 to OD-T5 A): built on Button as two defs, with Tag's selected look, outline and text appearances only, and no group def. Button's own sets are unchanged.",
+          "2026-11-19 (#4353, owner decisions 1 B, 2 B, 3 A): the icon toggle's quiet appearance is ghost, IconButton's word; a text toggle's label is plain emphasis, with no link underline; and Button's six brand settings reach ToggleButton through Button's min-width derivation, and ToggleIconButton as far as they reach IconButton (Outline button border).",
+          "The brief lists a solid appearance and an icon-only versus icon-and-label shape axis (§15 variants). This component omits solid (OD-T3) and splits the icon-only shape into ToggleIconButton (OD-T4), as Button and IconButton split.",
+          "The brief's `toggle` alias is not taken: switch-row holds it, and one alias names one component."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "empty"
+        }
+      ]
+    },
     "field-label": {
       "codeOnly": [
         {

@@ -596,6 +596,18 @@
         }
       ],
       "iconSlots": []
+    },
+    "toggle-button": {
+      "glyphs": [],
+      "iconSlots": [
+        "leadingVisual"
+      ]
+    },
+    "toggle-icon-button": {
+      "glyphs": [],
+      "iconSlots": [
+        "icon"
+      ]
     }
   },
   "glyphs": {

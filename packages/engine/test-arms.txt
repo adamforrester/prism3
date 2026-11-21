@@ -647,6 +647,7 @@ apps/studio/test-component-groups.ts #3345
 apps/studio/test-component-groups.ts #3392
 apps/studio/test-component-groups.ts #4008
 apps/studio/test-component-groups.ts #4109
+apps/studio/test-component-groups.ts #4112
 apps/studio/test-export-settings.ts #3425
 apps/studio/test-export-settings.ts #584
 apps/studio/test-export-settings.ts #618
@@ -1244,6 +1245,7 @@ packages/engine/test.ts #4008
 packages/engine/test.ts #4019
 packages/engine/test.ts #4045
 packages/engine/test.ts #4109
+packages/engine/test.ts #4112
 packages/engine/test.ts #4119
 packages/engine/test.ts #4120
 packages/engine/test.ts #4130
@@ -1281,6 +1283,7 @@ packages/engine/test.ts #4229
 packages/engine/test.ts #4236
 packages/engine/test.ts #4242
 packages/engine/test.ts #4332
+packages/engine/test.ts #4353
 packages/engine/test.ts #4371
 packages/engine/test.ts #4389
 packages/engine/test.ts #479

@@ -16,7 +16,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### `border-width.hairline`
 
-Type: dimension. Bound by 27 component(s).
+Type: dimension. Bound by 29 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -60,6 +60,8 @@ Type: dimension. Bound by 27 component(s).
 | textarea | `border-width.disabled`, `border-width.empty` (not drawn), `border-width.filled`, `border-width.hover`, `border-width.pending` (not drawn), `border-width.read-only`, `border-width.rest`, `caret-width`, `grip-inset` | caret | state: focus-visible (12 of 84) |
 |  |  | control | state: disabled, filled, hover, read-only, rest (60 of 84) |
 |  |  | gripGlyph | every member (84 of 84) |
+| toggle-button | `unselected.border-width` | container | selection: unselected (60 of 120) |
+| toggle-icon-button | `unselected.border-width` | container | selection: unselected (30 of 60) |
 | wallet-button | `border-width` | container | every member (68 of 68) |
 
 ### `border-width.heavy`
@@ -86,7 +88,7 @@ Type: dimension. Bound by 1 component(s).
 
 ### `border-width.thick`
 
-Type: dimension. Bound by 8 component(s).
+Type: dimension. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -103,6 +105,8 @@ Type: dimension. Bound by 8 component(s).
 | tab-item | `indicator-height` | container | every member (30 of 30) |
 |  |  | indicator | every member (30 of 30) |
 | tag | `selected.border-width` | container | selection: selected · type: select (15 of 45) |
+| toggle-button | `selected.border-width` | container | selection: selected (60 of 120) |
+| toggle-icon-button | `selected.border-width` | container | selection: selected (30 of 60) |
 
 ### `border-width.x-heavy`
 
@@ -170,7 +174,7 @@ Type: color. Bound by 12 component(s).
 
 ### `color.border.focus`
 
-Type: color. Bound by 23 component(s).
+Type: color. Bound by 25 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -197,6 +201,8 @@ Type: color. Bound by 23 component(s).
 | tag | `focus-ring` | (not drawn) | — |
 | text-field | `border.focus-visible`, `border.focus-visible-filled` | control | state: focus-visible, focus-visible-filled · status: default (6 of 84) |
 | textarea | `border.focus-visible`, `border.focus-visible-filled` | control | state: focus-visible, focus-visible-filled · status: default (6 of 84) |
+| toggle-button | `focus-ring` | (not drawn) | — |
+| toggle-icon-button | `focus-ring` | (not drawn) | — |
 
 ### `color.border.info`
 
@@ -279,7 +285,7 @@ Type: color. Bound by 8 component(s).
 
 ### `color.disabled.border`
 
-Type: color. Bound by 22 component(s).
+Type: color. Bound by 24 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -305,6 +311,8 @@ Type: color. Bound by 22 component(s).
 | tag | `disabled.border` | container | state: disabled (9 of 45) |
 | text-field | `disabled.border` | control | state: disabled (12 of 84) |
 | textarea | `disabled.border` | control | state: disabled (12 of 84) |
+| toggle-button | `disabled.border` | container | state: disabled (18 of 120) |
+| toggle-icon-button | `disabled.border` | container | state: disabled (9 of 60) |
 
 ### `color.disabled.fill`
 
@@ -335,7 +343,7 @@ Type: color. Bound by 18 component(s).
 
 ### `color.disabled.icon`
 
-Type: color. Bound by 15 component(s).
+Type: color. Bound by 17 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -360,6 +368,8 @@ Type: color. Bound by 15 component(s).
 | tag | `disabled.icon` | checkGlyph | selection: selected · state: disabled · type: select (3 of 45) |
 |  |  | closeGlyph | selection: unselected · state: disabled · type: dismissible (3 of 45) |
 |  |  | leadingVisual | state: disabled (9 of 45) |
+| toggle-button | `disabled.icon` | leadingVisual | leading: true · state: disabled (12 of 120) |
+| toggle-icon-button | `disabled.icon` | icon | state: disabled (12 of 60) |
 
 ### `color.disabled.on-fill`
 
@@ -402,7 +412,7 @@ Type: color. Bound by 15 component(s).
 
 ### `color.disabled.text`
 
-Type: color. Bound by 14 component(s).
+Type: color. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -428,6 +438,7 @@ Type: color. Bound by 14 component(s).
 |  |  | labelReserve | state: disabled (6 of 30) |
 | tag | `disabled.label` | label | state: disabled (9 of 45) |
 | textarea | `disabled.indicator` | counter | state: disabled (12 of 84) |
+| toggle-button | `disabled.label` | label | state: disabled (24 of 120) |
 
 ### `color.field.border.hover`
 
@@ -850,7 +861,7 @@ Type: color. Bound by 1 component(s).
 
 ### `color.interactive.neutral.border.hover`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -858,10 +869,12 @@ Type: color. Bound by 4 component(s).
 | icon-button-neutral | `outline.border.hover` | container | appearance: outline · state: hover · surface: default (6 of 216) |
 | switch-control | `off.border.hover` | track | selection: off · state: hover · status: default (2 of 40) |
 | tag | `unselected.border.hover` | container | selection: unselected · state: hover (6 of 45) |
+| toggle-button | `unselected.outline.border.hover` | container | appearance: outline · selection: unselected · state: hover (6 of 120) |
+| toggle-icon-button | `unselected.outline.border.hover` | container | appearance: outline · selection: unselected · state: hover (3 of 60) |
 
 ### `color.interactive.neutral.border.pressed`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -869,10 +882,12 @@ Type: color. Bound by 4 component(s).
 | icon-button-neutral | `outline.border.pressed` | container | appearance: outline · state: pressed · surface: default (6 of 216) |
 | switch-control | `off.border.pressed` | track | selection: off · state: pressed · status: default (2 of 40) |
 | tag | `unselected.border.pressed` | container | selection: unselected · state: pressed (6 of 45) |
+| toggle-button | `unselected.outline.border.pressed` | container | appearance: outline · selection: unselected · state: pressed (6 of 120) |
+| toggle-icon-button | `unselected.outline.border.pressed` | container | appearance: outline · selection: unselected · state: pressed (3 of 60) |
 
 ### `color.interactive.neutral.border.rest`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -880,6 +895,8 @@ Type: color. Bound by 4 component(s).
 | icon-button-neutral | `outline.border` | container | appearance: outline · state: focus-visible, pending, rest · surface: default (18 of 216) |
 | switch-control | `off.border` | track | selection: off · state: focus-visible, rest · status: default (4 of 40) |
 | tag | `unselected.border` | container | selection: unselected · state: focus-visible, rest (12 of 45) |
+| toggle-button | `unselected.outline.border` | container | appearance: outline · selection: unselected · state: focus-visible, rest (12 of 120) |
+| toggle-icon-button | `unselected.outline.border` | container | appearance: outline · selection: unselected · state: focus-visible, rest (6 of 60) |
 
 ### `color.interactive.neutral.fill.hover`
 
@@ -910,7 +927,7 @@ Type: color. Bound by 2 component(s).
 
 ### `color.interactive.neutral.icon.hover`
 
-Type: color. Bound by 7 component(s).
+Type: color. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -925,10 +942,12 @@ Type: color. Bound by 7 component(s).
 | tag | `selected.icon.hover`, `unselected.icon.hover` | checkGlyph | selection: selected · state: hover · type: select (3 of 45) |
 |  |  | closeGlyph | selection: unselected · state: hover · type: dismissible (3 of 45) |
 |  |  | leadingVisual | state: hover (9 of 45) |
+| toggle-button | `selected.outline.icon.hover`, `selected.text.icon.hover`, `unselected.outline.icon.hover`, `unselected.text.icon.hover` | leadingVisual | leading: true · state: hover (12 of 120) |
+| toggle-icon-button | `selected.ghost.icon.hover`, `selected.outline.icon.hover`, `unselected.ghost.icon.hover`, `unselected.outline.icon.hover` | icon | state: hover (12 of 60) |
 
 ### `color.interactive.neutral.icon.pressed`
 
-Type: color. Bound by 7 component(s).
+Type: color. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -943,10 +962,12 @@ Type: color. Bound by 7 component(s).
 | tag | `selected.icon.pressed`, `unselected.icon.pressed` | checkGlyph | selection: selected · state: pressed · type: select (3 of 45) |
 |  |  | closeGlyph | selection: unselected · state: pressed · type: dismissible (3 of 45) |
 |  |  | leadingVisual | state: pressed (9 of 45) |
+| toggle-button | `selected.outline.icon.pressed`, `selected.text.icon.pressed`, `unselected.outline.icon.pressed`, `unselected.text.icon.pressed` | leadingVisual | leading: true · state: pressed (12 of 120) |
+| toggle-icon-button | `selected.ghost.icon.pressed`, `selected.outline.icon.pressed`, `unselected.ghost.icon.pressed`, `unselected.outline.icon.pressed` | icon | state: pressed (12 of 60) |
 
 ### `color.interactive.neutral.icon.rest`
 
-Type: color. Bound by 8 component(s).
+Type: color. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -967,6 +988,8 @@ Type: color. Bound by 8 component(s).
 | tag | `selected.icon`, `unselected.icon` | checkGlyph | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
 |  |  | closeGlyph | selection: unselected · state: focus-visible, rest · type: dismissible (6 of 45) |
 |  |  | leadingVisual | state: focus-visible, rest (18 of 45) |
+| toggle-button | `selected.outline.icon`, `selected.text.icon`, `unselected.outline.icon`, `unselected.text.icon` | leadingVisual | leading: true · state: focus-visible, rest (24 of 120) |
+| toggle-icon-button | `selected.ghost.icon`, `selected.outline.icon`, `unselected.ghost.icon`, `unselected.outline.icon` | icon | state: focus-visible, rest (24 of 60) |
 
 ### `color.interactive.neutral.indicator.hover`
 
@@ -1010,7 +1033,7 @@ Type: color. Bound by 2 component(s).
 
 ### `color.interactive.neutral.overlay.hover`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -1020,10 +1043,12 @@ Type: color. Bound by 6 component(s).
 | pagination-item | `unselected.border.false.next.overlay.hover`, `unselected.border.false.previous.overlay.hover`, `unselected.page.overlay.hover` | container | labeled: false · selection: unselected · state: hover · style: border · type: next, page, previous (9 of 87) |
 | segmented-control-segment | `unselected.overlay.hover` | indicator | selection: unselected · state: hover (3 of 30) |
 | tag | `unselected.overlay.hover` | container | selection: unselected · state: hover (6 of 45) |
+| toggle-button | `unselected.outline.overlay.hover` | container | appearance: outline · selection: unselected · state: hover (6 of 120) |
+| toggle-icon-button | `unselected.ghost.overlay.hover`, `unselected.outline.overlay.hover` | container | selection: unselected · state: hover (6 of 60) |
 
 ### `color.interactive.neutral.overlay.pressed`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -1033,10 +1058,12 @@ Type: color. Bound by 6 component(s).
 | pagination-item | `unselected.border.false.next.overlay.pressed`, `unselected.border.false.previous.overlay.pressed`, `unselected.page.overlay.pressed` | container | labeled: false · selection: unselected · state: pressed · style: border · type: next, page, previous (9 of 87) |
 | segmented-control-segment | `unselected.overlay.pressed` | indicator | selection: unselected · state: pressed (3 of 30) |
 | tag | `unselected.overlay.pressed` | container | selection: unselected · state: pressed (6 of 45) |
+| toggle-button | `unselected.outline.overlay.pressed` | container | appearance: outline · selection: unselected · state: pressed (6 of 120) |
+| toggle-icon-button | `unselected.ghost.overlay.pressed`, `unselected.outline.overlay.pressed` | container | selection: unselected · state: pressed (6 of 60) |
 
 ### `color.interactive.neutral.text.hover`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -1050,10 +1077,11 @@ Type: color. Bound by 5 component(s).
 | tab-item | `unselected.label.hover` | label | selection: unselected · state: hover (3 of 30) |
 |  |  | labelReserve | selection: unselected · state: hover (3 of 30) |
 | tag | `selected.label.hover`, `unselected.label.hover` | label | state: hover (9 of 45) |
+| toggle-button | `selected.outline.label.hover`, `selected.text.label.hover`, `unselected.outline.label.hover`, `unselected.text.label.hover` | label | state: hover (24 of 120) |
 
 ### `color.interactive.neutral.text.pressed`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -1067,10 +1095,11 @@ Type: color. Bound by 5 component(s).
 | tab-item | `unselected.label.pressed` | label | selection: unselected · state: pressed (3 of 30) |
 |  |  | labelReserve | selection: unselected · state: pressed (3 of 30) |
 | tag | `selected.label.pressed`, `unselected.label.pressed` | label | state: pressed (9 of 45) |
+| toggle-button | `selected.outline.label.pressed`, `selected.text.label.pressed`, `unselected.outline.label.pressed`, `unselected.text.label.pressed` | label | state: pressed (24 of 120) |
 
 ### `color.interactive.neutral.text.rest`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -1086,6 +1115,7 @@ Type: color. Bound by 6 component(s).
 | tab-item | `unselected.label` | label | selection: unselected · state: focus-visible, rest (6 of 30) |
 |  |  | labelReserve | selection: unselected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.label`, `unselected.label` | label | state: focus-visible, rest (18 of 45) |
+| toggle-button | `selected.outline.label`, `selected.text.label`, `unselected.outline.label`, `unselected.text.label` | label | state: focus-visible, rest (48 of 120) |
 
 ### `color.interactive.primary.border.hover`
 
@@ -1196,33 +1226,39 @@ Type: color. Bound by 4 component(s).
 
 ### `color.interactive.primary.indicator.hover`
 
-Type: color. Bound by 3 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | radio-control | `checked.border.hover` | control | selection: checked · state: hover · status: default (3 of 60) |
 | tab-item | `selected.fill.hover` | indicator | selection: selected · state: hover (3 of 30) |
 | tag | `selected.border.hover` | container | selection: selected · state: hover · type: select (3 of 45) |
+| toggle-button | `selected.outline.border.hover`, `selected.text.border.hover` | container | selection: selected · state: hover (12 of 120) |
+| toggle-icon-button | `selected.ghost.border.hover`, `selected.outline.border.hover` | container | selection: selected · state: hover (6 of 60) |
 
 ### `color.interactive.primary.indicator.pressed`
 
-Type: color. Bound by 3 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | radio-control | `checked.border.pressed` | control | selection: checked · state: pressed · status: default (3 of 60) |
 | tab-item | `selected.fill.pressed` | indicator | selection: selected · state: pressed (3 of 30) |
 | tag | `selected.border.pressed` | container | selection: selected · state: pressed · type: select (3 of 45) |
+| toggle-button | `selected.outline.border.pressed`, `selected.text.border.pressed` | container | selection: selected · state: pressed (12 of 120) |
+| toggle-icon-button | `selected.ghost.border.pressed`, `selected.outline.border.pressed` | container | selection: selected · state: pressed (6 of 60) |
 
 ### `color.interactive.primary.indicator.rest`
 
-Type: color. Bound by 3 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | radio-control | `checked.border` | control | selection: checked · state: focus-visible, rest · status: default (6 of 60) |
 | tab-item | `selected.fill` | indicator | selection: selected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.border` | container | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
+| toggle-button | `selected.outline.border`, `selected.text.border` | container | selection: selected · state: focus-visible, rest (24 of 120) |
+| toggle-icon-button | `selected.ghost.border`, `selected.outline.border` | container | selection: selected · state: focus-visible, rest (12 of 60) |
 
 ### `color.interactive.primary.on-fill`
 
@@ -1261,11 +1297,13 @@ Type: color. Bound by 3 component(s).
 
 ### `color.interactive.primary.subtle-fill.selected`
 
-Type: color. Bound by 1 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | tag | `selected.overlay` | container | selection: selected · state: focus-visible, hover, pressed, rest · type: select (12 of 45) |
+| toggle-button | `selected.outline.overlay`, `selected.text.overlay` | container | selection: selected · state: focus-visible, hover, pressed, rest (48 of 120) |
+| toggle-icon-button | `selected.ghost.overlay`, `selected.outline.overlay` | container | selection: selected · state: focus-visible, hover, pressed, rest (24 of 60) |
 
 ### `color.interactive.primary.text.hover`
 
@@ -2440,7 +2478,7 @@ Type: dimension. Bound by 1 component(s).
 
 ### `focus.ring.offset`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 24 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2465,6 +2503,8 @@ Type: dimension. Bound by 22 component(s).
 | switch-control | `ring-offset` | focusRing | state: focus-visible (8 of 40) |
 | tab-item | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
 | tag | `ring-offset` | focusRing | state: focus-visible (9 of 45) |
+| toggle-button | `ring-offset` | focusRing | state: focus-visible (24 of 120) |
+| toggle-icon-button | `ring-offset` | focusRing | state: focus-visible (12 of 60) |
 | wallet-button | `ring-offset` | focusRing | state: focus-visible (34 of 68) |
 
 ### `focus.ring.offset-field`
@@ -2486,7 +2526,7 @@ Type: strokeStyle. Bound by 1 component(s).
 
 ### `focus.ring.width`
 
-Type: dimension. Bound by 29 component(s).
+Type: dimension. Bound by 31 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2519,11 +2559,13 @@ Type: dimension. Bound by 29 component(s).
 | tag | `ring-width` | focusRing | state: focus-visible (9 of 45) |
 | text-field | `border-width.focus-visible`, `border-width.focus-visible-filled` | control | state: focus-visible, focus-visible-filled (24 of 84) |
 | textarea | `border-width.focus-visible`, `border-width.focus-visible-filled` | control | state: focus-visible, focus-visible-filled (24 of 84) |
+| toggle-button | `ring-width` | focusRing | state: focus-visible (24 of 120) |
+| toggle-icon-button | `ring-width` | focusRing | state: focus-visible (12 of 60) |
 | wallet-button | `ring-width` | focusRing | state: focus-visible (34 of 68) |
 
 ### `icon.size.lg`
 
-Type: dimension. Bound by 8 component(s).
+Type: dimension. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2538,11 +2580,12 @@ Type: dimension. Bound by 8 component(s).
 | provider-logo | `size.large` | (not drawn) | — |
 | spinner | `size.large` | frame | size: large (1 of 4) |
 |  |  | ringGlyph | size: large (1 of 4) |
+| toggle-icon-button | `size.large.icon` | icon | size: large (20 of 60) |
 | wallet-button | `size.large.any.mark` | mark | provider: apple-pay, google-pay, shop-pay · size: large · style: any (6 of 68) |
 
 ### `icon.size.md`
 
-Type: dimension. Bound by 24 component(s).
+Type: dimension. Bound by 26 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2597,11 +2640,13 @@ Type: dimension. Bound by 24 component(s).
 | tag | `size.large.icon` | checkGlyph | selection: selected · size: large · type: select (5 of 45) |
 |  |  | closeGlyph | selection: unselected · size: large · type: dismissible (5 of 45) |
 |  |  | leadingVisual | size: large (15 of 45) |
+| toggle-button | `size.large.icon` | leadingVisual | leading: true · size: large (20 of 120) |
+| toggle-icon-button | `size.medium.icon` | icon | size: medium (20 of 60) |
 | wallet-button | `size.medium.any.mark` | mark | size: medium · style: any (8 of 68) |
 
 ### `icon.size.sm`
 
-Type: dimension. Bound by 28 component(s).
+Type: dimension. Bound by 30 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2657,6 +2702,8 @@ Type: dimension. Bound by 28 component(s).
 | text-field | `icon-size` | leadingVisual | every member (84 of 84) |
 |  |  | trailingVisual | every member (84 of 84) |
 | toast | `glyph-size` | successGlyph | intent: success (1 of 2) |
+| toggle-button | `size.medium.icon` | leadingVisual | leading: true · size: medium (20 of 120) |
+| toggle-icon-button | `size.small.icon` | icon | size: small (20 of 60) |
 | wallet-button | `size.small.any.mark` | mark | provider: apple-pay, paypal · size: small · style: any (4 of 68) |
 
 ### `icon.size.xl`
@@ -2673,7 +2720,7 @@ Type: dimension. Bound by 2 component(s).
 
 ### `icon.size.xs`
 
-Type: dimension. Bound by 18 component(s).
+Type: dimension. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2715,10 +2762,11 @@ Type: dimension. Bound by 18 component(s).
 |  |  | closeGlyph | selection: unselected · size: small · type: dismissible (5 of 45) |
 |  |  | leadingVisual | size: small (15 of 45) |
 | textarea | `grip-size` | gripGlyph | every member (84 of 84) |
+| toggle-button | `size.small.icon` | leadingVisual | leading: true · size: small (20 of 120) |
 
 ### `motion.duration-reduced.fast`
 
-Type: duration. Bound by 5 component(s).
+Type: duration. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2727,6 +2775,8 @@ Type: duration. Bound by 5 component(s).
 | button-neutral | `motion.state-reduced` | (not drawn) | — |
 | skeleton | `motion.swap-reduced` | (not drawn) | — |
 | spinner | `motion.enter-reduced` | (not drawn) | — |
+| toggle-button | `motion.state-reduced` | (not drawn) | — |
+| toggle-icon-button | `motion.state-reduced` | (not drawn) | — |
 
 ### `motion.duration-reduced.spin`
 
@@ -2738,7 +2788,7 @@ Type: duration. Bound by 1 component(s).
 
 ### `motion.duration.fast`
 
-Type: duration. Bound by 5 component(s).
+Type: duration. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2747,6 +2797,8 @@ Type: duration. Bound by 5 component(s).
 | button-neutral | `motion.press`, `motion.state` | (not drawn) | — |
 | skeleton | `motion.swap` | (not drawn) | — |
 | spinner | `motion.enter` | (not drawn) | — |
+| toggle-button | `motion.press`, `motion.state` | (not drawn) | — |
+| toggle-icon-button | `motion.press`, `motion.state` | (not drawn) | — |
 
 ### `motion.duration.spin`
 
@@ -2766,7 +2818,7 @@ Type: duration. Bound by 1 component(s).
 
 ### `motion.easing-role.default`
 
-Type: cubicBezier. Bound by 4 component(s).
+Type: cubicBezier. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2774,6 +2826,8 @@ Type: cubicBezier. Bound by 4 component(s).
 | button-destructive | `motion.press-easing`, `motion.state-easing` | (not drawn) | — |
 | button-neutral | `motion.press-easing`, `motion.state-easing` | (not drawn) | — |
 | skeleton | `motion.pulse-easing` | (not drawn) | — |
+| toggle-button | `motion.press-easing`, `motion.state-easing` | (not drawn) | — |
+| toggle-icon-button | `motion.press-easing`, `motion.state-easing` | (not drawn) | — |
 
 ### `motion.easing-role.enter`
 
@@ -2812,7 +2866,7 @@ Type: dimension. Bound by 2 component(s).
 
 ### `radius.md`
 
-Type: dimension. Bound by 12 component(s).
+Type: dimension. Bound by 14 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2827,6 +2881,8 @@ Type: dimension. Bound by 12 component(s).
 | segmented-control | `radius` | track | every member (3 of 3) |
 | sign-in-button | `radius` | container | every member (96 of 96) |
 | skeleton | `rect.radius` | block | shape: rect · size: medium (1 of 4) |
+| toggle-button | `radius` | container | every member (120 of 120) |
+| toggle-icon-button | `radius` | container | every member (60 of 60) |
 | wallet-button | `radius` | container | every member (68 of 68) |
 
 ### `radius.none`
@@ -2917,7 +2973,7 @@ Type: shadow. Bound by 1 component(s).
 
 ### `size.lg.height`
 
-Type: dimension. Bound by 24 component(s).
+Type: dimension. Bound by 26 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2945,12 +3001,14 @@ Type: dimension. Bound by 24 component(s).
 | tag | `size.large.height` | container | size: large (15 of 45) |
 |  |  | dismiss | selection: unselected · size: large · type: dismissible (5 of 45) |
 | text-field | `size.large.height` | control | size: large (28 of 84) |
+| toggle-button | `size.large.height` | container | size: large (40 of 120) |
+| toggle-icon-button | `size.large.side` | container | size: large (20 of 60) |
 | wallet-button | `size.large.black.mark`, `size.large.blue.mark` (not drawn), `size.large.gold.mark` (not drawn), `size.large.height`, `size.large.purple.mark`, `size.large.silver.mark` (not drawn), `size.large.white-outline.mark`, `size.large.white.mark` | container | provider: apple-pay, google-pay, shop-pay · size: large · style: any, black, purple, white, white-outline (18 of 68) |
 |  |  | mark | provider: apple-pay, google-pay, shop-pay · size: large · style: black, purple, white, white-outline (12 of 68) |
 
 ### `size.md.height`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 24 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2976,6 +3034,8 @@ Type: dimension. Bound by 22 component(s).
 | tag | `size.medium.height` | container | size: medium (15 of 45) |
 |  |  | dismiss | selection: unselected · size: medium · type: dismissible (5 of 45) |
 | toast | `min-height` | container | every member (2 of 2) |
+| toggle-button | `size.medium.height` | container | size: medium (40 of 120) |
+| toggle-icon-button | `size.medium.side` | container | size: medium (20 of 60) |
 | wallet-button | `size.medium.black.mark`, `size.medium.blue.mark`, `size.medium.gold.mark`, `size.medium.height`, `size.medium.purple.mark`, `size.medium.silver.mark`, `size.medium.white-outline.mark`, `size.medium.white.mark` | container | size: medium (30 of 68) |
 |  |  | mark | size: medium · style: black, blue, gold, purple, silver, white, white-outline (22 of 68) |
 
@@ -2995,7 +3055,7 @@ Type: dimension. Bound by 7 component(s).
 
 ### `size.sm.height`
 
-Type: dimension. Bound by 19 component(s).
+Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3018,6 +3078,8 @@ Type: dimension. Bound by 19 component(s).
 | tab-item | `size.small.height` | container | size: small (10 of 30) |
 | tag | `size.small.height` | container | size: small (15 of 45) |
 |  |  | dismiss | selection: unselected · size: small · type: dismissible (5 of 45) |
+| toggle-button | `size.small.height` | container | size: small (40 of 120) |
+| toggle-icon-button | `size.small.side` | container | size: small (20 of 60) |
 | wallet-button | `size.small.black.mark`, `size.small.blue.mark`, `size.small.gold.mark`, `size.small.height`, `size.small.purple.mark` (not drawn), `size.small.silver.mark`, `size.small.white-outline.mark`, `size.small.white.mark` | container | provider: apple-pay, paypal · size: small · style: any, black, blue, gold, silver, white, white-outline (20 of 68) |
 |  |  | mark | provider: apple-pay, paypal · size: small · style: black, blue, gold, silver, white, white-outline (16 of 68) |
 
@@ -3123,7 +3185,7 @@ Type: dimension. Bound by 16 component(s).
 
 ### `space.075`
 
-Type: dimension. Bound by 20 component(s).
+Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3148,10 +3210,11 @@ Type: dimension. Bound by 20 component(s).
 |  |  | labelCheck | size: medium (15 of 45) |
 | text-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | textarea | `size.small.pad-y` | control | size: small (28 of 84) |
+| toggle-button | `size.small.padding-y` | container | size: small (40 of 120) |
 
 ### `space.100`
 
-Type: dimension. Bound by 35 component(s).
+Type: dimension. Bound by 36 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3215,10 +3278,11 @@ Type: dimension. Bound by 35 component(s).
 |  |  | messageCell | every member (84 of 84) |
 |  |  | messageRow | every member (84 of 84) |
 | toast | `gap`, `pad-end`, `pad-y` | container | every member (2 of 2) |
+| toggle-button | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (120 of 120) |
 
 ### `space.150`
 
-Type: dimension. Bound by 20 component(s).
+Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3249,10 +3313,11 @@ Type: dimension. Bound by 20 component(s).
 | tab-item | `size.small.padding-x` | content | size: small (10 of 30) |
 | tag | `size.large.select.gap`, `size.medium.padding-x`, `size.medium.select.padding-end` | content | size: large, medium (25 of 45) |
 | toast | `glyph-gap` | content | every member (2 of 2) |
+| toggle-button | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (80 of 120) |
 
 ### `space.200`
 
-Type: dimension. Bound by 23 component(s).
+Type: dimension. Bound by 24 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3285,6 +3350,7 @@ Type: dimension. Bound by 23 component(s).
 | text-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | textarea | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | toast | `pad-x` | container | every member (2 of 2) |
+| toggle-button | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | every member (100 of 120) |
 
 ### `space.250`
 
@@ -3302,7 +3368,7 @@ Type: dimension. Bound by 5 component(s).
 
 ### `space.300`
 
-Type: dimension. Bound by 15 component(s).
+Type: dimension. Bound by 16 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3324,6 +3390,7 @@ Type: dimension. Bound by 15 component(s).
 | sign-in-button | `size.large.apple.padding-x`, `size.large.facebook.padding-x` | container | provider: apple, facebook · size: large · style: black, blue, outline, white (20 of 96) |
 | text-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | textarea | `size.large.pad-x` | control | size: large (28 of 84) |
+| toggle-button | `size.large.padding-x`, `size.small.hit-target` (not drawn) | container | size: large (40 of 120) |
 
 ### `space.400`
 
@@ -3343,13 +3410,14 @@ Type: dimension. Bound by 1 component(s).
 
 ### `space.550`
 
-Type: dimension. Bound by 3 component(s).
+Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `size.large.hit-target`, `size.medium.hit-target` | (not drawn) | — |
 | button-destructive | `size.large.hit-target`, `size.medium.hit-target` | (not drawn) | — |
 | button-neutral | `size.large.hit-target`, `size.medium.hit-target` | (not drawn) | — |
+| toggle-button | `size.large.hit-target`, `size.medium.hit-target` | (not drawn) | — |
 
 ### `space.600`
 
@@ -3657,7 +3725,7 @@ Type: typography. Bound by 5 component(s).
 
 ### `type.label.lg.emphasis`
 
-Type: typography. Bound by 9 component(s).
+Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3674,6 +3742,7 @@ Type: typography. Bound by 9 component(s).
 | tab-item | `size.large.type.selected` | label | selection: selected · size: large (5 of 30) |
 |  |  | labelReserve | size: large (10 of 30) |
 | tag | `size.large.type` | label | size: large (15 of 45) |
+| toggle-button | `size.large.outline.type`, `size.large.text.type` | label | size: large (40 of 120) |
 
 ### `type.label.lg.emphasis-link`
 
@@ -3702,7 +3771,7 @@ Type: typography. Bound by 6 component(s).
 
 ### `type.label.md.emphasis`
 
-Type: typography. Bound by 11 component(s).
+Type: typography. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3721,6 +3790,7 @@ Type: typography. Bound by 11 component(s).
 | tab-item | `size.medium.type.selected` | label | selection: selected · size: medium (5 of 30) |
 |  |  | labelReserve | size: medium (10 of 30) |
 | tag | `size.medium.type` | label | size: medium (15 of 45) |
+| toggle-button | `size.medium.outline.type`, `size.medium.text.type` | label | size: medium (40 of 120) |
 
 ### `type.label.md.emphasis-link`
 
@@ -3757,7 +3827,7 @@ Type: typography. Bound by 6 component(s).
 
 ### `type.label.sm.emphasis`
 
-Type: typography. Bound by 9 component(s).
+Type: typography. Bound by 10 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -3775,6 +3845,7 @@ Type: typography. Bound by 9 component(s).
 | tab-item | `size.small.type.selected` | label | selection: selected · size: small (5 of 30) |
 |  |  | labelReserve | size: small (10 of 30) |
 | tag | `size.small.type` | label | size: small (15 of 45) |
+| toggle-button | `size.small.outline.type`, `size.small.text.type` | label | size: small (40 of 120) |
 
 ### `type.label.sm.emphasis-link`
 
@@ -4269,6 +4340,22 @@ Declared, not drawn: `color.border.focus`
 13 token(s); 2 design-file member(s).
 
 `color.inverse.background.primary`, `color.inverse.icon.success`, `color.inverse.text.primary`, `icon.size.sm`, `radius.xl`, `shadow.lg`, `size.md.height`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.sm.default`, `type.body.sm.line-box`
+
+### toggle-button
+
+42 token(s); 120 design-file member(s).
+
+`border-width.hairline`, `border-width.thick`, `color.border.focus`, `color.disabled.border`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.indicator.hover`, `color.interactive.primary.indicator.pressed`, `color.interactive.primary.indicator.rest`, `color.interactive.primary.subtle-fill.selected`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `motion.duration-reduced.fast`, `motion.duration.fast`, `motion.easing-role.default`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `space.550`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
+
+Declared, not drawn: `color.border.focus`, `motion.duration-reduced.fast`, `motion.duration.fast`, `motion.easing-role.default`, `space.550`
+
+### toggle-icon-button
+
+29 token(s); 60 design-file member(s).
+
+`border-width.hairline`, `border-width.thick`, `color.border.focus`, `color.disabled.border`, `color.disabled.icon`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.primary.indicator.hover`, `color.interactive.primary.indicator.pressed`, `color.interactive.primary.indicator.rest`, `color.interactive.primary.subtle-fill.selected`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `motion.duration-reduced.fast`, `motion.duration.fast`, `motion.easing-role.default`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`
+
+Declared, not drawn: `color.border.focus`, `motion.duration-reduced.fast`, `motion.duration.fast`, `motion.easing-role.default`
 
 ### veil
 

@@ -154,6 +154,9 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     'code-input-cell': [48, 16, 24],
     // #2343 PR 5: SignInButton, 8 provider × style pairs (Q831 A) × 3 sizes × (rest → hover, rest → pressed, hover → pressed) (Q-S6 A).
     'sign-in-button': [96, 48, 72],
+    // #4112: the toggle pair, selection × appearance × size (× leading icon on ToggleButton), each row with
+    // rest → hover, rest → pressed, hover → pressed; disabled and focus-visible carry none.
+    'toggle-button': [120, 48, 72], 'toggle-icon-button': [60, 24, 36],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {
@@ -162,7 +165,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     const lists = [...map.values()];
     got[d.id] = [map.size, lists.filter((l) => l.length).length, lists.reduce((k, l) => k + l.length, 0)];
   }
-  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 20 defs with rest, hover and pressed, and the one naming its press state (${Object.keys(got).join(', ')})`);
+  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 22 defs with rest, hover and pressed, and the one naming its press state (${Object.keys(got).join(', ')})`);
   ok(Object.entries(want).every(([id, w]) => JSON.stringify(got[id]) === JSON.stringify(w)), `map/counts: members, sources and reactions per def (${JSON.stringify(got)})`);
   const btn = reactionMap(plansOf('button').map(planComponentName));
   const B = (state: string): string => `appearance=filled, surface=default, inset=default, size=medium, state=${state}, leading icon=false, trailing icon=false`;

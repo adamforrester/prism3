@@ -1967,6 +1967,26 @@
       }
     },
     {
+      "from": "toggle-button",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "toggle-icon-button",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "wallet-button",
       "to": "focus-ring",
       "part": "focusRing",
@@ -2179,7 +2199,8 @@
       "nestedBy": [],
       "affectedByChange": [],
       "inheritedBy": [
-        "icon-button-neutral"
+        "icon-button-neutral",
+        "toggle-button"
       ]
     },
     "card-number-field": {
@@ -2464,6 +2485,8 @@
         "switch-control",
         "tab-item",
         "tag",
+        "toggle-button",
+        "toggle-icon-button",
         "wallet-button"
       ],
       "affectedByChange": [
@@ -2508,6 +2531,8 @@
         "tag",
         "tag-group",
         "toast",
+        "toggle-button",
+        "toggle-icon-button",
         "wallet-button"
       ],
       "inheritedBy": []
@@ -2564,7 +2589,8 @@
       "affectedByChange": [],
       "inherits": "button-neutral",
       "inheritedBy": [
-        "flush-icon-button-neutral"
+        "flush-icon-button-neutral",
+        "toggle-icon-button"
       ]
     },
     "image-placeholder": {
@@ -3035,6 +3061,30 @@
       "affectedByChange": [],
       "inheritedBy": []
     },
+    "toggle-button": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "button-neutral",
+      "inheritedBy": []
+    },
+    "toggle-icon-button": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inherits": "icon-button-neutral",
+      "inheritedBy": []
+    },
     "veil": {
       "nests": [],
       "nestsTransitively": [],
@@ -3120,6 +3170,8 @@
     "text-field": 1,
     "textarea": 1,
     "toast": 2,
+    "toggle-button": 1,
+    "toggle-icon-button": 1,
     "veil": 0,
     "wallet-button": 1
   }

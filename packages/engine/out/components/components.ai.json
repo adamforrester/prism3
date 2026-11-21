@@ -993,7 +993,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place, in the brand's primary style.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use ToggleButton. Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -1026,14 +1026,14 @@
           "icon-button",
           "switch-row",
           "tag",
-          "link"
+          "link",
+          "toggle-button"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "tooltip",
           "menu",
-          "toggle-button",
           "split-button"
         ],
         "replacesPatterns": [
@@ -1324,7 +1324,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place that deletes or removes something.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Destructive (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use ToggleButton. Icon-only with no visible text → use IconButton.Destructive (the accessible name is required there at the type level). The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -1363,7 +1363,6 @@
         "planned": [
           "tooltip",
           "menu",
-          "toggle-button",
           "split-button"
         ],
         "replacesPatterns": [
@@ -1653,7 +1652,7 @@
       "ai": {
         "primaryPurpose": "Trigger an action in place that carries no brand emphasis.",
         "whenToUse": "The user needs to act on this surface — submit, confirm, open, apply, or start async work.",
-        "avoidWhen": "The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Neutral (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
+        "avoidWhen": "The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use ToggleButton. Icon-only with no visible text → use IconButton.Neutral (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.",
         "commonPartners": [
           "icon",
           "spinner",
@@ -1682,14 +1681,14 @@
         ],
         "alternativeTo": [
           "icon-button-neutral",
-          "switch-row"
+          "switch-row",
+          "toggle-button"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "tooltip",
           "menu",
-          "toggle-button",
           "split-button"
         ],
         "replacesPatterns": [
@@ -3669,6 +3668,479 @@
         }
       ]
     },
+    "toggle-button": {
+      "id": "toggle-button",
+      "name": "ToggleButton",
+      "aliases": [
+        "pressable-button",
+        "selectable-button",
+        "toggle-btn"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "A button that stays pressed, for a mode that persists, such as Pin or Show archived.",
+      "description": "A Button that stays pressed: an action or mode that persists between presses, such as Pin, Mute or a view filter that stays on. While selected it takes a tint and a 2px outline drawn inside the button, so the button keeps its size, and the label keeps its weight. Pressing it changes the selected state; the label never changes. Not a Button (fires once), not a Switch.Row (a system setting), not a Checkbox.Row (a form value submitted later), and not a SegmentedControl (one of a set). For an icon-only toggle, use ToggleIconButton.",
+      "inherits": "button-neutral",
+      "props": [
+        {
+          "name": "label",
+          "type": "node (label)",
+          "required": true,
+          "description": "Visible label naming the action or mode, such as \"Pin\" or \"Show archived\". It stays the same in both states: the selected state is carried by the pressed state, not by new words."
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the toggle is on, in a controlled toggle. Rendered as aria-pressed. While selected it takes a tint and a 2px outline, so the state never rests on color alone."
+        },
+        {
+          "name": "defaultSelected",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether an uncontrolled toggle starts on."
+        },
+        {
+          "name": "onSelectedChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with the new value when the toggle is pressed. A controlled toggle without it never changes."
+        },
+        {
+          "name": "appearance",
+          "type": "enum: 'outline' | 'text'",
+          "default": "outline",
+          "required": false,
+          "values": [
+            "outline",
+            "text"
+          ],
+          "description": "outline = a neutral border, for a toggle on its own; text = no border at rest, for a quiet toolbar. There is no filled appearance, so selected stays the strongest look."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "Control size, as on Button: drives height, padding and label type."
+        },
+        {
+          "name": "leadingVisual",
+          "type": "slot",
+          "required": false,
+          "description": "An icon before the label."
+        },
+        {
+          "name": "isInactive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable disabled, as on Button: visually muted, keeps its place in the tab order, and surfaces the reason on focus."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled, as on Button: reserved for a toggle that has no meaning in the current view. Removes it from the tab order."
+        },
+        {
+          "name": "aria-label",
+          "type": "string",
+          "required": false,
+          "description": "Extends the visible label with context it does not carry, as on Button. Start it with the visible text (WCAG 2.5.3 Label in Name), and keep it the same in both states."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "inactive"
+      ],
+      "variants": {
+        "selection": {
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "runtime"
+        },
+        "appearance": {
+          "values": [
+            "outline",
+            "text"
+          ],
+          "kind": "runtime"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "button (native `<button>` with `aria-pressed`; never `role=\"switch\"` and never a checkbox)",
+        "wcag": [
+          "4.1.2 Name/Role/Value (the role is button, the label is the name, and aria-pressed carries the state)",
+          "1.4.1 Use of Color (selected is a tint and a 2px outline, not color alone)",
+          "1.4.3 Contrast (Minimum) (the neutral label on the tint, as on Tag)",
+          "1.4.11 Non-text Contrast (the 2px outline and the focus ring at 3:1)",
+          "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge)",
+          "2.5.3 Label in Name (an aria-label starts with the visible label text)",
+          "2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)"
+        ],
+        "keyboard": "Native `<button>`: Space and Enter both toggle. Each toggle is its own tab stop. (A Switch takes Space only.)",
+        "focus": "Button's `:focus-visible` ring (`color.border.focus`), offset from the edge, never suppressed, and kept through inactive (`aria-disabled`, not native disabled).",
+        "aria": "Set aria-pressed=\"true\" or \"false\" on the button, never aria-checked, aria-selected or role=\"switch\". Keep the accessible name the same in both states. A row of independent toggles goes in a container with role=\"group\" and an accessible label. Localization: the label wraps rather than truncating, and under RTL the row mirrors through logical properties; only directional glyphs flip."
+      },
+      "content": {
+        "labelPattern": "A short verb or noun naming the action or mode (\"Pin\", \"Mute\", \"Show archived\"), sentence case, the same in both states — never \"Pin\" / \"Unpin\"."
+      },
+      "docs": {
+        "usage": "Use for an action or mode that stays on until pressed again, usually in a command surface: Pin, Mute, Favorite, a view filter that stays on. For a system setting use Switch.Row; for a form value submitted later use Checkbox.Row; for one choice out of a set use SegmentedControl.",
+        "do": [
+          "Keep the label the same in both states and let `aria-pressed` carry the state",
+          "Use appearance=outline for a toggle on its own, and appearance=text for a row of toggles in a quiet toolbar",
+          "Group a row of independent toggles in a container with `role=\"group\"` and an accessible label, each toggle its own tab stop",
+          "Keep the selected look separate from the press: the tint and the 2px outline persist, and the press is Button's brief overlay step"
+        ],
+        "dont": [
+          "Use it for a system setting such as notifications on or off — use Switch.Row",
+          "Use a row of toggles where exactly one can be on — use SegmentedControl",
+          "Flip the label between two words to show the state (\"Mute\" / \"Unmute\")",
+          "Put `role=\"switch\"` or `aria-checked` on a toggle button"
+        ],
+        "implementation": [],
+        "contentGuidelines": "A short verb or noun naming the action or mode, sentence case, constant across both states."
+      },
+      "ai": {
+        "primaryPurpose": "Turn an action or mode on and off in place, with a visible label, as a button that stays pressed.",
+        "whenToUse": "A command or mode that persists between presses, such as Pin, Mute, Favorite or a view filter, on a toolbar or beside the content it affects.",
+        "avoidWhen": "A one-time action → use Button.Neutral. A system setting → use Switch.Row. A form value submitted later → use Checkbox.Row. Exactly one of a set → use SegmentedControl. A filter value in a set of chips → use Tag. Icon-only with no visible text → use ToggleIconButton.",
+        "commonPartners": [
+          "icon",
+          "focus-ring",
+          "button"
+        ],
+        "triggerKeywords": [
+          "toggle button",
+          "pressed button",
+          "pin button",
+          "mute button",
+          "favorite toggle",
+          "aria-pressed"
+        ],
+        "generationPriority": 3
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "The selected change (tint and outline) and the other state changes run on motion.duration.fast with motion.easing-role.default. The press is Button's subtle scale (0.98) on the same duration and curve, and it stays separate from the selected look. Under prefers-reduced-motion, resolve the scale to none and keep the color change, on motion.duration-reduced.fast, so the state stays perceivable."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [
+          "button",
+          "button-neutral",
+          "switch-row",
+          "checkbox-row",
+          "segmented-control",
+          "tag",
+          "toggle-icon-button"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "tooltip"
+        ],
+        "replacesPatterns": [
+          "a Button hand-wired with an \"active\" class and no `aria-pressed`",
+          "`role=\"switch\"` on a toolbar mode"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "localization",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        }
+      ]
+    },
+    "toggle-icon-button": {
+      "id": "toggle-icon-button",
+      "name": "ToggleIconButton",
+      "aliases": [
+        "toggle-icon-btn"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "An icon-only button that stays pressed, such as Bold or Mute. Needs an accessible name.",
+      "description": "An IconButton that stays pressed: an icon-only action or mode that persists between presses, such as Bold, Italic or Mute in a toolbar. While selected it takes a tint and a 2px outline drawn inside the square, so the button keeps its size. Because there is no visible label, an accessible name is required, and it stays the same in both states. For a toggle with a visible label, use ToggleButton.",
+      "inherits": "icon-button-neutral",
+      "props": [
+        {
+          "name": "icon",
+          "type": "slot",
+          "required": true,
+          "description": "The single icon. Rendered aria-hidden: the button carries the name."
+        },
+        {
+          "name": "aria-label",
+          "type": "string",
+          "required": true,
+          "description": "Required accessible name, a verb or noun naming the action or mode (\"Bold\", \"Mute\"). It stays the same in both states: the selected state is carried by the pressed state."
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the toggle is on, in a controlled toggle. Rendered as aria-pressed. While selected it takes a tint and a 2px outline, so the state never rests on color alone."
+        },
+        {
+          "name": "defaultSelected",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether an uncontrolled toggle starts on."
+        },
+        {
+          "name": "onSelectedChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with the new value when the toggle is pressed. A controlled toggle without it never changes."
+        },
+        {
+          "name": "appearance",
+          "type": "enum: 'outline' | 'ghost'",
+          "default": "outline",
+          "required": false,
+          "values": [
+            "outline",
+            "ghost"
+          ],
+          "description": "outline = a neutral border, for a toggle on its own; ghost = no border at rest, for a row of toggles in a toolbar. There is no filled appearance, so selected stays the strongest look."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "Square control, as on IconButton: the height drives both dimensions."
+        },
+        {
+          "name": "isInactive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable disabled, as on Button: visually muted, keeps its place in the tab order, and surfaces the reason on focus."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled, as on Button: reserved for a toggle that has no meaning in the current view. Removes it from the tab order."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "inactive"
+      ],
+      "variants": {
+        "selection": {
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "runtime"
+        },
+        "appearance": {
+          "values": [
+            "outline",
+            "ghost"
+          ],
+          "kind": "runtime"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "button (native `<button>` with `aria-pressed`; never `role=\"switch\"` and never a checkbox)",
+        "wcag": [
+          "4.1.2 Name/Role/Value (the required accessible name, and aria-pressed carries the state)",
+          "1.4.1 Use of Color (selected is a tint and a 2px outline, not color alone)",
+          "1.4.11 Non-text Contrast (the glyph, the 2px outline and the focus ring at 3:1)",
+          "2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed)",
+          "2.4.13 Focus Appearance (AAA, intent — the ring is offset from the edge)",
+          "2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)",
+          "1.4.13 Content on Hover or Focus (only where a tooltip is attached)",
+          "2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)"
+        ],
+        "keyboard": "Native `<button>`: Space and Enter both toggle. Each toggle is its own tab stop. (A Switch takes Space only.)",
+        "focus": "IconButton's `:focus-visible` ring, offset from the edge, never suppressed, and kept through inactive.",
+        "aria": "aria-label is the accessible name (required), the same in both states. Set aria-pressed=\"true\" or \"false\", never aria-checked, aria-selected or role=\"switch\". A tooltip may show the name on hover and focus. A row of independent toggles goes in a container with role=\"group\" and an accessible label. Under RTL, only a directional glyph flips."
+      },
+      "content": {
+        "labelPattern": "The accessible name is a short verb or noun naming the action or mode (\"Bold\", \"Mute\", \"Pin\"), the same in both states — never the glyph's shape."
+      },
+      "docs": {
+        "usage": "Use for an icon-only action or mode that stays on until pressed again, usually in a toolbar: Bold, Italic, Underline, Mute, Pin. Always give it an accessible name; a tooltip can show it on hover and focus. With room for a label, use ToggleButton.",
+        "do": [
+          "Always give it an accessible name, and keep it the same in both states",
+          "Use appearance=ghost for a row of toggles in a toolbar, and appearance=outline for one on its own",
+          "Group a row of independent toggles in a container with `role=\"group\"` and an accessible label, each toggle its own tab stop",
+          "Use a recognizable icon; pair a novel one with a visible label instead (ToggleButton)"
+        ],
+        "dont": [
+          "Ship it without an accessible name",
+          "Swap the icon to show the state; the tint and the 2px outline show it",
+          "Use a row of toggles where exactly one can be on — use SegmentedControl",
+          "Put `role=\"switch\"` or `aria-checked` on a toggle button"
+        ],
+        "implementation": [],
+        "contentGuidelines": "The accessible name is a short verb or noun naming the action or mode, constant across both states. A tooltip, where one is attached, shows the same words."
+      },
+      "ai": {
+        "primaryPurpose": "Turn an action or mode on and off in place with an icon alone, as a button that stays pressed.",
+        "whenToUse": "An icon-only command or mode that persists between presses, such as Bold, Italic or Mute, usually in a toolbar.",
+        "avoidWhen": "A visible label would fit and aid recognition → use ToggleButton. A one-time icon action → use IconButton.Neutral. A system setting → use Switch.Row. Exactly one of a set → use SegmentedControl. Never when you cannot supply an accessible name.",
+        "commonPartners": [
+          "icon",
+          "focus-ring",
+          "icon-button"
+        ],
+        "triggerKeywords": [
+          "icon toggle",
+          "toolbar toggle",
+          "bold button",
+          "format toggle",
+          "pressed icon button"
+        ],
+        "generationPriority": 3
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "The selected change (tint and outline) and the other state changes run on motion.duration.fast with motion.easing-role.default. The press is Button's subtle scale (0.98) on the same duration and curve, and it stays separate from the selected look. Under prefers-reduced-motion, resolve the scale to none and keep the color change, on motion.duration-reduced.fast, so the state stays perceivable."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [
+          "toggle-button"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "tooltip"
+        ],
+        "replacesPatterns": [
+          "an IconButton hand-wired with an \"active\" class and no `aria-pressed`",
+          "a glyph that swaps to show the state"
+        ]
+      },
+      "syncBoundary": [
+        {
+          "class": "hit-target",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "focus-ring",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "semantics",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "runtime-behavior",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "composition",
+          "disposition": "REFUSED"
+        },
+        {
+          "class": "right-to-left",
+          "disposition": "UNSUPPORTED"
+        },
+        {
+          "class": "visual-treatment",
+          "disposition": "LOWERED"
+        },
+        {
+          "class": "not-projected",
+          "disposition": "REFUSED"
+        }
+      ]
+    },
     "field-label": {
       "id": "field-label",
       "name": "FieldLabel",
@@ -4930,7 +5402,7 @@
       "category": "form",
       "status": "draft",
       "summary": "Labeled checkbox for a staged on/off choice. The whole row is the hit target.",
-      "description": "A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled row: control and rich-content label, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch.Row), not a mutually-exclusive one-of-many (Radio.Group), not an action with a pressed state (a toggle button, not built yet).",
+      "description": "A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled row: control and rich-content label, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch.Row), not a mutually-exclusive one-of-many (Radio.Group), not an action with a pressed state (ToggleButton).",
       "inherits": "text-field",
       "props": [
         {
@@ -5116,13 +5588,13 @@
         "alternativeTo": [
           "switch-row",
           "radio-row",
-          "text-field"
+          "text-field",
+          "toggle-button"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "form",
-          "toggle-button",
           "combobox",
           "listbox"
         ],
@@ -5765,8 +6237,7 @@
         ],
         "planned": [
           "form",
-          "card",
-          "toggle-button"
+          "card"
         ],
         "replacesPatterns": [
           "a set of checkboxes misused for a mutually exclusive choice",
@@ -6453,13 +6924,13 @@
           "text-field",
           "checkbox-group",
           "radio-group",
-          "slider"
+          "slider",
+          "toggle-button"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "card",
-          "toggle-button"
+          "card"
         ],
         "replacesPatterns": [
           "a checkbox misused for an immediate-effect setting",
@@ -7756,13 +8227,13 @@
           "badge",
           "button",
           "checkbox-group",
-          "radio-group"
+          "radio-group",
+          "toggle-button"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "combobox",
-          "toggle-button",
           "avatar"
         ],
         "replacesPatterns": [
@@ -9778,7 +10249,8 @@
           "radio-row",
           "button-group",
           "counter",
-          "slider"
+          "slider",
+          "toggle-button"
         ],
         "supersedes": [],
         "supersededBy": [],

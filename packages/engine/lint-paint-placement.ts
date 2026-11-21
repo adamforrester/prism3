@@ -305,6 +305,7 @@ const EXPECT_ANATOMY = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', '_slider-thumb', 'slider',
   'code-input-cell', 'code-input', 'provider-logo', 'card-number-field', 'page-nav-item', 'page-nav',
+  'toggle-button', 'toggle-icon-button',
   'skeleton',
   'popover',
 ];
@@ -314,6 +315,8 @@ const EXPECT_PAINTERS = [
   'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs', 'divider', 'list-item', 'segmented-control-segment', 'segmented-control', 'dialog', 'banner',
   // #2665: the page cell's current-page border or underline and the hover wash.
   'pagination-item',
+  // #4112: the toggle's box, Button's slots with Tag's selected tint and outline.
+  'toggle-button', 'toggle-icon-button',
   // #2669: the thumb's disc and halo; the Slider's rail and selected bar.
   '_slider-thumb', 'slider',
   // #4109: the bars and the block, one surface in pieces.

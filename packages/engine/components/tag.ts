@@ -597,8 +597,8 @@ export const tag: ComponentDef = {
   composition: {
     // Exactly what the anatomy nests: the ring (an `absolute`). The × is a glyph of the tag's own, not a nest.
     composesWith: ['focus-ring'],
-    alternativeTo: ['badge', 'button', 'checkbox-group', 'radio-group'],
-    planned: ['combobox', 'toggle-button', 'avatar'],
+    alternativeTo: ['badge', 'button', 'checkbox-group', 'radio-group', 'toggle-button'],
+    planned: ['combobox', 'avatar'],
     replacesPatterns: ['a removable token list built as a listbox', 'a clickable div styled as a pill', 'a bare × glyph with no accessible name'],
   },
 

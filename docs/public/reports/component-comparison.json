@@ -5452,6 +5452,179 @@
       "sizes": []
     },
     {
+      "id": "toggle-button",
+      "name": "ToggleButton",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "inactive"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "selection": [
+          "unselected",
+          "selected"
+        ],
+        "appearance": [
+          "outline",
+          "text"
+        ],
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "selected",
+          "default": false
+        },
+        {
+          "name": "defaultSelected",
+          "default": false
+        },
+        {
+          "name": "onSelectedChange"
+        },
+        {
+          "name": "appearance",
+          "default": "outline",
+          "values": [
+            "outline",
+            "text"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "leadingVisual"
+        },
+        {
+          "name": "isInactive",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "aria-label"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "toggle-icon-button",
+      "name": "ToggleIconButton",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "inactive"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "selection": [
+          "unselected",
+          "selected"
+        ],
+        "appearance": [
+          "outline",
+          "ghost"
+        ],
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "icon"
+        },
+        {
+          "name": "aria-label"
+        },
+        {
+          "name": "selected",
+          "default": false
+        },
+        {
+          "name": "defaultSelected",
+          "default": false
+        },
+        {
+          "name": "onSelectedChange"
+        },
+        {
+          "name": "appearance",
+          "default": "outline",
+          "values": [
+            "outline",
+            "ghost"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "isInactive",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "veil",
       "name": "Veil",
       "category": "overlay",
@@ -5705,7 +5878,9 @@
       "members": [
         "button-neutral",
         "flush-icon-button-neutral",
-        "icon-button-neutral"
+        "icon-button-neutral",
+        "toggle-button",
+        "toggle-icon-button"
       ],
       "basis": "button-neutral and every component that inherits from it, directly or through another"
     },
@@ -5755,7 +5930,9 @@
       "tab-item",
       "tag",
       "text-field",
-      "textarea"
+      "textarea",
+      "toggle-button",
+      "toggle-icon-button"
     ],
     "empty": [
       "card-number-field",
@@ -5809,6 +5986,8 @@
       "tag",
       "text-field",
       "textarea",
+      "toggle-button",
+      "toggle-icon-button",
       "wallet-button"
     ],
     "focus-visible-filled": [
@@ -5852,7 +6031,9 @@
       "tab-item",
       "tag",
       "text-field",
-      "textarea"
+      "textarea",
+      "toggle-button",
+      "toggle-icon-button"
     ],
     "inactive": [
       "button",
@@ -5863,7 +6044,9 @@
       "flush-icon-button-neutral",
       "icon-button",
       "icon-button-destructive",
-      "icon-button-neutral"
+      "icon-button-neutral",
+      "toggle-button",
+      "toggle-icon-button"
     ],
     "pending": [
       "button",
@@ -5905,7 +6088,9 @@
       "switch-control",
       "switch-row",
       "tab-item",
-      "tag"
+      "tag",
+      "toggle-button",
+      "toggle-icon-button"
     ],
     "read-only": [
       "card-number-field",
@@ -5954,6 +6139,8 @@
       "tag",
       "text-field",
       "textarea",
+      "toggle-button",
+      "toggle-icon-button",
       "wallet-button"
     ]
   },
@@ -6000,7 +6187,17 @@
           "outline"
         ],
         "components": [
-          "counter"
+          "counter",
+          "toggle-icon-button"
+        ]
+      },
+      {
+        "values": [
+          "outline",
+          "text"
+        ],
+        "components": [
+          "toggle-button"
         ]
       }
     ],
@@ -6294,7 +6491,9 @@
           "pagination-item",
           "segmented-control-segment",
           "tab-item",
-          "tag"
+          "tag",
+          "toggle-button",
+          "toggle-icon-button"
         ]
       },
       {
@@ -6425,6 +6624,8 @@
           "tag-group",
           "text-field",
           "textarea",
+          "toggle-button",
+          "toggle-icon-button",
           "wallet-button"
         ]
       },
@@ -6906,6 +7107,22 @@
           "outline",
           "ghost"
         ]
+      },
+      {
+        "id": "toggle-button",
+        "default": "outline",
+        "values": [
+          "outline",
+          "text"
+        ]
+      },
+      {
+        "id": "toggle-icon-button",
+        "default": "outline",
+        "values": [
+          "outline",
+          "ghost"
+        ]
       }
     ],
     "aria-label": [
@@ -6947,6 +7164,12 @@
       },
       {
         "id": "switch-control"
+      },
+      {
+        "id": "toggle-button"
+      },
+      {
+        "id": "toggle-icon-button"
       }
     ],
     "arrow": [
@@ -7123,6 +7346,16 @@
       {
         "id": "pagination",
         "default": 1
+      }
+    ],
+    "defaultSelected": [
+      {
+        "id": "toggle-button",
+        "default": false
+      },
+      {
+        "id": "toggle-icon-button",
+        "default": false
       }
     ],
     "defaultValue": [
@@ -7335,6 +7568,14 @@
       },
       {
         "id": "textarea",
+        "default": false
+      },
+      {
+        "id": "toggle-button",
+        "default": false
+      },
+      {
+        "id": "toggle-icon-button",
         "default": false
       }
     ],
@@ -7588,6 +7829,9 @@
       },
       {
         "id": "list-item"
+      },
+      {
+        "id": "toggle-icon-button"
       }
     ],
     "iconPosition": [
@@ -7793,6 +8037,14 @@
       },
       {
         "id": "pagination-item",
+        "default": false
+      },
+      {
+        "id": "toggle-button",
+        "default": false
+      },
+      {
+        "id": "toggle-icon-button",
         "default": false
       }
     ],
@@ -8024,6 +8276,9 @@
       },
       {
         "id": "textarea"
+      },
+      {
+        "id": "toggle-button"
       }
     ],
     "labelPosition": [
@@ -8093,6 +8348,9 @@
       },
       {
         "id": "button-neutral"
+      },
+      {
+        "id": "toggle-button"
       }
     ],
     "length": [
@@ -8514,6 +8772,14 @@
         "id": "tag-group"
       }
     ],
+    "onSelectedChange": [
+      {
+        "id": "toggle-button"
+      },
+      {
+        "id": "toggle-icon-button"
+      }
+    ],
     "open": [
       {
         "id": "dialog",
@@ -8804,6 +9070,14 @@
       },
       {
         "id": "tag",
+        "default": false
+      },
+      {
+        "id": "toggle-button",
+        "default": false
+      },
+      {
+        "id": "toggle-icon-button",
         "default": false
       }
     ],
@@ -9476,6 +9750,24 @@
       },
       {
         "id": "textarea",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "toggle-button",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "toggle-icon-button",
         "default": "medium",
         "values": [
           "small",
@@ -10328,9 +10620,17 @@
       "kind": "state set",
       "subject": "substrate: button-neutral",
       "components": [
-        "flush-icon-button-neutral"
+        "button-neutral"
       ],
-      "detail": "flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks pending"
+      "detail": "button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pressed, rest] — adds pending"
+    },
+    {
+      "kind": "state set",
+      "subject": "substrate: button-neutral",
+      "components": [
+        "icon-button-neutral"
+      ],
+      "detail": "icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pressed, rest] — adds pending"
     },
     {
       "kind": "state set",
@@ -10489,6 +10789,22 @@
       "detail": "textarea declares the states pending and empty, which the design-file state axis does not draw"
     },
     {
+      "kind": "state not drawn",
+      "subject": "toggle-button",
+      "components": [
+        "toggle-button"
+      ],
+      "detail": "toggle-button declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
+      "subject": "toggle-icon-button",
+      "components": [
+        "toggle-icon-button"
+      ],
+      "detail": "toggle-icon-button declares the state inactive, which the design-file state axis does not draw"
+    },
+    {
       "kind": "axis values",
       "subject": "axis appearance",
       "components": [
@@ -10498,9 +10814,11 @@
         "counter",
         "icon-button",
         "icon-button-destructive",
-        "icon-button-neutral"
+        "icon-button-neutral",
+        "toggle-button",
+        "toggle-icon-button"
       ],
-      "detail": "the appearance axis takes 3 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [ghost, outline] in counter"
+      "detail": "the appearance axis takes 4 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [ghost, outline] in counter, toggle-icon-button; [outline, text] in toggle-button"
     },
     {
       "kind": "axis values",
@@ -10553,9 +10871,11 @@
         "segmented-control-segment",
         "switch-control",
         "tab-item",
-        "tag"
+        "tag",
+        "toggle-button",
+        "toggle-icon-button"
       ],
-      "detail": "the selection axis takes 4 value sets — [selected, unselected] in link, page-nav-item, pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
+      "detail": "the selection axis takes 4 value sets — [selected, unselected] in link, page-nav-item, pagination-item, segmented-control-segment, tab-item, tag, toggle-button, toggle-icon-button; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
     },
     {
       "kind": "axis values",
@@ -10627,9 +10947,11 @@
         "tag-group",
         "text-field",
         "textarea",
+        "toggle-button",
+        "toggle-icon-button",
         "wallet-button"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, skeleton, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, card-number-field, checkbox-control, checkbox-group, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, sign-in-button, slider, tab-item, tabs, tag, tag-group, text-field, textarea, toggle-button, toggle-icon-button, wallet-button; [medium, small] in badge, breadcrumb-item, breadcrumbs, page-nav, page-nav-item, progress, skeleton, switch-control, switch-row; [large, medium, small, x-small] in link, list, list-item, spinner; [large, medium, small, x-large] in code-input, code-input-cell"
     },
     {
       "kind": "axis values",
@@ -11105,6 +11427,22 @@
     },
     {
       "kind": "size order",
+      "subject": "toggle-button",
+      "components": [
+        "toggle-button"
+      ],
+      "detail": "toggle-button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "toggle-icon-button",
+      "components": [
+        "toggle-icon-button"
+      ],
+      "detail": "toggle-icon-button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "wallet-button",
       "components": [
         "wallet-button"
@@ -11117,7 +11455,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 51 of 52 sized components default to medium"
+      "detail": "field-label defaults size to small; 53 of 54 sized components default to medium"
     },
     {
       "kind": "prop default",
@@ -11399,6 +11737,22 @@
         "textarea"
       ],
       "detail": "textarea has the variant axes style and status and no props of those names"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "toggle-button",
+      "components": [
+        "toggle-button"
+      ],
+      "detail": "toggle-button has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "toggle-icon-button",
+      "components": [
+        "toggle-icon-button"
+      ],
+      "detail": "toggle-icon-button has the variant axis selection and no prop of that name"
     }
   ]
 }

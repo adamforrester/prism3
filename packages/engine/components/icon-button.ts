@@ -53,7 +53,7 @@ type IntentFamily = 'primary' | 'neutral' | 'destructive';
  * docs/20 §7) and lives in the shared token block, not here — its identity across all three components is
  * the whole reason the split loses no coverage.
  */
-const iconButtonIntentTokens = (family: IntentFamily): Record<string, string> => ({
+export const iconButtonIntentTokens = (family: IntentFamily): Record<string, string> => ({
   // filled — interactive fill + on-fill ink (the glyph carries the ink an icon-only control has instead of a label)
   'filled.fill': `color.interactive.${family}.fill.rest`,
   'filled.fill.hover': `color.interactive.${family}.fill.hover`,

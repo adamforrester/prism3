@@ -211,8 +211,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'appearance',
+    values: ['outline', 'text'],
+    defs: ['toggle-button'],
+    relation: 'subset',
+    reason:
+      'ToggleButton\'s two treatments (#4112, owner OD-T3 A): Button\'s ladder without `filled`, because a filled '
+      + 'resting toggle leaves no clearly stronger look for selected (a tint and a 2px outline). SUBSET of the canonical '
+      + 'button ladder, each value meaning what it means there: `outline` an edged control, `text` no edge at rest. '
+      + '`outline` LEADS because it is the code default, so Figma inserts it (#2752). The icon toggle spells its quiet '
+      + 'value `ghost`, IconButton\'s word (owner decision 1 B on #4353), in its own entry below.',
+  },
+  {
+    axis: 'appearance',
     values: ['outline', 'ghost'],
-    defs: ['counter'],
+    defs: ['counter', 'toggle-icon-button'],
     relation: 'overlapping',
     reason:
       'The Counter\'s two treatments (#2427; owner Q283.4 A, `outline | ghost`, and the wireframe decision keeping '
@@ -220,7 +232,10 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'edged control), and `ghost` is IconButton\'s word for a control with no box, here the row with no edge and '
       + 'round buttons at its ends. No `filled` rung: the wireframe\'s filled square buttons (C) are not built now, '
       + 'and adding them is a third value here. `outline` LEADS as Q283.4 A spells it, so the Figma default is '
-      + 'outline, while ghost is the MVP the wireframe named; which one leads is an open owner call on the PR.',
+      + 'outline, while ghost is the MVP the wireframe named; which one leads is an open owner call on the PR. '
+      + 'ToggleIconButton joins it (#4112 OD-T3 A; the word, owner decision 1 B on #4353): IconButton\'s ladder without '
+      + '`filled`, its quiet value spelled `ghost` as IconButton spells it (#1432), so a designer swapping between '
+      + 'IconButton.Neutral and ToggleIconButton meets one word for one look. `outline` LEADS, the code default.',
   },
   {
     axis: 'emphasis',
@@ -560,7 +575,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unselected', 'selected'],
-    defs: ['tag', 'tab-item', 'segmented-control-segment', 'link', 'pagination-item', 'page-nav-item'],
+    defs: ['tag', 'tab-item', 'segmented-control-segment', 'link', 'pagination-item', 'page-nav-item', 'toggle-button', 'toggle-icon-button'],
     relation: 'disjoint',
     reason:
       'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
@@ -572,12 +587,13 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'axis-value choice held for the owner in the Tag PR (2026-09-27). Tab joins it (#2416, owner Q177.2): a '
       + 'tab\'s state IS aria-selected, so `selected` is its ARIA word too, and one spelling serves both. A segmented '
       + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio. A standalone Link joins it for the current page in a navigation (#2872, owner Q507.3 A): its code prop is `current`, rendering aria-current="page". '
-      + 'A pagination item joins it (#2665): the current page, its state riding aria-current="page".',
+      + 'A pagination item joins it (#2665): the current page, its state riding aria-current="page". The toggle pair '
+      + 'joins it (#4112): Tag\'s look and Tag\'s words, its state riding aria-pressed on a button.',
   },
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tag-group', 'tab-item', 'tabs', 'segmented-control-segment', 'segmented-control', 'text-field', 'select', 'textarea', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'toggle-button', 'toggle-icon-button', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tag-group', 'tab-item', 'tabs', 'segmented-control-segment', 'segmented-control', 'text-field', 'select', 'textarea', 'password-field', 'counter', 'search-field', 'card-number-field', 'pagination-item', 'pagination', '_slider-thumb', 'slider', 'wallet-button', 'sign-in-button'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '

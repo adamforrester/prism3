@@ -443,14 +443,14 @@ export const switchRow: ComponentDef = {
     // level down. The label is the Row's own text part, not a `field-label`, and an outcome error is a status
     // message, not a `field-message` (#1699).
     composesWith: ['switch-control'],
-    alternativeTo: ['checkbox-row', 'radio-row', 'segmented-control', 'button', 'button-destructive', 'button-neutral', 'text-field', 'checkbox-group', 'radio-group', 'slider'],
+    alternativeTo: ['checkbox-row', 'radio-row', 'segmented-control', 'button', 'button-destructive', 'button-neutral', 'text-field', 'checkbox-group', 'radio-group', 'slider', 'toggle-button'],
     replacesPatterns: [
       'a checkbox misused for an immediate-effect setting',
       'two radios standing in for an obvious binary on/off',
       'an `aria-pressed` toggle button misused to hold a state setting',
     ],
     supersededBy: [],
-    planned: ['card', 'toggle-button'],
+    planned: ['card'],
   },
 
   // KB switch brief §8. The thumb slide itself is `switch-control`'s motion; the Row's is the async outcome.

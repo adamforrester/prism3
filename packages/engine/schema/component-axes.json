@@ -1668,6 +1668,67 @@
       "message": "TEXT"
     }
   },
+  "toggle-button": {
+    "axes": {
+      "appearance": [
+        "outline",
+        "text"
+      ],
+      "leading icon": [
+        "false",
+        "true"
+      ],
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 120,
+    "properties": {
+      "label": "TEXT",
+      "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
+  "toggle-icon-button": {
+    "axes": {
+      "appearance": [
+        "ghost",
+        "outline"
+      ],
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 60,
+    "properties": {
+      "swap icon": "INSTANCE_SWAP"
+    }
+  },
   "veil": {
     "axes": {
       "direction": [

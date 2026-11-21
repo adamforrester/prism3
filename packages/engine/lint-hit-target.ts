@@ -169,6 +169,9 @@ const INTERACTIVE: Record<string, Binding> = {
   'icon-button': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   'icon-button-destructive': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   'icon-button-neutral': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
+  // #4112 — the toggle pair: Button's box height and IconButton's square side.
+  'toggle-button': { key: (s) => `size.${s}.height`, why: 'the button box height, Button\'s' },
+  'toggle-icon-button': { key: (s) => `size.${s}.side`, why: 'the square side, IconButton\'s' },
   // The two single-line fields are sized since #2266; each size binds the floor (`size.md.min-height`) or above.
   'text-field': { key: (s) => `size.${s}.height`, why: 'the field control height — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
   // #2317: the Password field is TextField's box, from the same factory, so it binds the same height rung.

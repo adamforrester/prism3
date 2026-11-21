@@ -151,7 +151,7 @@ export const checkboxRow: ComponentDef = {
   inherits: 'text-field',
   summary: 'Labeled checkbox for a staged on/off choice. The whole row is the hit target.',
   description:
-    'A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled row: control and rich-content label, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch.Row), not a mutually-exclusive one-of-many (Radio.Group), not an action with a pressed state (a toggle button, not built yet).',
+    'A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled row: control and rich-content label, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch.Row), not a mutually-exclusive one-of-many (Radio.Group), not an action with a pressed state (ToggleButton).',
 
   // THE DELTA ONLY (brief §3, §15). The form-field substrate — `description`/helper, `error`, the
   // aria-describedby wiring, `name`, `id`, `required`, `disabled`, `readOnly`, `onFocus`/`onBlur` — is
@@ -618,7 +618,7 @@ export const checkboxRow: ComponentDef = {
     // Brief §12's alternatives that exist. `select` is NOT one — it is single-value, and the brief's
     // large-set alternative is a MULTI-select combobox or listbox (#1698); those and a selectable chip
     // are not built yet, so they sit in `planned`.
-    alternativeTo: ['switch-row', 'radio-row', 'text-field'],
+    alternativeTo: ['switch-row', 'radio-row', 'text-field', 'toggle-button'],
     replacesPatterns: [
       'a bare `<input type="checkbox">` with no label wiring',
       'a `role="checkbox"` div where a styled native input would do',
@@ -627,7 +627,7 @@ export const checkboxRow: ComponentDef = {
     // pass here, which typed Switch and Combobox as `superseded-by`: they are sibling alternatives
     // chosen by intent and scale, not replacements. Carried so the corrected reading reaches the engine.
     supersededBy: [],
-    planned: ['form', 'toggle-button', 'combobox', 'listbox'],
+    planned: ['form', 'combobox', 'listbox'],
   },
 
   // Brief §8. The Row draws no motion of its own; the glyph transition belongs to the nested control.

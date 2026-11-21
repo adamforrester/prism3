@@ -566,7 +566,8 @@ ok(TINTED.length > 0 && washPaints > 0,
   ok(JSON.stringify(PARTIAL.map((d) => d.id)) === '["link@partial"]' && shares > 0 && rows.length === 1 && rows[0].members > 0 && rows[0].divergences.length === 0,
     `#3345 partial round-trip: the Partial-materialized Link is built and read back clean — ${JSON.stringify(PARTIAL.map((d) => d.id))}, ${shares} partial bars among its plans, ${rows[0]?.members ?? 0} members, ${rows[0]?.divergences.length ?? 'no'} divergences${rows[0]?.divergences.length ? ` (${JSON.stringify(rows[0].divergences.slice(0, 2))})` : ''}`);
 }
-ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx ?? 0) > 0 && (EXERCISED.minWidth ?? 0) > 0,
+// 8: button ×3 and, since #4353 (owner decision 3 A), toggle-button, each at edges and smaller.
+ok(BUTTON_LAID.length === 8 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx ?? 0) > 0 && (EXERCISED.minWidth ?? 0) > 0,
   `#1667 the button-lever materializations round-trip too — ${BUTTON_LAID.length} def(s); ${EXERCISED.pin ?? 0} pinned icons (ABSOLUTE + edge constraint + inset), ${EXERCISED.paddingPx ?? 0} reserved paddings, ${EXERCISED.minWidth ?? 0} floors read back off the host`);
 
 {

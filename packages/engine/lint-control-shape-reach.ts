@@ -68,7 +68,9 @@ const FIELD_STYLES = ['outline', 'underline'] as const;
  *  reached through the def it nests, so only the def that draws the corner is listed. */
 const FAMILIES: Record<Family, readonly string[]> = {
   // The provider buttons are buttons for Control shape (owner Q-CS3 A, #3765): they follow every shape, as Button does.
-  buttons: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'wallet-button', 'sign-in-button'],
+  buttons: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'wallet-button', 'sign-in-button',
+    // The toggle pair (#4112, owner OD-T1 A): Button's and IconButton's corner, so Control shape reaches it as theirs.
+    'toggle-button', 'toggle-icon-button'],
   fields: ['text-field', 'textarea', 'select', 'search-field', 'card-number-field', 'password-field', 'code-input-cell'],
   checkboxes: ['checkbox-control'],
 };

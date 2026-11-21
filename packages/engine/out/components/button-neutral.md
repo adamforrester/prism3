@@ -13,7 +13,7 @@ In-flow trigger for an action that carries no brand weight — a toolbar control
 
 - **Purpose:** Trigger an action in place that carries no brand emphasis.
 - **Use when:** The user needs to act on this surface — submit, confirm, open, apply, or start async work.
-- **Avoid when:** The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton.Neutral (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.
+- **Avoid when:** The target is a different location/URL → use Link (or give the button an `href`, which renders an `<a>`, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use ToggleButton. Icon-only with no visible text → use IconButton.Neutral (the accessible name is required there at the type level). The action is the view's main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.
 
 ## Anatomy
 
@@ -96,7 +96,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 ## Related components
 
 - **Built from:** `focus-ring`, `spinner`
-- **Instead, consider:** `icon-button-neutral`, `switch-row`
+- **Instead, consider:** `icon-button-neutral`, `switch-row`, `toggle-button`
 - **Often used with:** `icon`, `button-group`, `popover`
 - **Replaces:**
   - input[type=button\|submit]

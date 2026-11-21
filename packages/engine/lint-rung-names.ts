@@ -228,6 +228,8 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   button: 'icon.size.*',
   'button-destructive': 'icon.size.*',
   'button-neutral': 'icon.size.*',
+  // ToggleButton (#4112, owner OD-T1 A): Button's sizes, so Button's one-rung icon offset (#1350).
+  'toggle-button': 'icon.size.*',
   // The Accordion's glyph, one rung below its control (owner QA of the live build, 2026-10-12, #2417): 16/20/24, so
   // its medium default is `sm`, as Button's is.
   '_accordion-indicator': 'icon.size.*',
@@ -480,6 +482,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   'icon-button': Q1B,
   'icon-button-destructive': Q1B,
   'icon-button-neutral': Q1B,
+  'toggle-button': Q1B,
+  'toggle-icon-button': Q1B,
   'flush-icon-button': Q1B,
   'flush-icon-button-destructive': Q1B,
   'flush-icon-button-neutral': Q1B,
@@ -571,6 +575,7 @@ const MUST_COVER = [
   'icon', 'provider-logo', 'spinner', 'progress', 'skeleton',
   'button', 'button-destructive', 'button-neutral', 'wallet-button', 'sign-in-button',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
+  'toggle-button', 'toggle-icon-button',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'text-field', 'textarea', 'select', 'tag', 'tag-group', 'counter', 'slider', '_slider-thumb',
   'badge',

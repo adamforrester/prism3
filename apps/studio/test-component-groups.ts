@@ -114,7 +114,9 @@ const WIRE_COMPONENTS: [string, string[]][] = [
   // #2343 PR 5: Sign-in button, on its own page (Q-S10 A).
   ['Sign-in button', ['SignInButton']],
   ['Slider', ['Slider', 'Slider.Thumb']], ['Switch', ['Switch.Control', 'Switch.Row']],
-  ['Tabs', ['Tab.Item', 'Tabs']], ['Toast', ['Toast']], ['Veil', ['Veil']],
+  ['Tabs', ['Tab.Item', 'Tabs']], ['Toast', ['Toast']],
+  // #4112: the toggle pair's own page; Button's settings do not reach it, so it sits here rather than under Buttons.
+  ['Toggle button', ['ToggleButton', 'ToggleIconButton']], ['Veil', ['Veil']],
   // #2343 PR 4: Wallet button, on its own page.
   ['Wallet button', ['WalletButton']],
 ];
@@ -193,8 +195,8 @@ ok(JSON.stringify(drawn('components')) === JSON.stringify(WIRE_COMPONENTS) && JS
   `note 2: a family's sets are alphabetical by component name, and call 12: a part set stays in its family (${JSON.stringify(drawn('components').filter((r) => r[1].length > 1).map((r) => r[1].join('/')))})`);
 ok(groups.find((g) => g.kind === 'subcomponents')?.rows.some((r) => r.ids.includes('icon') && r.page === 'Icons & assets') === true,
   'call 11: Icon lists under Subcomponents, and still lands on ↳ Icons & assets');
-ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 65,
-  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, Sign-in button since #2343 PR 5, Page navigation with its item since #3345, Tag.Group since #1739, Skeleton since #4109, and Popover since #4008)`);
+ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 67,
+  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Pagination's 2 since #2665, Progress since #2670, Search field since #2888, Slider with its Thumb since #2669, Toast since #2668, Banner since #2579, the three Breadcrumbs sets since #2666, Provider logo since #2343, Wallet button since #2343 PR 4, Card number field since #2343 PR 4, Sign-in button since #2343 PR 5, Page navigation with its item since #3345, Tag.Group since #1739, ToggleButton and ToggleIconButton since #4112, Skeleton since #4109, and Popover since #4008)`);
 ok(sentenceCase('Field Label') === 'Field label' && sentenceCase('Text field') === 'Text field' && sentenceCase('Icons & assets') === 'Icons & assets',
   'call 14: a page name reads in sentence case ("Field Label" → "Field label")');
 ok(GROUPS_COPY.sectionCount('components', 19, 32) === '19 families and sets · 32 sets' && GROUPS_COPY.sectionCount('subcomponents', 7, 9) === '7 entries · 9 sets'
@@ -262,13 +264,15 @@ console.log('\n2b. A box per set, needed sets (#3306, Q3306.1–6 A)');
 const WIRE_SPLITS: [string, string[]][] = [
   ['Buttons', ['button-destructive', 'button-group', 'button-neutral']],
   ['Icon button', ['icon-button', 'icon-button-destructive', 'icon-button-neutral']],
+  // #4112: the toggle pair, two roots on one page.
+  ['Toggle button', ['toggle-button', 'toggle-icon-button']],
   ['Flush icon button', ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral']],
   ['Icons & assets', ['icon', 'provider-logo']],
 ];
 const allRows = groups.flatMap((g) => g.rows);
 const splits = allRows.filter((r) => splitsOf(catalog, r)).map((r) => [r.label, rootsOf(catalog, r.ids)] as [string, string[]]);
 ok(JSON.stringify(splits) === JSON.stringify(WIRE_SPLITS),
-  `Q3306.1 A: the families that split are those with two or more roots, Buttons, Icon button, Flush icon button and Icons & assets, each with its roots (${JSON.stringify(splits)})`);
+  `Q3306.1 A: the families that split are those with two or more roots, Buttons, Icon button, Toggle button, Flush icon button and Icons & assets, each with its roots (${JSON.stringify(splits)})`);
 ok(['Checkbox', 'Radio', 'Switch', 'Tabs', 'Accordion', 'Breadcrumbs', 'Code input'].every((l) => { const r = allRows.find((x) => x.label === l); return r && r.family && !splitsOf(catalog, r); })
   && JSON.stringify(rootsOf(catalog, ['_accordion-indicator', 'accordion'])) === JSON.stringify(['accordion']),
   'Q3306.1 A: a family with one root keeps one box (Checkbox, Radio, Switch, Tabs, Accordion, Breadcrumbs, Code input)');

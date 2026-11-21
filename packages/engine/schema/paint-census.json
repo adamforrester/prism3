@@ -169,6 +169,30 @@
         "sha256": "acde1f2a4a2e5aeea349031ddb32c0533f2150bf9decf1eaeaf788886f446390"
       }
     },
+    "toggle-button": {
+      "set": {
+        "members": 120,
+        "assignments": 330,
+        "sha256": "f7cd54dc9a61ab37958d2552e752290ffac78a400f71750ff833396ea97af07e"
+      },
+      "grid": {
+        "members": 72,
+        "assignments": 234,
+        "sha256": "4713774262a6f80c0b27f9ea393d97c26d244be9dadab04b49cb2d5b679776df"
+      }
+    },
+    "toggle-icon-button": {
+      "set": {
+        "members": 60,
+        "assignments": 141,
+        "sha256": "c213f91a59646b24156e8de98f02e87ccd94dc3463732460ed6329b244bb3acf"
+      },
+      "grid": {
+        "members": 72,
+        "assignments": 168,
+        "sha256": "20d1ea51605f86ef033ca2a63158c14814a018e95b56394e3229c1c538c0a892"
+      }
+    },
     "field-label": {
       "set": {
         "members": 24,

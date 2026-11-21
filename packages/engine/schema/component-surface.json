@@ -326,6 +326,91 @@
       "sha256": "9f310a9f47ce85fdd3eda0744bee64b3ff4c00bd22ecdd31c8433f9a04ede751",
       "properties": []
     },
+    "toggle-button": {
+      "members": 120,
+      "sha256": "d17b1d8cd066b0bffcfea509b63addba33b2714530a3639c302db91a5ee1e658",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@outline-solid-tint": {
+      "members": 120,
+      "sha256": "045ec86cbf79aa5a3592a71895a66cf0aea9f8e24abb79296c17ff955e5b60dc",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@outline-none": {
+      "members": 120,
+      "sha256": "58f727e1593820fc316a2ef360f510e9a96279e145a5bd138b1693e310b601c4",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-default": {
+      "members": 120,
+      "sha256": "c4a1d3d34639ab338114b244f042da979440004c79fb7798b8595fc07d4620fd",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-edges": {
+      "members": 120,
+      "sha256": "35728b3d73cb51411d78c36635446f7a0c1400a19072db294ef1d43eb770fa65",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-smaller": {
+      "members": 120,
+      "sha256": "6b3fba5224bc98fa1829004bed56e8a750bb338ad9ec0a43a056511c7df2e420",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-label-default": {
+      "members": 120,
+      "sha256": "75917d4ebfca16da6d449031a9cf1cce8a57cd93daf64d24a54b4353e4698f10",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-smaller-label-default": {
+      "members": 120,
+      "sha256": "dfdc5b913617e755c6b6285c51cba4c5f198959d46184e94d9fed04658ce9a02",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-text-fill": {
+      "members": 120,
+      "sha256": "2a18d32693a03e1bac2d447a205d82308c95778592836d98e383f1a77deb5eed",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-button@button-text-fill-label-default": {
+      "members": 120,
+      "sha256": "55016835a68041986ac5af7ad5cb45196f9fd12e5e559a09c0c259bbce8a026a",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "toggle-icon-button": {
+      "members": 60,
+      "sha256": "ac1b2704bb2c8983d9e71859e6c81919fa1d8074b0ff9dfc45509a5128a7c44b",
+      "properties": []
+    },
+    "toggle-icon-button@outline-solid-tint": {
+      "members": 60,
+      "sha256": "c451138f2dc74daf81b5975d609c48ed962237d7a31e8f995ac4aabf3ecd61b7",
+      "properties": []
+    },
+    "toggle-icon-button@outline-none": {
+      "members": 60,
+      "sha256": "276b08c6c0607aed92f53ac6b27f4d7983188009dbd95bdb19860bcdb40222ce",
+      "properties": []
+    },
     "field-label": {
       "members": 24,
       "sha256": "a8ca097d3837145eb1348f5e19f0830376c3cc9510c44e2cbc915bae2dbdb9a5",

@@ -47,6 +47,7 @@ import type { ComponentDef } from '../component-schema';
 import { button, buttonDestructive, buttonNeutral } from './button';
 import { iconButton, iconButtonDestructive, iconButtonNeutral } from './icon-button';
 import { flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral } from './flush-icon-button';
+import { toggleButton, toggleIconButton } from './toggle-button';
 import { icon } from './icon';
 import { providerLogo } from './provider-logo';
 import { walletButton } from './wallet-button';
@@ -106,7 +107,7 @@ import { popover } from './popover';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, providerLogo, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tagGroup, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton, signInButton, pageNavItem, pageNav, skeleton, popover };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, toggleButton, toggleIconButton, icon, providerLogo, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tagGroup, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, cardNumberField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination, codeInputCell, codeInput, sliderThumb, slider, walletButton, signInButton, pageNavItem, pageNav, skeleton, popover };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -141,6 +142,10 @@ export const componentDefs: readonly ComponentDef[] = [
   flushIconButton,
   flushIconButtonDestructive,
   flushIconButtonNeutral,
+  // #4112 — the toggle pair (owner OD-T1 to OD-T5 A): Button and IconButton that stay pressed, built from their
+  // factories' paint and spacing. They nest `focus-ring` and swap in `icon`, so they follow the icon buttons.
+  toggleButton,
+  toggleIconButton,
   fieldLabel,
   fieldMessage,
   textField,

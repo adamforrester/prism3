@@ -87,7 +87,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 ## Related components
 
 - **Built from:** `field-label`, `segmented-control-segment`
-- **Instead, consider:** `tabs`, `radio-group`, `select`, `switch-row`, `radio-row`, `button-group`, `counter`, `slider`
+- **Instead, consider:** `tabs`, `radio-group`, `select`, `switch-row`, `radio-row`, `button-group`, `counter`, `slider`, `toggle-button`
 - **Often used with:** `icon`
 - **Replaces:**
   - a radio group restyled as a compact switcher for a view that changes at once

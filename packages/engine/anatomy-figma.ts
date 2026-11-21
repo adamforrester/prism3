@@ -3027,10 +3027,19 @@ const BORDER_WEIGHT_DEFAULT_REF = 'border-width.hairline';
  *  border onto another key or rung would otherwise keep it while this reported the weight applied. */
 const withBorderWeight = (def: ComponentDef, tokens: Record<string, string>, weight: ButtonBorderWeight): Record<string, string> => {
   if (weight === 'hairline') return tokens;
-  if (tokens[BORDER_WEIGHT_KEY] !== BORDER_WEIGHT_DEFAULT_REF)
-    throw new Error(`${def.id}: "Outline button border" rebinds ${BORDER_WEIGHT_KEY} from ${BORDER_WEIGHT_DEFAULT_REF} to border-width.${weight}, and the def binds ${tokens[BORDER_WEIGHT_KEY] ?? 'nothing'} there`);
-  return { ...tokens, [BORDER_WEIGHT_KEY]: `border-width.${weight}` };
+  // A selection-led def (the toggle pair, #4353 decision 3 A) binds its edge per selection value; the setting moves the
+  // one at the hairline (unselected) and leaves a value already at another rung (selected's thick edge) alone.
+  const keys = borderWeightKeys(def).filter((k) => tokens[k] !== undefined);
+  const moved = keys.filter((k) => tokens[k] === BORDER_WEIGHT_DEFAULT_REF);
+  if (!moved.length)
+    throw new Error(`${def.id}: "Outline button border" rebinds ${BORDER_WEIGHT_KEY} from ${BORDER_WEIGHT_DEFAULT_REF} to border-width.${weight}, and the def binds ${keys.map((k) => `${k}: ${tokens[k]}`).join(', ') || 'nothing'} there`);
+  return { ...tokens, ...Object.fromEntries(moved.map((k) => [k, `border-width.${weight}`])) };
 };
+/** The prefixes a def's appearance-led keys carry: none on a button, one per selection value on a selection-led def (the
+ *  toggle pair, `{selection}.{appearance}.{slot}`, #4112). */
+const appearanceKeyPrefixes = (def: ComponentDef): string[] => ['', ...(def.variants?.selection ?? []).map((s) => `${s}.`)];
+/** The keys "Outline button border" may rebind: `border-width`, or one per selection value (`selected.border-width`). */
+const borderWeightKeys = (def: ComponentDef): string[] => appearanceKeyPrefixes(def).map((p) => `${p}${BORDER_WEIGHT_KEY}`);
 
 /** "One step smaller" (#1667): the ONE size whose content moves, and the size it borrows from. Medium only,
  *  and deliberately: New Balance's 44px button (our `size.md.height`) carries a 12px label and a 16px icon,
@@ -3144,11 +3153,13 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   // 5. "Text button hover" (#2324). The def's text appearance keys no wash (the default, "Text & icon only"); under
   //    "Fill" it takes the outline appearance's hover and pressed wash, never a rest one: a text button is never
   //    filled at rest. A brand whose outline method keys no wash (`outlineInteraction: 'none'`) has none to give.
+  //    A selection-led def (ToggleButton, #4353) keys its paint per selection value, so each value's text appearance takes
+  //    its own outline wash: unselected takes Button.Neutral's, and selected, whose tint holds at every state, has none.
   if (layout.textHover === 'fill') {
     tokens = { ...tokens };
-    for (const st of TEXT_FILL_STATES) {
-      const wash = tokens[`outline.overlay.${st}`];
-      if (wash) tokens[`text.overlay.${st}`] = wash;
+    for (const p of appearanceKeyPrefixes(def)) for (const st of TEXT_FILL_STATES) {
+      const wash = tokens[`${p}outline.overlay.${st}`];
+      if (wash) tokens[`${p}text.overlay.${st}`] = wash;
     }
   }
   // 6. "Outline button border" (#576).
@@ -5727,6 +5738,8 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'sign-in-button',
   // #3345: Page navigation and its item, Breadcrumbs' shape.
   'page-nav-item', 'page-nav',
+  // #4112: ToggleButton and ToggleIconButton, sets with headers like Button's and IconButton's.
+  'toggle-button', 'toggle-icon-button',
   // #4109: Skeleton, a set with headers like every other.
   'skeleton',
 ]);

@@ -10,7 +10,7 @@
 
 ## Overview
 
-A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled row: control and rich-content label, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch.Row), not a mutually-exclusive one-of-many (Radio.Group), not an action with a pressed state (a toggle button, not built yet).
+A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled row: control and rich-content label, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch.Row), not a mutually-exclusive one-of-many (Radio.Group), not an action with a pressed state (ToggleButton).
 
 - **Purpose:** Capture an independent binary choice that is staged into a form and submitted, with an associated label that doubles as the hit target and an optional indeterminate state for select-all hierarchy.
 - **Use when:** A single opt-in (consent, "remember me", "include X"), or any-number-from-a-set selection where the change applies on save rather than instantly. The indeterminate state when a parent row summarizes a partially-selected set of children.
@@ -91,7 +91,7 @@ The label states what becomes true when checked. Group errors read "Select at le
 ## Related components
 
 - **Built from:** `checkbox-control`
-- **Instead, consider:** `switch-row`, `radio-row`, `text-field`
+- **Instead, consider:** `switch-row`, `radio-row`, `text-field`, `toggle-button`
 - **Often used with:** `checkbox-group`, `field-label`, `field-message`, `focus-ring`, `button`
 - **Replaces:**
   - a bare `<input type="checkbox">` with no label wiring
