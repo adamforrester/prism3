@@ -134,6 +134,7 @@ export const leverManifest: Lever[] = [
   // it was measured on. Its home in the Studio is Surfaces & fills, under the contrast floor, marked advanced.
   { key: 'interactiveGround', group: 'color', kind: 'value', label: 'Controls sit on', control: 'enum', default: 'floor', advanced: true,
     options: enumOpts(['floor', 'Every surface'], ['page', 'The page only']),
+    tip: 'Where controls keep 3:1: on every surface, or on the page only, so a few run lighter.',
     description: 'Which surfaces buttons, fields and other controls may sit on. Every surface keeps their colors at 3:1 on cards and on the second and third backgrounds. The page only measures them on the page background, so field borders, disabled text and the destructive outline can run a step lighter, and cards on another step carry no contrast promise for controls. High-contrast modes keep every surface.' },
   // `secondaryTextGround` (owner Q-TXT1 A) is deliberately not a lever (owner Q3212.7 A): a brand-fit setting with an accessibility cost, authored in the brand input, not flipped on a slider.
   // #3073 (owner Q806, Q807 A) — label and description are a DRAFT for the owner (on the build PR). It adds roles, it

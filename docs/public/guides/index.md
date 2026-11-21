@@ -2,7 +2,7 @@
 
 <!-- DRAFT for owner review (#2637, lane 4; rewritten around Update file for #3264). Every factual claim cites its source in an HTML comment of the form `src: path:line`, and a claim that quotes nothing carries the cited block's fingerprint (`src: path:line#1a2b3c4d`, #3417), and `lint-guide-claims.ts` checks that each still resolves and still holds what the claim quotes. -->
 
-Prism3 generates a brand's design tokens from a small set of choices: a primary color, a neutral, type, shape, motion and a few more. <!-- src: packages/engine/levers.ts:379-387#6e625336 -->
+Prism3 generates a brand's design tokens from a small set of choices: a primary color, a neutral, type, shape, motion and a few more. <!-- src: packages/engine/levers.ts:380-388#6e625336 -->
 You make those choices in the Prism3 studio, either on the web or inside the Figma plugin, and the preview updates as you go. <!-- src: apps/plugin/src/ui/entry.ts:10-38#6258203d -->
 The engine checks every text and fill pairing it generates against a contrast floor, such as 4.5:1 for body text, in every mode the brand ships. <!-- src: packages/engine/mcp.ts:332-337#787f0dc9 -->
 Secondary text, status text and link colors are checked on the contrast floor surface, which is `background.secondary` unless the brand moves it, and on every surface nearer the page. Deeper surfaces, such as `background.tertiary`, carry no text promise; a brand that needs text there moves the floor, and each of those colors is picked again to clear it. <!-- src: packages/engine/modes.ts:404-452 --> <!-- src: packages/engine/test.ts:830-855 -->
