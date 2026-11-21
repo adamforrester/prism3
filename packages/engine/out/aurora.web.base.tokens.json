@@ -3158,10 +3158,25 @@
           "$value": "640ms",
           "$description": "duration primitive — 640ms (literal; the semantic tier names the use)"
         },
+        "720": {
+          "$type": "duration",
+          "$value": "720ms",
+          "$description": "duration primitive — 720ms (literal; the semantic tier names the use)"
+        },
         "800": {
           "$type": "duration",
           "$value": "800ms",
           "$description": "duration primitive — 800ms (literal; the semantic tier names the use)"
+        },
+        "880": {
+          "$type": "duration",
+          "$value": "880ms",
+          "$description": "duration primitive — 880ms (literal; the semantic tier names the use)"
+        },
+        "1040": {
+          "$type": "duration",
+          "$value": "1040ms",
+          "$description": "duration primitive — 1040ms (literal; the semantic tier names the use)"
         },
         "1600": {
           "$type": "duration",
@@ -3205,6 +3220,21 @@
           "$value": "{ads.motion.duration-ms.640}",
           "$description": "motion duration slower — 640ms (tempo: snappy)"
         },
+        "long": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.720}",
+          "$description": "motion duration long — 720ms (tempo: snappy)"
+        },
+        "longer": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.880}",
+          "$description": "motion duration longer — 880ms (tempo: snappy)"
+        },
+        "longest": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.1040}",
+          "$description": "motion duration longest — 1040ms (tempo: snappy)"
+        },
         "spin": {
           "$type": "duration",
           "$value": "{ads.motion.duration-ms.800}",
@@ -3246,6 +3276,21 @@
           "$type": "duration",
           "$value": "{ads.motion.duration-ms.0}",
           "$description": "reduce-motion slower — 0ms (eliminated — substitute a cross-fade)"
+        },
+        "long": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.0}",
+          "$description": "reduce-motion long — 0ms (eliminated — substitute a cross-fade)"
+        },
+        "longer": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.0}",
+          "$description": "reduce-motion longer — 0ms (eliminated — substitute a cross-fade)"
+        },
+        "longest": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.0}",
+          "$description": "reduce-motion longest — 0ms (eliminated — substitute a cross-fade)"
         },
         "spin": {
           "$type": "duration",
@@ -4568,12 +4613,12 @@
       "round": {
         "$type": "dimension",
         "$value": "{ads.core.dimension.128}",
-        "$description": "radius round — 128px (pill)"
+        "$description": "radius round — 128px (pill. For small fixed-size parts, such as a switch track, a radio or a badge count. A pill button binds `radius.capsule`)"
       },
       "capsule": {
         "$type": "dimension",
         "$value": "999px",
-        "$description": "radius capsule — 999px (off-grid literal)"
+        "$description": "radius capsule — 999px (off-grid literal. The pill a button binds under `controlShape: pill`, full at any height. Small fixed-size parts bind `radius.round`)"
       },
       "hairline": {
         "$type": "dimension",

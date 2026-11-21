@@ -2751,12 +2751,10 @@ await refusedStructure('combineAsVariants', { combine: true });
 // `parent` each parked node actually ended up with. The two derivations are then asserted to AGREE — a
 // marking that reported 648 parked while parenting 3 is the failure this arrangement exists to catch.
 //
-// AND WHAT THIS HARNESS CANNOT SEE, stated because it is the reason no existing gate caught the litter in
-// the first place: `mkNode` never appends to `page`, so a node created here is not on the shim's page the
-// way it is on Figma's. The page-parenting premise is measured in the standalone instrument
-// (`measure-913.ts`, attached to the filed issue), not here. The consequence shows up below — after a
-// refused `combineAsVariants` the shim's page array still lists the members it re-parented — so the
-// re-parenting is read off `node.parent`, which the shim does model, rather than off the page.
+// WHAT THIS HARNESS COULD NOT SEE until #971: a node created here was not on the shim's page the way it is on
+// Figma's, so no gate could read what a throw left on the canvas. The shim now parents each created node to the page
+// and takes it off when it is placed; the #971 arms after this block read the page itself. The arms below still read
+// the re-parenting off `node.parent` and the frame, which they always could.
 
 // ---- REGIME 1: the small one, and the ORDINARY client failure -------------------------------
 // A host that refuses a STRUCTURE call (`createText`; since #982 the missing-typeface case is a property miss
@@ -2893,6 +2891,45 @@ const earlyFacts = partialWriteOf(earlyErr);
 ok(earlyErr !== null && (earlyFacts === null || earlyFacts.loose === 0),
   `#913 the same holds when it is the HOST that refused the first node (${earlyFacts === null ? 'no facts' : earlyFacts.loose + ' loose'})`);
 ok(nothingPage.children.length === 0, `#913 ...and nothing was put on that page either (${nothingPage.children.length})`);
+
+// ---- #971: THE SHIM PARENTS A CREATED NODE TO THE PAGE, AS THE HOST DOES ------------------------
+// Figma puts a node on the current page the moment `createFrame` / `createText` / `createNodeFromSvg` /
+// `createInstance` returns it. The shim did not, so what a throw left on the canvas was not expressible here: every
+// #913 arm above reads the trail's frame, never the page. THE PREMISE first, on a fresh shim: each create lands on the
+// page with the page as its parent, and appending it anywhere takes it off. THEN THE PAGE ITSELF after a run whose
+// combine and marking were both refused: the members are loose on it, read off the page alone, and they number what
+// the plans asked for (that arm held before #971 too: the executor itself puts each member on its page before the
+// combine, so it pins the page read rather than the change). Mutations: `created` not pushing onto the page →
+// `#971 created on the page`; the set's `appendChild` keeping a page parent → `test-reactions.ts`'s `replaced/apply`;
+// `combineAsVariants` not detaching its members → `#971 combined off the page` and `#971 combined out of a frame`.
+{
+  const pg: Page = { children: [] };
+  const api = makeShim({ ...full(), page: pg }) as unknown as { createFrame(): Node; createText(): Node; createNodeFromSvg(s: string): Node; currentPage: unknown };
+  const made = [api.createFrame(), api.createText(), api.createNodeFromSvg('<svg width="4" height="4"><path d="M0 0L4 4"/></svg>')];
+  ok(made.every((n) => pg.children.includes(n) && n.parent === api.currentPage),
+    `#971 created on the page: a created frame, text and SVG import sit on the current page, parented to it (${pg.children.length} on the page)`);
+  (made[0].appendChild as (c: Node) => void)(made[1]);
+  ok(!pg.children.includes(made[1]) && made[1].parent === made[0] && pg.children.length === 2,
+    `#971 ...and a node appended into a frame leaves the page (${pg.children.length} on the page)`);
+  const looseOnPage = cannotMarkPage.children.filter((c) => c.type === 'COMPONENT');
+  ok(looseOnPage.length === grid.length && new Set(looseOnPage.map((c) => String(c.name))).size === grid.length,
+    `#971 left on the page: a run whose combine and marking were refused leaves the ${grid.length} members loose on the page itself, read off the page (${looseOnPage.length} components on it)`);
+  // THE COMBINE TAKES ITS MEMBERS OFF THE PAGE (#971's control row: "1 (the set)"). A clean build on a fresh page
+  // leaves exactly one top-level node, the set, holding every member the plans asked for, each parented to it and
+  // none of them also loose beside it. Expected from the plans (`grid.length`), read off the page alone.
+  const top = cleanPage.children;
+  const set = top[0];
+  ok(top.length === 1 && set.type === 'COMPONENT_SET' && (set.children as Node[]).length === grid.length
+      && (set.children as Node[]).every((m) => m.parent === set && !top.includes(m)),
+    `#971 combined off the page: a clean build leaves exactly one top-level node, the set, with its ${grid.length} members inside it and none loose (${top.length} on the page: ${JSON.stringify(top.map((c) => c.type))})`);
+  // ...and off any other parent: a member that sits in a frame when it is combined leaves that frame for the set.
+  const holder = api.createFrame();
+  const member = api.createFrame();
+  (holder.appendChild as (c: Node) => void)(member);
+  const combined = (api as unknown as { combineAsVariants(m: Node[], p: unknown): Node }).combineAsVariants([member], api.currentPage);
+  ok(!(holder.children as Node[]).includes(member) && member.parent === combined && !pg.children.includes(member),
+    `#971 combined out of a frame: a member combined from inside a frame leaves it for the set (${(holder.children as Node[]).length} left in the frame)`);
+}
 
 // =============================================================================================
 // #1011 — THE SELECTION CONTROL'S BOX, READ OFF THE NODE THE EXECUTOR BUILT

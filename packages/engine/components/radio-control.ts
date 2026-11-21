@@ -388,10 +388,12 @@ export const radioControl: ComponentDef = {
   docs: {
     usage: 'Do not place this on its own. It is the circle Radio.Row nests, so a fix to its border weight or its dot geometry reaches the row without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring.',
     do: [
+      'Supply an external `aria-label` only when using the control genuinely alone',
+    ],
+    implementation: [
       'Nest this from Radio.Row rather than redrawing the circle per host',
       'Let the host row expose selection and state and follow its size, so the nested control tracks the row',
       'Let the inner circle and the ring recolor carry the selection; the ring border stays constant in weight across states, going brand-colored (not thicker) on select',
-      'Supply an external aria-label only when using the control genuinely alone',
     ],
     dont: [
       'Place a bare circle as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target',
