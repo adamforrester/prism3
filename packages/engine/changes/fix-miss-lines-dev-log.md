@@ -1,0 +1,4 @@
+---
+engine: patch
+---
+A component build's engine-internal miss lines (`<part>.<field> -> UNCLAIMED`, `-> DISCARDED`, issue numbers) leave the designer's screen: Activity shows one line per set ("⚠ N bindings Prism3 couldn't make."), and each line goes to the console, with the first 20 per set in the in-memory run log the agent link reads while the plugin is open (#4185 B, owner option b). The summary's miss count no longer counts `ALREADY PRESENT` or `STALE` lines. Update file's verdict is not yet covered (#4370). The set's line on screen is its variants and axes; the grid, size, properties and links go to the console. Apply theme's summary writes "Layout:", "Type: N fonts, N font variables" and "Motion: N variables" for the abbreviations, and labels its other axis lines "Palette:", "Color:" and "Styles:". No committed artifact changes.
