@@ -256,7 +256,7 @@ const want = ['provider-logo/payment/generic', 'provider-logo/provider/apple', '
 // The one warning allowed is the shim's own: it sizes a vector from the path's numbers read as alternating x and y, so a
 // non-square mark reads back as drift Figma's importer does not have (`test-update-apply.ts`, THE PROVIDER LOGOS).
 const lines: string[] = u?.lines ?? [];
-const shimDrift = (l: string): boolean => /^provider-logo: \d+ fields still differ from the plan — /.test(l);
+const shimDrift = (l: string): boolean => /^provider-logo: \d+ fields still differ from what Prism3 expects — /.test(l);
 ok(/^[✓⚠] Updated 5 sets/.test(String(u?.headline)) && lines.includes('provider-logo: 75 updated in place, 11 added.')
   && [...NESTING, TAB].every((id) => lines.some((l) => new RegExp(`^${id}: \\d+ updated in place\\.$`).test(l)))
   && !lines.some((l) => /stopped|refused|can’t|not in this file/i.test(l)) && lines.filter((l) => / still differ /.test(l)).every(shimDrift)

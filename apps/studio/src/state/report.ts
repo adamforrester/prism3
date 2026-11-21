@@ -162,7 +162,7 @@ export const scrub = (text: string, words: readonly BrandWord[] = []): string =>
 
 /** A failure line the plugin posts when a write or a prune throws: `write failed: <Class>: <host message>`
  *  (`failureDetail` in `plugin/src/apply-summary.ts`). The class is one word, then `:`, `.` (a build note follows) or the end. */
-const FAILED = /^((?:write|prune) failed): (?:([A-Za-z][A-Za-z0-9]*)(?=[:.]|$))?[\s\S]*$/;
+const FAILED = /^((?:write|Clean up) failed): (?:([A-Za-z][A-Za-z0-9]*)(?=[:.]|$))?[\s\S]*$/;
 
 /** A failure line as the report carries it: the error's class alone (`write failed: TypeError`), never the host's
  *  message (#3697 H4, D3703.1 B). The Activity drawer shows the message, so the designer keeps Figma's reason, but the
@@ -186,7 +186,7 @@ const CLASS = '[A-Za-z][A-Za-z0-9]*';
  *  #4205 Update file's lines in `update-apply.ts` and `canvas-furniture.ts`).
  *  `test-report-redaction.ts` holds this list against every `failureDetail(` site in the plugin's source. */
 export const DETAIL_HEADS: readonly string[] = [
-  'component build failed: ', 'file setup failed: ', 'style guide failed: ', 'read-back failed: ', 'Cleanup failed: ',
+  'component build failed: ', 'file setup failed: ', 'style guide failed: ', 'read-back failed: ', 'Clean up failed: ',
   'Figma refused the write (', 'the engine could not plan it (', 'the named version could not be saved (',
   // #4205: Update file's stopped set (`<set>: stopped (…)`) and its run that threw (`The update failed: …`).
   ': stopped (', 'The update failed: ',
@@ -216,13 +216,13 @@ const reduceRefused = (l: string): string => {
   }
   return `${l.slice(0, from)}${REDACTED})`;
 };
-/** A prune that threw after removals began (`PRUNE_COPY.stopped`, `prune-figma.ts`): `Prune stopped — <detail>. <counts>`,
+/** A prune that threw after removals began (`PRUNE_COPY.stopped`, `prune-figma.ts`): `Clean up stopped — <detail>. <counts>`,
  *  the detail in `failureDetail` form (#3865). The counts are the part a report needs (a half-pruned file must not read
  *  as 0 removed, #3697 R6), and they follow the host's message, which can hold `. ` itself. So the report keeps the
  *  class and the counts and drops the message between them: the counts are matched by their own closed grammar, anchored
  *  at the line's end, so only digits and the copy's own words can survive in that place, never a host's text. A line
  *  whose counts do not read that way (the copy changed) keeps the class alone: it loses the counts, never leaks. */
-const STOPPED_HEAD = 'Prune stopped — ';
+const STOPPED_HEAD = 'Clean up stopped — ';
 const STOPPED_PART = '\\d+ (?:style|mode|variable|collection)s?';
 const STOPPED = new RegExp(`^${STOPPED_HEAD}(${CLASS})(?:: [\\s\\S]*?)?\\. (Removed \\d+ stale items? before it stopped: ${STOPPED_PART}(?:, ${STOPPED_PART})*\\.|Nothing was removed\\.)$`);
 const STOPPED_BARE = new RegExp(`^${STOPPED_HEAD}(${CLASS})(?=[:.]|$)[\\s\\S]*$`);
@@ -302,7 +302,7 @@ export const REPORT_COPY = {
   fieldEngine: 'Engine',
   fieldHost: 'Host',
   hostFigma: 'Figma plugin',
-  hostWeb: 'Web studio',
+  hostWeb: 'Web Studio',
   bodyActivity: '### Recent activity',
   noActivity: '- Nothing has run in this session.',
   byAgent: 'agent',

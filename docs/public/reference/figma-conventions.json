@@ -315,6 +315,12 @@
             "components": [
               "spinner"
             ]
+          },
+          {
+            "name": "↳ Skeleton",
+            "components": [
+              "skeleton"
+            ]
           }
         ]
       },
@@ -3524,6 +3530,34 @@
         "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/page-nav.md"
       },
       {
+        "id": "skeleton",
+        "name": "Skeleton",
+        "figmaName": "skeleton",
+        "kind": "component set",
+        "page": "↳ Skeleton",
+        "section": "Subcomponents",
+        "members": 4,
+        "variantProperties": [
+          {
+            "name": "shape",
+            "values": [
+              "text",
+              "circle",
+              "rect"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/prism-ds/prism3/blob/main/packages/engine/out/components/skeleton.md"
+      },
+      {
         "id": "popover",
         "name": "Popover",
         "figmaName": "popover",
@@ -3950,7 +3984,8 @@
       "wallet-button",
       "sign-in-button",
       "page-nav-item",
-      "page-nav"
+      "page-nav",
+      "skeleton"
     ],
     "templates": [
       {

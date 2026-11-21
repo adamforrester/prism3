@@ -647,7 +647,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     // stops reading as secondary wayfinding. Page navigation and its item join it (#3345, Q8 A): Breadcrumbs' pair, one
     // line of 14 or 16px body text. Badge joins it (#2983, owner direction 2026-10-24): the status label's
     // compact size beside today's, and nothing above it.
-    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress', 'badge', 'page-nav', 'page-nav-item'],
+    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress', 'badge', 'page-nav', 'page-nav-item', 'skeleton'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '
@@ -704,6 +704,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'reads the same to a designer (round) without the sets being one ladder. `circular` is the brief\'s own word '
       + '(`variant: linear | circular`), the approved proposal\'s axis table, and MUI\'s `CircularProgress`. `linear` '
       + 'LEADS because it is the code default and Figma\'s default member (owner Q347).',
+  },
+  {
+    axis: 'shape',
+    values: ['text', 'circle', 'rect'],
+    defs: ['skeleton'],
+    relation: 'disjoint',
+    reason:
+      'Skeleton\'s three placeholders (#4109, owner decisions OD-S2 A and OD-S6 A): lines of text, a circle for an avatar, '
+      + 'a rectangle for media or a card. A whole drawing per value, like Progress\'s and unlike IconButton\'s corner '
+      + 'silhouette. DISJOINT, with one near-overlap named on purpose: `circle` here and `circular` on IconButton and '
+      + 'Progress both read as round. The approved proposal spells it `circle`, the brief\'s word, and the two sets never '
+      + 'meet on one def. `text` LEADS because it is the code default, so Figma\'s inserted member is the text skeleton.',
   },
   {
     axis: 'style',

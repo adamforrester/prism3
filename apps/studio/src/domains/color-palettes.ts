@@ -41,6 +41,8 @@ const oklchMeta = (o: { l: number; c: number; h: number }): string =>
 
 /** The page the Continue button opens: the next Color sub-page, by the store's page key (S4a moved it). */
 const NEXT = { label: 'Surfaces & fills', page: 'fills' } as const;
+/** #2206: the pinned neutral's state line, which describes the hue and chroma readout sliders. */
+const PINNED_STATE_ID = 'p3-neutral-pinned-state';
 
 type Drawn = { block: LeverBlock; keys: readonly string[]; sync: () => void };
 
@@ -232,6 +234,9 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
       const ch = slider('neutral.chroma', 'neutral-chroma-slider', chL.label, (v) => edit('neutral.chroma', () => setNeutralChroma(v)));
       ch.el.disabled = pinned || follow;
       b.ctl.append(ch.el);
+      // #2206: pinned, the two sliders are the pinned color's readout, drawn disabled. The state line under the hue says
+      // so, and it describes both, so a screen reader hears why they are unavailable and what their values are.
+      if (pinned) for (const s of [hue.el, ch.el]) s.setAttribute('aria-describedby', PINNED_STATE_ID);
       return [
         { block: a, keys: ['neutral.hue'], sync: () => {
           const n = brandState.neutral;
@@ -247,7 +252,9 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
           hue.set(h0);
           if (readout === NO_HUE) hue.el.setAttribute('aria-valuetext', NO_HUE);
           a.setReadout(readout);
-          a.setState(n.anchor ? stateLine(`A pinned neutral sets the ramp: ${hexOf(n.anchor)}. Hue and chroma are its readout.`) : null);
+          const line = n.anchor ? stateLine(`A pinned neutral sets the ramp: ${hexOf(n.anchor)}. Hue and chroma are its readout.`) : null;
+          if (line) line.id = PINNED_STATE_ID;
+          a.setState(line);
         } },
         ...(p && cf ? [{ block: p, keys: ['neutral.anchor'], sync: () => {
           const anc = brandState.neutral.anchor;

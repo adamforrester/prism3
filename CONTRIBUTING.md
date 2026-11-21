@@ -1798,7 +1798,11 @@ npm run check:shadcn -w @prism3/tokens        # #2997 gate 5: the engine's Tailw
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component
-                                          # defs' description/note/aria prose actually ships
+                                          # defs' description/note/aria prose actually ships.
+                                          # Both prose gates also read packages/engine/changes/*.md
+                                          # (Q181 A, #3574), so a note is clean before it merges; a
+                                          # release page's carried notes ("In detail") are then the
+                                          # dated record, like CHANGELOG.md, and are not re-read
 npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here.
                                           # Same bundle scope since #948: it reads
                                           # apps/plugin/dist (main.js + ui.html) too, the hole

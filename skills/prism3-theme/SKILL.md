@@ -66,7 +66,7 @@ minimal — read both, they are the reference; the directory also holds a standa
 |---|---|---|
 | `root` | string (default `prism`) | the brand needs its own token namespace (`nbds`, …) |
 | `brandColors` | `[{ name, oklch: {l,c,h} }]` | the brand has accents beyond the hero |
-| `actionPalette` | a `brandColors` name | interactive UI runs on an **accent**, not the hero (decouple) |
+| `actionPalette` | `primary` \| `neutral` \| a `brandColors` name | interactive UI runs on an **accent**, not the hero (decouple), or on a near-black or gray (`neutral`). Defaults to `primary` |
 | `linkPalette` | `primary` \| `neutral` \| a `brandColors` name | links need their **own** color, independent of actions. Defaults to following the action color; the ink is still rated to its contrast floor. A palette that is not color-distinct from body text (e.g. `neutral`) is flagged in the notes to underline links for WCAG 1.4.1 — pair it with `typography.links` |
 | `status` | `{ success/warning/danger/info: {l,c,h,chroma} }` | the brand *specifies* status hues; omit any (or all) to let the engine synthesize + carve a danger red |
 | `surfaces` | `{ light: { base: 50 } }` | the page is a **tinted off-white**, not pure white (the contrast floor moves with it). `floorStep` sets the floor itself: every floor-gated text and link ink (all but `*.primary`) is promised its bar on the floor surface and anything nearer the page, and nothing deeper. To put text on `background.tertiary`, set `floorStep` to its step and the inks re-derive |
@@ -236,7 +236,8 @@ Then run the compile loop. Say in the prose which picks the report left open, so
 ## If you have the MCP surface
 
 `list_levers` enumerates the knobs and their allowed values. `theme_from_brief` takes a
-`design.md` brief (frontmatter and prose) directly — the callable form of this skill's loop.
+`design.md` brief in either dialect directly — the callable form of this skill's loop. For a
+standard brief it also returns `xWarnings`, the `x-prism3:` keys and typography faces it skipped, as the CLI prints them.
 `theme_brand` compiles a `BrandInput` you already hold. Both return the contract results,
 alias integrity and the notes by default; the token tree and the `.ai.json` come back only
 when asked for with `include`, and they are large. To get the actual files, call

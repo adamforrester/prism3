@@ -42,6 +42,7 @@
     { "file": "test-collisions.ts", "floor": 22 },
     { "file": "test-name-refs.ts", "floor": 460 },
     { "file": "test-voice-copy.ts", "floor": 33 },
+    { "file": "test-canonical-names.ts", "floor": 28 },
     { "file": "test-legacy-input.ts", "floor": 23 }
   ],
   "elsewhere": {}

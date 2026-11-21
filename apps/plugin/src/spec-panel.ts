@@ -149,7 +149,7 @@ export const planSpecDef = (authored: ComponentDef, def: ComponentDef = authored
   sections.push({ id: 'anatomy', title: 'Anatomy', blocks: anat });
 
   // SPACING AND SIZE: per size, without and with a leading visual.
-  const spacing: SpecBlock[] = [{ type: 'Paragraph', text: 'Labels read variable · px, where the px is this file\'s.' }];
+  const spacing: SpecBlock[] = [{ type: 'Paragraph', text: 'Each label reads variable · its px value in this file.' }];
   const keyDefault = (ax: string): string | undefined => spec.axes.find((x) => x.name === ax)?.values[0];
   for (const c of redlineCases(spec)) {
     const want: Record<string, string> = {};
@@ -244,7 +244,7 @@ export const planSpecPanel = (lead: ComponentDef, opts: { materialize?: (d: Comp
   const body = {
     def: lead.id,
     title: `${lead.name} specs`,
-    lede: 'Drawn from the plan that builds each set. A value is a variable unless it is marked derived or literal.',
+    lede: 'Each value is a variable unless it\'s marked derived (computed from others) or literal (a fixed number).',
     defs,
   };
   const s = JSON.stringify(body);

@@ -259,7 +259,7 @@ ok(hr.skipped.every((s) => s.reason.endsWith('(TypeError)') && !s.reason.include
 ok(normStyle('Semi Bold') === normStyle('SemiBold') && normStyle('semi-bold') === 'semibold',
   '#499 normStyle: space/case/hyphen-insensitive (Semi Bold ≡ SemiBold ≡ semi-bold)');
 
-// The measured pairs, in the direction that was actually failing: the plan says spaced, the family
+// The measured pairs, in the direction that was actually failing: Prism3 expects spaced, the family
 // spells it tight. These are the real style lists for these families (confirmed by loadFontAsync).
 ok(resolveFontStyle(['Regular', 'SemiBold', 'Bold'], 'Semi Bold') === 'SemiBold',
   '#499 Roboto/Open Sans spell it SemiBold — a plan asking for `Semi Bold` now resolves');
