@@ -1,7 +1,7 @@
 {
-  "$schema": "prism3-component-docs/1.1",
+  "$schema": "prism3-component-docs/1.2",
   "generated": true,
-  "engineVersion": "0.238.0",
+  "engineVersion": "0.239.0",
   "note": "Documentation for every registered component, projected from its definition — the same source the design-file component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API. `syncBoundary` lists what the design file does not fully carry, each item a class and a disposition.",
   "components": {
     "icon": {
@@ -207,6 +207,7 @@
           "Pass a raw hex color — that moves contrast enforcement out to the call site",
           "Draw a one-off glyph outside the set; it misses the set's grid, sizes and names"
         ],
+        "implementation": [],
         "contentGuidelines": "Name a meaningful icon for the concept or the action it fires, in a word or two, matching what the glyph shows (\"Search\", \"Delete\") rather than the asset's file name. A decorative icon takes no name. Choose a glyph whose metaphor is widely understood, and keep a visible label beside one your users may not know."
       },
       "ai": {
@@ -541,6 +542,7 @@
           "Use a mark as the only way to say which provider, card or network is meant",
           "Use a mark for any purpose other than identifying that provider's service"
         ],
+        "implementation": [],
         "contentGuidelines": "Name an informative mark with the provider's own name, spelled the way the provider spells it. A decorative mark takes no name."
       },
       "ai": {
@@ -676,10 +678,7 @@
       "docs": {
         "usage": "Build this component first, then leave it to hosts: every focusable component nests it by name. Don't place it in a layout. In code it is an outline with an outline offset, so it survives forced-colors mode.",
         "do": [
-          "Nest the shared ring rather than re-authoring a focus treatment per component",
-          "Pick the inverse surface on a dark or brand-filled ground, where the default ring loses its 3:1 separation",
-          "Pick the field offset for inputs, whose own border already supplies the separation",
-          "Keep the ring outside the host's bounds and the host un-clipped, so the ring is never cut off (2.4.7)"
+          "Pick the inverse surface on a dark or brand-filled ground, where the default ring loses its 3:1 separation"
         ],
         "dont": [
           "Draw the ring on the host's own border — an outline appearance then has to give up its border for it, and the two contend for one stroke at different palette steps",
@@ -687,6 +686,11 @@
           "Render it for `:focus` rather than `:focus-visible` — a ring after every mouse click trains users to ignore it",
           "Implement it as a `box-shadow`: shadows are dropped in forced-colors mode and the indicator vanishes for the users who need it most",
           "Make it focusable or give it an ARIA role — it is presentational"
+        ],
+        "implementation": [
+          "Nest the shared ring rather than re-authoring a focus treatment per component",
+          "Pick the field offset for inputs, whose own border already supplies the separation",
+          "Keep the ring outside the host's bounds and the host un-clipped, so the ring is never cut off (2.4.7)"
         ],
         "contentGuidelines": "The ring carries no text of its own. The accessible name and any message shown on focus belong to the control it surrounds."
       },
@@ -963,16 +967,7 @@
           "Lead with a verb, name the object (\"Publish post\", not \"Submit\")",
           "Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing",
           "Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
-          "Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered",
-          "Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button",
-          "Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button",
-          "On a brand whose `buttonContentSize` is `smaller` (Small), give a medium button the small size's label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own",
-          "On a brand whose `buttonLabelWeight` is `default` (Default), set every size's label in the `default` weight of its label style (`type.label.sm.default`, `type.label.md.default`, `type.label.lg.default`) instead of `emphasis`; with Small, a medium button takes `type.label.sm.default`",
-          "Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting",
-          "Never fill a button at appearance=text at rest; under the brand's `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed",
-          "On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it",
           "Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and, at medium and large sizes, extend its hit area to at least 44×44px with a transparent `::before` inset outward and centered on the label, so the target clears 44px while the box stays label-width; extend it the same way to at least 24×24px at small",
-          "Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding the fill would hug the label; only its label and icon colors change",
           "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant"
         ],
         "dont": [
@@ -981,6 +976,17 @@
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
+        ],
+        "implementation": [
+          "Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered",
+          "Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button",
+          "Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button",
+          "On a brand whose `buttonContentSize` is `smaller` (Small), give a medium button the small size's label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own",
+          "On a brand whose `buttonLabelWeight` is `default` (Default), set every size's label in the `default` weight of its label style (`type.label.sm.default`, `type.label.md.default`, `type.label.lg.default`) instead of `emphasis`; with Small, a medium button takes `type.label.sm.default`",
+          "Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting",
+          "Never fill a button at appearance=text at rest; under the brand's `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed",
+          "On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it",
+          "Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding the fill would hug the label; only its label and icon colors change"
         ],
         "contentGuidelines": "Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound text expansion in translation."
       },
@@ -1291,16 +1297,7 @@
           "Lead with a verb, name the object (\"Publish post\", not \"Submit\")",
           "Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing",
           "Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
-          "Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered",
-          "Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button",
-          "Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button",
-          "On a brand whose `buttonContentSize` is `smaller` (Small), give a medium button the small size's label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own",
-          "On a brand whose `buttonLabelWeight` is `default` (Default), set every size's label in the `default` weight of its label style (`type.label.sm.default`, `type.label.md.default`, `type.label.lg.default`) instead of `emphasis`; with Small, a medium button takes `type.label.sm.default`",
-          "Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting",
-          "Never fill a button at appearance=text at rest; under the brand's `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed",
-          "On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it",
           "Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and, at medium and large sizes, extend its hit area to at least 44×44px with a transparent `::before` inset outward and centered on the label, so the target clears 44px while the box stays label-width; extend it the same way to at least 24×24px at small",
-          "Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding the fill would hug the label; only its label and icon colors change",
           "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant",
           "Place it beside a neutral escape (\"Cancel\" / \"Keep\"), never alone; on a delete confirmation the safe choice is often the filled button and the destructive action sits at a lower appearance beside it"
         ],
@@ -1310,6 +1307,17 @@
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
+        ],
+        "implementation": [
+          "Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered",
+          "Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button",
+          "Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button",
+          "On a brand whose `buttonContentSize` is `smaller` (Small), give a medium button the small size's label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own",
+          "On a brand whose `buttonLabelWeight` is `default` (Default), set every size's label in the `default` weight of its label style (`type.label.sm.default`, `type.label.md.default`, `type.label.lg.default`) instead of `emphasis`; with Small, a medium button takes `type.label.sm.default`",
+          "Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting",
+          "Never fill a button at appearance=text at rest; under the brand's `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed",
+          "On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it",
+          "Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding the fill would hug the label; only its label and icon colors change"
         ],
         "contentGuidelines": "Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound text expansion in translation."
       },
@@ -1619,16 +1627,7 @@
           "Lead with a verb, name the object (\"Publish post\", not \"Submit\")",
           "Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing",
           "Set `surface=inverse` for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground",
-          "Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered",
-          "Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button",
-          "Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button",
-          "On a brand whose `buttonContentSize` is `smaller` (Small), give a medium button the small size's label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own",
-          "On a brand whose `buttonLabelWeight` is `default` (Default), set every size's label in the `default` weight of its label style (`type.label.sm.default`, `type.label.md.default`, `type.label.lg.default`) instead of `emphasis`; with Small, a medium button takes `type.label.sm.default`",
-          "Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting",
-          "Never fill a button at appearance=text at rest; under the brand's `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed",
-          "On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it",
           "Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and, at medium and large sizes, extend its hit area to at least 44×44px with a transparent `::before` inset outward and centered on the label, so the target clears 44px while the box stays label-width; extend it the same way to at least 24×24px at small",
-          "Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding the fill would hug the label; only its label and icon colors change",
           "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant"
         ],
         "dont": [
@@ -1637,6 +1636,17 @@
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)",
           "Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity"
+        ],
+        "implementation": [
+          "Place the icons the way the brand's `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered",
+          "Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button",
+          "Give every size a minimum width of its height × the brand's `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button",
+          "On a brand whose `buttonContentSize` is `smaller` (Small), give a medium button the small size's label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own",
+          "On a brand whose `buttonLabelWeight` is `default` (Default), set every size's label in the `default` weight of its label style (`type.label.sm.default`, `type.label.md.default`, `type.label.lg.default`) instead of `emphasis`; with Small, a medium button takes `type.label.sm.default`",
+          "Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting",
+          "Never fill a button at appearance=text at rest; under the brand's `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed",
+          "On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it",
+          "Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding the fill would hug the label; only its label and icon colors change"
         ],
         "contentGuidelines": "Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound text expansion in translation."
       },
@@ -1859,6 +1869,7 @@
           "Write your own wording on a wallet button",
           "Make one wallet button smaller than the others beside it"
         ],
+        "implementation": [],
         "contentGuidelines": "The provider's wording, in the provider's language handling. Nothing to write."
       },
       "ai": {
@@ -2095,6 +2106,7 @@
           "Write your own wording, or show the provider's glyph without its words",
           "Make one provider's button smaller or quieter than the others beside it"
         ],
+        "implementation": [],
         "contentGuidelines": "Pick one wording from the provider's list and use it on every button in the stack. Translate the words around the provider's name; never translate the name."
       },
       "ai": {
@@ -2363,13 +2375,15 @@
         "usage": "Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.",
         "do": [
           "Always give it an accessible name (a verb)",
-          "Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead",
-          "Expand the hit area to meet target-size minimums even when the icon is visually small"
+          "Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead"
         ],
         "dont": [
           "Ship it without an accessible name (\"button, unlabeled\")",
           "Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button",
           "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use `isInactive`"
+        ],
+        "implementation": [
+          "Expand the hit area to meet target-size minimums even when the icon is visually small"
         ],
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
@@ -2623,13 +2637,15 @@
         "do": [
           "Always give it an accessible name (a verb)",
           "Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead",
-          "Expand the hit area to meet target-size minimums even when the icon is visually small",
           "Confirm a destructive icon action that cannot be undone — the confirmation carries a neutral escape (\"Cancel\" / \"Keep\"), since a lone trash glyph offers none"
         ],
         "dont": [
           "Ship it without an accessible name (\"button, unlabeled\")",
           "Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button",
           "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use `isInactive`"
+        ],
+        "implementation": [
+          "Expand the hit area to meet target-size minimums even when the icon is visually small"
         ],
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
@@ -2882,13 +2898,15 @@
         "usage": "Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.",
         "do": [
           "Always give it an accessible name (a verb)",
-          "Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead",
-          "Expand the hit area to meet target-size minimums even when the icon is visually small"
+          "Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead"
         ],
         "dont": [
           "Ship it without an accessible name (\"button, unlabeled\")",
           "Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button",
           "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use `isInactive`"
+        ],
+        "implementation": [
+          "Expand the hit area to meet target-size minimums even when the icon is visually small"
         ],
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"More actions\"), never the glyph's shape (\"X\", \"three dots\"). A tooltip, where one is attached, shows the same words as the accessible name."
       },
@@ -3111,13 +3129,15 @@
         "usage": "Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.",
         "do": [
           "Always give it an accessible name (a verb)",
-          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
           "Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap"
         ],
         "dont": [
           "Nest it inside a control whose whole row is already a button, such as an accordion header or a tab",
           "Add a fill or a wash to the flush shape on hover or press; only the glyph color changes. Use the round shape for a fill",
           "Use it on its own in a toolbar, where the IconButton of the same color gives the action a visible box"
+        ],
+        "implementation": [
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized"
         ],
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape."
       },
@@ -3336,7 +3356,6 @@
         "usage": "Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.",
         "do": [
           "Always give it an accessible name (a verb)",
-          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
           "Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap",
           "Confirm a destructive action that cannot be undone, and give the confirmation a neutral way out (\"Cancel\" or \"Keep\"), since a lone glyph offers none"
         ],
@@ -3344,6 +3363,9 @@
           "Nest it inside a control whose whole row is already a button, such as an accordion header or a tab",
           "Add a fill or a wash to the flush shape on hover or press; only the glyph color changes. Use the round shape for a fill",
           "Use it on its own in a toolbar, where the IconButton of the same color gives the action a visible box"
+        ],
+        "implementation": [
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized"
         ],
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape."
       },
@@ -3562,13 +3584,15 @@
         "usage": "Use inside another component where the icon is itself the control: the minus and plus of a counter, or the close on a card. Use flush where the glyph must line up with the content edge, such as inside a counter that draws its own box. Use round where the buttons stand on their own beside a value, such as a counter with no box. For an icon action with its own padded box in a toolbar, use the IconButton of the same color.",
         "do": [
           "Always give it an accessible name (a verb)",
-          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized",
           "Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap"
         ],
         "dont": [
           "Nest it inside a control whose whole row is already a button, such as an accordion header or a tab",
           "Add a fill or a wash to the flush shape on hover or press; only the glyph color changes. Use the round shape for a fill",
           "Use it on its own in a toolbar, where the IconButton of the same color gives the action a visible box"
+        ],
+        "implementation": [
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized"
         ],
         "contentGuidelines": "The accessible name is a verb naming the action (\"Close\", \"Increase quantity\"), never the glyph's shape."
       },
@@ -3763,6 +3787,7 @@
           "Write an instruction as the label (\"Enter your email here\") — that is helper text",
           "Rely on the required marker as the only required signal"
         ],
+        "implementation": [],
         "contentGuidelines": "Write the label as a noun or noun phrase in sentence case, three words or fewer, with no trailing colon (\"Email address\"). Instructions and formats belong in helper text, not the label. Mark required fields the same way across a form."
       },
       "ai": {
@@ -3908,13 +3933,15 @@
         "usage": "Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into `aria-describedby`.",
         "do": [
           "Show the format/constraint in the default status before the user can fail",
-          "Pair the status with an icon so it is never color-only",
-          "Let the host own `aria-describedby` + `aria-invalid`; keep this node presentational"
+          "Pair the status with an icon so it is never color-only"
         ],
         "dont": [
           "Signal error with color alone (fails SC 1.4.1)",
           "Wrap the message in a live region — focus moves to the field, so the error is read twice; the form's error summary is the only region that announces",
           "Use warning as a hard blocker — it is a soft, non-blocking caution (many systems fold it into helper/error)"
+        ],
+        "implementation": [
+          "Let the host own `aria-describedby` + `aria-invalid`; keep this node presentational"
         ],
         "contentGuidelines": "Say what is wrong and how to fix it, with the constraint stated: \"Enter a valid email address, like name@example.com\", \"First name must be 35 characters or less\" — never \"Invalid\" or an error code. Use plain language with no blame (\"Enter your first name\", not \"You forgot to enter your name\") and no humor. Reuse the field label's own words, and keep the message identical to its line in any error summary. Use a success status sparingly, for an asynchronous confirmation such as \"Username available\". In the default status, state the requirement up front so the error never has to."
       },
@@ -4242,15 +4269,17 @@
         "do": [
           "Always render a visible, associated label (FieldLabel) — visually-hidden only for search",
           "Distinguish `readOnly` (copyable, submitted, full-contrast) from disabled (silent, exempt)",
-          "Emit a real `<input name>` so it works uncontrolled, in a native form, with Server Actions",
-          "Separate a decorative glyph (`aria-hidden`) from an interactive trailing action (a labeled button)",
-          "Follow the error-timing contract: validate on blur, re-validate on input after the first error, move focus to the first invalid field on submit, and show an error summary on a long form (the form library runs it; the field renders it)"
+          "Separate a decorative glyph (`aria-hidden`) from an interactive trailing action (a labeled button)"
         ],
         "dont": [
           "Use the placeholder as the label, or put load-bearing text in it",
           "Use `type=\"number\"` for numeric input — use a number field, not built yet (email/url/tel stay as type here)",
           "Bake a validation engine or timing into the field — render the error you are handed",
           "Signal error with the border color alone — the message carries the text + icon"
+        ],
+        "implementation": [
+          "Emit a real `<input name>` so it works uncontrolled, in a native form, with Server Actions",
+          "Follow the error-timing contract: validate on blur, re-validate on input after the first error, move focus to the first invalid field on submit, and show an error summary on a long form (the form library runs it; the field renders it)"
         ],
         "contentGuidelines": "Label = noun phrase, sentence case, no trailing colon. Placeholder = example only. Helper carries the format up front. Error says what + how to fix, never \"Invalid input\"."
       },
@@ -4594,10 +4623,6 @@
         "usage": "Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the `aria-describedby` chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.",
         "do": [
           "Set `maxRows` whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste",
-          "Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length",
-          "Announce the over-limit through the live region and `aria-invalid` — color alone is not a signal",
-          "Normalize \\r\\n to \\n on paste before counting or storing, and resize once per paste rather than once per inserted line",
-          "Keep a read-only textarea scrollable and selectable, so the whole value stays reachable — far more text is hidden here than in a single-line field",
           "Reserve space in the footer for the validation message and the counter, so an over-limit error does not push the resize handle"
         ],
         "dont": [
@@ -4606,6 +4631,12 @@
           "Bake submit-on-Enter into the base component — it is a composer opt-in that always keeps a real submit button and a visible hint",
           "Reach for contenteditable to add formatting — cross the boundary to a real rich-text editor instead",
           "Drop in a one-row Textarea as a \"bigger input\" — the semantics and the Enter behavior differ from TextField"
+        ],
+        "implementation": [
+          "Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length",
+          "Announce the over-limit through the live region and `aria-invalid` — color alone is not a signal",
+          "Normalize \\r\\n to \\n on paste before counting or storing, and resize once per paste rather than once per inserted line",
+          "Keep a read-only textarea scrollable and selectable, so the whole value stays reachable — far more text is hidden here than in a single-line field"
         ],
         "contentGuidelines": "Counter reads \"240 / 280\" or \"40 characters remaining\"; over-limit reads \"12 characters over the limit\" — constructive and numeric, never \"Too long.\" If Enter submits, say so near the field."
       },
@@ -4815,9 +4846,7 @@
       "docs": {
         "usage": "Do not place this on its own as a form control. It is the box Checkbox.Row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). It is also the unit a host nests when the label is decoupled — a select-all in a table's first column, a card-select where the card is the accessible name, a list or menu row. Nested that way, the host names the control through aria-labelledby, the host owns the hit target (the whole row toggles, unless the row has its own primary action — then the control is a secondary affordance with its own name, such as \"Select <item>\"), and the enclosing collection is the group: it owns the selected ids and select-all, so no Checkbox.Group goes inside a list. Resolve every nested case to one model — the whole row is one control, or the control is a named secondary affordance — never a control inside a row that is itself a button or link with no clear click target.",
         "do": [
-          "Nest this from Checkbox.Row rather than redrawing the box per host",
-          "Let the host row expose selection and state and follow its size, so the nested control tracks the row",
-          "Supply an external aria-label only when using the control genuinely alone, with no labeled row to name it",
+          "Supply an external `aria-label` only when using the control genuinely alone, with no labeled row to name it",
           "Nest it in a table cell, card or list row when the label is decoupled — the host row supplies the name and the collection owns the selection"
         ],
         "dont": [
@@ -4826,6 +4855,10 @@
           "Reach for this atom when you want the labeled case — that is Checkbox.Row",
           "Nest a Checkbox.Group inside a selectable list — the collection is the group",
           "Put the control inside a row that is itself a button or link with no clear model of which one a click hits"
+        ],
+        "implementation": [
+          "Nest this from Checkbox.Row rather than redrawing the box per host",
+          "Let the host row expose selection and state and follow its size, so the nested control tracks the row"
         ],
         "contentGuidelines": "The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it."
       },
@@ -5029,9 +5062,6 @@
       "docs": {
         "usage": "Use a single Checkbox.Row for one independent opt-in (a consent line, \"Remember me\"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the `aria-describedby` chain. Past roughly 7–10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.",
         "do": [
-          "Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond",
-          "Set `aria-checked=\"mixed\"` explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech",
-          "Let the group own required, validation and the value array; a row inside a group never manages its own error",
           "Accept rich content in the label, so a consent line can carry the link it needs",
           "Phrase the label positively, and state exactly what is being agreed to on a consent checkbox"
         ],
@@ -5042,6 +5072,11 @@
           "Override Enter to toggle — Enter submits the form, and that expectation is universal",
           "Center-align the whole control+label row — on a wrapping label it floats the control to the middle of the paragraph; center the control within a single line-box instead, so it holds the first line",
           "Reach for a checkbox where the change takes effect instantly — that is Switch.Row, and the difference is staged versus immediate"
+        ],
+        "implementation": [
+          "Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond",
+          "Set `aria-checked=\"mixed\"` explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech",
+          "Let the group own required, validation and the value array; a row inside a group never manages its own error"
         ],
         "contentGuidelines": "The label states what becomes true when checked. Group errors read \"Select at least one option\" rather than \"Invalid\". Consent labels name the thing agreed to in full."
       },
@@ -5267,11 +5302,7 @@
       "docs": {
         "usage": "Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as items. Past roughly 7–10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.",
         "do": [
-          "Give the group a label that names the decision, so its rows can read the short abstracted-up remainder",
-          "Let the group own the value array, required and validation — a row inside a group never manages its own",
-          "Derive each row's checked state from the group's value array; never wire checked on a row in a group",
-          "Keep required and error at the group level, announced once (aria-required / aria-invalid on the group)",
-          "Prefer role=\"group\" + aria-labelledby over fieldset/legend for the layout freedom"
+          "Give the group a label that names the decision, so its rows can read the short abstracted-up remainder"
         ],
         "dont": [
           "Pre-check a consent option — a dark pattern, and for marketing consent often unlawful",
@@ -5279,6 +5310,12 @@
           "Model an exclusive one-of-many choice as a checkbox group — that is Radio.Group",
           "Reach for a checkbox group past roughly 7–10 options — a filtering multi-select combobox (not built yet) scans better",
           "Override Enter to toggle — Enter submits the form, and that expectation is universal"
+        ],
+        "implementation": [
+          "Let the group own the value array, required and validation — a row inside a group never manages its own",
+          "Derive each row's checked state from the group's value array; never wire checked on a row in a group",
+          "Keep required and error at the group level, announced once (aria-required / aria-invalid on the group)",
+          "Prefer role=\"group\" + aria-labelledby over fieldset/legend for the layout freedom"
         ],
         "contentGuidelines": "The group label names the decision; the rows carry the short options. Group errors read \"Select at least one option\" rather than \"Invalid\"."
       },
@@ -5478,16 +5515,18 @@
       "docs": {
         "usage": "Do not place this on its own. It is the circle Radio.Row nests, so a fix to its border weight or its dot geometry reaches the row without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring.",
         "do": [
-          "Nest this from Radio.Row rather than redrawing the circle per host",
-          "Let the host row expose selection and state and follow its size, so the nested control tracks the row",
-          "Let the inner circle and the ring recolor carry the selection; the ring border stays constant in weight across states, taking the action color (not a thicker stroke) on select",
-          "Supply an external aria-label only when using the control genuinely alone"
+          "Supply an external `aria-label` only when using the control genuinely alone"
         ],
         "dont": [
           "Place a bare circle as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target",
           "Double-label a nested control — the host row already provides the accessible name",
           "Fill the disc on select — the ring stays outlined and an inner circle shows the selection",
           "Thicken the border to signal selection — the border weight is constant across states; selection recolors the ring to the action color and adds the inner dot"
+        ],
+        "implementation": [
+          "Nest this from Radio.Row rather than redrawing the circle per host",
+          "Let the host row expose selection and state and follow its size, so the nested control tracks the row",
+          "Let the inner circle and the ring recolor carry the selection; the ring border stays constant in weight across states, taking the action color (not a thicker stroke) on select"
         ],
         "contentGuidelines": "The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it."
       },
@@ -5669,8 +5708,6 @@
           "Ship options inside a group — the group owns the shared name, the single value, validation and the tab stop",
           "Give the group a label; without one, assistive tech announces \"radio button, 1 of 3\" with no idea what the choice is",
           "Give an optional group an explicit \"None\" option — a radio cannot be deselected, so a stray click is otherwise permanent",
-          "Keep `onChange` cheap, since selection follows focus and a screen-reader user arrowing through fires it at every step",
-          "On focus restore, focus the checked option rather than the first",
           "Start empty to force a deliberate choice; pre-select only a genuinely safe default"
         ],
         "dont": [
@@ -5680,6 +5717,10 @@
           "Model an exclusive choice as several checkboxes, or a true/false toggle as two radios",
           "Reach for radio past 7 options or in tight vertical space — that is Select",
           "Use radio for a choice that takes effect instantly — that is Switch.Row, or SegmentedControl"
+        ],
+        "implementation": [
+          "Keep `onChange` cheap, since selection follows focus and a screen-reader user arrowing through fires it at every step",
+          "On focus restore, focus the checked option rather than the first"
         ],
         "contentGuidelines": "Option labels are parallel and brief; the detail that distinguishes them goes in the description. The group label names the decision. Errors are group-level and say what to do."
       },
@@ -5906,11 +5947,7 @@
         "usage": "Use to choose exactly one of 2 to 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row's checked state from the value rather than wiring it on the row. Compose the rows as items. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.",
         "do": [
           "Give the group a label that names the decision, so its rows can read the short abstracted-up remainder",
-          "Let the group own the shared name, the single scalar value, required and validation — an option never manages its own",
-          "Derive each row's checked state from the group's scalar value; never wire checked on a row in a group",
-          "Give an optional group an explicit \"None\" option — a radio cannot be deselected, so a stray click is otherwise permanent",
-          "Keep required and error at the group level, announced once (aria-required / aria-invalid on the group)",
-          "Prefer role=\"radiogroup\" + aria-labelledby over fieldset/legend for the layout freedom"
+          "Give an optional group an explicit \"None\" option — a radio cannot be deselected, so a stray click is otherwise permanent"
         ],
         "dont": [
           "Set checked, onChange or name on an individual option — all three belong to the group, and an option setting its own name breaks exclusivity outright",
@@ -5918,6 +5955,12 @@
           "Model an any-number choice as a radio group — that is Checkbox.Group",
           "Reach for a radio group past 7 options or in tight vertical space — that is a Select",
           "Override Enter to select — Enter submits the form, and that expectation is universal"
+        ],
+        "implementation": [
+          "Let the group own the shared name, the single scalar value, required and validation — an option never manages its own",
+          "Derive each row's checked state from the group's scalar value; never wire checked on a row in a group",
+          "Keep required and error at the group level, announced once (aria-required / aria-invalid on the group)",
+          "Prefer role=\"radiogroup\" + aria-labelledby over fieldset/legend for the layout freedom"
         ],
         "contentGuidelines": "The group label names the decision; the rows carry the short options. Group errors read \"Select a shipping method\" rather than \"Invalid\"."
       },
@@ -6130,16 +6173,18 @@
       "docs": {
         "usage": "Do not place this on its own. It is the track-and-thumb Switch.Row nests, so a fix to its border weight or its fill grammar reaches the row without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring.",
         "do": [
-          "Nest this from Switch.Row rather than redrawing the track per host",
-          "Let the host row pass selection, state and showStateLabel through, and follow its size, so the nested control tracks the row",
           "Let thumb position carry the state; treat the glyph as a legibility aid, not the color-independence answer",
-          "Supply an external aria-label only when using the control genuinely alone"
+          "Supply an external `aria-label` only when using the control genuinely alone"
         ],
         "dont": [
           "Place a bare track as the clickable element — the labeled row is the hit target, and a compact small track (16px) is under the SC 2.5.8 minimum on its own",
           "Double-label a nested control — the host row already provides the accessible name",
           "Put the focus ring on the thumb — it moves, so the indicator would travel with it",
           "Hardcode \"On\"/\"Off\" text beside the control — the glyph affordance and the role announcement carry it"
+        ],
+        "implementation": [
+          "Nest this from Switch.Row rather than redrawing the track per host",
+          "Let the host row pass selection, state and showStateLabel through, and follow its size, so the nested control tracks the row"
         ],
         "contentGuidelines": "The atom has no copy of its own; all label, description and error text belongs to the row that composes it."
       },
@@ -6347,8 +6392,6 @@
           "Apply the change the instant it is toggled — the immediacy is the contract",
           "Put the label first and the switch at the row's trailing edge; flip to control-leading only when a switch sits inline among other form controls",
           "Name the setting, not the state, and keep the label the same on and off",
-          "Default to optimistic: flip immediately, then revert and say what failed if the effect did not take",
-          "Guard the re-toggle race — lock input on the first interaction until the effect resolves",
           "Support read-only for settings a user may review but not change: focusable, in the tab order, at full contrast",
           "Let thumb position carry the state, and add the thumb glyph (showStateLabel) where legibility demands a cue beyond color"
         ],
@@ -6362,6 +6405,10 @@
           "Put the focus ring on the thumb — it moves, so the indicator would travel with it",
           "Use a switch for a consequential or destructive change — its immediacy is wrong for a costly or hard-to-reverse effect; pair it with a confirmation, or use a Checkbox.Row with an explicit Save",
           "Use a switch where the user cannot observe the result — immediacy is the contract, so an effect nobody can perceive is a reason to reconsider the control"
+        ],
+        "implementation": [
+          "Default to optimistic: flip immediately, then revert and say what failed if the effect did not take",
+          "Guard the re-toggle race — lock input on the first interaction until the effect resolves"
         ],
         "contentGuidelines": "The label names the setting and never changes. The description says what turning it on will do. Async failures say what did not happen and that it reverted."
       },
@@ -6658,14 +6705,16 @@
         "do": [
           "Render a visible, associated label (FieldLabel) above the control",
           "Show a muted placeholder as a prompt, never as the label or a real option",
-          "Drive validation through the status axis so the border and the nested message agree",
-          "Prefer the native control where its OS menu is acceptable — the listbox contract is correct for free"
+          "Drive validation through the status axis so the border and the nested message agree"
         ],
         "dont": [
           "Use the placeholder as the label, or put a real, selectable option in it",
           "Model the open menu as a state of this control — it is a separate listbox / popover surface",
           "Signal a status with the border color alone — the nested message carries the text + icon",
           "Reach for a select when the user types to filter (a combobox, not built yet) or the set is two mutually-exclusive options (Radio.Group)"
+        ],
+        "implementation": [
+          "Prefer the native control where its OS menu is acceptable — the listbox contract is correct for free"
         ],
         "contentGuidelines": "Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain null state (\"Country\"), not an instruction, and omittable when the label suffices. Error says what + how to fix, never \"Invalid\"."
       },
@@ -6855,14 +6904,16 @@
           "Pick the polarity from the image — a dark wash under light text, a light wash under dark text",
           "Use a directional wash from the edge the text sits on — from-bottom for a caption along the bottom",
           "Verify the text's contrast against the actual photo; the intensity is a magnitude, not a guaranteed ratio",
-          "Size the veil to its media container and keep the text and controls as siblings on top of it",
-          "Mark the veil aria-hidden — it is a presentational background layer"
+          "Size the veil to its media container and keep the text and controls as siblings on top of it"
         ],
         "dont": [
           "Read the intensity as a contrast promise — a stronger wash mutes the image more, but whether text clears its floor depends on the photo",
           "Reach for a veil as the modal backdrop — that is scrim.default, a separate mode-varying fill dialogs reference directly",
           "Put the text inside the veil node — the text is a sibling on top, so assistive tech reads it directly and the wash stays decorative",
           "Set text in the clear half of a directional wash — the intensity holds only at the named edge, so text away from it sits on the unmuted photo"
+        ],
+        "implementation": [
+          "Mark the veil aria-hidden — it is a presentational background layer"
         ],
         "contentGuidelines": "The veil holds no copy. Where its variants surface in a UI, name the polarity and magnitude (\"Dark, strong\") rather than a contrast floor."
       },
@@ -6993,6 +7044,7 @@
           "Reach for an image placeholder as a decorative wash over a photo — that is the veil component (a follow-up may compose the two)",
           "Expect a play overlay yet — that is not built yet; this is the core empty-state frame (a legibility scrim over media is the veil component)"
         ],
+        "implementation": [],
         "contentGuidelines": "The frame holds no copy. Where its ratio surfaces in a UI, name the proportion (\"16:9\", \"Square\"), not a pixel size — the frame holds a ratio, not a fixed dimension."
       },
       "ai": {
@@ -7124,10 +7176,7 @@
         "usage": "Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite \"Loading\", or a more specific label, through a status region that exists, empty, before it shows; inside a host that announces its own busy state, such as a Button's isPending, the host sets aria-hidden=\"true\" on it.",
         "do": [
           "Put the spinner in the host's own icon slot at that slot's icon size, so nothing around it moves",
-          "Let the host delay showing it, so a fast operation does not flash a spinner",
-          "Give a standalone spinner a specific label (\"Loading results\") when the work is known",
-          "Set aria-hidden=\"true\" on a spinner inside a host that announces its own busy state (aria-busy, a Button's isPending)",
-          "Keep the turn under reduced motion, slowed to the reduced duration"
+          "Give a standalone spinner a specific label (\"Loading results\") when the work is known"
         ],
         "dont": [
           "Use a spinner for work with a known length — show determinate progress",
@@ -7137,6 +7186,11 @@
           "Show many spinners at once — a dashboard that starts one per widget on load reads as noise; use one placeholder for the layout and keep the spinner for a single user-triggered wait (Primer)",
           "Put role=\"progressbar\" or aria-valuenow on a spinner — a spinner is not a progressbar",
           "Stop the turn under reduced motion — slow it"
+        ],
+        "implementation": [
+          "Let the host delay showing it, so a fast operation does not flash a spinner",
+          "Set aria-hidden=\"true\" on a spinner inside a host that announces its own busy state (aria-busy, a Button's isPending)",
+          "Keep the turn under reduced motion, slowed to the reduced duration"
         ],
         "contentGuidelines": "Label: specific and in sentence case — \"Loading results\", \"Updating profile\" — not a generic \"Loading…\"; \"Loading\" is the fallback when nothing more specific is known. One status for the whole wait, and for a region or a longer wait the host announces completion (\"Results loaded\"). Inside a button, the button keeps its accessible name while pending."
       },
@@ -7413,6 +7467,7 @@
           "Use an inline status without a label. A dot on its own over a host is the dot type, and its meaning goes in the host's name",
           "Mix inline and contained styles for the same state in one view"
         ],
+        "implementation": [],
         "contentGuidelines": "Name the state, not the color: \"Failed\", not \"Red\". Use the same word for the same state everywhere, and keep it short enough to read at a glance. For a count, show the number up to the cap and the cap followed by a plus sign above it (\"99+\"). For a count or dot, write the host's accessible name so it says what the badge shows (\"Notifications, 5 new\"), since the badge itself is not read. Name the state in the words a reader would use: \"In stock\", \"Low stock\", \"Out of stock at this location\". The label carries the meaning and the dot repeats it, so the label can run longer than a contained label's one or two words."
       },
       "ai": {
@@ -7642,7 +7697,6 @@
         "usage": "Use a tag for something a user acts on in place. Use a select tag for a lightweight filter or choice the user toggles; use a dismissible tag for an applied filter they can remove, or a recipient or keyword entered into a field. Put tags in a group with at least 8px between them, and let the group own selection, arrow-key movement and focus after removal. If nobody acts on it, it is a badge; if it runs an action, it is a button.",
         "do": [
           "Name the remove control \"Remove\" followed by the label",
-          "Move focus to the next tag after a removal, else the previous one, else the group",
           "Keep the check mark on a selected tag unless the tint and outline already read clearly in context",
           "Keep at least 8px between tags in a group",
           "Let a long label wrap, so the full text stays visible"
@@ -7654,6 +7708,9 @@
           "Put a dismissible tag list in a listbox. A listbox option cannot contain the remove control.",
           "Truncate a label with an ellipsis. A title attribute does not make the full text reachable by keyboard, touch or screen reader.",
           "Disable every tag in a group. Hide the group instead."
+        ],
+        "implementation": [
+          "Move focus to the next tag after a removal, else the previous one, else the group"
         ],
         "contentGuidelines": "Keep the label to one word where possible. Use the words the data or the user supplies, such as a category, a name or a filter value, not system status words like \"Failed\" or \"Processing\"; those belong on a badge. A long label wraps onto a second line rather than being cut off."
       },
@@ -7896,6 +7953,7 @@
           "Use a tag group for exactly one choice. That is a segmented control or a radio group.",
           "Disable every tag in a group. Hide the group instead."
         ],
+        "implementation": [],
         "contentGuidelines": "The group name says what the tags filter or hold; the tags carry the short values, in the words the data or the user supplies."
       },
       "ai": {
@@ -8094,13 +8152,15 @@
         "usage": "Use inside Tabs only. A tab names one panel of related content; selecting it shows that panel in place.",
         "do": [
           "Keep labels short, parallel nouns",
-          "Use nouns, not verbs (\"Activity\", not \"View activity\")",
-          "Let the tab list set selected from its value"
+          "Use nouns, not verbs (\"Activity\", not \"View activity\")"
         ],
         "dont": [
           "Use a tab to go to another page; that is a link in PageNav",
           "Set selected on a tab inside a list by hand",
           "Wrap a label onto a second line; shorten it, or reconsider how many tabs the list needs"
+        ],
+        "implementation": [
+          "Let the tab list set selected from its value"
         ],
         "contentGuidelines": "One or two words, a noun, sentence case."
       },
@@ -8310,6 +8370,7 @@
           "Nest tabs more than two levels deep",
           "Wrap tabs onto a second line; let the list scroll"
         ],
+        "implementation": [],
         "contentGuidelines": "One or two words per tab, nouns, sentence case."
       },
       "ai": {
@@ -8522,6 +8583,7 @@
           "Use a divider as the only cue that two groups are separate when the rule is faint; add spacing too",
           "Stack a divider directly against a border, such as the edge of a card, so two lines sit side by side"
         ],
+        "implementation": [],
         "contentGuidelines": "A plain divider holds no copy. A labeled divider holds one short word, such as Or, in sentence case, with no punctuation."
       },
       "ai": {
@@ -8696,6 +8758,7 @@
           "Place the indicator on its own; use an Accordion",
           "Rely on the glyph alone to say a section is open; the header button's expanded state carries it"
         ],
+        "implementation": [],
         "contentGuidelines": "The indicator holds no copy."
       },
       "ai": {
@@ -8909,6 +8972,7 @@
           "Put an accordion inside an accordion. For more than one level, use a tree.",
           "Truncate a title with an ellipsis"
         ],
+        "implementation": [],
         "contentGuidelines": "Titles are short, parallel noun phrases or questions, in sentence case, with no trailing colon."
       },
       "ai": {
@@ -9103,6 +9167,7 @@
           "Put the meaning of an item in its icon alone",
           "Make an item a link or a button; a list of links is a navigation, and a list of commands is a menu"
         ],
+        "implementation": [],
         "contentGuidelines": "One phrase or sentence per item, sentence case, parallel with the items around it."
       },
       "ai": {
@@ -9276,6 +9341,7 @@
           "Use a List for commands or navigation links",
           "Use a List for values compared across columns; that is a table"
         ],
+        "implementation": [],
         "contentGuidelines": "One phrase or sentence per item, sentence case, every item the same grammatical shape."
       },
       "ai": {
@@ -9459,6 +9525,7 @@
           "Set selected on an option inside a control by hand",
           "Wrap a label onto a second line; it breaks the shared track and makes the options uneven"
         ],
+        "implementation": [],
         "contentGuidelines": "One or two words, a noun, sentence case."
       },
       "ai": {
@@ -9662,14 +9729,16 @@
         "do": [
           "Name what is being chosen, with a visible label or an accessible name",
           "Use two to five options with short, one-line labels",
-          "Select a sensible option from the start",
-          "Use the form behavior when the value is submitted with a form"
+          "Select a sensible option from the start"
         ],
         "dont": [
           "Leave the control unnamed",
           "Use it for more than five options or long labels",
           "Let a click on the selected option clear the selection",
           "Use it to switch between panels of content; that is tabs"
+        ],
+        "implementation": [
+          "Use the form behavior when the value is submitted with a form"
         ],
         "contentGuidelines": "One or two words per option, nouns, sentence case: \"List\", not \"Show list\"."
       },
@@ -9941,6 +10010,7 @@
           "Tell a link in running text apart by color alone",
           "Mark the current page with the inline style; it reads as a link in running text"
         ],
+        "implementation": [],
         "contentGuidelines": "Descriptive text that stands alone, sentence case. Front-load the words that name the destination. File links state format and size."
       },
       "ai": {
@@ -10121,6 +10191,7 @@
           "Put links or icon buttons in the group",
           "Use a group for a toolbar of tools"
         ],
+        "implementation": [],
         "contentGuidelines": "Button labels are short verbs or verb phrases in sentence case, each naming its own action."
       },
       "ai": {
@@ -10361,8 +10432,7 @@
           "Keep the close button on a standard dialog",
           "Put the main action last in an inline or fill footer (Cancel, then Save), and on top when stacked",
           "Use the fill footer for two buttons that share the width, such as Clear all and Apply, and stacked for long labels",
-          "Let only the body scroll, and keep the footer in view",
-          "Return focus to the control that opened the dialog"
+          "Let only the body scroll, and keep the footer in view"
         ],
         "dont": [
           "Use a dialog for a passing message. Use a toast or a banner.",
@@ -10373,6 +10443,9 @@
           "Use an end panel for navigation that stays open beside the page. It is a modal dialog and makes the page inert.",
           "Make an end panel an alertdialog. A confirmation belongs in the center.",
           "Hide the title of an alertdialog. Its title is the question the user answers."
+        ],
+        "implementation": [
+          "Return focus to the control that opened the dialog"
         ],
         "contentGuidelines": "Titles are specific and in sentence case. Body text is short and states the consequence of an action, especially one that cannot be undone. Buttons are named by what they do."
       },
@@ -10713,9 +10786,6 @@
       "docs": {
         "usage": "Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.",
         "do": [
-          "Set `autoComplete` to `current-password` or `new-password` on every password field",
-          "Let the user paste, so a password manager can fill the field",
-          "Return the field to hidden when its form submits",
           "State the rules for a new password before the user types"
         ],
         "dont": [
@@ -10723,6 +10793,11 @@
           "Add `aria-pressed` to the button as well as changing its name",
           "Use this for a one-time code in separate boxes",
           "Put the password rules in the placeholder"
+        ],
+        "implementation": [
+          "Set `autoComplete` to `current-password` or `new-password` on every password field",
+          "Let the user paste, so a password manager can fill the field",
+          "Return the field to hidden when its form submits"
         ],
         "contentGuidelines": "Label = noun phrase, sentence case, no trailing colon. Button = \"Show\" / \"Hide\", with \" password\" in visually hidden text. Error says what is wrong and how to fix it."
       },
@@ -10932,6 +11007,7 @@
           "Move focus to a toast",
           "Set a duration under 5 seconds"
         ],
+        "implementation": [],
         "contentGuidelines": "Short and factual: the outcome, not a conversation. The glyph carries the tone, so the text stays plain. Name the action by what it does."
       },
       "ai": {
@@ -11095,6 +11171,7 @@
           "Place a separator on its own, or type one as text between links",
           "Mix chevrons and slashes in one trail"
         ],
+        "implementation": [],
         "contentGuidelines": "The separator holds no copy."
       },
       "ai": {
@@ -11256,6 +11333,7 @@
           "Make the current page a link",
           "Truncate an ancestor's label; collapse whole steps instead"
         ],
+        "implementation": [],
         "contentGuidelines": "Page titles, sentence case, as each page titles itself."
       },
       "ai": {
@@ -11486,6 +11564,7 @@
           "Truncate an ancestor's label",
           "Use breadcrumbs as the only navigation"
         ],
+        "implementation": [],
         "contentGuidelines": "Page titles in sentence case, matching each page heading. \"Home\" for the root."
       },
       "ai": {
@@ -11760,8 +11839,7 @@
         "do": [
           "Set max when stock or a per-order limit exists, and state the limit in the message",
           "Name the buttons for the item in a list of line items (\"Increase quantity, Trail runner\")",
-          "Show a button at its limit as unavailable rather than hiding it, so the row does not move",
-          "Leave each button its 44×44px hit area in code, at least 44px apart center to center"
+          "Show a button at its limit as unavailable rather than hiding it, so the row does not move"
         ],
         "dont": [
           "Use it for a large or precise number, such as a price or a measurement; use a number input",
@@ -11769,6 +11847,9 @@
           "Put the minus and plus buttons in the Tab order; the arrow keys already step the value",
           "Hide the minus and plus buttons with `aria-hidden`; they stay in the accessibility tree for pointer and touch users of assistive technology",
           "Change the value on a mouse wheel or scroll"
+        ],
+        "implementation": [
+          "Leave each button its 44×44px hit area in code, at least 44px apart center to center"
         ],
         "contentGuidelines": "The label is a noun (\"Quantity\"). Button names are a verb with the object. A limit message states the limit and why (\"Limit 5 per order\")."
       },
@@ -12035,12 +12116,14 @@
       "docs": {
         "usage": "Use inside Pagination only. Pagination works out which pages to show, marks the current one, places the ellipses, and sets previous and next inactive at an end.",
         "do": [
-          "Let Pagination set the current page and the ellipses",
           "Keep every page cell the same size as the previous and next cells beside it"
         ],
         "dont": [
           "Place a page cell outside a pagination row",
           "Make the ellipsis a control"
+        ],
+        "implementation": [
+          "Let Pagination set the current page and the ellipses"
         ],
         "contentGuidelines": "Numbers only on a page. The accessible name adds \"Page\". Previous and next read \"Previous\" and \"Next\", sentence case."
       },
@@ -12295,7 +12378,6 @@
           "Place it below the content it pages",
           "Give pages an address, so they can be bookmarked and shared",
           "Leave previous and next in place at an end",
-          "Move focus to the top of the results after an in-place change",
           "Leave it out when there is only one page"
         ],
         "dont": [
@@ -12304,6 +12386,9 @@
           "Use it for the slides of a carousel",
           "Hide previous or next at an end; the row would change width",
           "Make an ellipsis a control"
+        ],
+        "implementation": [
+          "Move focus to the top of the results after an in-place change"
         ],
         "contentGuidelines": "\"Previous\" and \"Next\", sentence case. \"Page 5 of 10\" for the compact text and the announcement. Numbers in the locale's numerals."
       },
@@ -12606,6 +12691,7 @@
           "Use Progress for a user's place in a multi-step form. That is a stepper",
           "Show the outcome by color alone"
         ],
+        "implementation": [],
         "contentGuidelines": "Label: what is happening, with an active verb (\"Uploading photo.jpg\"), one label for the whole task. Value: a concrete amount where there is one (\"45 MB of 100 MB\", \"Step 3 of 5\"), otherwise a percentage. End: past tense when done (\"Upload complete\"); when it fails, what failed and the next step (\"Upload failed. The connection dropped. Try again.\")."
       },
       "ai": {
@@ -12924,16 +13010,18 @@
       "docs": {
         "usage": "Use for a query that finds or filters: a site search, a search within a section, a filter over a long list. The field nests FieldLabel above the box and FieldMessage below it; the box starts with the search glyph and ends with a clear button while it holds a value. Wrap a site or section search in a search landmark. Keep the label visible in a form; hide it only where the field's purpose is plain from where it sits, and it still names the field. In a site header, as an example and not a separate component: on a wide screen a small field sits inline in the header with its label hidden; on a narrow screen an Icon button named \"Search\" opens a search row under the header with a Cancel button, focus moves into the field, and Cancel closes the row and returns focus to the Search button.",
         "do": [
-          "Wrap a site or section search in a search landmark",
-          "Keep a label on every search field, visually hidden where the context makes it plain",
-          "Return focus to the input after the clear button empties it",
-          "Hide the browser's own cancel glyph, so the field shows one clear button"
+          "Keep a label on every search field, visually hidden where the context makes it plain"
         ],
         "dont": [
           "Use the placeholder as the label",
           "Show the clear button on an empty field",
           "Add a suggestions list to this field; use a combobox for that",
           "Set the search field's edge per instance; the brand sets it once"
+        ],
+        "implementation": [
+          "Wrap a site or section search in a search landmark",
+          "Return focus to the input after the clear button empties it",
+          "Hide the browser's own cancel glyph, so the field shows one clear button"
         ],
         "contentGuidelines": "Label = noun phrase, sentence case, no trailing colon, naming what is searched. Placeholder = an example query. Clear button = \"Clear search\". After clearing, announce \"Search cleared\"."
       },
@@ -13261,10 +13349,6 @@
       "docs": {
         "usage": "Use for a payment card's number in a checkout or a saved-card form. The field nests FieldLabel above, the input box with the card network's tile at its trailing edge, and FieldMessage below. Set brand from the card-type detection, or from the payment provider's brand event, and `brandName` to the network's name, so the network is stated in text as well as shown. Ask for the expiration date and the security code in their own text fields, with `autocomplete` `cc-exp` and `cc-csc`. When the payment provider hosts the input, pass its mount point with `renderInput` and let the field draw everything around it.",
         "do": [
-          "Let the leading digits set the network, and swap the tile in place",
-          "State the detected network in text with `brandName`, not by the tile alone",
-          "Group the digits as the user types, and keep the value digits only",
-          "Use the payment provider's hosted input in production, with `renderInput`",
           "Warn, rather than block, when the number fails the checksum"
         ],
         "dont": [
@@ -13273,6 +13357,12 @@
           "Put the expiration date or the security code in this box",
           "Use `type=\"number\"` or turn off autocomplete",
           "Move focus to the next field when the number is complete"
+        ],
+        "implementation": [
+          "Let the leading digits set the network, and swap the tile in place",
+          "State the detected network in text with `brandName`, not by the tile alone",
+          "Group the digits as the user types, and keep the value digits only",
+          "Use the payment provider's hosted input in production, with `renderInput`"
         ],
         "contentGuidelines": "Label = \"Card number\", sentence case, no trailing colon. Placeholder = a format example only. Helper = \"The card type shows when you start typing.\" Error says what is wrong and how to fix it."
       },
@@ -13536,8 +13626,7 @@
           "Name the issue in the title, and say what to do next in the body",
           "Give the action a verb that says what it does",
           "Use the neutral tone for an announcement or an offer, which carries no status",
-          "End a one-line message with an inline link when its action goes somewhere",
-          "Move focus to a sensible place after a dismiss"
+          "End a one-line message with an inline link when its action goes somewhere"
         ],
         "dont": [
           "Use a banner for a short confirmation like \"Saved\". Use a toast.",
@@ -13547,6 +13636,9 @@
           "Borrow the info tone for a promotion. Use neutral.",
           "Mark a banner present at page load as role=\"alert\"",
           "Let a dismissed banner come back on reload"
+        ],
+        "implementation": [
+          "Move focus to a sensible place after a dismiss"
         ],
         "contentGuidelines": "Titles are short, specific and in sentence case, with no period. The body states the consequence and the fix in one or two sentences; for more, link to the details. Action labels are verbs."
       },
@@ -13736,13 +13828,14 @@
       },
       "docs": {
         "usage": "Part of a Slider. The Slider places one thumb for a single value and two for a range, and sets each thumb's name, value, size and state.",
-        "do": [
-          "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward",
-          "Let the Slider name each thumb, so a range announces \"Minimum\" and \"Maximum\", not \"slider, slider\""
-        ],
+        "do": [],
         "dont": [
           "Place a thumb outside a Slider",
           "Put the focus ring on the track instead of the thumb"
+        ],
+        "implementation": [
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward",
+          "Let the Slider name each thumb, so a range announces \"Minimum\" and \"Maximum\", not \"slider, slider\""
         ],
         "contentGuidelines": "No copy of its own."
       },
@@ -14058,14 +14151,16 @@
         "do": [
           "Name the dimension with a visible label",
           "Format the value with its unit or currency, and use the same text for `aria-valuetext`",
-          "Turn on the paired inputs when an exact value matters",
-          "Bind costly work, such as a network filter, to `onChangeEnd`"
+          "Turn on the paired inputs when an exact value matters"
         ],
         "dont": [
           "Use a slider for a precise value over a wide range; a 300px track cannot reach every value",
           "Leave the thumbs of a range unnamed",
           "Show the value only in a bubble during a drag; it is gone when the drag ends",
           "Animate the thumb while it is dragged"
+        ],
+        "implementation": [
+          "Bind costly work, such as a network filter, to `onChangeEnd`"
         ],
         "contentGuidelines": "The label names the dimension. The value text shows the value with its unit; a range shows both ends, \"$40 – $120\"."
       },
@@ -14301,6 +14396,7 @@
           "Place a cell outside a code input",
           "Build a code input from separate inputs, one per cell"
         ],
+        "implementation": [],
         "contentGuidelines": "One character per cell."
       },
       "ai": {
@@ -14576,7 +14672,6 @@
       "docs": {
         "usage": "Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with `one-time-code` `autocomplete`.",
         "do": [
-          "Accept a pasted or autofilled code in full, ignoring spaces and hyphens",
           "Say which error it is: too few digits, wrong code or expired code",
           "Keep the resend link and any expiry time next to the field"
         ],
@@ -14584,6 +14679,9 @@
           "Build one input per cell: paste and autofill then fill one cell",
           "Block paste or turn off autocomplete",
           "Submit on the last digit without announcing the result"
+        ],
+        "implementation": [
+          "Accept a pasted or autofilled code in full, ignoring spaces and hyphens"
         ],
         "contentGuidelines": "Label = noun phrase, sentence case. Helper = the length and where the code went. Error = which case it is and what to do."
       },
@@ -14776,6 +14874,7 @@
           "Make more than one item in a row current",
           "Remove the current page's link; it stays a link"
         ],
+        "implementation": [],
         "contentGuidelines": "Page titles, sentence case, as each page titles itself."
       },
       "ai": {
@@ -14924,7 +15023,6 @@
         "do": [
           "Mark the page the user is on as the current item",
           "Use each page's own title as its label",
-          "Name the landmark for the area, such as Account",
           "Keep the row the same on every page it links"
         ],
         "dont": [
@@ -14932,6 +15030,9 @@
           "Use page navigation as the site's main navigation",
           "Make more than one item current",
           "Put more than six pages in one row"
+        ],
+        "implementation": [
+          "Name the landmark for the area, such as Account"
         ],
         "contentGuidelines": "Page titles in sentence case, matching each page heading."
       },
@@ -15170,6 +15271,7 @@
           "Use it as a list of actions. Use a Menu.",
           "Open a popover from a popover"
         ],
+        "implementation": [],
         "contentGuidelines": "Titles are short and in sentence case. Body text says what the user needs and no more. Buttons are named by what they do."
       },
       "ai": {
