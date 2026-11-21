@@ -476,7 +476,7 @@ section('page — nothing to draw on, or nothing to draw');
   const root = { children: [f.root.children[1]] };
   ok(eq(await coverDue(root, { brand: 'x' }), { state: 'no-cover' }), 'page/due: no-cover');
   const o = await drawCover(f.api, root, { brand: 'x' });
-  ok(o.did === 'none' && coverLine(o) === 'Cover: not drawn, the file has no Cover page. Run Set up file, then Update.', `page/no Cover page: why (${coverLine(o)})`);
+  ok(o.did === 'none' && coverLine(o) === 'Cover: not drawn, the file has no Cover page. Run Update file — its first run sets the file up.', `page/no Cover page: why (${coverLine(o)})`);
   const n = await drawCover(f.api, f.root, { brand: null });
   ok(n.did === 'none' && !tagged(f.cover).length && coverLine(n) === 'Cover: the file has no brand yet. Run Update file with Theme ticked, then it draws the cover.', `page/no brand: why (${coverLine(n)})`);
   // A font the host will not load: the text stays empty and the miss is named, never a throw.

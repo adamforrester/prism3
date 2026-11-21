@@ -166,7 +166,7 @@ if (refused) {
   const row = h('div', 'p3-confirm-row');
   row.append(btn('Export saved brand', 'refused-brand-export', exportIt), btn('Clear saved brand', 'refused-brand-clear', clearIt));
   text.append(
-    line("The saved brand didn't open, so the studio started without it."),
+    line("The saved brand didn't open, so Studio started without it."),
     line(refused.message),
     line('Choosing a brand replaces the saved one. Export it first to keep a copy as design.md.'),
     row,

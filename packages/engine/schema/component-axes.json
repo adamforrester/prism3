@@ -1396,6 +1396,21 @@
     "members": 96,
     "properties": {}
   },
+  "skeleton": {
+    "axes": {
+      "shape": [
+        "circle",
+        "rect",
+        "text"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 4,
+    "properties": {}
+  },
   "slider": {
     "axes": {
       "size": [

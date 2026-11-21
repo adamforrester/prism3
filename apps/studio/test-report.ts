@@ -41,7 +41,7 @@
  * `ENGINE_VOCABULARY` that the schema does not close → `#3697 H4 every engine word … is a value the schema closes`,
  * read from `theme-schema.json`, not from the list; typeface families dropped from `brandWords` → `#3697 H4 opt-in:
  * off, a typeface family is replaced`. The same drop fails `apps/plugin/test-report-redaction.ts` over the plugin's
- * own lines. D3703.1 B (the drawer keeps the host's message; only the report reduces a `write failed:` or `prune failed:`
+ * own lines. D3703.1 B (the drawer keeps the host's message; only the report reduces a `write failed:` or `Clean up failed:`
  * line to the error's class): `reduceFailure` dropped from `buildReport` → `#3697 H4 D3703.1 B a thrown write's and
  * prune's lines keep the error's class, not the host's message`. #3702 (every other line that carries a host's message):
  * the `DETAIL` rule dropped from `reduceLine` → `#3702 component build: the report keeps the error's class, not the host's
@@ -229,12 +229,12 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
 {
   const failedRep = (includeBrand: boolean): string => buildReport({ ...BASE, includeBrand, activity: [
     { title: 'Apply Theme', verdict: '✗ write failed', lines: ['write failed: TypeError: cannot write to Checkout Hero / Q3 launch'], agent: false },
-    { title: 'Prune', verdict: '✗ failed', lines: ['prune failed: Error: in remove: node "Unannounced pricing"'], agent: true },
+    { title: 'Prune', verdict: '✗ failed', lines: ['Clean up failed: Error: in remove: node "Unannounced pricing"'], agent: true },
     { title: 'Build', verdict: '✗ failed', lines: ['write failed: cannot write to Checkout Hero', 'member 3 failed to bind: Checkout Hero'], agent: false },
   ] });
   for (const on of [false, true]) {
     const rep = failedRep(on);
-    ok(rep.includes('  - write failed: TypeError\n') && rep.includes('  - prune failed: Error\n') && !/Q3 launch|Unannounced|in remove/.test(rep),
+    ok(rep.includes('  - write failed: TypeError\n') && rep.includes('  - Clean up failed: Error\n') && !/Q3 launch|Unannounced|in remove/.test(rep),
       `#3697 H4 D3703.1 B a thrown write's and prune's lines keep the error's class, not the host's message (brand ${on ? 'included' : 'left out'})`);
   }
   const rep = failedRep(false);
@@ -249,7 +249,7 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
   const SECRET = 'in appendChild: node "Checkout Hero / Q3 launch" on page "Unannounced"';
   const cases: readonly [site: string, posted: string, reported: string][] = [
     ['component build', `component build failed: TypeError: ${SECRET} — 2 nodes had already reached the file; they are parked in the frame 'Q3 launch' on this page`, 'component build failed: TypeError'],
-    ['canvas labels', `No canvas labels for button: Figma refused the write (Error: ${SECRET})`, 'No canvas labels for button: Figma refused the write (Error)'],
+    ['canvas labels', `No labels for button: Figma refused the write (Error: ${SECRET})`, 'No labels for button: Figma refused the write (Error)'],
     ['usage panel', `No usage panel for button: Figma refused the write (TypeError: ${SECRET})`, 'No usage panel for button: Figma refused the write (TypeError)'],
     ['spec panel', `No spec panel for button: Figma refused the write (Error: ${SECRET})`, 'No spec panel for button: Figma refused the write (Error)'],
     ['cover', `Cover: not drawn, Figma refused the write (Error: ${SECRET}).`, 'Cover: not drawn, Figma refused the write (Error)'],
@@ -258,7 +258,7 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
     ['file setup', `file setup failed: Error: ${SECRET}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, 'file setup failed: Error'],
     ['style guide', `style guide failed: TypeError: ${SECRET}`, 'style guide failed: TypeError'],
     ['read-back', `read-back failed: Error: ${SECRET}`, 'read-back failed: Error'],
-    ['cleanup', `Cleanup failed: Error: ${SECRET}`, 'Cleanup failed: Error'],
+    ['cleanup', `Clean up failed: Error: ${SECRET}`, 'Clean up failed: Error'],
     ['prune version', `Nothing removed — the named version could not be saved (Error: ${SECRET}).`, 'Nothing removed — the named version could not be saved (Error)'],
     ['variable writes', `⚠ 3 variable writes refused by Figma (pds/color/blue: ${SECRET.slice(0, 60)})`, '⚠ 3 variable writes refused by Figma (pds/color/blue)'],
   ];
@@ -288,8 +288,8 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
     [(d) => `file setup failed: ${d}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, (c) => `file setup failed: ${c}`],
     [(d) => `style guide failed: ${d}`, (c) => `style guide failed: ${c}`],
     [(d) => `read-back failed: ${d}`, (c) => `read-back failed: ${c}`],
-    [(d) => `Cleanup failed: ${d}`, (c) => `Cleanup failed: ${c}`],
-    [(d) => `No canvas labels for button: Figma refused the write (${d})`, (c) => `No canvas labels for button: Figma refused the write (${c})`],
+    [(d) => `Clean up failed: ${d}`, (c) => `Clean up failed: ${c}`],
+    [(d) => `No labels for button: Figma refused the write (${d})`, (c) => `No labels for button: Figma refused the write (${c})`],
     [(d) => `Cover: not drawn, Figma refused the write (${d}).`, (c) => `Cover: not drawn, Figma refused the write (${c})`],
     [(d) => `button: can't be checked. the engine could not plan it (${d}).`, (c) => `button: can't be checked. the engine could not plan it (${c})`],
     [(d) => `Sets not moved to their pages: the named version could not be saved (${d}).`, (c) => `Sets not moved to their pages: the named version could not be saved (${c})`],
@@ -337,8 +337,8 @@ ok(authoredOn.includes('hds/color/interactive/seaside/fill/rest') && authoredOn.
     [(d) => `file setup failed: ${d}. Built from tree-test0000 at 2026-11-12T00:00:00Z.`, (c) => `file setup failed: ${c}`],
     [(d) => `style guide failed: ${d}`, (c) => `style guide failed: ${c}`],
     [(d) => `read-back failed: ${d}`, (c) => `read-back failed: ${c}`],
-    [(d) => `Cleanup failed: ${d}`, (c) => `Cleanup failed: ${c}`],
-    [(d) => `No canvas labels for button: Figma refused the write (${d})`, (c) => `No canvas labels for button: Figma refused the write (${c})`],
+    [(d) => `Clean up failed: ${d}`, (c) => `Clean up failed: ${c}`],
+    [(d) => `No labels for button: Figma refused the write (${d})`, (c) => `No labels for button: Figma refused the write (${c})`],
     [(d) => `button: can't be checked. the engine could not plan it (${d}).`, (c) => `button: can't be checked. the engine could not plan it (${c})`],
     [(d) => `Sets not moved to their pages: the named version could not be saved (${d}).`, (c) => `Sets not moved to their pages: the named version could not be saved (${c})`],
     [(d) => `write failed: ${d}`, (c) => `write failed: ${c}`],

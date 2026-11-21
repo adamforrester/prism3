@@ -598,7 +598,7 @@ const beforeStamps = beforeNodes.map(stampOf);
 const rStale = await run(laterGrid, { ...fullFor(laterGrid), page: stalePage });
 
 ok(rStale.stale === 21 && rStale.skipped === 0 && rStale.added === 0,
-  `every member built from an earlier plan is counted STALE and NOT as a skip (stale=${rStale.stale}, skipped=${rStale.skipped}, added=${rStale.added})`);
+  `every member built by an earlier version of Prism3 is counted STALE and NOT as a skip (stale=${rStale.stale}, skipped=${rStale.skipped}, added=${rStale.added})`);
 ok(rStale.misses.filter((m) => m.includes('-> STALE')).length === 21 && !rStale.misses.some((m) => m.includes('ALREADY PRESENT')),
   `...and each one is NAMED, with nothing reported as already present (${rStale.misses.length} misses; ${rStale.misses[0]})`);
 ok(rStale.misses.every((m) => !m.includes('-> STALE') || (/built by engine [^,]+, plan [0-9a-f]{16}/.test(m) && /this build plans [0-9a-f]{16}/.test(m))),
@@ -619,8 +619,8 @@ ok(rStale.misses.length !== rStale.skipped,
 ok(componentHeadline(rStale.added, rStale.skipped, rStale.misses.length - rStale.skipped - rStale.stale, rStale.stale) === '⚠ 21 stale',
   `the pill says so too, rather than '✓ already built' (${componentHeadline(rStale.added, rStale.skipped, rStale.misses.length - rStale.skipped - rStale.stale, rStale.stale)})`);
 const note = staleNote(rStale.stale, ENGINE_VERSION);
-ok(note !== null && note.includes('orphan') && note.includes('id'),
-  'and the note gives the REASON in the same clause as the remedy, so declining the rebuild does not read as the tool failing');
+ok(note !== null && note.includes('kept, so placed instances stay linked') && note.includes('Run Update file'),
+  '#4185 and the note gives the REASON in the same clause as the outcome, then the remedy, Update file, so declining the rebuild does not read as the tool failing');
 
 // (3) AN UNSTAMPED MEMBER READS AS STALE. This is not an edge case — it is every set in every file
 // written before this lands, and it is also the paste-payload route, which builds members without ever
@@ -2689,7 +2689,7 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
 const rControl = await run(grid, { ...full(), page: { children: [] } });
 const boundField = Object.keys(grid[0].root.bound)[0];
 ok(!!boundField && rControl.misses.every((m) => m.indexOf('REFUSED') < 0),
-  `#982 control: the unrefusing host reports no REFUSED miss, and the plan binds a field to refuse (${boundField})`);
+  `#982 control: the unrefusing host reports no REFUSED miss, and Prism3 binds a field to refuse (${boundField})`);
 
 // A refused PROPERTY is a miss, and ONLY that miss: exactly one line per member for the refused field, all
 // of them REFUSED. A second line for the field (`DISCARDED` from a refused binding pushed to `wrote`, or
