@@ -58,9 +58,9 @@ export const springPosition = (s: Spring, ms: number): number => {
   const w0 = Math.sqrt(s.stiffness);
   const z = s.damping;
   if (z === 1) return 1 - Math.exp(-w0 * t) * (1 + w0 * t);
-  const root = Math.sqrt(1 - z * z);
-  const wd = w0 * root;
-  return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + (z / root) * Math.sin(wd * t));
+  const sq = Math.sqrt(1 - z * z);
+  const wd = w0 * sq;
+  return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + (z / sq) * Math.sin(wd * t));
 };
 
 /** Search step for the settle time, in ms: a tenth of a millisecond, then rounded UP to a whole one. */
