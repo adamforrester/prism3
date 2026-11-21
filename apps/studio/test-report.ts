@@ -422,7 +422,7 @@ ok(scrub('tidewaters\novernight-watch\tshelf', [...PUNCT, ...ROOT]) === 'tidewat
 // opens with the title and a body that only asks for the report, which travels on the clipboard. The expected URL is
 // typed here whole, so a body built from the report, or any change to the title or the instruction, fails by name.
 // MUTATION: `issueUrl` given the report back as its body → `paste: the issue opens with the title and the instruction alone`.
-const PASTE_URL = 'https://github.com/adamforrester/prism3/issues/new?title=Problem%20report&body='
+const PASTE_URL = 'https://github.com/prism-ds/prism3/issues/new?title=Problem%20report&body='
   + 'Paste%20the%20report%20here%20%E2%80%94%20Prism3%20copies%20it%20to%20your%20clipboard%20as%20it%20opens%20this%20page.'
   + '%20Copy%20in%20the%20Report%20a%20problem%20dialog%20copies%20it%20again.';
 const url = issueUrl();
@@ -538,6 +538,40 @@ ok(!isIssueUrl('https://example.com/collect?d=1') && !isIssueUrl('https://github
     '#3883: the report reads the session list, and includes the failed restore\'s brand, not the boot demo');
   ok(postedInit === 'postedInput' && /restoreFailure\?\.brand, heldRestore\]/.test(main),
     '#3883: every post goes through the store\'s postedInput, and the scrub list takes a held restore\'s brand');
+}
+
+// #3957: a brand word the scrub's own placeholder holds (`brand`, `remove`) wrapped the placeholder again (`[[brand]]`).
+// The words are typed here (`{ whole }` and plain, short and long), so the check does not read `brandWords`. Mutation:
+// `scrub` looking inside a placeholder again → `#3957 … [[brand]]` by name.
+{
+  const aurora = buildReport({ stamp: 's', engine: 'e', host: 'figma', includeBrand: false, seen: [], brand: EXAMPLE_BRANDS_JSON.aurora as never,
+    activity: [{ title: 'Apply Theme', verdict: '✓ applied', lines: ['wrote aurora/color/text/brand'], agent: false }] });
+  ok(aurora.includes('  - wrote [brand]/color/text/[brand]') && !aurora.includes('[['),
+    `#3957: the aurora example's gradient named "brand" does not wrap the placeholder again (${JSON.stringify(aurora.split('\n').filter((l) => l.includes('wrote')))})`);
+  const cases: [string, string, Parameters<typeof scrub>[1], string][] = [
+    ['a whole word "brand"', 'zephyr/color/text/brand', ['zephyr', { whole: 'brand' }], '[brand]/color/text/[brand]'],
+    ['a plain word "bran"', 'zephyr-bran/x', ['zephyr', 'bran'], '[brand]-[brand]/x'],
+    ['a plain word "remove" over a key', `see figma.com/file/abc and remove it`, ['remove'], 'see [removed] and [brand] it'],
+    ['a short word "b"', 'zephyr/b', ['zephyr', { whole: 'b' }], '[brand]/[brand]'],
+  ];
+  for (const [name, text, words, want] of cases) {
+    const got = scrub(text, words);
+    ok(got === want, `#3957: ${name} never looks inside a placeholder the scrub wrote ([[brand]]: ${JSON.stringify(got)}, wanted ${JSON.stringify(want)})`);
+  }
+}
+
+// #3957, the #4393 review's should-fix 2: a brand word that itself holds a placeholder's text is still taken out whole,
+// as before the split. Mutation: `scrub` looking for every word only between placeholders → `#3957/holds …` by name.
+{
+  const cases: [string, string, Parameters<typeof scrub>[1], string][] = [
+    ['a whole word holding "[brand]"', 'Zork [brand] Quux', [{ whole: 'Zork [brand] Quux' }], '[brand]'],
+    ['a plain word holding "[removed]"', 'see Zork [removed] Quux here', ['Zork [removed] Quux'], 'see [brand] here'],
+    ['a word holding "[Brand]" in another case', 'Zork [brand] Quux', ['zork [Brand] quux'], '[brand]'],
+  ];
+  for (const [name, text, words, want] of cases) {
+    const got = scrub(text, words);
+    ok(got === want && !/Zork|Quux/i.test(got), `#3957/holds: ${name} is taken out whole, never kept around the placeholder (${JSON.stringify(got)}, wanted ${JSON.stringify(want)})`);
+  }
 }
 
 console.log(`${failed ? `\n✗ ${failed} check(s) failed` : '\n✓ report: all checks passed'} — ${executed} assertions executed`);
