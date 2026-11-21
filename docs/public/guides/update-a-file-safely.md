@@ -124,6 +124,8 @@ What Clean up can delete: <!-- src: apps/plugin/src/prune-figma.ts:18-32#6e2fac9
 - Text, effect, paint and grid styles the brand no longer emits, when they sit in a style group the brand still uses. A style in a group of your own stays.
 - Canvas labels beside a component set that is no longer in the file.
 
+A variable or style Prism3 wrote under **Rename**, whose name ends in "(Prism3)", is never on the list while the brand still writes the name before that suffix. <!-- src: apps/plugin/src/prune-figma.ts:325-345 -->
+
 The delete works out the list again from a fresh read of the file before it deletes anything. <!-- src: apps/plugin/src/main.ts:613-614#88108fd2 -->
 If the list is not the one the tab showed, or the file does not hold the brand in the panel yet, it deletes nothing. Otherwise it saves a named version, then deletes. <!-- src: apps/plugin/src/main.ts:732-735#40ecfc79 -->
 
