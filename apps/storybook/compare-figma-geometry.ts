@@ -13,6 +13,9 @@
  * Figma's axis names map to the API's: `leading icon` → leading, `trailing icon` → trailing, `status` → validation.
  * A code case with no member (a code-only state, such as `inactive`) is named, not compared. Every member at a KPI 2
  * state (rest, hover, focus-visible, disabled, pending, and the fields' error) that no code case reaches is named too.
+ * Each of the two names its nearest counterpart and every variant axis or boolean property on which they differ, so an
+ * unmatched pair reads as WHICH axis kept it apart, not only that it was kept apart (#4432's first record: every field
+ * case showed `message=true`, and Figma's members record the property at its default, `false`).
  *
  * THE ARITHMETIC, to 0.01px:
  *   - the root's padding, border and corner radii, and its height: equal;
@@ -75,6 +78,21 @@ export type FigmaRecord = { components: Record<string, { members: FMember[] }> }
 export type CodeRecord = { cases: Record<string, CCase> };
 
 const near = (a: number, b: number) => Math.abs(a - b) <= EPS;
+
+/** Every variant axis and boolean property on which a member and a case's variant differ, in the API's names. An axis
+ *  the case does not name is not a difference (the matcher does not hold it either), except a variant axis, which the
+ *  matcher requires the case to name. */
+export const axisDiffs = (mm: FMember, where: Record<string, string>): string[] => [
+  ...Object.entries(mm.variant).map(([axis, v]) => where[key_(axis)] === undefined ? `variant ${key_(axis)} is not named in code, ${v} in Figma` : where[key_(axis)] !== v ? `variant ${key_(axis)} is ${where[key_(axis)]} in code, ${v} in Figma` : ''),
+  ...Object.entries(mm.properties ?? {}).map(([axis, v]) => where[key_(axis)] !== undefined && where[key_(axis)] !== v ? `property ${key_(axis)} is ${where[key_(axis)]} in code, ${v} in Figma` : ''),
+].filter(Boolean);
+/** The candidates with the fewest differences, as "<label> differs in <…>; <…>" (and how many more tie). */
+const closest = <T>(items: T[], label: (t: T) => string, diffs: (t: T) => string[]): string => {
+  const scored = items.map((t) => ({ t, d: diffs(t) })).sort((a, b) => a.d.length - b.d.length);
+  if (!scored.length) return 'nothing to compare against';
+  const ties = scored.filter((x) => x.d.length === scored[0].d.length).length - 1;
+  return `${label(scored[0].t)} differs in ${scored[0].d.join('; ') || 'nothing on its axes'}${ties ? ` (and ${ties} more at the same distance)` : ''}`;
+};
 const n2 = (v: number) => Math.round(v * 100) / 100;
 
 /** `codeParts`: the part paths, per component, a Figma layer must be matched by in code (`partList`). */
@@ -94,7 +112,11 @@ export const compare = (fig: FigmaRecord, code: CodeRecord, codeParts: Record<st
     const offAxis = Object.entries(c.where).filter(([k, v]) => !axes.has(k) && DEFAULTS[component]?.[k] !== undefined && DEFAULTS[component][k] !== v);
     const shows = (mm: FMember) => [...Object.entries(mm.variant), ...Object.entries(mm.properties ?? {})].every(([axis, v]) => c.where[key_(axis)] === undefined || c.where[key_(axis)] === v);
     const m = offAxis.length ? undefined : set.members.find((mm) => Object.keys(mm.variant).every((axis) => c.where[key_(axis)] !== undefined) && shows(mm));
-    if (!m) { notes.push(`${key}: no Figma member shows ${Object.entries(c.where).map(([k, v]) => `${k}=${v}`).join(', ')} (code only, not compared)`); continue; }
+    if (!m) {
+      const noAxis = offAxis.map(([k, v]) => `${k}=${v} has no Figma axis or property; `).join('');
+      notes.push(`${key}: no Figma member shows ${Object.entries(c.where).map(([k, v]) => `${k}=${v}`).join(', ')} (code only, not compared): ${noAxis}nearest ${closest(set.members, (mm) => `member ${mm.id}`, (mm) => axisDiffs(mm, c.where))}`);
+      continue;
+    }
     reached.add(m.id);
     const at = `${component} ${key.split('--')[1]} (${m.id})`;
     const fail = (what: string, got: number, want: number) => failures.push(`${at}: ${what} is ${n2(got)} in code, ${n2(want)} in Figma`);
@@ -156,7 +178,7 @@ export const compare = (fig: FigmaRecord, code: CodeRecord, codeParts: Record<st
     if (reached.has(m.id) || !KPI_STATES.includes(state)) continue;
     // the KPI's members: the default variant at each state, and the fields' error at rest (Q32 A, the brief's states)
     const isDefault = Object.entries(m.variant).every(([axis, v]) => axis === 'state' || DEFAULTS[component]?.[ALIAS[axis] ?? axis] === v || (axis === 'status' && v === 'error' && state === 'rest'));
-    if (isDefault && (status === undefined || status === 'default' || (status === 'error' && state === 'rest'))) failures.push(`${component} (${m.id}) ${Object.entries(m.variant).map(([k, v]) => `${k}=${v}`).join(', ')}: a KPI 2 member no code case reaches`);
+    if (isDefault && (status === undefined || status === 'default' || (status === 'error' && state === 'rest'))) failures.push(`${component} (${m.id}) ${Object.entries(m.variant).map(([k, v]) => `${k}=${v}`).join(', ')}: a KPI 2 member no code case reaches: nearest ${closest(Object.entries(code.cases).filter(([k]) => k.split('--')[0] === component), ([k]) => `case ${k}`, ([, cc]) => axisDiffs(m, cc.where))}`);
   }
   return { failures, notes, compared };
 };
@@ -256,6 +278,35 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma
     for (const n of clean.notes) console.log(`  named: ${n}`);
     if (clean.failures.length) { bad++; console.error(`FAIL self-test: the planted record with only the text narrower should agree, but: ${clean.failures.slice(0, 5).join(' / ')}`); }
     else console.log(`OK self-test: a record whose only difference is the text's width agrees (${clean.compared} comparisons; ${clean.notes.length} named, not compared)`);
+    // an unmatched pair names the axis that kept it apart: Figma's field members record `message` at its default
+    const why = clone(base);
+    for (const m of why.components['text-field'].members) m.properties = { ...m.properties, message: 'false' };
+    // and a matched member with a part the contract boxes but this case does not draw, so the call reaches the
+    // drawn-in-Figma branch, the one that reads the part list: a call without it throws there
+    const lead = why.components.button.members.find((x) => x.id === '9:button--rest')!;
+    lead.parts['container/leadingVisual'] = { ...lead.parts['container/label'], id: '9:lead', type: 'FRAME' };
+    const r = compare(why, code, partList(code));
+    if (r.failures.some((x) => /^button rest \(9:button--rest\): container\/leadingVisual \(9:lead\) is drawn in Figma, not in code$/.test(x))) console.log('OK self-test: a matched member\'s part the contract boxes and the case does not draw is named, through the part list');
+    else { bad++; console.error(`FAIL self-test: a matched member's part the contract boxes and the case does not draw is not named: ${r.failures.find((x) => x.startsWith('button rest')) ?? 'no line'}`); }
+    for (const [what, re, lines] of [
+      ['the unmatched case', /^text-field--rest: .*nearest member 9:text-field--rest differs in property message is true in code, false in Figma$/, r.notes],
+      ['the unreached member', /^text-field \(9:text-field--rest\) .*a KPI 2 member no code case reaches: nearest case text-field--rest differs in property message is true in code, false in Figma/, r.failures],
+    ] as const) {
+      if (lines.some((x) => re.test(x))) console.log(`OK self-test: ${what} names the property that kept it apart (message)`);
+      else { bad++; console.error(`FAIL self-test: ${what} does not name the property that kept it apart (message): ${lines.find((x) => x.startsWith('text-field')) ?? 'no line'}`); }
+    }
+    // the two other reasons a case is kept apart: a code-only axis (the planted base leaves fullWidth=true code-only),
+    // and a variant axis Figma has that no case names (every password-field member gains `density`)
+    const extra = clone(base);
+    for (const m of extra.components['password-field'].members) m.variant = { ...m.variant, density: 'compact' };
+    const xr = compare(extra, code, partList(code));
+    for (const [what, re, lines, prefix] of [
+      ['the code-only case', /^button--full-width: .*\(code only, not compared\): fullWidth=true has no Figma axis or property; nearest member /, clean.notes, 'button--full-width'],
+      ['the case a Figma variant axis keeps apart', /^password-field--rest: .*nearest member 9:password-field--rest differs in variant density is not named in code, compact in Figma$/, xr.notes, 'password-field--rest'],
+    ] as const) {
+      if (lines.some((l) => re.test(l))) console.log(`OK self-test: ${what} names the axis that kept it apart`);
+      else { bad++; console.error(`FAIL self-test: ${what} does not name the axis that kept it apart: ${lines.find((l) => l.startsWith(prefix)) ?? 'no line'}`); }
+    }
     for (const t of SELF) {
       const f = clone(base);
       t.plant(f);
