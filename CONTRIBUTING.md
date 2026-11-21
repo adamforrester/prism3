@@ -1752,8 +1752,8 @@ npm run test:readback-parity -w @prism3/plugin # #2351 gap 2 (offline): the plug
                                           # (ADDED / REMOVED / RETYPED / VALUE / DESCRIPTION), each count
                                           # asserted at 0; the one tolerance is half an 8-bit step inside
                                           # a color. Grid and gradient styles, which no exporter reads,
-                                          # are compared as written; the tinted wash TokenPress cannot
-                                          # read is carved out as a bijection (#2365). Run after the
+                                          # are compared as written; each tinted wash is also held to
+                                          # the emission's own color at its opacity (#2365). Run after the
                                           # exporter gate above, which holds the emission's export to
                                           # the engine's DTCG.
 npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over EVERY emitted brand —
