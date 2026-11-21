@@ -48,8 +48,6 @@ Use a group of these for exactly one of 2 to 7 mutually exclusive, all-visible o
 - Ship options inside a group — the group owns the shared name, the single value, validation and the tab stop
 - Give the group a label; without one, assistive tech announces "radio button, 1 of 3" with no idea what the choice is
 - Give an optional group an explicit "None" option — a radio cannot be deselected, so a stray click is otherwise permanent
-- Keep `onChange` cheap, since selection follows focus and a screen-reader user arrowing through fires it at every step
-- On focus restore, focus the checked option rather than the first
 - Start empty to force a deliberate choice; pre-select only a genuinely safe default
 
 ### Don't
@@ -103,6 +101,9 @@ Option labels are parallel and brief; the detail that distinguishes them goes in
   - two radios standing in for a true/false toggle
 
 ## Building it in code
+
+- Keep `onChange` cheap, since selection follows focus and a screen-reader user arrowing through fires it at every step
+- On focus restore, focus the checked option rather than the first
 
 ### Props
 

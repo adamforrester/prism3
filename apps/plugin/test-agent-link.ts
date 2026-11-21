@@ -2029,5 +2029,59 @@ section('strip-relaunch — a new launch puts the first Minimize on the spot thi
   root.children = saved.kids;
 }
 
+/* ── mode limit (#4157) ─────────────────────────────────────────────────────────────────────────────── */
+section('mode limit — a file whose Figma plan allows fewer modes than Apply Theme adds is refused before any write (#4157)');
+{
+  // An empty file on a plan that allows 1 mode per collection: Figma's `addMode` past the cap throws "in addMode: Limited
+  // to 1 modes only" (the host's message, as the issue quotes it). Every write is recorded, and every write but the
+  // probe's three throws, so a write past the refusal is counted whichever executor makes it. Expected values are typed
+  // here: the probe's collection name, and the line the owner's decision A drafted.
+  const writes: string[] = [];
+  const write = (what: string) => () => { writes.push(what); throw new Error(`test host: ${what} is a write`); };
+  const probe = (name: string) => {
+    writes.push(`createVariableCollection ${name}`);
+    return {
+      id: 'VariableCollectionId:41:57', name, modes: [{ modeId: '41:0', name: 'Mode 1' }],
+      renameMode: write('renameMode'),
+      addMode: () => { writes.push('addMode'); throw new Error('in addMode: Limited to 1 modes only'); },
+      remove: () => { writes.push('remove'); },
+    };
+  };
+  const saved = { ...host };
+  Object.assign(host, {
+    variables: {
+      getLocalVariableCollectionsAsync: empty, getLocalVariablesAsync: empty,
+      createVariableCollection: probe, createVariable: write('createVariable'), createVariableAlias: write('createVariableAlias'),
+    },
+    createEffectStyle: write('createEffectStyle'), createPaintStyle: write('createPaintStyle'),
+    createGridStyle: write('createGridStyle'), createTextStyle: write('createTextStyle'),
+    loadFontAsync: async () => undefined,
+    saveVersionHistoryAsync: async () => { writes.push('saveVersionHistoryAsync'); return { id: 'v' }; },
+  });
+  try {
+    posted.length = 0;
+    await toUi({ type: 'apply-theme', input: brand });
+    const v = posted.filter((m) => m.type === 'apply-result').pop();
+    const line = String(v?.lines?.[0] ?? '');
+    ok(v?.ok === false && /^This file's Figma plan allows 1 mode per collection; Prism3 needs \d+\. Move the file to a team on a plan with more modes\.$/.test(line) && String(v.summary).startsWith(line),
+      `#4157 mode limit/panel: Apply Theme is refused with one line naming the plan's cap and the modes it needs (${String(v?.headline)}: ${line})`);
+    ok(JSON.stringify(writes) === JSON.stringify(['createVariableCollection Prism3 mode check', 'addMode', 'remove']) && !store.has(k('prism3', 'brandInput')),
+      `#4157 mode limit/panel: nothing is written but the probe, which removes its collection: no named version, variable, style or persisted brand (${writes.join(', ')})`);
+    writes.length = 0;
+    await toUi({ type: 'agent-link', on: true });   // off since 'switch-off'; switched back off below
+    const { id } = await send('apply-theme', { input: brand });
+    await main.agentLink.poll();
+    for (let i = 0; i < 20; i++) await settle();
+    const r = (await read(id)) as AgentResult;
+    const data = r.result?.data as { modeLimit?: { allowed: number; needed: number } } | undefined;
+    ok(r.ok === false && data?.modeLimit?.allowed === 1 && (data.modeLimit.needed ?? 0) > 1 && line.includes(`needs ${data.modeLimit.needed}.`),
+      `#4157 mode limit/agent: the agent's apply-theme gets the same refusal, with the cap and the need as data (${JSON.stringify(data?.modeLimit)})`);
+  } finally {
+    await toUi({ type: 'agent-link', on: false });
+    for (const key of Object.keys(host)) if (!(key in saved)) delete host[key];
+    Object.assign(host, saved);
+  }
+}
+
 console.log(`\n${failed === 0 ? '✅ ALL PASS' : `❌ ${failed} FAILED`} — ${executed} assertions executed`);
 process.exit(failed === 0 ? 0 : 1);

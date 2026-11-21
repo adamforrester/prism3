@@ -16,7 +16,8 @@ decision Q181 A: move the check upstream, and read the release pages' carried no
 - `RELEASE_SELF_CHECK` in each gate samples every edge through `scanText`, the path `scan()` runs. A first draft
   sampled the carve function directly, and removing the carve from `scan()` then failed only on real notes, not by
   name. The split fixed that.
-- False positives found on the notes, fixed by widening allow-sets: `devising` and `pairwise` in `NOT_EN_GB`. The
+- False positives found on the notes, fixed by widening allow-sets: `devising` in `NOT_EN_GB` (`pairwise` came
+  with the 0.239.0 fold, #4451, so it is listed once, there). The
   hits the first CI run listed (8, three of them the real `colour` hits #3574 named) were corrected in their notes by
   #3618, under the same decision.
 - Each gate's self-check also samples a second carried note, so a carve that stopped after the first note fails by
@@ -31,7 +32,9 @@ which blanks the carried notes before any of them is consulted. This PR's own `N
 refresh in favor of `FILLER_NOUN_BEFORE`, so there is one noun context, and its `revising` and `wrote` duplicates went
 with it. Reading `changes/` then surfaced a note `FILLER_NOUN_BEFORE` missed: "each code-only note that names
 motion" (#4174's note), where a modifier sits between the determiner and "note". `FILLER_NOUN_MODIFIED` widens the
-allow-set for that case only: one modifier word, a lower-case `note`, on the same line. What this PR adds that `main` does not have is part 1 of Q181 A: the notes are read in `changes/`, before
+allow-set for that case only: one modifier word, a lower-case `note`, on the same line. The 0.239.0 fold (#4451)
+carried the same rule and samples to `main`, so after the refresh there is one copy of each, and this PR adds one more
+sample, "the gate will note that it moves" → filler, which pins the determiner list. What this PR adds that `main` does not have is part 1 of Q181 A: the notes are read in `changes/`, before
 they merge.
 
 ### Verification
@@ -45,10 +48,10 @@ Mutations, each failing by name in the gate it targets:
 - dropping the slug carve gives `…notes[].slug is the dated record`;
 - passing a page with no heading gives `…a release page with no In detail heading is blind, not clean`;
 - dropping the `changes/` walk gives `the gate's SCOPE shrank … the pending change notes`;
-- dropping `pairwise` from `NOT_EN_GB` fails its own self-check sample.
 - dropping `FILLER_NOUN_MODIFIED` gives `"each code-only note that names motion" should NOT be flagged`; letting it
   cross a newline gives `"the ramp\nnote that it moves" should be flagged as 'filler'`; letting it ignore case gives
-  `"Read the guide Note that it moves." should be flagged as 'filler'`.
+  `"Read the guide Note that it moves." should be flagged as 'filler'`; dropping its determiner list gives
+  `"the gate will note that it moves" should be flagged as 'filler'`.
 
 Against the real 0.238.0 pages from #3570, placed in the tree: with the carve, both pages pass both gates. Without
 it, #3570 measured 23 and 4 hits on the same pages.

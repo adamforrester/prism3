@@ -542,6 +542,8 @@ export const segmentedControl: ComponentDef = {
       'Name what is being chosen, with a visible label or an accessible name',
       'Use two to five options with short, one-line labels',
       'Select a sensible option from the start',
+    ],
+    implementation: [
       'Use the form behavior when the value is submitted with a form',
     ],
     dont: [

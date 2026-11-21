@@ -57,7 +57,6 @@ Use inside Pagination only. Pagination works out which pages to show, marks the 
 
 ### Do
 
-- Let Pagination set the current page and the ellipses
 - Keep every page cell the same size as the previous and next cells beside it
 
 ### Don't
@@ -105,6 +104,8 @@ Numbers only on a page. The accessible name adds "Page". Previous and next read 
   - an ellipsis read aloud as "dot dot dot"
 
 ## Building it in code
+
+- Let Pagination set the current page and the ellipses
 
 ### Props
 
