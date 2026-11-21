@@ -36,14 +36,15 @@
  *    that did not pass — so a clean run is a table, and a red run is a table plus exactly the output
  *    that matters. `--verbose` prints everything.
  *
- * 3. ORDER IS DECLARED PER GATE AND CHECKED, NOT LEFT TO THE ARRAY. Three orderings are load-bearing
+ * 3. ORDER IS DECLARED PER GATE AND CHECKED, NOT LEFT TO THE ARRAY. Four orderings are load-bearing
  *    and each one, if violated, produces a PASS rather than an error: `lint-us-english.ts` and
  *    `lint-voice.ts` scan the built `apps/studio/dist/*.js`, so run before `build` they scan a stale
  *    bundle (the trap that got #302 and #310) — and as of #937 the US-English gate scans
  *    `apps/plugin/dist` too, so it now depends on TWO builds and its `after` names both;
  *    `tools/exporter-comparison/gate.ts` executes
  *    TokenPress's real exporter, so it needs the TokenPress build; the `node:`-builtin check reads
- *    `apps/plugin/dist/main.js`. So every gate declares `after: [...]`, and `assertOrder` checks the
+ *    `apps/plugin/dist/main.js`; and `lint-materialization-renames.ts` reads the emission `regen` writes, so it
+ *    runs after `drift` (#1052). So every gate declares `after: [...]`, and `assertOrder` checks the
  *    authored array against those declarations BEFORE running anything. The two halves are
  *    independent on purpose (`docs/34`): the constraint is declared per gate, the order is the array,
  *    and neither is derived from the other — sorting the array from `after` would make the check
@@ -612,8 +613,9 @@ export const environmentProblems = async (): Promise<string[]> => {
  *  collides. Raise the floor when the set grows, if you like; lower it only on purpose, in the PR that shrinks the set,
  *  and say why. What a floor cannot see: a shrink and a growth of the same size in one PR.
  *
- *  259 since #1119, raised to the set's size when harbor's 29-file Figma emission joined it, so losing it fails here. */
-export const ARTIFACT_FLOOR = 259;
+ *  259 since #1119, raised to the set's size when harbor's 29-file Figma emission joined it, so losing it fails here.
+ *  265 since #4155, the set's size once each brand's web base (`<brand>.web.base.tokens.json`) joined it. */
+export const ARTIFACT_FLOOR = 265;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -653,13 +655,14 @@ export const GATES: Gate[] = [
     precondition: driftCheckPrecondition,
   },
   {
-    // AFTER `drift` deliberately: this reads the emission `regen` writes, so running it against a stale
-    // `out/figma/**` would account for a tree nobody emitted. It does NOT declare `after: ['drift']` —
-    // that field makes a gate DERIVE from another's captured output, and this one runs its own process.
-    // Position in the list is the ordering; the dependency is on regen having run, not on its verdict.
+    // AFTER `drift`, declared (#1052): `after` orders gates and does not make one derive (`check-ignore`
+    // runs its own process after `build-web` the same way). Undeclared, a swap of the two passed
+    // `orderViolations` silently.
     id: 'lint-materialization-renames',
     ciStep: 'A materialization rename is recorded as a rule, and the accounting over it is total',
     cmd: engine('lint-materialization-renames.ts'),
+    after: ['drift'],
+    why: 'it reads the emission regen writes, and drift is the gate that regenerates and restores out/figma mid-run',
   },
   {
     id: 'lint-emission-version',
@@ -985,9 +988,9 @@ export const GATES: Gate[] = [
     ciStep: 'Voice lint gate (shipped text)',
     cmd: engine('lint-voice.ts'),
     after: ['build-web', 'build-plugin'],
-    // `build-plugin` since #1824: the CLIENT NAMES arm reads apps/plugin/dist (main.js + ui.html) raw.
-    // The voice RULES still do not (#948 is open), so this ordering serves that one arm today.
-    why: 'the voice rules scan apps/studio/dist/*.js, and the client-name arm (#1824) scans both built bundles — run before either build it reads a stale one, or none',
+    // `build-plugin` since #1824: the CLIENT NAMES arm reads apps/plugin/dist (main.js + ui.html) raw, and since
+    // #948 the voice RULES read both files too.
+    why: 'the voice rules and the client-name arm (#1824) scan both built bundles, apps/studio/dist and apps/plugin/dist — run before either build it reads a stale one, or none',
   },
   {
     id: 'lint-doc-gates',
@@ -1333,6 +1336,26 @@ export const GATES: Gate[] = [
     cmd: engine('lint-test-arms.ts'),
   },
   {
+    // #2997 gate 3 — reads the role map and the pinned shadcn variable set; needs no build and no `after`.
+    id: 'shadcn-vars',
+    ciStep: 'The shadcn map covers the pinned shadcn variable set (#2997)',
+    cmd: engine('shadcn-vars.ts', '--check'),
+  },
+  {
+    // #2997 gate 4 — renders the uncommitted component-contract export itself and reads the token contract; needs
+    // no build and no `after`.
+    id: 'lint-shadcn-contract',
+    ciStep: 'The shadcn map follows the component contract (#2997)',
+    cmd: engine('lint-shadcn-contract.ts'),
+  },
+  {
+    // #2996 — reads the committed supplement, its Spectacular fixture and the token contract; needs no build and no
+    // `after`. `drift` holds the committed supplement to the emitter, so this reads what ships.
+    id: 'lint-spec-supplement',
+    ciStep: "The spec supplement lines up with Spectacular's output (#2996)",
+    cmd: engine('lint-spec-supplement.ts'),
+  },
+  {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
     // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
     // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject
@@ -1494,6 +1517,19 @@ if (!orderViolations([okOrder[0], { ...okOrder[1], why: undefined }]).some((p) =
 }
 if (!orderViolations([{ id: 'a', ciStep: 'A' }]).some((p) => p.includes('neither a cmd nor a derive'))) {
   selfFails.push('orderViolations accepts a gate that would run nothing — a table row that can only ever be blank');
+}
+// #1052: the real list's undeclared ordering. Swapping `drift` and `lint-materialization-renames` passed `orderViolations`
+// silently, because the second declared no `after`. Run against the shipped GATES with the two swapped.
+{
+  const swapped = [...GATES];
+  const [d, m] = [swapped.findIndex((g) => g.id === 'drift'), swapped.findIndex((g) => g.id === 'lint-materialization-renames')];
+  if (d < 0 || m < 0) selfFails.push('#1052 the self-check cannot find `drift` and `lint-materialization-renames` in GATES');
+  else {
+    [swapped[d], swapped[m]] = [swapped[m], swapped[d]];
+    if (!orderViolations(swapped).some((p) => p.includes('`lint-materialization-renames` must run after `drift`'))) {
+      selfFails.push('#1052 orderViolations accepts lint-materialization-renames ahead of drift — it would read an emission regen never wrote');
+    }
+  }
 }
 if (!orderViolations([okOrder[0], { ...okOrder[0] }]).some((p) => p.includes('duplicate gate id'))) {
   selfFails.push('orderViolations accepts a duplicate id, so one gate could shadow another in the results map');

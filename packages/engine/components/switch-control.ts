@@ -451,10 +451,12 @@ export const switchControl: ComponentDef = {
   docs: {
     usage: 'Do not place this on its own. It is the track-and-thumb Switch.Row nests, so a fix to its border weight or its fill grammar reaches the row without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring.',
     do: [
+      'Let thumb position carry the state; treat the glyph as a legibility aid, not the color-independence answer',
+      'Supply an external `aria-label` only when using the control genuinely alone',
+    ],
+    implementation: [
       'Nest this from Switch.Row rather than redrawing the track per host',
       'Let the host row pass selection, state and showStateLabel through, and follow its size, so the nested control tracks the row',
-      'Let thumb position carry the state; treat the glyph as a legibility aid, not the color-independence answer',
-      'Supply an external aria-label only when using the control genuinely alone',
     ],
     dont: [
       'Place a bare track as the clickable element — the labeled row is the hit target, and a compact small track (16px) is under the SC 2.5.8 minimum on its own',

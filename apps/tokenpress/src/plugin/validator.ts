@@ -1,12 +1,15 @@
 // Validation logic per PRD error tolerance strategy
 import { ValidationIssue } from '../types/plugin';
-import { isVariableAlias } from '../types/figma-guards';
+import { isVariableAlias, aliasTargetIds } from '../types/figma-guards';
 
 interface ValidationData {
   collections: VariableCollection[];
   variables: Variable[];
   textStyles: TextStyle[];
   effectStyles: EffectStyle[];
+  /** Alias targets outside the local variables, resolved through the Plugin API (prism3 #4166). An
+   *  alias to one of these is not broken: it points at a team-library variable the file imports. */
+  externalVariables?: Variable[];
 }
 
 export class TokenValidator {
@@ -19,7 +22,7 @@ export class TokenValidator {
 
     // Build collection and variable lookup maps
     this.collectionMap = this.buildCollectionMap(data.collections);
-    const variableMap = this.buildVariableMap(data.variables);
+    const variableMap = this.buildVariableMap(data.variables.concat(data.externalVariables || []));
     const aliasGraph = this.buildAliasGraph(data.variables, variableMap);
 
     // Critical validations (block export)
@@ -71,8 +74,9 @@ export class TokenValidator {
   private validateAliasTargets(variables: Variable[], variableMap: Map<string, Variable>): void {
     variables.forEach(variable => {
       Object.entries(variable.valuesByMode).forEach(([modeId, value]) => {
-        if (isVariableAlias(value)) {
-          if (!variableMap.has(value.id)) {
+        // A tinted wash's color and opacity halves are alias targets too (prism3 #2365).
+        aliasTargetIds(value).forEach(targetId => {
+          if (!variableMap.has(targetId)) {
             const collection = this.collectionMap.get(variable.variableCollectionId);
             const collectionName = collection ? collection.name : 'Unknown Collection';
 
@@ -82,14 +86,14 @@ export class TokenValidator {
               {
                 variableId: variable.id,
                 modeId,
-                targetId: value.id,
+                targetId,
                 collectionId: variable.variableCollectionId,
                 collectionName: collectionName,
                 variableName: variable.name,
               }
             );
           }
-        }
+        });
       });
     });
   }

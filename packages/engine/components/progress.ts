@@ -310,13 +310,13 @@ export const progress: ComponentDef = {
         class: 'motion',
         disposition: 'refused',
         description:
-          'the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)` (1600ms), on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it.',
+          'the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)`, on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)`: slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it.',
       },
       {
         class: 'motion',
         disposition: 'refused',
         description:
-          'the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, which is 0ms, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`.',
+          'the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`.',
       },
       {
         class: 'implementation',
@@ -328,7 +328,7 @@ export const progress: ComponentDef = {
         class: 'runtime-behavior',
         disposition: 'lowered',
         description:
-          'the indeterminate ring — the same `<svg>` with the arc\'s `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) linear infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (1600ms per turn, Progress\'s own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o\'clock. In right-to-left the arc turns counterclockwise.',
+          'the indeterminate ring — the same `<svg>` with the arc\'s `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) var(--motion-easing-linear) infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (one turn per `motion.duration.sweep`, Progress\'s own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)`: slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o\'clock. In right-to-left the arc turns counterclockwise.',
       },
       {
         class: 'right-to-left',
@@ -458,9 +458,9 @@ export const progress: ComponentDef = {
   },
 
   motion: {
-    enter: 'Appears after a short delay (400ms), so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep` (1600ms), on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.',
-    exit: 'Stays at least 500ms once shown, then leaves with its host.',
-    reduceMotion: 'The fill snaps to each value (`motion.duration-reduced.moderate`, 0ms). The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep` (2600ms). It is never removed, because a still bar reads as stuck.',
+    enter: 'Appears after a short delay, `delay`, so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep`, on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.',
+    exit: 'Stays at least `minDisplay` once shown, then leaves with its host.',
+    reduceMotion: 'The fill snaps to each value, on `motion.duration-reduced.moderate`. The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep`. It is never removed, because a still bar reads as stuck.',
   },
 
   notes: {

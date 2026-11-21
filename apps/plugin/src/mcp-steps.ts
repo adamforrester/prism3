@@ -33,7 +33,7 @@ import { applyTextStylePlan } from './write-text-styles';
 import { renameStylesForPlan, renameTextStylesForPlan } from './rename-styles';
 import { preflightApply } from './preflight';
 import type { PreflightPlan } from './preflight';
-import { preloadFonts } from './preload-fonts';
+import { availableStylesByFamily, preloadFonts, resolveCutPlan } from './preload-fonts';
 import type { FontPreloadResult } from './preload-fonts';
 import { persistInput } from './persist-figma';
 import { stampEmission } from './theme-emission';
@@ -327,8 +327,13 @@ export const runGrid = (raw: unknown) => writeStep(raw, 'grid', async (host, d, 
 
 /** TYPOGRAPHY variables (#237) — `core/font` + `type-sets`. */
 export const runFont = (raw: unknown) => writeStep(raw, 'font', async (host, d, r) => {
+  // #3861: each cut variable in its family's own spelling before it is written, as Apply Theme does (#1728), from the
+  // text plan's cut → family pairing the step carries (`cutPairs`). Without the pairing, the values as planned.
+  const pairs = (d.cutPairs ?? []) as [string, string][];
+  const cut = pairs.length ? resolveCutPlan(d.plans as VarCollectionPlan[], pairs, await availableStylesByFamily(fontPreloadApiOf(host))) : null;
+  if (cut?.resolved) r.resolvedCuts = cut.resolved;
   const mig = await beginMigration(host.variables);
-  const res = await applyVarCollectionPlan(d.plans as VarCollectionPlan[], host.variables, mig);
+  const res = await applyVarCollectionPlan(cut ? cut.plans : d.plans as VarCollectionPlan[], host.variables, mig);
   Object.assign(r, { migration: migrationOf(mig), created: res.collections.reduce((n, c) => n + c.created, 0), total: res.collections.reduce((n, c) => n + c.total, 0), bound: res.bound, misses: res.misses, refused: res.refused });
 });
 
@@ -672,7 +677,7 @@ export const runComponentReactions = async (raw: unknown): Promise<StepReport> =
  * reason a re-run of this script adds nothing.
  */
 export const runComponentEmit = async (raw: unknown, payloads: Payload[]): Promise<StepReport> => {
-  const d = unpack(raw) as StepBase & { def: string; members: { name: string; index: number }[]; count: number; description?: string };
+  const d = unpack(raw) as StepBase & { def: string; members: { name: string; index: number }[]; count: number; pitch: { x: number; y: number }; description?: string };
   const notes: { loadAllPages?: string; pageLoadFailures?: string[] } = {};
   const r = base(d, 'component-emit', { mode: 'live' }, null);
   delete (r as Partial<StepReport>).shared;
@@ -681,7 +686,8 @@ export const runComponentEmit = async (raw: unknown, payloads: Payload[]): Promi
   try {
     r.page = await placeOnPage(d.def, notes);
     const cols = Math.max(1, Math.ceil(Math.sqrt(d.count)));
-    const PITCH = 48;
+    // THE PITCH IS THE PLANS' (#3139): the widest and tallest member plus 24, read offline by `emitPitch` (`mcp-paste.ts`) and
+    // passed in, so every slice of a def lays out on one grid. A fixed 48 fit the 24px icons and put a 54px logo over its neighbor.
     for (let i = 0; i < d.members.length; i++) {
       const m = d.members[i];
       const have = figma.currentPage.findChild((n) => n.type === 'COMPONENT' && n.name === m.name);
@@ -691,8 +697,8 @@ export const runComponentEmit = async (raw: unknown, payloads: Payload[]): Promi
       if (node) {
         node.name = m.name;
         if (d.description) node.description = d.description;
-        node.x = (m.index % cols) * PITCH;
-        node.y = Math.floor(m.index / cols) * PITCH;
+        node.x = (m.index % cols) * d.pitch.x;
+        node.y = Math.floor(m.index / cols) * d.pitch.y;
       }
       members.push({ name: m.name, status: node ? 'built' : 'built, not found by id', id: node?.id, misses: (out.misses as string[] | undefined) ?? [] });
     }

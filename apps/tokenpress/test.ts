@@ -104,9 +104,18 @@ const ADDED: Record<string, number> = {
   // prism3 #731 — gradient paint styles were never scanned, so every gradient was missing from the export. Now
   // scanned and written to `gradients.json` as DTCG `gradient` tokens, stop colors bound to variables as aliases.
   'tests/unit/gradient-paint-styles.test.ts': 6,
+  // prism3 #2365 — a tinted wash (a color alias at an opacity) exported `components: [null, null, null]`. It is now the
+  // color the alias resolves to in the wash's mode at that alpha, with both aliases in `$extensions` when asked for.
+  'tests/unit/tinted-wash.test.ts': 8,
+  // prism3 #4166 — an alias to a team-library variable exports as a reference by the target's name, marked
+  // `$extensions.figma.externalAlias`, instead of a `{VariableID:…}` the validator called broken.
+  'tests/unit/external-library-alias.test.ts': 8,
   // prism3 #4121 — the manifest asks for no `currentuser` permission, and no source reads `figma.currentUser`,
   // which throws once the permission is gone.
   'tests/unit/manifest-permissions.test.ts': 3,
+  // prism3 #2365 × #4166 — a tinted wash over a team-library variable resolves, through the library collection's
+  // default mode, and a wash over an id nothing resolves is a broken alias, as a bare alias is.
+  'tests/unit/tinted-wash-library.test.ts': 5,
 };
 
 // ---- the harness checks itself first -------------------------------------------------------

@@ -38,7 +38,7 @@ export {
 } from './theme';
 export type {
   BrandInput, FacePin, GlassRoleInput, GradientInput, LayoutAxis, OutlineHoverFill, OutlineWash, PerModeSizeGroup,
-  RaisedSurface, ResolvedGradient, ScrimStrength, Theme, TypeComposite, TypographyInput,
+  RaisedSurface, ResolvedGradient, ScrimStrength, InteractiveGround, Theme, TypeComposite, TypographyInput,
 } from './theme';
 export {
   ACHROMATIC_C, composite, contrast, floorRatio, formatRatio, hex, hexToRgb, oklchToRgb, rgbToOklch, storedOklch,
@@ -68,11 +68,12 @@ export { resolvePreview } from './resolve-preview';
 export type { ResolvedPreview } from './resolve-preview';
 export { autoPlaceStep } from './ramp';
 export { isInverseRole } from './inverse-roles';
-export { TRAITS } from './vocabulary';
+export { TRAITS, TRAIT_OPPOSITES } from './vocabulary';
 export { colorVariablesOutOfOrder } from './color-order';
 export { buildBase, buildOverlaySet, stripExtensions } from './emit-dtcg-overlay';
 export { BUTTON_SPACING } from './button-spacing';
 export { default as EXAMPLE_BRANDS_JSON } from './schema/example-brands.json';
+export { EXAMPLE_DESCRIPTIONS } from './example-registry';
 export {
   COMPONENT_RENAMES, coordKey, coordPairs, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty,
   slotMigrationOf, slotTextMigrationOf,

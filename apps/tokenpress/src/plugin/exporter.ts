@@ -33,9 +33,9 @@ import { ColorConverter } from './converters/color-converter';
 import { DimensionConverter } from './converters/dimension-converter';
 import { ShadowConverter } from './converters/shadow-converter';
 import { TypographyConverter } from './converters/typography-converter';
-import { TokenScanner } from './scanner';
+import { TokenScanner, ExternalAliasTargets } from './scanner';
 import { TokenTypeDetector } from './type-detection';
-import { isVariableAlias, hasAlpha } from '../types/figma-guards';
+import { isVariableAlias, hasAlpha, isComposedColor } from '../types/figma-guards';
 
 /**
  * Exports Figma design tokens to a ZIP archive containing DTCG-compliant JSON files.
@@ -70,6 +70,26 @@ export class TokenExporter {
    * Set by `beginFile` at the top of every file build.
    */
   private activeNamespace = '';
+
+  /**
+   * Each collection's default mode, by collection id (prism3 #2365). A composed color's alias is resolved to a literal,
+   * and an alias into ANOTHER collection resolves, as Figma resolves it with no explicit mode set, through that
+   * collection's default mode. Filled by `exportVariables`; a direct `buildDTCGFile` call leaves it empty, and the
+   * resolver then reads the target's first mode.
+   */
+  private collectionDefaultModes = new Map<string, string>();
+
+  /**
+   * Alias targets that are not local variables: team-library variables the file imports
+   * (prism3 #4166). Resolved once per export by `TokenScanner.resolveExternalAliasTargets`. An alias
+   * to one exports as a reference by its name, marked `$extensions.figma.externalAlias`, because the
+   * target lives outside this export.
+   */
+  private externalVariables: Map<string, Variable> = new Map();
+  private externalCollectionNames: Record<string, string> = {};
+  /** Each external collection's default mode, by collection id: a tinted wash over a library variable resolves
+   *  through it (prism3 #2365), as an alias into any other collection does. */
+  private externalCollectionDefaultModes: Record<string, string> = {};
 
   constructor(protected options: ExportOptions) {
     this.scanner = new TokenScanner();
@@ -201,6 +221,7 @@ export class TokenExporter {
       await this.scanner.scanAll({
       excludedCollectionNames: this.options.excludedCollections,
     });
+    this.setExternalAliasTargets(await this.scanner.resolveExternalAliasTargets(variables));
 
     // When any collection has multiple modes we lay the ZIP out as
     //   tokens/shared/<single-mode files>      ← apply to every mode
@@ -246,6 +267,24 @@ export class TokenExporter {
     }
   }
 
+  /** Records the external alias targets this export resolves against (prism3 #4166). */
+  protected setExternalAliasTargets(targets: ExternalAliasTargets): void {
+    this.externalVariables = new Map(targets.variables.map(v => [v.id, v]));
+    this.externalCollectionNames = targets.collectionNames;
+    this.externalCollectionDefaultModes = targets.collectionDefaultModes || {};
+  }
+
+  /** An id → variable map over `variables` and the external alias targets. */
+  protected variableMapOf(variables: Variable[]): Map<string, Variable> {
+    const map = new Map(variables.map(v => [v.id, v]));
+    this.externalVariables.forEach((v, id) => {
+      if (!map.has(id)) {
+        map.set(id, v);
+      }
+    });
+    return map;
+  }
+
   private async exportVariables(
     zip: JSZip,
     collections: VariableCollection[],
@@ -258,6 +297,8 @@ export class TokenExporter {
         variables,
         collections
       );
+
+      this.collectionDefaultModes = new Map(collections.map(c => [c.id, c.defaultModeId]));
 
       let processedCollections = 0;
       const totalCollections = Array.from(variablesByCollection.values()).reduce(
@@ -678,7 +719,7 @@ export class TokenExporter {
     allVariables: Variable[]
   ): DTCGFile {
     const tokens: JsonObject = {};
-    const variableMap = new Map(allVariables.map(v => [v.id, v]));
+    const variableMap = this.variableMapOf(allVariables);
 
     // Decide the wrapper/alias namespace once, before any token is converted.
     this.beginFile(variables.map(v => v.name));
@@ -690,7 +731,7 @@ export class TokenExporter {
       }
 
       const tokenPath = this.sanitizeTokenName(variable.name);
-      const dtcgToken = this.convertVariableToDTCG(variable, value, variableMap);
+      const dtcgToken = this.convertVariableToDTCG(variable, value, variableMap, mode.modeId);
 
       this.setNestedProperty(tokens, tokenPath.split('/'), dtcgToken);
     });
@@ -715,8 +756,12 @@ export class TokenExporter {
   private convertVariableToDTCG(
     variable: Variable,
     value: VariableValue,
-    variableMap: Map<string, Variable>
+    variableMap: Map<string, Variable>,
+    modeId?: string
   ): DTCGToken {
+    if (variable.resolvedType === 'COLOR' && isComposedColor(value)) {
+      return this.convertComposedColorToDTCG(variable, value, variableMap, modeId);
+    }
     // For aliases without explicit scopes, walk the chain to inherit scopes
     // from the source. Reported in the community: an alias FLOAT named "0"
     // with empty scopes was typing as `number` even though its source had
@@ -770,7 +815,117 @@ export class TokenExporter {
       }
     }
 
+    // A reference to a team-library variable resolves only where that library's tokens are exported
+    // too, so it says where it points (prism3 #4166, owner decision C). Written whether or not the Figma
+    // metadata option is on: it qualifies the `$value`, it isn't metadata about this variable.
+    const external = isVariableAlias(value) ? this.externalVariables.get(value.id) : undefined;
+    if (external) {
+      const extensions = (token.$extensions || {}) as Record<string, Record<string, unknown>>;
+      const figmaExt = extensions.figma || {};
+      figmaExt.externalAlias = {
+        variableId: external.id,
+        variableKey: external.key,
+        collection: this.externalCollectionNames[external.variableCollectionId] || null,
+      };
+      extensions.figma = figmaExt;
+      token.$extensions = extensions;
+    }
+
     return token;
+  }
+
+  // A TINTED WASH (prism3 #2365): a COLOR variable whose value is a color at an opacity, the color usually an alias
+  // and the opacity a percent or an alias to one. DTCG 2025.10 cannot put an alpha on an alias, so (owner decision
+  // on #2365, A) `$value` is the color the alias resolves to in THIS mode, its alpha multiplied by the opacity, and
+  // with Figma extensions on, both aliases are kept in `$extensions.figma.aliasOf` so the reference can be rebuilt.
+  // If either half does not resolve to a literal, the color half is written as the alias it is, and the validator
+  // reports a broken target as it does for any other alias. A half that aliases a team-library variable resolves like
+  // a bare library alias (prism3 #4166): the scanner reads both halves as alias targets.
+  private convertComposedColorToDTCG(
+    variable: Variable,
+    value: { color: VariableAlias | RGB | RGBA; opacity: number | VariableAlias },
+    variableMap: Map<string, Variable>,
+    modeId?: string
+  ): DTCGToken {
+    const color = this.resolveInMode(value.color, variableMap, variable.variableCollectionId, modeId);
+    const percent = this.resolveInMode(value.opacity, variableMap, variable.variableCollectionId, modeId);
+    const isRgb =
+      typeof color === 'object' && color !== null && !isVariableAlias(color) && 'r' in color;
+    let dtcgValue: VariableConversionValue;
+    if (isRgb && typeof percent === 'number') {
+      const rgb = color as RGB | RGBA;
+      const alpha = (hasAlpha(rgb) ? rgb.a : 1) * (percent / 100);
+      const washed: RGBA = { r: rgb.r, g: rgb.g, b: rgb.b, a: alpha };
+      dtcgValue =
+        this.options.colorFormat === 'css' ? this.convertColorToCSS(washed) : this.convertColor(washed);
+    } else {
+      dtcgValue = this.convertVariableValue(value.color as VariableValue, 'COLOR', variableMap, 'color');
+    }
+
+    const token: DTCGToken = { $type: 'color', $value: dtcgValue };
+    if (variable.description) {
+      token.$description = variable.description;
+    }
+    if (this.options.includeFigmaExtensions) {
+      const aliasOf: JsonObject = {};
+      if (isVariableAlias(value.color)) {
+        aliasOf.color = this.convertVariableValue(value.color, 'COLOR', variableMap, 'color') as string;
+      }
+      if (isVariableAlias(value.opacity)) {
+        aliasOf.opacity = this.convertVariableValue(value.opacity, 'FLOAT', variableMap, 'number') as string;
+      }
+      token.$extensions = {
+        figma: {
+          variableId: variable.id,
+          collection: variable.variableCollectionId,
+          scopes: variable.scopes,
+          aliasOf: aliasOf,
+        },
+      };
+      if (variable.codeSyntax) {
+        token.$extensions.figma.codeSyntax = variable.codeSyntax;
+      }
+    }
+    return token;
+  }
+
+  // Follows an alias chain to a literal, mode by mode (prism3 #2365): a target in the same collection is read in the
+  // same mode, and a target in another collection in that collection's default mode, which is how Figma resolves an
+  // alias with no explicit mode set. A literal is returned as it is; a broken or looping chain returns the alias.
+  private resolveInMode(
+    value: unknown,
+    variableMap: Map<string, Variable>,
+    collectionId: string,
+    modeId?: string
+  ): unknown {
+    let current: unknown = value;
+    let currentCollection = collectionId;
+    let currentMode = modeId;
+    const seen = new Set<string>();
+    for (let hops = 0; hops < 10 && isVariableAlias(current); hops++) {
+      if (seen.has(current.id)) {
+        return value;
+      }
+      seen.add(current.id);
+      const target = variableMap.get(current.id);
+      if (!target) {
+        return value;
+      }
+      if (target.variableCollectionId !== currentCollection) {
+        currentCollection = target.variableCollectionId;
+        currentMode =
+          this.collectionDefaultModes.get(currentCollection) ||
+          this.externalCollectionDefaultModes[currentCollection];
+      }
+      const modeIds = Object.keys(target.valuesByMode);
+      if (modeIds.length === 0) {
+        return value;
+      }
+      const pick =
+        currentMode !== undefined && currentMode in target.valuesByMode ? currentMode : modeIds[0];
+      current = target.valuesByMode[pick];
+    }
+    return isVariableAlias(current) ? value : current;
   }
 
   // Walks an alias chain to the deepest non-alias source and returns its

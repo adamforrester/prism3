@@ -92,7 +92,15 @@ export const setAnchor = (mode: string, col: string, v: number | undefined): voi
   if (mode === 'light') {
     if (col === 'primary') return setPath(brandState, 'actionAnchorStep', v);
     if (col === 'destructive') return setPath(brandState, 'destructiveAnchorStep', v);
-    const i = accentIndex(col);
+    let i = accentIndex(col);
+    // #4294: a brand still on the legacy `accentPalette` field has an `accent` column (the engine's back-compat) but no
+    // entry to hold its anchor. Pinning one folds the field into the list first, in the shape the back-compat is
+    // byte-identical to. Auto with nothing pinned folds nothing, so an untouched brand stays as loaded.
+    if (i < 0 && v !== undefined && col === 'accent' && !brandState.interactivePalettes && brandState.accentPalette !== undefined) {
+      brandState.interactivePalettes = [{ name: 'accent', palette: brandState.accentPalette }];
+      delete brandState.accentPalette;
+      i = 0;
+    }
     if (i >= 0) setPath(brandState, `interactivePalettes.${i}.anchorStep`, v);
     return;
   }
@@ -153,7 +161,7 @@ const RESERVED_COLUMNS = new Set(['primary', 'neutral', 'destructive']);
  *  `taken` (#3608, the owner's Q-AB1 B: offered disabled, with a reason, never hidden): `addAccent` adds an unnamed
  *  column, which the engine names after its palette, and the engine refuses a duplicate column name. */
 export const addSetOptions = (actionPalette: string): { palette: string; taken: boolean }[] => {
-  const cols = brandState.interactivePalettes ?? [];
+  const cols = columnsOf();
   const already = new Set(cols.map((e) => e.palette));
   const named = new Set(cols.map((e) => e.name).filter((n): n is string => n !== undefined));
   return ['primary', ...(brandState.brandColors ?? []).map((x) => x.name)]
@@ -162,8 +170,18 @@ export const addSetOptions = (actionPalette: string): { palette: string; taken: 
 };
 /** The palettes "Add button set" can add: `addSetOptions` less the taken ones. */
 export const promotablePalettes = (actionPalette: string): string[] => addSetOptions(actionPalette).filter((o) => !o.taken).map((o) => o.palette);
-/** Promote `palette` to an interactive column; the engine names it after the palette. */
+/** The brand's interactive columns as the engine builds them: `interactivePalettes`, or else the legacy `accentPalette`'s
+ *  one column, named `accent` (docs/20 §3, the engine's back-compat; `name-refs.ts` reads it the same way). */
+const columnsOf = (): { name?: string; palette: string }[] =>
+  brandState.interactivePalettes ?? (brandState.accentPalette !== undefined ? [{ name: 'accent', palette: brandState.accentPalette }] : []);
+/** Promote `palette` to an interactive column; the engine names it after the palette. #4210 (owner, A): a brand on the
+ *  legacy `accentPalette` has its `accent` column folded into `interactivePalettes` first, under the same name, so the
+ *  new list does not replace it and every `accent`-keyed anchor and override still names a column. */
 export const addAccent = (palette: string): void => {
+  if (brandState.interactivePalettes === undefined && brandState.accentPalette !== undefined) {
+    brandState.interactivePalettes = [{ name: 'accent', palette: brandState.accentPalette }];
+    delete brandState.accentPalette;
+  }
   const arr = brandState.interactivePalettes ?? (brandState.interactivePalettes = []);
   arr.push({ palette });
 };

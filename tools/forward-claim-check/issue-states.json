@@ -1,7 +1,7 @@
 {
   "//": "Issue states cited by forward claims, resolved through the GitHub MCP tools. A tsx script has no MCP client, so this is a committed SNAPSHOT and the report prints resolvedAt at the top. Re-resolve before quoting a verdict. Add an entry with `--issues` for the numbers needed; a cited issue with no entry is reported UNRESOLVED by name rather than being counted as fine.",
   "resolvedAt": "2026-08-26",
-  "repo": "adamforrester/prism3 (formerly prism3-tokens; both names redirect)",
+  "repo": "prism-ds/prism3 (formerly adamforrester/prism3 and adamforrester/prism3-tokens; the old names redirect)",
   "method": "mcp__github__issue_read, method=get",
   "states": {
     "50": { "state": "closed", "kind": "pull request", "title": "engine: emit-figma — generalise across aurora + wendys (queue item 6)" },
