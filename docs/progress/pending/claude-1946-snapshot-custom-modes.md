@@ -34,7 +34,8 @@ frozen at creation, with no live link afterward; provenance records where it sta
   keeps the page it showed. What this build writes is v3, and v3 is never migrated, so the copy runs once and a
   snapshot that took no surfaces is never given its base's on a later reload. It covers the web's saved brand and the
   plugin's file blob, which share `deserializeBrandInput`. The migration reads a custom mode's base only as an own
-  key of the stored `surfaces`, so a base that names an `Object.prototype` key copies nothing.
+  key of the stored `surfaces`, so a base that names an `Object.prototype` key copies nothing (`test.ts` pins
+  `constructor`, `__proto__` and `toString`).
 - **O3 C: editing custom-mode surfaces in Studio** is a follow-up, filed as its own issue.
 
 ### Owner decisions 5a and 5b (2026-11-20)
