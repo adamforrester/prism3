@@ -31,6 +31,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { load, ARM_1, boxedParts } from './arm-contract';
 
 const HERE = import.meta.dirname ?? '';
 const FIGMA = resolve(HERE, 'figma-geometry.json');
@@ -50,7 +51,8 @@ export type CodeRecord = { cases: Record<string, CCase> };
 const near = (a: number, b: number) => Math.abs(a - b) <= EPS;
 const n2 = (v: number) => Math.round(v * 100) / 100;
 
-export const compare = (fig: FigmaRecord, code: CodeRecord): { failures: string[]; notes: string[]; compared: number } => {
+/** `codeParts`: the part paths, per component, a Figma layer must be matched by in code (`partList`). */
+export const compare = (fig: FigmaRecord, code: CodeRecord, codeParts: Record<string, string[]>): { failures: string[]; notes: string[]; compared: number } => {
   const failures: string[] = [];
   const notes: string[] = [];
   let compared = 0;
@@ -118,7 +120,7 @@ export const compare = (fig: FigmaRecord, code: CodeRecord): { failures: string[
       if (!hugsText) { compared++; if (!near(b.w, f.w)) fail(`${part} width`, b.w, f.w); }
     }
     for (const [part, f] of Object.entries(m.parts)) {
-      if (Object.keys(c.parts).some((p) => p === part) || !CODE_PARTS[component]?.includes(part)) continue;
+      if (Object.keys(c.parts).some((p) => p === part) || !codeParts[component]?.includes(part)) continue;
       failures.push(`${at}: ${part} (${f.id}) is drawn in Figma, not in code`);
     }
   }
@@ -133,8 +135,21 @@ export const compare = (fig: FigmaRecord, code: CodeRecord): { failures: string[
   return { failures, notes, compared };
 };
 
-/** The part paths the code measures (check-geometry.ts's PARTS keys), so a Figma part outside them is not a miss. */
-const CODE_PARTS: Record<string, string[]> = {};
+/** The part paths the arm says its code draws with a box: its input contract's boxed parts (`arm-contract.ts`), so a
+ *  Figma part outside them is not a miss, and one inside them that no code case drew is. Read from the contract, never
+ *  from the code record: a part the code never draws must not drop out of the comparison with it (`docs/34`). */
+const contractArg = process.argv.indexOf('--contract');
+const CODE_PARTS: Record<string, string[]> = Object.fromEntries(Object.entries(boxedParts(load(contractArg > 0 ? resolve(process.argv[contractArg + 1]) : ARM_1))).map(([id, p]) => [id, Object.keys(p)]));
+/** The part list a run compares a code record with. The real run and the self-test both take it from here, so the
+ *  self-test holds the derivation the real run uses: it ignores the record on purpose. */
+export const partList = (_code: CodeRecord): Record<string, string[]> => CODE_PARTS;
+/** The derivation this file used before the contract: the parts some code case drew. Kept only so the self-test can
+ *  show it misses a part the code never draws. */
+const drawnParts = (code: CodeRecord): Record<string, string[]> => {
+  const out: Record<string, Set<string>> = {};
+  for (const [key, c] of Object.entries(code.cases)) for (const p of Object.keys(c.parts)) (out[key.split('--')[0]] ??= new Set()).add(p);
+  return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, [...v]]));
+};
 /** Each component's API defaults, from the emission (`components.ai.json`); a button's visuals default to absent. */
 const AI = JSON.parse(readFileSync(resolve(HERE, '../../packages/engine/out/components/components.ai.json'), 'utf8')).components;
 const DEFAULTS: Record<string, Record<string, string>> = Object.fromEntries(['button', 'text-field', 'password-field'].map((id) => [id, {
@@ -181,7 +196,7 @@ const plantFigma = (code: CodeRecord): FigmaRecord => {
   return out;
 };
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
-const SELF: { name: string; plant: (f: FigmaRecord) => void; mustName: RegExp }[] = [
+const SELF: { name: string; plant: (f: FigmaRecord) => void; plantCode?: (c: CodeRecord) => void; mustName: RegExp; missedByDrawn?: true }[] = [
   { name: 'Figma\'s button padding 1px wider on the left (every part 1px further right)',
     plant: (f) => { const m = f.components.button.members.find((x) => x.id === '9:button--rest')!; m.root.padding[3] += 1; m.root.w += 1; for (const p of Object.values(m.parts)) p.x += 1; },
     mustName: /^button rest \(9:button--rest\): container padding left is .* in code, .* in Figma/ },
@@ -197,28 +212,36 @@ const SELF: { name: string; plant: (f: FigmaRecord) => void; mustName: RegExp }[
   { name: 'Figma\'s pending button with no label layer, where the code draws one',
     plant: (f) => { delete f.components.button.members.find((x) => x.id === '9:button--pending')!.parts['container/label']; },
     mustName: /^button pending .*: container\/label is drawn in code, not in Figma/ },
+  { name: 'code that never draws the password field\'s message, in any case, where Figma does',
+    plant: () => {}, plantCode: (c) => { for (const [k, x] of Object.entries(c.cases)) if (k.startsWith('password-field--')) delete x.parts['container/message']; },
+    mustName: /^password-field error .*: container\/message \(.*\) is drawn in Figma, not in code/, missedByDrawn: true },
 ];
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma-geometry.ts')) {
   if (!existsSync(CODE)) { console.error('FAIL setup: storybook-static/geometry.code.json is missing. Run: npx tsx apps/storybook/check-geometry.ts'); process.exit(1); }
   const code: CodeRecord = JSON.parse(readFileSync(CODE, 'utf8'));
-  for (const k of Object.keys(code.cases)) {
-    const c = k.split('--')[0];
-    (CODE_PARTS[c] ??= []).push(...Object.keys(code.cases[k].parts).filter((p) => !CODE_PARTS[c].includes(p)));
-  }
   if (process.argv.includes('--self-test')) {
     let bad = 0;
     const base = plantFigma(code);
-    const clean = compare(base, code);
+    const clean = compare(base, code, partList(code));
     for (const n of clean.notes) console.log(`  named: ${n}`);
     if (clean.failures.length) { bad++; console.error(`FAIL self-test: the planted record with only the text narrower should agree, but: ${clean.failures.slice(0, 5).join(' / ')}`); }
     else console.log(`OK self-test: a record whose only difference is the text's width agrees (${clean.compared} comparisons; ${clean.notes.length} named, not compared)`);
     for (const t of SELF) {
       const f = clone(base);
       t.plant(f);
-      const r = compare(f, code);
+      const c = clone(code);
+      t.plantCode?.(c);
+      // the planted code record goes through the same part-list derivation the real run uses
+      const r = compare(f, c, partList(c));
       if (r.failures.some((x) => t.mustName.test(x))) console.log(`OK self-test: "${t.name}" fails by name`);
       else { bad++; console.error(`FAIL self-test: "${t.name}" was not caught by name (${r.failures[0] ?? 'no failures'})`); }
+      if (t.missedByDrawn) {
+        // the case is the fix's: the record-derived list must miss it, or the case does not test the fix
+        const old = compare(f, c, drawnParts(c));
+        if (old.failures.some((x) => t.mustName.test(x))) { bad++; console.error(`FAIL self-test: "${t.name}" is caught even with the parts derived from the code record, so it does not test the contract's part list`); }
+        else console.log(`OK self-test: with the parts derived from the code record, "${t.name}" is missed (${old.failures.length} failures), as before the contract`);
+      }
     }
     process.exit(bad ? 1 : 0);
   }
@@ -226,7 +249,7 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(HERE, 'compare-figma
     console.error('FAIL figma geometry: apps/storybook/figma-geometry.json is missing. It comes from the Mac job in apps/storybook/figma-geometry.md; a comparison that did not run is not a pass.');
     process.exit(1);
   }
-  const r = compare(JSON.parse(readFileSync(FIGMA, 'utf8')), code);
+  const r = compare(JSON.parse(readFileSync(FIGMA, 'utf8')), code, partList(code));
   for (const n of r.notes) console.log(`NOTE ${n}`);
   if (r.failures.length) { console.error(`FAIL figma geometry: ${r.failures.length} of ${r.compared} comparisons differ`); for (const f of r.failures) console.error(`  - ${f}`); process.exit(1); }
   console.log(`OK figma geometry: ${r.compared} comparisons, code equal to Figma to 0.01px`);

@@ -1,0 +1,60 @@
+{
+ "format": "1.0",
+ "arm": "arm 1: @prism3/css and @prism3/web-components",
+ "components": {
+  "button": {
+   "root": "[data-component=\"button\"]",
+   "parts": {
+    "container": "",
+    "container/leadingVisual": ":scope > .p3-button__leading-visual",
+    "container/spinner": ":scope > .p3-button__spinner",
+    "container/label": ":scope > .p3-button__label",
+    "container/trailingVisual": ":scope > .p3-button__trailing-visual"
+   },
+   "focusRing": { "drawn": "outline" }
+  },
+  "text-field": {
+   "root": "[data-component=\"text-field\"]",
+   "parts": {
+    "container": "",
+    "container/label": ":scope > .p3-field-label",
+    "container/control": ":scope > .p3-text-field__control",
+    "container/control/content": ":scope > .p3-text-field__control > .p3-text-field__content",
+    "container/control/content/leadingVisual": ".p3-text-field__content > .p3-text-field__leading-visual",
+    "container/control/content/entry": ".p3-text-field__content > .p3-text-field__entry",
+    "container/control/content/entry/placeholder": { "unboxed": "the native input's placeholder text, drawn inside the entry" },
+    "container/control/content/entry/value": { "unboxed": "the native input's value text, drawn inside the entry" },
+    "container/control/content/entry/caret": { "unboxed": "the browser's own caret" },
+    "container/control/content/entry/caretEnd": { "unboxed": "the browser's own caret" },
+    "container/control/trailingVisual": ":scope > .p3-text-field__control > .p3-text-field__trailing-visual",
+    "container/message": ":scope > .p3-field-message"
+   },
+   "focusRing": { "drawn": "none", "why": "the field shows focus with its control's border, as its anatomy does" }
+  },
+  "password-field": {
+   "root": "[data-component=\"password-field\"]",
+   "parts": {
+    "container": "",
+    "container/labelRow": ":scope > .p3-password-field__label-row",
+    "container/labelRow/labelCell": ".p3-password-field__label-row > .p3-password-field__label-cell",
+    "container/labelRow/labelCell/label": ".p3-password-field__label-cell > .p3-field-label",
+    "container/labelRow/toggle": ".p3-password-field__label-row > .p3-password-field__toggle",
+    "container/control": ":scope > .p3-password-field__control",
+    "container/control/content": ":scope > .p3-password-field__control > .p3-password-field__content",
+    "container/control/content/leadingVisual": ".p3-password-field__content > .p3-password-field__leading-visual",
+    "container/control/content/entry": ".p3-password-field__content > .p3-password-field__entry",
+    "container/control/content/entry/placeholder": { "unboxed": "the native input's placeholder text, drawn inside the entry" },
+    "container/control/content/entry/value": { "unboxed": "the native input's value text, drawn inside the entry" },
+    "container/control/content/entry/caret": { "unboxed": "the browser's own caret" },
+    "container/control/content/entry/caretEnd": { "unboxed": "the browser's own caret" },
+    "container/message": ":scope > .p3-field-message"
+   },
+   "focusRing": { "drawn": "none", "why": "the field shows focus with its control's border, as its anatomy does" }
+  }
+ },
+ "forms": {
+  "element": { "template": "components-{component}-element--{case}" },
+  "html": { "template": "components-{component}-html--{case}" }
+ },
+ "tokens": { "scheme": "stock" }
+}
