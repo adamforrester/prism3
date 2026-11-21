@@ -1392,6 +1392,12 @@ npx tsx packages/engine/lint-shadcn-contract.ts     # the shadcn map follows the
                                                     # each anchored variable maps to the role Button, Text
                                                     # Field, Select or Focus Ring binds; every row anchored
                                                     # or declared unanchored; every mapped role guaranteed.
+npx tsx packages/engine/lint-shadcn-contrast.ts     # the shadcn theme clears its contrast floors (#2997),
+                                                    # measured in Chromium on the emitted CSS: a typed pair
+                                                    # list, each floor the higher of WCAG and the engine's
+                                                    # own min. Needs Chromium (CI: the studio job).
+npx tsx packages/engine/lint-shadcn-roundtrip.ts    # every shadcn oklch() lands on its emitted 8-bit color
+                                                    # (#2997), parsed by Chromium, against the full tree.
 npx tsx packages/engine/lint-spec-supplement.ts     # the spec supplement lines up with Spectacular (#2996):
                                                     # each element, prop and Figma name against a hand-
                                                     # copied fixture of Spectacular's own output, each
@@ -1783,6 +1789,12 @@ npm run check:package -w @prism3/tokens       # #3408 S1, docs/35 §9.3: the SHI
                                           # mode, read from out/prism3.tokens.json, which the
                                           # build never reads. [OWN FILE] (#3877): each per-mode
                                           # file (prism3/<mode>.css) runs the same arms itself
+npm run check:shadcn -w @prism3/tokens        # #2997 gate 5: the engine's Tailwind v4 theme, compiled
+                                          # by the stock Tailwind CLI pinned in this package against
+                                          # a typed fixture (bg-primary, text-muted-foreground,
+                                          # outline-ring, shadow-md, rounded-lg, p-2, font-sans);
+                                          # each utility resolves to the brand's own value, and
+                                          # each color and shadow is set in :root and .dark.
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component

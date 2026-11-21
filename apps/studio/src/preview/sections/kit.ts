@@ -179,7 +179,7 @@ export type RolesByMode = ReadonlyMap<string, Record<string, SgRole | undefined>
 /** Which surface the specimens are previewed ON. Every option is a real background role, and each carries
  *  its OWN ink and border set (the history and the reasoning are on the Style guide's picker in `main.ts`). */
 export type SgSurface = { key: string; label: string; ink: string; line: string; line2: string; tiered: boolean };
-export const SG_SURFACES: readonly SgSurface[] = [
+export const SG_SURFACES: readonly [SgSurface, ...SgSurface[]] = [
   { key: 'background.primary', label: 'Page', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
   { key: 'background.secondary', label: 'Page, second tier', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
   // The inverse band has ONE on-color ink, so the supporting tiers collapse onto it rather than

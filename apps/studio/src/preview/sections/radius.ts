@@ -44,7 +44,7 @@ export const radiusIn = (dims: Theme['dims'], modes: readonly string[], mode: st
  *  `fallback` is what it binds when the index names no `radius.*` size for it (the checkbox's own clamped corner). */
 export const shapeRef = (shape: ControlShape, user = 'Button', fallback = 'radius.md'): string => {
   const m = USED_BY.radius[shape] as Record<string, readonly string[]>;
-  return Object.keys(m).find((k) => m[k].includes(user)) ?? fallback;
+  return Object.entries(m).find(([, users]) => users.includes(user))?.[0] ?? fallback;
 };
 /** The definitions that bind `ref` under `shape`. */
 export const radiusUsers = (shape: ControlShape, ref: string): readonly string[] => (USED_BY.radius[shape] as Record<string, readonly string[]>)[ref] ?? [];

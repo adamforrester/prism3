@@ -32550,21 +32550,26 @@ arm: {
   const prim = (key: number, sec: number): Row => [`motion/duration-ms/${key}`, sec, null];
   const sem = (name: string, key: number, sec: number): Row => [`motion/${name}`, sec, `motion/duration-ms/${key}`];
   const NB_MOTION: Row[] = [
-    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8), prim(1600, 1.6), prim(2600, 2.6),
+    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8),
+    prim(900, 0.9), prim(1100, 1.1), prim(1300, 1.3), prim(1600, 1.6), prim(2600, 2.6),
     sem('duration/instant', 50, 0.05), sem('duration/fast', 100, 0.1), sem('duration/normal', 200, 0.2), sem('duration/moderate', 300, 0.3),
     sem('duration/slow', 500, 0.5), sem('duration/slower', 800, 0.8), sem('duration/spin', 800, 0.8), sem('duration/sweep', 1600, 1.6),
+    sem('duration/long', 900, 0.9), sem('duration/longer', 1100, 1.1), sem('duration/longest', 1300, 1.3),
     sem('duration-reduced/instant', 50, 0.05), sem('duration-reduced/fast', 100, 0.1), sem('duration-reduced/normal', 50, 0.05),
     sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
+    sem('duration-reduced/long', 0, 0), sem('duration-reduced/longer', 0, 0), sem('duration-reduced/longest', 0, 0),
     sem('duration-reduced/spin', 2600, 2.6), sem('duration-reduced/sweep', 2600, 2.6),
     sem('stagger', 40, 0.04),
   ];
   const AURORA_MOTION: Row[] = [
     prim(0, 0), prim(30, 0.03), prim(40, 0.04), prim(50, 0.05), prim(80, 0.08), prim(160, 0.16), prim(240, 0.24), prim(400, 0.4),
-    prim(640, 0.64), prim(800, 0.8), prim(1600, 1.6), prim(2600, 2.6),
+    prim(640, 0.64), prim(720, 0.72), prim(800, 0.8), prim(880, 0.88), prim(1040, 1.04), prim(1600, 1.6), prim(2600, 2.6),
     sem('duration/instant', 40, 0.04), sem('duration/fast', 80, 0.08), sem('duration/normal', 160, 0.16), sem('duration/moderate', 240, 0.24),
     sem('duration/slow', 400, 0.4), sem('duration/slower', 640, 0.64), sem('duration/spin', 800, 0.8), sem('duration/sweep', 1600, 1.6),
+    sem('duration/long', 720, 0.72), sem('duration/longer', 880, 0.88), sem('duration/longest', 1040, 1.04),
     sem('duration-reduced/instant', 40, 0.04), sem('duration-reduced/fast', 80, 0.08), sem('duration-reduced/normal', 50, 0.05),
     sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
+    sem('duration-reduced/long', 0, 0), sem('duration-reduced/longer', 0, 0), sem('duration-reduced/longest', 0, 0),
     sem('duration-reduced/spin', 2600, 2.6), sem('duration-reduced/sweep', 2600, 2.6),
     sem('stagger', 30, 0.03),
   ];
@@ -32633,7 +32638,9 @@ arm: {
 
   // "Every DTCG motion token has a Figma form or a stated reason" (#2412 done-when): every family under
   // `<root>.motion` in the DTCG is a key of MOTION_FIGMA_COVERAGE, and the one with no form says why.
-  const nbDtcgMotion = Object.keys(buildTree(nbTheme()).tree[NB_ROOT].motion);
+  // NB's families, plus the brand-only group (#2857), which only a brand that sets it emits.
+  const brandOnlyFamilies = Object.keys(buildTree(brandTheme({ ...MINIMAL_BRAND, motionPersonality: { brandOnly: { coast: { kind: 'gesture', coastTauMs: 325 } } } } as unknown as BrandInput)).tree.prism.motion);
+  const nbDtcgMotion = [...new Set([...Object.keys(buildTree(nbTheme()).tree[NB_ROOT].motion), ...brandOnlyFamilies])];
   const uncovered = nbDtcgMotion.filter((f) => !(f in MOTION_FIGMA_COVERAGE));
   ok(uncovered.length === 0 && nbDtcgMotion.length === Object.keys(MOTION_FIGMA_COVERAGE).length,
     `motion: every DTCG motion family has a Figma form or a stated reason (${nbDtcgMotion.join(', ')}${uncovered.length ? ` — UNCOVERED: ${uncovered.join(', ')}` : ''})`);
@@ -32757,7 +32764,7 @@ arm: {
   // structured, actionable error list from an incidental crash. The named errors are the difference
   // between an agent that can fix its input and one that only knows it failed.
   const badPayload = JSON.parse(badRes.content[0].text) as { error?: string; errors?: string[] };
-  ok(/schema validation/i.test(badPayload.error ?? '') && (badPayload.errors?.length ?? 0) >= 3
+  ok(badPayload.error === 'the brand input fails the schema' && (badPayload.errors?.length ?? 0) >= 3
      && badPayload.errors!.some((e) => /missing required 'id'/.test(e)),
     'export_theme: the failure is a NAMED schema error list, not an incidental throw');
 }
@@ -33313,6 +33320,23 @@ arm: {
     ok(JSON.stringify(restored) === JSON.stringify(base),
       `#4155 ${b}: the web base differs from the conforming base only in its typefaces' values`);
   }
+}
+
+// ---- #2997: the shadcn/Tailwind projectors enumerate brands, not each brand's web base --------------------------
+// #4155 added `<brand>.web.base.tokens.json` beside `<brand>.base.tokens.json`. Both end `.base.tokens.json`, so a
+// suffix match read `aurora.web` as a brand and the projectors threw for its missing dark overlay. The expected list is
+// the committed handoff's own `.tokens.json` canonicals, never `handoffBrands`' rule. A dynamic import, so no line above
+// the public guide's cited test.ts blocks moves (lint-guide-claims).
+{
+  const { handoffBrands, readHandoff } = await import('./emit-shadcn');
+  const OUT = resolve(HERE, 'out');
+  const want = readdirSync(OUT).filter((f) => /^[^.]+\.tokens\.json$/.test(f) && existsSync(resolve(OUT, f.replace(/\.tokens\.json$/, '.base.tokens.json'))))
+    .map((f) => f.split('.')[0]!).sort();
+  const got = handoffBrands(OUT);
+  ok(want.length >= 5 && JSON.stringify(got) === JSON.stringify(want),
+    `#2997: handoffBrands lists each brand once, no web base among them (want ${want.join(', ')}; got ${got.join(', ')})`);
+  ok(got.every((b) => { try { readHandoff(b, OUT); return true; } catch { return false; } }),
+    `#2997: every brand handoffBrands lists reads as a handoff, its overlays present`);
 }
 
 // ---- Arc 2's primitives: `icon` and `focus-ring` as real defs (#741) ---------------------------
@@ -39690,6 +39714,35 @@ arm: {
   }
 }
 
+// #4197 — run-suites.ts proves its count parser on every run, not behind a flag nothing passed. The audit's mutation,
+// replayed on a copy: `countOf` returning 99999 read a collapsed suite as at its floor, at exit 0. The copy runs over an
+// empty app (no suite to spawn), so the only thing that can fail it is the runner's own self-test. A control runs the
+// unmutated copy over the same app and passes, so the failure is the mutation's, not the fixture's.
+{
+  const runner = readFileSync(join(resolve(HERE, '..', '..'), 'run-suites.ts'), 'utf8');
+  const broken = runner.replace(/(export const countOf = \(stdout: string\): number \| null => \{)/, '$1\n  return 99999;');
+  ok(broken !== runner, '#4197: the mutation (countOf returns 99999) applies to run-suites.ts — the anchor still matches');
+  const dir = mkdtempSync(join(tmpdir(), 'prism3-4197-'));
+  try {
+    const app = join(dir, 'app');
+    mkdirSync(app);
+    writeFileSync(join(app, 'suites.json'), JSON.stringify({ suites: [], elsewhere: {} }));
+    writeFileSync(join(app, 'package.json'), JSON.stringify({ scripts: { test: 'npx tsx ../run-suites.ts' } }));
+    const run = (src: string) => {
+      writeFileSync(join(dir, 'run-suites.ts'), src);
+      const r = spawnSync(process.execPath, [...process.execArgv, join(dir, 'run-suites.ts')], { cwd: app, encoding: 'utf8' });
+      return { status: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
+    };
+    const bad = run(broken);
+    ok(bad.status === 1 && /run-suites self-test: \d+ failed/.test(bad.out),
+      `#4197: run-suites.ts with a broken countOf fails its own self-test on a plain run, before any suite (exit ${bad.status}: ${bad.out.trim().split('\n').at(-1)})`);
+    const good = run(runner);
+    ok(good.status === 0, `#4197: the unmutated runner passes over the same empty app (exit ${good.status}: ${good.out.trim().split('\n').at(-1)})`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 // ------------------------------------------------------------------- component renames (#2265)
 // The ledger an in-place update reads to tell a renamed member from a dropped one plus an added one, and
 // the accounting `lint-component-renames.ts` runs over it. Hand-built inputs throughout: the lint's
@@ -44495,6 +44548,124 @@ arm: {
   }
 }
 
+// #2857 (owner decision Q-MP7 option 3, 2026-11-19) — the engine foundation for motion presets: the long steps of the
+// one duration scale, the brand's preset → step mapping, and the brand-only group outside the contract.
+{
+  const base = { id: 'presets2857', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  const withMotion = (mp: Record<string, unknown>) => ({ ...base, motionPersonality: mp }) as unknown as BrandInput;
+  const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const sidecar = (input: BrandInput) => { const th = brandTheme(input); return buildAiMetadata(th, buildTree(th).tree) as any; };
+  const treeOf = (input: BrandInput) => buildTree(brandTheme(input)).tree.prism;
+
+  // (1) THE DEFAULT MAPPING IS THE OWNER'S TEN (Q-MP1 A, #2857, 2026-11-19). EXPECTED is written here by hand, never
+  // read from the engine's MOTION_PRESET_DEFAULTS: the names are the decision's own list, in its order, and each row is
+  // the DRAFT default the Ready comment puts to the owner (step, easing role, reduced step). ACTUAL is the sidecar the
+  // engine emits for the canonical brand, so a preset added, dropped, renamed or moved fails here by name.
+  const QMP1 = 'state, fade, crossfade, move, reveal, draw, surface, expand, step and settle'.split(/, | and /);
+  const DRAFT_DEFAULTS: Record<string, [string, string, string]> = {
+    state: ['fast', 'default', 'fast'], fade: ['normal', 'enter', 'normal'], crossfade: ['normal', 'default', 'normal'],
+    move: ['moderate', 'default', 'normal'], reveal: ['slow', 'enter', 'normal'], draw: ['slow', 'default', 'normal'],
+    surface: ['moderate', 'enter', 'normal'], expand: ['normal', 'default', 'normal'], step: ['moderate', 'default', 'normal'],
+    settle: ['slow', 'enter', 'normal'],
+  };
+  const cards = QMP1.map((data) => { const [dur, ease, rdur] = DRAFT_DEFAULTS[data] ?? ['?', '?', '?']; return { data, dur, ease, rdur }; });
+  const prism3Input = readExampleBrand('./examples/prism3.design.md');
+  const stockPresets = sidecar(prism3Input).motion_presets ?? {};
+  const wrongCards = cards.filter((c) => {
+    const p = stockPresets[c.data];
+    return !p || p.duration !== `motion.duration.${c.dur}` || p.easing !== `motion.easing-role.${c.ease}` || p.reduced_duration !== `motion.duration-reduced.${c.rdur}`;
+  });
+  const emittedNames = Object.keys(stockPresets);
+  ok(QMP1.length === 10 && Object.keys(DRAFT_DEFAULTS).length === 10 && wrongCards.length === 0 && JSON.stringify(emittedNames) === JSON.stringify(QMP1),
+    `#2857 default mapping: the owner's ten Q-MP1 presets, in order, each on its DRAFT step, easing role and reduced step for prism3 (${QMP1.length} named, ${emittedNames.length} emitted: ${emittedNames.join(', ')})${wrongCards.length ? ` — wrong: ${wrongCards.map((c) => `${c.data} wants ${c.dur}/${c.ease}/${c.rdur}, got ${JSON.stringify(stockPresets[c.data])}`).join('; ')}` : ''}`);
+  // OWNER DECISIONS 2026-11-20 on #4332, each resolved through the prism3 tree to the value it lands on, with the
+  // EXPECTED written here as literals. `draw` FADES under reduced motion rather than disappearing: its reduced
+  // duration is a real fade (50ms at the standard tempo), not the 0ms "eliminated" twin of its `slow` step.
+  const decTree = buildTree(brandTheme(prism3Input)).tree;
+  const leafOf = (path: string | undefined): any => (path ? path.split('.').reduce((n: any, k) => n?.[k], decTree[Object.keys(decTree)[0]]) : undefined);
+  const drawReduced = stockPresets.draw?.reduced_duration;
+  ok(drawReduced === 'motion.duration-reduced.normal' && leafOf(drawReduced)?.$extensions?.prism3?.ms === 50,
+    `#2857 owner 2026-11-20: draw fades under reduced motion (motion.duration-reduced.normal, 50ms), not eliminated at 0ms (got ${drawReduced} → ${leafOf(drawReduced)?.$extensions?.prism3?.ms}ms)`);
+  // `expand` plays on the in-place `default` curve (standard, [0.2, 0, 0, 1]), not the arriving `enter` one.
+  const expandEasing = stockPresets.expand?.easing;
+  ok(expandEasing === 'motion.easing-role.default' && leafOf(expandEasing)?.$value === '{pds3.motion.easing.standard}',
+    `#2857 owner 2026-11-20: expand takes the in-place default curve (motion.easing-role.default → standard; got ${expandEasing} → ${leafOf(expandEasing)?.$value})`);
+  // The owner's own examples (Q-MP7 option 3) name `crossfade` and `surface`: a brand can map both.
+  const mapped = sidecar({ ...prism3Input, motionPersonality: { ...(prism3Input.motionPersonality ?? {}), presets: { crossfade: 'long', surface: 'longest' } } } as BrandInput).motion_presets ?? {};
+  ok(mapped.crossfade?.duration === 'motion.duration.long' && mapped.surface?.duration === 'motion.duration.longest',
+    `#2857 default mapping: the owner's Q-MP7 examples map (crossfade → long, surface → longest; got ${JSON.stringify([mapped.crossfade?.duration, mapped.surface?.duration])})`);
+  // Every path a preset names is a real tree leaf, so a preset resolves through the mapping to the semantic step.
+  const p3tree = buildTree(brandTheme(prism3Input)).tree;
+  const p3root = Object.keys(p3tree)[0];
+  const dangling = Object.entries<any>(stockPresets).flatMap(([n, p]) => [p.duration, p.easing, p.reduced_duration].filter((path) => !at(p3tree[p3root], path)).map((path) => `${n} → ${path}`));
+  ok(Object.keys(stockPresets).length > 0 && dangling.length === 0, `#2857 default mapping: every preset names a leaf the prism3 tree emits${dangling.length ? ` — dangling: ${dangling.join('; ')}` : ''}`);
+  // No value moves: the steps that existed before keep the values they had at the standard tempo (frozen here), and
+  // spelling the default mapping out in the input changes nothing the engine emits.
+  const BEFORE: Record<string, number> = { instant: 50, fast: 100, normal: 200, moderate: 300, slow: 500, slower: 800 };
+  const msOf = (v: string) => Number(/duration-ms\.(\d+)\}$/.exec(v)?.[1]);
+  const moved = Object.entries(BEFORE).filter(([k, v]) => msOf(p3tree[p3root].motion.duration[k]?.$value ?? '') !== v);
+  ok(moved.length === 0, `#2857 default mapping: no existing duration step moves for prism3${moved.length ? ` — moved: ${moved.map(([k]) => `${k} → ${p3tree[p3root].motion.duration[k]?.$value}`).join('; ')}` : ''}`);
+  const spelled = { ...prism3Input, motionPersonality: { ...(prism3Input.motionPersonality ?? {}), presets: Object.fromEntries(cards.map((c) => [c.data, c.dur])) } } as BrandInput;
+  ok(JSON.stringify(buildTree(brandTheme(spelled)).tree) === JSON.stringify(p3tree) && JSON.stringify(sidecar(spelled)) === JSON.stringify(sidecar(prism3Input)),
+    '#2857 default mapping: writing the default mapping into the input is byte-identical to leaving it out (tree and sidecar)');
+
+  // The long steps: three steps past `slower`, tempo-scaled like every step, 0ms under reduced motion. Values frozen.
+  for (const [tempo, f] of [['snappy', 0.8], ['standard', 1], ['relaxed', 1.3]] as const) {
+    const mo = treeOf(withMotion({ tempo })).motion;
+    const want = { long: 900, longer: 1100, longest: 1300 };
+    const bad = Object.entries(want).filter(([k, v]) => msOf(mo.duration[k]?.$value ?? '') !== Math.round((v * f) / 5) * 5 || msOf(mo['duration-reduced'][k]?.$value ?? '') !== 0
+      || mo['duration-ms'][String(Math.round((v * f) / 5) * 5)]?.$type !== 'duration');
+    ok(bad.length === 0, `#2857 long steps (${tempo}): motion.duration.{long,longer,longest} are 900/1100/1300ms × ${f}, reduced to 0, each on a real duration-ms primitive${bad.length ? ` — wrong: ${bad.map(([k]) => `${k} ${mo.duration[k]?.$value} / reduced ${mo['duration-reduced'][k]?.$value}`).join('; ')}` : ''}`);
+  }
+
+  // (2) AN OVERRIDE MOVES EXACTLY ONE PRESET, and only in the sidecar: a preset is not a token, so the tree is
+  // byte-identical.
+  const stock = sidecar(withMotion({})).motion_presets;
+  const over = sidecar(withMotion({ presets: { surface: 'longest' } })).motion_presets;
+  const differ = Object.keys({ ...stock, ...over }).filter((k) => JSON.stringify(stock[k]) !== JSON.stringify(over[k]));
+  ok(differ.length === 1 && differ[0] === 'surface' && over.surface?.duration === 'motion.duration.longest'
+    && over.surface?.easing === stock.surface?.easing && over.surface?.reduced_duration === stock.surface?.reduced_duration,
+    `#2857 override: presets {surface: 'longest'} moves exactly that preset's step and nothing else (moved: ${JSON.stringify(differ)}, now ${JSON.stringify(over.surface)})`);
+  ok(JSON.stringify(treeOf(withMotion({ presets: { surface: 'longest' } }))) === JSON.stringify(treeOf(withMotion({}))),
+    '#2857 override: a preset mapping moves no token (the tree is byte-identical)');
+
+  // (3) AN UNKNOWN ENTRY IS REFUSED BY NAME: an unknown preset, an unknown step, a loop period (not a step), and in
+  // the brand-only group an unknown kind and an unknown field.
+  const refusals: Array<[string, Record<string, unknown>, RegExp]> = [
+    ['unknown preset', { presets: { 'dialog/enter': 'normal' } }, /motionPersonality\.presets: unknown preset 'dialog\/enter'/],
+    ['unknown step', { presets: { fade: 'huge' } }, /motionPersonality\.presets\.fade: unknown duration step 'huge'/],
+    ['a loop period', { presets: { fade: 'spin' } }, /motionPersonality\.presets\.fade: unknown duration step 'spin'/],
+    ['unknown brand-only kind', { brandOnly: { thumb: { kind: 'wobble' } } }, /motionPersonality\.brandOnly\.thumb: unknown kind 'wobble'/],
+    ['unknown brand-only field', { brandOnly: { coast: { kind: 'gesture', friction: 2 } } }, /motionPersonality\.brandOnly\.coast: unknown field 'friction'/],
+    ['missing brand-only field', { brandOnly: { thumb: { kind: 'spring', damping: 0.7 } } }, /motionPersonality\.brandOnly\.thumb: kind 'spring' needs 'stiffness'/],
+  ];
+  for (const [label, mp, want] of refusals) {
+    const msg = refusal(() => brandTheme(withMotion(mp)));
+    ok(want.test(msg), `#2857 refused by name: ${label} (got ${JSON.stringify(msg)})`);
+  }
+  ok(validateBrandInput(withMotion({ presets: { fade: 'huge' } }) as never).some((e) => /motionPersonality\.presets\.fade: "huge" not in/.test(String(e))),
+    '#2857 refused by name: the schema refuses an unknown step too');
+
+  // (4) THE BRAND-ONLY GROUP STAYS OUT OF THE CONTRACT. A brand that sets it gets custom-typed leaves under
+  // motion.brand.*, which the conforming projection omits; no corpus member emits them, so the live corpus
+  // intersection and the committed baseline both leave every one out, as guaranteed and as brand-dependent.
+  const oneOffs = { thumb: { kind: 'spring', damping: 0.7, stiffness: 300 }, travel: { kind: 'distance', baseMs: 200, msPerPx: 0.5, maxMs: 900 }, coast: { kind: 'gesture', coastTauMs: 325, rubberBand: 0.55, parallax: 0.3 } };
+  const brandOnlyTheme = brandTheme(withMotion({ brandOnly: oneOffs }));
+  const bo = buildTree(brandOnlyTheme).tree.prism.motion.brand ?? {};
+  ok(bo.thumb?.$type === 'spring' && bo.travel?.$type === 'distanceDuration' && bo.coast?.$type === 'gesture'
+    && bo.travel?.$value?.msPerPx === 0.5 && bo.coast?.$value?.coastTauMs === 325 && Object.values<any>(bo).every((l) => l.$extensions?.prism3?.brandOnly === true),
+    `#2857 brand-only: a brand that sets the group emits one custom-typed motion.brand.* leaf per entry (${JSON.stringify(Object.fromEntries(Object.entries<any>(bo).map(([k, l]) => [k, l.$type])))})`);
+  ok(treeOf(withMotion({})).motion.brand === undefined, '#2857 brand-only: a brand that sets none emits no motion.brand group');
+  const baseProj = JSON.stringify(buildBase(buildTree(brandOnlyTheme).tree));
+  ok(!/"brand":\{"thumb"/.test(baseProj) && !baseProj.includes('distanceDuration'), '#2857 brand-only: the conforming projection omits the custom-typed leaves (#642)');
+  const live = buildContract();
+  const committed = readBaseline();
+  const inContract = (c: { guaranteed: Record<string, string>; brandDependent: string[] }) =>
+    [...Object.keys(c.guaranteed), ...c.brandDependent].filter((p) => p.startsWith('motion.brand.') || p === 'motion.brand');
+  ok(inContract(live).length === 0 && inContract(committed).length === 0 && Object.keys(live.guaranteed).includes('motion.duration.longest'),
+    `#2857 brand-only: no motion.brand.* path is guaranteed or brand-dependent, in the live corpus contract or the committed baseline (live ${JSON.stringify(inContract(live))}, committed ${JSON.stringify(inContract(committed))})`);
+}
+
 // ------------------------------------------------------------------- #4161 / #4163: the tree says which leaves are which
 // #4163 (owner decision A): no rename, so the `.ai.json` note names the primitive families, and a family outside `core.*`
 // reads as a primitive. Oracle: the literal families the issue is about, plus this file's own read of the `primitives`
@@ -45186,6 +45357,43 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const cell = componentDefs.find((d) => d.id === 'code-input-cell');
   const ladder = ['small', 'medium', 'large', 'x-large'].map((s) => (cell?.tokens as Record<string, string> | undefined)?.[`size.${s}.radius`]);
   ok(JSON.stringify(ladder) === JSON.stringify(['radius.sm', 'radius.sm', 'radius.sm', 'radius.lg']), `#3551 the code input cell's corner ladder is sm, sm, sm, lg, as decided (got ${JSON.stringify(ladder)})`);
+}
+
+// #4200 (owner decisions 3 and 4, 2026-11-19) — score_consumption says when its rate measured nothing (`vacuous: true`,
+// additive: `rate` keeps its 1), and theme_brand's contract failures are data, { role, mode, ratio, against, min }, the
+// fields the CLI's failure line prints (score_consumption's share mode, ratio and min, keyed by `pair`), not the string
+// `dark.text.secondary 4.39<4.5`.
+{
+  const b4200 = { id: 'v4200', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 } };
+  const score = (pairs: object[]) => (mcpCallTool('score_consumption', { brand: b4200, refs: ['color.text.primary'], pairs }).structuredContent as any).contracts;
+  const none = score([{ fg: 'nope', bg: 'background.primary' }]), real = score([{ fg: 'text.primary', bg: 'background.primary' }]);
+  ok(none.checked === 0 && none.rate === 1 && none.vacuous === true, `#4200 score_consumption flags a rate that checked nothing as vacuous (got ${JSON.stringify(none)})`);
+  ok(real.checked > 0 && real.vacuous === false, `#4200 a pair that resolved is not vacuous (got ${JSON.stringify(real)})`);
+  // A pinned action anchor at a light step is reported, never corrected (#1894), so it fails its 3:1 in light.
+  const t = mcpCallTool('theme_brand', { brand: { ...b4200, actionAnchorStep: 100 }, include: [] }).structuredContent as any;
+  const f = t.contracts.failures as any[];
+  ok(f.length > 0 && f.every((x) => typeof x === 'object' && typeof x.role === 'string' && typeof x.mode === 'string'
+      && typeof x.ratio === 'number' && typeof x.against === 'string' && typeof x.min === 'number' && x.ratio < x.min),
+    `#4200 theme_brand reports each contract failure as { role, mode, ratio, against, min } (got ${JSON.stringify(f.slice(0, 2))})`);
+  ok(t.hint?.startsWith('Not included: tokens (~890,000 characters') && /Add them with include/.test(t.hint),
+    `#4200 the omitted-sections hint says what is not included and how to add it, from one size figure (got ${JSON.stringify(t.hint)})`);
+  const desc = toolDefs({}).find((d: any) => d.name === 'theme_brand')!.description as string;
+  ok(desc.includes('roughly 890,000 and 590,000 characters') && /agent link takes the same object as `input`/.test(desc),
+    `#4200 theme_brand states the one size figure the hint uses, and names the agent link's \`input\` alias`);
+}
+
+// #4200 A, B (DRAFT copy) — the CLI and the MCP server say what failed and what to do next: no raw stack trace from
+// file-facts-cli, no "cannot read design file" without the cause, one header per kind of brand failure.
+{
+  const cli = spawnSync('npx', ['tsx', resolve(HERE, 'cli.ts'), 'no-such-brief.md'], { cwd: HERE, encoding: 'utf8' });
+  ok(cli.status === 1 && /cannot read no-such-brief\.md: no such file\. Pass the path to a design\.md/.test(cli.stderr),
+    `#4200 cli.ts names a missing brief and the next step (got ${JSON.stringify(cli.stderr.trim())})`);
+  const ff = spawnSync('npx', ['tsx', resolve(HERE, 'file-facts-cli.ts'), 'no-such-snapshot.json'], { cwd: HERE, encoding: 'utf8' });
+  ok(ff.status === 1 && ff.stderr.trim() === '✖ cannot read snapshot no-such-snapshot.json: no such file',
+    `#4200 file-facts-cli.ts reports a missing snapshot in one line, not a stack (got ${JSON.stringify(ff.stderr.trim().slice(0, 200))})`);
+  const refusal = JSON.parse(mcpCallTool('theme_brand', { brand: { id: 'r4200', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 }, layout: { breakpoints: [320, 768] } } }).content[0].text);
+  ok(refusal.error === 'the engine refused the brand input', `#4200 an engine refusal reads "the engine refused the brand input" (got ${JSON.stringify(refusal.error)})`);
+  ok(JSON.parse(mcpCallTool('nope', {}).content[0].text).error === 'Unknown tool: nope', '#4200 unknown tool has one casing, the protocol error\'s');
 }
 
 // #4207 (owner decision A, 2026-11-19) — `actionPalette` and `roleColors.action` are schema aliases. Two that name
