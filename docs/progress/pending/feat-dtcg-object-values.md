@@ -22,12 +22,19 @@ value forms (with a self-check case), and `lint-description-claims` reads a colo
 export's base file to `buildBase`; its oracle is now `buildOverlaySet`'s base, the engine path that writes
 `out/*.base.tokens.json`. The export guide's citation of `check-consumability.mjs` moved with the lines.
 
-**Not built: #4128's other half.** Whether `fontStyle`, `textDecoration` and `textCase` move to `$extensions` is
-an owner decision, posted on the issue. Moving them would drop italic from the shipped CSS, because the projection
-strips `$extensions`.
+**Not built: #4128's other half.** `fontStyle`, `textDecoration` and `textCase` stay in `$value` (owner decision A,
+2026-11-20); #4374 documents them as Prism3 extensions.
+
+**The shadcn/Tailwind projectors read the object forms.** `emit-shadcn.ts` and `emit-tailwind.ts` read this handoff,
+and #4309 put them into CI, where they threw on the first color object. Each now reads a color object from its
+`components` (srgb only, anything else refused by name) and a `{ value, unit }` dimension, a shadow layer's included,
+with its own parser. Their CSS is byte-identical to main's.
 
 **Tests.** `check-consumability` `[SHAPE]`, per brand and file: every color and dimension is an object, and every
 type style's `letterSpacing` is a dimension or an alias to one. On string forms (main's projection) it fails by name.
 With `trackingInPx` dropped, it fails naming `letterSpacing: "{…letter-spacing-role.tight} (a number token)"`.
 `test.ts` `#4123` / `#4128` pin the converter on a synthetic tree (rgba, a mode's hex, rem, a duration, per-mode
 tracking), since no committed brand exercises those; both rows fail by name with each piece dropped.
+`test.ts` `#4123` shadcn rows project a synthetic handoff spelled both ways and every committed handoff; with the
+string-only guard put back they fail by name, and `check:shadcn`, `lint-shadcn-contrast` and `lint-shadcn-roundtrip`
+throw.
