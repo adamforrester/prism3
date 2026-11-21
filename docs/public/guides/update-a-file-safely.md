@@ -85,6 +85,7 @@ Open **Update file** again to check afresh. <!-- src: apps/studio/src/state/upda
 | A variant the brand dropped | Kept in the set and marked deprecated, with its name recorded. Never deleted. <!-- src: apps/plugin/src/update-apply.ts:20-21#bc79ac24 --> |
 | A variant Prism3 did not build | Skipped. <!-- src: apps/plugin/src/update-apply.ts:23#833d0bf0 --> |
 | A variant whose layer structure was edited | Skipped whole, because its parts can no longer be matched one by one. <!-- src: apps/plugin/src/update-apply.ts:26#488f7db7 --> |
+| A hand edit on a variant, such as a recolor, when the update adds, removes or retypes a layer in that variant | Skipped whole, and the set's updates turn off. <!-- src: apps/plugin/src/update-apply.ts:381#04ebeceb --> The **Overwrite** choice writes it instead. <!-- src: apps/studio/src/state/update-file.ts:405 --> |
 | A set that would collapse when an option is removed | Refused, because those variants could not stay in the set, and deleting them is never the default. <!-- src: apps/plugin/src/update-apply.ts:26-27#db53431a --> |
 
 One undo reverts the whole update. If a run stops partway, the finished sets are current and the rest are still due; running Update file again finishes them. <!-- src: apps/plugin/src/update-apply.ts:36-40#04be1a16 -->
@@ -97,7 +98,7 @@ A set can have its updates off. Update file then leaves it as it is, and every h
 Such a set is never due, and once the whole file has been read, the count on the button leaves it out. Right after the file opens, the count can include it for a moment. <!-- src: apps/plugin/src/as-built-ledger.ts:291#222872f0 -->
 
 Updates turn off by themselves only when an update can't apply around a set's hand edits: it had to skip a member whole for them, such as one with a layer you added. The rest of the set is still updated in that run. <!-- src: apps/plugin/src/update-apply.ts:1221#ef6ef842 -->
-An ordinary hand edit, such as a recolor, stays a hand edit, and the set keeps updating.
+An ordinary hand edit, such as a recolor, stays a hand edit, and the set keeps updating, unless an update changes that variant's layers. <!-- src: apps/plugin/src/update-apply.ts:381#04ebeceb -->
 
 To turn a set's updates off yourself, choose **Turn off updates** on its row under **Due**. <!-- src: apps/studio/src/state/update-file.ts:397 -->
 A set whose updates are off is listed under **Updates off** in the dialog. <!-- src: apps/studio/src/state/update-file.ts:395 --> When the update turned it off, its row adds "Turned off when an update couldn’t apply around your edits." <!-- src: apps/studio/src/state/update-file.ts:396 -->
