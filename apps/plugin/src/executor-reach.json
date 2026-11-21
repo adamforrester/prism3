@@ -44,6 +44,9 @@
     "64": [],
     "65": [],
     "66": [],
-    "67": ["button", "button-destructive", "button-neutral", "card-number-field", "flush-icon-button", "flush-icon-button-destructive", "flush-icon-button-neutral", "icon-button", "icon-button-destructive", "icon-button-neutral", "link", "list-item", "password-field", "search-field", "segmented-control-segment", "select", "tab-item", "tag", "text-field"]
+    "67": [
+      "skeleton"
+    ],
+    "68": ["button", "button-destructive", "button-neutral", "card-number-field", "flush-icon-button", "flush-icon-button-destructive", "flush-icon-button-neutral", "icon-button", "icon-button-destructive", "icon-button-neutral", "link", "list-item", "password-field", "search-field", "segmented-control-segment", "select", "tab-item", "tag", "text-field"]
   }
 }

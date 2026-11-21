@@ -53,6 +53,7 @@ import { figmaArtifacts } from './emit-figma';
 import { scoreConsumption, scoreContractCompliance, UsedPair } from './eval';
 import { floorRatio } from './color';
 import { parseDesignMd } from './design-md';
+import { parseStandardDesignMd, isStandardDesignMd, standardToBrandInput } from './standard-design-md';
 import { ENGINE_VERSION } from './version';
 import { componentDefsFileNames, exportComponentDefs, toSpecsComponents } from './component-defs-export';
 import { componentDefs } from './components/index';
@@ -358,7 +359,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'theme_from_brief',
     title: 'Generate from a markdown brief',
-    description: 'Generate a token system from a design.md brief — YAML frontmatter plus prose — instead of a hand-assembled BrandInput. The natural entry point when working from a written brand description rather than known numbers: it parses the brief, reports the BrandInput it derived, and returns the same verification payload as theme_brand (with the same opt-in `include`). Call theme_brand directly when you already hold exact values.',
+    description: 'Generate a token system from a design.md brief — YAML frontmatter plus prose — instead of a hand-assembled BrandInput. The natural entry point when working from a written brand description rather than known numbers: it parses the brief in either dialect (engine-native frontmatter, or the standard shape: a flat colors: hex map, typography tokens and an optional x-prism3: block), reports the BrandInput it derived, and returns the same verification payload as theme_brand (with the same opt-in `include`). For a standard brief it also returns dialect: "standard", how each color was classified (classification), the x-prism3 keys it applied (xApplied), and what it skipped (xWarnings): unknown x-prism3 keys, and typography faces it does not read. Call theme_brand directly when you already hold exact values.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -799,19 +800,36 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
 
   if (name === 'theme_from_brief') {
     if (typeof args?.brief !== 'string') return text({ error: 'theme_from_brief requires `brief`: a design.md string' }, true);
-    let parsed;
     // A malformed brief is a TOOL error, not an RPC one — the model wrote it and can fix it, which is
     // exactly the case the spec says to report with isError so the client can feed it back.
-    try { parsed = parseDesignMd(args.brief); }
+    // #4118: the SAME dialect detection `cli.ts` runs. A standard design.md (a flat `colors:` hex map, the shape
+    // an extraction exports) goes through the standard converter; anything else is the engine-native dialect.
+    // Before this the tool ran only `parseDesignMd`, so every standard brief was refused as a malformed BrandInput.
+    let input: unknown;
+    let report: Record<string, unknown>;
+    try {
+      const std = parseStandardDesignMd(args.brief);
+      if (isStandardDesignMd(std)) {
+        const { input: converted, classification, xApplied, xWarnings } = standardToBrandInput(std);
+        input = converted;
+        report = { dialect: 'standard', classification: classification.log, xApplied, xWarnings };
+      } else {
+        // No report keys here: an engine-native brief returns exactly theme_brand's sections plus
+        // `derivedBrandInput` (#1868 holds the two key sets equal).
+        input = parseDesignMd(args.brief).input;
+        report = {};
+      }
+    }
     catch (e) { return text({ error: `could not parse the design.md brief: ${(e as Error).message}` }, true); }
     // Same default as theme_brand (#1868): the description promises the same payload, and an empty
     // default silently dropped the decisions log from every call that named no sections.
-    const result = themePayload(parsed.input, Array.isArray(args.include) ? args.include : [...DEFAULT_THEME_SECTIONS]);
+    const result = themePayload(input, Array.isArray(args.include) ? args.include : [...DEFAULT_THEME_SECTIONS]);
     if (result.isError) return result;
     // Report what the brief RESOLVED to. A brief is lossy by nature, and an agent cannot correct a
     // misreading it never sees — this is the field that makes the round trip debuggable.
     const payload = JSON.parse(result.content[0].text);
-    payload.derivedBrandInput = parsed.input;
+    payload.derivedBrandInput = input;
+    Object.assign(payload, report);
     return structured(payload);
   }
 

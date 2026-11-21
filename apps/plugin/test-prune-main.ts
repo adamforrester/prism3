@@ -49,7 +49,7 @@ const input: BrandInput = brandFromDesignMd(readFileSync(join(REPO, 'packages/en
 const other: BrandInput = { ...input, controlShape: input.controlShape === 'pill' ? 'rounded' : 'pill' };
 
 // The owner's copy, typed here (`prune-figma.ts`'s `PRUNE_COPY`, approved as D3709.1).
-const NOT_APPLIED = "Nothing removed — the file doesn't hold this brand yet. Apply the theme first, then check again.";
+const NOT_APPLIED = "Nothing removed — the file doesn't hold this brand yet. Run Update file with Theme ticked, then check again.";
 const MOVED = 'Nothing removed — the file changed after the check. Check again.';
 
 const file = new FileShim();
@@ -130,13 +130,13 @@ if (applied?.type !== 'apply-result' || !applied.ok) throw new Error(`premise: A
   if (!coreCol) throw new Error('premise: Apply Theme wrote no `core` collection');
   const ghosts = [`${croot}/core/zzlegacy/1`, 'zzmisc/1'].map((n) => file.createVariable(n, coreCol, 'FLOAT'));
   const again = await send({ type: 'apply-theme', input }, ['apply-result']);
-  const NOTE = '⚠ 2 orphaned variables not in the plan (core/other: 2) — likely renames; nothing was deleted';
+  const NOTE = '⚠ 2 variables the brand no longer writes (core/other: 2). Nothing was deleted — Update file › Clean up lists them';
   const lines: string[] = again?.lines ?? [];
-  ok(!(applied.lines as string[]).some((l) => l.includes('orphaned variables')),
-    `main/apply clean file, no core/other: the first apply names no orphaned variable (${JSON.stringify((applied.lines as string[]).filter((l) => l.includes('orphaned')))})`);
+  ok(!(applied.lines as string[]).some((l) => l.includes('variables the brand no longer writes')),
+    `main/apply clean file, no core/other: the first apply names no orphaned variable (${JSON.stringify((applied.lines as string[]).filter((l) => l.includes('no longer writes')))})`);
   ok(again?.type === 'apply-result' && again.ok === true && lines.includes(NOTE) && String(again.summary).includes(NOTE)
     && ghosts.every((v: any) => !v.removed),
-    `main/apply reports core/other: a re-apply's summary counts the two core variables no slice owns, and removes neither (${JSON.stringify(lines.filter((l) => l.includes('orphaned')))})`);
+    `main/apply reports core/other: a re-apply's summary counts the two core variables no slice owns, and removes neither (${JSON.stringify(lines.filter((l) => l.includes('no longer writes')))})`);
   for (const v of ghosts) v.remove();
 }
 
@@ -207,7 +207,7 @@ events.length = 0;
 readThrows = true;
 const r5 = await send({ type: 'prune', input, confirm: true, previewHash: String(preview2?.previewHash ?? '') }, ['prune-result']);
 ok(r5?.applied === true && r5.ok === false && r5.count === 3 && liveAll().length === 0
-  && /^Prune stopped — .*node read failed.*\. Removed 3 stale items before it stopped: 3 variables\.$/.test(String(r5.summary)),
+  && /^Clean up stopped — .*node read failed.*\. Removed 3 stale items before it stopped: 3 variables\.$/.test(String(r5.summary)),
   `main/throw after removals: a throw after three removals reports the three, not 0 (count ${r5?.count}, left ${JSON.stringify(liveAll())}, ${JSON.stringify(r5?.summary)})`);
 
 // #3709 S2 — the third guard's other half: a version save that FAILS removes nothing. Two fresh stale variables, the
@@ -326,9 +326,9 @@ ok(ended >= 0 && after.some((m) => m.done === true),
     plant(() => fs.createTextStyle(), 'Marketing/Hero'),
   ];
   const again = await send({ type: 'apply-theme', input }, ['apply-result']);
-  const NOTE = '⚠ 3 orphaned styles not in the plan (text: 2, effect: 1) — likely from an earlier brand; nothing was deleted';
+  const NOTE = '⚠ 3 styles the brand no longer writes (text: 2, effect: 1). Nothing was deleted — Update file › Clean up lists them';
   const lines: string[] = again?.lines ?? [];
-  ok(applied?.lines?.length > 0 && !(applied.lines as string[]).some((l) => l.includes('orphaned style')),
+  ok(applied?.lines?.length > 0 && !(applied.lines as string[]).some((l) => l.includes('the brand no longer writes')),
     `main/apply clean file, no orphan styles: the first apply, into a file holding only what it wrote, names no style (${JSON.stringify((applied?.lines ?? []).filter((l: string) => l.includes('style')))})`);
   ok(again?.type === 'apply-result' && again.ok === true && String(again.summary).includes(NOTE) && lines.includes(NOTE)
     && planted.every((st) => !st.removed),

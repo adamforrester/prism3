@@ -5746,6 +5746,8 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'sign-in-button',
   // #3345: Page navigation and its item, Breadcrumbs' shape.
   'page-nav-item', 'page-nav',
+  // #4109: Skeleton, a set with headers like every other.
+  'skeleton',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
