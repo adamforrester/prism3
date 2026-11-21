@@ -60,11 +60,14 @@ const ok = (cond: boolean, label: string): void => {
 type ShimPage = { id: string; name: string; type: 'PAGE'; isPageDivider: boolean; children: Node[]; appendChild(c: Node): void; insertChild(i: number, c: Node): void; findOne(p: (n: unknown) => boolean): unknown };
 const pages: ShimPage[] = [];
 let pageSeq = 0;
+/** Take a node out of its parent's children, as the host does before it puts it anywhere else. */
+const leave = (c: Node): void => { const kids = (c.parent as { children?: Node[] } | null | undefined)?.children; const i = kids ? kids.indexOf(c) : -1; if (kids && i >= 0) kids.splice(i, 1); };
 const mkPage = (divider: boolean): ShimPage => {
   const p: ShimPage = {
     id: `PAGE:${++pageSeq}`, name: divider ? '---' : '', type: 'PAGE', isPageDivider: divider, children: [],
-    appendChild(c) { const i = this.children.indexOf(c); if (i >= 0) this.children.splice(i, 1); this.children.push(c); c.parent = this as unknown as Node; },
-    insertChild(at, c) { const i = this.children.indexOf(c); if (i >= 0) this.children.splice(i, 1); c.parent = this as unknown as Node; this.children.splice(Math.max(0, Math.min(at, this.children.length)), 0, c); },
+    // #971: a node moves here from wherever it was, as on the host (a created node starts on the current page).
+    appendChild(c) { leave(c); this.children.push(c); c.parent = this as unknown as Node; },
+    insertChild(at, c) { leave(c); c.parent = this as unknown as Node; this.children.splice(Math.max(0, Math.min(at, this.children.length)), 0, c); },
     findOne(pred) { return this.children.find(pred) ?? null; },
   };
   pages.push(p);

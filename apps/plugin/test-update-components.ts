@@ -775,7 +775,7 @@ section('adopt — the one-time claim of members Prism3 did not build (#2283, §
   const again = await adoptMembers(b.shim, [{ def: TAG, plans: b.plans }]);
   ok(again.sets[0].adopted === 0, `adopt/once: a second Adopt adopts nothing (${again.sets[0].adopted})`);
   const v = adoptVerdictText(r);
-  ok(v.headline === '✓ 1 adopted' && JSON.stringify(v.lines) === JSON.stringify([`${s.set}: 1 member adopted, 1 left as they are (not in the plan).`, 'Run an update to bring it in line with the plan.']),
+  ok(v.headline === '✓ 1 adopted' && JSON.stringify(v.lines) === JSON.stringify([`${s.set}: 1 member adopted, 1 left as it is (not in the plan).`, 'Run an update to bring it in line with the plan.']),
     `adopt/words: the verdict counts what it adopted and what it left (${v.headline}; ${JSON.stringify(v.lines)})`);
 }
 
@@ -1240,6 +1240,19 @@ section('#3474 nested main — a change that reaches a member only through its n
     `variables/states: pressed before focused lists focused, not an alphabetical read (got ${JSON.stringify(stateSwap.variables)})`);
   const many = await previewUpdate(withVars(['acme/color/foreground/info', ...Array.from({ length: 8 }, (_, i) => `acme/color/text/${['primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'][i]}`).reverse()]), []);
   ok(variablesLine(many.variables).includes(', and 2 more)'), `variables/cap: five named, the rest counted (${variablesLine(many.variables)})`);
+}
+
+// #3275: Record as built's and Adopt's verdicts agree with the count left out, as #3243's Update verdict does:
+// "1 left as it is", "2 left as they are". The lines are typed here whole. Mutation: either verdict back to a fixed
+// "left as they are" → `#3275 Record as built, 1 left` (or `#3275 Adopt, 1 left`) by name.
+{
+  const skip = (k: number) => Array.from({ length: k }, (_, i) => ({ member: `m${i}`, reason: 'not in the plan' }));
+  for (const [k, words] of [[1, 'it is'], [2, 'they are']] as const) {
+    const c = captureVerdictText({ sets: [{ def: 'tag', set: 'Tag', recorded: 3, skipped: skip(k) }], missing: [], refused: [] });
+    ok(c.lines[0] === `Tag: 3 members recorded, ${k} left as ${words} (not in the plan).`, `#3275 Record as built, ${k} left: the pronoun agrees with the count (${JSON.stringify(c.lines[0])})`);
+    const a = adoptVerdictText({ sets: [{ def: 'tag', set: 'Tag', adopted: 1, skipped: skip(k) }], missing: [], refused: [] });
+    ok(a.lines[0] === `Tag: 1 member adopted, ${k} left as ${words} (not in the plan).`, `#3275 Adopt, ${k} left: the pronoun agrees with the count (${JSON.stringify(a.lines[0])})`);
+  }
 }
 
 console.log(`\n${failed ? `❌ ${failed} FAILED` : '✓ all passed'} — ${executed} assertions executed`);

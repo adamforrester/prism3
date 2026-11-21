@@ -1634,14 +1634,16 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   const shown = texts(live[0]);
   ok(!!dd && dd.type === 'Do-Dont' && dd.do.join('|') === want.slice(0, 4).join('|') && (want.length <= 4 || shown.some((t) => t.includes(`of ${want.length} Do items`))),
     `family/do: the first 4 of the family's ${want.length} Do items, the Row's first`);
-  // Each item once, over families whose defs repeat lines (Buttons repeats 28 Do and 10 Don't lines across its four
+  // Each item once, over families whose defs repeat lines (Buttons repeats its shared Do and Don't lines across its four
   // defs; Icon button repeats 6). EXPECTED is typed here, read off the defs, not derived through the panel's own merge.
+  // #2778 moved Button's nine build rules and Icon button's one out of Do, into `docs.implementation`, which the panel
+  // does not draw: Buttons' Do count went 19 → 10 and Icon button's 4 → 3.
   const famBlocks = (id: string) => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections.flatMap((x) => x.blocks);
   const countLine = (id: string) => famBlocks(id).flatMap((b) => b.type === 'Paragraph' && b.text.startsWith('Showing') ? [b.text] : []);
-  ok(countLine('button').join('|') === "Showing 4 of 19 Do items and 4 of 9 Don't items.",
+  ok(countLine('button').join('|') === "Showing 4 of 10 Do items and 4 of 9 Don't items.",
     `family/once: Buttons counts each repeated item once (${JSON.stringify(countLine('button'))})`);
   const ib = famBlocks('icon-button').find((b) => b.type === 'Do-Dont');
-  ok(!countLine('icon-button').length && !!ib && ib.type === 'Do-Dont' && ib.do.length === 4 && ib.dont.length === 3 && new Set([...ib.do, ...ib.dont]).size === 7,
+  ok(!countLine('icon-button').length && !!ib && ib.type === 'Do-Dont' && ib.do.length === 3 && ib.dont.length === 3 && new Set([...ib.do, ...ib.dont]).size === 6,
     `family/once: Icon button's family fits the panel once its repeats are merged (${JSON.stringify(countLine('icon-button'))})`);
 }
 
@@ -2448,17 +2450,18 @@ section('template/… — `_Doc-block`');
 /* ── code: a backtick span drawn as code (#3552 Q-UG2 A) ──────────────────────────────────────────────────── */
 section('code/… — a code span is written without its backticks and drawn in the brand\'s inline code style (#3552 Q-UG2 A)');
 {
-  // The one panel line with code spans today, typed from Button's def: its first Do item.
-  const want = "Place the icons the way the brand's buttonIcons setting says; attached (Attached to label, the default) keeps them beside the label with the group centered";
+  // A panel line with a code span, typed from Button's def: its inverse-surface Do item. (Its first Do item with code
+  // spans, the `buttonIcons` line, moved to `docs.implementation` with #2778, and the panel leaves that section out.)
+  const want = 'Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground';
   const drawButton = async (o: { codeStyle?: boolean } = {}) => {
     const p = page(`↳ code ${o.codeStyle === false ? 'none' : 'style'}`);
     const r = await drawDocPanel(host([p], o), fakeSet(p, 'button'), componentDefs.find((d) => d.id === 'button')!, { names });
-    const t = walk(panelsOn(p)[0]).find((c) => c.type === 'TEXT' && String(c.characters).startsWith('Place the icons the way'));
+    const t = walk(panelsOn(p)[0]).find((c) => c.type === 'TEXT' && String(c.characters).startsWith('Set surface=inverse for a button'));
     return { r, t };
   };
   const a = await drawButton();
-  ok(a.t?.characters === want && JSON.stringify(a.t?._codes) === JSON.stringify([{ text: 'buttonIcons', id: 'S:code' }, { text: 'attached', id: 'S:code' }]),
-    'code/button: Button\'s Do item reads without backticks, buttonIcons and attached in code/inline/default', `${String(a.t?.characters)} ${JSON.stringify(a.t?._codes)}`);
+  ok(a.t?.characters === want && JSON.stringify(a.t?._codes) === JSON.stringify([{ text: 'surface=inverse', id: 'S:code' }]),
+    'code/button: Button\'s Do item reads without backticks, surface=inverse in code/inline/default', `${String(a.t?.characters)} ${JSON.stringify(a.t?._codes)}`);
   const b = await drawButton({ codeStyle: false });
   ok(b.t?.characters === want && !(b.t?._codes as unknown[]).length && b.r.misses.some((m) => m.includes('code/inline/default')),
     'code/no style: a file without the code style writes the same text plain and names the style', `${JSON.stringify(b.t?._codes)} misses ${b.r.misses.join('; ')}`);
@@ -2468,7 +2471,7 @@ section('code/… — a code span is written without its backticks and drawn in 
     const api = host([p]);
     api.loadFontAsync = async (f) => { if (f.family === CODE_TEXT_STYLE.fontName.family) throw new Error('no font'); };
     const r = await drawDocPanel(api, fakeSet(p, 'button'), componentDefs.find((d) => d.id === 'button')!, { names });
-    const t = walk(panelsOn(p)[0]).find((c) => c.type === 'TEXT' && String(c.characters).startsWith('Place the icons the way'));
+    const t = walk(panelsOn(p)[0]).find((c) => c.type === 'TEXT' && String(c.characters).startsWith('Set surface=inverse for a button'));
     ok(t?.characters === want && !(t?._codes as unknown[]).length && r.misses.some((m) => m.includes('JetBrains Mono Regular unavailable')),
       'code/no font: the code style\'s font won\'t load, so the text is plain, no code range is set, and the miss names the font', `${JSON.stringify(t?._codes)} misses ${r.misses.join('; ')}`);
   }
@@ -2513,8 +2516,9 @@ section('code/… — a code span is written without its backticks and drawn in 
   // The issue's named identifiers (N5) and a sample of its code syntax, typed by hand with the lead whose panel draws each.
   const MARKED: [string, string][] = [
     ['field-label', 'htmlFor'], ['radio-row', 'onChange'], ['text-field', 'readOnly'], ['textarea', 'maxRows'],
-    ['password-field', 'autoComplete'], ['card-number-field', 'brandName'], ['card-number-field', 'renderInput'],
-    ['slider', 'onChangeEnd'], ['icon-button', 'isInactive'], ['button', 'buttonIcons'],
+    // #2778: Password field's autoComplete, Card number field's brandName and renderInput, Slider's onChangeEnd and
+    // Button's buttonIcons left the panel with the build rules (the panel does not draw "Building it in code").
+    ['icon-button', 'isInactive'], ['button', 'surface=inverse'],
     ['button', '<button>'], ['icon-button', 'div[role=button]'], ['text-field', 'type="number"'],
     ['checkbox-row', '<input type="checkbox">'], ['checkbox-row', 'aria-checked'], ['switch-row', 'aria-pressed'],
   ];

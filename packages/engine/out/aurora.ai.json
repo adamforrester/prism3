@@ -2,7 +2,7 @@
   "$schema": "prism3-ai-metadata/0.5",
   "brand": "aurora",
   "generated": true,
-  "note": "Agent-readable metadata, companion to aurora.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, background-blur, focus-ring, icon, control and grid roles, and the type line boxes), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
+  "note": "Agent-readable metadata, companion to aurora.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, background-blur, focus-ring, icon, control and grid roles, and the type line boxes), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). The primitive families are `core.palette`, `core.dimension`, `core.font`, `opacity`, `motion.duration-ms`, `motion.easing`, `motion.spring`, `shadow`, `breakpoint`, `container`. Not every one sits under `core`: a family outside it is still a primitive, so read the tier, not the path. A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
   "color_fields": [
     "$description",
     "meaning",
@@ -8510,13 +8510,13 @@
       "resolves_to": "{ads.core.dimension.32}"
     },
     "radius.round": {
-      "$description": "radius round — 128px (pill)",
+      "$description": "radius round — 128px (pill. For small fixed-size parts, such as a switch track, a radio or a badge count. A pill button binds `radius.capsule`)",
       "meaning": "Corner-radius role — round",
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "{ads.core.dimension.128}"
     },
     "radius.capsule": {
-      "$description": "radius capsule — 999px (off-grid literal)",
+      "$description": "radius capsule — 999px (off-grid literal. The pill a button binds under `controlShape: pill`, full at any height. Small fixed-size parts bind `radius.round`)",
       "meaning": "Corner-radius role — capsule",
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "999px"
