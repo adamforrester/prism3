@@ -8,6 +8,7 @@ import { radiusScale, componentSizes, type RadiusStep, type SizeStep, controlSiz
 import { inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName } from './modes';
 import { resolveVocabulary } from './vocabulary';
+import { resolveHexAnchors } from './hex-anchors';
 import { type BrandInputAuthored, type Theme, type BrandInput, ALL_MODES, VALID_MODES, validOutlineHoverFill, validOutlineWash, outlineWashSteps, OUTLINE_INTERACTION_VALUES, RAISED_SURFACE_VALUES, SCRIM_STRENGTH_VALUES, SECONDARY_TEXT_GROUND_VALUES, INTERACTIVE_GROUND_VALUES, validGlassRoles, n2, n4, type PaletteBuild, type Role, type InteractivePalette, type InverseSurfaceSpec, type SurfaceStep, CORE_TIER } from './theme-types';
 import { PALETTE_NAME_RE, RESERVED_PALETTES, STATUS_DEFAULTS, statusRamp, inRedTerritory, hueDist, RED_CHROMA_FLOOR, normalizeDisabledStrategy, normalizeDisabledMin } from './theme-color';
 import { buildDims } from './theme-dims';
@@ -42,7 +43,11 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // numbers; `personality` traits fill levers the brief left absent, never one it set. Each
   // inference lands in `notes` alongside the engine's own defaults — the whole point is that a
   // choice made FOR the author is as visible as one they made themselves.
-  const resolved = resolveVocabulary(brandInput);
+  // #4133 (owner decision A, 2026-11-19): a hex anchor becomes OKLCH first, with a note naming the converted value,
+  // so nothing past this line sees a string where an anchor goes.
+  const hexed = resolveHexAnchors(brandInput);
+  notes.push(...hexed.notes);
+  const resolved = resolveVocabulary(hexed.input);
   const input = resolved.input as BrandInput;
   notes.push(...resolved.notes);
   // #3875: the id names every file the CLI writes (`<id>.tokens.json` and the rest, `emit-dtcg.ts`), so a separator in

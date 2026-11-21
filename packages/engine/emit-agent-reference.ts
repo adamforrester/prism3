@@ -283,6 +283,7 @@ const agentLink = () => {
 /** The entry points a user or an agent runs. Each one's usage and flags are read from its own file. */
 export const CLI = [
   'packages/engine/cli.ts',
+  'packages/engine/oklch.ts',
   'packages/engine/mcp.ts',
   'packages/engine/regen.ts',
   'packages/engine/token-contract.ts',

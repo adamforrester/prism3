@@ -866,6 +866,7 @@ apps/studio/test-smoke.mjs #800
 apps/studio/test-smoke.mjs #812
 apps/studio/test-start-input.ts #2241
 apps/studio/test-start-input.ts #3553
+apps/studio/test-start-input.ts #4312
 apps/studio/test-status-strip.ts #3170
 apps/studio/test-status-strip.ts #3177
 apps/studio/test-store.ts #1037
@@ -1354,6 +1355,7 @@ packages/engine/test.ts #4119
 packages/engine/test.ts #4120
 packages/engine/test.ts #4130
 packages/engine/test.ts #4131
+packages/engine/test.ts #4133
 packages/engine/test.ts #4136
 packages/engine/test.ts #4137
 packages/engine/test.ts #4139
@@ -1369,6 +1371,7 @@ packages/engine/test.ts #4163
 packages/engine/test.ts #4170
 packages/engine/test.ts #4171
 packages/engine/test.ts #4174
+packages/engine/test.ts #4176
 packages/engine/test.ts #4177
 packages/engine/test.ts #4178
 packages/engine/test.ts #4179
@@ -1384,6 +1387,7 @@ packages/engine/test.ts #4214
 packages/engine/test.ts #4229
 packages/engine/test.ts #4236
 packages/engine/test.ts #4242
+packages/engine/test.ts #4312
 packages/engine/test.ts #4371
 packages/engine/test.ts #479
 packages/engine/test.ts #480

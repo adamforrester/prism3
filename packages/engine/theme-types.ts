@@ -863,8 +863,11 @@ export type BrandInput = {
  * means you know the value you want.
  */
 export type BrandInputAuthored =
-  Omit<BrandInput, 'neutral' | 'radiusScale' | 'shadow' | 'layout'> & {
-    neutral: { hue: number | string; chroma: number | string; anchor?: OKLCH; auto?: boolean };
+  Omit<BrandInput, 'primary' | 'neutral' | 'brandColors' | 'radiusScale' | 'shadow' | 'layout'> & {
+    /** An anchor may be authored as a hex color (#4133); `resolveHexAnchors` converts it before anything reads it. */
+    primary: OKLCH | string;
+    neutral: { hue: number | string; chroma: number | string; anchor?: OKLCH | string; auto?: boolean };
+    brandColors?: { name: string; oklch: OKLCH | string }[];
     radiusScale?: number | string;
     shadow?: { softness?: number | string; tint?: { hue?: number; amount?: number } };
     layout?: { breakpoints?: number[]; columns?: number; containerMax?: number | string; containerNarrow?: number | string; columnOverrides?: Record<string, number>; gutterOverrides?: Record<string, number>; marginOverrides?: Record<string, number> };

@@ -14,7 +14,7 @@
  * found in the front matter by name. A JavaScript error out of the engine (a `TypeError` on a missing key) names no
  * line, so it is never guessed at: a wrong line is worse than none.
  */
-import { brandTheme, type BrandInput, resolveAllModes, hexToRgb, rgbToOklch, storedOklch, parseDesignMd, parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine';
+import { brandTheme, type BrandInput, resolveAllModes, hexToRgb, rgbToOklch, storedOklch, parseDesignMd, parseStandardDesignMd, standardToBrandInput, isStandardDesignMd, resolveHexAnchors } from '@prism3/engine';
 import { studioMessage } from './floor-refusal';
 
 // ---- the brands a start path makes ------------------------------------------------------------------
@@ -173,6 +173,12 @@ const parseRefusal = (text: string, e: unknown): { error: ImportError } => {
   return NO_FENCE_RE.test((e as Error)?.message ?? '') ? { error: { text: NO_FENCE_COPY, line: r.error.line } } : r;
 };
 
+/** A brand as Studio stores it: every hex anchor (#4133) converted to the OKLCH `brandTheme` converts it to. Studio's
+ *  color fields read an OKLCH object, and a hex kept as a string showed as #NaNNaNNaN (#4312 review). Applied to every
+ *  brand that enters from outside: an imported design.md here, and the file's stored brand in `main.ts` (an agent's
+ *  apply-theme can store a hex anchor). Anything that isn't a hex at an anchor is left for the engine to judge. */
+export const storedInput = (raw: unknown): BrandInput => resolveHexAnchors(raw).input as BrandInput;
+
 export const validateDesignMd = (text: string): ImportResult => {
   if (!text.trim()) return { error: { text: 'Nothing to import — the file is empty.', line: null } };
 
@@ -189,6 +195,7 @@ export const validateDesignMd = (text: string): ImportResult => {
     try { input = parseDesignMd(text).input; }
     catch (e) { return parseRefusal(text, e); }
   }
+  input = storedInput(input);
 
   // The modes resolve too: some refusals are made there, not in `brandTheme` (the contrast floor's, #2227), and a
   // brief that passed here would otherwise load and fail as the next edit.

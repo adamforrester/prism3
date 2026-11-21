@@ -1132,6 +1132,17 @@
       ]
     },
     {
+      "file": "packages/engine/oklch.ts",
+      "summary": "Prints a hex color as the OKLCH anchor a design.md takes (#4176, owner decision b, 2026-11-19).",
+      "usage": [
+        {
+          "text": "npx tsx packages/engine/oklch.ts '#2F6B4F' ['#…']",
+          "source": "packages/engine/oklch.ts#header"
+        }
+      ],
+      "flags": []
+    },
+    {
       "file": "packages/engine/mcp.ts",
       "summary": "Prism3 engine — MCP adapter (docs/08 §5, roadmap C: \"an agent themes Prism3\").",
       "usage": [

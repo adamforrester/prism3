@@ -96,6 +96,7 @@ import { makeTextField } from './components/text-field';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { hexToAnchor, formatAnchor, HEX_ANCHOR } from './hex-anchors';
 import { spawnSync } from 'node:child_process';
 import { readListing } from './files-listing';
 import { isDeepStrictEqual } from 'node:util';
@@ -10681,7 +10682,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // one floor before the build path runs, and accepts two. BY-NAME MUTATION: drop `minItems` from the schema →
   // this arm fails.
   ok(validateBrandInput({ id: 'bpS1', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, layout: { breakpoints: [0] } })
-      .some((e) => /layout\.breakpoints.*1 item\(s\) < minItems 2/.test(e))
+      .some((e) => /layout\.breakpoints has 1 item\(s\); it takes at least 2/.test(e))
     && validateBrandInput({ id: 'bpS2', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, layout: { breakpoints: [0, 768] } }).length === 0,
     '[#3698 R2] the schema refuses one breakpoint (minItems 2) and accepts two');
   // #2198 — more than seven breakpoints are refused (owner decision 2026-10-06, Q43 A). `bpNames` names seven
@@ -32742,7 +32743,7 @@ arm: {
   // between an agent that can fix its input and one that only knows it failed.
   const badPayload = JSON.parse(badRes.content[0].text) as { error?: string; errors?: string[] };
   ok(/schema validation/i.test(badPayload.error ?? '') && (badPayload.errors?.length ?? 0) >= 3
-     && badPayload.errors!.some((e) => /missing required 'id'/.test(e)),
+     && badPayload.errors!.some((e) => /^id is missing; the brand input requires it/.test(e)),
     'export_theme: the failure is a NAMED schema error list, not an incidental throw');
 }
 
@@ -44690,7 +44691,7 @@ const MIN_ASSERTIONS = 1800;
   ok(edge.stats.broken.length === 0, `#3871 whole weights 1/450/1000 build with every alias resolving (broken: ${edge.stats.broken.slice(0, 3).map((b: any) => b.ref).join(', ')})`);
   // The schema says the same, so a file-driven brief fails at the schema before the engine.
   const schemaErrs = validateBrandInput(withRoles({ default: 450.5, strong: 2000 }));
-  ok(schemaErrs.some((e) => e.includes('weightRoles.default') && e.includes('not an integer')) && schemaErrs.some((e) => e.includes('weightRoles.strong')),
+  ok(schemaErrs.some((e) => e.includes('weightRoles.default') && e.includes('a whole number')) && schemaErrs.some((e) => e.includes('weightRoles.strong')),
     `#3871 the schema refuses a fractional and an out-of-range weight role (errors: ${JSON.stringify(schemaErrs)})`);
 }
 
@@ -44914,7 +44915,7 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   // a file-driven brief passed the schema and failed later. The two layers now agree, both ways, over the same ids.
   for (const [id, refused] of [['.', true], ['..', true], ['   ', true], ['\t', true], [' ', true], ['\0', true], ['a\0b', true],
     ['Has Space', false], ['...', false], [' ..', false], ['.hidden', false], ['aurora', false]] as const) {
-    const errs = validateBrandInput({ ...base, id } as unknown as BrandInput).filter((e) => e.startsWith('id:'));
+    const errs = validateBrandInput({ ...base, id } as unknown as BrandInput).filter((e) => e.startsWith('id is '));
     const engine = refusal(() => brandTheme({ ...base, id } as unknown as BrandInput)) !== '';
     ok(engine === refused && (errs.length > 0) === refused,
       `#3875 the schema and brandTheme agree on the id ${JSON.stringify(id)}: ${refused ? 'both refuse it' : 'both accept it'} (brandTheme ${engine ? 'refused' : 'accepted'}; schema ${JSON.stringify(errs)})`);
@@ -45124,7 +45125,7 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const withLinks = (links: string[]) => ({ ...base, typography: { links } }) as unknown as BrandInput;
   const refusal = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
   const schemaErrs = validateBrandInput(withLinks([]) as never).map(String);
-  ok(schemaErrs.some((e) => /typography\.links: 0 item\(s\) < minItems 1/.test(e)),
+  ok(schemaErrs.some((e) => /typography\.links has 0 item\(s\); it takes at least 1/.test(e)),
     `#3707 the schema refuses an empty typography.links (got ${JSON.stringify(schemaErrs)})`);
   const msg = refusal(() => brandTheme(withLinks([])));
   ok(msg === 'Link styles must name at least one text type: typography.links is empty.',
@@ -45170,6 +45171,111 @@ import { FILE_FACTS_FORMAT, type FileFactsReport } from './file-facts';
   const cell = componentDefs.find((d) => d.id === 'code-input-cell');
   const ladder = ['small', 'medium', 'large', 'x-large'].map((s) => (cell?.tokens as Record<string, string> | undefined)?.[`size.${s}.radius`]);
   ok(JSON.stringify(ladder) === JSON.stringify(['radius.sm', 'radius.sm', 'radius.sm', 'radius.lg']), `#3551 the code input cell's corner ladder is sm, sm, sm, lg, as decided (got ${JSON.stringify(ladder)})`);
+}
+
+// #4133 (owner decision A, 2026-11-19) — a hex color is accepted wherever the brand input takes an OKLCH anchor
+// (`primary`, `neutral.anchor`, `brandColors[].oklch`), converted at the top of `brandTheme`, with a note naming the
+// converted value. Before, `primary: "#3355ff"` failed with "primary: expected object". A hex brand builds the same
+// tree as the same brand written in the converted OKLCH, so the conversion is the only thing the hex changes.
+{
+  const base = { id: 'hex4133', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 } };
+  const asHex = { ...base, primary: '#2f6b4f', neutral: { hue: 262, chroma: 0.01, anchor: '#6b6e72' }, brandColors: [{ name: 'accent', oklch: '#c8102e' }] };
+  const asOklch = { ...base, primary: hexToAnchor('#2f6b4f'), neutral: { hue: 262, chroma: 0.01, anchor: hexToAnchor('#6b6e72') }, brandColors: [{ name: 'accent', oklch: hexToAnchor('#c8102e') }] };
+  const schemaErrs = validateBrandInput(asHex);
+  ok(schemaErrs.length === 0, `#4133 the schema accepts a hex anchor at primary, neutral.anchor and brandColors[].oklch (got ${JSON.stringify(schemaErrs)})`);
+  const built = (b: object): Theme | string => { try { return brandTheme(b as unknown as BrandInput); } catch (e) { return (e as Error).message; } };
+  const hexOrErr = built(asHex), tOk = brandTheme(asOklch as unknown as BrandInput);
+  ok(typeof hexOrErr !== 'string', `#4133 brandTheme builds a hex-anchored brand (got ${JSON.stringify(typeof hexOrErr === 'string' ? hexOrErr : 'a theme')})`);
+  const tHex = typeof hexOrErr === 'string' ? tOk : hexOrErr;
+  // The trees differ only in the decisions log, which carries the conversion notes: compared with it set aside.
+  const noLog = (t: Theme): string => { const tr = buildTree(t).tree as any; tr.$extensions.prism3.decisions = []; return JSON.stringify(tr); };
+  ok(typeof hexOrErr !== 'string' && noLog(tHex) === noLog(tOk),
+    '#4133 a hex-anchored brand builds the same tree as the same brand written in the converted OKLCH');
+  for (const [at, h] of [['primary', '#2f6b4f'], ['neutral.anchor', '#6b6e72'], ["brandColors 'accent'", '#c8102e']] as const) {
+    const line = `${at}: the hex ${h}, converted to OKLCH ${formatAnchor(hexToAnchor(h))}.`;
+    ok(tHex.notes.includes(line), `#4133 the notes record the ${at} conversion (want ${JSON.stringify(line)}; got ${JSON.stringify(tHex.notes.filter((n) => n.includes('hex')))})`);
+  }
+  ok(!tOk.notes.some((n) => n.includes('converted to OKLCH')), '#4133 an OKLCH brand gets no conversion note');
+  // #4312 review (docs/34): the arms above build their EXPECTED with `hexToAnchor`, the function under test, so they
+  // cannot see the conversion itself change. These pin it to typed literals: a saturated green, a tinted gray (chroma
+  // 0.0072, which keeps its hue) and a pure gray (hue 0, #2280).
+  for (const [h, l, c, hue] of [['#2f6b4f', 0.4794, 0.078, 161.08], ['#6b6e72', 0.537, 0.0072, 255.51], ['#808080', 0.5999, 0, 0]] as const) {
+    const o = hexToAnchor(h);
+    ok(Math.abs(o.l - l) < 5e-5 && Math.abs(o.c - c) < 5e-5 && Math.abs(o.h - hue) < 5e-3,
+      `#4312 ${h} converts to the literal OKLCH { l: ${l}, c: ${c}, h: ${hue} } (got ${formatAnchor(o)})`);
+  }
+  const bad = validateBrandInput({ ...base, primary: '#zz0000' });
+  ok(bad.length === 1 && /OKLCH object/.test(bad[0]) && /hex color/.test(bad[0]), `#4133 a malformed hex is refused, naming both forms the anchor takes (got ${JSON.stringify(bad)})`);
+}
+
+// #4312 (owner decision B, 2026-11-20) — an 8- or 4-digit hex anchor is taken too, its alpha dropped, as the standard
+// dialect drops it. EXPECTED is typed literals (docs/34), never `hexToAnchor` of the 6-digit form: the 8- and 4-digit
+// spellings land on the same OKLCH as their opaque twins, in the schema, in `brandTheme` and on the command line.
+{
+  const base = { id: 'alpha4312', neutral: { hue: 262, chroma: 0.01 } };
+  for (const [h, want] of [['#2f6b4fcc', '{ l: 0.4794, c: 0.078, h: 161.08 }'], ['#2F6B4F00', '{ l: 0.4794, c: 0.078, h: 161.08 }'],
+    ['#808080ff', '{ l: 0.5999, c: 0, h: 0 }'], ['#888f', '{ l: 0.6268, c: 0, h: 0 }'], ['#36a8', '{ l: 0.5095, c: 0.1216, h: 256.41 }']] as const) {
+    const errs = validateBrandInput({ ...base, primary: h });
+    ok(errs.length === 0, `#4312 the schema accepts the alpha hex anchor ${h} (got ${JSON.stringify(errs)})`);
+    let t: Theme | string;
+    try { t = brandTheme({ ...base, primary: h } as unknown as BrandInput); } catch (e) { t = (e as Error).message; }
+    const line = `primary: the hex ${h}, converted to OKLCH ${want}.`;
+    ok(typeof t !== 'string' && t.notes.includes(line),
+      `#4312 brandTheme drops the alpha of ${h} (want the note ${JSON.stringify(line)}; got ${typeof t === 'string' ? t : JSON.stringify(t.notes.filter((n) => n.includes('hex')))})`);
+  }
+  // The schema's pattern and HEX_ANCHOR are two spellings of one rule; each sample is judged by both.
+  const pattern = new RegExp(JSON.parse(readFileSync(resolve(HERE, 'schema', 'theme-schema.json'), 'utf8')).$defs.hexColor.pattern);
+  const takes = ['#abc', '#ABCD', '#a1b2c3', '#A1B2C3D4', '#000', '#ffff', '#000000', '#ffffffff'];
+  const refuses = ['#ab', '#abcde', '#abcdefa', '#abcdefabc', 'abc', '#ggg', '#12345g', '# abc', '#abc ', ''];
+  const split = [...takes.filter((s) => !(pattern.test(s) && HEX_ANCHOR.test(s))), ...refuses.filter((s) => pattern.test(s) || HEX_ANCHOR.test(s))];
+  ok(split.length === 0, `#4312 the schema's hexColor pattern and HEX_ANCHOR take #rgb, #rgba, #rrggbb and #rrggbbaa and refuse every other length (misjudged: ${JSON.stringify(split)})`);
+  for (const h of ['#2f6b4', '#2f6b4fc']) {
+    const errs = validateBrandInput({ ...base, primary: h });
+    ok(errs.length === 1 && /#rrggbb, #rgb, #rrggbbaa or #rgba/.test(errs[0]), `#4312 a ${h.length - 1}-digit hex is refused, naming the four hex forms (got ${JSON.stringify(errs)})`);
+  }
+  const r = spawnSync('npx', ['tsx', resolve(HERE, 'oklch.ts'), '#2f6b4fcc'], { cwd: HERE, encoding: 'utf8' });
+  ok(r.status === 0 && r.stdout.trim() === '#2f6b4fcc  →  { l: 0.4794, c: 0.078, h: 161.08 }',
+    `#4312 oklch.ts prints an 8-digit hex as its opaque anchor (status ${r.status}, got ${JSON.stringify(r.stdout.trim() || r.stderr.trim())})`);
+}
+
+// #4133 / #4200 A (owner decisions 2026-11-19) — the schema validator's messages say what the field takes, in the voice
+// standard's "X is …; it takes …" pattern, for each row of #4133's table: no "expected object", no "matches none of
+// oneOf", no raw regex, and a near-miss key gets "did you mean".
+{
+  const base = { id: 'msg4133', primary: { l: 0.55, c: 0.18, h: 265 }, neutral: { hue: 262, chroma: 0.01 } };
+  const errs = (extra: object): string => validateBrandInput({ ...base, ...extra }).join(' | ');
+  for (const [label, extra, want] of [
+    ['primary "blue"', { primary: 'blue' }, /^primary is "blue"; it takes an OKLCH object \{ l, c, h \}.* or a hex color/],
+    ['primary.l 2', { primary: { l: 2, c: 0.1, h: 3 } }, /^primary\.l is 2; it takes a number from 0 to 1$/],
+    ['radiusScale "roundish"', { radiusScale: 'roundish' }, /^radiusScale is "roundish"; it takes a number.* or one of sharp, modest, standard, soft or round$/],
+    ['id "a/b"', { id: 'a/b' }, /^id is "a\/b"; it takes a name with no slash or backslash/],
+    ['root "a.b"', { root: 'a.b' }, /^root is "a\.b"; it takes one lowercase segment/],
+    ['desnity', { desnity: 'compact' }, /^desnity is not a field of the brand input; did you mean density\?$/],
+  ] as const) {
+    const got = errs(extra);
+    ok(want.test(got) && !/expected object|matches none of oneOf|does not match \/|not in contract/.test(got),
+      `#4133 ${label}: the message says what the field takes (got ${JSON.stringify(got)})`);
+  }
+}
+
+// #4176 (owner decision b, 2026-11-19) — `oklch.ts <hex>` prints the anchor a design.md takes, so prism3-theme's step 1
+// has a command. The printed precision round-trips: each printed OKLCH converts back to the hex it came from.
+{
+  const r = spawnSync('npx', ['tsx', resolve(HERE, 'oklch.ts'), '#2F6B4F'], { cwd: HERE, encoding: 'utf8' });
+  ok(r.status === 0 && r.stdout.trim() === `#2F6B4F  →  ${formatAnchor(hexToAnchor('#2F6B4F'))}`,
+    `#4176 oklch.ts prints the hex as an OKLCH anchor (status ${r.status}, got ${JSON.stringify(r.stdout.trim() || r.stderr.trim())})`);
+  const refused = spawnSync('npx', ['tsx', resolve(HERE, 'oklch.ts'), 'blue'], { cwd: HERE, encoding: 'utf8' });
+  ok(refused.status === 1 && /"blue" is not a hex color/.test(refused.stderr), `#4176 oklch.ts refuses a non-hex by name (got ${JSON.stringify(refused.stderr.trim())})`);
+  const drift: string[] = [];
+  for (let v = 0; v < 4096; v += 7) {
+    const h = '#' + [v >> 8, (v >> 4) & 15, v & 15].map((n) => (n * 17).toString(16).padStart(2, '0')).join('');
+    const printed = formatAnchor(hexToAnchor(h)).match(/l: ([\d.]+), c: ([\d.]+), h: ([\d.]+)/)!;
+    const back = hex(oklchToRgb({ l: +printed[1], c: +printed[2], h: +printed[3] }));
+    if (back !== h) drift.push(`${h}→${back}`);
+  }
+  ok(drift.length === 0, `#4176 every printed anchor converts back to its hex (drifted: ${drift.slice(0, 8).join(', ') || 'none'})`);
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-theme/SKILL.md'), 'utf8');
+  ok(skill.includes('npx tsx packages/engine/oklch.ts'), '#4176 prism3-theme names the oklch.ts command in its authoring steps');
 }
 
 // #4207 (owner decision A, 2026-11-19) — `actionPalette` and `roleColors.action` are schema aliases. Two that name

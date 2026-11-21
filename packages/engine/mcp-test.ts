@@ -287,10 +287,10 @@ await new Promise((r) => setTimeout(r, 3000));
   // validator's own words. EXPECTED typed here literally. BY-NAME MUTATION: drop `minItems` from the schema →
   // both arms fail (the empty list falls through to `brandTheme`'s sentence, and one floor validates).
   const empty = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [] } })).payload;
-  ok(empty.valid === false && empty.errors.length === 1 && empty.errors[0] === 'layout.breakpoints: 0 item(s) < minItems 2',
+  ok(empty.valid === false && empty.errors.length === 1 && empty.errors[0] === 'layout.breakpoints has 0 item(s); it takes at least 2',
     `#2137 / #3698 R2 validate_brand refuses an empty breakpoints list (got ${JSON.stringify(empty)})`);
   const one = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [0] } })).payload;
-  ok(one.valid === false && one.errors.length === 1 && one.errors[0] === 'layout.breakpoints: 1 item(s) < minItems 2',
+  ok(one.valid === false && one.errors.length === 1 && one.errors[0] === 'layout.breakpoints has 1 item(s); it takes at least 2',
     `#3698 R2 validate_brand refuses a single breakpoint (got ${JSON.stringify(one)})`);
   // #2159: refusals that fire only in `buildTree`, once the modes resolve, after `brandTheme` has accepted the
   // brand. `validate_brand` runs the same build path `theme_brand` does, so they are reported in the engine's

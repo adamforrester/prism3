@@ -875,6 +875,8 @@ const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   ['primary named, and pinned', { actionPalette: 'primary', actionAnchorStep: 300 }],
   ['link set apart from a rebased action', { brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }], roleColors: { action: 'accent' }, linkPalette: 'primary' }],
   ['a named stop', { radiusScale: 'soft' }],
+  // #4133: an anchor authored as hex, at every site that takes one, so the conversion note is scanned.
+  ['hex anchors', { primary: '#2f6b4f', neutral: { hue: 262, chroma: 0.008, anchor: '#6b6e72' }, brandColors: [{ name: 'accent', oklch: '#c8102e' }] }],
   // #3071: the opaque outline hover fill with a pick, and a pick left under another method.
   ['opaque outline hover fill', { outlineInteraction: 'opaque-fill', outlineHoverFill: { light: { hover: 'neutral.050' } } }],
   ['outline hover fill under the wash', { outlineHoverFill: { light: { hover: 'neutral.050' } } }],
@@ -919,6 +921,7 @@ const PRODUCERS: Producer[] = [
   { id: 'roleColors: rebase', re: /^roleColors: \w+ uses the '[^']+' palette/, kind: 'site' },
   { id: 'roleColors: off-hue', re: /^roleColors: '[^']+' \(hue [^)]+\) is \d+° from the usual/, kind: 'site' },
   { id: 'accentPalette replaced', re: /^interactivePalettes: set, so accentPalette /, kind: 'site' },
+  { id: 'hex anchor', re: /^(primary|neutral\.anchor|brandColors '[^']+'): the hex #[0-9a-fA-F]+, converted to OKLCH /, kind: 'site' },
   { id: 'interactive column', re: /^interactive column: '[^']+' on the /, kind: 'site' },
   { id: 'status ramp dropped', re: /^(success|warning|info): rebased by roleColors/, kind: 'site' },
   { id: 'dimensions', re: /^dimensions: \d+px grid/, kind: 'site' },
@@ -983,11 +986,13 @@ const NOTES_UNREACHABLE = ['typography: empty display tier (the "below the usual
 // The push sites, counted in the SOURCE (comments dropped), as a tripwire for a new producer the sweep
 // never reaches: one the sweep reaches is an unclaimed note already. A literal per file, written here.
 // theme-brand.ts (`brandTheme`, in theme.ts until #3698 R5 split it per axis): 45 note pushes (#3052 added the grid-link notes' spread) + the one that copies vocabulary.ts's notes in. vocabulary.ts: 2.
-const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme-brand.ts': 52, 'packages/engine/vocabulary.ts': 2 };
+// #3284 added a pinned-action note (52). #4133 added the one that copies hex-anchors.ts's notes in (53), and hex-anchors.ts's own push.
+const NOTE_PUSH_SITES: Record<string, number> = { 'packages/engine/theme-brand.ts': 53, 'packages/engine/vocabulary.ts': 2, 'packages/engine/hex-anchors.ts': 1 };
 // The rules a NOTE must also pass, beyond §2 and `normative`. Each is a thing an engine note has carried.
 const ALLCAPS_OK = new Set(['AA', 'AAA', 'WCAG', 'OKLCH', 'HC']);
 const NOTE_RULES: { rule: string; re: RegExp }[] = [
-  { rule: 'issue-number', re: /#\d+/g },                                  // "(#898)", "issue #101"
+  // `\b` after the digits (#4133): a hex color the hex-anchor note names ("#2f6b4f") runs into letters, an issue number does not.
+  { rule: 'issue-number', re: /#\d+\b/g },                               // "(#898)", "issue #101"
   { rule: 'all-caps', re: /\b[A-Z]{2,}\b/g },                             // "CONFIRM", "NOT", "ON", "ESCAPE HATCH"
   { rule: 'date', re: /\b\d{4}-\d{2}-\d{2}\b/g },                         // "destructive 2026-09-24"
   { rule: 'internal-id', re: /\b[A-Z]{1,2}-?\d+[a-z]?\b/g },              // "B4a", "M-05"
@@ -1003,6 +1008,7 @@ const noteHits = (txt: string): RawHit[] => [
 const NOTE_SELF_CHECK: { sample: string; want: string | null }[] = [
   { sample: 'action color defaults to the PRIMARY brand palette — CONFIRM this hue', want: 'all-caps' },
   { sample: 'any that miss its floor are flagged (#898)', want: 'issue-number' },
+  { sample: 'primary: the hex #2f6b4f, converted to OKLCH { l: 0.4794, c: 0.078, h: 161.08 }.', want: null },
   { sample: 'AA-clean in every state (#1389/B4a, destructive 2026-09-24)', want: 'date' },
   { sample: 'AA-clean in every state (B4a)', want: 'internal-id' },
   { sample: 'radius: hairline sentinel on', want: 'maintainer-jargon' },

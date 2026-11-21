@@ -85,22 +85,94 @@ export const emitTheme = (theme: Theme, outDir: string, opts: { build?: string }
 // silently vouch for it (CR-04's root cause: a `{"type":"boolean"}` with no boolean branch
 // fell through and "matched" anything, incl. inside oneOf → `gradients: "banana"` passed).
 const KNOWN_TYPES = new Set(['object', 'array', 'number', 'integer', 'string', 'boolean', 'null']);
+// #4133, #4200 A (owner decisions 2026-11-19): every message says what failed and what the field takes, in the
+// voice standard's §3 pattern, "X is …; it takes …, such as …". These feed the CLI, validate_brand, theme_brand,
+// score_consumption and export_theme at once. DRAFT wording, for the owner's voice pass.
+/** How a value reads in a message: `missing`, `null`, `an array`, `an object`, or the value itself. */
+const shapeOf = (v: unknown): string =>
+  v === undefined ? 'missing' : v === null ? 'null' : Array.isArray(v) ? 'an array' : typeof v === 'object' ? 'an object'
+    : typeof v === 'string' ? JSON.stringify(v) : String(v);
+const deref = (schema: any, defs: any): any => (schema?.$ref ? deref(defs[schema.$ref.split('/').pop()!], defs) : schema);
+const orList = (xs: string[]): string => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} or ${xs[xs.length - 1]}`);
+const andList = (xs: string[]): string => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+/** What a schema branch takes, in words: its `title` when it has one, else its enum, else its type. */
+const takes = (schema: any, defs: any): string => {
+  const s = deref(schema, defs);
+  if (s.title) return s.title;
+  if (s.enum) return `one of ${orList(s.enum.map((x: unknown) => String(x)))}`;
+  if (s.const !== undefined) return JSON.stringify(s.const);
+  if (s.oneOf) return orList(s.oneOf.map((b: any) => takes(b, defs)));
+  if (s.type === 'object') return s.required?.length ? `an object with ${andList(s.required)}` : 'an object';
+  if (s.type === 'array') return 'a list';
+  if (s.type === 'number' || s.type === 'integer') {
+    const kind = s.type === 'integer' ? 'a whole number' : 'a number';
+    if (s.minimum !== undefined && s.maximum !== undefined) return `${kind} from ${s.minimum} to ${s.maximum}`;
+    if (s.minimum !== undefined) return `${kind} of at least ${s.minimum}`;
+    if (s.maximum !== undefined) return `${kind} of at most ${s.maximum}`;
+    return kind;
+  }
+  if (s.type === 'string') return 'a string';
+  if (s.type === 'boolean') return 'true or false';
+  if (s.type === 'null') return 'null';
+  return 'a value this schema describes';
+};
+/** Does a value have the branch's top-level JSON type? Used to pick the one branch of a oneOf a value was MEANT for. */
+const typeFits = (data: unknown, schema: any, defs: any): boolean => {
+  const s = deref(schema, defs);
+  if (s.oneOf) return s.oneOf.some((b: any) => typeFits(data, b, defs));
+  const t = s.type;
+  if (t === undefined) return true;
+  if (t === 'object') return typeof data === 'object' && data !== null && !Array.isArray(data);
+  if (t === 'array') return Array.isArray(data);
+  if (t === 'number' || t === 'integer') return typeof data === 'number';
+  if (t === 'null') return data === null;
+  return typeof data === t;
+};
+/** Levenshtein distance, for "did you mean" on an unknown key. */
+const editDistance = (a: string, b: string): number => {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+};
+const nearest = (k: string, known: string[]): string | undefined => {
+  let best: string | undefined, bestD = Infinity;
+  for (const c of known) { const dd = editDistance(k.toLowerCase(), c.toLowerCase()); if (dd < bestD) { bestD = dd; best = c; } }
+  return best !== undefined && bestD <= (k.length < 5 ? 1 : 2) ? best : undefined;
+};
 const validate = (data: any, schema: any, defs: any, path = ''): string[] => {
   if (schema.$ref) return validate(data, defs[schema.$ref.split('/').pop()!], defs, path);
-  if (schema.oneOf) return schema.oneOf.some((s: any) => validate(data, s, defs, path).length === 0) ? [] : [`${path || '(root)'}: matches none of oneOf`];
+  const at = path || 'the brand input';
+  if (schema.oneOf) {
+    if (schema.oneOf.some((s: any) => validate(data, s, defs, path).length === 0)) return [];
+    // An object or list that has the type of exactly one branch: report THAT branch's errors (`primary.l is 2; …`), not
+    // a bare "matches none". A scalar lists every branch instead: `"blue"` may be a misspelled stop or a misspelled
+    // hex, so naming only the string branch would hide the other form the field takes.
+    const fitting = schema.oneOf.filter((s: any) => typeFits(data, s, defs));
+    if (fitting.length === 1 && typeof data === 'object' && data !== null) return validate(data, fitting[0], defs, path);
+    const stops = schema.oneOf.flatMap((b: any) => deref(b, defs).enum ?? []).filter((x: unknown) => typeof x === 'string');
+    const near = typeof data === 'string' ? nearest(data, stops) : undefined;
+    return [`${at} is ${shapeOf(data)}; it takes ${takes(schema, defs)}${near ? `. Did you mean ${JSON.stringify(near)}?` : ''}`];
+  }
   const e: string[] = [];
-  const at = path || '(root)';
   // Value constraints — type-INDEPENDENT. `enum` was previously only checked under
   // type:string, so a numeric enum (titleFloor: [16,18]) went unenforced (CR-04).
-  if (schema.enum && !schema.enum.includes(data)) e.push(`${at}: ${JSON.stringify(data)} not in [${schema.enum.join(', ')}]`);
-  if (schema.const !== undefined && data !== schema.const) e.push(`${at}: ${JSON.stringify(data)} !== const ${JSON.stringify(schema.const)}`);
+  if (schema.enum && !schema.enum.includes(data)) {
+    const near = typeof data === 'string' ? nearest(data, schema.enum.filter((x: unknown) => typeof x === 'string')) : undefined;
+    e.push(`${at} is ${shapeOf(data)}; it takes ${takes({ enum: schema.enum }, defs)}${near ? `. Did you mean ${JSON.stringify(near)}?` : ''}`);
+  }
+  if (schema.const !== undefined && data !== schema.const) e.push(`${at} is ${shapeOf(data)}; it takes ${JSON.stringify(schema.const)}`);
   const t = schema.type;
   if (t !== undefined && !KNOWN_TYPES.has(t))
-    throw new Error(`theme-schema validator: unsupported "type": "${t}" at ${at} — teach the hand-rolled validator this type before the schema uses it (silent-ignore guard, CR-04)`);
+    throw new Error(`the brand input schema uses type "${t}" at ${at}, which the validator doesn't check yet. Teach emit-dtcg.ts's validator the type before the schema uses it.`);
   if (t === 'object') {
-    if (typeof data !== 'object' || data === null || Array.isArray(data)) return [`${at}: expected object`];
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) return [`${at} is ${shapeOf(data)}; it takes ${takes(schema, defs)}`];
     const props = schema.properties ?? {};
-    for (const req of schema.required ?? []) if (!(req in data)) e.push(`${at}: missing required '${req}'`);
+    for (const req of schema.required ?? []) if (!(req in data)) {
+      const sub = props[req];
+      e.push(`${path ? `${path}.${req}` : req} is missing; ${path ? path : 'the brand input'} requires it${sub ? `, and it takes ${takes(sub, defs)}` : ''}`);
+    }
     // `additionalProperties` has TWO forms and only the first was implemented (#391):
     //   false   → the unknown-key guard below
     //   {schema}→ a sub-schema applied to every value `properties` does not cover, which is how you
@@ -112,35 +184,37 @@ const validate = (data: any, schema: any, defs: any, path = ''): string[] => {
     //             level up: a gate reporting clean because it never looked.
     const ap = schema.additionalProperties;
     const apSchema = ap && typeof ap === 'object' && !Array.isArray(ap) ? ap : undefined;
-    if (ap === false) for (const k of Object.keys(data)) if (!(k in props)) e.push(`${path ? path + '.' : ''}${k}: unknown property (not in contract)`);
+    if (ap === false) for (const k of Object.keys(data)) if (!(k in props)) {
+      const near = nearest(k, Object.keys(props));
+      e.push(`${path ? `${path}.${k}` : k} is not a field of ${path || 'the brand input'}; ${near ? `did you mean ${near}?` : `it takes ${orList(Object.keys(props).slice(0, 12))}${Object.keys(props).length > 12 ? ', and more: list_levers or schema/theme-schema.json lists every field' : ''}`}`);
+    }
     // `true` and absent stay permissive — only the object form carries a sub-schema to apply.
     for (const [k, v] of Object.entries(data)) {
       const sub = props[k] ?? apSchema;
       if (sub) e.push(...validate(v, sub, defs, path ? `${path}.${k}` : k));
     }
   } else if (t === 'array') {
-    if (!Array.isArray(data)) return [`${at}: expected array`];
-    if (schema.minItems !== undefined && data.length < schema.minItems) e.push(`${at}: ${data.length} item(s) < minItems ${schema.minItems}`);
-    if (schema.maxItems !== undefined && data.length > schema.maxItems) e.push(`${at}: ${data.length} item(s) > maxItems ${schema.maxItems}`);
+    if (!Array.isArray(data)) return [`${at} is ${shapeOf(data)}; it takes a list`];
+    if (schema.minItems !== undefined && data.length < schema.minItems) e.push(`${at} has ${data.length} item(s); it takes at least ${schema.minItems}`);
+    if (schema.maxItems !== undefined && data.length > schema.maxItems) e.push(`${at} has ${data.length} item(s); it takes at most ${schema.maxItems}`);
     if (schema.items) data.forEach((it, i) => e.push(...validate(it, schema.items, defs, `${path}[${i}]`)));
   } else if (t === 'number' || t === 'integer') {
     // Reject NaN / ±Infinity: they pass `typeof === 'number'` and make every min/max comparison
     // false, so an unchecked `Number('soft')` → NaN would validate as a legal number (M-14).
-    if (typeof data !== 'number' || !Number.isFinite(data)) e.push(`${at}: expected a finite ${t}${typeof data === 'number' ? ` (got ${data})` : ''}`);
-    else {
-      if (t === 'integer' && !Number.isInteger(data)) e.push(`${at}: ${data} is not an integer`);
-      if (schema.minimum !== undefined && data < schema.minimum) e.push(`${at}: ${data} < ${schema.minimum}`);
-      if (schema.maximum !== undefined && data > schema.maximum) e.push(`${at}: ${data} > ${schema.maximum}`);
-    }
+    const bad = typeof data !== 'number' || !Number.isFinite(data)
+      || (t === 'integer' && !Number.isInteger(data))
+      || (schema.minimum !== undefined && data < schema.minimum) || (schema.maximum !== undefined && data > schema.maximum);
+    if (bad) e.push(`${at} is ${shapeOf(data)}; it takes ${takes(schema, defs)}`);
   } else if (t === 'string') {
-    if (typeof data !== 'string') e.push(`${at}: expected string`);
-    else if (schema.pattern && !new RegExp(schema.pattern).test(data)) e.push(`${at}: '${data}' does not match /${schema.pattern}/`);
+    if (typeof data !== 'string') e.push(`${at} is ${shapeOf(data)}; it takes ${takes(schema, defs)}`);
+    else if (schema.pattern && !new RegExp(schema.pattern).test(data))
+      e.push(`${at} is ${shapeOf(data)}; it takes ${schema.title ?? `a string matching /${schema.pattern}/`}`);
   } else if (t === 'boolean') {
-    if (typeof data !== 'boolean') e.push(`${at}: expected boolean`);
+    if (typeof data !== 'boolean') e.push(`${at} is ${shapeOf(data)}; it takes true or false`);
   } else if (t === 'null') {
     // Used as an explicit OPT-OUT branch inside a oneOf (e.g. `families.mono: null` = no mono
     // face). Distinct from an omitted key, which keeps the default.
-    if (data !== null) e.push(`${at}: expected null`);
+    if (data !== null) e.push(`${at} is ${shapeOf(data)}; it takes null`);
   }
   return e;
 };

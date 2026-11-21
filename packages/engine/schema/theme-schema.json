@@ -9,6 +9,7 @@
   "properties": {
     "id": {
       "type": "string",
+      "title": "a name with no slash or backslash that isn't blank, \".\" or \"..\", such as \"aurora\"",
       "pattern": "^(?!\\.{1,2}$)(?=[\\s\\S]*\\S)[^/\\\\\\u0000]+$",
       "description": "Brand identifier (e.g. 'aurora'). Host-supplied identity; the emit namespace is set separately by `root`. It names the emitted files, so it holds no slash, backslash or NUL, is not blank, and is not `.` or `..`."
     },
@@ -19,6 +20,7 @@
     },
     "root": {
       "type": "string",
+      "title": "one lowercase segment of letters, digits and hyphens, starting with a letter, such as \"prism\"",
       "pattern": "^[a-z][a-z0-9-]*$",
       "default": "prism",
       "description": "The single, mode-invariant token namespace segment. Every token emits under `<root>.*` (color primitives at `<root>.core.palette`, semantic roles at `<root>.color`). Per-engagement/brand; defaults to the placeholder 'prism'. One segment only — no dots (two-segment namespaces are intentionally unsupported)."
@@ -151,8 +153,8 @@
       }
     },
     "primary": {
-      "$ref": "#/$defs/oklch",
-      "description": "The exact brand anchor (palette 'primary'). Pinned, never shifted; the engine auto-places it on the step ramp by its lightness."
+      "$ref": "#/$defs/colorAnchor",
+      "description": "The exact brand anchor (palette 'primary'), in OKLCH or as a hex color. Pinned, never shifted; the engine auto-places it on the step ramp by its lightness. A hex color is converted to OKLCH, and the notes record the converted value."
     },
     "neutral": {
       "type": "object",
@@ -161,7 +163,7 @@
       "properties": {
         "hue": { "oneOf": [ { "type": "number", "description": "Neutral ramp hue (deg). A small chroma tints the grays toward the brand for cohesion." }, { "type": "string", "enum": ["warm", "cool"], "description": "Named stop — warm 60 · cool 250." } ] },
         "chroma": { "oneOf": [ { "type": "number", "minimum": 0, "description": "Peak neutral chroma (~0.004–0.02); tapers to near-0 at the ramp ends." }, { "type": "string", "enum": ["pure", "subtle", "tinted", "saturated"], "description": "Named stop — pure 0 · subtle 0.006 · tinted 0.012 · saturated 0.02." } ] },
-        "anchor": { "$ref": "#/$defs/oklch", "description": "OPTIONAL. A pre-defined brand gray, pinned verbatim at its lightness step; the whole neutral ramp is built around it (hue/chroma from the anchor) instead of the hue/chroma cast. For a client that ships their own neutral." },
+        "anchor": { "$ref": "#/$defs/colorAnchor", "description": "OPTIONAL. A pre-defined brand gray, in OKLCH or as a hex color. It is pinned verbatim at its lightness step; the whole neutral ramp is built around it (hue/chroma from the anchor) instead of the hue/chroma cast. For a client that ships their own neutral." },
         "auto": { "type": "boolean", "description": "OPTIONAL. When set, the neutral cast hue re-derives from the brand `primary` at every build (live-follows recolor) instead of the stored `hue`. Ignored when an `anchor` is pinned. This is the default for a brand that provides no neutral." }
       },
       "description": "The neutral ramp generator: hue + peak chroma (derived), `auto`-follow the brand primary, or an exact `anchor` gray (pinned)."
@@ -174,8 +176,8 @@
         "additionalProperties": false,
         "required": ["name", "oklch"],
         "properties": {
-          "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "Palette name — a single lowercase slug (e.g. 'accent', 'brand-blue'). Must NOT be an engine-generated palette name (primary/neutral/success/warning/info/danger/white/black/black-alpha/white-alpha) or a duplicate; brandTheme() rejects those. No dots/spaces/symbols (it becomes an alias path segment)." },
-          "oklch": { "$ref": "#/$defs/oklch" }
+          "name": { "type": "string", "title": "a lowercase slug of letters, digits and hyphens, starting with a letter, such as \"accent\"", "pattern": "^[a-z][a-z0-9-]*$", "description": "Palette name — a single lowercase slug (e.g. 'accent', 'brand-blue'). Must NOT be an engine-generated palette name (primary/neutral/success/warning/info/danger/white/black/black-alpha/white-alpha) or a duplicate; brandTheme() rejects those. No dots/spaces/symbols (it becomes an alias path segment)." },
+          "oklch": { "$ref": "#/$defs/colorAnchor", "description": "The color, in OKLCH or as a hex color (converted to OKLCH)." }
         }
       }
     },
@@ -671,8 +673,19 @@
         "position": { "type": "number", "minimum": 0, "maximum": 1, "description": "Stop position 0..1 along the gradient axis." }
       }
     },
+    "colorAnchor": {
+      "description": "A brand anchor color: an OKLCH object, or a hex color the engine converts to OKLCH.",
+      "oneOf": [{ "$ref": "#/$defs/oklch" }, { "$ref": "#/$defs/hexColor" }]
+    },
+    "hexColor": {
+      "type": "string",
+      "title": "a hex color (#rrggbb, #rgb, #rrggbbaa or #rgba), such as \"#2f6b4f\"",
+      "pattern": "^#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})$",
+      "description": "A hex color, #rrggbb, #rgb, #rrggbbaa or #rgba, such as \"#2f6b4f\". An alpha is dropped, because an anchor is opaque. The engine converts the color to OKLCH and records the converted value in the notes."
+    },
     "oklch": {
       "type": "object",
+      "title": "an OKLCH object { l, c, h }, such as { \"l\": 0.55, \"c\": 0.18, \"h\": 265 }",
       "additionalProperties": false,
       "required": ["l", "c", "h"],
       "properties": {

@@ -61,6 +61,7 @@ export { leverManifest } from './levers';
 export type { Lever } from './levers';
 export { parseDesignMd, toDesignMd } from './design-md';
 export { isStandardDesignMd, parseStandardDesignMd, standardToBrandInput } from './standard-design-md';
+export { resolveHexAnchors } from './hex-anchors';
 export {
   PERSIST_VERSION, UnrecognizedPersistedInputError, deserializeBrandInput, serializeBrandInput,
 } from './persist-input';

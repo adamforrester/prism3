@@ -126,8 +126,11 @@ minimal — read both, they are the reference; the directory also holds a standa
 
 ## How to author
 
-1. **Pin the anchors in OKLCH.** Convert the brand's exact hero hex to OKLCH and set
-   `primary`. Do the same for accents (`brandColors`). Pin the brand's *real* colors —
+1. **Pin the anchors in OKLCH.** Convert the brand's exact hero hex to OKLCH with
+   `npx tsx packages/engine/oklch.ts '#2f6b4f'` and set `primary` to the object it prints. Do
+   the same for accents (`brandColors`). The engine also takes the hex itself
+   (`primary: "#2f6b4f"`; an 8- or 4-digit hex has its alpha dropped) and records the converted
+   value in its notes, but the numbers in the brief are what a reader and a diff can check. Pin the brand's *real* colors —
    the engine reproduces an anchor exactly (ΔE00 ~0) and grows the ramp around it, so
    fidelity to the brand comes from accurate anchors, not from you placing steps.
 2. **Choose the neutral cast.** `neutral: { hue, chroma }` derives a gray with a hint of
