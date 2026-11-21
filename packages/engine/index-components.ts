@@ -20,6 +20,9 @@ export {
   planSetLayout, planSetProperties, planStamp, planTextStyles, planToPluginJs, resolveNestMember, swapMissAdvice,
 } from './anatomy-figma';
 export type { AnatomyPlan, ButtonLayout, FigmaNodePlan, SwapFound, WeightAvailability } from './anatomy-figma';
+export { applyIconMap, brandIconNames, iconMapErrors, mappedIcon } from './icon-map';
+export { iconArtDuplicates } from './icon-art';
+export type { BrandGlyph, BrandIcons } from './icon-map';
 export { diffAnatomy, fieldCoverage, unclassifiedFields } from './anatomy-readback';
 export type { Divergence, HostNode, ReadPorts } from './anatomy-readback';
 export { componentSpec, specMaterialize } from './component-specs';

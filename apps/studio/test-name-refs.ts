@@ -132,6 +132,7 @@ const FIELDS: Record<string, Seed | Seed[] | string> = {
   density: 'an enum', radiusScale: 'a number', baseMd: 'a number', controlShape: 'an enum', fieldStyle: 'an enum', searchFieldStyle: 'an enum',
   tagStyle: 'an enum', dialogTitleSize: 'an enum', bannerStyle: 'an enum', currentIndicator: 'an enum', radiusHairline: 'a flag',
   buttonIcons: 'an enum', buttonContentSize: 'an enum', buttonMinWidthMultiplier: 'a number', buttonLabelWeight: 'an enum', buttonTextHover: 'an enum',
+  icons: 'icon names and their art (#3076), never a palette or a mode',
   buttonBorderWeight: 'an enum',
 };
 /** `surfaces.<mode>`'s keys, by hand: the inverse band and tiers may be `{ palette, step }`; the page tiers are neutral steps. */

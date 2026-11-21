@@ -16,6 +16,7 @@
  * backticked and resolvable, facts in structured fields as well as prose, and a versioned JSON Schema
  * (`schema/ai-metadata.schema.json`, `$id` === `AI_METADATA_SCHEMA`) documenting every field.
  */
+import { brandIconNames } from './icon-map';
 import { Theme, CORE_TIER, BODY_XS_DESCRIPTION } from './theme';
 import { resolveAllModes, ResolvedRole } from './modes';
 import { contrast, floorRatio, hexToRgb } from './color';
@@ -609,8 +610,9 @@ const refsIn = (v: any): string[] => {
 export type AiMetadataOptions = { tokensFile?: string };
 
 /** The sidecar's schema id. The JSON Schema at `schema/ai-metadata.schema.json` carries the same `$id`,
- *  and a test holds the two equal — bump both together when a field is added, renamed or removed. */
-export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.6';
+ *  and a test holds the two equal — bump both together when a field is added, renamed or removed.
+ *  0.6 — `motion_presets` (#2857). 0.7 — `icons`, the brand icon map (#3076). */
+export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.7';
 
 /** The one normative sentence (AI/C-1) — a check a reader can run with `tokens.json` alone: resolve both
  *  roles in each mode, composite a translucent one over its ground, compare with the floor. `lint-voice.ts`
@@ -1074,6 +1076,13 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     motion_presets: Object.fromEntries(theme.motion.presets.map((p) => [p.preset, {
       duration: `motion.duration.${p.duration}`, easing: `motion.easing-role.${p.easing}`, reduced_duration: `motion.duration-reduced.${p.reduced}`,
     }])),
+    // THE BRAND ICON MAP (#3076), when the brand sets one: component docs name Prism3's icons, and an agent resolves each
+    // through `map`. `names` is the icon set this brand's file holds. DRAFT note copy.
+    ...(theme.icons ? { icons: {
+      note: 'Component docs name Prism3 icons. This brand replaces each icon named in `map` with the icon it maps to; `names` is the icon set the brand ships.',
+      map: { ...(theme.icons.map ?? {}) },
+      names: brandIconNames(theme.icons),
+    } } : {}),
     ...(Object.keys(gradient).length ? { gradient_fields: fieldsOf(gradient, ['$description', 'meaning', 'when_to_use', 'avoid_when', 'resolves_to', 'a11y']), gradient } : {}),
     primitives,
   };

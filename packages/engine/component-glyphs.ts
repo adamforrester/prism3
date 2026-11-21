@@ -108,6 +108,8 @@ export const PROGRESS_GEOMETRY = {
  *  the two rings share one drawing method; the full ring is the spinner's annulus at full strength. */
 export const progressLayers = (band: number, full: boolean, g: { viewBox: number; value: number } = PROGRESS_GEOMETRY, value: number = g.value): GlyphLayer[] => {
   const [track, arc] = spinnerLayers({ viewBox: g.viewBox, radius: g.viewBox / 2 - band / 2, stroke: band, arc: value, track: 1 });
+  // `spinnerLayers` always returns the track then the arc; the guard is for `noUncheckedIndexedAccess` (#1182).
+  if (!track || !arc) throw new Error('progressLayers: spinnerLayers returned fewer than two layers');
   return full ? [{ id: 'track', d: track.d, fillRule: 'evenodd' }] : [arc];
 };
 

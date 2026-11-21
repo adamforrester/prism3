@@ -114,6 +114,9 @@ const validate = (data: any, schema: any, defs: any, path = ''): string[] => {
     const apSchema = ap && typeof ap === 'object' && !Array.isArray(ap) ? ap : undefined;
     if (ap === false) for (const k of Object.keys(data)) if (!(k in props)) e.push(`${path ? path + '.' : ''}${k}: unknown property (not in contract)`);
     // `true` and absent stay permissive — only the object form carries a sub-schema to apply.
+    // `propertyNames` (#3076): every key validated as a string against the sub-schema, so an open-keyed map can name its
+    // keys' shape (`icons.glyphs`) rather than leave it to the engine's refusal alone.
+    if (schema.propertyNames) for (const k of Object.keys(data)) e.push(...validate(k, { type: 'string', ...schema.propertyNames }, defs, `${path ? path + '.' : ''}${k} (key)`));
     for (const [k, v] of Object.entries(data)) {
       const sub = props[k] ?? apSchema;
       if (sub) e.push(...validate(v, sub, defs, path ? `${path}.${k}` : k));

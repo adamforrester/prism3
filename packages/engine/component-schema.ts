@@ -2154,6 +2154,12 @@ export type ComponentDef = {
    *  Maintainer data: no emitted shape carries it (`project-def.ts` projects named fields). Validated (`leverErrors`). */
   levers?: ComponentLevers;
 
+  /** THE BRAND'S OWN ICON ART (#3076), written ONLY by `applyIconMap` (`icon-map.ts`) from the brand input's
+   *  `icons.glyphs`, never authored on a def. The projector looks a glyph up here before the core set
+   *  (`ICON_PATHS`), so the `icon` def draws the brand's icons and every other def may name one. Absent on every
+   *  authored def and for every brand without glyphs. Maintainer data: no emitted shape carries it. */
+  brandGlyphs?: Record<string, { path: string; fillRule?: 'evenodd' }>;
+
   /** A LAYER GAP DERIVED FROM THE GAP THE EYE SEES (owner, 2026-09-29, the dismissible Tag). Each entry names
    *  three `tokens` keys (`{size}` expands as in `densitySpacing`): `visible`, the distance the eye reads, a
    *  density-following gap (in `densitySpacing`, so it is stepped and floored at 4px); `inset`, a fixed inset

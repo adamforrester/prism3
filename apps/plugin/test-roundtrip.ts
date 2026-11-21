@@ -34,7 +34,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { applyOutlineInteraction, applyButtonLayout, applyCurrentIndicator, DEFAULT_BUTTON_LAYOUT, figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, unclassifiedFields, fieldCoverage, type Divergence, type HostNode, type ReadPorts, componentSpec, specMaterialize, type ComponentSpec, figmaVarName, figmaTextStyleName, brandMaterializer, type ComponentDef, validateComponentDef } from '@prism3/engine/components';
+import { applyIconMap, applyOutlineInteraction, applyButtonLayout, applyCurrentIndicator, DEFAULT_BUTTON_LAYOUT, figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, type AnatomyPlan, componentDefs, diffAnatomy, unclassifiedFields, fieldCoverage, type Divergence, type HostNode, type ReadPorts, componentSpec, specMaterialize, type ComponentSpec, figmaVarName, figmaTextStyleName, brandMaterializer, type ComponentDef, validateComponentDef } from '@prism3/engine/components';
 import { buildFigmaColor, buildFigmaTextStyles, tailOf } from '@prism3/engine/figma';
 import { nbTheme } from '@prism3/engine/harness';
 import { sizeRefPx, type BrandInput } from '@prism3/engine';
@@ -130,7 +130,7 @@ const componentNamesOf = async (shim: unknown, root: unknown): Promise<Map<strin
  * built from the plan would map every id to the name the diff was hoping for, which is the whole
  * failure mode in one line.
  */
-const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<ShimOpts> = {}): Promise<{ plans: AnatomyPlan[]; divergences: Divergence[]; members: number; hostMembers: HostNode[]; set: HostNode | undefined; ports: ReadPorts }> => {
+const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<ShimOpts> = {}, nested: (d: ComponentDef) => ComponentDef = (d) => d): Promise<{ plans: AnatomyPlan[]; divergences: Divergence[]; members: number; hostMembers: HostNode[]; set: HostNode | undefined; ports: ReadPorts }> => {
   // NOMINATED, exactly as the real caller does (`apps/plugin/src/main.ts` — `SWAP_TARGET`). Building
   // the plan set without it is not a smaller version of the same build: the executor then reports
   // `swapTarget -> (none nominated; built as a placeholder frame)` and puts a FRAME where the plan
@@ -155,7 +155,9 @@ const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<Shi
   // a bare component of that name, which a plain-component lookup would find first.
   const shim = makeShim({ ...fullFor(overrides ? [...plans, ...ALL_PLANS()] : plans), ...(overrides ? { comps: [SWAP_TARGET], liveRoot: true } : {}), ...(marks || locks ? { liveComponents: true } : {}), page, ...extra });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
-  if (overrides) await prebuildDependencies(def, { defs: componentDefs, project: (d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), host: shim as any, build: (d) => applyComponentPlan(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }) });
+  // `nested` materializes each dependency as the plugin's own `project` does (`main.ts`, `materializeForBrand`): a brand's
+  // icon map reaches the icon set a mapped Counter nests (#3076). The identity everywhere else.
+  if (overrides) await prebuildDependencies(def, { defs: componentDefs, project: (d) => figmaAnatomySet(nested(d), { swapTarget: SWAP_TARGET }), host: shim as any, build: (d) => applyComponentPlan(figmaAnatomySet(nested(d), { swapTarget: SWAP_TARGET }), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }) });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
   await applyComponentPlan(plans, shim as any, {});
 
@@ -511,6 +513,14 @@ const PARTIAL = PROJECTED.flatMap((d) => { const m = applyCurrentIndicator(d, 'p
 // owner item), so without this row `slotSettings` and `slotPreferred` compare nothing. Test-only, as
 // `test-native-slots.ts` builds it: Tag with its dismiss cell a slot holding 1 to 2 children, preferring Badge, which
 // the file holds as a set.
+// …and every def the BRAND ICON MAP rewrites (#3076): the icon set built from the brand's art (a name of its own, `add`, and a
+// Prism3 name it redraws, `close`, with its fill rule), and each component that instances a mapped icon. Without these rows
+// a brand glyph never reaches an executor here. Test-only art: the brand's own is not in the repo.
+const ICON_MAP_BRAND = { map: { plus: 'add', 'plus-filled': 'add', minus: 'subtract', 'minus-filled': 'subtract', check: 'checkmark', 'close-filled': 'close' },
+  glyphs: { add: { path: 'M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z' }, subtract: { path: 'M4 11h16v2H4z' }, checkmark: { path: 'M9.5 15.6 5.4 11.5 4 12.9l5.5 5.5L20 7.9l-1.4-1.4z' },
+    close: { path: 'M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6z', fillRule: 'evenodd' as const } } };
+// The icon set itself is not renamed here: the projector knows it by its id. It is built under its own id below.
+const ICON_MAPPED = PROJECTED.flatMap((d) => { const m = applyIconMap(d, ICON_MAP_BRAND); return m === d || d.id === 'icon' ? [] : [{ ...m, id: `${d.id}@icon-map` }]; });
 const tagDef = PROJECTED.find((d) => d.id === 'tag')!;
 const SLOT_CONSTRAINED = [{ ...tagDef, id: 'tag@slot-constraints', anatomy: { ...tagDef.anatomy!, parts: { ...tagDef.anatomy!.parts,
   dismiss: { ...tagDef.anatomy!.parts.dismiss, contentSlot: true as const, slotSettings: { minChildren: 1, maxChildren: 2, allowPreferredValuesOnly: true }, preferred: ['badge'] } } } }];
@@ -524,12 +534,13 @@ const listDef = PROJECTED.find((d) => d.id === 'list')!;
 const SWAP_GLYPH = 'close';
 const SWAP_OVERRIDE = [{ ...listDef, id: 'list@swap-override', anatomy: { ...listDef.anatomy!, parts: { ...listDef.anatomy!.parts,
   item1: { ...listDef.anatomy!.parts.item1, overrides: { swaps: { icon: SWAP_GLYPH } } } } } }];
-for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...PARTIAL, ...SLOT_CONSTRAINED, ...SWAP_OVERRIDE]) {
+for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...PARTIAL, ...ICON_MAPPED, ...SLOT_CONSTRAINED, ...SWAP_OVERRIDE]) {
   try {
     // A slot that prefers a def it also nests (#2649's `items`, preferring the item it holds) resolves that def by key,
     // and the shim keys its components only with `identities` on, as a real file always does.
     const prefersNest = Object.values(def.anatomy?.parts ?? {}).some((p) => (p.preferred ?? []).length > 0);
-    const r = await roundTrip(def, SLOT_CONSTRAINED.includes(def as (typeof SLOT_CONSTRAINED)[number]) ? SLOT_FILE : prefersNest ? { identities: true } : {});
+    const r = await roundTrip(def, SLOT_CONSTRAINED.includes(def as (typeof SLOT_CONSTRAINED)[number]) ? SLOT_FILE : prefersNest ? { identities: true } : {},
+      ICON_MAPPED.includes(def as (typeof ICON_MAPPED)[number]) ? (d) => applyIconMap(d, ICON_MAP_BRAND) : undefined);
     inventory.push({ def: def.id, divergences: r.divergences, members: r.members, plans: r.plans.length });
     builtPages.push(r.page);
     // #3388 — the same members as Update file's verify reads them: through `snapshotMember`, never the live node.
@@ -737,7 +748,7 @@ ok(inventory.length > 0 && inventory.some((i) => i.plans > 0), `the corpus produ
   // #3425 — THE COMPONENT-DEFS EXPORT'S BRAND MATERIALIZATION restates `materializerFor` too (`brandMaterializer`, the
   // engine must not import a surface). Held to it on every def for every example brand, for no brand, and for one brand
   // with every component setting off its default, so a lever added to one and not the other fails here by brand and def.
-  const offBrand = { ...(exampleBrands as Record<string, BrandInput>).prism3, id: 'off-defaults', controlShape: 'pill', fieldStyle: 'underline', searchFieldStyle: 'outline', tagStyle: 'underline', dialogTitleSize: 'small', bannerStyle: 'outlined', currentIndicator: 'full', density: 'compact', buttonIcons: 'edges', buttonContentSize: 'smaller', buttonMinWidthMultiplier: 3, buttonLabelWeight: 'default', buttonTextHover: 'fill' } as BrandInput;
+  const offBrand = { ...(exampleBrands as Record<string, BrandInput>).prism3, id: 'off-defaults', controlShape: 'pill', fieldStyle: 'underline', searchFieldStyle: 'outline', tagStyle: 'underline', dialogTitleSize: 'small', bannerStyle: 'outlined', currentIndicator: 'full', density: 'compact', buttonIcons: 'edges', buttonContentSize: 'smaller', buttonMinWidthMultiplier: 3, buttonLabelWeight: 'default', buttonTextHover: 'fill', icons: ICON_MAP_BRAND } as BrandInput;
   for (const [label, input] of [['no brand', null], ...Object.entries(exampleBrands as Record<string, BrandInput>), ['every setting off its default', offBrand]] as [string, BrandInput | null][]) {
     const engineSide = brandMaterializer(input);
     const pluginSide = materializerFor(input);
@@ -750,6 +761,22 @@ if (INVENTORY) {
   console.log(`\n📋 INVENTORY: ${clean.length}/${inventory.length} defs round-trip clean; ${dirty.length} diverge.`);
   console.log('   Inventory mode exits 0 by design — the gate mode below is what fails.');
   process.exit(failed ? 1 : 0);
+}
+
+// #3076 — THE ICON SET UNDER A BRAND ICON MAP, built under its own id (the projector knows the set by it): each mapped
+// Prism3 icon gone, each brand glyph built from the brand's art, a redrawn Prism3 name drawn with the brand's art and fill
+// rule, and every member reading back as planned. The art is typed above, never read from the plan (docs/34).
+{
+  const r = await roundTrip(applyIconMap(PROJECTED.find((d) => d.id === 'icon')!, ICON_MAP_BRAND));
+  const names = r.hostMembers.map((m) => String((m as { name?: unknown }).name ?? ''));
+  const vectorD = (n: string): string => {
+    const m = r.hostMembers.find((x) => String((x as { name?: unknown }).name) === n) as unknown as { findAll?: (f: (x: unknown) => boolean) => unknown[] } | undefined;
+    return JSON.stringify((m?.findAll?.((x) => (x as { type?: string }).type === 'VECTOR') ?? []).map((v) => (v as { vectorPaths?: unknown; _svg?: unknown }).vectorPaths ?? (v as { _svg?: unknown })._svg ?? null));
+  };
+  ok(r.divergences.length === 0, `#3076 the icon set under a brand map round-trips (${r.divergences.length} divergence(s))`);
+  ok(!names.some((n) => /^name=(plus|plus-filled|minus|minus-filled|check|close-filled)$/.test(n)), `#3076 the built icon set holds no mapped Prism3 icon (${names.filter((n) => /plus|minus|=check$|close-filled/.test(n)).join(', ')})`);
+  ok(['name=add', 'name=subtract', 'name=checkmark', 'name=close'].every((n) => names.includes(n)), '#3076 the built icon set holds each brand glyph and the redrawn close');
+  ok(vectorD('name=add').includes(ICON_MAP_BRAND.glyphs.add.path.slice(0, 12)), `#3076 icon/add is drawn from the brand's art (${vectorD('name=add').slice(0, 120)})`);
 }
 
 ok(dirty.length === 0, `every def round-trips: what the plan declares is what the host holds${dirty.length ? ` — ${dirty.map((d) => `${d.def} (${d.divergences.length})`).join(', ')}` : ''}`);

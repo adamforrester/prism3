@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "prism3-ai-metadata/0.6",
+  "$id": "prism3-ai-metadata/0.7",
   "title": "Prism3 agent metadata sidecar (<brand>.ai.json)",
   "description": "Agent-readable metadata for one generated brand, companion to its DTCG token tree (<brand>.tokens.json). Every token in the tree has exactly one entry, keyed by its path below the brand root. Every field is generated from the token data on each build. The sidecar's own `$schema` value equals this schema's `$id`; both change together when a field is added, renamed or removed.",
   "type": "object",
   "additionalProperties": false,
   "required": ["$schema", "brand", "generated", "note", "color_fields", "typography_fields", "layout_fields", "motion_fields", "primitive_fields", "color", "typography", "layout", "motion", "motion_presets", "primitives"],
   "properties": {
-    "$schema": { "const": "prism3-ai-metadata/0.6", "description": "The schema version this file follows. Equal to this schema's `$id`." },
+    "$schema": { "const": "prism3-ai-metadata/0.7", "description": "The schema version this file follows. Equal to this schema's `$id`." },
     "brand": { "$ref": "#/$defs/path", "description": "The brand id, as in the token tree's file name." },
     "generated": { "const": true, "description": "Always true: no field is hand-authored." },
     "note": { "type": "string", "minLength": 1, "description": "A one-paragraph guide to the tiers and fields, for a reader without this schema." },
@@ -46,6 +46,17 @@
       "description": "Motion presets (`surface`, `crossfade`), keyed by preset name. A preset is not a token: it names the step of the shared duration scale it plays on, from the brand's preset mapping, with its easing role and its reduced-motion duration. Each value is a path in the `motion` tier.",
       "additionalProperties": false,
       "patternProperties": { "^[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)?$": { "$ref": "#/$defs/presetEntry" } }
+    },
+    "icons": {
+      "type": "object",
+      "description": "Present only when the brand sets an icon map (#3076). Component docs name Prism3 icons; resolve each through `map`.",
+      "additionalProperties": false,
+      "required": ["note", "map", "names"],
+      "properties": {
+        "note": { "type": "string", "description": "How to read the block." },
+        "map": { "type": "object", "description": "Prism3 icon name → the icon that replaces it in this brand.", "additionalProperties": { "type": "string" } },
+        "names": { "type": "array", "description": "The icon set this brand ships: Prism3's names less the mapped ones, then the brand's own.", "items": { "type": "string" } }
+      }
     },
     "gradient": {
       "type": "object",

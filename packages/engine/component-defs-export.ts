@@ -39,6 +39,7 @@ import {
   applySpacingDensity, applyTagStyle, applyWeightIntent, DEFAULT_BUTTON_LAYOUT, DEFAULT_WEIGHT_AVAILABILITY, fieldStyleFor,
 } from './anatomy-figma';
 import type { ButtonLayout, WeightAvailability } from './anatomy-figma';
+import { applyIconMap, type BrandIcons } from './icon-map';
 import { componentSpec, specMaterialize } from './component-specs';
 import type { ComponentSpec, SpecValue, SpecWhere } from './component-specs';
 import { projectDef } from './project-def';
@@ -52,7 +53,8 @@ import { localeFreeCompare } from './locale-free-order';
 
 // 1.5 (#576): `settings.button.borderWeight`, the outline button's border weight.
 // 1.6 (#2778): `def.docs.implementation`, the build rules' own list.
-export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.6';
+// 1.7 (#3076): `settings.icons`, the brand icon map and its art.
+export const COMPONENT_DEFS_FORMAT = 'prism3-component-defs/1.7';
 /** The Specs schema version the projection is written against. `packages/tokens/package.json` pins the schema package
  *  `check-specs.mjs` validates with ([PIN]); `test.ts` holds this constant equal to that pin (#4145), so a bump of one
  *  without the other fails by name. */
@@ -77,6 +79,9 @@ export type ComponentSettings = {
    *  surface): the spec's token names do not change with them, and a brand export's px and the brand's tokens carry them. */
   radioDot: RadioDotShare;
   raisedSurface: NonNullable<BrandInput['raisedSurface']>;
+  /** The brand icon map (#3076, `icon-map.ts`): present only when the brand sets one. A code consumer resolves an icon
+   *  name through `map` and draws a brand glyph from `glyphs`, as the design file does. */
+  icons?: BrandIcons;
 };
 
 type Levers = { settings: ComponentSettings; sizes: SizeStep[] };
@@ -113,6 +118,7 @@ const leversOf = (input: BrandInput | null): Levers => {
       },
       radioDot: input?.radioDot ?? RADIO_DOT_DEFAULT,
       raisedSurface: input?.raisedSurface ?? 'card',
+      ...(input?.icons && (Object.keys(input.icons.map ?? {}).length || Object.keys(input.icons.glyphs ?? {}).length) ? { icons: input.icons } : {}),
     },
   };
 };
@@ -122,7 +128,7 @@ export const brandMaterializer = (input: BrandInput | null): ((def: ComponentDef
   const { settings: s, sizes } = leversOf(input);
   const px = sizeRefPx(sizes);
   return (def) => applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(def, s.controlShape), fieldStyleFor(def, input)), s.tagStyle), s.dialogTitleSize), s.bannerStyle), s.currentIndicator), s.weightAvailability), s.outlineInteraction), s.density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyCurrentIndicator(applyBannerStyle(applyDialogTitleSize(applyTagStyle(applyFieldStyle(applyControlShape(applyIconMap(def, s.icons), s.controlShape), fieldStyleFor(def, input)), s.tagStyle), s.dialogTitleSize), s.bannerStyle), s.currentIndicator), s.weightAvailability), s.outlineInteraction), s.density),
     s.button, px), px);
 };
 

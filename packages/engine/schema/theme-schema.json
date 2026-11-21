@@ -630,6 +630,28 @@
     "tagStyle": { "type": "string", "enum": ["pill", "underline"], "default": "pill", "description": "OPTIONAL. The shape every tag draws. 'pill' is a rounded outline; 'underline' is one line under the tag, 1px at rest and 2px when selected or under the pointer, with square corners and no fill in any state. Default 'pill'." },
     "dialogTitleSize": { "type": "string", "enum": ["large", "medium", "small"], "default": "large", "description": "OPTIONAL. The title size of every dialog, centered or a sheet: 'large' binds type.label.lg.emphasis, 'medium' type.label.md.emphasis, 'small' type.label.sm.emphasis. Default 'large'." },
     "bannerStyle": { "type": "string", "enum": ["tinted", "outlined"], "default": "tinted", "description": "OPTIONAL. The surface every banner draws: 'tinted' fills it with the tone's tint (color.foreground.{tone}-subtle); 'outlined' fills it with the page color (color.background.primary). Both keep the 1px edge in the tone (color.border.{tone}). Default 'tinted'." },
+    "icons": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OPTIONAL. The brand's own icons in generated components. 'map' names which brand icon stands in for each Prism3 icon, everywhere a component uses it; a mapped Prism3 icon is no longer built into the brand's file. 'glyphs' carries the brand's art, one path each on a 24×24 artboard; a glyph named like a Prism3 icon redraws it. A key in 'map' must be a Prism3 icon, its value a Prism3 icon or a key in 'glyphs', and a value may not itself be mapped.",
+      "properties": {
+        "map": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^([a-z0-9]+(-[a-z0-9]+)*|FPO-default-icon)$" }, "description": "Prism3 icon name → the icon that replaces it, for example { plus: add, check: checkmark }." },
+        "glyphs": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {
+              "path": { "type": "string", "pattern": "^\\s*[Mm][MmZzLlHhVvCcSsQqTtAa0-9eE.,\\s+-]*$", "description": "One SVG path's data on the 0 0 24 24 artboard, filled." },
+              "fillRule": { "type": "string", "enum": ["evenodd"], "description": "OPTIONAL. 'evenodd' for art with counters cut out; leave it out for the default." }
+            }
+          },
+          "description": "Icon name → the brand's art for it."
+        }
+      }
+    },
     "currentIndicator": { "type": "string", "enum": ["full", "partial"], "default": "partial", "description": "OPTIONAL. The 2px bar under the current page's link (Link at current, so every PageNav item): 'partial' is round(0.5 x the title's width), centered under it; 'full' runs under the whole title. The thickness is 2px either way. Default 'partial'." },
     "buttonIcons": { "type": "string", "enum": ["attached", "edges"], "default": "attached", "description": "OPTIONAL. Button icons: 'attached' beside the label, or 'edges' with the label centered between them." },
     "buttonContentSize": { "type": "string", "enum": ["match", "smaller"], "default": "match", "description": "OPTIONAL. 'smaller': a medium button takes the small label and icon." },
