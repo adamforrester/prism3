@@ -14,6 +14,11 @@ npx tsx tools/poc-scorecard/scorecard.ts --self-test                            
   matches none of the row's patterns reads "unparsed". None of the three ever reads 0.
 - **Units carry no number.** A count written into a row's unit would print on every card whatever the run measured,
   and `--self-test` fails on one. A record's `dirty` counts untracked files that aren't ignored.
+- **API mismatches against Figma** (`api-mismatches.ts --manifest <custom-elements.json>`). For each def an arm ships
+  as an element, it counts the Figma-exposed props the element lacks, one per prop per component. A def's
+  Figma-exposed props are its own, plus each nesting's `exposes`. An element offers each attribute's field and each
+  public field. Elements match defs by tag less the first segment, so any prefix works. `--self-test` plants a
+  mismatch, and its count must show, never 0.
 - **Arm 2.** It gets its rows in `ARMS` once its repo is readable, measured through the input contract in
   `apps/storybook/ARM-CONTRACT.md`.
 

@@ -2331,7 +2331,7 @@ both arms. This builds it from records, so the day arm 2's records exist, the ca
 ### What was built
 
 - **`tools/poc-scorecard/measures.ts`** lists the brief's 16 KPI rows by hand: KPI 1 (3), KPI 2 (5), KPI 3 (6) and
-  ejection (2). For arm 1 it gives the command that measures each row it can (9), and why the other 7 aren't measured
+  ejection (2). For arm 1 it gives the command that measures each row it can (10), and why the other 6 aren't measured
   yet.
 - **`scorecard.ts record`** runs an arm's commands and stores each run's record, uncommitted. A record holds the exit
   code, the summary line, the parsed value, the commit, whether the tree was dirty, the time and the duration.
@@ -2342,6 +2342,7 @@ both arms. This builds it from records, so the day arm 2's records exist, the ca
   - a dirty tree is marked;
   - the parse sums every pattern;
   - no row's unit carries a number, so every number on the card comes from a record;
+  - a planted API mismatch is counted and shows its count, never 0;
   - every arm 1 row is measured or says why not.
 - A tool, not a gate (`tools/CLAUDE.md`): each row's command is already a check in the POC packages.
 
@@ -2354,7 +2355,7 @@ The tree was `poc/arm-1` at `40d7fc01` plus this tool, which no measurement read
 | KPI 2 | Token parity, HTML/CSS form | 1,770 bindings |
 | KPI 2 | Token parity, component form | 1,666 bindings |
 | KPI 2 | API parity against the defs | 57 props matched (button 15, text field 24, password field 18) |
-| KPI 2 | API parity against Figma: mismatches | not measured: how S6-2 A's mismatches count waits on an owner decision |
+| KPI 2 | API parity against Figma: mismatches | 4 mismatches (the review fix below; measured 04:17 UTC on 2026-11-21) |
 | KPI 2 | Geometry against Figma | FAIL: `figma-geometry.json` is missing (the Mac job, B3) |
 | KPI 3 | Geometry, the two forms against each other | 300 checks |
 | KPI 3 | axe, light and dark | 800 checks |
@@ -2365,7 +2366,7 @@ The tree was `poc/arm-1` at `40d7fc01` plus this tool, which no measurement read
 
 ### What was checked, and how
 
-- `--self-test`: 9 cases, all OK.
+- `--self-test`: 10 cases, all OK.
 - **Hand mutation on disk**, after a commit, restored with `git show HEAD:<path> > <path>`: making a missing record
   render `0` fails 3 self-test cases by name, starting with "an arm with no records still shows every row, as not
   measured".
@@ -2393,3 +2394,26 @@ row's unit, not measured, and that it contradicts owner decision S6-2 A, which r
 any row's unit carries a number. The brief's own KPI 2 measure, mismatches against Figma, is a new row,
 `kpi2-api-mismatches`, pending on an owner decision about how the mismatches count. A record's `dirty` now counts
 untracked files too, so a dropped-in input before it's committed marks the cell.
+
+**The mismatch row, measured (owner decision A, 2026-11-20).** The owner chose A: count one mismatch per Figma-exposed
+prop the element lacks, per component. `tools/poc-scorecard/api-mismatches.ts` measures it from two inputs that don't
+derive from each other:
+- The **defs** (`component-defs.json`, emitted fresh): each def's own props, plus each nesting's `exposes`.
+- The arm's **`custom-elements.json`**, written by the analyzer: each attribute's field and each public field.
+
+A manifest element matches a def by its tag less the first segment, so arm 2's manifest works with whatever prefix it
+uses. A def with no element isn't counted. Arm 1 reads **4**: `emphasis` and `weight` on `text-field` and
+`password-field`, which is S6-2 A.
+- **Public fields count, not just attributes.** A controlled `value`, `onChange` and the icon slots are properties with
+  no attribute. Reading attributes alone would count 6 per field. The parity check already holds all 57 of those props
+  on the elements.
+- **`aria-label` matches `ariaLabel`.** The first run read 5, because the button's `aria-label` is the property
+  `ariaLabel`. The DOM spells kebab-case props that way, so the comparison camel-cases a prop before calling it missing.
+- **Caveat:** the password field's toggle also exposes the button's `label`. That name is the field's own `label` too,
+  so it reads as present. Props are compared by name per component.
+
+A new self-test case (10 in all) plants two defs and a manifest. The element lacks one own prop and both exposed props,
+and there's a def with no element. The case must count 3 and show `3 mismatches` on the card. Each mutation was
+committed first and restored with `git show`, and each fails that case by name:
+- the count hardcoded to 0 (`counted 0`);
+- the nestings' `exposes` dropped (`counted 1`).

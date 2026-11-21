@@ -408,5 +408,7 @@ runs an arm's commands and stores each run's exit code and summary line under `r
 measures one tree and cites its commit). `render` writes the card. A row with no record reads "not measured", a failed
 run reads FAIL with its first failing line, and a run whose summary matches no pattern reads "unparsed". None of the
 three ever reads as 0, and `--self-test` holds that. **No gate sibling, on purpose:** each row's command is already a
-check in the POC packages, gated where it belongs. The card's job is to show both arms side by side, and arm 2 has no
+check in the POC packages, gated where it belongs. The exception is `api-mismatches.ts`, KPI 2's mismatches against Figma
+(owner decision A on #4424). It is a measurement, not a check: it exits 0 whatever the count, and the self-test plants a
+mismatch to hold it. The card's job is to show both arms side by side, and arm 2 has no
 records yet.
