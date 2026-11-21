@@ -41,6 +41,13 @@ without the call (3 arms) · progress-order reading landings from `origin/main` 
 **The other gates that read `GITHUB_BASE_REF`.** Each was run in the simulated carried repo. `lint-materialization-renames`,
 `lint-component-surface`, `lint-component-renames`, `lint-contract-version`, `lint-release-notes` and
 `lint-executor-revision` pass there. They read the same stale base, but at this carry nothing in their subject differs
-in a way that fails: a later carry could still trip them. `apps/plugin/test-loose-host.ts`'s register is shrink-only, so
+in a way that fails: a later carry could still trip them. Filed as #4452. `apps/plugin/test-loose-host.ts`'s register is shrink-only, so
 a stale base is a superset and cannot fail it. `lint-push-base.ts` replays with `GITHUB_BASE_REF` unset, and
 `lint-doc-gates.ts` only reads the name as text.
+
+**Review fixes.** A carry cut from `main` past the fold joined `main`'s first-parent chain, so with no `main` commit after
+the cut the chain's one tip was the carry's own head, and its own violation passed silently. Such a tip (HEAD or one of
+HEAD's parents) now falls back to the fold; a new carried-repo arm cuts a carry from `m2` and requires NOTE SHAPE by name,
+and dropping the guard fails it. The helper covers only the first carry after a fold: once the carried `main` holds the
+fold, a later carry bringing newer `main` commits keeps the earlier carry's merge as its base. The docstring says so, and
+it is filed as #4453 rather than changed here.

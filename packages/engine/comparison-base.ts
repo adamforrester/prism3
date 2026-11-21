@@ -179,7 +179,7 @@ export const carriedMain = (git: Git, baseRef: string): { mainRef: string; point
  *
  * LIMIT: this steps in only for the FIRST carry after a fold. Once the carried repo's `main` holds the fold, a later
  * carry that brings newer `main` commits but no new fold gets null, and its base is the earlier carry's merge: `main`'s
- * commits since then read as the carry's own again. Filed as its own issue (see the #3408 progress fragment).
+ * commits since then read as the carry's own again. Filed as #4453.
  *
  * Null too where the fold cannot be found (a shallow checkout, no readable version, no single-parent commit setting
  * it): the caller keeps its base, which fails loud rather than passes. `base` is the commit the gate would compare
