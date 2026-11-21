@@ -41,7 +41,6 @@ Use page navigation to move between two to six sibling pages that share a headin
 
 - Mark the page the user is on as the current item
 - Use each page's own title as its label
-- Name the landmark for the area, such as Account
 - Keep the row the same on every page it links
 
 ### Don't
@@ -94,6 +93,8 @@ Page titles in sentence case, matching each page heading.
   - a row of links with the current page told apart by color alone
 
 ## Building it in code
+
+- Name the landmark for the area, such as Account
 
 ### Props
 

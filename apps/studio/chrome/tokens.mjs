@@ -35,11 +35,21 @@ export function* leaves(node, path = []) {
   if (!node || typeof node !== 'object') return;
   for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) yield* leaves(v, [...path, k]);
 }
-/** The default theme's light and dark trees, merged the way the engine emits them. */
-export function loadModes() {
-  const out = join(ROOT, 'packages', 'engine', 'out');
-  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
-  const darkOverlay = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+/** One emitted tree. `regen` rewrites `out/` files in place (truncate, then write), so a build started while a regen
+ *  runs in the same tree can read one empty or half-written. Said by name, with the remedy, because "Unexpected end of
+ *  JSON input" alone sends a reader looking for a broken emitter (#3914). Every chrome-build read of an `out/` tree goes
+ *  through it: `loadModes` here and `chromeTexts` (`glyphs.mjs`), which the `[glyphs]` check runs first. */
+export const readTree = (file) => {
+  const text = readFileSync(file, 'utf8');
+  const race = 'a `regen` running in this tree rewrites out/ in place, so wait for it to finish and run the build again (#3914)';
+  if (!text.trim()) throw new Error(`${file} is empty — ${race}`);
+  try { return JSON.parse(text); } catch (e) { throw new Error(`${file} does not parse (${e.message}) — ${race}`); }
+};
+/** The default theme's light and dark trees, merged the way the engine emits them. `out` is the emission directory,
+ *  given only by a test. */
+export function loadModes(out = join(ROOT, 'packages', 'engine', 'out')) {
+  const base = readTree(join(out, 'prism3.tokens.json'));
+  const darkOverlay = readTree(join(out, 'prism3.dark.overlay.tokens.json'));
   const merged = (overlay) => {
     const tree = structuredClone(base);
     if (!overlay) return tree;

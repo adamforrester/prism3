@@ -935,9 +935,20 @@ export const parseYamlSubset = (text: string): YamlValue => {
 export const gateTokensOf = (run: string): string[][] => {
   const out: string[][] = [];
   for (const m of run.matchAll(/npx\s+(?:--yes\s+)?tsx(?:@\d+)?\s+(?:\S*\/)?([\w.-]+\.ts)\b/g)) out.push([m[1]]);
-  for (const m of run.matchAll(/npm run\s+((?:-w\s+\S+\s+)?)([\w:.-]+)((?:\s+-w\s+\S+)?)/g)) {
-    const ws = /-w\s+(\S+)/.exec(m[1] + m[3])?.[1];
-    out.push(ws ? [m[2], ws] : [m[2]]);
+  // #1934: the workspace flag in all three spellings npm accepts (`-w X`, `--workspace X`, `--workspace=X`), before or
+  // after the script. The old pattern knew only `-w X`, so `npm run --workspace X s` gave the tokens `["--workspace"]`
+  // and `npm run s --workspace=X` dropped the workspace. Restated here, not imported from `canonicalArgv` (arm 5's),
+  // so the prose arm and the argv arm do not share one reading of a command (docs/34).
+  for (const m of run.matchAll(/npm run((?:[ \t]+[^\s;&|]+)+)/g)) {
+    const words = m[1].trim().split(/\s+/);
+    let ws: string | undefined, script: string | undefined;
+    for (let i = 0; i < words.length && words[i] !== '--'; i++) {
+      const w = words[i];
+      if ((w === '-w' || w === '--workspace') && i + 1 < words.length) ws = words[++i];
+      else if (w.startsWith('--workspace=')) ws = w.slice('--workspace='.length);
+      else if (!w.startsWith('-') && script === undefined && /^[\w:.-]+$/.test(w)) script = w;
+    }
+    if (script) out.push(ws ? [script, ws] : [script]);
   }
   // #2981: a script run by `sh`/`bash` at the start of a line, by its repo path. Before this, the
   // freshness battery's step was invisible to the prose arm, and so would a new script gate have been.
@@ -1095,6 +1106,12 @@ if (gateTokensOf(steps.find((s) => s.name === 'Install workspace deps')!.run).le
 if (gateTokensOf(steps.find((s) => s.name === 'Sample gate: has a colon')!.run).length) selfFails.push('a grep-only block script is wrongly treated as a gate step');
 if (!gateTokensOf(steps.find((s) => s.name === 'Sample unit tests')!.run).length) selfFails.push('an `npx tsx` step is no longer detected as a gate step');
 if (!gateTokensOf(steps.find((s) => s.name === 'Typecheck sample')!.run).length) selfFails.push('an `npm run` step is no longer detected as a gate step');
+// #1934: every spelling of the workspace flag, before or after the script, gives the script and the workspace.
+for (const run of ['npm run --workspace @prism3/plugin test:start', 'npm run test:start --workspace=@prism3/plugin',
+  'npm run -w @prism3/plugin test:start', 'npm run test:start -w @prism3/plugin', 'npm run --workspace=@prism3/plugin test:start -- --flag']) {
+  const got = JSON.stringify(gateTokensOf(run));
+  if (got !== JSON.stringify([['test:start', '@prism3/plugin']])) selfFails.push(`#1934 the npm run tokens of \`${run}\` are ${got}, not the script and its workspace`);
+}
 // #2981: a script a step runs by `sh` or `bash` is a gate step, named by its path; one merely mentioned is not.
 for (const run of ['sh tools/Sample/mutations.sh', 'bash .github/scripts/test-Sample.sh']) {
   if (JSON.stringify(gateTokensOf(run)) !== JSON.stringify([[run.split(' ')[1]]])) selfFails.push(`a script step is not detected as a gate step by its path: ${run}`);

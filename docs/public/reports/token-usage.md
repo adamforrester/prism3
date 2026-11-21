@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 291 of 822 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 291 of 831 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members. A key marked "not drawn" names the token but no member draws it; another key on the row does.
 
@@ -872,13 +872,12 @@ Type: color. Bound by 4 component(s).
 
 ### `color.interactive.neutral.border.rest`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button-neutral | `outline.border` | container | appearance: outline · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button-neutral | `outline.border` | container | appearance: outline · state: focus-visible, pending, rest · surface: default (18 of 216) |
-| slider | `indicator` | bar | state: focus-visible, hover, pressed, rest (24 of 30) |
 | switch-control | `off.border` | track | selection: off · state: focus-visible, rest · status: default (4 of 40) |
 | tag | `unselected.border` | container | selection: unselected · state: focus-visible, rest (12 of 45) |
 
@@ -987,12 +986,13 @@ Type: color. Bound by 1 component(s).
 
 ### `color.interactive.neutral.indicator.rest`
 
-Type: color. Bound by 3 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | _slider-thumb | `indicator` | disc | state: focus-visible, rest (6 of 15) |
 | pagination-item | `selected.underline.page.fill.focus-visible`, `selected.underline.page.fill.rest` | underline | labeled: false · selection: selected · state: focus-visible, rest · style: underline · type: page (6 of 87) |
+| slider | `indicator` | bar | state: focus-visible, hover, pressed, rest (24 of 30) |
 | switch-control | `off.indicator` | thumb | selection: off · state: focus-visible, hover, pressed, rest (16 of 40) |
 
 ### `color.interactive.neutral.on-fill`
@@ -4198,7 +4198,7 @@ Declared, not drawn: `motion.duration-reduced.fast`, `motion.duration.fast`, `mo
 
 17 token(s); 30 design-file member(s).
 
-`border-width.heavy`, `border-width.thick`, `border-width.x-heavy`, `color.disabled.fill`, `color.disabled.icon`, `color.disabled.text`, `color.field.border.rest`, `color.interactive.neutral.border.rest`, `color.text.primary`, `color.text.secondary`, `radius.round`, `size.md.min-height`, `space.0`, `space.100`, `space.150`, `type.body.sm.default`, `type.body.xs.default`
+`border-width.heavy`, `border-width.thick`, `border-width.x-heavy`, `color.disabled.fill`, `color.disabled.icon`, `color.disabled.text`, `color.field.border.rest`, `color.interactive.neutral.indicator.rest`, `color.text.primary`, `color.text.secondary`, `radius.round`, `size.md.min-height`, `space.0`, `space.100`, `space.150`, `type.body.sm.default`, `type.body.xs.default`
 
 ### spinner
 
@@ -4284,7 +4284,7 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-251 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+260 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
@@ -4303,7 +4303,7 @@ Declared, not drawn: `color.border.focus`
 - **control** — `control.size.lg.inset`, `control.size.lg.track`, `control.size.lg.width`
 - **gradient** — `gradient.brand`, `gradient.glow`
 - **grid** — `grid.2xl.columns`, `grid.2xl.gutter`, `grid.2xl.margin`, `grid.lg.columns`, `grid.lg.gutter`, `grid.lg.margin`, `grid.md.columns`, `grid.md.gutter`, `grid.md.margin`, `grid.sm.columns`, `grid.sm.gutter`, `grid.sm.margin`, `grid.xl.columns`, `grid.xl.gutter`, `grid.xl.margin`
-- **motion** — `motion.duration-ms.0`, `motion.duration-ms.100`, `motion.duration-ms.1600`, `motion.duration-ms.200`, `motion.duration-ms.2600`, `motion.duration-ms.300`, `motion.duration-ms.40`, `motion.duration-ms.50`, `motion.duration-ms.500`, `motion.duration-ms.800`, `motion.duration-reduced.instant`, `motion.duration-reduced.moderate`, `motion.duration-reduced.normal`, `motion.duration-reduced.slow`, `motion.duration-reduced.slower`, `motion.duration-reduced.sweep`, `motion.duration.instant`, `motion.duration.moderate`, `motion.duration.normal`, `motion.duration.slow`, `motion.duration.slower`, `motion.easing-role.emphasized`, `motion.easing-role.exit`, `motion.easing.accelerate`, `motion.easing.calm`, `motion.easing.decelerate`, `motion.easing.expressive`, `motion.easing.linear`, `motion.easing.standard`, `motion.spring.bouncy`, `motion.spring.gentle`, `motion.spring.snappy`, `motion.stagger`, `motion.transition.default`, `motion.transition.emphasized`, `motion.transition.enter`, `motion.transition.exit`
+- **motion** — `motion.duration-ms.0`, `motion.duration-ms.100`, `motion.duration-ms.1100`, `motion.duration-ms.1300`, `motion.duration-ms.1600`, `motion.duration-ms.200`, `motion.duration-ms.2600`, `motion.duration-ms.300`, `motion.duration-ms.40`, `motion.duration-ms.50`, `motion.duration-ms.500`, `motion.duration-ms.800`, `motion.duration-ms.900`, `motion.duration-reduced.instant`, `motion.duration-reduced.long`, `motion.duration-reduced.longer`, `motion.duration-reduced.longest`, `motion.duration-reduced.moderate`, `motion.duration-reduced.normal`, `motion.duration-reduced.slow`, `motion.duration-reduced.slower`, `motion.duration-reduced.sweep`, `motion.duration.instant`, `motion.duration.long`, `motion.duration.longer`, `motion.duration.longest`, `motion.duration.moderate`, `motion.duration.normal`, `motion.duration.slow`, `motion.duration.slower`, `motion.easing-role.emphasized`, `motion.easing-role.exit`, `motion.easing.accelerate`, `motion.easing.calm`, `motion.easing.decelerate`, `motion.easing.expressive`, `motion.easing.linear`, `motion.easing.standard`, `motion.spring.bouncy`, `motion.spring.gentle`, `motion.spring.snappy`, `motion.stagger`, `motion.transition.default`, `motion.transition.emphasized`, `motion.transition.enter`, `motion.transition.exit`
 - **opacity** — `opacity.0`, `opacity.10`, `opacity.100`, `opacity.20`, `opacity.30`, `opacity.40`, `opacity.5`, `opacity.50`, `opacity.60`, `opacity.70`, `opacity.80`, `opacity.90`
 - **radius** — `radius.3xl`, `radius.hairline`
 - **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.md`, `shadow.sm`, `shadow.xs`

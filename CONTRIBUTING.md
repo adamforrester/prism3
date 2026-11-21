@@ -1392,6 +1392,12 @@ npx tsx packages/engine/lint-shadcn-contract.ts     # the shadcn map follows the
                                                     # each anchored variable maps to the role Button, Text
                                                     # Field, Select or Focus Ring binds; every row anchored
                                                     # or declared unanchored; every mapped role guaranteed.
+npx tsx packages/engine/lint-shadcn-contrast.ts     # the shadcn theme clears its contrast floors (#2997),
+                                                    # measured in Chromium on the emitted CSS: a typed pair
+                                                    # list, each floor the higher of WCAG and the engine's
+                                                    # own min. Needs Chromium (CI: the studio job).
+npx tsx packages/engine/lint-shadcn-roundtrip.ts    # every shadcn oklch() lands on its emitted 8-bit color
+                                                    # (#2997), parsed by Chromium, against the full tree.
 npx tsx packages/engine/lint-spec-supplement.ts     # the spec supplement lines up with Spectacular (#2996):
                                                     # each element, prop and Figma name against a hand-
                                                     # copied fixture of Spectacular's own output, each
@@ -1752,8 +1758,8 @@ npm run test:readback-parity -w @prism3/plugin # #2351 gap 2 (offline): the plug
                                           # (ADDED / REMOVED / RETYPED / VALUE / DESCRIPTION), each count
                                           # asserted at 0; the one tolerance is half an 8-bit step inside
                                           # a color. Grid and gradient styles, which no exporter reads,
-                                          # are compared as written; the tinted wash TokenPress cannot
-                                          # read is carved out as a bijection (#2365). Run after the
+                                          # are compared as written; each tinted wash is also held to
+                                          # the emission's own color at its opacity (#2365). Run after the
                                           # exporter gate above, which holds the emission's export to
                                           # the engine's DTCG.
 npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over EVERY emitted brand —
@@ -1783,14 +1789,20 @@ npm run check:package -w @prism3/tokens       # #3408 S1, docs/35 §9.3: the SHI
                                           # mode, read from out/prism3.tokens.json, which the
                                           # build never reads. [OWN FILE] (#3877): each per-mode
                                           # file (prism3/<mode>.css) runs the same arms itself
+npm run check:shadcn -w @prism3/tokens        # #2997 gate 5: the engine's Tailwind v4 theme, compiled
+                                          # by the stock Tailwind CLI pinned in this package against
+                                          # a typed fixture (bg-primary, text-muted-foreground,
+                                          # outline-ring, shadow-md, rounded-lg, p-2, font-sans);
+                                          # each utility resolves to the brand's own value, and
+                                          # each color and shadow is set in :root and .dark.
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
                                           # built bundles: apps/studio/dist/*.js and, since #937,
                                           # apps/plugin/dist (main.js + ui.html), where the component
                                           # defs' description/note/aria prose actually ships
 npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here.
-                                          # NOT the same scope any more: it still has the
-                                          # apps/plugin/dist hole #937 closed above (3 violations
-                                          # measured in main.js), filed as #948 not folded in
+                                          # Same bundle scope since #948: it reads
+                                          # apps/plugin/dist (main.js + ui.html) too, the hole
+                                          # #937 closed above for the US-English gate
 sh tools/claude-md-freshness/mutations.sh  # the mutation battery for the CLAUDE.md-freshness
                                           # SessionStart hook (#1110), wired into CI as #1123 — the
                                           # one tools/ battery that is a gate. NAMED FOR THE
