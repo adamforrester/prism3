@@ -670,7 +670,8 @@ ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded ===
     `#1090 brand fonts loaded is ${brandHas} on an empty file and on a populated one (got ${emptyRun.brandLoaded}, ${fullRun.brandLoaded})`);
   // The Apply Theme summary and its agent data read that number, not `loaded`. main.ts runs only inside Figma, so the
   // wiring is read from its source, PARSED (#4243): a regex over the raw text matched the old wiring left in a comment.
-  // Every `fontsLoaded:` property and every template's "fonts loaded" clause must read `pf.brandLoaded`, and each must
+  // Every `fontsLoaded:` property and every template's " fonts" clause ("Type: N fonts" since #4185, "N fonts loaded"
+  // before it) must read `pf.brandLoaded`, and each must
   // occur at least once. MUTATIONS VERIFIED (#4243, each fails the arm by name): `fontsLoaded: pf.loaded` with the old
   // text in a comment beside it · the clause's `${pf.brandLoaded}` as `${pf.loaded}`.
   const mainSrc = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
@@ -680,12 +681,12 @@ ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded ===
     if (ts.isPropertyAssignment(n) && n.name.getText(sf) === 'fontsLoaded') props.push(n.initializer.getText(sf));
     if (ts.isShorthandPropertyAssignment(n) && n.name.getText(sf) === 'fontsLoaded') props.push('fontsLoaded (shorthand)');
     if (ts.isTemplateExpression(n))
-      n.templateSpans.forEach((span) => { if (/^ fonts loaded\b/.test(span.literal.text)) clauses.push(span.expression.getText(sf)); });
+      n.templateSpans.forEach((span) => { if (/^ fonts(?: loaded)?\b/.test(span.literal.text)) clauses.push(span.expression.getText(sf)); });
     ts.forEachChild(n, visit);
   };
   visit(sf);
   ok(clauses.length > 0 && clauses.every((e) => e === 'pf.brandLoaded') && props.length > 0 && props.every((e) => e === 'pf.brandLoaded'),
-    `#1090 the Apply Theme summary's "fonts loaded" and the agent data's fontsLoaded both read brandLoaded (clauses ${JSON.stringify(clauses)}, fontsLoaded ${JSON.stringify(props)})`);
+    `#1090 the Apply Theme summary's font count ("Type: N fonts" since #4185) and the agent data's fontsLoaded both read brandLoaded (clauses ${JSON.stringify(clauses)}, fontsLoaded ${JSON.stringify(props)})`);
 }
 
 // =============================================================================================

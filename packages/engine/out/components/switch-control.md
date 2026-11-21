@@ -43,10 +43,8 @@ Do not place this on its own. It is the track-and-thumb Switch.Row nests, so a f
 
 ### Do
 
-- Nest this from Switch.Row rather than redrawing the track per host
-- Let the host row pass selection, state and showStateLabel through, and follow its size, so the nested control tracks the row
 - Let thumb position carry the state; treat the glyph as a legibility aid, not the color-independence answer
-- Supply an external aria-label only when using the control genuinely alone
+- Supply an external `aria-label` only when using the control genuinely alone
 
 ### Don't
 
@@ -91,6 +89,9 @@ The atom has no copy of its own; all label, description and error text belongs t
   - the painted track and thumb inlined in a switch row
 
 ## Building it in code
+
+- Nest this from Switch.Row rather than redrawing the track per host
+- Let the host row pass selection, state and showStateLabel through, and follow its size, so the nested control tracks the row
 
 ### Props
 

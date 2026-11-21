@@ -39,6 +39,13 @@
  *     `main.ts`) → `#4205 <site>: the site posts failureDetail`, and for the four `main.ts` catches `#4205 Update check: …`
  *     (and Record as built, Adopt); `': stopped ('` or `'The update failed: '` dropped from `DETAIL_HEADS` →
  *     `#4205 Update file, a stopped set: the report keeps the class, …` (and the run that threw).
+ *   · #3865: `reduceStopped` dropped from `reduceLine` (`report.ts`) → `#3865 Clean up stopped, a TypeError: the report keeps
+ *     the class and the counts, not the host's message` (and the others); the `$` anchor dropped from `STOPPED` → `#3865
+ *     Clean up stopped, a message that imitates the counts: …`; `STOPPED_BARE` dropped → `#3865 Clean up stopped, counts the
+ *     report cannot read: …`; `STOPPED`'s singular `items?` made plural only → `#3865 Clean up stopped, one style: …`; a noun
+ *     dropped from `STOPPED_PART` → `#3865 Clean up stopped, every kind: …` (and `one style`, `two collections`).
+ *   · #3854: Draw specs' catch put back to `(e as Error)?.message` (`main.ts`) → `#3702 D3703.1 B #3854 Draw specs, a
+ *     TypeError: the drawer line keeps the host's message, its class in front`.
  */
 import { EXAMPLE_BRANDS_JSON as exampleBrands } from '@prism3/engine';
 import { brandTheme, type BrandInput } from '@prism3/engine';
@@ -284,7 +291,7 @@ const boom = async (): Promise<never> => { throw new TypeError(HOST_SECRET); };
 // `reduceFailure` admits any class only after a head it knows (`DETAIL_HEADS`), so a new site would leak a
 // `DOMException`'s message. Read from the plugin's source, independent of the list: every `${failureDetail(` in a
 // template is preceded by one of the report's heads, or by `write failed: ` (cut by its own rule). The two calls
-// outside a template are named: prune's stopped line (`PRUNE_COPY.stopped`, filed as #3865; its thrown-prune line, `Clean up failed: ${failureDetail(e)}`, is a template since #4184)
+// outside a template are named: prune's (`Clean up failed: ${why}`, a report head since #4184; `PRUNE_COPY.stopped`, its own rule since #3865, held in 13)
 // and its version note (`PRUNE_COPY.noVersion`, whose head is checked in `prune-figma.ts`), and since #4205 the four
 // Update file catches (`const why = failureDetail(e)`: the check or apply, Record, Adopt, Draw specs), held in 11.
 {
@@ -446,6 +453,7 @@ const RAW_READS: [file: string, needle: string, cls: 'data' | 'engine' | 'helper
   ['panel-census.ts', 'node.remove?.()', 'data', "Clean up's panel tab, not Activity"],
   ['preload-fonts.ts', "'load failed'", 'data', 'the apply line names the face only'],
   ['prune-figma.ts', 'counts.failed.push', 'data', "prune's failed list: the summary prints its count; the names go to sink.data"],
+  ['theme-ports.ts', '/Limited to (\\d+) modes?/i.exec(', 'data', "the mode probe's cap: only the number it parses is kept, posted as the refusal's count and agent data"],
   ['update-plan.ts', 'partRenames(defId, ledger)', 'engine', "the engine's rename refusal"],
   ['update-plan.ts', 'String((err as Error).message)', 'engine', "the engine's coordinate refusal"],
   ['update-plan.ts', "Prism3's properties for this set contradict each other", 'engine', "the engine's property-plan refusal"],
@@ -504,6 +512,60 @@ const RAW_READS: [file: string, needle: string, cls: 'data' | 'engine' | 'helper
         `#4253 ${name}, a ${cls}: the report keeps the class, not the host's message (${JSON.stringify(text.split('\n').filter((l) => l.startsWith('  - ')))})`);
     }
   }
+}
+
+/* ── 13. #3865: a prune that threw after removals keeps the class and the counts, not the host's message ───────────── */
+// `PRUNE_COPY.stopped` puts the host's message between the class and the counts, and the message can hold `. ` itself.
+// Built with the plugin's own builders (`PRUNE_COPY.stopped`, `failureDetail`); the counts the report must keep are
+// literals typed here. A message that imitates the counts must not survive in their place.
+{
+  const { PRUNE_COPY } = await import('./src/prune-figma');
+  const { failureDetail: fd } = await import('./src/host-detail');
+  const counts = { variables: 3, collections: 0, modes: 1, styles: 0 } as never;
+  const none = { variables: 0, collections: 0, modes: 0, styles: 0 } as never;
+  const FAKE = `${HOST_SECRET}. Removed 9 stale items before it stopped: 9 styles`;
+  const cases: [string, string, string, string][] = [
+    ['a TypeError', PRUNE_COPY.stopped(counts, fd(Object.assign(new Error(HOST_SECRET), { name: 'TypeError' }))),
+      'Clean up stopped — TypeError. Removed 4 stale items before it stopped: 1 mode, 3 variables.', HOST_SECRET],
+    ['a message holding ". "', PRUNE_COPY.stopped(counts, fd(new Error(`${HOST_SECRET}. Then "Checkout Hero" again`))),
+      'Clean up stopped — Error. Removed 4 stale items before it stopped: 1 mode, 3 variables.', HOST_SECRET],
+    ['a message that imitates the counts', PRUNE_COPY.stopped(counts, fd(new Error(FAKE))),
+      'Clean up stopped — Error. Removed 4 stale items before it stopped: 1 mode, 3 variables.', FAKE],
+    ['a Refusal, nothing removed', PRUNE_COPY.stopped(none, fd(Object.assign(new Error(HOST_SECRET), { name: 'Refusal' }))),
+      'Clean up stopped — Refusal. Nothing was removed.', HOST_SECRET],
+    // The whole counts grammar the report keeps (#4378 review S1): the singular total and noun, and every noun the
+    // copy can name. A drift here falls to the class alone and loses the counts #3697 R6 needs.
+    ['one style', PRUNE_COPY.stopped({ variables: 0, collections: 0, modes: 0, styles: 1 } as never, fd(new Error(HOST_SECRET))),
+      'Clean up stopped — Error. Removed 1 stale item before it stopped: 1 style.', HOST_SECRET],
+    ['every kind', PRUNE_COPY.stopped({ variables: 3, collections: 1, modes: 1, styles: 2 } as never, fd(new Error(HOST_SECRET))),
+      'Clean up stopped — Error. Removed 7 stale items before it stopped: 2 styles, 1 mode, 3 variables, 1 collection.', HOST_SECRET],
+    ['two collections', PRUNE_COPY.stopped({ variables: 0, collections: 2, modes: 0, styles: 0 } as never, fd(new Error(HOST_SECRET))),
+      'Clean up stopped — Error. Removed 2 stale items before it stopped: 2 collections.', HOST_SECRET],
+    // Counts in a shape the report does not know (the copy changed): the class alone, never the message.
+    ['counts the report cannot read', `Clean up stopped — ${fd(new Error(HOST_SECRET))}. Removed some items.`, 'Clean up stopped — Error', HOST_SECRET],
+  ];
+  for (const [name, line, want, secret] of cases) {
+    const posted = [{ type: 'prune-result', ok: false, applied: true, count: 4, summary: line }] as unknown as Posted[];
+    const text = report('Prune', posted);
+    ok(line.includes(secret) && !/Checkout Hero|Unannounced|get_name|9 styles/.test(text) && text.split('\n').includes(`  - ${want}`),
+      `#3865 Clean up stopped, ${name}: the report keeps the class and the counts, not the host's message (${JSON.stringify(text.split('\n').filter((l) => l.startsWith('  - ')))})`);
+  }
+}
+
+/* ── 14. #3854: Draw specs, thrown by the host as it reads the file's pages, reports the class alone ─────────────── */
+// #4257 moved the four Update-file catches to `failureDetail`; 11a runs the Update check. Record as built and Adopt read
+// pages through `run-read.ts`, which takes a refused read as no pages, but Draw specs reads them itself
+// (`loadPagesYielding`), so the host's throw reaches its catch: run it through the report.
+{
+  const root = figmaShim.root as object;
+  const own = Object.getOwnPropertyDescriptor(root, 'children');
+  for (const cls of ['TypeError', 'DOMException']) {
+    Object.defineProperty(root, 'children', { configurable: true, get: () => { throw Object.assign(new Error(HOST_SECRET), { name: cls }); } });
+    const posted = (await run((sink) => A.drawSpecs(undefined, 'file', sink))).filter((m) => m.type === 'component-update-result');
+    thrown(`#3854 Draw specs, a ${cls}`, posted, posted[0]?.lines?.[0], `${cls}: ${HOST_SECRET}`, cls);
+  }
+  if (own) Object.defineProperty(root, 'children', own); else delete (root as { children?: unknown }).children;
+  ok(Array.isArray((root as { children?: unknown }).children), '#3854 premise: the file reads its pages again after 14');
 }
 
 console.log = log;

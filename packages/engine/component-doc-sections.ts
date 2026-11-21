@@ -19,7 +19,7 @@
  *   Related components    `composition.composesWith`, `.alternativeTo`, `ai.commonPartners`, `.supersedes`,
  *                         `.supersededBy` (each component once, in the first of these lists that names it, #3552
  *                         Q-UG3 A), and `.replacesPatterns`
- *   Building it in code   `props`; `docs.implementation` once Q362 adds it
+ *   Building it in code   `docs.implementation` (#2778, owner decision A on Q362), then `props`
  *
  * Three placements go past the wireframe's table, which names no section for them: the `props` table,
  * `motion` and the remaining composition lists. The wireframe puts Props and Motion on the site and not in
@@ -90,7 +90,7 @@ export type DocSection =
   | { id: 'code'; title: string; props: PropDef[]; implementation: string[] };
 
 /** One missing piece, for the maintainer record. `field` is the def path, as `component-schema.ts` names it. */
-export type DocGap = { section: DocSectionId; field: string; reason: 'empty' | 'maintainer register' | 'names a tool' | 'not in the schema yet' };
+export type DocGap = { section: DocSectionId; field: string; reason: 'empty' | 'maintainer register' | 'names a tool' };
 
 /** What the caller knows that the def does not: the brand's modes. Absent for a brand-independent page. */
 export type DocContext = { modes?: readonly string[] };
@@ -227,12 +227,12 @@ export const docSections = (def: ComponentDef, ctx: DocContext = {}): { sections
     all.push(lists.length || replaces.length ? { id: 'related', title: title('related'), lists, replaces } : undefined);
   }
 
-  // Building it in code. `docs.implementation` is the wireframe's proposed field; Q362 is still the
-  // owner's, so the schema does not carry it yet and the section holds the props table alone.
+  // Building it in code: the def's implementation rules (#2778, owner decision A on Q362) and its props.
   {
-    gap('code', 'docs.implementation', 'not in the schema yet');
+    const impl = [...(def.docs.implementation ?? [])];
+    if (!impl.length) gap('code', 'docs.implementation');
     if (!def.props.length) gap('code', 'props');
-    all.push(def.props.length ? { id: 'code', title: title('code'), props: [...def.props], implementation: [] } : undefined);
+    all.push(def.props.length || impl.length ? { id: 'code', title: title('code'), props: [...def.props], implementation: impl } : undefined);
   }
 
   return { sections: all.filter((s): s is DocSection => !!s), gaps };

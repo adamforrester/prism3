@@ -1910,6 +1910,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
 //   · the late-restore guard applied to `unreadable` only → `#2007 guard: a rejected restore after a brand was chosen …`.
 //   · `rejected`'s bar back to "until a brand resolves", or the tooltip back to the old wording → `#2007 rejected: the
 //     bar says the writes are off "until a brand loads" …`.
+//   · `unresolved`'s bar back to "until a brand resolves" → `#2007 unresolved: the bar says the writes are off "until a
+//     brand loads", the owner's words …`.
 {
   const base = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
   const capture = (page) => page.evaluate(() => {
@@ -1986,7 +1988,8 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
   /** Choose an example from the brand menu, answering the overwrite confirm when edits are at risk. */
   const chooseExample = async (page) => {
     await hooks.click(page.locator('[data-p3="brand-switcher"]'), { timeout: 4000 }).catch(() => {});
-    const name = await page.locator('[data-p3="brand-menu-example"]').first().textContent().catch(() => null);
+    // The name, not the item: since #3977 the item also carries the example's few words under it.
+    const name = await page.locator('[data-p3="brand-menu-example"] .p3-menu-label').first().textContent().catch(() => null);
     await hooks.click(page.locator('[data-p3="brand-menu-example"]').first(), { timeout: 4000 }).catch(() => {});
     // After a demo edit there are edits to lose, so the choice asks first (#1033); answering it is the load.
     if (await page.locator('[data-p3="overwrite-replace"]').count()) await hooks.click(page.locator('[data-p3="overwrite-replace"]'), { timeout: 4000 }).catch(() => {});
@@ -2008,6 +2011,9 @@ const OFF_HINT = "Off until a brand loads. This file's saved brand didn't open, 
     await post(page, { type: 'restore-input', input: { ...base, id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } } });
     await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
     const off = await read(page);
+    // Owner (#4222, 2026-11-19): the owner's words, "until a brand loads", for this kind too.
+    ok((off.bar ?? '').includes('are off until a brand loads.') && !(off.bar ?? '').includes('until a brand resolves'),
+      `#2007 unresolved: the bar says the writes are off "until a brand loads", the owner's words — bar ${JSON.stringify((off.bar ?? '').slice(-110))}`);
     ok(allOff(off), `#1994 unresolved: Update file's action is off after the refused restore — ${JSON.stringify(off)}`);
     const ex = await exportBrief(page);
     ok(ex.off === false && !!ex.file && ex.file.name === 'refused-brand.design.md' && ex.file.text.includes('background.secondary'),
